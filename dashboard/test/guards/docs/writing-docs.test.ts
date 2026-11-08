@@ -32,8 +32,12 @@ function toGlob(pattern: string): string {
 }
 
 function scan(glob: string): string[] {
-  return [...new Bun.Glob(glob).scanSync({ cwd: REPO, dot: true, onlyFiles: true })]
-    .filter((f) => !f.split("/").some((part) => part === "node_modules" || part === ".venv"));
+  return [
+    ...new Bun.Glob(glob).scanSync({ cwd: REPO, dot: true, onlyFiles: true }),
+  ].filter(
+    (f) =>
+      !f.split("/").some((part) => part === "node_modules" || part === ".venv"),
+  );
 }
 
 function pagesMatchedByRule(): string[] {
@@ -47,7 +51,9 @@ function pagesInScope(): string[] {
     ...scan("dashboard/.claude/rules/*.md"),
     ...scan(".claude/rules/*.md"),
     ...scan("core/implementations/**/*.md"),
-    ...scan("docs/*.md").filter((f) => f !== "docs/AI_NEWS_LOG.md" && f !== "docs/ROADMAP.md"),
+    ...scan("docs/*.md").filter(
+      (f) => f !== "docs/AI_NEWS_LOG.md" && f !== "docs/ROADMAP.md",
+    ),
     "dashboard/README.md",
     "dashboard/CLAUDE.md",
     "README.md",
@@ -81,7 +87,9 @@ function withoutCode(text: string): string {
 export function anchorsOf(text: string): Set<string> {
   const seen = new Map<string, number>();
   const anchors = new Set<string>();
-  for (const m of withoutCode(text).matchAll(/^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$/gm)) {
+  for (const m of withoutCode(text).matchAll(
+    /^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$/gm,
+  )) {
     const base = anchorOf(m[1]!);
     const n = seen.get(base) ?? 0;
     seen.set(base, n + 1);
@@ -98,11 +106,23 @@ interface Files {
 /** Every relative link in `text` (written in the file at `path`) whose file or
  *  heading is missing. Links in code blocks and inline code, absolute URLs and
  *  links to a heading of the same page are not checked. */
-export function brokenLinks(text: string, path: string, files: Files): string[] {
+export function brokenLinks(
+  text: string,
+  path: string,
+  files: Files,
+): string[] {
   const prose = withoutCode(text);
   const targets = [
-    ...[...prose.matchAll(/!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)].map((m) => m[1]!),
-    ...[...prose.matchAll(/^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s+"[^"]*")?\s*$/gm)].map((m) => m[1]!),
+    ...[
+      ...prose.matchAll(
+        /!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g,
+      ),
+    ].map((m) => m[1]!),
+    ...[
+      ...prose.matchAll(
+        /^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s+"[^"]*")?\s*$/gm,
+      ),
+    ].map((m) => m[1]!),
   ];
   const broken: string[] = [];
   for (const target of targets) {
@@ -111,7 +131,11 @@ export function brokenLinks(text: string, path: string, files: Files): string[] 
     const resolved = resolve(dirname(path), decodeURI(file.split("?")[0]!));
     if (!files.exists(resolved)) {
       broken.push(target);
-    } else if (fragment && resolved.endsWith(".md") && !anchorsOf(files.read(resolved)).has(decodeURI(fragment))) {
+    } else if (
+      fragment &&
+      resolved.endsWith(".md") &&
+      !anchorsOf(files.read(resolved)).has(decodeURI(fragment))
+    ) {
       broken.push(target);
     }
   }
@@ -142,7 +166,11 @@ describe("the writing rule's paths cover the development pages", () => {
     ]) {
       expect(matched.has(out)).toBe(false);
     }
-    const outside = [...matched].filter((f) => /^(docs\/prompts|core\/skills|core\/rules|\.claude\/skills|specs)\//.test(f));
+    const outside = [...matched].filter((f) =>
+      /^(docs\/prompts|core\/skills|core\/rules|\.claude\/skills|specs)\//.test(
+        f,
+      ),
+    );
     expect(outside).toEqual([]);
   });
 });
@@ -151,7 +179,11 @@ describe("a relative link reaches a file and a heading that exist", () => {
   test("every link on every page in scope (AC-7)", () => {
     const broken: Record<string, string[]> = {};
     for (const page of pagesMatchedByRule()) {
-      const links = brokenLinks(readFileSync(join(REPO, page), "utf-8"), join(REPO, page), onDisk);
+      const links = brokenLinks(
+        readFileSync(join(REPO, page), "utf-8"),
+        join(REPO, page),
+        onDisk,
+      );
       if (links.length > 0) broken[page] = links;
     }
     expect(broken).toEqual({});
@@ -161,7 +193,8 @@ describe("a relative link reaches a file and a heading that exist", () => {
   const other = join(REPO, "docs", "other.md");
   const files: Files = {
     exists: (p) => p === page || p === other,
-    read: () => "# Other\n\n## Review — three reviewers\n\n## Same\n\n## Same\n",
+    read: () =>
+      "# Other\n\n## Review — three reviewers\n\n## Same\n\n## Same\n",
   };
 
   test("the check reports a missing file and a missing heading, and nothing else (AC-7)", () => {
@@ -174,6 +207,9 @@ describe("a relative link reaches a file and a heading that exist", () => {
       "[fenced](gone.md)",
       "```",
     ].join("\n");
-    expect(brokenLinks(text, page, files)).toEqual(["missing.md", "other.md#no-such-heading"]);
+    expect(brokenLinks(text, page, files)).toEqual([
+      "missing.md",
+      "other.md#no-such-heading",
+    ]);
   });
 });

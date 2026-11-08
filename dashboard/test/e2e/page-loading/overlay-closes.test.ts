@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
-import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import {
+  browserDeadline,
+  withBrowser,
+} from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -19,12 +22,16 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-const overlayShown = (page: Page) => page.locator("dialog.pageoverlay").isVisible();
+const overlayShown = (page: Page) =>
+  page.locator("dialog.pageoverlay").isVisible();
 
 test("the loading cover of a slow page change is gone once the page is in place", async () => {
   const page = await browser.newPage();
   await page.route("**/*", async (route) => {
-    if (route.request().resourceType() === "fetch" && route.request().headers().accept?.includes("text/html")) {
+    if (
+      route.request().resourceType() === "fetch" &&
+      route.request().headers().accept?.includes("text/html")
+    ) {
       await new Promise((r) => setTimeout(r, 400));
     }
     await route.continue();

@@ -35,8 +35,13 @@ export interface QueueRowView {
    *  none either, however `queuePriorityOrder()` would have sorted it. */
   queuePosition?: { n: number; total: number };
   state:
-    | "queued" | "running" | "done"
-    | "stopped" | "failed" | "cancelled" | "interrupted";
+    | "queued"
+    | "running"
+    | "done"
+    | "stopped"
+    | "failed"
+    | "cancelled"
+    | "interrupted";
   landing?: boolean;
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored
@@ -55,7 +60,14 @@ export interface QueueRowView {
    *  no step actually running right now — including while merely `queued`
    *  for its next one. */
   stepStartedAt?: string;
-  stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
+  stopReason?:
+    | "timeout"
+    | "provider-limit"
+    | "model-at-capacity"
+    | "tests-red"
+    | "acceptance-criteria"
+    | "shared-files"
+    | "sent-back";
   /** When the board starts a job stopped on its AI's usage limit again —
    *  the render-side mirror of `Job.usageLimitWait`. Absent once it has
    *  started, or for a stop that has no restart. */
@@ -189,7 +201,10 @@ export interface StepResultView {
 
 /** What a step's review and verification spent between them, in dollars and
  *  tokens: a part that is missing counts as 0. */
-export function sidesSpent(result: StepResultView): { usd: number; tokens: number } {
+export function sidesSpent(result: StepResultView): {
+  usd: number;
+  tokens: number;
+} {
   const sides = [result.review, result.verify];
   return {
     usd: sides.reduce((sum, s) => sum + (s?.costUsd ?? 0), 0),
@@ -202,6 +217,8 @@ export function sidesSpent(result: StepResultView): { usd: number; tokens: numbe
  *  this is what the TOTALS built on top of them ask, so a
  *  spec total of "41.13" cannot read as money spent when 35 of it is a
  *  ceiling nobody measured. */
-export function anyCostUnmeasured(results: StepResultView[] | undefined): boolean {
+export function anyCostUnmeasured(
+  results: StepResultView[] | undefined,
+): boolean {
   return (results ?? []).some((r) => r.costMeasured === false);
 }

@@ -21,14 +21,26 @@ export function pickTab<T extends string>(
   name: string | undefined,
   fallback: T,
 ): T {
-  return (tabs as readonly string[]).includes(name ?? "") ? (name as T) : fallback;
+  return (tabs as readonly string[]).includes(name ?? "")
+    ? (name as T)
+    : fallback;
 }
 
 /** The tabs whose word is in the catalogue, under `tab.<key>`: the word a
  *  key gives by capitalising it, or a word it cannot ("Logs", "AI",
  *  "Models per phase"). */
 const CATALOGUE_TABS = new Set([
-  "steps", "ai", "phases", "providers", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
+  "steps",
+  "ai",
+  "phases",
+  "providers",
+  "process",
+  "notifications",
+  "deploy",
+  "config",
+  "schedule",
+  "report",
+  "settings",
 ]);
 
 /** The word a tab key shows, in the reader's language. */
@@ -96,7 +108,9 @@ export function tabBar<T extends string>(
     .map(([key, value]) => ` data-${key}${value ? `="${esc(value)}"` : ""}`)
     .join("");
   return (
-    (o.site ? `<nav class="tabbar"${data}>` : `<nav class="tabbar subtabs"${data}>`) +
+    (o.site
+      ? `<nav class="tabbar"${data}>`
+      : `<nav class="tabbar subtabs"${data}>`) +
     tabs
       .map((t) => {
         const label = o.label ? o.label(t) : tabWord(o.lang ?? "en", t);
@@ -125,7 +139,11 @@ export function tabBar<T extends string>(
  *  the page from itself, so the page script keeps the Back the page was
  *  opened with (`specs-client/back-link/`). */
 export function tabbedBody(
-  banner: string, tabs: string, panel: string, backHref: string, title?: string | { html: string },
+  banner: string,
+  tabs: string,
+  panel: string,
+  backHref: string,
+  title?: string | { html: string },
   /** True for a page whose content is FIELDS: they cap themselves at a
    *  reading width narrower than `.doc`'s own, and the wrapper takes
    *  theirs so the page has one right edge. A page of tables — this

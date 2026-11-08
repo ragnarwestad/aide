@@ -9,9 +9,19 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { fixedSentenceHolds, type ScheduleContext } from "../../../src/serve/schedules";
+import {
+  fixedSentenceHolds,
+  type ScheduleContext,
+} from "../../../src/serve/schedules";
 import { renderSentence } from "../../../src/i18n/message.ts";
-import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
+import {
+  cleanupHarness,
+  enqueue,
+  makeRunner,
+  resetHarness,
+  spawns,
+  store,
+} from "../../queue/runner/runner-fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";
 const dirs: string[] = [];
@@ -31,7 +41,9 @@ const solutionText = (approaches: string, chosen?: string): string =>
   "\n### Recommended: Approach A\n\nWhy.\n";
 
 /** A projects root with one analyzed spec that asked to choose. */
-function projectsRoot(opts: { optedIn?: boolean; solution?: string; analyzed?: boolean } = {}): { root: string; specDir: string } {
+function projectsRoot(
+  opts: { optedIn?: boolean; solution?: string; analyzed?: boolean } = {},
+): { root: string; specDir: string } {
   const dir = mkdtempSync(join(tmpdir(), "aide-approach-hold-"));
   dirs.push(dir);
   const root = join(dir, "root");
@@ -45,7 +57,10 @@ function projectsRoot(opts: { optedIn?: boolean; solution?: string; analyzed?: b
     "# Spec - Description\n\n## Tracking info\n\n- **Created:** `2026-10-03 07:00 UTC`\n" +
       `- **Let me choose the approach:** ${opts.optedIn === false ? "no" : "yes"}\n\n---\n\n## Description\n\nText.\n`,
   );
-  writeFileSync(join(specDir, "3-solution.md"), opts.solution ?? solutionText(APPROACHES));
+  writeFileSync(
+    join(specDir, "3-solution.md"),
+    opts.solution ?? solutionText(APPROACHES),
+  );
   const phases = opts.analyzed === false ? [] : ["create", "analyze"];
   writeFileSync(
     join(specDir, "4-status.md"),
@@ -53,15 +68,25 @@ function projectsRoot(opts: { optedIn?: boolean; solution?: string; analyzed?: b
   );
   writeFileSync(
     join(specDir, "4-status.json"),
-    JSON.stringify({ completedPhases: phases, archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }),
+    JSON.stringify({
+      completedPhases: phases,
+      archived: null,
+      reopened: null,
+      acceptanceCriteria: [],
+      phaseCounts: {},
+    }),
   );
   return { root, specDir };
 }
 
-const emptyChecker = (): BranchFileStepsChecker => new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
+const emptyChecker = (): BranchFileStepsChecker =>
+  new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
 
 /** A checker that has read the spec's open branch, whose 3-solution.md is `solution`. */
-async function branchChecker(specDir: string, solution: string): Promise<BranchFileStepsChecker> {
+async function branchChecker(
+  specDir: string,
+  solution: string,
+): Promise<BranchFileStepsChecker> {
   const target: OpenBranchTarget = {
     root: "/root",
     branch: `aide/${FOLDER}`,
@@ -72,9 +97,22 @@ async function branchChecker(specDir: string, solution: string): Promise<BranchF
     const line = args.join(" ");
     if (line.startsWith("fetch")) return { code: 0, stdout: "" };
     if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
-    if (line.endsWith("4-status.md")) return { code: 0, stdout: "# Status\n\n- **Workflow steps completed:** create, analyze\n" };
+    if (line.endsWith("4-status.md"))
+      return {
+        code: 0,
+        stdout: "# Status\n\n- **Workflow steps completed:** create, analyze\n",
+      };
     if (line.endsWith("4-status.json")) {
-      return { code: 0, stdout: JSON.stringify({ completedPhases: ["create", "analyze"], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }) };
+      return {
+        code: 0,
+        stdout: JSON.stringify({
+          completedPhases: ["create", "analyze"],
+          archived: null,
+          reopened: null,
+          acceptanceCriteria: [],
+          phaseCounts: {},
+        }),
+      };
     }
     if (line.endsWith("3-solution.md")) return { code: 0, stdout: solution };
     return { code: 1, stdout: "" };
@@ -84,15 +122,45 @@ async function branchChecker(specDir: string, solution: string): Promise<BranchF
   return checker;
 }
 
-type QueuedJob = { id: string; project: string; specFolder: string; state: string; steps: string[]; stepIndex: number };
-const chained: QueuedJob = { id: "chained", project: "aide", specFolder: FOLDER, state: "queued", steps: ["analyze", "implement"], stepIndex: 1 };
-const alone: QueuedJob = { id: "alone", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement"], stepIndex: 0 };
+type QueuedJob = {
+  id: string;
+  project: string;
+  specFolder: string;
+  state: string;
+  steps: string[];
+  stepIndex: number;
+};
+const chained: QueuedJob = {
+  id: "chained",
+  project: "aide",
+  specFolder: FOLDER,
+  state: "queued",
+  steps: ["analyze", "implement"],
+  stepIndex: 1,
+};
+const alone: QueuedJob = {
+  id: "alone",
+  project: "aide",
+  specFolder: FOLDER,
+  state: "queued",
+  steps: ["implement"],
+  stepIndex: 0,
+};
 
-function ctxFor(root: string, jobs: QueuedJob[], checker: BranchFileStepsChecker = emptyChecker()): ScheduleContext {
-  return { projectRoot: root, queue: { list: () => jobs }, readBranchFileSteps: () => checker } as unknown as ScheduleContext;
+function ctxFor(
+  root: string,
+  jobs: QueuedJob[],
+  checker: BranchFileStepsChecker = emptyChecker(),
+): ScheduleContext {
+  return {
+    projectRoot: root,
+    queue: { list: () => jobs },
+    readBranchFileSteps: () => checker,
+  } as unknown as ScheduleContext;
 }
 
-const sentence = (m: unknown): string => renderSentence("en", m as Parameters<typeof renderSentence>[1]) ?? "";
+const sentence = (m: unknown): string =>
+  renderSentence("en", m as Parameters<typeof renderSentence>[1]) ?? "";
 
 describe("which queued implements wait for a choice", () => {
   test("an implement chained after the analyze waits, with the approach sentence", () => {
@@ -108,32 +176,49 @@ describe("which queued implements wait for a choice", () => {
 
   test("fewer than two real alternatives hold nothing", () => {
     const { root } = projectsRoot({
-      solution: solutionText("**Approach A: One (recommended).** a\n\n**Approach B: Two (considered and rejected).** b\n"),
+      solution: solutionText(
+        "**Approach A: One (recommended).** a\n\n**Approach B: Two (considered and rejected).** b\n",
+      ),
     });
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(
+      false,
+    );
   });
 
   test("a chosen approach written to 3-solution.md releases the hold", () => {
     const { root, specDir } = projectsRoot();
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(true);
-    writeFileSync(join(specDir, "3-solution.md"), solutionText(APPROACHES, "A"));
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(
+      true,
+    );
+    writeFileSync(
+      join(specDir, "3-solution.md"),
+      solutionText(APPROACHES, "A"),
+    );
+    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(
+      false,
+    );
   });
 
   test("the branch copy decides when it has been read: a choice saved there releases the hold", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await branchChecker(specDir, solutionText(APPROACHES, "A"));
-    expect(fixedSentenceHolds(ctxFor(root, [chained], checker)).has("chained")).toBe(false);
+    expect(
+      fixedSentenceHolds(ctxFor(root, [chained], checker)).has("chained"),
+    ).toBe(false);
   });
 
   test("a spec that did not ask to choose holds nothing, whatever its plan says", () => {
     const { root } = projectsRoot({ optedIn: false });
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(
+      false,
+    );
   });
 
   test("an implement whose spec is not analyzed is still held for that", () => {
     const { root } = projectsRoot({ analyzed: false });
-    expect(fixedSentenceHolds(ctxFor(root, [alone])).get("alone")).toEqual({ key: "runner.notAnalyzed" });
+    expect(fixedSentenceHolds(ctxFor(root, [alone])).get("alone")).toEqual({
+      key: "runner.notAnalyzed",
+    });
   });
 });
 
@@ -144,7 +229,10 @@ describe("the runner holds what the map names", () => {
   test("a held chained implement stays queued with the approach sentence and is not started", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
-    makeRunner().tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
+    makeRunner().tick(
+      undefined,
+      new Map([[job.id, { key: "runner.approachChoice" }]]),
+    );
     expect(spawns).toHaveLength(0);
     expect(store.get(job.id)?.state).toBe("queued");
     expect(sentence(store.get(job.id)?.error)).toContain("hoose the approach");
@@ -154,7 +242,10 @@ describe("the runner holds what the map names", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
     const runner = makeRunner();
-    runner.tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
+    runner.tick(
+      undefined,
+      new Map([[job.id, { key: "runner.approachChoice" }]]),
+    );
     runner.tick(undefined, new Map());
     expect(spawns).toHaveLength(1);
     expect(store.get(job.id)?.error).toBeUndefined();

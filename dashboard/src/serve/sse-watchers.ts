@@ -32,7 +32,11 @@ export interface SseWatchersContext {
  *  that through would stop at the first dead page and leave every
  *  live one unaware — the same fail-open the rest of this surface
  *  keeps (`branch-status`). */
-export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultController<Uint8Array>, text: string): void {
+export function writeTo(
+  ctx: SseWatchersContext,
+  c: ReadableStreamDefaultController<Uint8Array>,
+  text: string,
+): void {
   try {
     c.enqueue(ctx.encoder.encode(text));
   } catch {
@@ -60,7 +64,9 @@ export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
  *  can change the count; a growing log and a recorded run cannot, and keep
  *  the bare one. */
 export const changedEvent = (waiting?: number): string =>
-  waiting === undefined ? CHANGED_EVENT : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
+  waiting === undefined
+    ? CHANGED_EVENT
+    : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
 
 // --- A spec is a folder, and a folder changes no job -----------
 //
@@ -152,15 +158,20 @@ export function createStreamGrowth(
         const step = job.steps[job.stepIndex];
         if (job.state !== "running" || !job.streamFile || !step) continue;
         const key = phaseKey(job.project, job.specFolder, step);
-        const listening = [...ctx.phaseWatchers].filter(([, keys]) => keys.has(key));
+        const listening = [...ctx.phaseWatchers].filter(([, keys]) =>
+          keys.has(key),
+        );
         if (listening.length === 0) continue;
         live.add(job.streamFile);
-        const size = sizeOf(job.streamFile) + sizeOf(runLogPath(job.streamFile));
+        const size =
+          sizeOf(job.streamFile) + sizeOf(runLogPath(job.streamFile));
         if (size === (seen.get(job.streamFile) ?? 0)) continue;
         seen.set(job.streamFile, size);
-        for (const [c] of listening) writeTo(ctx, c, "event: changed\ndata: {}\n\n");
+        for (const [c] of listening)
+          writeTo(ctx, c, "event: changed\ndata: {}\n\n");
       }
-      for (const file of [...seen.keys()]) if (!live.has(file)) seen.delete(file);
+      for (const file of [...seen.keys()])
+        if (!live.has(file)) seen.delete(file);
     },
   };
 }

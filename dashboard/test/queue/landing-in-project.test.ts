@@ -5,7 +5,8 @@
 import { describe, expect, test } from "bun:test";
 import { landingInProject, type Job } from "../../src/queue/queue.ts";
 
-const job = (project: string, landing?: boolean) => ({ project, landing }) as unknown as Job;
+const job = (project: string, landing?: boolean) =>
+  ({ project, landing }) as unknown as Job;
 
 describe("a landing under way", () => {
   test("in the same project counts", () => {
@@ -13,6 +14,8 @@ describe("a landing under way", () => {
   });
 
   test("in another project does not", () => {
-    expect(landingInProject([job("aide", true), job("paceup")], "paceup")).toBe(false);
+    expect(landingInProject([job("aide", true), job("paceup")], "paceup")).toBe(
+      false,
+    );
   });
 });

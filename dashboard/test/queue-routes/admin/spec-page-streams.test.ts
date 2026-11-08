@@ -5,7 +5,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { request } from "node:http";
 import { constants, gunzipSync } from "node:zlib";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import {
+  createGitRunner,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-spec-page-streams-");
@@ -18,7 +21,9 @@ function gatedGit() {
   const real = createGitRunner();
   let armed = false;
   let open!: () => void;
-  const gate = new Promise<void>((r) => { open = r; });
+  const gate = new Promise<void>((r) => {
+    open = r;
+  });
   const hits: string[] = [];
   const run: GitRunner = async (dir, args, timeoutMs, env) => {
     if (armed) {
@@ -27,7 +32,14 @@ function gatedGit() {
     }
     return real(dir, args, timeoutMs, env);
   };
-  return { run, arm: () => { armed = true; }, release: open, hits };
+  return {
+    run,
+    arm: () => {
+      armed = true;
+    },
+    release: open,
+    hits,
+  };
 }
 
 interface Wire {
@@ -50,10 +62,22 @@ function get(base: string, path: string, gzip: boolean): Promise<Wire> {
         let over = false;
         const done = new Promise<void>((r) => {
           res.on("data", (c: Buffer) => chunks.push(c));
-          res.on("end", () => { over = true; r(); });
-          res.on("error", () => { over = true; r(); });
+          res.on("end", () => {
+            over = true;
+            r();
+          });
+          res.on("error", () => {
+            over = true;
+            r();
+          });
         });
-        resolve({ chunks, ended: () => over, done, headers: res.headers, status: res.statusCode ?? 0 });
+        resolve({
+          chunks,
+          ended: () => over,
+          done,
+          headers: res.headers,
+          status: res.statusCode ?? 0,
+        });
       },
     );
     req.on("error", reject);
@@ -64,7 +88,9 @@ function get(base: string, path: string, gzip: boolean): Promise<Wire> {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const text = (chunks: Buffer[], gzip: boolean) => {
   const all = Buffer.concat(chunks);
-  return gzip ? gunzipSync(all, { finishFlush: constants.Z_SYNC_FLUSH }).toString("utf-8") : all.toString("utf-8");
+  return gzip
+    ? gunzipSync(all, { finishFlush: constants.Z_SYNC_FLUSH }).toString("utf-8")
+    : all.toString("utf-8");
 };
 
 describe("the spec page is sent in two halves", () => {
@@ -72,7 +98,11 @@ describe("the spec page is sent in two halves", () => {
     const git = gatedGit();
     const { base } = start({ gitRun: git.run });
     git.arm();
-    const wire = await get(base, `/specs/aide/${FOLDER}?tab=description`, false);
+    const wire = await get(
+      base,
+      `/specs/aide/${FOLDER}?tab=description`,
+      false,
+    );
     await sleep(400);
     try {
       expect(git.hits.length).toBeGreaterThan(0);
@@ -119,6 +149,4 @@ describe("the spec page is sent in two halves", () => {
     expect(res.status).toBe(404);
     expect(await res.text()).not.toContain("pageloading");
   });
-
 });
-

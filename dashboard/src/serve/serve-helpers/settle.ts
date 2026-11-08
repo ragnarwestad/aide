@@ -13,7 +13,10 @@ import type { ServerState } from "../state.ts";
  *  at once while a tick of its own is in flight, so calling it blind
  *  would settle nothing. Nothing awaits between the loop ending and the
  *  call, so no tick can start in between. */
-export function makeSettle(state: ServerState, refreshSpecCaches: () => Promise<void>): () => Promise<void> {
+export function makeSettle(
+  state: ServerState,
+  refreshSpecCaches: () => Promise<void>,
+): () => Promise<void> {
   return async () => {
     while (state.warming) await new Promise((r) => setTimeout(r, 5));
     state.scan = null;

@@ -9,13 +9,21 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import {
+  createGitRunner,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
 export function checkoutSafetyHelpers(ownDirs: string[]) {
   function git(cwd: string, ...args: string[]): string {
-    const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-    if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+    const out = Bun.spawnSync({
+      cmd: ["git", "-C", cwd, ...args],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (out.exitCode !== 0)
+      throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
     return out.stdout.toString();
   }
 
@@ -31,15 +39,26 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
    *  booting on a project whose checkout is missing reports it and
    *  touches nothing — which is a different test, in
    *  test/git/checkout/dashboard-checkout-never-deletes-the-project.test.ts. */
-  function realProject(opts: { ownClone?: boolean } = {}): { projectsRoot: string; person: string; owned: string; site: string } {
+  function realProject(opts: { ownClone?: boolean } = {}): {
+    projectsRoot: string;
+    person: string;
+    owned: string;
+    site: string;
+  } {
     const where = mkdtempSync(join(tmpdir(), "aide-205-"));
     ownDirs.push(where);
     const seed = join(where, "seed");
     mkdirSync(join(seed, ".aide"), { recursive: true });
     writeFileSync(join(seed, ".aide", "project.yaml"), "name: aide\n");
     mkdirSync(join(seed, "specs", "81-queue-and-runner"), { recursive: true });
-    writeFileSync(join(seed, "specs", "81-queue-and-runner", "1-description.md"), "# Queue - Description\n\nAs it was.\n");
-    writeFileSync(join(seed, "specs", "81-queue-and-runner", "4-status.md"), statusSaying(["create"]));
+    writeFileSync(
+      join(seed, "specs", "81-queue-and-runner", "1-description.md"),
+      "# Queue - Description\n\nAs it was.\n",
+    );
+    writeFileSync(
+      join(seed, "specs", "81-queue-and-runner", "4-status.md"),
+      statusSaying(["create"]),
+    );
     git(seed, "init", "-q", "-b", "main");
     git(seed, "config", "user.name", "Test");
     git(seed, "config", "user.email", "test@example.com");
@@ -58,7 +77,9 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
     // from the person's checkout instead.
     const owned = join(where, "owned");
     if (opts.ownClone !== false) {
-      Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, join(owned, "aide", "code")] });
+      Bun.spawnSync({
+        cmd: ["git", "clone", "-q", origin, join(owned, "aide", "code")],
+      });
     }
     // Not the generated site any more — just a scratch
     // directory this fixture's callers write their mirror/queue/job
@@ -70,7 +91,10 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
 
   /** The real runner, wrapped so a test can say which directories the
    *  server ran git in. */
-  function recording(): { run: GitRunner; calls: { dir: string; args: string[] }[] } {
+  function recording(): {
+    run: GitRunner;
+    calls: { dir: string; args: string[] }[];
+  } {
     const real = createGitRunner();
     const calls: { dir: string; args: string[] }[] = [];
     return {

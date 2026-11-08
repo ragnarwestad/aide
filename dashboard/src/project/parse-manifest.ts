@@ -81,8 +81,7 @@ export interface ManifestData {
 }
 
 export type ManifestResult =
-  | { ok: true; data: ManifestData }
-  | { ok: false; error: string };
+  { ok: true; data: ManifestData } | { ok: false; error: string };
 
 function toStr(v: unknown): string | undefined {
   return v == null ? undefined : String(v);
@@ -104,13 +103,17 @@ export function parseManifest(text: string): ManifestResult {
   if (r.name != null) data.name = toStr(r.name);
   if (r.description != null) data.description = toStr(r.description);
   if (r.deployment != null && typeof r.deployment === "object") {
-    const previewFrom = toStr((r.deployment as Record<string, unknown>).previewFrom)?.trim();
+    const previewFrom = toStr(
+      (r.deployment as Record<string, unknown>).previewFrom,
+    )?.trim();
     if (isPreviewFrom(previewFrom)) data.deployment = { previewFrom };
   }
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
-  if (r.translationFiles != null) data.translationFiles = toStr(r.translationFiles);
+  if (r.translationFiles != null)
+    data.translationFiles = toStr(r.translationFiles);
   if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
-  if (r.AIDE_TEST_FILES_CMD != null) data.AIDE_TEST_FILES_CMD = toStr(r.AIDE_TEST_FILES_CMD);
+  if (r.AIDE_TEST_FILES_CMD != null)
+    data.AIDE_TEST_FILES_CMD = toStr(r.AIDE_TEST_FILES_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);
   // The one field here that is VALIDATED rather than normalized: it is a

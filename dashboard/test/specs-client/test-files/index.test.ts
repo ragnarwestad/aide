@@ -5,7 +5,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { acTestsLine } from "../../../src/render/ui/ac-tests.ts";
-import { openTestFiles, reopenTestFiles } from "../../../src/specs-client/test-files";
+import {
+  openTestFiles,
+  reopenTestFiles,
+} from "../../../src/specs-client/test-files";
 
 const SCOPE = "aide/624-x";
 const ROW = {
@@ -28,7 +31,8 @@ function list(html: string): HTMLElement {
   return win.document.getElementById("jobrows") as unknown as HTMLElement;
 }
 
-const folds = (rows: HTMLElement) => [...rows.querySelectorAll("details")] as HTMLDetailsElement[];
+const folds = (rows: HTMLElement) =>
+  [...rows.querySelectorAll("details")] as HTMLDetailsElement[];
 
 describe("the open files under a criterion", () => {
   test("an opened file is open again after the list's markup is replaced, and the other stays shut", () => {
@@ -45,7 +49,11 @@ describe("the open files under a criterion", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
     folds(rows)[1]!.open = true;
     const open = openTestFiles(rows);
-    rows.innerHTML = acTestsLine({ ...ROW, tests: [ROW.tests[0]!] }, "en", SCOPE);
+    rows.innerHTML = acTestsLine(
+      { ...ROW, tests: [ROW.tests[0]!] },
+      "en",
+      SCOPE,
+    );
     reopenTestFiles(rows, open);
     expect(folds(rows).map((d) => d.open)).toEqual([false]);
   });

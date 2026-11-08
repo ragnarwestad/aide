@@ -21,7 +21,7 @@
 ## Implementeringssteg
 
 | Steg | Beskrivelse                                              | Status | Commit    | Notater                                                                                                                                |
-|------|----------------------------------------------------------|--------|-----------|----------------------------------------------------------------------------------------------------------------------------------------|
+| ---- | -------------------------------------------------------- | ------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Fiks core/docs referanser i commands                     | ✅     | `dab4789` | Erstattet `core/docs/` med `.claude/rules/` i commands og agent                                                                        |
 | 2    | Fiks systems/ referanser                                 | ✅     | `e14d431` | Erstattet `systems/` med prosjektlokale stier og system-paths.md                                                                       |
 | 3    | Embed templates + generiske navn                         | ✅     | `c97239c` | Embeddet templates i aide-opprett, erstattet `.claude/rules/`-stier i `core/` med generiske navn                                       |
@@ -39,7 +39,7 @@
 Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i installerte filer:
 
 | Søketerm                                            | Claude Code `.claude/` | Copilot `.github/` + `prompts/` | Plugin |
-|-----------------------------------------------------|------------------------|---------------------------------|--------|
+| --------------------------------------------------- | ---------------------- | ------------------------------- | ------ |
 | `EXAMPLE_AIDE_INSTALLATION_PATH`                    | 0                      | 0                               | 0      |
 | `core/docs/`                                        | 0                      | 0                               | 0      |
 | `core/templates/`                                   | 0                      | 0                               | 0      |
@@ -53,7 +53,7 @@ Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i ins
 **Generisk mapping brukt:**
 
 | Gammel referanse                    | Generisk navn              |
-|-------------------------------------|----------------------------|
+| ----------------------------------- | -------------------------- |
 | `.claude/rules/workflows.md`        | `workflows-reglene`        |
 | `.claude/rules/testing.md`          | `testing-reglene`          |
 | `.claude/rules/git.md`              | `git-reglene`              |
@@ -66,7 +66,7 @@ Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i ins
 ## Notasjon
 
 | Symbol | Betydning           |
-|--------|---------------------|
+| ------ | ------------------- |
 | ⬜     | Ikke startet        |
 | 🔄     | Under arbeid        |
 | ✅     | Fullført            |

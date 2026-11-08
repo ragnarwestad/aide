@@ -10,17 +10,30 @@ import { scheduleControlCells } from "../../../src/render/pages/schedule-page/co
 import { openKeys, row } from "../../render/pages/fixtures.ts";
 
 const click = (el: unknown) => ({ target: el }) as unknown as Event;
-const isOpen = (doc: { getElementById(id: string): unknown }, id: string): boolean =>
-  !!(doc.getElementById(id) as HTMLDialogElement | null)?.open;
+const isOpen = (
+  doc: { getElementById(id: string): unknown },
+  id: string,
+): boolean => !!(doc.getElementById(id) as HTMLDialogElement | null)?.open;
 
 /** A running row on the specs list, as the renderer draws it. */
 const runningRows = (id: string): string => {
   const folder = `105-${id}`;
-  const r = row({ id, specFolder: folder, steps: ["implement"], stepIndex: 0, state: "running" });
+  const r = row({
+    id,
+    specFolder: folder,
+    steps: ["implement"],
+    stepIndex: 0,
+    state: "running",
+  });
   const targets = [{ project: "aide", specFolder: folder }];
   return renderSpecsRows(
     [r],
-    { runnerAvailable: true, targets, filter: { open: openKeys([r], targets) }, modelChoices: [{ name: "sonnet" }] },
+    {
+      runnerAvailable: true,
+      targets,
+      filter: { open: openKeys([r], targets) },
+      modelChoices: [{ name: "sonnet" }],
+    },
     Date.parse("2026-08-19T12:00:00Z"),
   );
 };
@@ -68,14 +81,23 @@ describe("openAsk", () => {
 
   test("Delete on a schedule row opens its own dialog, found by an id holding a slash", async () => {
     const win = new Window();
-    const entry = (name: string) => ({ name, cron: "0 3 * * *", prompt: "x", enabled: true });
+    const entry = (name: string) => ({
+      name,
+      cron: "0 3 * * *",
+      prompt: "x",
+      enabled: true,
+    });
     win.document.write(
       `<table><tbody><tr>${scheduleControlCells("aide", entry("a"))}</tr>` +
         `<tr>${scheduleControlCells("aide", entry("b"))}</tr></tbody></table>`,
     );
-    const button = win.document.querySelector(`button[data-ask="deleteask-aide/b"]`);
+    const button = win.document.querySelector(
+      `button[data-ask="deleteask-aide/b"]`,
+    );
     openAsk(click(button));
-    const opened = ["a", "b"].map((n) => isOpen(win.document, `deleteask-aide/${n}`));
+    const opened = ["a", "b"].map((n) =>
+      isOpen(win.document, `deleteask-aide/${n}`),
+    );
     await win.happyDOM.close();
     expect(button).not.toBeNull();
     expect(opened).toEqual([false, true]);
@@ -84,11 +106,20 @@ describe("openAsk", () => {
   test("a row redrawn after the listener was bound still opens its dialog", async () => {
     const win = new Window();
     const doc = win.document;
-    doc.write(`<table><tbody id="jobrows">${runningRows("j1")}</tbody></table>`);
-    doc.body.addEventListener("click", openAsk as unknown as Parameters<typeof doc.body.addEventListener>[1]);
+    doc.write(
+      `<table><tbody id="jobrows">${runningRows("j1")}</tbody></table>`,
+    );
+    doc.body.addEventListener(
+      "click",
+      openAsk as unknown as Parameters<typeof doc.body.addEventListener>[1],
+    );
     // The live redraw replaces the rows wholesale, dialogs and buttons alike.
     doc.getElementById("jobrows")!.innerHTML = runningRows("j2");
-    (doc.querySelector(`button[data-ask="cancelask-j2"]`) as unknown as HTMLButtonElement | null)?.click();
+    (
+      doc.querySelector(
+        `button[data-ask="cancelask-j2"]`,
+      ) as unknown as HTMLButtonElement | null
+    )?.click();
     const open = isOpen(doc, "cancelask-j2");
     await win.happyDOM.close();
     expect(open).toBe(true);

@@ -9,52 +9,107 @@
    reaches both. `overflow-y: auto` rather than `scroll`: the scrollbar
    shows exactly when there is more to scroll, the same choice
    `#jobrows .tablewrap` already makes (list.css). */
-.phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1);
-  max-height: 116px; overflow-y: auto; }
+.phases {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  max-height: 116px;
+  overflow-y: auto;
+}
 /* The list of what is still available is a FIELD, framed and a fixed
    height, not a row of chips that happens to cap at four rows. With a
    handful of specs to choose from the cap never bit, so the two halves
    of the control looked identical and lifting a chip out of one read as
    the order changing. `align-content: flex-start` keeps the chips at
    the top of the box rather than spread down it. */
-.phases:not(.picked) { height: 116px; align-content: flex-start;
-  border: 1px solid var(--line); border-radius: var(--r-s);
-  background: var(--surface); padding: var(--sp-2); box-sizing: border-box; }
+.phases:not(.picked) {
+  height: 116px;
+  align-content: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  padding: var(--sp-2);
+  box-sizing: border-box;
+}
 /* The picked half of the Depends-on control sits above the
    scrolling list and is never capped or scrolled itself — there are
    normally only a handful of dependencies, and the point is that
    they read without scrolling. */
-.phases.picked { max-height: none; }
+.phases.picked {
+  max-height: none;
+}
 /* The New-spec page's picked box is framed exactly
    like the pick list beside it — matches .phases:not(.picked) above,
    declaration for declaration. The Edit page's own picker keeps the
    general exemption above this rule; this one wins there only inside
    .depends-pair, on specificity. */
-.depends-pair .phases.picked { max-height: 116px; overflow-y: auto;
-  height: 116px; align-content: flex-start; border: 1px solid var(--line);
-  border-radius: var(--r-s); background: var(--surface); padding: var(--sp-2);
-  box-sizing: border-box; }
-.phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
-  padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
-  background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }
-.phase input { accent-color: var(--accent); margin: 0; }
-.phase .box { display: inline-flex; width: 12px; height: 12px; color: var(--ok); }
-.phase svg { width: 12px; height: 12px; }
-.phase.checked { border-color: var(--line-strong); }
-.phase.done { color: var(--muted); }
-.phase.off { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+.depends-pair .phases.picked {
+  max-height: 116px;
+  overflow-y: auto;
+  height: 116px;
+  align-content: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  padding: var(--sp-2);
+  box-sizing: border-box;
+}
+.phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-s);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--fs-s);
+  color: var(--text);
+  cursor: pointer;
+}
+.phase input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.phase .box {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  color: var(--ok);
+}
+.phase svg {
+  width: 12px;
+  height: 12px;
+}
+.phase.checked {
+  border-color: var(--line-strong);
+}
+.phase.done {
+  color: var(--muted);
+}
+.phase.off {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-style: dashed;
+}
 /* The lock REPLACES the checkbox, never stands beside it: the mark is
    checkbox-sized, so the chip keeps its width (asked for repeatedly,
    last 2026-08-19). The input stays in the markup for the form's sake
    — it is disabled and posts nothing. A running phase gets no spinner
    here: that signal is the row's own Progress marker. */
-.phase.off input { display: none; }
-.phase.off .box { color: var(--muted); }
+.phase.off input {
+  display: none;
+}
+.phase.off .box {
+  color: var(--muted);
+}
 /* A phase LINE's box has no label of its own — the phase's name leads
    the line, and the chip holds the checkbox and nothing else — so the
    frame outlined nothing. Selected on the data attribute
    rather than on .phase itself: the chips that DO carry a label, the
    "Also touches" repos (data-project) and the new-spec form's
    "Depends on" (data-depends), frame something and keep their frame. */
-.phase[data-phase] { border-color: transparent; background: transparent; }
-
+.phase[data-phase] {
+  border-color: transparent;
+  background: transparent;
+}

@@ -24,22 +24,40 @@ export const isClaudeFamily = (model: string): boolean =>
  *  press from leaving a session behind; the stream is what carries the
  *  id. */
 export const claudeModelArgs = (model: string): string[] => [
-  "-p", "--model", model, "/model", "--no-session-persistence", "--output-format", "stream-json", "--verbose",
+  "-p",
+  "--model",
+  model,
+  "/model",
+  "--no-session-persistence",
+  "--output-format",
+  "stream-json",
+  "--verbose",
 ];
 
 /** What Claude Code said of one model: its name and the id it resolves
  *  to, that it does not know it, or that it could not be asked. */
-export type ClaudeModelAnswer = { known: true; name: string; id?: string } | { known: false } | { error: string };
+export type ClaudeModelAnswer =
+  | { known: true; name: string; id?: string }
+  | { known: false }
+  | { error: string };
 
 /** The back-quoted text after `Current model:` on its own line, an effort
  *  written after it left out. */
 const CURRENT = /^Current model:\s*`([^`]+)`/m;
 
-export function parseClaudeModel(asked: string, stdout: string): ClaudeModelAnswer | undefined {
+export function parseClaudeModel(
+  asked: string,
+  stdout: string,
+): ClaudeModelAnswer | undefined {
   let id: string | undefined;
   let name: string | undefined;
   for (const event of events(stdout)) {
-    if (event.type === "system" && event.subtype === "init" && typeof event.model === "string") id = event.model;
+    if (
+      event.type === "system" &&
+      event.subtype === "init" &&
+      typeof event.model === "string"
+    )
+      id = event.model;
     if (event.type === "result" && typeof event.result === "string") {
       name = CURRENT.exec(stripAnsi(event.result))?.[1]?.trim();
     }
@@ -51,11 +69,23 @@ export function parseClaudeModel(asked: string, stdout: string): ClaudeModelAnsw
 
 /** Asks Claude Code to name `model`. Never throws for an answer it cannot
  *  read: that is an error answer, said in a sentence. */
-export async function askClaudeModel(run: typeof runScript, bin: string, model: string): Promise<ClaudeModelAnswer> {
+export async function askClaudeModel(
+  run: typeof runScript,
+  bin: string,
+  model: string,
+): Promise<ClaudeModelAnswer> {
   const shown = `claude -p --model ${model} /model`;
-  const result = await run([bin, ...claudeModelArgs(model)], process.cwd(), CHECK_TIMEOUT_MS);
+  const result = await run(
+    [bin, ...claudeModelArgs(model)],
+    process.cwd(),
+    CHECK_TIMEOUT_MS,
+  );
   if (result.timedOut) return { error: `${shown} did not finish in time.` };
-  return parseClaudeModel(model, result.stdout) ?? { error: `${shown} printed no Current model line.` };
+  return (
+    parseClaudeModel(model, result.stdout) ?? {
+      error: `${shown} printed no Current model line.`,
+    }
+  );
 }
 
 /** The four families, and every configured Claude model, asked side by
@@ -74,9 +104,12 @@ export async function readClaudeModels(
 ): Promise<ToolModels> {
   const asked: string[] = [...CLAUDE_FAMILIES];
   for (const model of configured) {
-    if (model && !asked.some((a) => a.toLowerCase() === model.toLowerCase())) asked.push(model);
+    if (model && !asked.some((a) => a.toLowerCase() === model.toLowerCase()))
+      asked.push(model);
   }
-  const answers = await Promise.all(asked.map((model) => askClaudeModel(run, bin, model)));
+  const answers = await Promise.all(
+    asked.map((model) => askClaudeModel(run, bin, model)),
+  );
   const failed = answers.find((a): a is { error: string } => "error" in a);
   if (failed) return { ...base, offered: [], error: failed.error };
   const offered: OfferedModel[] = [];
@@ -84,8 +117,14 @@ export async function readClaudeModels(
   answers.forEach((answer, i) => {
     if (!("known" in answer) || !answer.known) return;
     const model = asked[i]!;
-    const entry = { model, name: answer.name, ...(answer.id ? { id: answer.id } : {}) };
-    (isClaudeFamily(model) || CLAUDE_ID.test(model) ? offered : named).push(entry);
+    const entry = {
+      model,
+      name: answer.name,
+      ...(answer.id ? { id: answer.id } : {}),
+    };
+    (isClaudeFamily(model) || CLAUDE_ID.test(model) ? offered : named).push(
+      entry,
+    );
   });
   return { ...base, offered, ...(named.length ? { named } : {}) };
 }

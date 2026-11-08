@@ -63,7 +63,10 @@ describe("a conflict refusal", () => {
   };
 
   const conflicted = (opts: Partial<SpecsPageOptions> = {}) =>
-    rows([row({ state: "done", ...CONFLICT })], { targets: [target()], ...opts });
+    rows([row({ state: "done", ...CONFLICT })], {
+      targets: [target()],
+      ...opts,
+    });
 
   test("offers the ordinary re-run, the same control every other failed step's row carries", () => {
     const html = conflicted();

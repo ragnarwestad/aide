@@ -108,7 +108,14 @@ export interface JobDetailView extends QueueRowView {
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
-  runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number };
+  runningStep?: {
+    step: string;
+    sessionId?: string;
+    logs: LogPart[];
+    errors?: string[];
+    aiModel?: string;
+    attempt?: number;
+  };
   /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

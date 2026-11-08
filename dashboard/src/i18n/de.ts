@@ -18,13 +18,20 @@ export const de: Record<TranslationKey, string> = {
   "shell.tabSpecs": "Spezifikationen",
   "shell.tabProjects": "Projekte",
   "shell.tabSchedule": "Zeitplan",
-  "shell.restartWaiting": "Das Deployment wartet auf {jobs}; der Dienst startet neu, sobald sie fertig sind.",
-  "shell.installWarning": "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
-  "shell.toolFault": "{tool}: {problems} — öffne den Tab Installation bei {where}",
-  "shell.toolFaultWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
-  "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
-  "shell.modelsGoneWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
-  "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
+  "shell.restartWaiting":
+    "Das Deployment wartet auf {jobs}; der Dienst startet neu, sobald sie fertig sind.",
+  "shell.installWarning":
+    "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
+  "shell.toolFault":
+    "{tool}: {problems} — öffne den Tab Installation bei {where}",
+  "shell.toolFaultWhere":
+    "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
+  "shell.modelsGone":
+    "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
+  "shell.modelsGoneWhere":
+    "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
+  "shell.checkoutFault":
+    "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
   "deploy.stepInstall": "Installieren",
@@ -36,12 +43,15 @@ export const de: Record<TranslationKey, string> = {
   "dialog.stepDone": "fertig",
   "dialog.stepFailed": "fehlgeschlagen",
   "deploy.askTitle": "{project} bereitstellen?",
-  "deploy.askSentence": "Holt von origin, installiert und startet den Dienst neu und prüft dann, ob der neueste Commit läuft. Es läuft als Job: Verfolge ihn im Tab Läuft.",
+  "deploy.askSentence":
+    "Holt von origin, installiert und startet den Dienst neu und prüft dann, ob der neueste Commit läuft. Es läuft als Job: Verfolge ihn im Tab Läuft.",
   "shell.overlayLoading": "wird geladen…",
   "shell.loadingPage": "Wird geladen …",
-  "shell.pageFailed": "Beim Aufbau der Seite ist etwas schiefgegangen. Lade die Seite neu; schlägt es weiter fehl, sieh im Log des Dashboards auf dem Server nach.",
+  "shell.pageFailed":
+    "Beim Aufbau der Seite ist etwas schiefgegangen. Lade die Seite neu; schlägt es weiter fehl, sieh im Log des Dashboards auf dem Server nach.",
   "shell.leaveAppTitle": "Seite verlassen?",
-  "shell.leaveAppBody": "Die von dir vorgenommenen Änderungen werden möglicherweise nicht gespeichert.",
+  "shell.leaveAppBody":
+    "Die von dir vorgenommenen Änderungen werden möglicherweise nicht gespeichert.",
   "dialog.ok": "OK",
   "dialog.cancel": "Abbrechen",
   "dialog.closing": "wird geschlossen…",
@@ -50,7 +60,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.runTestRound": "Starten",
   "shell.delay": "Verzögerung: {value}",
   "shell.delayOff": "Aus",
-  "shell.delayTitle": "Wie lange das Ersatzmodell vor jedem Schritt wartet; drücken für die nächste Wahl",
+  "shell.delayTitle":
+    "Wie lange das Ersatzmodell vor jedem Schritt wartet; drücken für die nächste Wahl",
   "shell.testRound": "die Runde",
 
   "list.statesLabel": "Zustände",
@@ -85,11 +96,13 @@ export const de: Record<TranslationKey, string> = {
   "list.foldHide": "verbergen",
   "list.foldTitle": "{action} die Phasen und Steuerelemente von {folder}",
   "list.specFoldTitle": "{action} die Spec {folder}",
-  "list.specLoadFailed": "die Spec konnte nicht geladen werden — lade die Seite neu, um es erneut zu versuchen",
+  "list.specLoadFailed":
+    "die Spec konnte nicht geladen werden — lade die Seite neu, um es erneut zu versuchen",
   "list.checksFoldTitle": "{action} die Abnahmekriterien von {folder}",
   "list.checksSave": "Speichern",
   "list.checksSaving": "speichert…",
-  "list.checksUnreadable": "Die Abnahmekriterien konnten hier nicht gelesen werden.",
+  "list.checksUnreadable":
+    "Die Abnahmekriterien konnten hier nicht gelesen werden.",
   "list.approachRecommended": "empfohlen",
   "checks.verified": "Verifiziert",
   "checks.verifiedQuestion": "Verifiziert?",
@@ -108,12 +121,14 @@ export const de: Record<TranslationKey, string> = {
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",
   "list.phaseNoMessages": "Von diesem Schritt wurde noch nichts erfasst.",
   "list.phaseModel": "Modell: {model}",
-  "list.descriptionChangedSince": "Die Beschreibung wurde seit der letzten Analyse geändert.",
+  "list.descriptionChangedSince":
+    "Die Beschreibung wurde seit der letzten Analyse geändert.",
   "list.phaseOpenLog": "Das Protokoll dieses Schritts öffnen",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",
   "list.cancelConfirmTitle": "{step} abbrechen?",
-  "list.cancelConfirmBody": "Das stoppt es sofort — es kann von derselben Spec aus erneut ausgeführt werden.",
+  "list.cancelConfirmBody":
+    "Das stoppt es sofort — es kann von derselben Spec aus erneut ausgeführt werden.",
   "jobs.nothingRunning": "Nichts läuft.",
   "jobs.colTitle": "Titel",
   "jobs.noRowMatchesFilter": "Nichts auf diesem Tab passt zu diesem Filter.",
@@ -123,8 +138,10 @@ export const de: Record<TranslationKey, string> = {
   "jobs.stopConfirmTitle": "{step} stoppen?",
   "jobs.confirmBody": "Das stoppt ihn sofort.",
   "jobs.endedFailed": "Der Job ist fehlgeschlagen — sein Protokoll sagt warum.",
-  "jobs.endedStopped": "Der Job wurde vor dem Ende gestoppt — sein Protokoll sagt wo.",
-  "jobs.endedInterrupted": "Der Job wurde vor dem Ende abgebrochen — sein Protokoll sagt, wie weit er kam.",
+  "jobs.endedStopped":
+    "Der Job wurde vor dem Ende gestoppt — sein Protokoll sagt wo.",
+  "jobs.endedInterrupted":
+    "Der Job wurde vor dem Ende abgebrochen — sein Protokoll sagt, wie weit er kam.",
   "jobs.linkSpec": "Spec",
   "list.reopen": "Wieder öffnen",
   "list.reopening": "wird wieder geöffnet…",
@@ -133,16 +150,21 @@ export const de: Record<TranslationKey, string> = {
   "list.noPullRequest": "kein Pull Request",
   "list.landingFailed": "Merge fehlgeschlagen",
   "list.testsRed": "Tests rot",
-  "list.waitingOnReview": "der Code wartet auf einen Pull Request — öffne ihn zur Überprüfung",
+  "list.waitingOnReview":
+    "der Code wartet auf einen Pull Request — öffne ihn zur Überprüfung",
   "list.testServer": "Testserver",
-  "list.testServerStartLink": "Klicke auf den Link, um einen Testserver mit diesem Branch zu starten",
+  "list.testServerStartLink":
+    "Klicke auf den Link, um einen Testserver mit diesem Branch zu starten",
   "list.branchPreview": "Vorschau",
-  "list.branchPreviewLink": "Klicke auf den Link, um diesen Branch dort zu öffnen, wo sein Host ihn gebaut hat",
+  "list.branchPreviewLink":
+    "Klicke auf den Link, um diesen Branch dort zu öffnen, wo sein Host ihn gebaut hat",
   "list.pushError":
     "Der Push eines Schritts hat origin nicht erreicht. — Hole den Branch im Checkout auf dem Server, " +
     "und pushe ihn erneut von einem Terminal aus.",
-  "list.prError": "Für diesen Branch konnte kein Pull Request geöffnet werden. — Öffne ihn von Hand, im Checkout auf dem Server.",
-  "list.landedAfterRetry": "Nach einem zweiten Versuch gemergt: die Tests waren beim ersten Lauf rot und beim zweiten grün.",
+  "list.prError":
+    "Für diesen Branch konnte kein Pull Request geöffnet werden. — Öffne ihn von Hand, im Checkout auf dem Server.",
+  "list.landedAfterRetry":
+    "Nach einem zweiten Versuch gemergt: die Tests waren beim ersten Lauf rot und beim zweiten grün.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Kein Test nennt {id}.",
   "list.branchLeftBehind":
@@ -157,7 +179,8 @@ export const de: Record<TranslationKey, string> = {
     "der Code liegt auf einem Branch, und es wurde kein Pull Request dafür geöffnet. — " +
     "Öffne einen von Hand, im Checkout auf dem Server.",
   "list.archiveHeldBack": "{step} zurückgehalten: {reason}",
-  "list.readyToArchive": "Alle Prüfungen abgehakt — klicke auf {button}, um sie zu mergen",
+  "list.readyToArchive":
+    "Alle Prüfungen abgehakt — klicke auf {button}, um sie zu mergen",
   "list.noSpecMatchesFilter": "Keine Spec passt zu diesem Filter.",
   "list.noSpecAtAll": "Keine Specs vorhanden.",
   "list.noRunner":
@@ -215,24 +238,31 @@ export const de: Record<TranslationKey, string> = {
   "job.logAiPlain": "KI",
   "job.logSubagent": "Subagent: {name}",
   "job.subagentAsked": "Auftrag: {text}",
-  "job.subagentAskedTask": "Auftrag: die Aufgabe {name}. Codex speichert den Wortlaut der Aufgabe verschlüsselt.",
+  "job.subagentAskedTask":
+    "Auftrag: die Aufgabe {name}. Codex speichert den Wortlaut der Aufgabe verschlüsselt.",
   "job.subagentAnswered": "Antwort: {text}",
   "job.subagentNoAnswer": "Noch keine Antwort.",
-  "job.subagentUnread": "Die Arbeit dieses Subagenten konnte nicht gelesen werden: Seine Sitzungsdatei ({thread}) wurde nicht gefunden oder war nicht lesbar. Codex legt eine Sitzungsdatei unter sessions/ in CODEX_HOME oder in ~/.codex auf dem Rechner ab, der das Board bereitstellt.",
+  "job.subagentUnread":
+    "Die Arbeit dieses Subagenten konnte nicht gelesen werden: Seine Sitzungsdatei ({thread}) wurde nicht gefunden oder war nicht lesbar. Codex legt eine Sitzungsdatei unter sessions/ in CODEX_HOME oder in ~/.codex auf dem Rechner ab, der das Board bereitstellt.",
   "job.noErrors": "Das Log enthält keine Fehlerzeilen.",
   "job.screenshots": "Screenshots",
   "job.noChangedFiles": "In diesem Schritt wurde keine Datei geändert.",
-  "job.filesNotKnown": "Die geänderten Dateien wurden für diesen Schritt nicht erfasst.",
-  "job.filesRunning": "Die geänderten Dateien liegen vor, wenn der Schritt endet.",
+  "job.filesNotKnown":
+    "Die geänderten Dateien wurden für diesen Schritt nicht erfasst.",
+  "job.filesRunning":
+    "Die geänderten Dateien liegen vor, wenn der Schritt endet.",
 
   "schedule.cron": "Cron",
   "schedule.nextRun": "Nächster Lauf",
   "schedule.promptFile": "Prompt-Datei",
   "schedule.promptOfJob": "Prompt-Datei des geplanten Jobs {job}",
-  "schedule.promptUnreadable": "die Prompt-Datei {file} kann nicht vom Standard-Branch des Checkouts von {project} auf dem Board gelesen werden — committe sie auf diesen Branch oder ändere den Pfad im Tab Einstellungen.",
+  "schedule.promptUnreadable":
+    "die Prompt-Datei {file} kann nicht vom Standard-Branch des Checkouts von {project} auf dem Board gelesen werden — committe sie auf diesen Branch oder ändere den Pfad im Tab Einstellungen.",
   "schedule.model": "Modell",
-  "schedule.modelNotOffered": "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet {choices}. Wähle auf der Seite des Eintrags eines davon; bis dahin werden seine Läufe abgelehnt.",
-  "schedule.modelNoneOffered": "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet keine Modelle an. Wähle auf der Seite des Eintrags ein anderes, sobald die Konfiguration der Warteschlange eines nennt; bis dahin werden seine Läufe abgelehnt.",
+  "schedule.modelNotOffered":
+    "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet {choices}. Wähle auf der Seite des Eintrags eines davon; bis dahin werden seine Läufe abgelehnt.",
+  "schedule.modelNoneOffered":
+    "Das Modell {model} gehört nicht zu denen, die die Warteschlange anbietet — sie bietet keine Modelle an. Wähle auf der Seite des Eintrags ein anderes, sobald die Konfiguration der Warteschlange eines nennt; bis dahin werden seine Läufe abgelehnt.",
   "schedule.ai": "KI",
   "schedule.notify": "Benachrichtigen",
   "schedule.notifyNever": "Nie",
@@ -244,7 +274,8 @@ export const de: Record<TranslationKey, string> = {
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "An",
   "schedule.sandboxOff": "Aus, damit ein Browser starten kann",
-  "schedule.reportOnly": "Ein geplanter Job darf in das Projekt und seine Specs committen — dieselben Repositories, die der Schritt einer Spec erreicht. Sobald er fertig ist, mergt das Dashboard die Arbeit.",
+  "schedule.reportOnly":
+    "Ein geplanter Job darf in das Projekt und seine Specs committen — dieselben Repositories, die der Schritt einer Spec erreicht. Sobald er fertig ist, mergt das Dashboard die Arbeit.",
   "schedule.enabled": "Aktiviert",
   "schedule.yes": "ja",
   "schedule.no": "nein",
@@ -259,17 +290,23 @@ export const de: Record<TranslationKey, string> = {
   "proposals.created": "Erstellt",
   "proposals.skipped": "Übersprungen",
   "proposals.noTitle": "(ohne Titel)",
-  "proposals.existsActive": "eine Spec mit diesem Titel existiert: {spec} (aktiv)",
-  "proposals.existsArchived": "eine Spec mit diesem Titel existiert: {spec} (archiviert)",
-  "proposals.existsClosed": "eine Spec mit diesem Titel existiert: {spec} (geschlossen)",
+  "proposals.existsActive":
+    "eine Spec mit diesem Titel existiert: {spec} (aktiv)",
+  "proposals.existsArchived":
+    "eine Spec mit diesem Titel existiert: {spec} (archiviert)",
+  "proposals.existsClosed":
+    "eine Spec mit diesem Titel existiert: {spec} (geschlossen)",
   "proposals.queued": "ein Create-Job für diesen Titel existiert bereits",
-  "proposals.invalidNotObject": "der Eintrag ist kein Objekt mit Titel und Beschreibung",
+  "proposals.invalidNotObject":
+    "der Eintrag ist kein Objekt mit Titel und Beschreibung",
   "proposals.invalidTitleMissing": "er hat keinen Titel",
   "proposals.invalidTitleLines": "sein Titel geht über mehr als eine Zeile",
   "proposals.invalidTitleLong": "sein Titel ist länger als {max} Zeichen",
   "proposals.invalidDescriptionMissing": "er hat keine Beschreibung",
-  "proposals.invalidDescriptionLong": "seine Beschreibung ist länger als die {max} Zeichen, die neben der Quelle Platz haben",
-  "proposals.refused": "die Warteschlange hat ihn abgelehnt; der Grund steht im Serverlog",
+  "proposals.invalidDescriptionLong":
+    "seine Beschreibung ist länger als die {max} Zeichen, die neben der Quelle Platz haben",
+  "proposals.refused":
+    "die Warteschlange hat ihn abgelehnt; der Grund steht im Serverlog",
   "schedule.newJob": "Neuer Job",
   "schedule.new": "Neu",
   "schedule.edit": "Bearbeiten",
@@ -324,32 +361,42 @@ export const de: Record<TranslationKey, string> = {
   "settings.providers.add": "Hinzufügen",
   "settings.providers.adding": "wird hinzugefügt…",
   "settings.providers.chooseTool": "Für welches Werkzeug ist der Anbieter?",
-  "settings.providers.notInstalled": "{tool} ist dort, wo das Board läuft, nicht installiert",
-  "settings.providers.loginUnread": "Die Anmeldung konnte nicht gelesen werden — öffne die Seite erneut, um sie noch einmal zu lesen.",
+  "settings.providers.notInstalled":
+    "{tool} ist dort, wo das Board läuft, nicht installiert",
+  "settings.providers.loginUnread":
+    "Die Anmeldung konnte nicht gelesen werden — öffne die Seite erneut, um sie noch einmal zu lesen.",
   "settings.providers.login": "Anmeldung",
   "settings.providers.state.in": "Angemeldet",
   "settings.providers.state.out": "Nicht angemeldet",
   "settings.providers.state.unread": "Nicht gelesen",
   "settings.providers.state.notInstalled": "Nicht installiert",
   "settings.providers.removeTitle": "{name} entfernen?",
-  "settings.providers.removeSentence": "Der Anbieter wird vom Dashboard entfernt. Sein Ordner und seine Anmeldung bleiben, wie sie sind.",
-  "settings.models.readAtWith": "Modelle gelesen {at}, mit den Ordnern von {provider}",
+  "settings.providers.removeSentence":
+    "Der Anbieter wird vom Dashboard entfernt. Sein Ordner und seine Anmeldung bleiben, wie sie sind.",
+  "settings.models.readAtWith":
+    "Modelle gelesen {at}, mit den Ordnern von {provider}",
   "settings.providers.loginEnds": "Die Anmeldung endet {at}",
-  "settings.providers.shadowHelp": "Ein Shadow Home hat eine eigene Anmeldung und teilt Sitzungen und Einstellungen des CODEX_HOME. Mit einem leeren Ordner beginnen und dort anmelden.",
+  "settings.providers.shadowHelp":
+    "Ein Shadow Home hat eine eigene Anmeldung und teilt Sitzungen und Einstellungen des CODEX_HOME. Mit einem leeren Ordner beginnen und dort anmelden.",
   "settings.providers.heading": "Anbieter",
   "settings.providers.addProvider": "Anbieter hinzufügen",
   "settings.providers.checked": "Geprüft {when}",
   "settings.providers.recheck": "Erneut prüfen",
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Anzeigename",
-  "settings.providers.displayNameHelp": "Was das Dashboard für diesen Anbieter zeigt.",
+  "settings.providers.displayNameHelp":
+    "Was das Dashboard für diesen Anbieter zeigt.",
   "settings.providers.runtime": "Laufzeit",
   "settings.providers.binary": "Binärpfad",
-  "settings.providers.binaryHelp": "Pfad zum {tool}-Programm, das dieser Anbieter ausführt. Leer lassen, um das aus PATH zu verwenden.",
-  "settings.providers.configDirHelp": "Der Konfigurationsordner von Claude Code für diese Anmeldung. Leer lassen, um ~/.claude zu verwenden.",
-  "settings.providers.codexHomeHelp": "Der Home- und Konfigurationsordner von Codex. Leer lassen, um ~/.codex zu verwenden.",
+  "settings.providers.binaryHelp":
+    "Pfad zum {tool}-Programm, das dieser Anbieter ausführt. Leer lassen, um das aus PATH zu verwenden.",
+  "settings.providers.configDirHelp":
+    "Der Konfigurationsordner von Claude Code für diese Anmeldung. Leer lassen, um ~/.claude zu verwenden.",
+  "settings.providers.codexHomeHelp":
+    "Der Home- und Konfigurationsordner von Codex. Leer lassen, um ~/.codex zu verwenden.",
   "settings.providers.autoCompact": "Automatisch komprimieren nach",
-  "settings.providers.autoCompactHelp": "Nach 100.000 bis 1.000.000 Tokens komprimieren. Leer lassen für die Voreinstellung von Claude Code.",
+  "settings.providers.autoCompactHelp":
+    "Nach 100.000 bis 1.000.000 Tokens komprimieren. Leer lassen für die Voreinstellung von Claude Code.",
   "settings.providers.switchLabel": "{name} verwenden",
   "settings.providers.on": "An",
   "settings.providers.off": "Aus",
@@ -357,13 +404,16 @@ export const de: Record<TranslationKey, string> = {
   "settings.providers.stepIdentity": "Identität",
   "settings.providers.stepConfig": "Konfiguration",
   "settings.providers.id": "ID",
-  "settings.providers.idHelp": "Worunter das Board den Anbieter speichert. Buchstaben, Ziffern, „-“ oder „_“. Sie lässt sich später nicht ändern.",
+  "settings.providers.idHelp":
+    "Worunter das Board den Anbieter speichert. Buchstaben, Ziffern, „-“ oder „_“. Sie lässt sich später nicht ändern.",
   "settings.providers.loginCommand": "Anmelden",
-  "settings.providers.loginCommandHelp": "Führe dies auf dem Rechner aus, auf dem das Board läuft, um den Anbieter anzumelden. Status zeigt, wann er angemeldet ist.",
+  "settings.providers.loginCommandHelp":
+    "Führe dies auf dem Rechner aus, auf dem das Board läuft, um den Anbieter anzumelden. Status zeigt, wann er angemeldet ist.",
   "settings.providers.next": "Weiter",
   "settings.providers.card.claude": "Der Coding-Agent von Anthropic.",
   "settings.providers.card.codex": "Der Coding-Agent von OpenAI.",
-  "settings.providers.card.opencode": "Ein Open-Source-Agent, der Modelle anderer Anbieter ausführt.",
+  "settings.providers.card.opencode":
+    "Ein Open-Source-Agent, der Modelle anderer Anbieter ausführt.",
   "job.provider": "Anbieter",
   "notice.providerRuns": "{step} läuft auf {who}",
   "notice.providerRan": "{step} lief auf {who}",
@@ -371,10 +421,13 @@ export const de: Record<TranslationKey, string> = {
   "settings.models.available": "Verfügbar",
   "settings.models.gone": "Nicht mehr verfügbar",
   "settings.models.noneSupported": "Keine Modellwahl läuft auf {tool}.",
-  "settings.models.allSupported": "Jedes angebotene Modell kann bereits gewählt werden.",
-  "settings.models.noneGone": "Jedes Modell, das gewählt werden kann, wird noch angeboten.",
+  "settings.models.allSupported":
+    "Jedes angebotene Modell kann bereits gewählt werden.",
+  "settings.models.noneGone":
+    "Jedes Modell, das gewählt werden kann, wird noch angeboten.",
   "settings.process.concurrency": "Schritte, die gleichzeitig laufen dürfen",
-  "settings.process.cores": "Dieser Rechner hat {cores} Kerne. Eine gespeicherte Zahl gilt ab dem nächsten Schritt, den die Warteschlange startet; ein bereits laufender Schritt wird deswegen nie gestoppt.",
+  "settings.process.cores":
+    "Dieser Rechner hat {cores} Kerne. Eine gespeicherte Zahl gilt ab dem nächsten Schritt, den die Warteschlange startet; ein bereits laufender Schritt wird deswegen nie gestoppt.",
   "nav.back": "Zurück",
   "tab.steps": "Protokolle",
   "tab.phases": "Modelle pro Phase",
@@ -388,16 +441,22 @@ export const de: Record<TranslationKey, string> = {
   "tab.settings": "Einstellungen",
   "settings.help.page.title": "Was diese Seite einstellt",
   "settings.help.page.lead": "Was diese Seite einstellt.",
-  "settings.help.page.body": "Jeder Schritt, den die Warteschlange ausführen kann, hat hier eine Zeile, und die Zeile sagt, womit der Schritt läuft und wie lange er dauern darf. Nichts hier startet etwas; es ist das, was ein Lauf verwendet, wenn niemand für diese eine Spec etwas anderes gewählt hat.",
+  "settings.help.page.body":
+    "Jeder Schritt, den die Warteschlange ausführen kann, hat hier eine Zeile, und die Zeile sagt, womit der Schritt läuft und wie lange er dauern darf. Nichts hier startet etwas; es ist das, was ein Lauf verwendet, wenn niemand für diese eine Spec etwas anderes gewählt hat.",
   "settings.help.onSpec.lead": "Bei einer Spec.",
-  "settings.help.onSpec.body": "Erstellen schreibt den Ordner der Spec. Analysieren ermittelt, wie es gemacht wird. Implementieren schreibt den Code und seine Tests. Archivieren führt den Branch zusammen und verschiebt den Ordner ins Archiv. Schließen beendet eine Spec, deren Idee nicht trug, ohne ihren Code zusammenzuführen. Wiedereröffnen holt eine archivierte Spec zurück.",
+  "settings.help.onSpec.body":
+    "Erstellen schreibt den Ordner der Spec. Analysieren ermittelt, wie es gemacht wird. Implementieren schreibt den Code und seine Tests. Archivieren führt den Branch zusammen und verschiebt den Ordner ins Archiv. Schließen beendet eine Spec, deren Idee nicht trug, ohne ihren Code zusammenzuführen. Wiedereröffnen holt eine archivierte Spec zurück.",
   "settings.help.offSpec.lead": "Nicht bei einer Spec.",
-  "settings.help.offSpec.body": "Zeitplan führt einen Job aus einer Prompt-Datei aus und nennt überhaupt keine Spec.",
-  "settings.help.default": "Eine Zeile, für die nichts gespeichert wurde, zeigt, womit ihr Schritt läuft: Claude Code mit Opus, es sei denn, die Konfigurationsdatei des Servers nennt einen anderen Standard.",
+  "settings.help.offSpec.body":
+    "Zeitplan führt einen Job aus einer Prompt-Datei aus und nennt überhaupt keine Spec.",
+  "settings.help.default":
+    "Eine Zeile, für die nichts gespeichert wurde, zeigt, womit ihr Schritt läuft: Claude Code mit Opus, es sei denn, die Konfigurationsdatei des Servers nennt einen anderen Standard.",
   "settings.help.aiModel.lead": "KI und Modell.",
-  "settings.help.aiModel.body": "Die KI ist die Kommandozeile, die den Schritt ausführt; das Modell ist das Modell, das sie bekommt. Wer eine KI wählt, füllt deren eigenes Modell ein, und beide gehören immer zusammen. Nur KIs mit einem auf diesem Server konfigurierten Modell lassen sich wählen.",
+  "settings.help.aiModel.body":
+    "Die KI ist die Kommandozeile, die den Schritt ausführt; das Modell ist das Modell, das sie bekommt. Wer eine KI wählt, füllt deren eigenes Modell ein, und beide gehören immer zusammen. Nur KIs mit einem auf diesem Server konfigurierten Modell lassen sich wählen.",
   "settings.help.timeout.lead": "Zeitlimit.",
-  "settings.help.timeout.body": "Wie lange der Schritt laufen darf, bevor er gestoppt wird, in Minuten. Es ist die einzige Grenze für einen außer Kontrolle geratenen Schritt; ein Schritt, der berechtigterweise länger braucht, braucht hier eine größere Zahl statt eines neuen Versuchs.",
+  "settings.help.timeout.body":
+    "Wie lange der Schritt laufen darf, bevor er gestoppt wird, in Minuten. Es ist die einzige Grenze für einen außer Kontrolle geratenen Schritt; ein Schritt, der berechtigterweise länger braucht, braucht hier eine größere Zahl statt eines neuen Versuchs.",
   "settings.row.timeoutAria": "Zeitlimit in Minuten für {step}",
   "settings.side.review": "Prüfen",
   "settings.side.verify": "Bestätigen",
@@ -407,32 +466,42 @@ export const de: Record<TranslationKey, string> = {
   "settings.group.offSpec": "Nicht bei einer Spec",
   "settings.col.phase": "Phase",
   "settings.col.timeout": "Zeitlimit (Min.)",
-  "settings.noModels": "Auf diesem Server sind keine Modellauswahlen konfiguriert.",
-  "settings.notifications.when": "Wenn eine Spec dich braucht — ein Schritt ist fehlgeschlagen oder gestoppt, ihre Tests wurden beim Zusammenführen in main rot, oder ihr Archivieren wird durch nicht abgehakte Akzeptanzkriterien zurückgehalten — erhält dieses Gerät eine Benachrichtigung. Ein Tipp darauf öffnet die Spec.",
-  "settings.notifications.device": "Dies ist eine Einstellung nur für dieses Gerät. Auf einem iPhone oder iPad funktioniert sie in der installierten App, ab iOS 16.4.",
+  "settings.noModels":
+    "Auf diesem Server sind keine Modellauswahlen konfiguriert.",
+  "settings.notifications.when":
+    "Wenn eine Spec dich braucht — ein Schritt ist fehlgeschlagen oder gestoppt, ihre Tests wurden beim Zusammenführen in main rot, oder ihr Archivieren wird durch nicht abgehakte Akzeptanzkriterien zurückgehalten — erhält dieses Gerät eine Benachrichtigung. Ein Tipp darauf öffnet die Spec.",
+  "settings.notifications.device":
+    "Dies ist eine Einstellung nur für dieses Gerät. Auf einem iPhone oder iPad funktioniert sie in der installierten App, ab iOS 16.4.",
   "settings.notifications.toggle": "Benachrichtigungen für dieses Gerät",
   "settings.notifications.on": "An",
   "settings.notifications.off": "Aus",
   "settings.notifications.checking": "Prüfe dieses Gerät…",
-  "settings.notifications.job": "Ein geplanter Job benachrichtigt nach eigener Wahl — nie, nur wenn der Lauf nicht erfolgreich war, oder bei jedem Lauf. Das wird im Formular des Jobs eingestellt, im Tab Zeitplan des Projekts.",
+  "settings.notifications.job":
+    "Ein geplanter Job benachrichtigt nach eigener Wahl — nie, nur wenn der Lauf nicht erfolgreich war, oder bei jedem Lauf. Das wird im Formular des Jobs eingestellt, im Tab Zeitplan des Projekts.",
   "settings.usage.readAt": "Verbrauch gelesen {at}",
   "settings.usage.unread": "Verbrauch noch nicht gelesen.",
-  "settings.usage.failed": "Der Verbrauch konnte nicht gelesen werden: {reason}",
+  "settings.usage.failed":
+    "Der Verbrauch konnte nicht gelesen werden: {reason}",
   "settings.usage.none": "Diese KI meldet keine Verbrauchsfenster.",
   "settings.usage.used": "{percent} % verbraucht",
-  "settings.usage.usedResets": "{percent} % verbraucht · wird zurückgesetzt {resets}",
+  "settings.usage.usedResets":
+    "{percent} % verbraucht · wird zurückgesetzt {resets}",
   "settings.models.add": "Hinzufügen",
   "settings.models.adding": "fügt hinzu…",
-  "settings.models.failed": "Die Modelle konnten nicht gelesen werden: {reason}",
+  "settings.models.failed":
+    "Die Modelle konnten nicht gelesen werden: {reason}",
   "settings.models.readAt": "Modelle gelesen {at}",
   "settings.install.holds.instructions": "Anweisungen",
   "settings.install.holds.rules": "Regeln",
   "settings.install.holds.skills": "Skills",
   "settings.install.holds.scripts": "Skripte",
   "settings.install.holds.hooks": "Hooks",
-  "settings.install.cliMissing": "Die Kommandozeile von {tool} wurde auf diesem Rechner nicht gefunden.",
-  "settings.install.missing": "Nicht auf diesem Rechner: {places}. Deploy drücken, das die Installer ausführt.",
-  "settings.install.behind": "Die installierten Dateien liegen hinter dem Repository. Deploy drücken, das die Installer ausführt.",
+  "settings.install.cliMissing":
+    "Die Kommandozeile von {tool} wurde auf diesem Rechner nicht gefunden.",
+  "settings.install.missing":
+    "Nicht auf diesem Rechner: {places}. Deploy drücken, das die Installer ausführt.",
+  "settings.install.behind":
+    "Die installierten Dateien liegen hinter dem Repository. Deploy drücken, das die Installer ausführt.",
   "settings.install.fail": "FEHLER",
   "form.create": "Erstellen",
   "form.creating": "erstellt…",
@@ -442,7 +511,7 @@ export const de: Record<TranslationKey, string> = {
   "schedule.searchAria": "Im Zeitplan suchen",
   "schedule.colLastRun": "Letzter Lauf",
   "schedule.noEntries": "Es gibt noch keinen Zeitplaneintrag.",
-  "schedule.noMatch": "Kein Zeitplaneintrag passt zu \"{term}\".",
+  "schedule.noMatch": 'Kein Zeitplaneintrag passt zu "{term}".',
   "schedule.enabledAria": "Aktiviert: {name}",
   "schedule.runNow": "Jetzt ausführen",
   "schedule.running": "läuft…",
@@ -450,12 +519,14 @@ export const de: Record<TranslationKey, string> = {
   "schedule.deleting": "löscht…",
   "schedule.deleteAria": "{name} löschen",
   "schedule.deleteTitle": "{project}:{name} löschen?",
-  "schedule.deleteSentence": "Der Eintrag wird entfernt und feuert nicht mehr. Sein eigener Laufverlauf bleibt in der Warteschlange.",
+  "schedule.deleteSentence":
+    "Der Eintrag wird entfernt und feuert nicht mehr. Sein eigener Laufverlauf bleibt in der Warteschlange.",
   "schedule.project": "Projekt",
   "schedule.promptPath": "Pfad der Prompt-Datei",
   "schedule.nextRunAt": "Nächster Lauf: {at}",
   "newSpec.pageTitle": "Neue Spec",
-  "newSpec.noProject": "In keinem Projekt auf diesem Rechner darf bisher eine Spec erstellt werden. Füge zuerst eines auf der Seite Projekte hinzu.",
+  "newSpec.noProject":
+    "In keinem Projekt auf diesem Rechner darf bisher eine Spec erstellt werden. Füge zuerst eines auf der Seite Projekte hinzu.",
   "newSpec.project": "Projekt",
   "newSpec.chooseProject": "Projekt wählen…",
   "newSpec.title": "Titel",
@@ -464,15 +535,22 @@ export const de: Record<TranslationKey, string> = {
   "newSpec.descriptionPlaceholder": "das Problem und was du stattdessen willst",
   "newSpec.dependsOnLine": "Hängt ab von:",
   "newSpec.none": "keine",
-  "newSpec.archivedTitle": "archiviert — sie kann hier entfernt, aber nicht wieder hinzugefügt werden",
+  "newSpec.archivedTitle":
+    "archiviert — sie kann hier entfernt, aber nicht wieder hinzugefügt werden",
   "newSpec.dependsHelpTitle": "was eine Abhängigkeit bewirkt",
-  "newSpec.dependsHelp": "Eine Abhängigkeit gilt ab dem nächsten abgesicherten Schritt dieser Spec (Implementieren, Auflösen, Archivieren) — nie für einen bereits laufenden Schritt.",
-  "newSpec.createLockedAria": "Erstellen — läuft immer und ist kein Schritt, den man weglassen kann",
+  "newSpec.dependsHelp":
+    "Eine Abhängigkeit gilt ab dem nächsten abgesicherten Schritt dieser Spec (Implementieren, Auflösen, Archivieren) — nie für einen bereits laufenden Schritt.",
+  "newSpec.createLockedAria":
+    "Erstellen — läuft immer und ist kein Schritt, den man weglassen kann",
   "newSpec.optionHelpTitle": "was das bewirkt",
-  "newSpec.help.acceptance": "Analysieren schreibt eine Tabelle mit Akzeptanzkriterien, und Archivieren wartet, bis jede Zeile abgehakt ist. Ohne Haken wird jedes Akzeptanzkriterium als Nicht verifiziert markiert. Archivieren kann fortfahren, und du kannst jede Zeile später verifizieren.",
-  "newSpec.help.formulate": "Mit Haken führt Erstellen eine kurze KI-Sitzung aus, die für jede Anforderung in dieser Beschreibung ohne Kriterium ein Akzeptanzkriterium schreibt und die von dir selbst geschriebenen Kriterien Wort für Wort beibehält; ohne Haken schreibt Erstellen die Spec direkt aus dem, was hier steht — keine KI-Sitzung, in Sekunden fertig.",
-  "newSpec.help.approach": "Mit Haken markiert Analysieren jeden erwogenen Ansatz als echte Alternative oder als verworfen. Findet es zwei oder mehr echte Alternativen, wartet Implementieren, und die Zeile der Spec listet sie mit dem empfohlenen als gewählt auf: speichere es, um fortzufahren, oder wähle einen anderen, damit Analysieren stattdessen diesen plant. Ohne Haken wählt Analysieren den Ansatz und Implementieren baut ihn.",
-  "newSpec.help.checks": "Wie streng Analysieren die Akzeptanzkriterien dieser Spec prüft — ob jedes als testbare Anforderung geschrieben ist, ein Szenario hat, keinem anderen widerspricht und gebaut werden kann. Aus: keine Prüfungen. Warnen: die Planprüfung listet, was sie findet, und Analysieren wird abgeschlossen. Stopp: Analysieren hält an, bis die Kriterien korrigiert sind. Wird hier gewählt und nach dem Erstellen der Spec nicht mehr geändert.",
+  "newSpec.help.acceptance":
+    "Analysieren schreibt eine Tabelle mit Akzeptanzkriterien, und Archivieren wartet, bis jede Zeile abgehakt ist. Ohne Haken wird jedes Akzeptanzkriterium als Nicht verifiziert markiert. Archivieren kann fortfahren, und du kannst jede Zeile später verifizieren.",
+  "newSpec.help.formulate":
+    "Mit Haken führt Erstellen eine kurze KI-Sitzung aus, die für jede Anforderung in dieser Beschreibung ohne Kriterium ein Akzeptanzkriterium schreibt und die von dir selbst geschriebenen Kriterien Wort für Wort beibehält; ohne Haken schreibt Erstellen die Spec direkt aus dem, was hier steht — keine KI-Sitzung, in Sekunden fertig.",
+  "newSpec.help.approach":
+    "Mit Haken markiert Analysieren jeden erwogenen Ansatz als echte Alternative oder als verworfen. Findet es zwei oder mehr echte Alternativen, wartet Implementieren, und die Zeile der Spec listet sie mit dem empfohlenen als gewählt auf: speichere es, um fortzufahren, oder wähle einen anderen, damit Analysieren stattdessen diesen plant. Ohne Haken wählt Analysieren den Ansatz und Implementieren baut ihn.",
+  "newSpec.help.checks":
+    "Wie streng Analysieren die Akzeptanzkriterien dieser Spec prüft — ob jedes als testbare Anforderung geschrieben ist, ein Szenario hat, keinem anderen widerspricht und gebaut werden kann. Aus: keine Prüfungen. Warnen: die Planprüfung listet, was sie findet, und Analysieren wird abgeschlossen. Stopp: Analysieren hält an, bis die Kriterien korrigiert sind. Wird hier gewählt und nach dem Erstellen der Spec nicht mehr geändert.",
   "time.justNow": "gerade eben",
   "time.minutesAgo": "vor {n} Min.",
   "time.hoursAgo": "vor {n} Std.",
@@ -486,77 +564,116 @@ export const de: Record<TranslationKey, string> = {
   "setting.label.description": "Beschreibung",
   "setting.label.codeLanding": "Code-Landung",
   "setting.label.previewFrom": "Branch ausprobieren",
-  "setting.purpose.AIDE_SPECS_PATH": "Wo die Specs dieses Projekts liegen — ein eigenes specs/, wenn nichts gesetzt ist",
-  "setting.purpose.worktreeLinks": "Ignorierte Pfade, die der Worktree eines Laufs braucht und die git nicht mitbringt",
+  "setting.purpose.AIDE_SPECS_PATH":
+    "Wo die Specs dieses Projekts liegen — ein eigenes specs/, wenn nichts gesetzt ist",
+  "setting.purpose.worktreeLinks":
+    "Ignorierte Pfade, die der Worktree eines Laufs braucht und die git nicht mitbringt",
   "setting.purpose.AIDE_TEST_CMD": "Der eigene Testbefehl des Projekts",
-  "setting.purpose.acPrefix": "Wird der ID eines Kriteriums im Namen eines Tests vorangestellt; {spec} ist die Nummer der Spec, also benennt F{spec} einen Test (F02 AC-2)",
-  "setting.purpose.AIDE_INSTALL_CMD": "Was das Installieren dieses Projekts auf diesem Rechner bedeutet, ausgeführt nach dem Zusammenführen seines Codes",
-  "setting.purpose.previewCmd": "Wie dieses Projekt gestartet wird, damit man den Branch einer Spec ansehen kann, bereitgestellt auf $PORT",
-  "setting.purpose.description": "Eine Zeile, die sagt, was das Projekt ist, angezeigt in der Projektliste",
-  "setting.purpose.codeLanding": "Was mit dem Code passiert, wenn eine Spec archiviert wird",
-  "setting.purpose.previewFrom": "Wie der Branch einer Spec vor dem Zusammenführen ausprobiert werden kann",
+  "setting.purpose.acPrefix":
+    "Wird der ID eines Kriteriums im Namen eines Tests vorangestellt; {spec} ist die Nummer der Spec, also benennt F{spec} einen Test (F02 AC-2)",
+  "setting.purpose.AIDE_INSTALL_CMD":
+    "Was das Installieren dieses Projekts auf diesem Rechner bedeutet, ausgeführt nach dem Zusammenführen seines Codes",
+  "setting.purpose.previewCmd":
+    "Wie dieses Projekt gestartet wird, damit man den Branch einer Spec ansehen kann, bereitgestellt auf $PORT",
+  "setting.purpose.description":
+    "Eine Zeile, die sagt, was das Projekt ist, angezeigt in der Projektliste",
+  "setting.purpose.codeLanding":
+    "Was mit dem Code passiert, wenn eine Spec archiviert wird",
+  "setting.purpose.previewFrom":
+    "Wie der Branch einer Spec vor dem Zusammenführen ausprobiert werden kann",
   "setting.col.value": "Wert",
   "setting.col.comment": "Kommentar",
   "setting.dashboardFile": "die settings.yaml des Dashboards",
   "setting.noTests": "Keine Tests laufen, wenn eine Spec landet",
-  "setting.suggested": "Vorgeschlagen aus {source}, dem üblichen Standard für {toolchain}: {command} — mit Bearbeiten festlegen",
+  "setting.suggested":
+    "Vorgeschlagen aus {source}, dem üblichen Standard für {toolchain}: {command} — mit Bearbeiten festlegen",
   "setting.landing.merge": "In {branch} zusammenführen",
   "setting.landing.mainBranch": "den Hauptbranch des Projekts",
   "setting.landing.pr": "Einen Pull-Request erstellen",
   "setting.preview.none": "Nicht vor dem Zusammenführen",
   "setting.preview.command": "Ein Testserver auf diesem Rechner",
   "setting.preview.cloudflare": "Eine Cloudflare-Pages-Vorschau",
-  "setting.ph.worktreeLinks": "ignorierte Pfade, die ein Lauf verlinken muss: node_modules .venv",
-  "setting.suggestedLinks": "Vorgeschlagen aus der .gitignore des Checkouts: {list}",
+  "setting.ph.worktreeLinks":
+    "ignorierte Pfade, die ein Lauf verlinken muss: node_modules .venv",
+  "setting.suggestedLinks":
+    "Vorgeschlagen aus der .gitignore des Checkouts: {list}",
   "setting.ph.specsPath": "ein eigenes specs/, wenn leer",
   "setting.ph.description": "eine Zeile: was das Projekt ist",
   "setting.ph.acPrefix": "F{spec} benennt einen Test (F02 AC-2)",
-  "project.add.info": "Der Specs-Pfad und der Installationsbefehl kommen in die .aide/config des Projekts auf diesem Rechner. Die anderen Einstellungen kommen in die eigene Einstellungsdatei des Dashboards. Bei einem Repository, das .aide/project.yaml schon verfolgt, werden sie stattdessen in diese Datei committet.",
+  "project.add.info":
+    "Der Specs-Pfad und der Installationsbefehl kommen in die .aide/config des Projekts auf diesem Rechner. Die anderen Einstellungen kommen in die eigene Einstellungsdatei des Dashboards. Bei einem Repository, das .aide/project.yaml schon verfolgt, werden sie stattdessen in diese Datei committet.",
   "project.add.title": "Projekt hinzufügen",
-  "project.add.namePh": "das Verzeichnis, das der Klon unter dem Projektstamm anlegt",
+  "project.add.namePh":
+    "das Verzeichnis, das der Klon unter dem Projektstamm anlegt",
   "project.add.gitUrl": "Git-URL",
   "project.add.gitUrlPh": "wird unter dem Projektstamm geklont",
   "project.add.specsPathPh": "optional — sonst ein eigenes specs/",
   "project.add.chooseLanding": "Wähle, wie der Code landet…",
-  "project.add.worktreeLinksPh": "optional — ignorierte Pfade, die ein Lauf verlinken muss: node_modules .venv",
+  "project.add.worktreeLinksPh":
+    "optional — ignorierte Pfade, die ein Lauf verlinken muss: node_modules .venv",
   "project.add.testCmdPh": "optional — der eigene Testbefehl des Projekts",
-  "project.add.installCmdPh": "optional — wird nach dem Zusammenführen seines Codes ausgeführt",
+  "project.add.installCmdPh":
+    "optional — wird nach dem Zusammenführen seines Codes ausgeführt",
   "project.add.previewCmdPh": "optional — bereitgestellt auf $PORT",
   "project.add.acPrefixPh": "optional — F{spec} benennt einen Test (F02 AC-2)",
   "project.removeTitle": "{name} entfernen?",
-  "project.removeSentence": "Wenn {name} entfernt wird, verschwindet es von der Zulassungsliste und von diesem Dashboard. Sein Checkout und seine Specs bleiben unberührt auf der Platte. Das lässt sich nicht rückgängig machen.",
-  "project.cannotRunTitle": "kann noch nicht laufen — siehe die Seite des Projekts",
+  "project.removeSentence":
+    "Wenn {name} entfernt wird, verschwindet es von der Zulassungsliste und von diesem Dashboard. Sein Checkout und seine Specs bleiben unberührt auf der Platte. Das lässt sich nicht rückgängig machen.",
+  "project.cannotRunTitle":
+    "kann noch nicht laufen — siehe die Seite des Projekts",
   "project.cannotRunAria": "kann noch nicht laufen",
   "project.deployButton": "Deploy",
-  "project.noDeploy": "Es gibt nicht genug Informationen darüber, wie dieses Projekt ausgeliefert wird, um Deploy anzubieten.",
-  "project.notChecked": "Ob dieser Checkout hinter origin liegt, wurde noch nicht geprüft.",
-  "project.notCheckedWith": "Ob dieser Checkout hinter origin liegt, wurde noch nicht geprüft; {phrase}.",
+  "project.noDeploy":
+    "Es gibt nicht genug Informationen darüber, wie dieses Projekt ausgeliefert wird, um Deploy anzubieten.",
+  "project.notChecked":
+    "Ob dieser Checkout hinter origin liegt, wurde noch nicht geprüft.",
+  "project.notCheckedWith":
+    "Ob dieser Checkout hinter origin liegt, wurde noch nicht geprüft; {phrase}.",
   "project.matchesOrigin": "Dieser Checkout stimmt mit origin überein.",
   "project.driftOne": "{n} Commit hinter origin, geprüft {when}",
   "project.driftMany": "{n} Commits hinter origin, geprüft {when}",
-  "project.servingCurrent": "Liefert Commit {sha} aus — stimmt mit diesem Checkout überein.",
-  "project.servingStale": "Liefert Commit {sha} aus, aber dieser Checkout steht jetzt auf Commit {head} — der laufende Dienst hat die letzte Zusammenführung nicht übernommen.",
-  "project.noInstallCmd": "Für dieses Projekt ist kein Installationsbefehl konfiguriert, deshalb wird die Abweichung von origin hier nicht verfolgt.",
-  "project.servedNewest": "der Dienst läuft bereits mit der neuesten Änderung, \"{subject}\"",
-  "project.servedBehindOne": "der Dienst liegt {n} Commit hinter diesem Checkout — die neueste Änderung ist \"{subject}\"",
-  "project.servedBehindMany": "der Dienst liegt {n} Commits hinter diesem Checkout — die neueste Änderung ist \"{subject}\"",
+  "project.servingCurrent":
+    "Liefert Commit {sha} aus — stimmt mit diesem Checkout überein.",
+  "project.servingStale":
+    "Liefert Commit {sha} aus, aber dieser Checkout steht jetzt auf Commit {head} — der laufende Dienst hat die letzte Zusammenführung nicht übernommen.",
+  "project.noInstallCmd":
+    "Für dieses Projekt ist kein Installationsbefehl konfiguriert, deshalb wird die Abweichung von origin hier nicht verfolgt.",
+  "project.servedNewest":
+    'der Dienst läuft bereits mit der neuesten Änderung, "{subject}"',
+  "project.servedBehindOne":
+    'der Dienst liegt {n} Commit hinter diesem Checkout — die neueste Änderung ist "{subject}"',
+  "project.servedBehindMany":
+    'der Dienst liegt {n} Commits hinter diesem Checkout — die neueste Änderung ist "{subject}"',
   "project.behindOne": "{prefix} — Deploy holt ihn und installiert.",
-  "project.behindOneRestart": "{prefix} — Deploy holt ihn, installiert und startet den Dienst neu.",
+  "project.behindOneRestart":
+    "{prefix} — Deploy holt ihn, installiert und startet den Dienst neu.",
   "project.behindMany": "{prefix} — Deploy holt sie und installiert.",
-  "project.behindManyRestart": "{prefix} — Deploy holt sie, installiert und startet den Dienst neu.",
-  "project.stale": "Dieser Checkout stimmt mit origin überein, aber der Dienst läuft noch mit Commit {sha}; Deploy startet ihn mit Commit {head} neu.",
-  "project.servingMatches": "Dieser Checkout stimmt mit origin überein, und der Dienst läuft mit Commit {sha}.",
+  "project.behindManyRestart":
+    "{prefix} — Deploy holt sie, installiert und startet den Dienst neu.",
+  "project.stale":
+    "Dieser Checkout stimmt mit origin überein, aber der Dienst läuft noch mit Commit {sha}; Deploy startet ihn mit Commit {head} neu.",
+  "project.servingMatches":
+    "Dieser Checkout stimmt mit origin überein, und der Dienst läuft mit Commit {sha}.",
   "project.originUnchecked": "Origin wurde noch nicht geprüft.",
-  "project.pressAgain": "Erneutes Drücken wiederholt nur das Holen und Installieren — der Dienst wird dadurch nicht früher neu gestartet.",
-  "project.deployUnderWay": "Ein Deploy ist bereits {state} — verfolge ihn im Tab Läuft.",
-  "project.readinessOk": "Nichts hindert einen Lauf: Dieser Checkout ist bereit zum Laufen.",
+  "project.pressAgain":
+    "Erneutes Drücken wiederholt nur das Holen und Installieren — der Dienst wird dadurch nicht früher neu gestartet.",
+  "project.deployUnderWay":
+    "Ein Deploy ist bereits {state} — verfolge ihn im Tab Läuft.",
+  "project.readinessOk":
+    "Nichts hindert einen Lauf: Dieser Checkout ist bereit zum Laufen.",
   "project.cannotStart": "ein Lauf kann hier noch nicht starten: {reasons}",
-  "project.noConfigFile": "In diesem Checkout gibt es keine .aide/config, deshalb wurde nichts unten auf diesem Rechner konfiguriert.",
-  "settings.notifications.msgOn": "Benachrichtigungen sind für dieses Gerät eingeschaltet.",
-  "settings.notifications.msgOff": "Benachrichtigungen sind für dieses Gerät ausgeschaltet.",
-  "settings.notifications.msgBlocked": "Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Einstellungen des Geräts und öffne diesen Tab dann erneut.",
-  "settings.notifications.msgUnsupported": "Benachrichtigungen brauchen die installierte App auf diesem Gerät — füge das Dashboard zum Home-Bildschirm hinzu und öffne es von dort.",
-  "settings.notifications.msgFailed": "Benachrichtigungen konnten nicht eingeschaltet werden. Versuche es erneut.",
+  "project.noConfigFile":
+    "In diesem Checkout gibt es keine .aide/config, deshalb wurde nichts unten auf diesem Rechner konfiguriert.",
+  "settings.notifications.msgOn":
+    "Benachrichtigungen sind für dieses Gerät eingeschaltet.",
+  "settings.notifications.msgOff":
+    "Benachrichtigungen sind für dieses Gerät ausgeschaltet.",
+  "settings.notifications.msgBlocked":
+    "Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Einstellungen des Geräts und öffne diesen Tab dann erneut.",
+  "settings.notifications.msgUnsupported":
+    "Benachrichtigungen brauchen die installierte App auf diesem Gerät — füge das Dashboard zum Home-Bildschirm hinzu und öffne es von dort.",
+  "settings.notifications.msgFailed":
+    "Benachrichtigungen konnten nicht eingeschaltet werden. Versuche es erneut.",
   "message.problem": "Problem",
   "message.solution": "Lösung",
 };

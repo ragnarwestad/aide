@@ -49,7 +49,9 @@ describe("SpecCreatedAtChecker", () => {
   test("answers with the folder's first commit", async () => {
     const git = dated();
     const checker = new SpecCreatedAtChecker({ run: git.run });
-    expect(await checker.createdAt(DIR, FOLDER)).toBe("2026-08-17T09:00:00+02:00");
+    expect(await checker.createdAt(DIR, FOLDER)).toBe(
+      "2026-08-17T09:00:00+02:00",
+    );
   });
 
   // One answer stands for its TTL. Without it the list would spawn a
@@ -58,7 +60,11 @@ describe("SpecCreatedAtChecker", () => {
   test("a second ask inside the TTL runs no git at all", async () => {
     const git = dated();
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAt(DIR, FOLDER);
     clock += 29_000;
     await checker.createdAt(DIR, FOLDER);
@@ -68,7 +74,11 @@ describe("SpecCreatedAtChecker", () => {
   test("past the TTL it asks again", async () => {
     const git = dated();
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAt(DIR, FOLDER);
     clock += 31_000;
     await checker.createdAt(DIR, FOLDER);
@@ -118,14 +128,25 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
 
   test("a spec nothing has ever asked about answers null, and spawns no git", () => {
     const git = dated();
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
-    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: null });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
+    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({
+      createdAt: null,
+      checkedAt: null,
+    });
     expect(git.calls.length).toBe(0);
   });
 
   test("after a check, it hands back that date and when it was taken", async () => {
     const git = dated();
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.createdAt(DIR, FOLDER);
     const before = git.calls.length;
     expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({
@@ -138,7 +159,11 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
   test("past the TTL the same date stands, with its original timestamp", async () => {
     const git = dated();
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAt(DIR, FOLDER);
     clock += 60_000;
     expect(checker.peekCreatedAt(DIR, FOLDER).checkedAt).toBe(1000);
@@ -148,9 +173,16 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
   // has asked yet by its timestamp.
   test("an undatable spec is a real, timestamped null", async () => {
     const git = fakeGit({});
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 5000,
+    });
     await checker.createdAt(DIR, FOLDER);
-    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: 5000 });
+    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({
+      createdAt: null,
+      checkedAt: 5000,
+    });
   });
 });
 
@@ -172,7 +204,11 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
       "2026-08-17T09:00:00+02:00",
     );
     expect(git.calls[0]!.args).toEqual([
-      "log", "--follow", "--format=%aI", "--", "1-description.md",
+      "log",
+      "--follow",
+      "--format=%aI",
+      "--",
+      "1-description.md",
     ]);
   });
 
@@ -187,7 +223,11 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
   test("a resolved answer stands long past the standard TTL", async () => {
     const git = dated();
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
     clock += 60_000;
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
@@ -212,10 +252,14 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
     };
     const checker = new SpecCreatedAtChecker({ run });
     const answers = await Promise.all(
-      Array.from({ length: 40 }, (_, i) => checker.createdAtForArchived(`/specs/aide/archive/${i}-x`, `${i}-x`)),
+      Array.from({ length: 40 }, (_, i) =>
+        checker.createdAtForArchived(`/specs/aide/archive/${i}-x`, `${i}-x`),
+      ),
     );
     expect(answers.every((a) => a === "2026-08-17T09:00:00+02:00")).toBe(true);
-    expect(most).toBeLessThanOrEqual(SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE);
+    expect(most).toBeLessThanOrEqual(
+      SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE,
+    );
   });
 
   // A dated spec asked again after the long TTL, at a moment git fails,
@@ -223,19 +267,31 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
   test("a failed re-ask keeps the date already found", async () => {
     let fail = false;
     const run = async () =>
-      fail ? { code: 1, stdout: "" } : { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+      fail
+        ? { code: 1, stdout: "" }
+        : { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
     fail = true;
     clock += 25 * 60 * 60 * 1000;
-    expect(await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER)).toBe("2026-08-17T09:00:00+02:00");
+    expect(await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER)).toBe(
+      "2026-08-17T09:00:00+02:00",
+    );
   });
 
   test("an undatable answer is retried on the ordinary schedule, not the long one", async () => {
     const git = fakeGit({});
     let clock = 1000;
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
     clock += 31_000;
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
@@ -249,20 +305,35 @@ describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
   // Archived a moment ago: the archived lookup has not run yet, and a row
   // with no date sorts as the oldest in the archive.
   test("a spec just archived keeps the date it had while it was live", async () => {
-    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-09-26T20:41:20+02:00\n" } });
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const git = fakeGit({
+      "log --format=%aI": { code: 0, stdout: "2026-09-26T20:41:20+02:00\n" },
+    });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.createdAt(DIR, FOLDER);
-    expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER).createdAt).toBe("2026-09-26T20:41:20+02:00");
+    expect(
+      checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER).createdAt,
+    ).toBe("2026-09-26T20:41:20+02:00");
   });
 
   const dated = () =>
     fakeGit({
-      "log --follow --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
+      "log --follow --format=%aI": {
+        code: 0,
+        stdout: "2026-08-17T09:00:00+02:00\n",
+      },
     });
 
   test("nothing asked yet answers null, and spawns no git", () => {
     const git = dated();
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER)).toEqual({
       createdAt: null,
       checkedAt: null,
@@ -272,7 +343,11 @@ describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
 
   test("after a check, it hands back that date and when it was taken", async () => {
     const git = dated();
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
     expect(checker.peekCreatedAtForArchived(ARCHIVE_DIR, FOLDER)).toEqual({
       createdAt: "2026-08-17T09:00:00+02:00",
@@ -286,9 +361,16 @@ describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
   // other's cache entry.
   test("is a different cache entry from the live peekCreatedAt", async () => {
     const git = dated();
-    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new SpecCreatedAtChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
-    expect(checker.peekCreatedAt(ARCHIVE_DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: null });
+    expect(checker.peekCreatedAt(ARCHIVE_DIR, FOLDER)).toEqual({
+      createdAt: null,
+      checkedAt: null,
+    });
   });
 });
 
@@ -297,7 +379,12 @@ describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
 // of its files on every single view.
 describe("SpecFileCommitChecker", () => {
   const dated = () =>
-    fakeGit({ "log -1 --format=%H": { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" } });
+    fakeGit({
+      "log -1 --format=%H": {
+        code: 0,
+        stdout: "deadbee\t2026-08-18T09:10:36+02:00\n",
+      },
+    });
 
   test("answers with the commit that last touched the file", async () => {
     const git = dated();
@@ -307,7 +394,11 @@ describe("SpecFileCommitChecker", () => {
       at: "2026-08-18T09:10:36+02:00",
     });
     expect(git.calls[0]!.args).toEqual([
-      "log", "-1", "--format=%H%x09%aI", "--", "1-description.md",
+      "log",
+      "-1",
+      "--format=%H%x09%aI",
+      "--",
+      "1-description.md",
     ]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
@@ -315,7 +406,11 @@ describe("SpecFileCommitChecker", () => {
   test("a second ask inside the TTL runs no git at all", async () => {
     const git = dated();
     let clock = 1000;
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new SpecFileCommitChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.commitFor(DIR, "1-description.md");
     clock += 29_000;
     await checker.commitFor(DIR, "1-description.md");
@@ -324,7 +419,11 @@ describe("SpecFileCommitChecker", () => {
 
   test("each file is its own question", async () => {
     const git = dated();
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new SpecFileCommitChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.commitFor(DIR, "1-description.md");
     await checker.commitFor(DIR, "4-status.md");
     expect(git.calls).toHaveLength(2);
@@ -334,7 +433,11 @@ describe("SpecFileCommitChecker", () => {
   // never committed — with no stamp.
   test("an undatable file answers null", async () => {
     const git = fakeGit({});
-    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    const checker = new SpecFileCommitChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 5000,
+    });
     expect(await checker.commitFor(DIR, "1-description.md")).toBeNull();
   });
 });

@@ -16,7 +16,7 @@ A project tells Aide about itself in two files, and every setting lives in exact
 belongs to the machine and is the same for every project.
 
 | File                 | Committed | Holds                                                                     |
-|----------------------|-----------|---------------------------------------------------------------------------|
+| -------------------- | --------- | ------------------------------------------------------------------------- |
 | `.aide/config`       | never     | What belongs to one machine: where the specs are, how to install here     |
 | `.aide/project.yaml` | yes       | What is true of the project on every machine: its test command, its links |
 | `~/.aide/config`     | never     | What belongs to the machine for every project: where the board is         |
@@ -34,7 +34,7 @@ No project setting is read from both of its files. A key written in the other fi
 ## .aide/config
 
 | Key                | What it says                                                                                            | Read by                      | In Config |
-|--------------------|---------------------------------------------------------------------------------------------------------|------------------------------|-----------|
+| ------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------- | --------- |
 | `AIDE_SPECS_PATH`  | Where this project's specs are kept, when not in its own `specs/`                                       | the skills, a run, the board | yes       |
 | `AIDE_INSTALL_CMD` | What installing the project means on this machine, run by the board after the project's code has merged | the board                    | yes       |
 | `AIDE_LINT_CMD`    | The lint command, when the one worked out from the project's files is wrong                             | the AI in `/aide-implement`  | no        |
@@ -51,7 +51,7 @@ The same `KEY=value` format as `.aide/config`, in the home directory, so one fil
 machine. It is never committed.
 
 | Key              | What it says                                                                                                                                                                                                                                                                                                                                                                                          | Read by                                    |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). With it set, an `/aide-*` skill run in a session hands its step to the board. Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board | `aide-push-specs`, `aide`, `aide-hand-off` |
 
 ---
@@ -61,7 +61,7 @@ machine. It is never committed.
 The settings a run uses:
 
 | Key                      | What it says                                                                                                                                                                                                                                                                                  | Read by                       | In Config |
-|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------|-----------|
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------- |
 | `AIDE_TEST_CMD`          | The project's test command: the whole suite, run by implement, by the landing and by `/aide-implement` alike. Never guessed: without it no tests run                                                                                                                                          | a run, the landing, the board | yes       |
 | `AIDE_TEST_FILES_CMD`    | The command for running named test files once. Implement appends each red file and uses the exit code to distinguish a persistent failure from a test that may be unstable. Never guessed                                                                                                     | a run                         | no        |
 | `acPrefix`               | What implement puts before a criterion's id in a test's name; `{spec}` stands for the spec's number as its folder writes it, so `acPrefix: "F{spec}"` names the test for spec 02's AC-2 `(F02 AC-2)`. Absent means `(AC-2)`. Read from `.aide/project.yaml` in the checkout implement runs in | implement, the board          | yes       |

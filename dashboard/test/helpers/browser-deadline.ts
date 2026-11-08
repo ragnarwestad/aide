@@ -35,7 +35,13 @@ export function withBrowser<T>(promise: Promise<T>, label: string): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} did not resolve within ${BROWSER_CALL_MS}ms`)), BROWSER_CALL_MS),
+      setTimeout(
+        () =>
+          reject(
+            new Error(`${label} did not resolve within ${BROWSER_CALL_MS}ms`),
+          ),
+        BROWSER_CALL_MS,
+      ),
     ),
   ]);
 }

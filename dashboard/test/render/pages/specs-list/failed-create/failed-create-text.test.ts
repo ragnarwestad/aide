@@ -6,12 +6,20 @@
 
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
-import { failedCreateText, renderFailedCreateNotices } from "../../../../../src/render/pages/specs-list/failed-create-notices.ts";
+import {
+  failedCreateText,
+  renderFailedCreateNotices,
+} from "../../../../../src/render/pages/specs-list/failed-create-notices.ts";
 import type { FailedCreate } from "../../../../../src/push/failed-creates.ts";
 
 const rec = (over: Partial<FailedCreate> = {}): FailedCreate => ({
-  id: "j1", project: "aide", title: "Crop the cover", description: "d",
-  reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-11-05T12:00:00.000Z", ...over,
+  id: "j1",
+  project: "aide",
+  title: "Crop the cover",
+  description: "d",
+  reason: { key: "runner.serverRestarted", values: { button: "Create" } },
+  failedAt: "2026-11-05T12:00:00.000Z",
+  ...over,
 });
 
 describe("failedCreateText", () => {
@@ -23,12 +31,20 @@ describe("failedCreateText", () => {
   });
 
   test("a reason in the runner's own words gets both presses", () => {
-    const text = failedCreateText(rec({ reason: "cannot create the worktree" }), "en");
-    expect(text).toContain("Solution: Press Try again to open the form with what you typed, then press Create");
+    const text = failedCreateText(
+      rec({ reason: "cannot create the worktree" }),
+      "en",
+    );
+    expect(text).toContain(
+      "Solution: Press Try again to open the form with what you typed, then press Create",
+    );
   });
 
   test("a reason with advice of its own gets none added", () => {
-    const text = failedCreateText(rec({ reason: { key: "landing.createNothingToLand" } }), "en");
+    const text = failedCreateText(
+      rec({ reason: { key: "landing.createNothingToLand" } }),
+      "en",
+    );
     expect(text.split("\n")).toHaveLength(2);
     expect(text).not.toContain("Try again");
   });
@@ -36,7 +52,10 @@ describe("failedCreateText", () => {
 
 describe("renderFailedCreateNotices", () => {
   test("puts the stored detail behind the (?)", () => {
-    const html = renderFailedCreateNotices([rec({ detail: "fatal: Could not read from remote repository." })], "en");
+    const html = renderFailedCreateNotices(
+      [rec({ detail: "fatal: Could not read from remote repository." })],
+      "en",
+    );
     expect(html).toContain("fatal: Could not read from remote repository.");
   });
 });

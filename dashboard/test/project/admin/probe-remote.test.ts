@@ -35,13 +35,25 @@ function scratch(): string {
 describe("detectRemoteTestCommand", () => {
   test("the root files of a remote reach the lockfile table", async () => {
     const parent = scratch();
-    expect(await detectRemoteTestCommand(run, originWith({ "package-lock.json": "{}" }), parent)).toBe("npm test");
+    expect(
+      await detectRemoteTestCommand(
+        run,
+        originWith({ "package-lock.json": "{}" }),
+        parent,
+      ),
+    ).toBe("npm test");
     expect(readdirSync(parent)).toEqual([]);
   });
 
   test("a root with no file the table knows answers null", async () => {
     const parent = scratch();
-    expect(await detectRemoteTestCommand(run, originWith({ "notes.txt": "hi" }), parent)).toBeNull();
+    expect(
+      await detectRemoteTestCommand(
+        run,
+        originWith({ "notes.txt": "hi" }),
+        parent,
+      ),
+    ).toBeNull();
     expect(readdirSync(parent)).toEqual([]);
   });
 
@@ -52,15 +64,29 @@ describe("detectRemoteTestCommand", () => {
     mkdirSync(empty);
     git(empty, "init", "-q", "--bare");
     const parent = scratch();
-    expect(await detectRemoteTestCommand(run, `file://${empty}`, parent)).toBeNull();
+    expect(
+      await detectRemoteTestCommand(run, `file://${empty}`, parent),
+    ).toBeNull();
     expect(readdirSync(parent)).toEqual([]);
   });
 
   test("an address that cannot be cloned, or none at all, answers null", async () => {
     const parent = scratch();
-    expect(await detectRemoteTestCommand(run, "file:///no/such/repository.git", parent)).toBeNull();
+    expect(
+      await detectRemoteTestCommand(
+        run,
+        "file:///no/such/repository.git",
+        parent,
+      ),
+    ).toBeNull();
     expect(await detectRemoteTestCommand(run, "", parent)).toBeNull();
-    expect(await detectRemoteTestCommand(run, "--upload-pack=touch /tmp/aide-probe-injected", parent)).toBeNull();
+    expect(
+      await detectRemoteTestCommand(
+        run,
+        "--upload-pack=touch /tmp/aide-probe-injected",
+        parent,
+      ),
+    ).toBeNull();
     expect(readdirSync(parent)).toEqual([]);
   });
 });

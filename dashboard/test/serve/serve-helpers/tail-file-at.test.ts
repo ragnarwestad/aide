@@ -15,7 +15,10 @@ const file = (content: string): string => {
 
 describe("tailFileAt", () => {
   test("a file under the bound begins at 0", () => {
-    expect(tailFileAt(file("a\nb\n"), 100)).toEqual({ text: "a\nb\n", start: 0 });
+    expect(tailFileAt(file("a\nb\n"), 100)).toEqual({
+      text: "a\nb\n",
+      start: 0,
+    });
   });
 
   test("a file over the bound gives its tail from the first whole line, and the byte it begins at", () => {
@@ -27,7 +30,10 @@ describe("tailFileAt", () => {
 
   test("a window with no line break keeps its partial line and the window's start", () => {
     const content = "x".repeat(50);
-    expect(tailFileAt(file(content), 10)).toEqual({ text: "x".repeat(10), start: 40 });
+    expect(tailFileAt(file(content), 10)).toEqual({
+      text: "x".repeat(10),
+      start: 40,
+    });
   });
 
   test("a missing file is an empty text at 0, and tailFile still answers the text alone", () => {

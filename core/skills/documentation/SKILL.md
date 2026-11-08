@@ -59,6 +59,7 @@ Content...
 ### Table of contents
 
 **Requirements:**
+
 - ALL documents MUST have a table of contents — no length threshold
 - Include up to 3 levels (`##`, `###` and `####`) whenever they exist — EVERY real heading in the
   document gets a TOC entry. Headings inside code fences are not headings and stay out
@@ -68,6 +69,7 @@ Content...
 - The heading must be `## Table of contents` (no emoji)
 
 **Format:**
+
 ```markdown
 ## Table of contents
 
@@ -79,11 +81,13 @@ Content...
 ### Formatting
 
 **Titles and headings:**
+
 - Document title: `# Title` (only one per document)
 - Main sections: `## Section`
 - Subsections: `### Subsection`
 
 **Separators:**
+
 - Use `---` between logical sections
 - Always `---` after the table of contents
 
@@ -94,6 +98,7 @@ Content...
 ### Code blocks
 
 **Always specify the language at the START:**
+
 - `tsx` for code with JSX (React: `<Component />`)
 - `typescript` for TypeScript without JSX
 - `bash` for shell commands
@@ -111,13 +116,15 @@ Always split "Before" and "After" into SEPARATE code blocks:
 
 ````markdown
 **Before:**
+
 ```tsx
 const [value, setValue] = useState();
 ```
 
 **After:**
+
 ```tsx
-const value = useSelector(state => state.value);
+const value = useSelector((state) => state.value);
 ```
 ````
 
@@ -128,13 +135,15 @@ const value = useSelector(state => state.value);
 **Do NOT use emojis in section headings (## headings):**
 
 ```markdown
-## 📋 Table of contents   (WRONG - emoji in heading)
-## Table of contents      (CORRECT)
+## 📋 Table of contents (WRONG - emoji in heading)
+
+## Table of contents (CORRECT)
 ```
 
 **Why:** Markdown processors strip emojis from heading IDs, which causes MD051 errors (anchor link mismatch).
 
 **Emojis are OK in:**
+
 - Content and body text
 - Lists and tables
 - Metadata fields
@@ -146,6 +155,7 @@ const value = useSelector(state => state.value);
 ### Visual documentation
 
 **Use screenshots and design mocks when relevant:**
+
 - Include screenshots of UI problems or bugs
 - Attach design mocks to show the desired end result
 - Create an assets folder: `assets/` in the document folder
@@ -154,6 +164,7 @@ const value = useSelector(state => state.value);
 **Why:** Modern AI assistants are multimodal and can iterate visually toward a target image.
 
 **Example:**
+
 ```markdown
 ## Problem
 
@@ -169,6 +180,7 @@ Desired result:
 ### Related resources and URLs
 
 **Include links to external resources:**
+
 - Issue trackers: `https://jira.example.com/browse/PROJ-XXXX`
 - Confluence documentation
 - Design documents (Figma, Sketch)
@@ -181,15 +193,20 @@ Desired result:
 **Be explicit about what should happen:**
 
 **Vague example:**
+
 ```markdown
 ## Problem
+
 Add tests for the application form
 ```
 
 **Specific example:**
+
 ```markdown
 ## Problem
+
 The application form's validation has no tests. Test these cases:
+
 - Invalid national identity number (11 digits, but wrong check digit)
 - Missing required fields (name, address)
 - Date of birth in the future

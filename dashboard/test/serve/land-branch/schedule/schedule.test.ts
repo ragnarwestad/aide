@@ -17,8 +17,16 @@ const JOB = { id: "job-1", project: "aide", specFolder: "schedule-nightly" };
 // The merge runs in a worktree BESIDE the root (`mergeWorktreePath`,
 // `<root>.landing.<branch>`), never inside it — `startsWith`, not `===`,
 // is what tells one root's own merge calls apart from the other's.
-const mergedTheBranch = (calls: { args: string[]; dir: string }[], dir: string): boolean =>
-  calls.some((c) => c.dir.startsWith(dir) && c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
+const mergedTheBranch = (
+  calls: { args: string[]; dir: string }[],
+  dir: string,
+): boolean =>
+  calls.some(
+    (c) =>
+      c.dir.startsWith(dir) &&
+      c.args[0] === "merge" &&
+      c.args.includes(`refs/remotes/origin/${BRANCH}`),
+  );
 
 describe("landScheduleRun", () => {
   test("merges every root the run pushed — the specs root, no gate, and the code root's test gate", async () => {
@@ -72,7 +80,8 @@ describe("landScheduleRun", () => {
       calls.push({ dir, args });
       return (dir.startsWith(code) ? conflictGit.run : goodGit.run)(dir, args);
     };
-    let transitioned: { id: string; state: string; patch: Record<string, unknown> } | undefined;
+    let transitioned:
+      { id: string; state: string; patch: Record<string, unknown> } | undefined;
     // Pushed specs-root FIRST in `branchUrls`, the way a run happens to
     // record it — the landing's own sort is what has to put code first,
     // not the order the outcome names the roots in.
@@ -82,7 +91,11 @@ describe("landScheduleRun", () => {
       queue: {
         get: () => undefined,
         update: () => {},
-        transition: (id: string, state: string, patch: Record<string, unknown>) => {
+        transition: (
+          id: string,
+          state: string,
+          patch: Record<string, unknown>,
+        ) => {
           transitioned = { id, state, patch };
           return { ok: true };
         },
@@ -125,7 +138,12 @@ describe("landScheduleRun", () => {
     expect(mergedTheBranch(git.calls, code)).toBe(true);
     // Not a folder-only copy: no `diff --name-only ... specs/<folder>`,
     // the shape `analyze`/`reopen`/`close` take instead.
-    expect(git.calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`))).toBe(false);
+    expect(
+      git.calls.some(
+        (c) =>
+          c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`),
+      ),
+    ).toBe(false);
   });
 
   test("a merge conflict ends the job failed, with nothing merged or pushed", async () => {
@@ -135,14 +153,19 @@ describe("landScheduleRun", () => {
       "merge -q --no-edit": { code: 1 },
       "merge --abort": { code: 0 },
     });
-    let transitioned: { id: string; state: string; patch: Record<string, unknown> } | undefined;
+    let transitioned:
+      { id: string; state: string; patch: Record<string, unknown> } | undefined;
     const { ctx } = landCtx(git.run, {
       machineryProjectDir: () => code,
       machinerySpecsRoot: () => undefined,
       queue: {
         get: () => undefined,
         update: () => {},
-        transition: (id: string, state: string, patch: Record<string, unknown>) => {
+        transition: (
+          id: string,
+          state: string,
+          patch: Record<string, unknown>,
+        ) => {
           transitioned = { id, state, patch };
           return { ok: true };
         },
@@ -162,7 +185,8 @@ describe("landScheduleRun", () => {
 
   test("a thrown exception puts its first line in the visible sentence and keeps full detail (AC-3)", async () => {
     const code = "/repos/aide-code";
-    let transitioned: { id: string; state: string; patch: Record<string, unknown> } | undefined;
+    let transitioned:
+      { id: string; state: string; patch: Record<string, unknown> } | undefined;
     const { ctx } = landCtx(landingGit().run, {
       machineryProjectDir: () => code,
       machinerySpecsRoot: () => undefined,
@@ -174,7 +198,11 @@ describe("landScheduleRun", () => {
       queue: {
         get: () => undefined,
         update: () => {},
-        transition: (id: string, state: string, patch: Record<string, unknown>) => {
+        transition: (
+          id: string,
+          state: string,
+          patch: Record<string, unknown>,
+        ) => {
           transitioned = { id, state, patch };
           return { ok: true };
         },

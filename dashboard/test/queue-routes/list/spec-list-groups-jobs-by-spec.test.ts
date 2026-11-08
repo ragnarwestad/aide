@@ -17,7 +17,11 @@ afterEach(() => harness.cleanup());
 // questions about specs — "which spec has something running?" — not
 // about the individual jobs a spec happens to have been split into.
 describe("filtering and sorting work on specs, not jobs", () => {
-  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
+  const job = (
+    id: string,
+    spec: string,
+    extra: Partial<QueueRowView> = {},
+  ): QueueRowView => ({
     id,
     project: "aide",
     specFolder: spec,
@@ -38,18 +42,24 @@ describe("filtering and sorting work on specs, not jobs", () => {
     filter?: SpecsPageOptions["filter"],
     targets: SpecTarget[] = [],
   ) =>
-    renderSpecsPage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets,
-      filter: { open: "aide/aa-spec", ...filter },
-    });
-
-
+    renderSpecsPage(
+      rows,
+      "2026-08-16T00:00:00Z",
+      [{ label: "Overview", path: "projects.html" }],
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: "aide/aa-spec", ...filter },
+      },
+    );
 
   test("a spec with one job in flight is active, one with only finished jobs is not", () => {
     const html = page(
       [
-        job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
+        job("a1", "aa-spec", {
+          state: "done",
+          startedAt: "2026-08-16T09:00:00Z",
+        }),
         job("a2", "aa-spec", {
           state: "running",
           steps: ["implement"],
@@ -75,8 +85,14 @@ describe("filtering and sorting work on specs, not jobs", () => {
 
   test("the filter tabs count specs, not jobs", () => {
     const html = page([
-      job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
-      job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+      job("a1", "aa-spec", {
+        state: "done",
+        startedAt: "2026-08-16T09:00:00Z",
+      }),
+      job("a2", "aa-spec", {
+        state: "done",
+        startedAt: "2026-08-16T10:00:00Z",
+      }),
       job("b1", "bb-spec", { state: "running" }),
     ]);
     expect(html).toMatch(/>All \(2\)</);
@@ -130,7 +146,11 @@ describe("filtering and sorting work on specs, not jobs", () => {
   // it can no longer have one job near the top and another near the
   // bottom of the same list.
   const specOrder = (html: string) =>
-    [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
+    [
+      ...html.matchAll(
+        /<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g,
+      ),
+    ].map((m) => m[1]);
 
   // The group's place follows its spec's summed duration, so its own
   // newest run cannot move it — one figure per SPEC, not per job:
@@ -138,33 +158,66 @@ describe("filtering and sorting work on specs, not jobs", () => {
   // outrank `bb-spec`'s single, more RECENT one (5 minutes), whatever
   // either spec's jobs' own timestamps say.
   test("sorting by started uses the spec's summed duration, not its jobs' recency", () => {
-    const html = page([
-      job("a1", "aa-spec", {
-        state: "done",
-        startedAt: "2026-08-16T08:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T08:03:00Z" }],
-      }),
-      job("a2", "aa-spec", {
-        state: "done",
-        steps: ["implement"],
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [{ step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:05:00Z" }],
-      }),
-      job("b1", "bb-spec", {
-        state: "done",
-        startedAt: "2026-08-16T12:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T12:05:00Z" }],
-      }),
-    ], { sort: "started" });
+    const html = page(
+      [
+        job("a1", "aa-spec", {
+          state: "done",
+          startedAt: "2026-08-16T08:00:00Z",
+          results: [
+            {
+              step: "analyze",
+              ok: true,
+              costUsd: 1,
+              at: "2026-08-16T08:03:00Z",
+            },
+          ],
+        }),
+        job("a2", "aa-spec", {
+          state: "done",
+          steps: ["implement"],
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [
+            {
+              step: "implement",
+              ok: true,
+              costUsd: 2,
+              at: "2026-08-16T09:05:00Z",
+            },
+          ],
+        }),
+        job("b1", "bb-spec", {
+          state: "done",
+          startedAt: "2026-08-16T12:00:00Z",
+          results: [
+            {
+              step: "analyze",
+              ok: true,
+              costUsd: 1,
+              at: "2026-08-16T12:05:00Z",
+            },
+          ],
+        }),
+      ],
+      { sort: "started" },
+    );
     expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
   });
 
   test("sorting by state uses the spec's representative state", () => {
     const html = page(
       [
-        job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
-        job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
-        job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+        job("a1", "aa-spec", {
+          state: "running",
+          startedAt: "2026-08-16T08:00:00Z",
+        }),
+        job("a2", "aa-spec", {
+          state: "done",
+          startedAt: "2026-08-16T12:00:00Z",
+        }),
+        job("b1", "bb-spec", {
+          state: "done",
+          startedAt: "2026-08-16T10:00:00Z",
+        }),
       ],
       { sort: "state" },
     );

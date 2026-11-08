@@ -56,7 +56,11 @@ export const APP_START_ROUTE = "/app";
 
 /** What a shortcut on the app's icon shows: the one icon the board has
  *  for itself, since no page has an icon of its own. */
-const SHORTCUT_ICON = { src: "/icon-192.png", sizes: "192x192", type: "image/png" };
+const SHORTCUT_ICON = {
+  src: "/icon-192.png",
+  sizes: "192x192",
+  type: "image/png",
+};
 
 /** The manifest itself. `start_url` is the address above, with no query
  *  string; `id` stays `/`, so an app installed on `/` is the same app. */
@@ -85,11 +89,36 @@ export const WEBMANIFEST =
       background_color: THEME_COLORS.light,
       theme_color: THEME_COLORS.light,
       icons: [
-        { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        { src: "/icon-512.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-        { src: "/icon-512-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+        {
+          src: "/icon-192.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/icon-512-maskable.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable",
+        },
+        {
+          src: "/icon-512.svg",
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any",
+        },
+        {
+          src: "/icon-512-maskable.svg",
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "maskable",
+        },
       ],
       // Shown on a long press of the app's icon. The New spec route is
       // written out: `NEW_SPEC_ROUTE` lives in a module that reaches
@@ -97,7 +126,11 @@ export const WEBMANIFEST =
       // computed while the module loads. `test/pwa.test.ts` pins the two.
       shortcuts: [
         { name: t("en", "shell.tabRunning"), url: "/", icons: [SHORTCUT_ICON] },
-        { name: t("en", "shell.tabSpecs"), url: "/specs", icons: [SHORTCUT_ICON] },
+        {
+          name: t("en", "shell.tabSpecs"),
+          url: "/specs",
+          icons: [SHORTCUT_ICON],
+        },
         { name: "New spec", url: "/new", icons: [SHORTCUT_ICON] },
       ],
     },
@@ -199,7 +232,8 @@ export const WAIT_SCRIPT =
 
 /** JSON for a `<script>`: every `<` is escaped, so the markup it carries
  *  can never close the script it sits in. */
-const scriptJson = (value: string) => JSON.stringify(value).replace(/</g, "\\u003c");
+const scriptJson = (value: string) =>
+  JSON.stringify(value).replace(/</g, "\\u003c");
 
 /** What the worker answers a page load with when the server has not
  *  answered within half a second: the spec page's loading element, with

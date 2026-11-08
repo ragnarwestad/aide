@@ -7,11 +7,15 @@ import { createdLabel } from "../../../../../src/render/pages/specs-list/cell-he
 
 describe("the created stamp", () => {
   test("is the date and the time to the minute, in local time", () => {
-    expect(createdLabel(new Date(2026, 9, 11, 14, 42, 59).toISOString())).toBe("2026-10-11 14:42");
+    expect(createdLabel(new Date(2026, 9, 11, 14, 42, 59).toISOString())).toBe(
+      "2026-10-11 14:42",
+    );
   });
 
   test("pads a single-digit month, day, hour and minute", () => {
-    expect(createdLabel(new Date(2026, 0, 5, 7, 3).toISOString())).toBe("2026-01-05 07:03");
+    expect(createdLabel(new Date(2026, 0, 5, 7, 3).toISOString())).toBe(
+      "2026-01-05 07:03",
+    );
   });
 
   test("a spec git cannot date has no stamp", () => {

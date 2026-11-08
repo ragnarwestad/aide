@@ -18,8 +18,13 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
 }
 
 /** main, and the merge checked out on top of it carrying the spec's change. */
@@ -40,14 +45,24 @@ function merged(): string {
 }
 
 /** A recorder red wherever `redWhen` holds for the tree it is run in. */
-function recorder(redWhen: "always" | "with the spec" | "different" | "main unnamed"): void {
+function recorder(
+  redWhen: "always" | "with the spec" | "different" | "main unnamed",
+): void {
   const bin = mkdtempSync(join(tmpdir(), "aide-red-on-main-bin-"));
   dirs.push(bin);
-  writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
-  const test = redWhen === "always" ? 'echo "(fail) a test"; exit 1'
-    : redWhen === "different" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'
-    : redWhen === "main unnamed" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "error: command failed"; fi; exit 1'
-    : '[ -f "$2/spec-change" ] && { echo "(fail) a test"; exit 1; }; exit 0';
+  writeFileSync(
+    join(bin, "resolve"),
+    `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`,
+    { mode: 0o755 },
+  );
+  const test =
+    redWhen === "always"
+      ? 'echo "(fail) a test"; exit 1'
+      : redWhen === "different"
+        ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'
+        : redWhen === "main unnamed"
+          ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "error: command failed"; fi; exit 1'
+          : '[ -f "$2/spec-change" ] && { echo "(fail) a test"; exit 1; }; exit 0';
   writeFileSync(join(bin, "record"), namingRecorder(test), { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
@@ -61,7 +76,10 @@ test("red on main as well: the sentence says the failure is not the spec's", asy
   recorder("always");
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
   expect(verdict.ok).toBe(false);
-  expect(verdict.error).toEqual({ key: "landing.testsRedOnMainToo", values: { branch: "aide/81-x", button: "Archive" } });
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMainToo",
+    values: { branch: "aide/81-x", button: "Archive" },
+  });
 }, 30_000);
 
 test("main's result records green, red and not checked with its reason (AC-1, AC-2)", async () => {
@@ -71,7 +89,11 @@ test("main's result records green, red and not checked with its reason (AC-1, AC
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsMainNotChecked",
-    values: { reason: "the default branch was not found", branch: "aide/81-x", button: "Archive" },
+    values: {
+      reason: "the default branch was not found",
+      branch: "aide/81-x",
+      button: "Archive",
+    },
   });
 }, 30_000);
 

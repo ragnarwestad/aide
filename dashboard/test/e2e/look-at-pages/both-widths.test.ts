@@ -28,7 +28,9 @@ test("every page is taken at 1440 px and at a narrower phone width, and an earli
 
   const taken = await lookAtPages({ scene: {}, out, paths, browser });
   expect(taken).toBe(true);
-  const files = readdirSync(out).filter((f) => f.endsWith(".png")).sort();
+  const files = readdirSync(out)
+    .filter((f) => f.endsWith(".png"))
+    .sort();
   expect(files).toHaveLength(4);
 
   const desktop = files.filter((f) => f.endsWith("-1440.png"));

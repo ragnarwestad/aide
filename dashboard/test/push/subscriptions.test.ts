@@ -4,7 +4,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseSubscribe, readSubscriptions, writeSubscriptions, type Subscription } from "../../src/push/subscriptions.ts";
+import {
+  parseSubscribe,
+  readSubscriptions,
+  writeSubscriptions,
+  type Subscription,
+} from "../../src/push/subscriptions.ts";
 import { b64u, subscribeBody, tempDir } from "./fixtures.ts";
 
 const cleanups: (() => void)[] = [];
@@ -17,7 +22,12 @@ describe("a subscribe request is checked before anything is stored", () => {
     const body = await subscribeBody({ lang: "nb" });
     const parsed = parseSubscribe(body, "https://board.test");
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(parsed.sub).toMatchObject({ endpoint: body.endpoint, lang: "nb", origin: "https://board.test" });
+    if (parsed.ok)
+      expect(parsed.sub).toMatchObject({
+        endpoint: body.endpoint,
+        lang: "nb",
+        origin: "https://board.test",
+      });
   });
 
   test.each([
@@ -28,7 +38,10 @@ describe("a subscribe request is checked before anything is stored", () => {
     "https://evil.test/fcm.googleapis.com",
     "not a url",
   ])("the endpoint %s is refused", async (endpoint) => {
-    expect(parseSubscribe(await subscribeBody({ endpoint }), "https://board.test").ok).toBe(false);
+    expect(
+      parseSubscribe(await subscribeBody({ endpoint }), "https://board.test")
+        .ok,
+    ).toBe(false);
   });
 
   test.each([
@@ -37,29 +50,62 @@ describe("a subscribe request is checked before anything is stored", () => {
     "https://web.push.apple.com/x",
     "https://wns2-par02p.notify.windows.com/w/?token=x",
   ])("the push service %s is accepted", async (endpoint) => {
-    expect(parseSubscribe(await subscribeBody({ endpoint }), "https://board.test").ok).toBe(true);
+    expect(
+      parseSubscribe(await subscribeBody({ endpoint }), "https://board.test")
+        .ok,
+    ).toBe(true);
   });
 
   test("keys of the wrong size or the wrong kind are refused", async () => {
     const good = await subscribeBody();
-    const shortPoint = { ...good, keys: { ...good.keys, p256dh: b64u(new Uint8Array(64).fill(4)) } };
-    const notUncompressed = { ...good, keys: { ...good.keys, p256dh: b64u(new Uint8Array(65).fill(7)) } };
-    const shortSecret = { ...good, keys: { ...good.keys, auth: b64u(new Uint8Array(15)) } };
-    for (const bad of [shortPoint, notUncompressed, shortSecret, { endpoint: good.endpoint }, null, "x", { ...good, keys: null }]) {
+    const shortPoint = {
+      ...good,
+      keys: { ...good.keys, p256dh: b64u(new Uint8Array(64).fill(4)) },
+    };
+    const notUncompressed = {
+      ...good,
+      keys: { ...good.keys, p256dh: b64u(new Uint8Array(65).fill(7)) },
+    };
+    const shortSecret = {
+      ...good,
+      keys: { ...good.keys, auth: b64u(new Uint8Array(15)) },
+    };
+    for (const bad of [
+      shortPoint,
+      notUncompressed,
+      shortSecret,
+      { endpoint: good.endpoint },
+      null,
+      "x",
+      { ...good, keys: null },
+    ]) {
       expect(parseSubscribe(bad, "https://board.test").ok).toBe(false);
     }
   });
 
   test("an unknown language falls back to English rather than being stored as sent", async () => {
-    const parsed = parseSubscribe(await subscribeBody({ lang: "<script>" }), "https://board.test");
+    const parsed = parseSubscribe(
+      await subscribeBody({ lang: "<script>" }),
+      "https://board.test",
+    );
     expect(parsed.ok && parsed.sub.lang).toBe("en");
   });
 });
 
 describe("the file", () => {
-  const make = async (over: Partial<Subscription> = {}): Promise<Subscription> => {
+  const make = async (
+    over: Partial<Subscription> = {},
+  ): Promise<Subscription> => {
     const b = await subscribeBody();
-    return { endpoint: b.endpoint, p256dh: b.keys.p256dh, auth: b.keys.auth, lang: "en", origin: "https://board.test", key: "KEY-1", ...over };
+    return {
+      endpoint: b.endpoint,
+      p256dh: b.keys.p256dh,
+      auth: b.keys.auth,
+      lang: "en",
+      origin: "https://board.test",
+      key: "KEY-1",
+      ...over,
+    };
   };
   const pathOf = () => {
     const t = tempDir();
@@ -88,7 +134,9 @@ describe("the file", () => {
     const old = await make({ key: "OLD" });
     const current = await make();
     writeSubscriptions(path, [old, current]);
-    expect(readSubscriptions(path, "KEY-1").map((s) => s.endpoint)).toEqual([current.endpoint]);
+    expect(readSubscriptions(path, "KEY-1").map((s) => s.endpoint)).toEqual([
+      current.endpoint,
+    ]);
   });
 
   test("a missing or corrupt file reads as empty and never throws", async () => {

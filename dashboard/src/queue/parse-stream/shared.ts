@@ -43,10 +43,20 @@ export function clip(s: string): string {
 // What a tool call was actually about. `file_path` for a Read, `command`
 // for a Bash, `pattern` for a Grep — the first of these that is there,
 // because a bare tool name says nothing a reader did not already know.
-const SUBJECT_KEYS = ["file_path", "command", "pattern", "path", "prompt", "description", "query", "content"];
+const SUBJECT_KEYS = [
+  "file_path",
+  "command",
+  "pattern",
+  "path",
+  "prompt",
+  "description",
+  "query",
+  "content",
+];
 
 export function toolSubject(input: unknown): string {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) return "";
+  if (input === null || typeof input !== "object" || Array.isArray(input))
+    return "";
   const r = input as Record<string, unknown>;
   for (const key of SUBJECT_KEYS) {
     if (typeof r[key] === "string" && r[key]) return r[key] as string;
@@ -66,7 +76,8 @@ export interface StreamBlock {
 
 export function blocksOf(event: Record<string, unknown>): StreamBlock[] {
   const message = event.message;
-  if (message === null || typeof message !== "object" || Array.isArray(message)) return [];
+  if (message === null || typeof message !== "object" || Array.isArray(message))
+    return [];
   const content = (message as Record<string, unknown>).content;
   return Array.isArray(content) ? (content as StreamBlock[]) : [];
 }
@@ -141,7 +152,10 @@ export interface StreamEntry {
  *  only what the model wrote (`messages`). */
 export type LogFilter = "all" | "errors" | "messages";
 
-export function keepsEntry(entry: StreamEntry, only: LogFilter | undefined): boolean {
+export function keepsEntry(
+  entry: StreamEntry,
+  only: LogFilter | undefined,
+): boolean {
   if (!only || only === "all") return true;
   if (only === "messages") return entry.kind === "text";
   return entry.failed === true;
@@ -150,7 +164,12 @@ export function keepsEntry(entry: StreamEntry, only: LogFilter | undefined): boo
 /** The tool names that WRITE, as Claude Code spells them. A tool this
  *  does not name is an ordinary tool call: guessing from the name would
  *  put an MCP server's own write in the wrong list either way. */
-export const CLAUDE_WRITES = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
+export const CLAUDE_WRITES = new Set([
+  "Write",
+  "Edit",
+  "MultiEdit",
+  "NotebookEdit",
+]);
 
 /** Every line of the stream that parses, as an object. Shared by both
  *  parsers, because "never throws" is a property of the reader and not
@@ -161,7 +180,12 @@ export function* events(text: string): Generator<Record<string, unknown>> {
     if (!line.trim()) continue;
     try {
       const parsed = JSON.parse(line) as unknown;
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+      if (
+        parsed === null ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+      )
+        continue;
       yield parsed as Record<string, unknown>;
     } catch {
       // a truncated or non-JSON line costs nothing
@@ -190,7 +214,8 @@ export function bounded(out: StreamEntry[], max: number): StreamEntry[] {
  *  The ending is read loosely — "done (nothing to keep)" is still a mark. */
 // A log written before the `--- Step` prefix read `analyze · Step 3 of 10: …`,
 // and is still read as a mark.
-const STEP_MARK = /^(?:--- |[a-z][\w-]* · )Step \d+ of \d+: .+ — (?:started|done|skipped|stopped)\b/;
+const STEP_MARK =
+  /^(?:--- |[a-z][\w-]* · )Step \d+ of \d+: .+ — (?:started|done|skipped|stopped)\b/;
 
 /** A block of model text as the pieces a reader sees: each step mark on
  *  its own, the prose between marks kept together. Unescaped and
@@ -218,7 +243,11 @@ export function splitMarks(text: string): { text: string; mark?: true }[] {
  *  A step mark is whole either way. */
 export function textEntries(text: string, whole = false): StreamEntry[] {
   // A mark is read whole, whatever its title's length: its ending is what says what it is.
-  return splitMarks(text).map((p) => ({ kind: "text", text: esc(p.mark ? p.text : prose(p.text, whole)), ...(p.mark ? { mark: true } : {}) }));
+  return splitMarks(text).map((p) => ({
+    kind: "text",
+    text: esc(p.mark ? p.text : prose(p.text, whole)),
+    ...(p.mark ? { mark: true } : {}),
+  }));
 }
 
 /** A piece of model text as a Log shows it: whole, or clipped. */
@@ -234,10 +263,19 @@ export function sniff(text: string): ProviderTool {
   for (const event of events(text)) {
     if (typeof event.type !== "string") continue;
     if (/^(thread|turn|item)\./.test(event.type)) return "codex";
-    if (event.part !== null && typeof event.part === "object" && !Array.isArray(event.part)) {
+    if (
+      event.part !== null &&
+      typeof event.part === "object" &&
+      !Array.isArray(event.part)
+    ) {
       return "opencode";
     }
-    if (event.type === "assistant" || event.type === "system" || event.type === "result") return "claude";
+    if (
+      event.type === "assistant" ||
+      event.type === "system" ||
+      event.type === "result"
+    )
+      return "claude";
   }
   return "claude";
 }
@@ -246,8 +284,10 @@ export function sniff(text: string): ProviderTool {
  *  this reads are different ones (`command_execution`, `agent_message`),
  *  not because the rule differs. */
 export function codexKind(item: Record<string, unknown>): string {
-  const str = (k: string) => (typeof item[k] === "string" ? (item[k] as string) : "");
+  const str = (k: string) =>
+    typeof item[k] === "string" ? (item[k] as string) : "";
   return str("item_type") || str("type");
 }
 
-export const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+export const isObject = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v);

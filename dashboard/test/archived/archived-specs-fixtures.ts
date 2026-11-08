@@ -63,9 +63,15 @@ export const OTHER = "05-the-other-project";
  *  writes no `Time spent (ms):` bullet at all, so a fixture
  *  wanting a duration on the row gives `analysis: outcome({ timeSpent:
  *  ... })` instead — the per-phase file `readerGroup()` actually sums. */
-export const stamp = (date: string, steps?: string[], models?: Record<string, string>) =>
+export const stamp = (
+  date: string,
+  steps?: string[],
+  models?: Record<string, string>,
+) =>
   `# Status\n\n## Tracking info\n\n` +
-  (steps === undefined ? "" : `- **Workflow steps completed:** ${steps.join(", ")}\n`) +
+  (steps === undefined
+    ? ""
+    : `- **Workflow steps completed:** ${steps.join(", ")}\n`) +
   Object.entries(models ?? {})
     .map(([step, value]) => `- **Model (${step}):** ${value}\n`)
     .join("") +
@@ -83,13 +89,21 @@ export const STAMPED_NOT_RUN = ["implement", "archive"];
  *  choice — `phaseSubRows` splits the "<tool> " prefix off before either
  *  picker ever sees the rest. */
 export const STAMPED_MODEL = "claude sonnet";
-export const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
+export const noStamp =
+  "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
 /** One phase's own outcome record (its write format and its
  *  read side): a Tracking-info block inside that phase's OWN file, never
  *  `4-status.md`. Only the lines a fixture actually wants, mirroring how
  *  `stamp()` above only writes what it is given. */
-export const outcome = (opts: { model?: string; timeSpent?: string; cost?: string; tokens?: string } = {}) =>
+export const outcome = (
+  opts: {
+    model?: string;
+    timeSpent?: string;
+    cost?: string;
+    tokens?: string;
+  } = {},
+) =>
   `# Analysis\n\n## Tracking info\n\n` +
   (opts.model ? `- **Model:** ${opts.model}\n` : "") +
   `- **Result:** completed\n` +
@@ -119,7 +133,10 @@ export const LONG =
 
 export const ARCHIVED = {
   [STAMPED]: {
-    description: described("One page shows the whole spec", "Every spec file on one page."),
+    description: described(
+      "One page shows the whole spec",
+      "Every spec file on one page.",
+    ),
     // Two of the four steps, deliberately: the phase-line tests need one
     // row that says "this happened" and "this did not" at the same time.
     // One `Model (<step>):` line, on the same terms: analyze has one, the
@@ -134,7 +151,10 @@ export const ARCHIVED = {
     analysis: outcome({ timeSpent: STAMPED_TIME_SPENT, cost: STAMPED_COST }),
   },
   [UNSTAMPED]: {
-    description: described("The push is branch only", `A run pushes a branch. ${LONG}`),
+    description: described(
+      "The push is branch only",
+      `A run pushes a branch. ${LONG}`,
+    ),
     status: noStamp,
   },
   [SAME_DAY]: {
@@ -142,9 +162,15 @@ export const ARCHIVED = {
     status: stamp("2026-08-13"),
   },
   // No `## Description` section at all: the dash case.
-  [UNDATED]: { description: "# A folder copied in - Description\n", status: noStamp },
+  [UNDATED]: {
+    description: "# A folder copied in - Description\n",
+    status: noStamp,
+  },
   [OTHER]: {
-    description: described("The other project", "Proof that projects interleave."),
+    description: described(
+      "The other project",
+      "Proof that projects interleave.",
+    ),
     status: stamp("2026-08-20"),
     project: "skjer",
   },
@@ -154,11 +180,14 @@ export const ARCHIVED = {
  *  own folder. Only the unstamped specs reach git — a stamped one never
  *  does — so the runner keys on the directory it is given, and
  *  everything else is a repo git cannot read. */
-export const gitDated = (dates: Record<string, string>): GitRunner =>
+export const gitDated =
+  (dates: Record<string, string>): GitRunner =>
   async (dir, args) => {
-    if (!args.join(" ").startsWith("log -1 --format=")) return { code: 1, stdout: "" };
+    if (!args.join(" ").startsWith("log -1 --format="))
+      return { code: 1, stdout: "" };
     for (const [folder, at] of Object.entries(dates)) {
-      if (dir.includes(folder)) return { code: 0, stdout: `a3f9c21deadbeef\t${at}\n` };
+      if (dir.includes(folder))
+        return { code: 0, stdout: `a3f9c21deadbeef\t${at}\n` };
     }
     return { code: 1, stdout: "" };
   };
@@ -167,10 +196,21 @@ export const harness = queueHarness("aide-archived-specs-");
 
 export type ArchivedFixture = Record<
   string,
-  { description?: string; status?: string; project?: string; analysis?: string; solution?: string; state?: string }
+  {
+    description?: string;
+    status?: string;
+    project?: string;
+    analysis?: string;
+    solution?: string;
+    state?: string;
+  }
 >;
 
-export const start = (extra: Record<string, unknown> = {}, archivedSpecs: ArchivedFixture = ARCHIVED, liveState?: string) =>
+export const start = (
+  extra: Record<string, unknown> = {},
+  archivedSpecs: ArchivedFixture = ARCHIVED,
+  liveState?: string,
+) =>
   harness.start({
     archivedSpecs,
     liveState,
@@ -198,12 +238,18 @@ export const ALL_VIEW = "?state=all";
  *  appears inside a href, and `indexOf` on the bare name would compare
  *  two different things. */
 export const order = (html: string): string[] =>
-  [...html.matchAll(/<tr class="spechead\b[^>]*?\bdata-folder="([^"]*)"/g)].map((m) => m[1]!);
+  [...html.matchAll(/<tr class="spechead\b[^>]*?\bdata-folder="([^"]*)"/g)].map(
+    (m) => m[1]!,
+  );
 
 /** One spec's whole row. Read per row, because a mark appearing
  *  anywhere on the page says nothing about WHICH spec it belongs to. */
 export const rowFor = (html: string, folder: string): string => {
-  const rows = html.split('<tr class="spechead').filter((r) => r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`));
+  const rows = html
+    .split('<tr class="spechead')
+    .filter((r) =>
+      r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`),
+    );
   expect(rows.length).toBe(1);
   // The header is TWO rows since 2026-09-22 — the title, then its state —
   // so it runs to the end of the second, which is where the cells are.
@@ -223,13 +269,18 @@ export const blockFor = (html: string, folder: string): string => {
   // for the folder name across the whole block finds all of them.
   const blocks = html
     .split('<tr class="spechead')
-    .filter((r) => r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`));
+    .filter((r) =>
+      r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`),
+    );
   expect(blocks.length).toBe(1);
   return blocks[0]!;
 };
 
 /** The phase lines alone, one per step, keyed by the step they name. */
-export const phaseLines = (html: string, folder: string): Record<string, string> => {
+export const phaseLines = (
+  html: string,
+  folder: string,
+): Record<string, string> => {
   const lines: Record<string, string> = {};
   for (const m of blockFor(html, folder).matchAll(
     /<tr class="subrow" data-step="([^"]+)">([\s\S]*?)<\/tr>/g,
@@ -241,7 +292,8 @@ export const phaseLines = (html: string, folder: string): Record<string, string>
 
 /** The row opened, the way the fold chevron opens it: the state is in
  *  the query string, so the server knows before it draws. */
-export const opened = (folder: string, project = "aide"): string => `&open=${project}/${folder}`;
+export const opened = (folder: string, project = "aide"): string =>
+  `&open=${project}/${folder}`;
 
 /** Every model the list may offer, so the "nothing on this row takes a
  *  choice" assertions have something that WOULD have been drawn. Two
@@ -251,8 +303,8 @@ export const TWO_TOOLS = {
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
   modelChoices: {
-    sonnet: { },
-    "codex-fast": {  tool: "codex" },
+    sonnet: {},
+    "codex-fast": { tool: "codex" },
   },
 };
 
@@ -260,7 +312,7 @@ export const TWO_TOOLS = {
  *  model has to land as a KNOWN choice rather than the synthetic,
  *  no-longer-configured one `modelOptions` draws for anything else
  */
-export const modelChoicesWith = (extra: Record<string, { }>) => ({
+export const modelChoicesWith = (extra: Record<string, {}>) => ({
   ...TWO_TOOLS,
   modelChoices: { ...TWO_TOOLS.modelChoices, ...extra },
 });
@@ -273,14 +325,21 @@ export const modelChoicesWith = (extra: Record<string, { }>) => ({
  *  does — see `queue-routes/fixtures.ts`'s twin for what returning the
  *  last page instead cost on 2026-09-05: a wait that gave up silently,
  *  and an assertion blamed for it. */
-export const listUntil = async (base: string, text: string, query = "", budgetMs = 10_000): Promise<string> => {
+export const listUntil = async (
+  base: string,
+  text: string,
+  query = "",
+  budgetMs = 10_000,
+): Promise<string> => {
   const deadline = Date.now() + budgetMs;
   let html = "";
   for (;;) {
     html = await specsList(base, query);
     if (html.toLowerCase().includes(text.toLowerCase())) return html;
     if (Date.now() > deadline) {
-      throw new Error(`the archived list never showed "${text}" within ${budgetMs}ms`);
+      throw new Error(
+        `the archived list never showed "${text}" within ${budgetMs}ms`,
+      );
     }
     await new Promise((r) => setTimeout(r, 25));
   }

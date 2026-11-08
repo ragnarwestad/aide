@@ -2,7 +2,13 @@
 // — ticking a step, picking a model — plus the refusal banner every
 // press on the page can land.
 
-import { attrValue, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
+import {
+  attrValue,
+  refusalText,
+  rowControls,
+  type ActionResult,
+  type Control,
+} from "./press.ts";
 import { clearRefusal, holdRefusal } from "./row-refusal";
 import { swapRows } from "./row-swap.ts";
 import { chosen, press, selectKey } from "./state.ts";
@@ -11,7 +17,10 @@ import { chosen, press, selectKey } from "./state.ts";
 // (`row-refusal/`), under the row `spec` names — the server's own
 // answer for WHICH row it belongs to — and the rows are asked for again,
 // since whatever was refused may have changed them.
-export async function showRefusal(why: string, spec: string | undefined): Promise<void> {
+export async function showRefusal(
+  why: string,
+  spec: string | undefined,
+): Promise<void> {
   holdRefusal(why, spec);
   await swapRows();
 }
@@ -37,7 +46,9 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
   const to = box.getAttribute("data-post-to") ?? "";
   const formId = box.getAttribute("form") ?? "";
   const form = formId
-    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
+    ? (document.querySelector(
+        `form[id="${attrValue(formId)}"]`,
+      ) as HTMLFormElement | null)
     : null;
   const controls = form ? rowControls(form) : [box as Control];
   const wanted = box.checked;
@@ -53,7 +64,10 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
     body.append("checked", wanted ? "1" : "0");
     const res = await fetch(url.toString(), {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/x-www-form-urlencoded",
+      },
       body,
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
@@ -92,13 +106,21 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
  *
  *  The step is the select's own `name` — `model.<step>`, the field it
  *  posts under on a row that is not busy. */
-export async function postTailModel(select: HTMLSelectElement, model: string, provider?: string): Promise<void> {
+export async function postTailModel(
+  select: HTMLSelectElement,
+  model: string,
+  provider?: string,
+): Promise<void> {
   const to = select.getAttribute("data-post-to") ?? "";
-  const step = select.name.startsWith("model.") ? select.name.slice("model.".length) : "";
+  const step = select.name.startsWith("model.")
+    ? select.name.slice("model.".length)
+    : "";
   if (!to || !step) return;
   const formId = select.getAttribute("form") ?? "";
   const form = formId
-    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
+    ? (document.querySelector(
+        `form[id="${attrValue(formId)}"]`,
+      ) as HTMLFormElement | null)
     : null;
   const controls = form ? rowControls(form) : [select as Control];
   const before = controls.map((el) => [el, el.disabled] as const);
@@ -114,7 +136,10 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
     if (provider) body.append("provider", provider);
     const res = await fetch(url.toString(), {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/x-www-form-urlencoded",
+      },
       body,
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
@@ -128,7 +153,10 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
       return;
     }
     chosen.delete(selectKey(select));
-    await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
+    await showRefusal(
+      refusalText(answer, "change the model", res.status),
+      answer?.spec,
+    );
   } catch {
     location.href = location.pathname + location.search;
   } finally {

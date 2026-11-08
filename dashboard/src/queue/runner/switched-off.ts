@@ -18,9 +18,18 @@ export function switchedOffHolds(
   const held = new Map<string, BoardMessage>();
   for (const job of jobs) {
     if (job.state !== "queued" || job.landing) continue;
-    if ((BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "")) continue;
+    if (
+      (BOARD_STEPS as readonly string[]).includes(
+        job.steps[job.stepIndex] ?? "",
+      )
+    )
+      continue;
     const key = providerOf(job);
-    if (switchedOff(key, providers)) held.set(job.id, { key: "runner.providerSwitchedOff", values: { provider: providers![key]!.name } });
+    if (switchedOff(key, providers))
+      held.set(job.id, {
+        key: "runner.providerSwitchedOff",
+        values: { provider: providers![key]!.name },
+      });
   }
   return held;
 }

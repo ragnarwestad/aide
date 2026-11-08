@@ -37,7 +37,8 @@ function fakeForm(action: string) {
     // A plain `<tr>`, not `tr.spechead` — the Test servers list has no
     // spec row, so `rowControls()` falls back to the form's own button
     // (`press.ts`'s `rowControls`, already exercised for this shape).
-    closest: (sel: string) => (sel === "tr.spechead" ? null : sel === "tr" ? tr : null),
+    closest: (sel: string) =>
+      sel === "tr.spechead" ? null : sel === "tr" ? tr : null,
   };
   return { form, refusedSpan, removed: () => removed };
 }
@@ -86,7 +87,9 @@ function stubGlobals(reply: { ok: boolean; body: unknown }) {
 
 describe("submitTestServerStop", () => {
   test("a successful stop removes the row and never navigates", async () => {
-    const { form, removed } = fakeForm("http://dash.test/api/queue/projects/aide/test-server/stop");
+    const { form, removed } = fakeForm(
+      "http://dash.test/api/queue/projects/aide/test-server/stop",
+    );
     const { event, prevented } = fakeEvent(form);
     const stub = stubGlobals({ ok: true, body: { ok: true } });
     try {
@@ -100,9 +103,14 @@ describe("submitTestServerStop", () => {
   });
 
   test("a refused stop writes why into the row's own slot and leaves the row in place", async () => {
-    const { form, refusedSpan, removed } = fakeForm("http://dash.test/api/queue/projects/aide/test-server/stop");
+    const { form, refusedSpan, removed } = fakeForm(
+      "http://dash.test/api/queue/projects/aide/test-server/stop",
+    );
     const { event } = fakeEvent(form);
-    const stub = stubGlobals({ ok: true, body: { ok: false, error: "no such test server" } });
+    const stub = stubGlobals({
+      ok: true,
+      body: { ok: false, error: "no such test server" },
+    });
     try {
       await submitTestServerStop(event);
       expect(refusedSpan.textContent).toBe("Problem: No such test server");
@@ -113,7 +121,9 @@ describe("submitTestServerStop", () => {
   });
 
   test("a form that already had its submit prevented is left alone", async () => {
-    const { form, removed } = fakeForm("http://dash.test/api/queue/projects/aide/test-server/stop");
+    const { form, removed } = fakeForm(
+      "http://dash.test/api/queue/projects/aide/test-server/stop",
+    );
     const event = {
       target: { closest: (sel: string) => (sel === ACTIONS ? form : null) },
       defaultPrevented: true,

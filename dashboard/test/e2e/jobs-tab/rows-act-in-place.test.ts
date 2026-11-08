@@ -21,22 +21,39 @@ const SPEC = "81-queue-and-runner";
 const SPEC_ROW = `tr.spechead[data-folder="${SPEC}"]`;
 
 const nightly = {
-  id: "nightly1", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0, state: "running",
-  timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-10-08T03:00:00Z", startedAt: "2026-10-08T03:00:00Z",
+  id: "nightly1",
+  project: "aide",
+  specFolder: "schedule-nightly",
+  steps: ["schedule"],
+  stepIndex: 0,
+  state: "running",
+  timeoutSec: {},
+  permissionMode: {},
+  model: {},
+  createdAt: "2026-10-08T03:00:00Z",
+  startedAt: "2026-10-08T03:00:00Z",
 };
 
 const queueAnalyze = async (base: string): Promise<string> => {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
+    body: JSON.stringify({
+      project: "aide",
+      specFolder: SPEC,
+      steps: ["analyze"],
+    }),
   });
   expect(res.ok).toBe(true);
   return ((await res.json()) as { job: { id: string } }).job.id;
 };
 
 const stateOf = async (base: string, id: string): Promise<string> =>
-  ((await (await fetch(`${base}/api/queue/${id}`)).json()) as { job: { state: string } }).job.state;
+  (
+    (await (await fetch(`${base}/api/queue/${id}`)).json()) as {
+      job: { state: string };
+    }
+  ).job.state;
 
 /** Counts the page loads after this call: a press that acts in place adds none. */
 const countLoads = (page: Page): { n: number } => {
@@ -77,15 +94,23 @@ describe("a spec's row on the Jobs tab acts in place", () => {
 
     // Cancel asks first; its OK posts and redraws the rows.
     await page.locator("button[data-ask]").first().click();
-    await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
+    await page
+      .locator("dialog[open]")
+      .getByRole("button", { name: "OK" })
+      .click();
     await page.waitForFunction(async (jobId) => {
       const r = await fetch(`/api/queue/${jobId}`);
-      return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
+      return (
+        ((await r.json()) as { job: { state: string } }).job.state ===
+        "cancelled"
+      );
     }, id);
     expect(await stateOf(base, id)).toBe("cancelled");
     // The spec is still Active: its row stays, with nothing left to cancel.
     await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
-    await page.locator(`form[action="/api/queue/${id}/cancel"]`).waitFor({ state: "detached", timeout: 10_000 });
+    await page
+      .locator(`form[action="/api/queue/${id}/cancel"]`)
+      .waitFor({ state: "detached", timeout: 10_000 });
     expect(pathOf(page)).toBe("/");
     expect(loads.n).toBe(0);
     await page.close();
@@ -111,7 +136,9 @@ describe("a scheduled job's row folds and stops in place", () => {
     await page.locator(STOP).waitFor({ state: "visible" });
     expect(await page.locator(CHIP).isVisible()).toBe(true);
     expect(pathOf(page)).toBe("/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/schedule-nightly");
+    expect(new URL(page.url()).searchParams.get("open")).toBe(
+      "aide/schedule-nightly",
+    );
     expect(loads.n).toBe(0);
 
     await page.locator(FOLD).click();
@@ -120,10 +147,16 @@ describe("a scheduled job's row folds and stops in place", () => {
 
     await page.locator(FOLD).click();
     await page.locator(STOP).click();
-    await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
+    await page
+      .locator("dialog[open]")
+      .getByRole("button", { name: "OK" })
+      .click();
     await page.waitForFunction(async () => {
       const r = await fetch("/api/queue/nightly1");
-      return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
+      return (
+        ((await r.json()) as { job: { state: string } }).job.state ===
+        "cancelled"
+      );
     });
     expect(await stateOf(base, "nightly1")).toBe("cancelled");
     expect(pathOf(page)).toBe("/");
@@ -144,7 +177,12 @@ describe("a scheduled job's row folds and stops in place", () => {
 });
 
 describe("a failed scheduled job's row is dismissed in place", () => {
-  const failed = { ...nightly, id: "nightlyf", state: "failed", finishedAt: "2026-10-08T03:05:00Z" };
+  const failed = {
+    ...nightly,
+    id: "nightlyf",
+    state: "failed",
+    finishedAt: "2026-10-08T03:05:00Z",
+  };
   const JOB_ROW = 'tr.spechead[id="spec-aide/schedule-nightly"]';
 
   test("Dismiss takes the row off at once, with no dialog and no page load, and the job stays (AC-2, AC-3)", async () => {
@@ -152,17 +190,38 @@ describe("a failed scheduled job's row is dismissed in place", () => {
     const queueConfigFile = join(own, "queue-config.json");
     writeFileSync(
       queueConfigFile,
-      JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/n.md", enabled: false }] } }),
+      JSON.stringify({
+        schedules: {
+          aide: [
+            {
+              name: "nightly",
+              cron: "0 3 * * *",
+              prompt: "docs/n.md",
+              enabled: false,
+            },
+          ],
+        },
+      }),
     );
-    const { base } = harness.start({ extra: { queueConfigFile }, queueMirror: JSON.stringify([failed]) });
+    const { base } = harness.start({
+      extra: { queueConfigFile },
+      queueMirror: JSON.stringify([failed]),
+    });
     const page = await browser.newPage();
     try {
       await page.goto(`${base}/`);
       await page.locator(JOB_ROW).waitFor();
       const loads = countLoads(page);
 
-      await page.getByRole("button", { name: t("en", "list.createDismiss"), exact: true }).click();
-      await page.locator(JOB_ROW).waitFor({ state: "detached", timeout: 10_000 });
+      await page
+        .getByRole("button", {
+          name: t("en", "list.createDismiss"),
+          exact: true,
+        })
+        .click();
+      await page
+        .locator(JOB_ROW)
+        .waitFor({ state: "detached", timeout: 10_000 });
       expect(await page.locator("dialog[open]").count()).toBe(0);
       expect(pathOf(page)).toBe("/");
       expect(loads.n).toBe(0);
@@ -174,18 +233,25 @@ describe("a failed scheduled job's row is dismissed in place", () => {
   });
 });
 
-
 test("the first job arrives and the last leaves without a reload, then search still works", async () => {
   const own = mkdtempSync(join(tmpdir(), "aide-empty-running-"));
   const emptyHarness = queueHarness("aide-empty-running-board-");
   const go = join(own, "go");
   const fakeRunner = join(own, "fake-run-spec");
-  writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
+  writeFileSync(
+    fakeRunner,
+    `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`,
+    { mode: 0o755 },
+  );
   const page = await browser.newPage();
   try {
     const { base } = emptyHarness.start({
       emptySpecs: true,
-      extra: { queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
+      extra: {
+        queueRunnerBin: fakeRunner,
+        queueResultDir: join(own, "jobs"),
+        queuePollMs: 200,
+      },
     });
     // The board has started in this tab, so its empty Running tab is shown.
     await page.addInitScript(() => sessionStorage.setItem("aide-started", "1"));
@@ -194,17 +260,32 @@ test("the first job arrives and the last leaves without a reload, then search st
     const loads = countLoads(page);
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "schedule-nightly",
+        steps: ["schedule"],
+      }),
     });
     expect(res.ok).toBe(true);
     const id = ((await res.json()) as { job: { id: string } }).job.id;
-    await page.locator('a[data-fold="open"][data-key="aide/schedule-nightly"]').click();
+    await page
+      .locator('a[data-fold="open"][data-key="aide/schedule-nightly"]')
+      .click();
     await page.getByRole("button", { name: "Stop", exact: true }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "OK", exact: true })
+      .click();
     await page.waitForFunction(async (jobId) => {
       const r = await fetch(`/api/queue/${jobId}`);
-      return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
+      return (
+        ((await r.json()) as { job: { state: string } }).job.state ===
+        "cancelled"
+      );
     }, id);
     await page.getByText("Nothing is running.", { exact: true }).waitFor();
     expect(loads.n).toBe(0);
@@ -228,25 +309,50 @@ test("a description changed since the analysis is in the analysis log, opened wi
   const own = mkdtempSync(join(tmpdir(), "aide-stale-log-"));
   const go = join(own, "go");
   const fakeRunner = join(own, "fake-run-spec");
-  writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
+  writeFileSync(
+    fakeRunner,
+    `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`,
+    { mode: 0o755 },
+  );
   // The specs repo: create and analyze ran, and the description was committed after the analysis.
   const subject = (step: string) => `Run /aide-${step} for ${SPEC} (headless)`;
   const git = fakeGit({
-    "log --all --format=%s": { code: 0, stdout: ["analyze", "create"].map(subject).join("\n") },
-    "log -1 --format=%H": { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" },
-    "log --format=%H%x09%aI%x09%s": { code: 0, stdout: `deadbee\t2026-08-18T08:57:16+02:00\t${subject("analyze")}\n` },
+    "log --all --format=%s": {
+      code: 0,
+      stdout: ["analyze", "create"].map(subject).join("\n"),
+    },
+    "log -1 --format=%H": {
+      code: 0,
+      stdout: "deadbee\t2026-08-18T09:10:36+02:00\n",
+    },
+    "log --format=%H%x09%aI%x09%s": {
+      code: 0,
+      stdout: `deadbee\t2026-08-18T08:57:16+02:00\t${subject("analyze")}\n`,
+    },
     "diff --quiet": { code: 1 },
   });
   const explanation = t("en", "list.descriptionChangedSince");
   const page = await browser.newPage();
   try {
     const { base } = harness.start({
-      extra: { gitRun: git.run, queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
+      extra: {
+        gitRun: git.run,
+        queueRunnerBin: fakeRunner,
+        queueResultDir: join(own, "jobs"),
+        queuePollMs: 200,
+      },
     });
-    const analyzeLine = page.locator(`${SPEC_ROW} ~ tr.subrow[data-step="analyze"]`);
+    const analyzeLine = page.locator(
+      `${SPEC_ROW} ~ tr.subrow[data-step="analyze"]`,
+    );
     const state = analyzeLine.locator('td[data-col="state"]');
     const log = page.locator('tr.phasemsgs[data-msgs="analyze"]');
-    const fold = analyzeLine.getByRole("link", { name: t("en", "list.phaseFoldTitle", { phase: "Analyze", action: t("en", "list.foldShow") }) });
+    const fold = analyzeLine.getByRole("link", {
+      name: t("en", "list.phaseFoldTitle", {
+        phase: "Analyze",
+        action: t("en", "list.foldShow"),
+      }),
+    });
     // The freshness answer arrives on the cache schedule, so the page is asked again until it has it.
     for (let tries = 0; tries < 50; tries++) {
       await page.goto(`${base}/?open=aide/${SPEC}`);
@@ -260,8 +366,12 @@ test("a description changed since the analysis is in the analysis log, opened wi
     expect(await state.innerText()).not.toContain(explanation);
 
     await queueAnalyze(base);
-    await state.getByText(t("en", "list.state.running"), { exact: true }).waitFor({ timeout: 10_000 });
-    expect((await state.innerText()).trim()).toBe(t("en", "list.state.running"));
+    await state
+      .getByText(t("en", "list.state.running"), { exact: true })
+      .waitFor({ timeout: 10_000 });
+    expect((await state.innerText()).trim()).toBe(
+      t("en", "list.state.running"),
+    );
     await log.getByText(explanation).waitFor({ timeout: 10_000 });
     expect(loads.n).toBe(0);
   } finally {

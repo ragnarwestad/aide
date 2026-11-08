@@ -28,8 +28,18 @@ export type CheckState = "open" | "notVerified" | "done" | "failed";
 
 /** A row's state from what it carries: the flag wins over `done`, because a
  *  Not verified row is done AND flagged. */
-export function checkStateOf(row: { done: boolean; notVerified?: boolean; failed?: boolean }): CheckState {
-  return row.failed ? "failed" : row.notVerified ? "notVerified" : row.done ? "done" : "open";
+export function checkStateOf(row: {
+  done: boolean;
+  notVerified?: boolean;
+  failed?: boolean;
+}): CheckState {
+  return row.failed
+    ? "failed"
+    : row.notVerified
+      ? "notVerified"
+      : row.done
+        ? "done"
+        : "open";
 }
 
 /** How many of `rows` are flagged Failed. */
@@ -42,7 +52,10 @@ export function failedCount(rows: { failed?: boolean }[]): number {
 /** A typed note made fit for one Notes cell: newlines become spaces, `|`
  *  becomes `/`, the ends are trimmed. `""` when nothing is left. */
 export function cleanFailNote(text: string): string {
-  return text.replace(/\s*[\r\n]+\s*/g, " ").replace(/\|/g, "/").trim();
+  return text
+    .replace(/\s*[\r\n]+\s*/g, " ")
+    .replace(/\|/g, "/")
+    .trim();
 }
 
 /** How long a note saying what did not hold may be, counted as the browser counts
@@ -51,7 +64,8 @@ export const FAIL_NOTE_MAX = 500;
 
 /** Whether `text` is over the bound. A form post carries a text area's line breaks as
  *  `\r\n`, so they are folded first, as `closeReason` is (`parse-request.ts`). */
-export const failNoteTooLong = (text: string): boolean => text.replace(/\r\n?/g, "\n").length > FAIL_NOTE_MAX;
+export const failNoteTooLong = (text: string): boolean =>
+  text.replace(/\r\n?/g, "\n").length > FAIL_NOTE_MAX;
 
 /** How many of `rows` are flagged Not verified. */
 export function notVerifiedCount(rows: { notVerified?: boolean }[]): number {

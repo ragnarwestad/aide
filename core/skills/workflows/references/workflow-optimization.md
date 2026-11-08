@@ -18,21 +18,25 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 ### Context management
 
 **Use `/clear` between independent tasks:**
+
 - Keeps performance up
 - Prevents earlier context from distracting
 
 **When to use /clear:**
+
 - After completing a spec
 - When switching between independent tasks
 
 ### Course correction
 
 **Interrupt and redirect:**
+
 - **Escape:** Abort the ongoing operation and give new instructions
 - **Double-tap Escape:** Edit the previous prompt
 - **Ask Claude to undo:** "Undo the last change"
 
 **Ask Claude to plan first:**
+
 - "Plan how you want to solve this before writing code"
 
 ### Explore - Plan - Code workflow
@@ -40,17 +44,20 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 **Always follow these steps:**
 
 **1. Explore**
+
 ```text
 - "Read through SakOversikt.tsx and explain the structure"
 - "Find all places where we use validateApplication"
 ```
 
 **2. Plan**
+
 ```text
 - "Make a plan for how we should implement this"
 ```
 
 **3. Code (Implement)**
+
 ```text
 - Write tests first (RED)
 - Implement the solution (GREEN)
@@ -58,6 +65,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 ```
 
 **4. Commit (Confirm)**
+
 ```text
 - Manual testing
 - Code review
@@ -67,6 +75,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 ### Iterating toward clear goals
 
 **Use measurable targets:**
+
 - **Tests:** Write tests that define the desired behavior
 - **Screenshots:** Show the desired design as a target
 - **Specifications:** Explicit acceptance criteria
@@ -80,6 +89,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 3. Update 4-status.md along the way
 
 **Example:**
+
 ```markdown
 ## Migration plan: Redux to Zustand
 

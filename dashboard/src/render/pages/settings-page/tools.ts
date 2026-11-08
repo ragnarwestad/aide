@@ -12,7 +12,10 @@ import { t, type Language } from "../../../i18n";
 import type { BoardMessage } from "../../../i18n/message.ts";
 import { esc } from "../../ui/html.ts";
 import { facts } from "../../ui/components";
-import { PROVIDER_TOOLS, type ProviderTool } from "../../../queue/providers/index.ts";
+import {
+  PROVIDER_TOOLS,
+  type ProviderTool,
+} from "../../../queue/providers/index.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 
 /** The tools a check can be asked about — the ones a provider can be for —
@@ -77,30 +80,53 @@ export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
  *  anything is installed. */
 export function stamp(at: string): string {
   const when = new Date(at);
-  return Number.isNaN(when.getTime()) ? at : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  return Number.isNaN(when.getTime())
+    ? at
+    : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
 /** How much of the provider's subscription is used, as read when its page
  *  opened. A reading that failed is muted like a question the check could
  *  not answer. */
-export function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): string {
+export function usageBlock(
+  usage: ToolUsage | undefined,
+  now: number,
+  lang: Language,
+): string {
   const view = usageView(usage, now, lang);
-  const read = (at: string) => `<p class="muted small">${esc(t(lang, "settings.usage.readAt", { at: stamp(at) }))}</p>`;
+  const read = (at: string) =>
+    `<p class="muted small">${esc(t(lang, "settings.usage.readAt", { at: stamp(at) }))}</p>`;
   switch (view.kind) {
     case "unread":
       return `<p class="muted">${esc(t(lang, "settings.usage.unread"))}</p>`;
     case "failed":
-      return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.failed", { reason: view.reason }))}</p>`;
+      return (
+        read(view.at) +
+        `<p class="muted">${esc(t(lang, "settings.usage.failed", { reason: view.reason }))}</p>`
+      );
     case "none":
-      return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.none"))}</p>`;
+      return (
+        read(view.at) +
+        `<p class="muted">${esc(t(lang, "settings.usage.none"))}</p>`
+      );
     case "text":
       return read(view.at) + `<pre class="checkoutput">${esc(view.text)}</pre>`;
     case "windows":
-      return read(view.at) + facts(view.rows.map((row) => ({
-        label: esc(row.label),
-        value: esc(row.resets
-          ? t(lang, "settings.usage.usedResets", { percent: row.usedPercent, resets: row.resets })
-          : t(lang, "settings.usage.used", { percent: row.usedPercent })),
-      })));
+      return (
+        read(view.at) +
+        facts(
+          view.rows.map((row) => ({
+            label: esc(row.label),
+            value: esc(
+              row.resets
+                ? t(lang, "settings.usage.usedResets", {
+                    percent: row.usedPercent,
+                    resets: row.resets,
+                  })
+                : t(lang, "settings.usage.used", { percent: row.usedPercent }),
+            ),
+          })),
+        )
+      );
   }
 }

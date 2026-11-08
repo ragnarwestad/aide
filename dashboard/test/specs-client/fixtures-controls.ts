@@ -29,7 +29,12 @@ export function classes(el: { className: string }) {
  *  `form` is the attribute, and it is the whole point for Run: that
  *  button is written OUTSIDE `<form class="rowrun">` and reaches it
  *  by name alone (`specs-list.ts`, `stateAction`). */
-export const makeButton = (label: string, pending: string, variant: string, form?: string) => {
+export const makeButton = (
+  label: string,
+  pending: string,
+  variant: string,
+  form?: string,
+) => {
   const b = {
     textContent: label,
     // What the server drew it as. A fake with no starting class could
@@ -46,9 +51,10 @@ export const makeButton = (label: string, pending: string, variant: string, form
     isConnected: true,
     tagName: "BUTTON",
     dataset: { pending },
-    getAttribute: (n: string) => (n === "form" ? form ?? null : null),
+    getAttribute: (n: string) => (n === "form" ? (form ?? null) : null),
     insertAdjacentHTML: (where: string, html: string) => {
-      b.innerHTML = where === "afterbegin" ? html + b.innerHTML : b.innerHTML + html;
+      b.innerHTML =
+        where === "afterbegin" ? html + b.innerHTML : b.innerHTML + html;
     },
   };
   b.classList = classes(b);
@@ -69,7 +75,13 @@ export const MODELS: [string, string][] = [
  *  (`data-ran="1"`, `specs-list.ts`): the select is showing what the
  *  phase really ran on. `formId` is the row's run-form id, so a write
  *  on this select can be told apart from one on another row's. */
-export const modelSelect = (formId: string, step: string, chosen: string, ran = false, live = false) => {
+export const modelSelect = (
+  formId: string,
+  step: string,
+  chosen: string,
+  ran = false,
+  live = false,
+) => {
   const options = MODELS.map(([value, tool]) => ({
     value,
     dataset: { tool },
@@ -93,7 +105,11 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     // model select live, and the route it posts to is on the select
     // itself — the same attribute the tail box carries.
     getAttribute: (n: string) =>
-      n === "form" ? formId : n === "data-post-to" && live ? "/api/queue/job-1/model" : null,
+      n === "form"
+        ? formId
+        : n === "data-post-to" && live
+          ? "/api/queue/job-1/model"
+          : null,
     // A change lands on the select itself, and the handler walks up
     // with `closest`. A model select is NOT an AI select and not a
     // phase box, so it answers those selectors with null and its own
@@ -104,10 +120,14 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
       // `.aimodel` is the compact picker a NARROW screen draws around
       // the pair (2026-09-07). These rows are the wide layout, where
       // the two selects stand on their own, so the walk up finds none.
-      sel.includes("data-ai") || sel.includes('name="steps"') || sel.includes("aimodel")
+      sel.includes("data-ai") ||
+      sel.includes('name="steps"') ||
+      sel.includes("aimodel")
         ? null
         : sel.includes("data-post-to")
-          ? (live && sel.includes("select") ? self : null)
+          ? live && sel.includes("select")
+            ? self
+            : null
           : self,
     get selectedOptions() {
       return options.filter((o) => o.selected);
@@ -138,7 +158,10 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
 // fills in is worked out by the SERVER and carried on each option's
 // `data-default`, with the tool it runs on `data-tool` — the browser copies
 // them and never decides one, which is what these fixtures stand for.
-export const AI_DEFAULT: Record<string, string> = { claude: "sonnet", codex: "codex-fast" };
+export const AI_DEFAULT: Record<string, string> = {
+  claude: "sonnet",
+  codex: "codex-fast",
+};
 
 export const aiSelect = (formId: string, step: string, tool: string) => {
   const options = ["claude", "codex"].map((t) => ({
@@ -158,7 +181,9 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
     getAttribute: (n: string) =>
       n === "form" ? formId : n === "data-ai" ? `model.${step}` : null,
     closest: (sel: string): unknown =>
-      sel.includes('name="steps"') || sel.includes("data-post-to") || sel.includes("aimodel")
+      sel.includes('name="steps"') ||
+      sel.includes("data-post-to") ||
+      sel.includes("aimodel")
         ? null
         : self,
     get selectedOptions() {
@@ -184,7 +209,11 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
 // keyed on three parts and not the two a select needs. `create` has
 // no box (a spec that exists cannot be created again), so the three
 // that can be run are the three harness() builds.
-export const stepCheckbox = (formId: string, value: string, served: boolean) => {
+export const stepCheckbox = (
+  formId: string,
+  value: string,
+  served: boolean,
+) => {
   const self = {
     name: "steps",
     value,
@@ -202,7 +231,8 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
     // kind, so it answers both select selectors with null and its
     // own with itself — otherwise the delegated listener would file
     // it in the map the model selects use.
-    closest: (sel: string): unknown => (sel.includes('name="steps"') ? self : null),
+    closest: (sel: string): unknown =>
+      sel.includes('name="steps"') ? self : null,
     /** What the SERVER drew: `chosenSteps()` redraws the ticks fresh
      *  on every render — from a recorded choice or, absent one, the
      *  row's own history — so a swap puts them back exactly
@@ -215,7 +245,12 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
 // An acceptance criterion's box in the list unfolded under a
 // held-back message. It is named `tick`, belongs to its own list's form
 // by `form=`, and is redrawn from what the server saw last.
-export const tickCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
+export const tickCheckbox = (
+  formId: string,
+  value: string,
+  served: boolean,
+  li?: unknown,
+) => {
   const self = {
     name: "tick",
     value,
@@ -224,7 +259,8 @@ export const tickCheckbox = (formId: string, value: string, served: boolean, li?
     disabled: false,
     isConnected: true,
     getAttribute: (n: string) => (n === "form" ? formId : null),
-    closest: (sel: string): unknown => (sel.includes('name="tick"') ? self : sel === "li" ? li : null),
+    closest: (sel: string): unknown =>
+      sel.includes('name="tick"') ? self : sel === "li" ? li : null,
     redraw: () => void (self.checked = served),
   };
   return self;
@@ -232,7 +268,12 @@ export const tickCheckbox = (formId: string, value: string, served: boolean, li?
 
 // The archived form's third choice, "Failed" — named `failed`, in the
 // same form, with the same value and in the same `li` as the tick box.
-export const failedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
+export const failedCheckbox = (
+  formId: string,
+  value: string,
+  served: boolean,
+  li?: unknown,
+) => {
   const self = {
     name: "failed",
     value,
@@ -241,7 +282,8 @@ export const failedCheckbox = (formId: string, value: string, served: boolean, l
     disabled: false,
     isConnected: true,
     getAttribute: (n: string) => (n === "form" ? formId : null),
-    closest: (sel: string): unknown => (sel.includes('name="failed"') ? self : sel === "li" ? li : null),
+    closest: (sel: string): unknown =>
+      sel.includes('name="failed"') ? self : sel === "li" ? li : null,
     redraw: () => void (self.checked = served),
   };
   return self;
@@ -250,7 +292,12 @@ export const failedCheckbox = (formId: string, value: string, served: boolean, l
 // The second box of a criterion, "Not verified" — named `unverified`,
 // in the same form and with the same value as the tick box beside it, and in
 // the same `li`.
-export const unverifiedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
+export const unverifiedCheckbox = (
+  formId: string,
+  value: string,
+  served: boolean,
+  li?: unknown,
+) => {
   const self = {
     name: "unverified",
     value,
@@ -259,7 +306,8 @@ export const unverifiedCheckbox = (formId: string, value: string, served: boolea
     disabled: false,
     isConnected: true,
     getAttribute: (n: string) => (n === "form" ? formId : null),
-    closest: (sel: string): unknown => (sel.includes('name="unverified"') ? self : sel === "li" ? li : null),
+    closest: (sel: string): unknown =>
+      sel.includes('name="unverified"') ? self : sel === "li" ? li : null,
     redraw: () => void (self.checked = served),
   };
   return self;
@@ -280,8 +328,13 @@ export const tailBox = (formId: string) => {
     disabled: false,
     isConnected: true,
     getAttribute: (n: string) =>
-      n === "form" ? formId : n === "data-post-to" ? "/api/queue/job-1/steps" : null,
-    closest: (sel: string): unknown => (sel.includes("data-post-to") ? self : null),
+      n === "form"
+        ? formId
+        : n === "data-post-to"
+          ? "/api/queue/job-1/steps"
+          : null,
+    closest: (sel: string): unknown =>
+      sel.includes("data-post-to") ? self : null,
     /** What the SERVER draws after the swap: the tick the job's own
      *  step list justifies, which for a refused edit is the box
      *  exactly as it was. */

@@ -23,7 +23,9 @@ describe("every source file is text git can diff", () => {
 
   for (const file of SOURCES) {
     test(`${file} contains no NUL byte`, async () => {
-      const bytes = new Uint8Array(await Bun.file(join(ROOT, file)).arrayBuffer());
+      const bytes = new Uint8Array(
+        await Bun.file(join(ROOT, file)).arrayBuffer(),
+      );
       expect(bytes.indexOf(0)).toBe(-1);
     });
   }

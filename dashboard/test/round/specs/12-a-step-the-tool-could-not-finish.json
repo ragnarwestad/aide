@@ -1,10 +1,6 @@
 {
   "title": "A step the tool could not finish",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "expect": {
     "state": "failed",

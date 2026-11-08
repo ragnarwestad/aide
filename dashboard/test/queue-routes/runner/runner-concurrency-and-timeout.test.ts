@@ -5,8 +5,16 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEFAULT_QUEUE_CONCURRENCY, isQueueConcurrency, parseQueueConcurrency, processSettings } from "../../../src/serve/serve.ts";
-import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
+import {
+  DEFAULT_QUEUE_CONCURRENCY,
+  isQueueConcurrency,
+  parseQueueConcurrency,
+  processSettings,
+} from "../../../src/serve/serve.ts";
+import {
+  createQueueRunner,
+  type RunnerSetupContext,
+} from "../../../src/serve/runner-setup.ts";
 import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
@@ -16,7 +24,8 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // --- How many at once -------------------------------
@@ -41,19 +50,27 @@ describe("the queue config decides how many run at once", () => {
 
   test("the save's check takes the whole numbers 1 to 8 and nothing else", () => {
     for (let n = 1; n <= 8; n++) expect(isQueueConcurrency(n)).toBe(true);
-    for (const bad of [0, 9, 2.5, "3", Number.NaN, undefined]) expect(isQueueConcurrency(bad)).toBe(false);
+    for (const bad of [0, 9, 2.5, "3", Number.NaN, undefined])
+      expect(isQueueConcurrency(bad)).toBe(false);
   });
 
   test("the Process tab shows the running queue's count and the machine's cores", () => {
     expect(processSettings({ concurrency: 3 }, 6)).toEqual({
-      concurrency: 3, cores: availableParallelism(), min: 1, max: 8,
+      concurrency: 3,
+      cores: availableParallelism(),
+      min: 1,
+      max: 8,
     });
   });
 
   test("with no value saved, the queue and the tab both use the built-in default", () => {
     const ctx = {
-      store: {}, machineryProjectDir: (p: string) => p, machinerySpecsRoot: () => undefined,
-      queueRunnerBin: "/bin/true", queueResultDir: "/tmp", queueConcurrency: undefined,
+      store: {},
+      machineryProjectDir: (p: string) => p,
+      machinerySpecsRoot: () => undefined,
+      queueRunnerBin: "/bin/true",
+      queueResultDir: "/tmp",
+      queueConcurrency: undefined,
     } as unknown as RunnerSetupContext;
     expect(createQueueRunner(ctx)?.concurrency).toBe(DEFAULT_QUEUE_CONCURRENCY);
     expect(DEFAULT_QUEUE_CONCURRENCY).toBe(2);
@@ -80,17 +97,25 @@ describe("the queue config decides how many run at once", () => {
       { mode: 0o755 },
     );
     const specs = ["82-second", "83-third"];
-    const { base } = start({
-      queueRunnerBin: fakeRunner,
-      queueResultDir: join(own, "jobs"),
-      queueConcurrency: 3,
-    }, [], specs);
+    const { base } = start(
+      {
+        queueRunnerBin: fakeRunner,
+        queueResultDir: join(own, "jobs"),
+        queueConcurrency: 3,
+      },
+      [],
+      specs,
+    );
     try {
       for (const specFolder of ["81-queue-and-runner", ...specs]) {
         const res = await fetch(`${base}/api/queue`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
+          body: JSON.stringify({
+            project: "aide",
+            specFolder,
+            steps: ["analyze"],
+          }),
         });
         expect(res.status).toBe(200);
       }
@@ -98,7 +123,7 @@ describe("the queue config decides how many run at once", () => {
       const deadline = Date.now() + 15000;
       let running: unknown[] = [];
       while (Date.now() < deadline) {
-        const res = await fetch(`${base}/api/queue`, );
+        const res = await fetch(`${base}/api/queue`);
         const body = (await res.json()) as { jobs: { state: string }[] };
         running = body.jobs.filter((j) => j.state === "running");
         if (running.length >= 3) break;
@@ -123,18 +148,27 @@ describe("the queue config decides how many run at once", () => {
       { mode: 0o755 },
     );
     const configFile = join(own, "queue-config.json");
-    writeFileSync(configFile, `{\n  // how many at once\n  "concurrency": 1\n}\n`);
-    const { base } = start({
-      queueRunnerBin: fakeRunner,
-      queueResultDir: join(own, "jobs"),
-      queueConcurrency: 1,
-      queueConfigFile: configFile,
-    }, [], ["82-second"]);
+    writeFileSync(
+      configFile,
+      `{\n  // how many at once\n  "concurrency": 1\n}\n`,
+    );
+    const { base } = start(
+      {
+        queueRunnerBin: fakeRunner,
+        queueResultDir: join(own, "jobs"),
+        queueConcurrency: 1,
+        queueConfigFile: configFile,
+      },
+      [],
+      ["82-second"],
+    );
     const runningCount = async (want: number): Promise<number> => {
       const deadline = Date.now() + 15000;
       let running = 0;
       while (Date.now() < deadline) {
-        const body = (await (await fetch(`${base}/api/queue`)).json()) as { jobs: { state: string }[] };
+        const body = (await (await fetch(`${base}/api/queue`)).json()) as {
+          jobs: { state: string }[];
+        };
         running = body.jobs.filter((j) => j.state === "running").length;
         if (running >= want) break;
         await new Promise((r) => setTimeout(r, 200));
@@ -146,14 +180,21 @@ describe("the queue config decides how many run at once", () => {
         const res = await fetch(`${base}/api/queue`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
+          body: JSON.stringify({
+            project: "aide",
+            specFolder,
+            steps: ["analyze"],
+          }),
         });
         expect(res.status).toBe(200);
       }
       expect(await runningCount(1)).toBe(1);
       const saved = await fetch(`${base}/api/queue/settings/concurrency`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
         body: JSON.stringify({ concurrency: 2 }),
       });
       expect(saved.status).toBe(200);
@@ -180,16 +221,23 @@ describe("a model choice's tool reaches the runner", () => {
       timeoutSec: 2700,
       permissionMode: { implement: "bypassPermissions" },
       model,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<
+      typeof import("../../../src/serve/serve.ts").runnerArgv
+    >[0];
 
   test("a codex choice passes --tool and its own model name", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
-      modelChoices: { "codex-fast": {  tool: "codex", model: "gpt-5.6" } },
-    });
+    const argv = runnerArgv(
+      job({ implement: "codex-fast" }),
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+        modelChoices: { "codex-fast": { tool: "codex", model: "gpt-5.6" } },
+      },
+    );
     expect(argv[argv.indexOf("--tool") + 1]).toBe("codex");
     // The real model, not the picker's display key.
     expect(argv[argv.indexOf("--model") + 1]).toBe("gpt-5.6");
@@ -198,23 +246,42 @@ describe("a model choice's tool reaches the runner", () => {
 
   test("a choice with no model of its own keeps using its key", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
-      modelChoices: { "codex-fast": {  tool: "codex" } },
-    });
+    const argv = runnerArgv(
+      job({ implement: "codex-fast" }),
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+        modelChoices: { "codex-fast": { tool: "codex" } },
+      },
+    );
     expect(argv[argv.indexOf("--model") + 1]).toBe("codex-fast");
   });
 
   test("a choice with no tool field is claude, and the argv is unchanged", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
-    const before = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", o);
-    const after = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
-      ...o,
-      modelChoices: { opus: { } },
-    });
+    const o = {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    };
+    const before = runnerArgv(
+      job({ implement: "opus" }),
+      "implement",
+      "/tmp/r.json",
+      o,
+    );
+    const after = runnerArgv(
+      job({ implement: "opus" }),
+      "implement",
+      "/tmp/r.json",
+      {
+        ...o,
+        modelChoices: { opus: {} },
+      },
+    );
     expect(after).not.toContain("--tool");
     expect(after).toEqual(before);
     expect(after[after.indexOf("--model") + 1]).toBe("opus");
@@ -222,11 +289,16 @@ describe("a model choice's tool reaches the runner", () => {
 
   test("a server with no choices configured at all still runs claude", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
-    });
+    const argv = runnerArgv(
+      job({ implement: "opus" }),
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+      },
+    );
     expect(argv).not.toContain("--tool");
   });
 });
@@ -242,22 +314,38 @@ describe("a chosen effort reaches the runner", () => {
       permissionMode: { implement: "bypassPermissions" },
       model: {},
       effort,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<
+      typeof import("../../../src/serve/serve.ts").runnerArgv
+    >[0];
 
   test("--effort lands in argv when the job named one for this step", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(effortJob({ implement: "low" }), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
-    });
+    const argv = runnerArgv(
+      effortJob({ implement: "low" }),
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+      },
+    );
     expect(argv[argv.indexOf("--effort") + 1]).toBe("low");
   });
 
   test("no --effort at all when the job named none — byte-for-byte the old argv", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
-    const withNoEffort = runnerArgv(effortJob({}), "implement", "/tmp/r.json", o);
+    const o = {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    };
+    const withNoEffort = runnerArgv(
+      effortJob({}),
+      "implement",
+      "/tmp/r.json",
+      o,
+    );
     expect(withNoEffort).not.toContain("--effort");
   });
 });
@@ -275,7 +363,9 @@ describe("the acceptance-not-required switch reaches the runner", () => {
       permissionMode: { analyze: "bypassPermissions" },
       model: {},
       ...(acceptanceNotRequired ? { acceptanceNotRequired } : {}),
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<
+      typeof import("../../../src/serve/serve.ts").runnerArgv
+    >[0];
 
   test("--acceptance-not-required lands in analyze's argv from the file-backed option, not the job field", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
@@ -300,14 +390,21 @@ describe("the acceptance-not-required switch reaches the runner", () => {
 
   test("no flag at all when neither the job nor the file says so — byte-for-byte the old argv", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
+    const o = {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    };
     const withNoSwitch = runnerArgv(switchJob(), "analyze", "/tmp/r.json", o);
     expect(withNoSwitch).not.toContain("--acceptance-not-required");
   });
 
   test("the job's own field still reaches create's own invocation unchanged", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const createJob = { ...switchJob(true), steps: ["create"] } as unknown as Parameters<typeof runnerArgv>[0];
+    const createJob = {
+      ...switchJob(true),
+      steps: ["create"],
+    } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(createJob, "create", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -326,20 +423,38 @@ describe("the acceptance-not-required switch reaches the runner", () => {
 // `QueueRowView` mapping, which dropped `costMeasured` on the floor so
 // the totals built on it could not tell a measurement from a ceiling.
 describe("a step's own time limit reaches the runner", () => {
-  const jobWith = (timeoutSec: unknown, steps: string[] = ["analyze", "implement"]) =>
+  const jobWith = (
+    timeoutSec: unknown,
+    steps: string[] = ["analyze", "implement"],
+  ) =>
     ({
-      project: "aide", specFolder: "81-queue-and-runner", steps,
-       timeoutSec, permissionMode: {}, model: {},
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps,
+      timeoutSec,
+      permissionMode: {},
+      model: {},
+    }) as unknown as Parameters<
+      typeof import("../../../src/serve/serve.ts").runnerArgv
+    >[0];
 
-  const timeoutArg = (argv: string[]): string => argv[argv.indexOf("--timeout-sec") + 1]!;
+  const timeoutArg = (argv: string[]): string =>
+    argv[argv.indexOf("--timeout-sec") + 1]!;
 
   test("an implement is spawned with implement's number, not default's", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
+    const o = {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
+    };
     const job = jobWith({ analyze: 1200, implement: 5400 });
-    expect(timeoutArg(runnerArgv(job, "implement", "/tmp/r.json", o))).toBe("5400");
-    expect(timeoutArg(runnerArgv(job, "analyze", "/tmp/r.json", o))).toBe("1200");
+    expect(timeoutArg(runnerArgv(job, "implement", "/tmp/r.json", o))).toBe(
+      "5400",
+    );
+    expect(timeoutArg(runnerArgv(job, "analyze", "/tmp/r.json", o))).toBe(
+      "1200",
+    );
   });
 
   // A job created before the shape changed is still sitting in the
@@ -349,16 +464,25 @@ describe("a step's own time limit reaches the runner", () => {
   test("a job persisted with the old flat number is still given a real deadline", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const argv = runnerArgv(jobWith(2700), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide",
+      push: "branch",
     });
     expect(timeoutArg(argv)).toBe("2700");
   });
 
   test("a step the table does not name falls to its default", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(jobWith({ default: 1200, implement: 5400 }, ["archive"]), "archive", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
-    });
+    const argv = runnerArgv(
+      jobWith({ default: 1200, implement: 5400 }, ["archive"]),
+      "archive",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+      },
+    );
     expect(timeoutArg(argv)).toBe("1200");
   });
 
@@ -376,12 +500,19 @@ describe("a step's own time limit reaches the runner", () => {
     expect(resolveTimeoutSec({ analyze: 1200 }, "archive", live)).toBe(1200);
   });
 
-  test("the argv for a tail-added step carries a real number, not \"undefined\"", async () => {
+  test('the argv for a tail-added step carries a real number, not "undefined"', async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(jobWith({ analyze: 1200 }, ["analyze", "implement"]), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
-      timeoutSec: { default: 1200, implement: 5400 },
-    });
+    const argv = runnerArgv(
+      jobWith({ analyze: 1200 }, ["analyze", "implement"]),
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/home/dev/aide",
+        push: "branch",
+        timeoutSec: { default: 1200, implement: 5400 },
+      },
+    );
     expect(timeoutArg(argv)).toBe("5400");
   });
 });
@@ -398,14 +529,22 @@ describe("a step's own time limit reaches the runner", () => {
 describe("a tail-added step is spawned on the same terms as its siblings", () => {
   const jobWith = (over: Record<string, unknown> = {}) =>
     ({
-      project: "aide", specFolder: "81-queue-and-runner",
-      steps: ["analyze", "implement"], 
-      timeoutSec: { analyze: 1200 }, permissionMode: { analyze: "acceptEdits" },
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze", "implement"],
+      timeoutSec: { analyze: 1200 },
+      permissionMode: { analyze: "acceptEdits" },
       model: { analyze: "sonnet" },
       ...over,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<
+      typeof import("../../../src/serve/serve.ts").runnerArgv
+    >[0];
 
-  const base = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
+  const base = {
+    runnerBin: "/bin/aide-run-spec",
+    projectDir: "/home/dev/aide",
+    push: "branch",
+  };
   const live = {
     timeoutSec: { default: 1200, implement: 5400 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
@@ -414,13 +553,21 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
 
   test("it gets the config's permission mode, not the acceptEdits literal", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", { ...base, ...live });
-    expect(argv[argv.indexOf("--permission-mode") + 1]).toBe("bypassPermissions");
+    const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", {
+      ...base,
+      ...live,
+    });
+    expect(argv[argv.indexOf("--permission-mode") + 1]).toBe(
+      "bypassPermissions",
+    );
   });
 
   test("it gets the config's model, instead of no --model flag at all", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", { ...base, ...live });
+    const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", {
+      ...base,
+      ...live,
+    });
     expect(argv[argv.indexOf("--model") + 1]).toBe("opus");
   });
 
@@ -430,8 +577,14 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   // that step in isolation.
   test("a whole-job model choice still wins over the config's per-step default", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
-    const job = jobWith({ modelChoice: "sonnet", model: { analyze: "sonnet" } });
-    const argv = runnerArgv(job, "implement", "/tmp/r.json", { ...base, ...live });
+    const job = jobWith({
+      modelChoice: "sonnet",
+      model: { analyze: "sonnet" },
+    });
+    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
+      ...base,
+      ...live,
+    });
     expect(argv[argv.indexOf("--model") + 1]).toBe("sonnet");
   });
 
@@ -441,9 +594,14 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   test("a step the job's own table names is untouched by the fallback", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = jobWith({
-      timeoutSec: { analyze: 900 }, permissionMode: { analyze: "plan" }, model: { analyze: "haiku" },
+      timeoutSec: { analyze: 900 },
+      permissionMode: { analyze: "plan" },
+      model: { analyze: "haiku" },
     });
-    const argv = runnerArgv(job, "analyze", "/tmp/r.json", { ...base, ...live });
+    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
+      ...base,
+      ...live,
+    });
     expect(argv[argv.indexOf("--timeout-sec") + 1]).toBe("900");
     expect(argv[argv.indexOf("--permission-mode") + 1]).toBe("plan");
     expect(argv[argv.indexOf("--model") + 1]).toBe("haiku");
@@ -453,22 +611,34 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
 describe("an over-charged cost survives the row mapping", () => {
   async function seeded(costMeasured: boolean): Promise<string> {
     const { base, dir } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
+    const headers = {
+      "content-type": "application/json",
+      accept: "application/json",
+    };
     const made = (await (
       await fetch(`${base}/api/queue`, {
-        method: "POST", headers, body: JSON.stringify({ ...JOB, steps: ["implement"] }),
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...JOB, steps: ["implement"] }),
       })
     ).json()) as { job: { id: string } };
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     const job = jobs.find((j) => j.id === made.job.id)!;
     job.state = "stopped";
     job.stopReason = "timeout";
     job.spentUsd = 35;
     job.results = [
       {
-        step: "implement", ok: false, costUsd: 35, costMeasured,
-        terminalReason: "timeout", at: "2026-08-21T07:58:00Z",
+        step: "implement",
+        ok: false,
+        costUsd: 35,
+        costMeasured,
+        terminalReason: "timeout",
+        at: "2026-08-21T07:58:00Z",
       },
     ];
     writeFileSync(mirror, JSON.stringify(jobs));

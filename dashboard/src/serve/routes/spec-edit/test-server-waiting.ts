@@ -30,13 +30,21 @@ import { btnLink } from "../../../render/ui/components";
  *
  *  Unparseable, or a request with no host: the round's own address, so
  *  a reader sitting at the serving machine still gets there. */
-export function testServerUrlFor(reader: Request, testServerUrl: string): string {
+export function testServerUrlFor(
+  reader: Request,
+  testServerUrl: string,
+): string {
   try {
     const address = new URL(testServerUrl);
     const host = reader.headers.get("host");
     if (!host) return testServerUrl;
-    const forwarded = reader.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-    address.protocol = forwarded ? `${forwarded}:` : new URL(reader.url).protocol;
+    const forwarded = reader.headers
+      .get("x-forwarded-proto")
+      ?.split(",")[0]
+      ?.trim();
+    address.protocol = forwarded
+      ? `${forwarded}:`
+      : new URL(reader.url).protocol;
     address.hostname = host.split(":")[0]!;
     return address.toString();
   } catch {
@@ -59,17 +67,29 @@ const RELOAD_SCRIPT =
  *
  *  No way back to the spec on either: this tab was opened from the spec
  *  page, which is still standing in the one behind it. */
-export function testServerFailedPage(specFolder: string, why?: string, retryHref?: string, detail?: string): Response {
+export function testServerFailedPage(
+  specFolder: string,
+  why?: string,
+  retryHref?: string,
+  detail?: string,
+): Response {
   return htmlPage(
     `Could not start a test server for "${esc(specFolder)}"`,
-    (why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>") +
+    (why
+      ? `<p>${esc(why)}</p>`
+      : "<p>The round did not report an address.</p>") +
       (detail ? `<pre>${esc(detail)}</pre>` : "") +
-      (retryHref ? `<p>${btnLink({ href: retryHref, label: "Try again" })}</p>` : ""),
+      (retryHref
+        ? `<p>${btnLink({ href: retryHref, label: "Try again" })}</p>`
+        : ""),
     { refresh: false },
   );
 }
 
-export function waitingForTestServerPage(_project: string, specFolder: string): Response {
+export function waitingForTestServerPage(
+  _project: string,
+  specFolder: string,
+): Response {
   return htmlPage(
     // The folder name on its own line: it is long, and it reads apart
     // from the sentence rather than wrapping somewhere inside it.
@@ -94,7 +114,11 @@ export function stoppedPage(): Response {
 
 /** The frame both share: centred, self-contained, no navigation of its
  *  own. A spinner only while something is actually coming. */
-function htmlPage(heading: string, body: string, o: { refresh: boolean }): Response {
+function htmlPage(
+  heading: string,
+  body: string,
+  o: { refresh: boolean },
+): Response {
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -131,6 +155,9 @@ ${o.refresh ? `<span hidden data-reload-every="${EVERY_SECONDS}"></span>${RELOAD
 `;
   return new Response(html, {
     status: 200,
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    },
   });
 }

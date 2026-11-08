@@ -14,10 +14,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import {
+  createGitRunner,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness("aide-spec-page-checks-phase-");
+const { harness, start } = setupQueueRoutesHarness(
+  "aide-spec-page-checks-phase-",
+);
 
 afterEach(() => harness.cleanup());
 
@@ -35,7 +40,10 @@ const statusWithOpenRow = (task: string): string =>
  *  from `committed-history-freshness.test.ts`'s branch-reading suite, whose
  *  own `branchReadingGitRun` is local to that file's `describe` block
  *  and not exported. */
-const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => {
+const branchReadingGitRun = (opts: {
+  open: boolean;
+  branchText?: string;
+}): GitRunner => {
   const real = createGitRunner();
   const branch = `aide/${FOLDER}`;
   const relPath = `aide/specs/${FOLDER}/4-status.md`;
@@ -43,20 +51,30 @@ const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitR
   const specFolderSuffix = join("aide", "specs", FOLDER);
   return async (dir, args, timeoutMs, env) => {
     const line = args.join(" ");
-    if (line === "rev-parse --show-toplevel" && dir.endsWith(specFolderSuffix)) {
-      return { code: 0, stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n` };
+    if (
+      line === "rev-parse --show-toplevel" &&
+      dir.endsWith(specFolderSuffix)
+    ) {
+      return {
+        code: 0,
+        stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n`,
+      };
     }
     if (line === "ls-remote --heads origin refs/heads/aide/*") {
       return {
         code: 0,
-        stdout: opts.open ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n` : "",
+        stdout: opts.open
+          ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n`
+          : "",
       };
     }
-    if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
+    if (line === `fetch --quiet origin ${branch}`)
+      return { code: 0, stdout: "" };
     if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
       return { code: 0, stdout: "cafebabe000000000000000000000000000000\n" };
     }
-    if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
+    if (line === `show ${ref}:${relPath}`)
+      return { code: 0, stdout: opts.branchText ?? "" };
     return real(dir, args, timeoutMs, env);
   };
 };
@@ -67,18 +85,26 @@ const specDir = (dir: string) => join(dir, "root", "aide", "specs", FOLDER);
  *  ✅/☐ span) — proof the row came off the phase the page resolved as
  *  currently open, not merely that its text is somewhere on the page. */
 const isTickable = (html: string, task: string): boolean => {
-  const li = html.match(new RegExp(`<li class="check open">.*?${task}.*?</li>`))?.[0] ?? "";
+  const li =
+    html.match(new RegExp(`<li class="check open">.*?${task}.*?</li>`))?.[0] ??
+    "";
   return li.includes('type="checkbox"');
 };
 
 describe("specPageView's Checks tab: rows and phase agree, from one parse", () => {
   test("a spec ticked only on its own open branch draws the branch's tickable row, not the stale disk one", async () => {
     const { base, dir } = start({
-      gitRun: branchReadingGitRun({ open: true, branchText: statusWithOpenRow("write branch-only test") }),
+      gitRun: branchReadingGitRun({
+        open: true,
+        branchText: statusWithOpenRow("write branch-only test"),
+      }),
     });
     // The disk copy is behind: this row sits only on the branch until
     // archive lands it.
-    writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
+    writeFileSync(
+      join(specDir(dir), "4-status.md"),
+      statusWithOpenRow("write disk-only test"),
+    );
     const html = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(html, "write branch-only test")).toBe(true);
     expect(html).not.toContain("write disk-only test");
@@ -88,7 +114,10 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
     const { base, dir } = start({
       gitRun: branchReadingGitRun({ open: false }),
     });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
+    writeFileSync(
+      join(specDir(dir), "4-status.md"),
+      statusWithOpenRow("write disk-only test"),
+    );
     const html = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(html, "write disk-only test")).toBe(true);
   });
@@ -101,9 +130,15 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
   // proving the two tabs' own async work does not interfere.
   test("visiting the Description tab first changes nothing about the Checks tab afterwards", async () => {
     const { base, dir } = start({
-      gitRun: branchReadingGitRun({ open: true, branchText: statusWithOpenRow("write branch-only test") }),
+      gitRun: branchReadingGitRun({
+        open: true,
+        branchText: statusWithOpenRow("write branch-only test"),
+      }),
     });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
+    writeFileSync(
+      join(specDir(dir), "4-status.md"),
+      statusWithOpenRow("write disk-only test"),
+    );
     const description = await fetch(`${base}${PATH}?tab=description`);
     expect(description.status).toBe(200);
     const checks = await (await fetch(`${base}${PATH}?tab=status`)).text();

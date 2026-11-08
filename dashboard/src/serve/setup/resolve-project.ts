@@ -15,7 +15,9 @@ export function createProjectResolver(
 ): ProjectResolver {
   return (project) => {
     if (!allowed.has(project)) return null;
-    const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
+    const folders = targets()
+      .filter((t) => t.project === project)
+      .map((t) => t.specFolder);
     // The way out. An archived spec whose branch is still on
     // origin can have `archive` enqueued again — the runner hands that
     // step the open merge, the skill resolves it, and the landing that
@@ -36,11 +38,16 @@ export function createProjectResolver(
     for (const key of state.scan?.archived ?? []) {
       if (!key.startsWith(prefix)) continue;
       archived.push(key.slice(prefix.length));
-      if (state.scan?.refs.get(key)?.closed) closed.push(key.slice(prefix.length));
+      if (state.scan?.refs.get(key)?.closed)
+        closed.push(key.slice(prefix.length));
     }
     // An allowed project with no specs yet still resolves: a `schedule`
     // job needs no spec folder, and every other step is refused below
     // as an unknown folder, by name.
-    return { specFolders: folders, archivedFolders: archived, closedFolders: closed };
+    return {
+      specFolders: folders,
+      archivedFolders: archived,
+      closedFolders: closed,
+    };
   };
 }

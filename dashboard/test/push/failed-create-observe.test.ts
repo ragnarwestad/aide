@@ -4,7 +4,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { createPush } from "../../src/push";
-import { deviceKeys, fakeFetch, makeStore, openCall, result, tempDir } from "./fixtures.ts";
+import {
+  deviceKeys,
+  fakeFetch,
+  makeStore,
+  openCall,
+  result,
+  tempDir,
+} from "./fixtures.ts";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {
@@ -27,13 +34,24 @@ async function board(lang = "en") {
   });
   const keys = await deviceKeys();
   await push.subscribe(
-    { endpoint: "https://fcm.googleapis.com/fcm/send/device-1", keys: { p256dh: keys.p256dh, auth: keys.auth }, lang },
+    {
+      endpoint: "https://fcm.googleapis.com/fcm/send/device-1",
+      keys: { p256dh: keys.p256dh, auth: keys.auth },
+      lang,
+    },
     "https://board.test",
   );
   const create = (title = "Layout of the new dashboard", steps?: string[]) => {
-    const made = store.enqueueCreate({ project: "aide", title, description: "the typed text", ...(steps ? { steps } : {}) });
+    const made = store.enqueueCreate({
+      project: "aide",
+      title,
+      description: "the typed text",
+      ...(steps ? { steps } : {}),
+    });
     if (!made.ok) throw new Error(made.error);
-    store.transition(made.job.id, "start", { startedAt: new Date().toISOString() });
+    store.transition(made.job.id, "start", {
+      startedAt: new Date().toISOString(),
+    });
     return made.job;
   };
   return { push, store, sent, keys, create };
@@ -50,13 +68,17 @@ describe("a create that ends without a spec", () => {
     await b.push.idle();
     expect(b.push.failedCreates.list().map((r) => r.id)).toEqual([job.id]);
     expect(b.push.failedCreates.get(job.id)).toMatchObject({
-      project: "aide", title: "Layout of the new dashboard", description: "the typed text",
+      project: "aide",
+      title: "Layout of the new dashboard",
+      description: "the typed text",
       reason: "the session could not start",
     });
     expect(b.sent.calls).toHaveLength(1);
     const p = await openCall(b.sent.calls[0]!, b.keys);
     expect(p.title).toBe("aide · Layout of the new dashboard");
-    expect(p.body).toBe("Problem: Creating the spec failed: the session could not start\nSolution: Tap to try again with what you typed");
+    expect(p.body).toBe(
+      "Problem: Creating the spec failed: the session could not start\nSolution: Tap to try again with what you typed",
+    );
     expect(p.url).toBe(`/new?retry=${job.id}`);
   });
 
@@ -68,7 +90,9 @@ describe("a create that ends without a spec", () => {
     });
     await b.push.idle();
     const p = await openCall(b.sent.calls[0]!, b.keys);
-    expect(p.body).toStartWith("Problem: Opprettingen av specen feilet: serveren startet på nytt");
+    expect(p.body).toStartWith(
+      "Problem: Opprettingen av specen feilet: serveren startet på nytt",
+    );
   });
 
   test("a timeout or provider limit (stopped) counts too", async () => {
@@ -83,20 +107,30 @@ describe("a create that ends without a spec", () => {
   test("a failed step counts once, and a later update sends nothing more", async () => {
     const b = await board();
     const job = b.create();
-    b.store.transition(job.id, "step-failed", { results: [result("create", "error", false)] });
+    b.store.transition(job.id, "step-failed", {
+      results: [result("create", "error", false)],
+    });
     b.store.update(job.id, { spentUsd: 1 });
     b.store.update(job.id, { spentUsd: 2 });
     await b.push.idle();
     expect(b.sent.calls).toHaveLength(1);
-    expect(b.push.failedCreates.get(job.id)?.reason).toEqual({ key: "runner.createEndedNoReason" });
+    expect(b.push.failedCreates.get(job.id)?.reason).toEqual({
+      key: "runner.createEndedNoReason",
+    });
   });
 
   test("a create whose own merge failed while the job went on gets one, with the merge's reason", async () => {
     const b = await board();
     const job = b.create();
-    b.store.update(job.id, { state: "queued", landingError: "cannot fast-forward main", error: "held back" });
+    b.store.update(job.id, {
+      state: "queued",
+      landingError: "cannot fast-forward main",
+      error: "held back",
+    });
     await b.push.idle();
-    expect(b.push.failedCreates.get(job.id)?.reason).toBe("cannot fast-forward main");
+    expect(b.push.failedCreates.get(job.id)?.reason).toBe(
+      "cannot fast-forward main",
+    );
     expect(b.sent.calls).toHaveLength(1);
   });
 
@@ -104,8 +138,13 @@ describe("a create that ends without a spec", () => {
     const b = await board();
     const job = b.create();
     b.store.update(job.id, { landing: true });
-    b.store.transition(job.id, "step-failed", { results: [result("create", "error", false)] });
-    b.store.update(job.id, { specFolder: "90-layout-of-the-new-dashboard", landing: false });
+    b.store.transition(job.id, "step-failed", {
+      results: [result("create", "error", false)],
+    });
+    b.store.update(job.id, {
+      specFolder: "90-layout-of-the-new-dashboard",
+      landing: false,
+    });
     await b.push.idle();
     expect(b.push.failedCreates.list()).toEqual([]);
     expect(b.sent.calls).toHaveLength(0);
@@ -115,7 +154,9 @@ describe("a create that ends without a spec", () => {
     const b = await board();
     const merged = b.create("Merged");
     b.store.update(merged.id, { specFolder: "91-merged" });
-    b.store.transition(merged.id, "step-succeeded-last", { results: [result("create")] });
+    b.store.transition(merged.id, "step-succeeded-last", {
+      results: [result("create")],
+    });
     const cancelled = b.create("Cancelled");
     b.store.transition(cancelled.id, "cancel");
     await b.push.idle();
@@ -127,7 +168,9 @@ describe("a create that ends without a spec", () => {
     const b = await board();
     for (const t of ["One", "Two"]) {
       const job = b.create(t);
-      b.store.transition(job.id, "step-failed", { results: [result("create", "error", false)] });
+      b.store.transition(job.id, "step-failed", {
+        results: [result("create", "error", false)],
+      });
     }
     await b.push.idle();
     expect(b.push.failedCreates.list()).toHaveLength(2);
@@ -138,7 +181,10 @@ describe("a create that ends without a spec", () => {
     const b = await board();
     const job = b.create();
     const long = "x".repeat(2000);
-    b.store.transition(job.id, "step-failed", { results: [result("create", "error", false)], error: long });
+    b.store.transition(job.id, "step-failed", {
+      results: [result("create", "error", false)],
+      error: long,
+    });
     await b.push.idle();
     const p = await openCall(b.sent.calls[0]!, b.keys);
     expect(p.body.length).toBeLessThanOrEqual(500);
@@ -151,10 +197,13 @@ describe("what was already there at boot", () => {
   test("a failure the store already holds is quiet once primed; a reconcile after it is not", async () => {
     const b = await board();
     const old = b.create("Old");
-    b.store.transition(old.id, "step-failed", { results: [result("create", "error", false)] });
+    b.store.transition(old.id, "step-failed", {
+      results: [result("create", "error", false)],
+    });
     await b.push.idle();
     b.sent.calls.length = 0;
-    for (const r of b.push.failedCreates.list()) b.push.failedCreates.dismiss(r.id);
+    for (const r of b.push.failedCreates.list())
+      b.push.failedCreates.dismiss(r.id);
 
     b.push.prime();
     b.push.observe();
@@ -164,9 +213,13 @@ describe("what was already there at boot", () => {
 
     const running = b.create("Running at restart");
     b.push.prime();
-    b.store.transition(running.id, "process-gone", { error: { key: "runner.serverRestarted", values: { button: "Create" } } });
+    b.store.transition(running.id, "process-gone", {
+      error: { key: "runner.serverRestarted", values: { button: "Create" } },
+    });
     await b.push.idle();
-    expect(b.push.failedCreates.list().map((r) => r.title)).toEqual(["Running at restart"]);
+    expect(b.push.failedCreates.list().map((r) => r.title)).toEqual([
+      "Running at restart",
+    ]);
     expect(b.sent.calls).toHaveLength(1);
   });
 });

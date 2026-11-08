@@ -12,7 +12,8 @@ const { harness, start } = setupQueueRoutesHarness("aide-board-routes-");
 const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 /** The job's own record, polled until `done` holds (the same idiom
@@ -35,9 +36,12 @@ const folder = "81-queue-and-runner";
 describe("the board start/stop routes", () => {
   test("404 for an unknown spec", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/specs/aide/never-existed/test-server`, {
-      method: "POST",
-    });
+    const res = await fetch(
+      `${base}/api/queue/specs/aide/never-existed/test-server`,
+      {
+        method: "POST",
+      },
+    );
     expect(res.status).toBe(404);
   });
 
@@ -48,11 +52,17 @@ describe("the board start/stop routes", () => {
       archivedSpecs: { [archivedFolder]: {} },
     });
     for (const path of [`test-server`, `test-server/stop`]) {
-      const res = await fetch(`${base}/api/queue/specs/aide/${archivedFolder}/${path}`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const res = await fetch(
+        `${base}/api/queue/specs/aide/${archivedFolder}/${path}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: "{}",
+        },
+      );
       if (path === "test-server") {
         expect(res.status).toBe(400);
         const body = (await res.json()) as { error: string };
@@ -69,11 +79,17 @@ describe("the board start/stop routes", () => {
 
   test("a spec whose branch never made it to origin refuses without starting a process", async () => {
     const { base } = start({ testServersAvailable: true });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
-    });
+    const res = await fetch(
+      `${base}/api/queue/specs/aide/${folder}/test-server`,
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: "{}",
+      },
+    );
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string; spec: string };
     expect(body.error).toContain("no such branch on origin");
@@ -82,11 +98,17 @@ describe("the board start/stop routes", () => {
 
   test("the round being unavailable on this host refuses cleanly", async () => {
     const { base } = start({ testServersAvailable: false });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
-    });
+    const res = await fetch(
+      `${base}/api/queue/specs/aide/${folder}/test-server`,
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: "{}",
+      },
+    );
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("says nothing about how to start a board");
@@ -118,7 +140,11 @@ describe("the board start/stop routes", () => {
       },
       testServersSpawn: (cmd) => {
         spawnCalls.push({ cmd });
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        const proc = Bun.spawn({
+          cmd: ["sleep", "60"],
+          stdio: ["ignore", "ignore", "ignore"],
+          detached: true,
+        });
         proc.unref();
         spawned.push(proc.pid);
         return { pid: proc.pid };
@@ -131,22 +157,57 @@ describe("the board start/stop routes", () => {
     Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
     Bun.spawnSync({ cmd: ["git", "-C", root, "add", "-A"] });
     Bun.spawnSync({
-      cmd: ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"],
+      cmd: [
+        "git",
+        "-C",
+        root,
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@localhost",
+        "commit",
+        "-qm",
+        "baseline",
+      ],
     });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`] });
+    Bun.spawnSync({
+      cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`],
+    });
     const bare = `${dir}/origin.git`;
     Bun.spawnSync({ cmd: ["git", "init", "-q", "--bare", "-b", "main", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
+    Bun.spawnSync({
+      cmd: ["git", "-C", root, "remote", "add", "origin", bare],
+    });
+    Bun.spawnSync({
+      cmd: [
+        "git",
+        "-C",
+        root,
+        "push",
+        "-q",
+        "origin",
+        "main",
+        `aide/${folder}`,
+      ],
+    });
 
     try {
-      const startRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const startRes = await fetch(
+        `${base}/api/queue/specs/aide/${folder}/test-server`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: "{}",
+        },
+      );
       expect(startRes.status).toBe(200);
-      const started = (await startRes.json()) as { ok: boolean; testServer: { status: string; wrapperPid: number } };
+      const started = (await startRes.json()) as {
+        ok: boolean;
+        testServer: { status: string; wrapperPid: number };
+      };
       expect(started.ok).toBe(true);
       expect(started.testServer.status).toBe("starting");
       expect(started.testServer.wrapperPid).toBe(spawned[0]);
@@ -156,20 +217,32 @@ describe("the board start/stop routes", () => {
       // this machine to find one.
       expect(probed).toContain(8801);
 
-      const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const stopRes = await fetch(
+        `${base}/api/queue/specs/aide/${folder}/test-server/stop`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: "{}",
+        },
+      );
       expect(stopRes.status).toBe(200);
 
       // A second start after the stop spawns again — the registry entry
       // was cleared.
-      const restartRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const restartRes = await fetch(
+        `${base}/api/queue/specs/aide/${folder}/test-server`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: "{}",
+        },
+      );
       expect(restartRes.status).toBe(200);
       expect(spawnCalls).toHaveLength(2);
     } finally {
@@ -234,19 +307,51 @@ describe("the board start/stop routes", () => {
     Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
     Bun.spawnSync({ cmd: ["git", "-C", root, "add", "-A"] });
     Bun.spawnSync({
-      cmd: ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"],
+      cmd: [
+        "git",
+        "-C",
+        root,
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@localhost",
+        "commit",
+        "-qm",
+        "baseline",
+      ],
     });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`] });
+    Bun.spawnSync({
+      cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`],
+    });
     const bare = `${dir}/origin.git`;
     Bun.spawnSync({ cmd: ["git", "init", "-q", "--bare", "-b", "main", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
-
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
+    Bun.spawnSync({
+      cmd: ["git", "-C", root, "remote", "add", "origin", bare],
     });
+    Bun.spawnSync({
+      cmd: [
+        "git",
+        "-C",
+        root,
+        "push",
+        "-q",
+        "origin",
+        "main",
+        `aide/${folder}`,
+      ],
+    });
+
+    const res = await fetch(
+      `${base}/api/queue/specs/aide/${folder}/test-server`,
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: "{}",
+      },
+    );
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("Test servers");
@@ -280,12 +385,20 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const gitRun = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+        return {
+          code: 0,
+          stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n`,
+        };
       }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+      if (
+        a.startsWith("merge -q --ff-only") ||
+        a.startsWith("merge -q --no-edit")
+      ) {
         return new Promise(() => {
           // Never resolves — held for the life of the test.
         });
@@ -303,7 +416,11 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
         // it the board stays "starting" for ever, and the click that
         // follows has no address to be sent to.
         boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        const proc = Bun.spawn({
+          cmd: ["sleep", "60"],
+          stdio: ["ignore", "ignore", "ignore"],
+          detached: true,
+        });
         proc.unref();
         spawned.push(proc.pid);
         return { pid: proc.pid };
@@ -323,8 +440,15 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: folder,
+          steps: ["analyze"],
+        }),
       })
     ).json()) as { job: { id: string } };
     await Bun.write(
@@ -343,9 +467,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     await settleDone(base, made.job.id);
 
     try {
-      const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        redirect: "manual",
-      });
+      const res = await fetch(
+        `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+        {
+          redirect: "manual",
+        },
+      );
       // The tab the reader opened WAITS here. It used to be sent
       // back to the spec page to find the address for itself.
       expect(res.status).toBe(200);
@@ -359,9 +486,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       // still-alive entry (`startTestServer()`'s own dedup) rather than
       // spawning again — and goes back to the tab where the wait is
       // visible, because there is no address yet to go to.
-      const res2 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        redirect: "manual",
-      });
+      const res2 = await fetch(
+        `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+        {
+          redirect: "manual",
+        },
+      );
       // The reload the waiting page makes: still waiting, still no
       // second round. This is the one that matters — the page reloads
       // onto this URL every few seconds, so anything that starts a
@@ -372,9 +502,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
 
       // Ten more reloads, and still one round.
       for (let i = 0; i < 10; i++) {
-        await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-          redirect: "manual",
-        });
+        await fetch(
+          `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+          {
+            redirect: "manual",
+          },
+        );
       }
       expect(spawnCalls).toHaveLength(1);
 
@@ -385,11 +518,16 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
         boardLog,
         `left running: pid 4242, http://127.0.0.1:8801/?token=t0ken — serving aide/${folder} @ abc1234\n`,
       );
-      const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        redirect: "manual",
-      });
+      const res3 = await fetch(
+        `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+        {
+          redirect: "manual",
+        },
+      );
       expect(res3.status).toBe(303);
-      expect(res3.headers.get("location")).toBe("http://127.0.0.1:8801/?token=t0ken");
+      expect(res3.headers.get("location")).toBe(
+        "http://127.0.0.1:8801/?token=t0ken",
+      );
       // And nothing was started for it: the redirect happens before
       // `startTestServer()` is reached at all.
       expect(spawnCalls).toHaveLength(1);
@@ -406,9 +544,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
 
   test("the round being unavailable skips the call and still redirects cleanly", async () => {
     const { base } = start({ testServersAvailable: false });
-    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-      redirect: "manual",
-    });
+    const res = await fetch(
+      `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+      {
+        redirect: "manual",
+      },
+    );
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
   });
@@ -427,12 +568,20 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const gitRun = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+        return {
+          code: 0,
+          stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n`,
+        };
       }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+      if (
+        a.startsWith("merge -q --ff-only") ||
+        a.startsWith("merge -q --no-edit")
+      ) {
         return new Promise(() => {
           // Never resolves — held for the life of the test, the same
           // as the sibling test above.
@@ -452,8 +601,15 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: folder,
+          steps: ["analyze"],
+        }),
       })
     ).json()) as { job: { id: string } };
     await Bun.write(
@@ -471,9 +627,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     );
     await settleDone(base, made.job.id);
 
-    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-      redirect: "manual",
-    });
+    const res = await fetch(
+      `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+      {
+        redirect: "manual",
+      },
+    );
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain(`Could not start a test server for "${folder}"`);
@@ -499,12 +658,20 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const gitRun = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+        return {
+          code: 0,
+          stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n`,
+        };
       }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+      if (
+        a.startsWith("merge -q --ff-only") ||
+        a.startsWith("merge -q --no-edit")
+      ) {
         return new Promise(() => {
           // Held open for the life of the test, as the sibling tests do.
         });
@@ -519,7 +686,11 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
         boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        const proc = Bun.spawn({
+          cmd: ["sleep", "60"],
+          stdio: ["ignore", "ignore", "ignore"],
+          detached: true,
+        });
         proc.unref();
         spawned.push(proc.pid);
         return { pid: proc.pid };
@@ -530,8 +701,15 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: folder,
+          steps: ["analyze"],
+        }),
       })
     ).json()) as { job: { id: string } };
     await Bun.write(
@@ -551,9 +729,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
 
     try {
       // The first attempt: starts a board.
-      const first = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        redirect: "manual",
-      });
+      const first = await fetch(
+        `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+        {
+          redirect: "manual",
+        },
+      );
       expect(first.status).toBe(200);
       expect(spawnCalls).toHaveLength(1);
 
@@ -565,12 +746,17 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
 
       // The plain URL now shows the failed page, carrying its own
       // retry link.
-      const failedRes = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-        redirect: "manual",
-      });
+      const failedRes = await fetch(
+        `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+        {
+          redirect: "manual",
+        },
+      );
       expect(failedRes.status).toBe(200);
       const failedHtml = await failedRes.text();
-      expect(failedHtml).toContain(`Could not start a test server for "${folder}"`);
+      expect(failedHtml).toContain(
+        `Could not start a test server for "${folder}"`,
+      );
       expect(failedHtml).toContain('href="');
       expect(failedHtml).toContain("retryTestServer=1");
       expect(spawnCalls).toHaveLength(1);
@@ -583,13 +769,18 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       expect(spawnCalls).toHaveLength(2);
       expect(spawnCalls[1]!.cmd).toContain(`aide/${folder}`);
       expect(retryRes.status).toBe(303);
-      expect(retryRes.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps&startTestServer=1`);
+      expect(retryRes.headers.get("location")).toBe(
+        `/specs/aide/${folder}?tab=steps&startTestServer=1`,
+      );
 
       // Following that redirect lands on the identical waiting page a
       // first start renders — never a URL still carrying the flag.
-      const waitingRes = await fetch(`${base}${retryRes.headers.get("location")}`, {
-        redirect: "manual",
-      });
+      const waitingRes = await fetch(
+        `${base}${retryRes.headers.get("location")}`,
+        {
+          redirect: "manual",
+        },
+      );
       expect(waitingRes.status).toBe(200);
       expect(await waitingRes.text()).toContain("Starting a test server");
     } finally {
@@ -632,7 +823,9 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       { redirect: "manual" },
     );
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe(`/specs/aide/${archivedFolder}?tab=steps`);
+    expect(res.headers.get("location")).toBe(
+      `/specs/aide/${archivedFolder}?tab=steps`,
+    );
   });
 
   // Loop-safety: the waiting page's own
@@ -649,12 +842,20 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const gitRun = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
+        return {
+          code: 0,
+          stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n`,
+        };
       }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+      if (
+        a.startsWith("merge -q --ff-only") ||
+        a.startsWith("merge -q --no-edit")
+      ) {
         return new Promise(() => {
           // Held open for the life of the test, as the sibling tests do.
         });
@@ -669,7 +870,11 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       testServersSpawn: (cmd, logPath) => {
         spawnCalls.push({ cmd });
         boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
+        const proc = Bun.spawn({
+          cmd: ["sleep", "60"],
+          stdio: ["ignore", "ignore", "ignore"],
+          detached: true,
+        });
         proc.unref();
         spawned.push(proc.pid);
         return { pid: proc.pid };
@@ -680,8 +885,15 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: folder,
+          steps: ["analyze"],
+        }),
       })
     ).json()) as { job: { id: string } };
     await Bun.write(
@@ -703,7 +915,9 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       // First attempt, first failure, one retry — the same round-trip
       // the test above pins, brought here only far enough to reach a
       // SECOND failure to test the loop-safety guarantee against.
-      await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { redirect: "manual" });
+      await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
+        redirect: "manual",
+      });
       writeFileSync(boardLog, "boom: the round never started a listener\n");
       process.kill(-spawned[0]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
@@ -719,9 +933,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       // Ten reloads of the PLAIN URL — the waiting page's own refresh,
       // never the retry link — and not one of them spawns again.
       for (let i = 0; i < 10; i++) {
-        const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
-          redirect: "manual",
-        });
+        const res = await fetch(
+          `${base}/specs/aide/${folder}?tab=steps&startTestServer=1`,
+          {
+            redirect: "manual",
+          },
+        );
         expect(res.status).toBe(200);
         const html = await res.text();
         expect(html).toContain(`Could not start a test server for "${folder}"`);

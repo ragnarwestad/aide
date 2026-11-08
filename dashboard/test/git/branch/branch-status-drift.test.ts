@@ -1,7 +1,10 @@
 // Split out of branch-status.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { BranchStatusChecker, type GitRunner } from "../../../src/git/branch-status.ts";
+import {
+  BranchStatusChecker,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const SYMREF_MASTER = {
@@ -22,18 +25,26 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   };
 
   test("a checkout level with origin is behind by nothing", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "0\n" } });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "0\n" },
+    });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
   });
 
   test("a checkout three commits behind says three", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "3\n" },
+    });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
     const counted = git.calls.find((c) => c.args[0] === "rev-list")!;
     expect(counted.args).toEqual([
-      "rev-list", "--count", "HEAD..refs/remotes/origin/master",
+      "rev-list",
+      "--count",
+      "HEAD..refs/remotes/origin/master",
     ]);
     expect(counted.dir).toBe("/repo");
   });
@@ -54,7 +65,10 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   });
 
   test("a repo with no resolvable default branch answers null", async () => {
-    const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
+    const git = fakeGit({
+      "symbolic-ref": { code: 128 },
+      "show-ref": { code: 1 },
+    });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
   });
@@ -76,11 +90,17 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   // The fetch is what makes the answer current; without it the count is
   // whatever this checkout last happened to hear about origin.
   test("origin's default branch is fetched before the count, and nothing is merged", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "1\n" } });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "1\n" },
+    });
     const checker = new BranchStatusChecker({ run: git.run });
     await checker.commitsBehindOrigin("/repo");
     expect(git.calls.find((c) => c.args[0] === "fetch")!.args).toEqual([
-      "fetch", "--quiet", "origin", "master",
+      "fetch",
+      "--quiet",
+      "origin",
+      "master",
     ]);
     for (const forbidden of ["merge", "pull", "reset", "checkout"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
@@ -88,9 +108,16 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   });
 
   test("a second call inside the TTL spawns no git at all", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "2\n" } });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "2\n" },
+    });
     let clock = 1000;
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(2);
     const first = git.calls.length;
     expect(first).toBeGreaterThan(0);
@@ -111,7 +138,11 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
       "merge-base": { code: 0 },
       "rev-list --count": { code: 0, stdout: "4\n" },
     });
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     expect(await checker.isMerged("/repo", "aide/142-x")).toBe(true);
     expect(await checker.commitsBehindOrigin("/repo")).toBe(4);
   });
@@ -119,9 +150,16 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   test("the cache is per repo — one checkout's drift never stands in for another's", async () => {
     const git = fakeGit({
       ...ON_MASTER,
-      "rev-list --count HEAD..refs/remotes/origin/master": { code: 0, stdout: "5\n" },
+      "rev-list --count HEAD..refs/remotes/origin/master": {
+        code: 0,
+        stdout: "5\n",
+      },
     });
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     expect(await checker.commitsBehindOrigin("/repos/aide")).toBe(5);
     const before = git.calls.length;
     expect(await checker.commitsBehindOrigin("/repos/atlasaurus")).toBe(5);
@@ -138,13 +176,20 @@ describe("BranchStatusChecker.commitsBehindOrigin: fresh", () => {
     let count = 3;
     const run: GitRunner = async (_dir, args) => {
       const joined = args.join(" ");
-      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD"))
+        return { code: 0, stdout: "master\n" };
       if (joined.startsWith("fetch")) return { code: 0, stdout: "" };
-      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: `${count}\n` };
+      if (joined.startsWith("rev-list --count"))
+        return { code: 0, stdout: `${count}\n` };
       return { code: 1, stdout: "" };
     };
-    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new BranchStatusChecker({
+      run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
     count = 0; // origin now says: level
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3); // still cached, clock unmoved
@@ -158,13 +203,20 @@ describe("BranchStatusChecker.commitsBehindOrigin: fresh", () => {
     const run: GitRunner = async (_dir, args) => {
       if (!reachable) throw new Error("no route to host");
       const joined = args.join(" ");
-      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD"))
+        return { code: 0, stdout: "master\n" };
       if (joined.startsWith("fetch")) return { code: 0, stdout: "" };
-      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: "3\n" };
+      if (joined.startsWith("rev-list --count"))
+        return { code: 0, stdout: "3\n" };
       return { code: 0, stdout: "" };
     };
-    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    const checker = new BranchStatusChecker({
+      run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
     reachable = false;
     // Fail-open is unchanged by `fresh`: an unanswerable question is
@@ -188,14 +240,28 @@ describe("BranchStatusChecker.peekDrift", () => {
 
   test("a repo nothing has ever asked about answers null, and spawns no git", async () => {
     const git = fakeGit(ON_MASTER);
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
-    expect(checker.peekDrift("/repo")).toEqual({ behind: null, checkedAt: null });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
+    expect(checker.peekDrift("/repo")).toEqual({
+      behind: null,
+      checkedAt: null,
+    });
     expect(git.calls.length).toBe(0);
   });
 
   test("after a check, it hands back that answer and when it was taken", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "3\n" },
+    });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.commitsBehindOrigin("/repo");
     const before = git.calls.length;
     expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
@@ -207,9 +273,16 @@ describe("BranchStatusChecker.peekDrift", () => {
   // old, never withheld. A peek that reverted to null past the TTL
   // would put the page back to having nothing to say.
   test("past the TTL the same answer stands, with its original timestamp", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "3\n" },
+    });
     let clock = 1000;
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     await checker.commitsBehindOrigin("/repo");
     clock += 60_000;
     expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
@@ -218,17 +291,37 @@ describe("BranchStatusChecker.peekDrift", () => {
   // Fail-open, preserved through the peek: git could not answer, but it
   // WAS asked — which is a different row from one nobody has asked yet.
   test("an unanswerable check is a real, timestamped null", async () => {
-    const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    const git = fakeGit({
+      "symbolic-ref": { code: 128 },
+      "show-ref": { code: 1 },
+    });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 5000,
+    });
     await checker.commitsBehindOrigin("/repo");
-    expect(checker.peekDrift("/repo")).toEqual({ behind: null, checkedAt: 5000 });
+    expect(checker.peekDrift("/repo")).toEqual({
+      behind: null,
+      checkedAt: 5000,
+    });
   });
 
   test("the peek is per repo — one checkout's answer never stands in for another's", async () => {
-    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "5\n" } });
-    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count": { code: 0, stdout: "5\n" },
+    });
+    const checker = new BranchStatusChecker({
+      run: git.run,
+      ttlMs: 30_000,
+      now: () => 1000,
+    });
     await checker.commitsBehindOrigin("/repos/aide");
-    expect(checker.peekDrift("/repos/atlasaurus")).toEqual({ behind: null, checkedAt: null });
+    expect(checker.peekDrift("/repos/atlasaurus")).toEqual({
+      behind: null,
+      checkedAt: null,
+    });
   });
 });
 
@@ -239,14 +332,21 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
   function checkout(state: { behind: string; fetch: number; count: number }) {
     const run: GitRunner = async (_dir, args) => {
       const joined = args.join(" ");
-      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD"))
+        return { code: 0, stdout: "master\n" };
       if (joined.startsWith("fetch")) return { code: state.fetch, stdout: "" };
-      if (joined.startsWith("rev-list --count")) return { code: state.count, stdout: `${state.behind}\n` };
+      if (joined.startsWith("rev-list --count"))
+        return { code: state.count, stdout: `${state.behind}\n` };
       return { code: 1, stdout: "" };
     };
     let clock = 1000;
-    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => clock });
+    const checker = new BranchStatusChecker({
+      run,
+      ttlMs: 30_000,
+      now: () => clock,
+    });
     return { checker, tick: () => (clock += 5_000) };
   }
 

@@ -5,7 +5,10 @@
 // keep their names.
 
 import { describe, expect, test } from "bun:test";
-import { landingRefusal, resolveOpenStep } from "../../../src/render/pages/job-page";
+import {
+  landingRefusal,
+  resolveOpenStep,
+} from "../../../src/render/pages/job-page";
 
 // What the job IS, everything it has already run,
 // and what it is doing right now.
@@ -24,14 +27,21 @@ describe("a landing refusal's detail", () => {
   test("prefers the landing's own kept detail over the job's current one", () => {
     const refusal = landingRefusal(
       {
-        landingError: { key: "landing.stepFailed", values: { step: "create" }, inner: { key: "landing.createAssignNumberFailed" } },
-        landingErrorDetail: "aide-create-spec: the specs root moved under the worktree",
+        landingError: {
+          key: "landing.stepFailed",
+          values: { step: "create" },
+          inner: { key: "landing.createAssignNumberFailed" },
+        },
+        landingErrorDetail:
+          "aide-create-spec: the specs root moved under the worktree",
         errorDetail: "something else entirely",
       },
       "en",
     );
     expect(refusal?.step).toBe("create");
-    expect(refusal?.detail).toContain("the specs root moved under the worktree");
+    expect(refusal?.detail).toContain(
+      "the specs root moved under the worktree",
+    );
     expect(refusal?.detail).not.toContain("something else entirely");
   });
 });
@@ -54,7 +64,8 @@ describe("resolveOpenStep", () => {
   });
 
   test("the running step's index, `live` and no step open it while it runs, and its finished row after", () => {
-    for (const query of [undefined, "live", "2"]) expect(resolveOpenStep(query, 2), String(query)).toBe("2");
+    for (const query of [undefined, "live", "2"])
+      expect(resolveOpenStep(query, 2), String(query)).toBe("2");
     expect(resolveOpenStep("2", undefined)).toBe("2");
     expect(resolveOpenStep("none", undefined)).toBeUndefined();
   });

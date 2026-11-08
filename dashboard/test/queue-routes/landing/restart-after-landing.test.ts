@@ -9,10 +9,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createRootLock } from "../../../src/serve/serve.ts";
 import {
-  createRootLock,
-} from "../../../src/serve/serve.ts";
-import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
+  installAfterMerge,
+  landingJobNames,
+  restartAfterLanding,
+  type LandContext,
+  type RestartHook,
+} from "../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../src/git/branch-merge/index.ts";
 
 /** The message a landing carries, as text: it is
@@ -24,9 +28,7 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-import {
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 
@@ -35,9 +37,9 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
-
 
 // `Runner.complete()` writes `state: "done"` and `landing: true`
 // in the same update — the merge into the default branch has not
@@ -68,7 +70,11 @@ describe("the restart waits for landings elsewhere to clear", () => {
    *  regression that fires early is caught the moment a sample sees
    *  it, not only if it happens to land on one single, fixed-delay
    *  sample racing the same event loop's other pending timers. */
-  async function assertHoldsFor(totalMs: number, stepMs: number, check: () => void): Promise<void> {
+  async function assertHoldsFor(
+    totalMs: number,
+    stepMs: number,
+    check: () => void,
+  ): Promise<void> {
     for (let waited = 0; waited < totalMs; waited += stepMs) {
       await new Promise((r) => setTimeout(r, stepMs));
       check();
@@ -82,7 +88,12 @@ describe("the restart waits for landings elsewhere to clear", () => {
     const held = lock.run("/repos/other-project", () => gate);
     const { hook, count } = restartSpy();
 
-    const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    const waiting = restartAfterLanding({
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+    });
     await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
 
     release();
@@ -93,10 +104,18 @@ describe("the restart waits for landings elsewhere to clear", () => {
 
   test("fires exactly once, with no further delay, once the held root clears", async () => {
     const lock = createRootLock();
-    const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
+    const held = lock.run(
+      "/repos/other-project",
+      () => new Promise((r) => setTimeout(r, 20)),
+    );
     const { hook, count } = restartSpy();
 
-    await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    await restartAfterLanding({
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+    });
     await held;
     expect(count()).toBe(1);
   });
@@ -111,7 +130,12 @@ describe("the restart waits for landings elsewhere to clear", () => {
     const held = lock.run("/repos/aide-code", () => gate);
     const { hook, count } = restartSpy();
 
-    const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    const waiting = restartAfterLanding({
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+    });
     await assertHoldsFor(30, 5, () => expect(count()).toBe(0));
 
     release();
@@ -137,7 +161,9 @@ describe("the restart waits for landings elsewhere to clear", () => {
   });
 
   test("waits for a finished step whose landing has not taken the lock yet", async () => {
-    const jobs: { id: string; state: string; landing?: boolean }[] = [{ id: "analyzed", state: "done", landing: true }];
+    const jobs: { id: string; state: string; landing?: boolean }[] = [
+      { id: "analyzed", state: "done", landing: true },
+    ];
     const { hook, count } = restartSpy();
     const waiting = restartAfterLanding({
       mergeLock: createRootLock(),
@@ -160,7 +186,9 @@ describe("the restart waits for landings elsewhere to clear", () => {
       restart: hook,
       restartPollMs: 5,
       restartDeferTimeoutMs: 500,
-      queue: { list: () => [{ id: "landing-job", state: "done", landing: true }] },
+      queue: {
+        list: () => [{ id: "landing-job", state: "done", landing: true }],
+      },
       exceptJobId: "landing-job",
     });
     expect(count()).toBe(1);
@@ -179,7 +207,9 @@ describe("the restart waits for landings elsewhere to clear", () => {
         restart: hook,
         restartPollMs: 5,
         restartDeferTimeoutMs: 30,
-        queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
+        queue: {
+          list: () => [{ id: "never-done-job", state: "done", landing: true }],
+        },
       });
     } finally {
       console.error = realError;
@@ -198,7 +228,12 @@ describe("the restart waits for landings elsewhere to clear", () => {
       logged.push(String(msg));
     };
     try {
-      await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 30 });
+      await restartAfterLanding({
+        mergeLock: lock,
+        restart: hook,
+        restartPollMs: 5,
+        restartDeferTimeoutMs: 30,
+      });
     } finally {
       console.error = realError;
     }
@@ -220,7 +255,9 @@ describe("the restart waits for landings elsewhere to clear", () => {
         restart: hook,
         restartPollMs: 5,
         restartDeferTimeoutMs: 60,
-        queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
+        queue: {
+          list: () => [{ id: "never-done-job", state: "done", landing: true }],
+        },
       });
     } finally {
       console.error = realError;
@@ -241,7 +278,12 @@ describe("the restart waits for landings elsewhere to clear", () => {
       logged.push(String(msg));
     };
     try {
-      await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+      await restartAfterLanding({
+        mergeLock: lock,
+        restart: hook,
+        restartPollMs: 5,
+        restartDeferTimeoutMs: 500,
+      });
     } finally {
       console.error = realError;
     }
@@ -250,14 +292,21 @@ describe("the restart waits for landings elsewhere to clear", () => {
     // — the ordinary restart still logs, since the success path used to
     // be silent everywhere, and that made a restart that quietly
     // stopped firing indistinguishable from one that never had to.
-    expect(logged).toEqual(["queue: restarting the dashboard to pick up a landed code change"]);
+    expect(logged).toEqual([
+      "queue: restarting the dashboard to pick up a landed code change",
+    ]);
   });
 
   test("never fires when nothing is registered to restart — the laptop/test-default case", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/other-project", () => new Promise(() => {}));
     const { hook, count } = restartSpy(false);
-    await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    await restartAfterLanding({
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+    });
     expect(count()).toBe(0);
     void held;
   });
@@ -271,7 +320,10 @@ describe("the restart waits for landings elsewhere to clear", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-fail-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/false\n");
+    writeFileSync(
+      join(dir, ".aide", "config"),
+      "AIDE_INSTALL_CMD=/bin/false\n",
+    );
     const lock = createRootLock();
     const { hook, count } = restartSpy();
     const ctx = {
@@ -319,7 +371,10 @@ describe("the restart waits for landings elsewhere to clear", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-663-install-timeout-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/sleep 30\n");
+    writeFileSync(
+      join(dir, ".aide", "config"),
+      "AIDE_INSTALL_CMD=/bin/sleep 30\n",
+    );
     const lock = createRootLock();
     const { hook } = restartSpy();
     const ctx = {
@@ -333,7 +388,11 @@ describe("the restart waits for landings elsewhere to clear", () => {
 
     const realSetTimeout = globalThis.setTimeout;
     const longDelays: number[] = [];
-    globalThis.setTimeout = ((cb: () => void, ms?: number, ...rest: unknown[]) => {
+    globalThis.setTimeout = ((
+      cb: () => void,
+      ms?: number,
+      ...rest: unknown[]
+    ) => {
       if (typeof ms === "number" && ms >= 60_000) {
         longDelays.push(ms);
         return realSetTimeout(cb, 0);
@@ -359,7 +418,10 @@ describe("the restart waits for landings elsewhere to clear", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/usr/bin/true\n");
+    writeFileSync(
+      join(dir, ".aide", "config"),
+      "AIDE_INSTALL_CMD=/usr/bin/true\n",
+    );
     const lock = createRootLock();
     const { hook, count } = restartSpy();
     const ctx = {
@@ -385,10 +447,32 @@ describe("landingJobNames", () => {
   test("names the jobs whose landing has not settled, by their spec, excluding the one named", () => {
     const queue = {
       list: () => [
-        { id: "abcdef12-full", state: "done", landing: true, project: "aide", specFolder: "399-a-spec" },
-        { id: "landing-job", state: "done", landing: true, project: "aide", specFolder: "400-another" },
-        { id: "running-job", state: "running", project: "aide", specFolder: "402-running" },
-        { id: "done-job", state: "done", project: "aide", specFolder: "401-finished" },
+        {
+          id: "abcdef12-full",
+          state: "done",
+          landing: true,
+          project: "aide",
+          specFolder: "399-a-spec",
+        },
+        {
+          id: "landing-job",
+          state: "done",
+          landing: true,
+          project: "aide",
+          specFolder: "400-another",
+        },
+        {
+          id: "running-job",
+          state: "running",
+          project: "aide",
+          specFolder: "402-running",
+        },
+        {
+          id: "done-job",
+          state: "done",
+          project: "aide",
+          specFolder: "401-finished",
+        },
       ],
     };
     expect(landingJobNames(queue, "landing-job")).toEqual(["aide:399-a-spec"]);
@@ -397,7 +481,9 @@ describe("landingJobNames", () => {
   // A job that names neither keeps its id: an empty name in that
   // sentence would say less than the id it replaced.
   test("a job with no project or folder falls back to its short id", () => {
-    const queue = { list: () => [{ id: "abcdef12-full", state: "done", landing: true }] };
+    const queue = {
+      list: () => [{ id: "abcdef12-full", state: "done", landing: true }],
+    };
     expect(landingJobNames(queue)).toEqual(["abcdef12"]);
   });
 
@@ -462,7 +548,9 @@ describe("onJobsWaitChange", () => {
       restart: hook,
       restartPollMs: 5,
       restartDeferTimeoutMs: 30,
-      queue: { list: () => [{ id: "never-done-job", state: "done", landing: true }] },
+      queue: {
+        list: () => [{ id: "never-done-job", state: "done", landing: true }],
+      },
       onJobsWaitChange: (j) => seen.push(j),
     });
     expect(count()).toBe(1);
@@ -476,12 +564,17 @@ describe("onJobsWaitChange", () => {
 describe("restartAfterLanding for a deploy job: no deadline and a call before the fire", () => {
   function restartSpy() {
     const order: string[] = [];
-    const hook: RestartHook = { registered: async () => true, fire: () => void order.push("fire") };
+    const hook: RestartHook = {
+      registered: async () => true,
+      fire: () => void order.push("fire"),
+    };
     return { hook, order };
   }
 
   test("with no deadline it does not fire while a landing stays in flight, and fires exactly once when it clears", async () => {
-    const jobs: { id: string; state: string; landing?: boolean }[] = [{ id: "archiving", state: "done", landing: true }];
+    const jobs: { id: string; state: string; landing?: boolean }[] = [
+      { id: "archiving", state: "done", landing: true },
+    ];
     const { hook, order } = restartSpy();
     const waiting = restartAfterLanding({
       mergeLock: createRootLock(),

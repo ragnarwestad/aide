@@ -19,7 +19,10 @@ const KEY = "schedule-nightly-report";
 // page shows THAT run — which has no report. A fixed date made the test
 // pass on the day it was written and rot every day after.
 const NOW = new Date().toISOString();
-const LONG_NEWS = "Opt-in gateway hint header; managed settings; MCP tool output saved to files; faster first request; ".repeat(3);
+const LONG_NEWS =
+  "Opt-in gateway hint header; managed settings; MCP tool output saved to files; faster first request; ".repeat(
+    3,
+  );
 const REPORT =
   `<html><body style="background:#ff00ff;color:#00ff00"><h1>Findings</h1>` +
   `<script>document.title = "script-ran"</script><a href="https://example.com/">link</a>` +
@@ -42,18 +45,41 @@ beforeAll(async () => {
     join(scratch, "queue.json"),
     JSON.stringify([
       {
-        id: "run1", project: "aide", specFolder: KEY, steps: ["schedule"], stepIndex: 0, state: "done",
-        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: NOW, startedAt: NOW,
+        id: "run1",
+        project: "aide",
+        specFolder: KEY,
+        steps: ["schedule"],
+        stepIndex: 0,
+        state: "done",
+        timeoutSec: {},
+        permissionMode: {},
+        model: {},
+        createdAt: NOW,
+        startedAt: NOW,
       },
     ]),
   );
   const queueConfigFile = join(scratch, "queue-config.json");
   writeFileSync(
     queueConfigFile,
-    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
+    JSON.stringify({
+      schedules: {
+        aide: [
+          {
+            name: "nightly-report",
+            cron: "0 3 * * *",
+            prompt: "docs/nightly.md",
+          },
+        ],
+      },
+    }),
   );
   const started = harness.start({
-    extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
+    extra: {
+      scheduleOutputRoot: outputRoot,
+      queueMirrorPath: join(scratch, "queue.json"),
+      queueConfigFile,
+    },
   });
   base = started.base;
   browser = await chromium.launch();

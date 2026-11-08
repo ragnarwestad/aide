@@ -30,10 +30,18 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     await addProject(
       run,
       f.projects,
-      { name: "demo", gitUrl: f.origin, worktreeLinks: "node_modules", codeLanding: "pr" },
+      {
+        name: "demo",
+        gitUrl: f.origin,
+        worktreeLinks: "node_modules",
+        codeLanding: "pr",
+      },
       f.base,
     );
-    const settings = readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8");
+    const settings = readFileSync(
+      dashboardSettingsFile(f.base, "demo"),
+      "utf-8",
+    );
     expect(settings).toContain("worktreeLinks: node_modules");
     expect(settings).toContain("codeLanding: pr");
     expect(git(f.dir, "status", "--porcelain")).not.toContain("project.yaml");
@@ -45,10 +53,17 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     const result = await addProject(
       run,
       f.projects,
-      { name: "demo", gitUrl: f.origin, codeLanding: "merge", worktreeLinks: "node_modules" },
+      {
+        name: "demo",
+        gitUrl: f.origin,
+        codeLanding: "merge",
+        worktreeLinks: "node_modules",
+      },
       f.base,
     );
-    expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(tracked);
+    expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(
+      tracked,
+    );
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
     const step = result.steps.find((s) => s.step === "manifest");
     expect(step?.note).toContain("own manifest");
@@ -65,17 +80,41 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     mkdirSync(join(code, ".aide"));
     const draft = "name: demo\ndescription: drafted\ninstallCmd: make check\n";
     writeFileSync(join(code, ".aide", "project.yaml"), draft);
-    await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge" }, f.base);
-    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toBe(draft);
-    expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(draft);
+    await addProject(
+      run,
+      f.projects,
+      { name: "demo", gitUrl: f.origin, codeLanding: "merge" },
+      f.base,
+    );
+    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toBe(
+      draft,
+    );
+    expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(
+      draft,
+    );
   });
 
   test("an existing settings file is not clobbered by a second Add", async () => {
     const f = fixture();
     mkdirSync(join(f.base, "demo"), { recursive: true });
-    writeFileSync(dashboardSettingsFile(f.base, "demo"), "name: demo\ninstallCmd: mine\n");
-    await addProject(run, f.projects, { name: "demo", gitUrl: f.origin, codeLanding: "merge", description: "new" }, f.base);
-    expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("installCmd: mine");
+    writeFileSync(
+      dashboardSettingsFile(f.base, "demo"),
+      "name: demo\ninstallCmd: mine\n",
+    );
+    await addProject(
+      run,
+      f.projects,
+      {
+        name: "demo",
+        gitUrl: f.origin,
+        codeLanding: "merge",
+        description: "new",
+      },
+      f.base,
+    );
+    expect(
+      readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8"),
+    ).toContain("installCmd: mine");
   });
 
   test("a previewFrom that is not one of the three words is refused before anything is cloned", async () => {
@@ -83,12 +122,22 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     const result = await addProject(
       run,
       f.projects,
-      { name: "demo", gitUrl: f.origin, codeLanding: "merge", previewFrom: "vercel" },
+      {
+        name: "demo",
+        gitUrl: f.origin,
+        codeLanding: "merge",
+        previewFrom: "vercel",
+      },
       f.base,
     );
     expect(result.ok).toBe(false);
     expect(result.steps).toEqual([
-      { step: "previewFrom", ok: false, error: 'how a branch is tried must be none, command or cloudflare-pages — not "vercel"' },
+      {
+        step: "previewFrom",
+        ok: false,
+        error:
+          'how a branch is tried must be none, command or cloudflare-pages — not "vercel"',
+      },
     ]);
     expect(existsSync(f.dir)).toBe(false);
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);

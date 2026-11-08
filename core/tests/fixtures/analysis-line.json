@@ -14,7 +14,15 @@
     { "name": "short", "line": "- **Analysis:** short", "analysis": "short" },
     { "name": "full", "line": "- **Analysis:** full", "analysis": "full" },
     { "name": "no-line-is-full", "line": null, "analysis": "full" },
-    { "name": "a-capital-is-not-read", "line": "- **Analysis:** Short", "analysis": "full" },
-    { "name": "words-after-the-value-are-allowed", "line": "- **Analysis:** short — no plan", "analysis": "short" }
+    {
+      "name": "a-capital-is-not-read",
+      "line": "- **Analysis:** Short",
+      "analysis": "full"
+    },
+    {
+      "name": "words-after-the-value-are-allowed",
+      "line": "- **Analysis:** short — no plan",
+      "analysis": "short"
+    }
   ]
 }

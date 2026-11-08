@@ -8,11 +8,19 @@ import { openKeys, row } from "../../fixtures.ts";
 const FOLDER = "564-a-refused-analysis";
 
 const render = (list: ReturnType<typeof row>[], target: SpecTarget) =>
-  renderSpecsRows(list, { runnerAvailable: true, targets: [target], filter: { open: openKeys(list, [target]) } });
+  renderSpecsRows(list, {
+    runnerAvailable: true,
+    targets: [target],
+    filter: { open: openKeys(list, [target]) },
+  });
 const analyzeLine = (html: string) =>
-  html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">.*?<\/tr>/)?.[0] ?? "";
+  html.match(
+    /<tr class="subrow[^"]*"[^>]*data-step="analyze">.*?<\/tr>/,
+  )?.[0] ?? "";
 const box = (html: string, step: string) =>
-  html.match(new RegExp(`<input type="checkbox" name="steps"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
+  html.match(
+    new RegExp(`<input type="checkbox" name="steps"[^>]*value="${step}"[^>]*>`),
+  )?.[0] ?? "";
 
 describe("a failed newest run is drawn as failed", () => {
   // What the workflow state hands the row when analysis was refused: the
@@ -40,7 +48,11 @@ describe("a failed newest run is drawn as failed", () => {
       state: "failed",
       results: [{ step: "analyze", ok: false, costUsd: 0 }],
     });
-    const html = render([failed], { project: "aide", specFolder: FOLDER, done: ["create", "analyze"] });
+    const html = render([failed], {
+      project: "aide",
+      specFolder: FOLDER,
+      done: ["create", "analyze"],
+    });
     expect(analyzeLine(html)).toContain(">Failed<");
     expect(analyzeLine(html)).not.toContain("b-done");
   });

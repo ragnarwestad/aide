@@ -20,10 +20,21 @@
 // or re-cloned — is in dashboard-checkout-never-deletes-the-project.test.ts.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import {
+  dashboardCheckoutRoot,
+  ensureDashboardCheckout,
+} from "../../../src/git/dashboard-checkout.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 import { configValue } from "../../../src/project/discover";
 
@@ -40,14 +51,23 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
 /** A bare origin with one commit, and a clone of it standing in for the
  *  checkout a person edits. `files` is what the repository contains. */
-function repoWithClone(where: string, name: string, files: Record<string, string>): { origin: string; clone: string } {
+function repoWithClone(
+  where: string,
+  name: string,
+  files: Record<string, string>,
+): { origin: string; clone: string } {
   const seed = join(where, `${name}-seed`);
   mkdirSync(seed, { recursive: true });
   for (const [path, text] of Object.entries(files)) {
@@ -72,13 +92,20 @@ describe("ensureDashboardCheckout", () => {
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(result.ok).toBe(true);
     expect(result.cloned).toBe(true);
     expect(result.checkout!.code).toBe(dashboardCheckoutRoot(base, "aide"));
     expect(existsSync(join(result.checkout!.code, ".git"))).toBe(true);
-    expect(readFileSync(join(result.checkout!.code, "README.md"), "utf-8")).toBe("# aide\n");
+    expect(
+      readFileSync(join(result.checkout!.code, "README.md"), "utf-8"),
+    ).toBe("# aide\n");
   });
 
   test("a second call reuses the existing checkout without cloning again", async () => {
@@ -86,11 +113,21 @@ describe("ensureDashboardCheckout", () => {
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const base = join(where, "owned");
 
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const first = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
     // Something only THIS checkout has: if a second call re-cloned, the
     // file would be gone.
     writeFileSync(join(first.checkout!.code, "scratch.txt"), "kept\n");
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const second = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(second.ok).toBe(true);
     expect(second.cloned).toBe(false);
@@ -111,8 +148,6 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(dir, "left-behind.txt"), "from the killed clone\n");
   }
 
-
-
   // A replacement that fails says which checkout and
   // why. The one thing it must never do is report success, because the
   // next thing a reader sees then is `aide-run-spec` refusing an
@@ -120,12 +155,23 @@ describe("ensureDashboardCheckout", () => {
   test("a half-made checkout that cannot be re-cloned says which one and why", async () => {
     const where = tmp("aide-checkout-");
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
-    git(clone, "remote", "set-url", "origin", join(where, "no-such-origin.git"));
+    git(
+      clone,
+      "remote",
+      "set-url",
+      "origin",
+      join(where, "no-such-origin.git"),
+    );
     const base = join(where, "owned");
     const code = dashboardCheckoutRoot(base, "aide");
     halfMadeCheckout(code);
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain(code);
@@ -142,7 +188,12 @@ describe("ensureDashboardCheckout", () => {
     const base = join(where, "owned");
 
     for (let i = 0; i < 3; i++) {
-      await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+      await ensureDashboardCheckout(run, {
+        base,
+        project: "aide",
+        personDir: clone,
+        mayClone: true,
+      });
     }
 
     expect(readdirSync(base)).toEqual(["aide"]);
@@ -157,11 +208,21 @@ describe("ensureDashboardCheckout", () => {
     const where = tmp("aide-checkout-");
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     mkdirSync(join(clone, ".aide"), { recursive: true });
-    writeFileSync(join(clone, ".aide", "config"), "AIDE_INSTALL_CMD=deploy/install.sh\n");
+    writeFileSync(
+      join(clone, ".aide", "config"),
+      "AIDE_INSTALL_CMD=deploy/install.sh\n",
+    );
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
-    expect(configValue(result.checkout!.code, "AIDE_INSTALL_CMD")).toBe("deploy/install.sh");
+    expect(configValue(result.checkout!.code, "AIDE_INSTALL_CMD")).toBe(
+      "deploy/install.sh",
+    );
   });
 });

@@ -29,9 +29,16 @@ const SUBJECT = `Run /aide-analyze for ${FOLDER} (headless)`;
 /** What the two lookups are keyed on: the description's own history,
  *  and the analyze commits. Kept apart so a test can move one without
  *  the other. */
-const gitFor = (description: string | null, analyzeLog: string | null, differs = true) =>
+const gitFor = (
+  description: string | null,
+  analyzeLog: string | null,
+  differs = true,
+) =>
   fakeGit({
-    "log -1 --format=%H": description === null ? { code: 1 } : { code: 0, stdout: `deadbee\t${description}\n` },
+    "log -1 --format=%H":
+      description === null
+        ? { code: 1 }
+        : { code: 0, stdout: `deadbee\t${description}\n` },
     "log --format=%H%x09%aI%x09%s":
       analyzeLog === null ? { code: 1 } : { code: 0, stdout: analyzeLog },
     // `git diff --quiet`: 0 identical, 1 different.
@@ -40,19 +47,26 @@ const gitFor = (description: string | null, analyzeLog: string | null, differs =
 
 /** An analyze log line in the shape the lookup now reads. The sha is
  *  arbitrary; only the diff stub above cares that there is one. */
-const analyzeLine = (at: string, subject = SUBJECT) => `deadbee\t${at}\t${subject}`;
+const analyzeLine = (at: string, subject = SUBJECT) =>
+  `deadbee\t${at}\t${subject}`;
 
 describe("isAnalyzeStale", () => {
   test("a description committed after the analyze is stale", () => {
-    expect(isAnalyzeStale("2026-08-18T09:10:36+02:00", "2026-08-18T08:57:16+02:00")).toBe(true);
+    expect(
+      isAnalyzeStale("2026-08-18T09:10:36+02:00", "2026-08-18T08:57:16+02:00"),
+    ).toBe(true);
   });
 
   test("a description committed before the analyze is not", () => {
-    expect(isAnalyzeStale("2026-08-18T08:00:00+02:00", "2026-08-18T08:57:16+02:00")).toBe(false);
+    expect(
+      isAnalyzeStale("2026-08-18T08:00:00+02:00", "2026-08-18T08:57:16+02:00"),
+    ).toBe(false);
   });
 
   test("the same instant is not stale — strictly newer, or nothing", () => {
-    expect(isAnalyzeStale("2026-08-18T08:57:16+02:00", "2026-08-18T08:57:16+02:00")).toBe(false);
+    expect(
+      isAnalyzeStale("2026-08-18T08:57:16+02:00", "2026-08-18T08:57:16+02:00"),
+    ).toBe(false);
   });
 
   // A spec analysed by hand leaves no commit to compare against. A
@@ -64,24 +78,38 @@ describe("isAnalyzeStale", () => {
   });
 
   test("an unparseable date is not stale rather than NaN-true", () => {
-    expect(isAnalyzeStale("not a date", "2026-08-18T08:57:16+02:00")).toBe(false);
-    expect(isAnalyzeStale("2026-08-18T09:10:36+02:00", "not a date")).toBe(false);
+    expect(isAnalyzeStale("not a date", "2026-08-18T08:57:16+02:00")).toBe(
+      false,
+    );
+    expect(isAnalyzeStale("2026-08-18T09:10:36+02:00", "not a date")).toBe(
+      false,
+    );
   });
 });
 
 describe("lastCommitAt", () => {
   test("returns the author date of the last commit touching the pathspec", async () => {
     const git = gitFor("2026-08-18T09:10:36+02:00", null);
-    expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-18T09:10:36+02:00");
+    expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe(
+      "2026-08-18T09:10:36+02:00",
+    );
     // The pathspec is what keeps a plan-merge out of the answer: a
     // merge commit touches 2-analysis.md and 3-solution.md and never
     // the description.
-    expect(git.calls[0]!.args).toEqual(["log", "-1", "--format=%H%x09%aI", "--", "1-description.md"]);
+    expect(git.calls[0]!.args).toEqual([
+      "log",
+      "-1",
+      "--format=%H%x09%aI",
+      "--",
+      "1-description.md",
+    ]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
 
   test("null when git fails or prints nothing", async () => {
-    expect(await lastCommitAt(gitFor(null, null).run, DIR, "1-description.md")).toBeNull();
+    expect(
+      await lastCommitAt(gitFor(null, null).run, DIR, "1-description.md"),
+    ).toBeNull();
     const empty = fakeGit({ "log -1": { code: 0, stdout: "\n" } });
     expect(await lastCommitAt(empty.run, DIR, "1-description.md")).toBeNull();
   });
@@ -90,9 +118,14 @@ describe("lastCommitAt", () => {
 describe("lastAnalyzeCommit", () => {
   test("matches the exact success message a headless run leaves", async () => {
     const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-08-18T08:57:16+02:00",
+    );
     expect(git.calls[0]!.args).toEqual([
-      "log", "--format=%H%x09%aI%x09%s", "--fixed-strings", `--grep=${SUBJECT}`,
+      "log",
+      "--format=%H%x09%aI%x09%s",
+      "--fixed-strings",
+      `--grep=${SUBJECT}`,
     ]);
   });
 
@@ -103,29 +136,50 @@ describe("lastAnalyzeCommit", () => {
     const git = gitFor(
       null,
       [
-        analyzeLine("2026-08-18T09:00:00+02:00", `${SUBJECT} (stopped: timeout)`),
+        analyzeLine(
+          "2026-08-18T09:00:00+02:00",
+          `${SUBJECT} (stopped: timeout)`,
+        ),
         analyzeLine("2026-08-18T08:00:00+02:00"),
       ].join("\n"),
     );
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:00:00+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-08-18T08:00:00+02:00",
+    );
   });
 
   // Every headless run names its model, and an exact
   // match on the bare subject then found no analyze at all.
   test("a run that names its model is a successful analyze", async () => {
-    const git = gitFor(null, analyzeLine("2026-09-19T19:35:00+02:00", `${SUBJECT} (model: claude sonnet)`) + "\n");
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-09-19T19:35:00+02:00");
+    const git = gitFor(
+      null,
+      analyzeLine(
+        "2026-09-19T19:35:00+02:00",
+        `${SUBJECT} (model: claude sonnet)`,
+      ) + "\n",
+    );
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-09-19T19:35:00+02:00",
+    );
   });
 
   test("a run that names its model and stopped is not a successful analyze", async () => {
     const git = gitFor(
       null,
       [
-        analyzeLine("2026-09-19T20:00:00+02:00", `${SUBJECT} (model: claude sonnet) (stopped: timeout)`),
-        analyzeLine("2026-09-19T19:00:00+02:00", `${SUBJECT} (model: claude sonnet)`),
+        analyzeLine(
+          "2026-09-19T20:00:00+02:00",
+          `${SUBJECT} (model: claude sonnet) (stopped: timeout)`,
+        ),
+        analyzeLine(
+          "2026-09-19T19:00:00+02:00",
+          `${SUBJECT} (model: claude sonnet)`,
+        ),
       ].join("\n"),
     );
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-09-19T19:00:00+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-09-19T19:00:00+02:00",
+    );
   });
 
   test("the newest of several re-runs wins", async () => {
@@ -136,47 +190,88 @@ describe("lastAnalyzeCommit", () => {
         analyzeLine("2026-08-18T08:57:16+02:00"),
       ].join("\n"),
     );
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T11:00:00+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-08-18T11:00:00+02:00",
+    );
   });
 
   test("a plan-merge commit is not mistaken for an analyze", async () => {
     const git = gitFor(
       null,
       [
-        analyzeLine("2026-08-18T10:00:00+02:00", `Merge remote-tracking branch 'refs/remotes/origin/aide/${FOLDER}'`),
+        analyzeLine(
+          "2026-08-18T10:00:00+02:00",
+          `Merge remote-tracking branch 'refs/remotes/origin/aide/${FOLDER}'`,
+        ),
         analyzeLine("2026-08-18T08:57:16+02:00"),
       ].join("\n"),
     );
-    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe(
+      "2026-08-18T08:57:16+02:00",
+    );
   });
 
   test("null when no analyze has ever been committed", async () => {
-    expect(await lastAnalyzeCommit(gitFor(null, "").run, DIR, FOLDER)).toBeNull();
-    expect(await lastAnalyzeCommit(gitFor(null, null).run, DIR, FOLDER)).toBeNull();
+    expect(
+      await lastAnalyzeCommit(gitFor(null, "").run, DIR, FOLDER),
+    ).toBeNull();
+    expect(
+      await lastAnalyzeCommit(gitFor(null, null).run, DIR, FOLDER),
+    ).toBeNull();
   });
 
   test("another spec's analyze commit does not count as this one's", async () => {
-    const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00", "Run /aide-analyze for 95-other (headless)") + "\n");
+    const git = gitFor(
+      null,
+      analyzeLine(
+        "2026-08-18T08:57:16+02:00",
+        "Run /aide-analyze for 95-other (headless)",
+      ) + "\n",
+    );
     expect(await lastAnalyzeCommit(git.run, DIR, FOLDER)).toBeNull();
   });
 });
 
 describe("descriptionDiffers", () => {
   test("exit 1 means the file says something else, 0 means it does not", async () => {
-    expect(await descriptionDiffers(fakeGit({ diff: { code: 1 } }).run, DIR, "deadbee")).toBe(true);
-    expect(await descriptionDiffers(fakeGit({ diff: { code: 0 } }).run, DIR, "deadbee")).toBe(false);
+    expect(
+      await descriptionDiffers(
+        fakeGit({ diff: { code: 1 } }).run,
+        DIR,
+        "deadbee",
+      ),
+    ).toBe(true);
+    expect(
+      await descriptionDiffers(
+        fakeGit({ diff: { code: 0 } }).run,
+        DIR,
+        "deadbee",
+      ),
+    ).toBe(false);
   });
 
   // Every unknown in this module points the same way: it cannot prove
   // staleness, so it does not claim any.
   test("any other exit code cannot prove a difference", async () => {
-    expect(await descriptionDiffers(fakeGit({ diff: { code: 128 } }).run, DIR, "deadbee")).toBe(false);
+    expect(
+      await descriptionDiffers(
+        fakeGit({ diff: { code: 128 } }).run,
+        DIR,
+        "deadbee",
+      ),
+    ).toBe(false);
   });
 
   test("it compares the working tree against the analyzed commit", async () => {
     const git = fakeGit({ diff: { code: 1 } });
     await descriptionDiffers(git.run, DIR, "deadbee");
-    expect(git.calls[0]!.args).toEqual(["diff", "--quiet", "deadbee", "--", "1-description.md"]);
+    expect(git.calls[0]!.args).toEqual([
+      "diff",
+      "--quiet",
+      "deadbee",
+      "--",
+      "1-description.md",
+    ]);
   });
 });
 
@@ -192,7 +287,10 @@ describe("lastAnalyzeCommit with a reopen boundary", () => {
   const BOUNDARY = "1d0fe79cafe";
 
   test("no boundary: asks exactly what it asked before the boundary existed", async () => {
-    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    const git = gitFor(
+      "2026-08-18T09:10:36+02:00",
+      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
+    );
     await lastAnalyzeCommit(git.run, DIR, FOLDER);
     expect(git.calls[git.calls.length - 1]!.args).not.toContain("--not");
   });

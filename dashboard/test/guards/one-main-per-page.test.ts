@@ -10,7 +10,15 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const PAGES = join(import.meta.dir, "..", "..", "src", "render", "pages");
-const SHELL = join(import.meta.dir, "..", "..", "src", "render", "ui", "shell.ts");
+const SHELL = join(
+  import.meta.dir,
+  "..",
+  "..",
+  "src",
+  "render",
+  "ui",
+  "shell.ts",
+);
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -32,9 +40,14 @@ describe("one <main> per page", () => {
       // into a template string.
       return text
         .split("\n")
-        .filter((line) => !line.trim().startsWith("//") && !line.trim().startsWith("*"))
+        .filter(
+          (line) =>
+            !line.trim().startsWith("//") && !line.trim().startsWith("*"),
+        )
         .some((line) => line.includes("<main>"));
     });
-    expect(offenders.map((p) => p.slice(p.indexOf("render/pages")))).toEqual([]);
+    expect(offenders.map((p) => p.slice(p.indexOf("render/pages")))).toEqual(
+      [],
+    );
   });
 });

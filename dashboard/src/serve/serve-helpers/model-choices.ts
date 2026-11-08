@@ -9,27 +9,31 @@ import type { RunnableTool } from "../../queue/providers/tools.ts";
  *  name Claude Code gave it, kept beside the id. A choice named by
  *  its own id, another tool's choice and a stand-in carry none — for those
  *  the name already is the model. */
-export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelIds">): {
+export function modelChoiceOptions(
+  queue: Pick<QueueStore, "defaults" | "modelIds">,
+): {
   name: string;
   tool?: RunnableTool;
   ranAs?: string;
   named?: NamedModel;
 }[] {
   const names = modelNamesOf(queue.modelIds);
-  return Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => {
-    const claude = !choice.tool || choice.tool === "claude";
-    const ranAs = claude ? queue.modelIds[name] : undefined;
-    const named = claude ? names[name] : undefined;
-    return {
-      name,
-      // Carried so the option can SAY which CLI it starts: two entries
-      // that differ only in that would otherwise be two identical-looking
-      // names in the same dropdown.
-      ...(choice.tool ? { tool: choice.tool } : {}),
-      ...(ranAs && ranAs !== name ? { ranAs } : {}),
-      // The name Claude Code gave it, which `aliasLabel()` shows while its
-      // id is still the one the choice gives.
-      ...(named ? { named } : {}),
-    };
-  });
+  return Object.entries(queue.defaults.modelChoices ?? {}).map(
+    ([name, choice]) => {
+      const claude = !choice.tool || choice.tool === "claude";
+      const ranAs = claude ? queue.modelIds[name] : undefined;
+      const named = claude ? names[name] : undefined;
+      return {
+        name,
+        // Carried so the option can SAY which CLI it starts: two entries
+        // that differ only in that would otherwise be two identical-looking
+        // names in the same dropdown.
+        ...(choice.tool ? { tool: choice.tool } : {}),
+        ...(ranAs && ranAs !== name ? { ranAs } : {}),
+        // The name Claude Code gave it, which `aliasLabel()` shows while its
+        // id is still the one the choice gives.
+        ...(named ? { named } : {}),
+      };
+    },
+  );
 }

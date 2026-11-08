@@ -8,19 +8,44 @@
 // full rationale.
 
 import { join } from "node:path";
-import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox, failedCheckbox, tickCheckbox, unverifiedCheckbox } from "./fixtures-controls.ts";
+import {
+  aiSelect,
+  chip,
+  classes,
+  makeButton,
+  modelSelect,
+  stepCheckbox,
+  tailBox,
+  failedCheckbox,
+  tickCheckbox,
+  unverifiedCheckbox,
+} from "./fixtures-controls.ts";
 import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
-import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
+import {
+  makeFakeDate,
+  makeFakeEventSource,
+  makeFakeFormData,
+  makeFakeTimers,
+} from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
-import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
+import {
+  buildNavigation,
+  resolveDocumentQuerySelectorAll,
+} from "./fixtures-events.ts";
 import { followFakes } from "./fixtures-follow.ts";
 
 const built = await Bun.build({
-  entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client", "index.ts")],
+  entrypoints: [
+    join(import.meta.dir, "..", "..", "src", "specs-client", "index.ts"),
+  ],
   target: "browser",
   format: "iife",
 });
-if (!built.success) throw new AggregateError(built.logs, "specs-client/index.ts failed to bundle for the test harness");
+if (!built.success)
+  throw new AggregateError(
+    built.logs,
+    "specs-client/index.ts failed to bundle for the test harness",
+  );
 export const SOURCE = await built.outputs[0]!.text();
 
 export interface Reply {
@@ -48,14 +73,26 @@ export interface Reply {
  *  has to replace. */
 export const CONTROLS: Record<
   string,
-  { label: string; pending: string; action: string; formClass: string; variant: string }
+  {
+    label: string;
+    pending: string;
+    action: string;
+    formClass: string;
+    variant: string;
+  }
 > = {
   rowrun: {
-    label: "Run", pending: "Starting…", formClass: "rowrun", variant: "primary",
+    label: "Run",
+    pending: "Starting…",
+    formClass: "rowrun",
+    variant: "primary",
     action: "http://dash.test/api/queue",
   },
   actionform: {
-    label: "Cancel", pending: "cancelling…", formClass: "actionform", variant: "primary",
+    label: "Cancel",
+    pending: "cancelling…",
+    formClass: "actionform",
+    variant: "primary",
     action: "http://dash.test/api/queue/job-1/cancel",
   },
 };
@@ -72,7 +109,12 @@ export function harness(
   reply: (url: string) => Reply,
   control_ = "actionform",
   search = "",
-  o: { offRow?: boolean; pathname?: string; formId?: string; follow?: Record<string, string> } = {},
+  o: {
+    offRow?: boolean;
+    pathname?: string;
+    formId?: string;
+    follow?: Record<string, string>;
+  } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -90,13 +132,23 @@ export function harness(
   // The row's phase boxes — the space this spec's spinner takes over
   // while the press is out. A COLLAPSED row has none: it
   // renders Approve or Merge alone, with no run form and no boxes.
-  const boxes = "<label class=\"phase\">analyze</label>";
+  const boxes = '<label class="phase">analyze</label>';
   // `offsetWidth` is the one thing a hand-built object cannot honestly
   // report — nothing here lays anything out. It is a stated number, and
   // what the test proves is that the code READS it and holds the space
   // it names, not how many pixels a browser would have said.
-  const phases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
-  const otherPhases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
+  const phases = {
+    innerHTML: boxes,
+    isConnected: true,
+    offsetWidth: 168,
+    style: { minWidth: "" },
+  };
+  const otherPhases = {
+    innerHTML: boxes,
+    isConnected: true,
+    offsetWidth: 168,
+    style: { minWidth: "" },
+  };
   /** A press's lock is the spec's rows, so the controls sit in a row
    *  after the head row, as the caption and phase lines hold them. Every
    *  selector it does ask for is recorded, so a lookup creeping back
@@ -114,7 +166,17 @@ export function harness(
     parentElement: null,
     // Spec A's controls as its caption and phase lines hold them, and
     // never the other spec's select.
-    querySelectorAll: () => [...new Set([runButton, cancelButton, button, ...stepBoxes, ...modelSelects, ...aiSelects, tailBoxEl])],
+    querySelectorAll: () => [
+      ...new Set([
+        runButton,
+        cancelButton,
+        button,
+        ...stepBoxes,
+        ...modelSelects,
+        ...aiSelects,
+        tailBoxEl,
+      ]),
+    ],
     querySelector: (sel: string) => {
       rowQueries.push(sel);
       return null;
@@ -128,8 +190,14 @@ export function harness(
   // The OTHER controls on the same spec. A press locks the spec's
   // rows, so a fake with one button on it could not tell a spec-wide
   // lock from the single-button one it replaced.
-  const runButton = formClass === "rowrun" ? button : makeButton("Run", "Starting…", "primary", ROW_FORM);
-  const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
+  const runButton =
+    formClass === "rowrun"
+      ? button
+      : makeButton("Run", "Starting…", "primary", ROW_FORM);
+  const cancelButton =
+    formClass === "actionform"
+      ? button
+      : makeButton("Cancel", "cancelling…", "danger");
   /** The run form as the State cell holds it: hidden fields only, and
    *  an id every control outside its tags names. */
   const runFormEl = {
@@ -166,7 +234,9 @@ export function harness(
     // serialised. A fake that ignored `disabled` could not
     // tell the two orders apart.
     get fields(): [string, string][] {
-      const live = phases.innerHTML.includes("phase") && !stepBoxes.some((b) => b.disabled);
+      const live =
+        phases.innerHTML.includes("phase") &&
+        !stepBoxes.some((b) => b.disabled);
       return live ? [["steps", "analyze"]] : [];
     },
     // Empty for the run form, and that is the markup: its button is
@@ -174,11 +244,13 @@ export function harness(
     // `querySelectorAll` — descendants only — finds nothing at all.
     querySelectorAll: () => (formClass === "rowrun" ? [] : [button]),
     querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
-    closest: (sel: string) => (sel === "tr" ? row : sel.includes(`.${formClass}`) ? form : null),
+    closest: (sel: string) =>
+      sel === "tr" ? row : sel.includes(`.${formClass}`) ? form : null,
   };
 
   const chips = [chip("aide"), chip("aide-dashboard")];
-  const { createButton, slot, resets, projectSelect, createForm } = buildCreateForm(chips, tokenInput, on);
+  const { createButton, slot, resets, projectSelect, createForm } =
+    buildCreateForm(chips, tokenInput, on);
 
   // One phase with history and three still ahead — the mixed row
   // "set all" is scoped against.
@@ -192,7 +264,10 @@ export function harness(
   ];
   /** A model select belonging to ANOTHER row: a write must reach the
    *  five that share its form id and no others. */
-  const otherRowSelect = { ...modelSelect(ROW_FORM, "analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
+  const otherRowSelect = {
+    ...modelSelect(ROW_FORM, "analyze", "fable"),
+    getAttribute: () => "rowrun-aide/99-other",
+  };
   /** One per phase line, resting on the tool of the model that line's
    *  select is drawn on. */
   const aiSelects = [
@@ -212,23 +287,35 @@ export function harness(
   // The first criterion also has its Not verified box, in the same `li`.
   const firstLi = {
     querySelector: (sel: string): unknown =>
-      sel.includes('name="unverified"') ? unverifiedBoxes[0] : sel.includes('name="failed"') ? failedBoxes[0] : tickBoxes[0],
+      sel.includes('name="unverified"')
+        ? unverifiedBoxes[0]
+        : sel.includes('name="failed"')
+          ? failedBoxes[0]
+          : tickBoxes[0],
   };
   const tickBoxes = [
     tickCheckbox(TICK_FORM, TICK_ROW, false, firstLi),
     tickCheckbox(TICK_FORM, "| AC-2: it saves | ✅ | |", true),
     tickCheckbox("rowchecks-aide/493-b", TICK_ROW, false),
   ];
-  const unverifiedBoxes = [unverifiedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
+  const unverifiedBoxes = [
+    unverifiedCheckbox(TICK_FORM, TICK_ROW, false, firstLi),
+  ];
   // An archived criterion's third box.
   const failedBoxes = [failedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
   const tailBoxEl = tailBox(ROW_FORM);
-  const { removeButton, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm } =
-    buildProjectsPanel(tokenInput, on);
+  const {
+    removeButton,
+    removeSlot,
+    removeDialog,
+    addButton,
+    addSlot,
+    addForm,
+    removeForm,
+  } = buildProjectsPanel(tokenInput, on);
 
   const inserted: { id: string; className: string; textContent: string }[] = [];
-  const parentNode = {
-  };
+  const parentNode = {};
   // Replacing the rows is not a string assignment in a browser: the old
   // selects are gone and new ones stand there, drawn from the server's
   // answer. The fake says so — every select goes back to what the
@@ -289,22 +376,32 @@ export function harness(
       sel.includes("provider.")
         ? aiSelects
         : sel.includes("model.")
-        ? [...modelSelects, otherRowSelect]
-        : sel.includes('name="steps"')
-          ? sel.includes('name="tick"')
-            ? [...stepBoxes, ...tickBoxes, ...(sel.includes('name="unverified"') ? unverifiedBoxes : []), ...(sel.includes('name="failed"') ? failedBoxes : [])]
-            : stepBoxes
-          : sel.startsWith("button")
-            ? [runButton]
-            : [],
+          ? [...modelSelects, otherRowSelect]
+          : sel.includes('name="steps"')
+            ? sel.includes('name="tick"')
+              ? [
+                  ...stepBoxes,
+                  ...tickBoxes,
+                  ...(sel.includes('name="unverified"') ? unverifiedBoxes : []),
+                  ...(sel.includes('name="failed"') ? failedBoxes : []),
+                ]
+              : stepBoxes
+            : sel.startsWith("button")
+              ? [runButton]
+              : [],
     parentNode,
-    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
+    addEventListener: (type: string, fn: (e: unknown) => void) =>
+      void (on[type] = fn),
   };
   const requests: { url: string; init: Record<string, unknown> }[] = [];
   // `pathname` because the page's own reloads go back to the page they
   // are on — the Projects panel is served at `/projects`,
   // and a hardcoded `/` would throw the reader onto the spec list.
-  const location = { search, href: "http://dash.test/", pathname: o.pathname ?? "/" };
+  const location = {
+    search,
+    href: "http://dash.test/",
+    pathname: o.pathname ?? "/",
+  };
   // `replaceState` moves the address bar WITHOUT loading a document, so
   // it writes `search` (which `swapRows` reads back) and deliberately
   // leaves `href` alone: in this file `href` means "the page navigated",
@@ -330,7 +427,9 @@ export function harness(
   /** The list's own line above the rows, where a refusal naming no spec
    *  on the list is written (`row-refusal/`); its words are the span. */
   const listRefused = { textContent: "" };
-  const listRefusedLine = { querySelector: (sel: string) => (sel === "span" ? listRefused : null) };
+  const listRefusedLine = {
+    querySelector: (sel: string) => (sel === "span" ? listRefused : null),
+  };
   // A page that follows its job has a marker.
   const followed = followFakes(o.follow);
   const document = {
@@ -340,7 +439,12 @@ export function harness(
     // per-group diff reaches a group through it — so a fake that
     // answered only `"jobrows"` could not run the code under test at
     // all.
-    getElementById: (id: string) => (id === "jobrows" ? rows : id === "list-refused" ? listRefusedLine : table.byId(id)),
+    getElementById: (id: string) =>
+      id === "jobrows"
+        ? rows
+        : id === "list-refused"
+          ? listRefusedLine
+          : table.byId(id),
     // `.phases` answers with ANOTHER row's boxes on purpose: a press
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
@@ -348,32 +452,46 @@ export function harness(
       sel === "[data-follow]"
         ? followed.find()
         : sel.includes("newspecform")
-        ? createForm
-        : // A tail box is on a phase LINE, and the row it
-          // belongs to is reached through the form it names — the same
-          // id every other control outside that form carries.
-          sel.startsWith("form[id=")
-          ? (sel.includes(ROW_FORM) ? runFormEl : null)
-          : sel.includes("phases")
-            ? otherPhases
-            : null,
+          ? createForm
+          : // A tail box is on a phase LINE, and the row it
+            // belongs to is reached through the form it names — the same
+            // id every other control outside that form carries.
+            sel.startsWith("form[id=")
+            ? sel.includes(ROW_FORM)
+              ? runFormEl
+              : null
+            : sel.includes("phases")
+              ? otherPhases
+              : null,
     // See resolveDocumentQuerySelectorAll (fixtures-events.ts) for the
     // form-scoping rules this answers with.
     querySelectorAll: (sel: string) =>
       resolveDocumentQuerySelectorAll(sel, {
-        elapsed, addForm, removeForm, aiSelects, modelSelects, otherRowSelect, runButton, stepBoxes, tailBoxEl,
+        elapsed,
+        addForm,
+        removeForm,
+        aiSelects,
+        modelSelects,
+        otherRowSelect,
+        runButton,
+        stepBoxes,
+        tailBoxEl,
       }),
     // Recorded: `visibilitychange` is what opens and
     // closes the page's connection now, so a fake that swallowed it
     // could not tell a tab going quiet from one that never connected.
-    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`doc:${type}`] = fn),
+    addEventListener: (type: string, fn: (e: unknown) => void) =>
+      void (on[`doc:${type}`] = fn),
     dispatchEvent: (e: { type: string; detail?: unknown }) => {
       dispatched.push(e.type);
       dispatchedEvents.push({ type: e.type, detail: e.detail });
     },
     visibilityState: "hidden",
   };
-  const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
+  const fetchStub = async (
+    url: unknown,
+    init: Record<string, unknown> = {},
+  ) => {
     const at = String(url);
     requests.push({ url: at, init });
     const r = reply(at);
@@ -398,12 +516,24 @@ export function harness(
   const ticks: (() => void)[] = [];
 
   const { clock, FakeDate } = makeFakeDate();
-  const { timeouts, setTimeout: fakeSetTimeout, clearTimeout: fakeClearTimeout } = makeFakeTimers();
+  const {
+    timeouts,
+    setTimeout: fakeSetTimeout,
+    clearTimeout: fakeClearTimeout,
+  } = makeFakeTimers();
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
   new Function(
-    "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource", "Date",
-    "setTimeout", "clearTimeout",
+    "document",
+    "location",
+    "fetch",
+    "setInterval",
+    "history",
+    "FormData",
+    "EventSource",
+    "Date",
+    "setTimeout",
+    "clearTimeout",
     SOURCE,
   )(
     document,
@@ -444,7 +574,16 @@ export function harness(
     live()?.emit("changed", data);
   };
 
-  const { submit, submitCreate, click, clickFold, clickHref, fire, foldLink, foldAttrs } = buildNavigation(
+  const {
+    submit,
+    submitCreate,
+    click,
+    clickFold,
+    clickHref,
+    fire,
+    foldLink,
+    foldAttrs,
+  } = buildNavigation(
     on,
     button as unknown as { closest?: (s: string) => unknown },
     form,
@@ -464,15 +603,47 @@ export function harness(
      *  object after every wholesale replace, exactly as the browser's
      *  own element is. */
     wrap: () => wrap,
-    submit, submitCreate, click, clickFold, clickHref, foldLink, foldAttrs,
-    button, createButton, requests, location, rows, inserted,
-    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick, tickWith,
+    submit,
+    submitCreate,
+    click,
+    clickFold,
+    clickHref,
+    foldLink,
+    foldAttrs,
+    button,
+    createButton,
+    requests,
+    location,
+    rows,
+    inserted,
+    replaced,
+    slot,
+    resets,
+    document,
+    phases,
+    otherPhases,
+    rowQueries,
+    tick,
+    tickWith,
     /** Whether the page still carries its follow marker. */
     marked: followed.marked,
-    sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
-    projectSelect, chips,
-    removeButton, removeSlot, removeDialog, dispatched, dispatchedEvents,
-    addButton, addSlot,
+    sources: sourcesMade,
+    live,
+    visibility,
+    intervals,
+    ticks,
+    timeouts,
+    elapsed,
+    clock,
+    projectSelect,
+    chips,
+    removeButton,
+    removeSlot,
+    removeDialog,
+    dispatched,
+    dispatchedEvents,
+    addButton,
+    addSlot,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("remove:submit", removeButton, extra),
     submitAdd: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
@@ -481,14 +652,19 @@ export function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, aiSelects, stepBoxes, tailBox: tailBoxEl,
+    modelSelects,
+    otherRowSelect,
+    aiSelects,
+    stepBoxes,
+    tailBox: tailBoxEl,
     /** A tail box ticked or unticked by hand — the tick that posts on
      *  its own, without a Run press behind it. */
     changeTail: (checked: boolean) => {
       tailBoxEl.checked = checked;
       return on["change"]?.({ target: tailBoxEl });
     },
-    runButton, cancelButton,
+    runButton,
+    cancelButton,
     /** An AI picked on ONE phase line — the action that
      *  fills that phase's model in, and no other phase's. */
     changeAi: (index: number, tool: string) => {
@@ -518,7 +694,10 @@ export function harness(
       on["change"]?.({ target: box });
     },
     /** An acceptance criterion's box ticked or unticked by hand. */
-    tickBoxes, unverifiedBoxes, failedBoxes, TICK_FORM,
+    tickBoxes,
+    unverifiedBoxes,
+    failedBoxes,
+    TICK_FORM,
     /** The first criterion's Failed box checked or cleared by hand. */
     changeFailed: (index: number, checked: boolean) => {
       const box = failedBoxes[index]!;
@@ -537,8 +716,7 @@ export function harness(
       on["change"]?.({ target: box });
     },
     /** A change on something in the table that is no control at all. */
-    changeOther: () =>
-      on["change"]?.({ target: { closest: () => null } }),
+    changeOther: () => on["change"]?.({ target: { closest: () => null } }),
   };
 }
 

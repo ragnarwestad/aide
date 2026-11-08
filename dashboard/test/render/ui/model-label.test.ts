@@ -21,9 +21,18 @@ describe("aliasLabel", () => {
 
   test("the name Claude Code gave wins while its id is the one the choice gives", () => {
     const sonnet35 = { id: "claude-3-5-sonnet-20241022", name: "Sonnet 3.5" };
-    expect(aliasLabel("claude-3-5-sonnet-20241022", undefined, sonnet35)).toBe("Sonnet 3.5");
+    expect(aliasLabel("claude-3-5-sonnet-20241022", undefined, sonnet35)).toBe(
+      "Sonnet 3.5",
+    );
     const wide = { id: "claude-opus-5-5[1m]", name: "Opus 5.5 (1M context)" };
-    expect(aliasLabel("opus[1m]", "claude-opus-5-5[1m]", wide)).toBe("Opus 5.5 (1M context)");
-    expect(aliasLabel("Opus", "claude-opus-5-6", { id: "claude-opus-5-5", name: "Opus 5.5" })).toBe("Opus 5.6");
+    expect(aliasLabel("opus[1m]", "claude-opus-5-5[1m]", wide)).toBe(
+      "Opus 5.5 (1M context)",
+    );
+    expect(
+      aliasLabel("Opus", "claude-opus-5-6", {
+        id: "claude-opus-5-5",
+        name: "Opus 5.5",
+      }),
+    ).toBe("Opus 5.6");
   });
 });

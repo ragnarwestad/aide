@@ -22,7 +22,8 @@ const DEFAULTS: QueueDefaults = {
   model: { default: "sonnet" },
 };
 
-const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null);
+const resolve = (project: string) =>
+  project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null;
 
 let dir: string;
 
@@ -35,7 +36,9 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 describe("QueueStore.setPendingSteps()", () => {
   test("records a valid choice", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
+    const result = store.setPendingSteps("aide", "81-queue-and-runner", [
+      "analyze",
+    ]);
     expect(result.ok).toBe(true);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze"]);
   });
@@ -55,29 +58,54 @@ describe("QueueStore.setPendingSteps()", () => {
   // one had been.
   test("drops anything that is not analyze/implement/archive, by name", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    store.setPendingSteps("aide", "81-queue-and-runner", ["analyze", "reopen", "bogus", "archive"]);
-    expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze", "archive"]);
+    store.setPendingSteps("aide", "81-queue-and-runner", [
+      "analyze",
+      "reopen",
+      "bogus",
+      "archive",
+    ]);
+    expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual([
+      "analyze",
+      "archive",
+    ]);
   });
 
   test("a second choice for the same spec replaces the first, not merges with it", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    store.setPendingSteps("aide", "81-queue-and-runner", ["analyze", "implement"]);
+    store.setPendingSteps("aide", "81-queue-and-runner", [
+      "analyze",
+      "implement",
+    ]);
     store.setPendingSteps("aide", "81-queue-and-runner", ["archive"]);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["archive"]);
   });
 
   test("persists across a fresh QueueStore instance pointed at the same file", () => {
     const pendingStepsPath = join(dir, "pending-steps.json");
-    const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    const first = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingStepsPath,
+    });
     first.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
 
-    const second = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
-    expect(second.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze"]);
+    const second = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingStepsPath,
+    });
+    expect(second.pendingSteps["aide/81-queue-and-runner"]).toEqual([
+      "analyze",
+    ]);
   });
 
   test("written tmp-then-renamed, like every other file this store writes", () => {
     const pendingStepsPath = join(dir, "pending-steps.json");
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingStepsPath,
+    });
     store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
     const raw = JSON.parse(readFileSync(pendingStepsPath, "utf-8")) as unknown;
     expect(raw).toEqual({ "aide/81-queue-and-runner": ["analyze"] });
@@ -86,7 +114,11 @@ describe("QueueStore.setPendingSteps()", () => {
   test("a malformed file on disk is dropped, not crashed on", () => {
     const pendingStepsPath = join(dir, "pending-steps.json");
     writeFileSync(pendingStepsPath, "not json");
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingStepsPath,
+    });
     expect(store.pendingSteps).toEqual({});
   });
 });
@@ -96,17 +128,30 @@ describe("what records a phase choice, and what must not", () => {
 
   test("forgetPendingSteps() drops the entry, on disk too, and is a no-op for a spec with none", () => {
     const file = join(dir, "pending-steps.json");
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath: file });
-    store.setPendingSteps("aide", "81-queue-and-runner", ["implement", "archive"]);
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingStepsPath: file,
+    });
+    store.setPendingSteps("aide", "81-queue-and-runner", [
+      "implement",
+      "archive",
+    ]);
     store.forgetPendingSteps("aide", "81-queue-and-runner");
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toBeUndefined();
-    expect(JSON.parse(readFileSync(file, "utf-8"))).not.toHaveProperty("aide/81-queue-and-runner");
+    expect(JSON.parse(readFileSync(file, "utf-8"))).not.toHaveProperty(
+      "aide/81-queue-and-runner",
+    );
     store.forgetPendingSteps("aide", "82-never-chosen");
     expect(store.pendingSteps).not.toHaveProperty("aide/82-never-chosen");
   });
 
   test("enqueueCreate() seeds the choice from the posted steps", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      allowCreateProject: allow,
+    });
     const result = store.enqueueCreate({
       project: "brandnew",
       title: "A new spec",
@@ -115,7 +160,9 @@ describe("what records a phase choice, and what must not", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(store.pendingSteps[`${result.job.project}/${result.job.specFolder}`]).toEqual(["analyze"]);
+    expect(
+      store.pendingSteps[`${result.job.project}/${result.job.specFolder}`],
+    ).toEqual(["analyze"]);
   });
 
   // An untouched New-spec form posts no `steps` at all, which
@@ -124,11 +171,21 @@ describe("what records a phase choice, and what must not", () => {
   // explicit empty choice, not left unrecorded: the "some phases
   // after create unticked" case, at its most literal.
   test("enqueueCreate() with no extra steps records an explicit empty choice", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
-    const result = store.enqueueCreate({ project: "brandnew", title: "A new spec", description: "Do the thing" });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      allowCreateProject: allow,
+    });
+    const result = store.enqueueCreate({
+      project: "brandnew",
+      title: "A new spec",
+      description: "Do the thing",
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(store.pendingSteps[`${result.job.project}/${result.job.specFolder}`]).toEqual([]);
+    expect(
+      store.pendingSteps[`${result.job.project}/${result.job.specFolder}`],
+    ).toEqual([]);
   });
 
   // The generic `enqueue()` is deliberately NOT hooked: it is also
@@ -140,14 +197,24 @@ describe("what records a phase choice, and what must not", () => {
   test("the generic enqueue() never touches a recorded choice, whatever steps it carries", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.setPendingSteps("aide", "81-queue-and-runner", ["implement"]);
-    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["explore"] });
+    const result = store.enqueue({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["explore"],
+    });
     expect(result.ok).toBe(true);
-    expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["implement"]);
+    expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual([
+      "implement",
+    ]);
   });
 
   test("the generic enqueue() records nothing new for a spec with no prior choice", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["explore"] });
+    const result = store.enqueue({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["explore"],
+    });
     expect(result.ok).toBe(true);
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toBeUndefined();
   });
@@ -168,8 +235,15 @@ describe("POST /api/queue records the row's own choice", () => {
     const { base } = harness.start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
-      body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "archive" }).toString(),
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: "archive",
+      }).toString(),
     });
     expect(res.status).toBe(200);
     const { job } = (await res.json()) as { job: { id: string } };
@@ -182,9 +256,11 @@ describe("POST /api/queue records the row's own choice", () => {
     // there is no job left to speak for it.
     await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST" });
     const html = await (await fetch(`${base}/?${openQuery}`)).text();
-    const ticked = [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map(
-      (m) => m[1],
-    );
+    const ticked = [
+      ...html.matchAll(
+        /<input type="checkbox" name="steps" value="([^"]+)" checked/g,
+      ),
+    ].map((m) => m[1]);
     expect(ticked).toEqual(["archive"]);
   });
 
@@ -196,13 +272,17 @@ describe("POST /api/queue records the row's own choice", () => {
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
-      body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "resolve" }).toString(),
+      body: new URLSearchParams({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: "resolve",
+      }).toString(),
     });
     expect(res.status).toBe(400);
     // Nothing was ticked before this, and the refused press must not
     // have written an empty choice over what a later, real Run would
     // otherwise have found unset — the fallback stays available for it.
-    const html = await (await fetch(`${base}/?${openQuery}`, )).text();
+    const html = await (await fetch(`${base}/?${openQuery}`)).text();
     expect(html).toContain('value="analyze" checked');
   });
 });

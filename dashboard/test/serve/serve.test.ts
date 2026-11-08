@@ -3,7 +3,14 @@
 // Path-traversal refusal is `serveStatic`'s own guard, covered where it
 // is actually still called — `/schedule-output/`
 // (test/serve/schedule/schedule-output-route.test.ts).
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,19 +44,33 @@ const lanAddress = (): string | undefined =>
 describe("the address the server listens on", () => {
   test("with no bindHost it listens on 127.0.0.1 only", async () => {
     expect(server.hostname).toBe("127.0.0.1");
-    const viaName = await fetch(`http://localhost:${server.port}/projects.html`, { redirect: "manual" });
+    const viaName = await fetch(
+      `http://localhost:${server.port}/projects.html`,
+      { redirect: "manual" },
+    );
     expect(viaName.status).toBe(302);
     const lan = lanAddress();
-    if (lan) await expect(fetch(`http://${lan}:${server.port}/projects.html`, { redirect: "manual" })).rejects.toThrow();
+    if (lan)
+      await expect(
+        fetch(`http://${lan}:${server.port}/projects.html`, {
+          redirect: "manual",
+        }),
+      ).rejects.toThrow();
   });
 
   test("a bindHost given is used as given", async () => {
-    const wide = createServer({ port: 0, mirrorPath: join(dir, "wide-runs.json"), bindHost: "0.0.0.0" });
+    const wide = createServer({
+      port: 0,
+      mirrorPath: join(dir, "wide-runs.json"),
+      bindHost: "0.0.0.0",
+    });
     try {
       expect(wide.hostname).toBe("0.0.0.0");
       const lan = lanAddress();
       if (lan) {
-        const res = await fetch(`http://${lan}:${wide.port}/projects.html`, { redirect: "manual" });
+        const res = await fetch(`http://${lan}:${wide.port}/projects.html`, {
+          redirect: "manual",
+        });
         expect(res.status).toBeGreaterThan(0);
       }
     } finally {
@@ -62,7 +83,9 @@ describe("the address the server listens on", () => {
 // with no site directory involved at all ---------------------------
 describe("GET /projects.html", () => {
   test("redirects to /projects, keeping the query string", async () => {
-    const res = await fetch(`${base}/projects.html?foo=bar`, { redirect: "manual" });
+    const res = await fetch(`${base}/projects.html?foo=bar`, {
+      redirect: "manual",
+    });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/projects?foo=bar");
   });
@@ -72,15 +95,27 @@ describe("POST /api/aide-run", () => {
   test("valid → 200 and listed; invalid → 400", async () => {
     const ok = await fetch(`${base}/api/aide-run`, {
       method: "POST",
-      body: JSON.stringify({ host: "h", sessionId: "s1", command: "implement", spec: "80", project: "aide" }),
+      body: JSON.stringify({
+        host: "h",
+        sessionId: "s1",
+        command: "implement",
+        spec: "80",
+        project: "aide",
+      }),
     });
     expect(ok.status).toBe(200);
     const bad = await fetch(`${base}/api/aide-run`, {
       method: "POST",
-      body: JSON.stringify({ host: "h", sessionId: "bad/id", command: "implement" }),
+      body: JSON.stringify({
+        host: "h",
+        sessionId: "bad/id",
+        command: "implement",
+      }),
     });
     expect(bad.status).toBe(400);
-    const runs = (await (await fetch(`${base}/api/aide-runs`)).json()) as { rows: { spec: string }[] };
+    const runs = (await (await fetch(`${base}/api/aide-runs`)).json()) as {
+      rows: { spec: string }[];
+    };
     expect(runs.rows.map((r) => r.spec)).toEqual(["80"]);
     expect("enriched" in runs).toBe(false);
   });
@@ -88,7 +123,12 @@ describe("POST /api/aide-run", () => {
   test("oversize body → 413", async () => {
     const res = await fetch(`${base}/api/aide-run`, {
       method: "POST",
-      body: JSON.stringify({ host: "h", sessionId: "s2", command: "implement", pad: "x".repeat(5000) }),
+      body: JSON.stringify({
+        host: "h",
+        sessionId: "s2",
+        command: "implement",
+        pad: "x".repeat(5000),
+      }),
     });
     expect(res.status).toBe(413);
   });
@@ -99,15 +139,21 @@ describe("TDD phases in /api/aide-runs", () => {
     const res = await fetch(`${base}/api/aide-run`, {
       method: "POST",
       body: JSON.stringify({
-        host: "h", sessionId: "s-phase", command: "implement",
-        spec: "81", project: "aide", phase: "green",
+        host: "h",
+        sessionId: "s-phase",
+        command: "implement",
+        spec: "81",
+        project: "aide",
+        phase: "green",
       }),
     });
     expect(res.status).toBe(200);
     const runs = (await (await fetch(`${base}/api/aide-runs`)).json()) as {
       rows: { sessionId: string; phase?: string }[];
     };
-    expect(runs.rows.find((r) => r.sessionId === "s-phase")?.phase).toBe("green");
+    expect(runs.rows.find((r) => r.sessionId === "s-phase")?.phase).toBe(
+      "green",
+    );
   });
 });
 
@@ -162,9 +208,10 @@ describe("GET /projects", () => {
 describe("parseArgs", () => {
   // Which spec this process is a test board for.
   test("--test-board sets testBoardSpec", () => {
-    expect(parseArgs(["--test-board", "424-headeren-sier-hvilket-board"]).testBoardSpec).toBe(
-      "424-headeren-sier-hvilket-board",
-    );
+    expect(
+      parseArgs(["--test-board", "424-headeren-sier-hvilket-board"])
+        .testBoardSpec,
+    ).toBe("424-headeren-sier-hvilket-board");
   });
 
   test("without --test-board, testBoardSpec is absent (an ordinary server)", () => {
@@ -187,34 +234,50 @@ describe("resolveDependencyFolder", () => {
     dir: "/repos/aide",
     manifestPath: "/repos/aide/.aide/project.yaml",
     specsRoot: "/specs",
-    specs: [spec("80-dependency"), spec("81-queue-and-runner"), spec("77-old", true)],
+    specs: [
+      spec("80-dependency"),
+      spec("81-queue-and-runner"),
+      spec("77-old", true),
+    ],
   };
 
   test("a number resolves through the `<id>-` prefix", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
-    expect(resolveDependencyFolder(project, "80")?.folder).toBe("80-dependency");
+    const { resolveDependencyFolder } =
+      await import("../../src/serve/serve.ts");
+    expect(resolveDependencyFolder(project, "80")?.folder).toBe(
+      "80-dependency",
+    );
   });
 
   test("the full folder name resolves as well as the number", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
-    expect(resolveDependencyFolder(project, "80-dependency")?.folder).toBe("80-dependency");
+    const { resolveDependencyFolder } =
+      await import("../../src/serve/serve.ts");
+    expect(resolveDependencyFolder(project, "80-dependency")?.folder).toBe(
+      "80-dependency",
+    );
   });
 
   test("an archived spec resolves too, and says it is archived", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } =
+      await import("../../src/serve/serve.ts");
     const found = resolveDependencyFolder(project, "77");
     expect(found?.folder).toBe("77-old");
     expect(found?.archived).toBe(true);
   });
 
   test("a live spec wins over an archived one with the same number", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
-    const both = { ...project, specs: [...project.specs, spec("77-still-here")] };
+    const { resolveDependencyFolder } =
+      await import("../../src/serve/serve.ts");
+    const both = {
+      ...project,
+      specs: [...project.specs, spec("77-still-here")],
+    };
     expect(resolveDependencyFolder(both, "77")?.folder).toBe("77-still-here");
   });
 
   test("an unknown id resolves to nothing — that refusal belongs to the run", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } =
+      await import("../../src/serve/serve.ts");
     expect(resolveDependencyFolder(project, "99")).toBeUndefined();
   });
 });

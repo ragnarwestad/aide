@@ -5,11 +5,25 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { specPageView, type SpecViewsContext } from "../../../src/serve/spec-views";
-import { phaseMessagesFor, sideMessagesFor } from "../../../src/serve/spec-views/phase-messages.ts";
+import {
+  specPageView,
+  type SpecViewsContext,
+} from "../../../src/serve/spec-views";
+import {
+  phaseMessagesFor,
+  sideMessagesFor,
+} from "../../../src/serve/spec-views/phase-messages.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import { feasibility, ran as codexRan, said as codexSaid, S, started, T, writeSessions } from "../../helpers/codex-fixtures.ts";
+import {
+  feasibility,
+  ran as codexRan,
+  said as codexSaid,
+  S,
+  started,
+  T,
+  writeSessions,
+} from "../../helpers/codex-fixtures.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "phase-messages-"));
 let n = 0;
@@ -18,9 +32,23 @@ const stream = (lines: unknown[]): string => {
   writeFileSync(file, lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
   return file;
 };
-const said = (text: string) => ({ type: "assistant", message: { content: [{ type: "text", text }] } });
-const ran = (command: string) => ({ type: "assistant", message: { content: [{ type: "tool_use", id: `t${n++}`, name: "Bash", input: { command } }] } });
-const result = (text: string) => ({ type: "result", subtype: "success", result: text });
+const said = (text: string) => ({
+  type: "assistant",
+  message: { content: [{ type: "text", text }] },
+});
+const ran = (command: string) => ({
+  type: "assistant",
+  message: {
+    content: [
+      { type: "tool_use", id: `t${n++}`, name: "Bash", input: { command } },
+    ],
+  },
+});
+const result = (text: string) => ({
+  type: "result",
+  subtype: "success",
+  result: text,
+});
 
 const job = (id: string, extra: Partial<Job> = {}): Job =>
   ({
@@ -40,13 +68,26 @@ const job = (id: string, extra: Partial<Job> = {}): Job =>
     ...extra,
   }) as Job;
 const finishedStep = (step: string, lines: unknown[]) =>
-  ({ step, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile: stream(lines) }) as never;
+  ({
+    step,
+    ok: true,
+    costUsd: 0,
+    costMeasured: true,
+    terminalReason: "completed",
+    tool: "claude",
+    streamFile: stream(lines),
+  }) as never;
 
 /** The queue, as far as the lookup and the spec page read it. */
 const queueOf = (jobs: Job[]) =>
-  ({ get: (id: string) => jobs.find((j) => j.id === id), list: () => jobs, defaults: {} }) as never;
+  ({
+    get: (id: string) => jobs.find((j) => j.id === id),
+    list: () => jobs,
+    defaults: {},
+  }) as never;
 
-const lines = (got: { logs: { lines: string[] }[] } | undefined) => got?.logs.flatMap((part) => part.lines) ?? [];
+const lines = (got: { logs: { lines: string[] }[] } | undefined) =>
+  got?.logs.flatMap((part) => part.lines) ?? [];
 
 describe("phaseMessagesFor", () => {
   // The model's own messages alone are not enough. A session that works
@@ -57,45 +98,106 @@ describe("phaseMessagesFor", () => {
     for (let i = 1; i <= 3; i++) out.push(said(`m${i}`), ran(`cmd ${i}`));
     const j = job("a", { results: [finishedStep("analyze", out)] });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
-    expect(lines(got)).toEqual(["m1", "Bash cmd 1", "m2", "Bash cmd 2", "m3", "Bash cmd 3"]);
+    expect(lines(got)).toEqual([
+      "m1",
+      "Bash cmd 1",
+      "m2",
+      "Bash cmd 2",
+      "m3",
+      "Bash cmd 3",
+    ]);
     expect(got?.running).toBe(false);
   });
 
   test("a file a step wrote is a line of its own", () => {
-    const wrote = { type: "assistant", message: { content: [{ type: "tool_use", id: "w1", name: "Write", input: { file_path: "/x/2-analysis.md" } }] } };
+    const wrote = {
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            id: "w1",
+            name: "Write",
+            input: { file_path: "/x/2-analysis.md" },
+          },
+        ],
+      },
+    };
     const j = job("a", { results: [finishedStep("analyze", [wrote])] });
-    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["Write /x/2-analysis.md"]);
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual([
+      "Write /x/2-analysis.md",
+    ]);
   });
 
   test("a newer job only queued for the step does not hide the older one that ran it; two finished jobs give the newer", () => {
-    const older = job("old", { createdAt: "2026-09-19T09:00:00Z", results: [finishedStep("analyze", [said("from old")])] });
-    const newer = job("new", { createdAt: "2026-09-19T10:00:00Z", results: [finishedStep("analyze", [said("from new")])] });
-    const queued = job("queued", { createdAt: "2026-09-19T11:00:00Z", state: "queued" });
+    const older = job("old", {
+      createdAt: "2026-09-19T09:00:00Z",
+      results: [finishedStep("analyze", [said("from old")])],
+    });
+    const newer = job("new", {
+      createdAt: "2026-09-19T10:00:00Z",
+      results: [finishedStep("analyze", [said("from new")])],
+    });
+    const queued = job("queued", {
+      createdAt: "2026-09-19T11:00:00Z",
+      state: "queued",
+    });
     const q = queueOf([older, newer, queued]);
-    expect(lines(phaseMessagesFor(q, ["queued", "old"], "analyze"))).toEqual(["from old"]);
-    expect(lines(phaseMessagesFor(q, ["queued", "new", "old"], "analyze"))).toEqual(["from new"]);
+    expect(lines(phaseMessagesFor(q, ["queued", "old"], "analyze"))).toEqual([
+      "from old",
+    ]);
+    expect(
+      lines(phaseMessagesFor(q, ["queued", "new", "old"], "analyze")),
+    ).toEqual(["from new"]);
   });
 
   test("nothing to read gives undefined", () => {
     expect(phaseMessagesFor(queueOf([]), ["gone"], "analyze")).toBeUndefined();
-    expect(phaseMessagesFor(queueOf([job("q", { state: "queued" })]), ["q"], "analyze")).toBeUndefined();
+    expect(
+      phaseMessagesFor(
+        queueOf([job("q", { state: "queued" })]),
+        ["q"],
+        "analyze",
+      ),
+    ).toBeUndefined();
   });
 
   test("a message with markup is returned escaped once", () => {
-    const j = job("a", { results: [finishedStep("analyze", [said('<b>x</b> & "y"')])] });
-    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;"]);
+    const j = job("a", {
+      results: [finishedStep("analyze", [said('<b>x</b> & "y"')])],
+    });
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual([
+      "&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;",
+    ]);
   });
 
   test("a finished phase ends with its final message, replacing a last entry that is the same", () => {
-    const j = job("a", { results: [finishedStep("analyze", [said("first"), said("Analysis complete: 12 files affected"), result("Analysis complete: 12 files affected")])] });
-    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["first", "Analysis complete: 12 files affected"]);
+    const j = job("a", {
+      results: [
+        finishedStep("analyze", [
+          said("first"),
+          said("Analysis complete: 12 files affected"),
+          result("Analysis complete: 12 files affected"),
+        ]),
+      ],
+    });
+    expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual([
+      "first",
+      "Analysis complete: 12 files affected",
+    ]);
   });
 
   test("every line of the step is in the row, however long: the row is a window on the Log", () => {
     const out: unknown[] = [];
     for (let i = 1; i <= 250; i++) out.push(ran(`cmd ${i}`));
     out.push(result("The end"));
-    const got = lines(phaseMessagesFor(queueOf([job("a", { results: [finishedStep("analyze", out)] })]), ["a"], "analyze"));
+    const got = lines(
+      phaseMessagesFor(
+        queueOf([job("a", { results: [finishedStep("analyze", out)] })]),
+        ["a"],
+        "analyze",
+      ),
+    );
     expect(got).toHaveLength(251);
     expect(got[0]).toBe("Bash cmd 1");
     expect(got.at(-1)).toBe("The end");
@@ -116,9 +218,25 @@ describe("phaseMessagesFor", () => {
         "aide-run-spec 10:02:00 +120s tests: pytest 50%",
       ].join("\n") + "\n",
     );
-    const j = job("a", { results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile } as never] });
+    const j = job("a", {
+      results: [
+        {
+          step: "archive",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          tool: "claude",
+          streamFile,
+        } as never,
+      ],
+    });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "archive");
-    expect(got?.logs.map((part) => part.by)).toEqual(["aide-before", "ai", "aide-after"]);
+    expect(got?.logs.map((part) => part.by)).toEqual([
+      "aide-before",
+      "ai",
+      "aide-after",
+    ]);
     expect(lines(got)).toEqual([
       "10:00:00 +0s --- Step Aide: preparing — started",
       "10:00:02 +2s --- Step Aide: preparing — done",
@@ -130,7 +248,12 @@ describe("phaseMessagesFor", () => {
 
   test("a running phase reads the job's live transcript, with no final-message rule", () => {
     const live = stream([said("working"), result("would be final")]);
-    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile: live });
+    const j = job("r", {
+      state: "running",
+      steps: ["analyze"],
+      stepIndex: 0,
+      streamFile: live,
+    });
     const got = phaseMessagesFor(queueOf([j]), ["r"], "analyze");
     expect(got?.running).toBe(true);
     expect(lines(got)).toEqual(["working"]);
@@ -141,12 +264,25 @@ describe("phaseMessagesFor", () => {
 // The steps the attempt's log has marked, with their time and tokens: what a phase's unfold
 // lists above its Log.
 describe("phaseMessagesFor: the steps the log has marked", () => {
-  const usage = (n: number) => ({ input_tokens: n, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 });
-  const call = (id: string, text: string, tokens: number) => ({ type: "assistant", message: { id, content: [{ type: "text", text }], usage: usage(tokens) } });
+  const usage = (n: number) => ({
+    input_tokens: n,
+    output_tokens: 0,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  });
+  const call = (id: string, text: string, tokens: number) => ({
+    type: "assistant",
+    message: { id, content: [{ type: "text", text }], usage: usage(tokens) },
+  });
   /** A stream and its run log, whose lines are stamped `[seconds, text]`. */
   const logged = (events: unknown[], runLog: [number, string][]): string => {
     const file = stream(events);
-    writeFileSync(file.replace(/\.stream\.jsonl$/, ".run.log"), runLog.map(([sec, l]) => `aide-run-spec 10:00:00 +${sec}s ${l}`).join("\n") + "\n");
+    writeFileSync(
+      file.replace(/\.stream\.jsonl$/, ".run.log"),
+      runLog
+        .map(([sec, l]) => `aide-run-spec 10:00:00 +${sec}s ${l}`)
+        .join("\n") + "\n",
+    );
     return file;
   };
   const RUN_LOG: [number, string][] = [
@@ -157,32 +293,77 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
     [10, "--- Step 1 of 2: Read — done"],
     [11, "--- Step 2 of 2: Write — started"],
   ];
-  const EVENTS = [call("m1", "--- Step 1 of 2: Read — started", 100), call("m2", "--- Step 1 of 2: Read — done", 20), call("m3", "--- Step 2 of 2: Write — started", 7)];
+  const EVENTS = [
+    call("m1", "--- Step 1 of 2: Read — started", 100),
+    call("m2", "--- Step 1 of 2: Read — done", 20),
+    call("m3", "--- Step 2 of 2: Write — started", 7),
+  ];
 
   test("a finished attempt lists them in the order marked, Aide's own among them, each with its seconds and tokens", () => {
-    const runLog: [number, string][] = [...RUN_LOG, [30, "--- Step 2 of 2: Write — done"], [31, "--- Step Aide: tests and commit — started"], [40, "--- Step Aide: tests and commit — done"]];
-    const streamFile = logged([...EVENTS, call("m4", "--- Step 2 of 2: Write — done", 3)], runLog);
-    const j = job("a", { results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile } as never] });
+    const runLog: [number, string][] = [
+      ...RUN_LOG,
+      [30, "--- Step 2 of 2: Write — done"],
+      [31, "--- Step Aide: tests and commit — started"],
+      [40, "--- Step Aide: tests and commit — done"],
+    ];
+    const streamFile = logged(
+      [...EVENTS, call("m4", "--- Step 2 of 2: Write — done", 3)],
+      runLog,
+    );
+    const j = job("a", {
+      results: [
+        {
+          step: "analyze",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          tool: "claude",
+          streamFile,
+        } as never,
+      ],
+    });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
-    expect(got?.steps.map((s) => [s.label, s.state, s.seconds, s.tokens])).toEqual([
+    expect(
+      got?.steps.map((s) => [s.label, s.state, s.seconds, s.tokens]),
+    ).toEqual([
       ["Preparing", "done", 2, undefined],
       ["Read", "done", 7, 120],
       ["Write", "done", 19, 10],
       ["Tests and commit", "done", 9, undefined],
     ]);
-    expect(got?.steps.find((s) => s.label === "Read")?.logs?.flatMap((p) => p.lines).join("\n")).toContain("Read — started");
+    expect(
+      got?.steps
+        .find((s) => s.label === "Read")
+        ?.logs?.flatMap((p) => p.lines)
+        .join("\n"),
+    ).toContain("Read — started");
   });
 
   test("a running attempt counts its open step from its start", () => {
     const streamFile = logged(EVENTS, RUN_LOG);
-    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile, stepStartedAt: "2026-09-19T10:00:00Z" });
-    const write = phaseMessagesFor(queueOf([j]), ["r"], "analyze")?.steps.find((s) => s.label === "Write");
-    expect(write).toMatchObject({ state: "running", since: "2026-09-19T10:00:11.000Z", tokens: 7 });
+    const j = job("r", {
+      state: "running",
+      steps: ["analyze"],
+      stepIndex: 0,
+      streamFile,
+      stepStartedAt: "2026-09-19T10:00:00Z",
+    });
+    const write = phaseMessagesFor(queueOf([j]), ["r"], "analyze")?.steps.find(
+      (s) => s.label === "Write",
+    );
+    expect(write).toMatchObject({
+      state: "running",
+      since: "2026-09-19T10:00:11.000Z",
+      tokens: 7,
+    });
     expect(write?.seconds).toBeUndefined();
   });
 
   test("an attempt that marked no step lists none, and the Log is as before", () => {
-    const j = job("a", { results: [finishedStep("analyze", [said("plain words")])] });
+    const j = job("a", {
+      results: [finishedStep("analyze", [said("plain words")])],
+    });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
     expect(got?.steps).toEqual([]);
     expect(lines(got)).toEqual(["plain words"]);
@@ -206,12 +387,19 @@ describe("the key it returns is the Logs tab's own", () => {
       gitRun: fakeGit({}).run,
       withFreshness: (list: unknown[]) => list,
       jobRow: async (j: Job) => ({ ...j }),
-      specFileCommits: { peekCommitFor: () => ({}), commitFor: async () => ({}) },
+      specFileCommits: {
+        peekCommitFor: () => ({}),
+        commitFor: async () => ({}),
+      },
       branchStatus: { openSpecBranches: async () => new Set<string>() },
       specsRoot: async (d: string) => d,
       specCreatedAt: {},
       pdfToolAvailable: false,
-      testServers: { previewAvailable: () => false, aideCheckout: () => undefined, store: { get: () => undefined } },
+      testServers: {
+        previewAvailable: () => false,
+        aideCheckout: () => undefined,
+        store: { get: () => undefined },
+      },
     }) as never;
 
   test("every step's key equals its index in the spec page's steps, and a running step is live", async () => {
@@ -220,7 +408,10 @@ describe("the key it returns is the Logs tab's own", () => {
       stepIndex: 1,
       createdAt: "2026-09-19T09:00:00Z",
       startedAt: "2026-09-19T09:00:00Z",
-      results: [finishedStep("analyze", [said("a1")]), finishedStep("implement", [said("i1")])],
+      results: [
+        finishedStep("analyze", [said("a1")]),
+        finishedStep("implement", [said("i1")]),
+      ],
     });
     const second = job("j2", {
       steps: ["analyze", "implement"],
@@ -235,10 +426,22 @@ describe("the key it returns is the Logs tab's own", () => {
     const q = queueOf(jobs);
     const view = await specPageView(ctxFor(jobs), "aide", "500-x");
     const steps = view!.steps!;
-    const indexOf = (text: string) => steps.findIndex((s) => (s.logs ?? []).flatMap((p) => p.lines).join("\n").includes(text));
-    expect(phaseMessagesFor(q, ["j1"], "analyze")?.step).toBe(String(indexOf("a1")));
-    expect(phaseMessagesFor(q, ["j1"], "implement")?.step).toBe(String(indexOf("i1")));
-    expect(phaseMessagesFor(q, ["j2", "j1"], "analyze")?.step).toBe(String(indexOf("a2")));
+    const indexOf = (text: string) =>
+      steps.findIndex((s) =>
+        (s.logs ?? [])
+          .flatMap((p) => p.lines)
+          .join("\n")
+          .includes(text),
+      );
+    expect(phaseMessagesFor(q, ["j1"], "analyze")?.step).toBe(
+      String(indexOf("a1")),
+    );
+    expect(phaseMessagesFor(q, ["j1"], "implement")?.step).toBe(
+      String(indexOf("i1")),
+    );
+    expect(phaseMessagesFor(q, ["j2", "j1"], "analyze")?.step).toBe(
+      String(indexOf("a2")),
+    );
     expect(indexOf("a2")).toBeGreaterThan(indexOf("i1"));
     expect(phaseMessagesFor(q, ["j2"], "implement")?.step).toBe("live");
     expect(view!.lead?.runningStep?.step).toBe("implement");
@@ -246,7 +449,8 @@ describe("the key it returns is the Logs tab's own", () => {
 });
 
 describe("a Codex phase's row reads the session files", () => {
-  const codexStream = () => stream([started(T), codexSaid("m1"), codexRan("c1"), codexSaid("m2")]);
+  const codexStream = () =>
+    stream([started(T), codexSaid("m1"), codexRan("c1"), codexSaid("m2")]);
   const withHome = <R>(run: () => R): R => {
     const home = mkdtempSync(join(tmpdir(), "phase-codex-"));
     writeSessions(home, { [T]: feasibility.parent, [S]: feasibility.child });
@@ -261,15 +465,36 @@ describe("a Codex phase's row reads the session files", () => {
   };
 
   test("a finished step's parts include the subagent's", () => {
-    const j = job("a", { results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "codex", streamFile: codexStream() } as never] });
-    const got = withHome(() => phaseMessagesFor(queueOf([j]), ["a"], "analyze"));
+    const j = job("a", {
+      results: [
+        {
+          step: "analyze",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          tool: "codex",
+          streamFile: codexStream(),
+        } as never,
+      ],
+    });
+    const got = withHome(() =>
+      phaseMessagesFor(queueOf([j]), ["a"], "analyze"),
+    );
 
     expect(got?.logs.map((part) => part.by)).toEqual(["ai", "subagent", "ai"]);
   });
 
   test("a running step's parts include it too", () => {
-    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile: codexStream() });
-    const got = withHome(() => phaseMessagesFor(queueOf([j]), ["r"], "analyze"));
+    const j = job("r", {
+      state: "running",
+      steps: ["analyze"],
+      stepIndex: 0,
+      streamFile: codexStream(),
+    });
+    const got = withHome(() =>
+      phaseMessagesFor(queueOf([j]), ["r"], "analyze"),
+    );
 
     expect(got?.logs.map((part) => part.by)).toEqual(["ai", "subagent", "ai"]);
   });
@@ -278,7 +503,8 @@ describe("a Codex phase's row reads the session files", () => {
 // A side session's part of the step's one transcript: the bytes its range
 // names, parsed with the tool the side session ran on.
 describe("sideMessagesFor", () => {
-  const segment = (events: unknown[]): string => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+  const segment = (events: unknown[]): string =>
+    events.map((e) => JSON.stringify(e)).join("\n") + "\n";
   const kept = (parts: string[]): string => {
     const file = join(dir, `side${n++}.stream.jsonl`);
     writeFileSync(file, parts.join(""));
@@ -288,18 +514,40 @@ describe("sideMessagesFor", () => {
     const from = Buffer.byteLength(before.join(""));
     return { from, to: from + Buffer.byteLength(own) };
   };
-  const finishedWith = (streamFile: string, side: Record<string, unknown>, tool = "claude") =>
+  const finishedWith = (
+    streamFile: string,
+    side: Record<string, unknown>,
+    tool = "claude",
+  ) =>
     job("a", {
       steps: ["implement"],
-      results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool, streamFile, ...side }] as never,
+      results: [
+        {
+          step: "implement",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          tool,
+          streamFile,
+          ...side,
+        },
+      ] as never,
     });
 
   test("the review's range holds its reply, and neither the implement turn's nor the fix turn's (AC-3)", () => {
     const implement = segment([said("IMPLEMENT-TEXT"), result("done")]);
-    const review = segment([said("REVIEW-TEXT"), result("review: no defects found")]);
+    const review = segment([
+      said("REVIEW-TEXT"),
+      result("review: no defects found"),
+    ]);
     const fix = segment([said("FIX-TEXT"), result("fixed")]);
     const j = finishedWith(kept([implement, review, fix]), {
-      review: { outcome: "completed", tool: "claude", transcript: range([implement], review) },
+      review: {
+        outcome: "completed",
+        tool: "claude",
+        transcript: range([implement], review),
+      },
     });
     const got = sideMessagesFor(queueOf([j]), ["a"], "review");
     expect(lines(got)).toEqual(expect.arrayContaining(["REVIEW-TEXT"]));
@@ -313,7 +561,11 @@ describe("sideMessagesFor", () => {
     const implement = segment([said("IMPLEMENT-TEXT"), result("done")]);
     const review = segment([started(T), codexSaid("CODEX-REVIEW-TEXT")]);
     const j = finishedWith(kept([implement, review]), {
-      review: { outcome: "completed", tool: "codex", transcript: range([implement], review) },
+      review: {
+        outcome: "completed",
+        tool: "codex",
+        transcript: range([implement], review),
+      },
     });
     const got = lines(sideMessagesFor(queueOf([j]), ["a"], "review"));
     expect(got).toEqual(["CODEX-REVIEW-TEXT"]);
@@ -324,15 +576,37 @@ describe("sideMessagesFor", () => {
     const review = segment([said("REVIEW-TEXT")]);
     const verify = segment([said("VERIFY-TEXT")]);
     const j = finishedWith(kept([implement, review, verify]), {
-      review: { outcome: "completed", tool: "claude", transcript: range([implement], review) },
-      verify: { outcome: "completed", tool: "claude", transcript: range([implement, review], verify) },
+      review: {
+        outcome: "completed",
+        tool: "claude",
+        transcript: range([implement], review),
+      },
+      verify: {
+        outcome: "completed",
+        tool: "claude",
+        transcript: range([implement, review], verify),
+      },
     });
-    expect(lines(sideMessagesFor(queueOf([j]), ["a"], "verify"))).toEqual(["VERIFY-TEXT"]);
+    expect(lines(sideMessagesFor(queueOf([j]), ["a"], "verify"))).toEqual([
+      "VERIFY-TEXT",
+    ]);
   });
 
   test("no range, or no such session, gives nothing (AC-6)", () => {
     const file = kept([segment([said("IMPLEMENT-TEXT")])]);
-    expect(sideMessagesFor(queueOf([finishedWith(file, { review: { outcome: "completed", tool: "claude" } })]), ["a"], "review")).toBeUndefined();
-    expect(sideMessagesFor(queueOf([finishedWith(file, {})]), ["a"], "verify")).toBeUndefined();
+    expect(
+      sideMessagesFor(
+        queueOf([
+          finishedWith(file, {
+            review: { outcome: "completed", tool: "claude" },
+          }),
+        ]),
+        ["a"],
+        "review",
+      ),
+    ).toBeUndefined();
+    expect(
+      sideMessagesFor(queueOf([finishedWith(file, {})]), ["a"], "verify"),
+    ).toBeUndefined();
   });
 });

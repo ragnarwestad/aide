@@ -10,7 +10,10 @@ import type { Sentence } from "../../i18n/message.ts";
  *  resolved. Asked of the job as it stands when the landing settles,
  *  since the stop is written before then. */
 export function keepsItsStopReason(job: Job | undefined): boolean {
-  return job?.state === "stopped" && (job.stopReason === "timeout" || job.stopReason === "provider-limit");
+  return (
+    job?.state === "stopped" &&
+    (job.stopReason === "timeout" || job.stopReason === "provider-limit")
+  );
 }
 
 // What a job remembers of a landing that failed, and who may forget it.
@@ -43,11 +46,22 @@ export function firstLandingError(
   step: string,
   held: boolean,
 ): Sentence | Sentence[] {
-  return existing ?? { key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const), values: { step }, inner: msg };
+  return (
+    existing ?? {
+      key: held
+        ? ("landing.stepStopped" as const)
+        : ("landing.stepFailed" as const),
+      values: { step },
+      inner: msg,
+    }
+  );
 }
 
 /** Whether the landing failure a job carries belongs to `step`. */
-export function landingErrorOfStep(job: { landingError?: unknown } | undefined, step: string): boolean {
+export function landingErrorOfStep(
+  job: { landingError?: unknown } | undefined,
+  step: string,
+): boolean {
   const e = job?.landingError;
   if (!e || typeof e !== "object" || Array.isArray(e)) return false;
   return (e as { values?: { step?: unknown } }).values?.step === step;
@@ -59,5 +73,7 @@ export function clearsLandingError(
   job: { landingError?: unknown } | undefined,
   step: string,
 ): { landingError?: undefined; landingErrorDetail?: undefined } {
-  return landingErrorOfStep(job, step) ? { landingError: undefined, landingErrorDetail: undefined } : {};
+  return landingErrorOfStep(job, step)
+    ? { landingError: undefined, landingErrorDetail: undefined }
+    : {};
 }

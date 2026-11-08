@@ -11,10 +11,14 @@ import type { ToolUsage } from "../../render";
 export const USAGE_KEPT_MS = 2 * 60_000;
 
 type Read = (key: string, provider: Provider) => Promise<ToolUsage>;
-interface Kept { usage: ToolUsage; at: number }
+interface Kept {
+  usage: ToolUsage;
+  at: number;
+}
 
 const kept = new WeakMap<object, Map<string, Kept>>();
-const keyOf = (key: string, provider: Provider): string => `${key}\n${JSON.stringify(provider)}`;
+const keyOf = (key: string, provider: Provider): string =>
+  `${key}\n${JSON.stringify(provider)}`;
 const store = (owner: object): Map<string, Kept> => {
   let map = kept.get(owner);
   if (!map) kept.set(owner, (map = new Map()));
@@ -23,13 +27,24 @@ const store = (owner: object): Map<string, Kept> => {
 
 /** The reading kept for this provider as it stands now, if it is less than
  *  two minutes old. */
-export function keptUsage(owner: object, key: string, provider: Provider, now = Date.now()): ToolUsage | undefined {
+export function keptUsage(
+  owner: object,
+  key: string,
+  provider: Provider,
+  now = Date.now(),
+): ToolUsage | undefined {
   const hit = store(owner).get(keyOf(key, provider));
   return hit && now - hit.at < USAGE_KEPT_MS ? hit.usage : undefined;
 }
 
 /** Reads the usage now and keeps the answer. */
-export async function readUsage(owner: object, key: string, provider: Provider, read: Read, now = Date.now): Promise<ToolUsage> {
+export async function readUsage(
+  owner: object,
+  key: string,
+  provider: Provider,
+  read: Read,
+  now = Date.now,
+): Promise<ToolUsage> {
   const usage = await read(key, provider);
   store(owner).set(keyOf(key, provider), { usage, at: now() });
   return usage;

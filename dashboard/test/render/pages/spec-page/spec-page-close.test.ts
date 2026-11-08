@@ -10,8 +10,14 @@ import { page, view } from "../spec-page-fixtures.ts";
 describe("the Close control", () => {
   test("present and enabled beside Reset when both actions are offered", () => {
     const html = page(view({ closeAvailable: true }));
-    const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
-    const close = group.match(/<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/)?.[0] ?? "";
+    const group =
+      /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(
+        html,
+      )?.[1] ?? "";
+    const close =
+      group.match(
+        /<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/,
+      )?.[0] ?? "";
     expect(close).not.toBe("");
     expect(close).not.toContain("disabled");
     expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Close"));
@@ -24,27 +30,42 @@ describe("the Close control", () => {
   // `done` steps at all still gets the control.
   test("present even when no phase has completed yet", () => {
     const html = page(view({ closeAvailable: true, done: [] }));
-    expect(html).toMatch(/<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/);
+    expect(html).toMatch(
+      /<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/,
+    );
   });
 
   test("absent for an archived spec", () => {
-    expect(page(view({ archived: true, closeAvailable: true }))).not.toContain("data-ask=\"closeask\"");
+    expect(page(view({ archived: true, closeAvailable: true }))).not.toContain(
+      'data-ask="closeask"',
+    );
   });
 
   test("absent for a closed spec (closed implies archived)", () => {
-    const html = page(view({ archived: true, closed: true, closeAvailable: true }));
-    expect(html).not.toContain("data-ask=\"closeask\"");
+    const html = page(
+      view({ archived: true, closed: true, closeAvailable: true }),
+    );
+    expect(html).not.toContain('data-ask="closeask"');
   });
 
   test("disabled with its reason while busy, rather than absent or silently inert", () => {
-    const html = page(view({ closeAvailable: true, closeUnavailableReason: "a job is running" }));
-    expect(html).not.toContain("data-ask=\"closeask\"");
-    expect(html).toContain(btn({ label: "Close", type: "button", disabled: true }));
+    const html = page(
+      view({
+        closeAvailable: true,
+        closeUnavailableReason: "a job is running",
+      }),
+    );
+    expect(html).not.toContain('data-ask="closeask"');
+    expect(html).toContain(
+      btn({ label: "Close", type: "button", disabled: true }),
+    );
     // The reason is not a `title`, nor is it Close's own "(?)": it is
     // one sentence inside the action row's single shared mark, naming
     // Close by name.
     expect(html).not.toMatch(/title="a job is running"/);
-    expect(html).toContain("Close can't run right now because a job is running.");
+    expect(html).toContain(
+      "Close can't run right now because a job is running.",
+    );
   });
 
   test("a live spec with no closeAvailable offers nothing of the sort", () => {

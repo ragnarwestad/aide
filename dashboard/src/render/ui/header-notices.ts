@@ -11,7 +11,10 @@ import { rowMessage } from "./components";
 import { esc } from "./html.ts";
 import { jobsSentence } from "./components/spec-name.ts";
 import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
-import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
+import {
+  getPendingRestartNotice,
+  getPendingRestartStartedAt,
+} from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
 import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
@@ -25,7 +28,8 @@ export function defaultInstallLog(home: string, platform: string): string {
     : join(home, ".aide/dashboard/logs/install.log");
 }
 
-const DEFAULT_INSTALL_LOG = () => defaultInstallLog(process.env.HOME ?? "", process.platform);
+const DEFAULT_INSTALL_LOG = () =>
+  defaultInstallLog(process.env.HOME ?? "", process.platform);
 
 // A tool the installer could not declare is otherwise
 // visible only in a log file nobody has a reason to open — read here so
@@ -54,8 +58,8 @@ function lastInstallWarnings(lang: Language): string[] {
   // the log" sent the reader to a file for the one sentence that says
   // what is wrong — here, that the board will not start after its next
   // restart. The log's path rides along for the full output.
-  return [...lastBlock.matchAll(/⚠️\s+\[aide (tools|serve)\]\s*(.+)$/gm)].map((m) =>
-    t(lang, "shell.installWarning", { problem: m[2]!.trim(), path }),
+  return [...lastBlock.matchAll(/⚠️\s+\[aide (tools|serve)\]\s*(.+)$/gm)].map(
+    (m) => t(lang, "shell.installWarning", { problem: m[2]!.trim(), path }),
   );
 }
 
@@ -65,12 +69,23 @@ function lastInstallWarnings(lang: Language): string[] {
 function restartWaitingNotice(lang: Language): string {
   const waiting = getPendingRestartNotice();
   if (waiting.length === 0) return "";
-  const { text, html } = jobsSentence(lang, "shell.restartWaiting", {}, waiting);
+  const { text, html } = jobsSentence(
+    lang,
+    "shell.restartWaiting",
+    {},
+    waiting,
+  );
   const drawnBy = getPendingRestartStartedAt();
-  const notice = rowMessage("waiting", text, { tag: "p", hook: "restart-notice", html });
+  const notice = rowMessage("waiting", text, {
+    tag: "p",
+    hook: "restart-notice",
+    html,
+  });
   // When this process started, for `restart-watch.ts` to load the page
   // again once a new one answers.
-  return drawnBy ? notice.replace("<p ", `<p data-started-at="${esc(drawnBy)}" `) : notice;
+  return drawnBy
+    ? notice.replace("<p ", `<p data-started-at="${esc(drawnBy)}" `)
+    : notice;
 }
 
 /** A tool the board checked and found wanting (2026-09-16). Without
@@ -81,13 +96,22 @@ function restartWaitingNotice(lang: Language): string {
 function toolFaultNotices(lang: Language): string {
   return toolsWithFaults()
     .map(({ tool, problems }) => {
-      const values = { tool: TOOL_TAB_LABELS[tool], problems: problems.join(", ") };
+      const values = {
+        tool: TOOL_TAB_LABELS[tool],
+        problems: problems.join(", "),
+      };
       const where = t(lang, "shell.toolFaultWhere");
       // The link is placed into the sentence after escaping it.
       const MARK = "\u0000";
       const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
-      const html = esc(t(lang, "shell.toolFault", { ...values, where: MARK })).replace(MARK, link);
-      return rowMessage("waiting", t(lang, "shell.toolFault", { ...values, where }), { tag: "p", hook: "tool-fault", html });
+      const html = esc(
+        t(lang, "shell.toolFault", { ...values, where: MARK }),
+      ).replace(MARK, link);
+      return rowMessage(
+        "waiting",
+        t(lang, "shell.toolFault", { ...values, where }),
+        { tag: "p", hook: "tool-fault", html },
+      );
     })
     .join("");
 }
@@ -102,8 +126,14 @@ function missingModelsNotices(lang: Language): string {
       const where = t(lang, "shell.modelsGoneWhere");
       const MARK = "\u0000";
       const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
-      const html = esc(t(lang, "shell.modelsGone", { ...values, where: MARK })).replace(MARK, link);
-      return rowMessage("waiting", t(lang, "shell.modelsGone", { ...values, where }), { tag: "p", hook: "tool-fault", html });
+      const html = esc(
+        t(lang, "shell.modelsGone", { ...values, where: MARK }),
+      ).replace(MARK, link);
+      return rowMessage(
+        "waiting",
+        t(lang, "shell.modelsGone", { ...values, where }),
+        { tag: "p", hook: "tool-fault", html },
+      );
     })
     .join("");
 }
@@ -115,7 +145,10 @@ function missingModelsNotices(lang: Language): string {
 function checkoutFaultNotices(lang: Language): string {
   return checkoutFaults()
     .map(({ project, said }) =>
-      rowMessage("failed", t(lang, "shell.checkoutFault", { project, said }), { tag: "p", hook: "checkout-fault" }),
+      rowMessage("failed", t(lang, "shell.checkoutFault", { project, said }), {
+        tag: "p",
+        hook: "checkout-fault",
+      }),
     )
     .join("");
 }
@@ -126,14 +159,24 @@ function checkoutFaultNotices(lang: Language): string {
 function deployFaultNotice(lang: Language): string {
   const fault = getDeployFaultNotice();
   if (fault === null) return "";
-  return rowMessage("failed", renderSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
+  return rowMessage("failed", renderSentence(lang, fault) ?? "", {
+    tag: "p",
+    hook: "deploy-fault",
+  });
 }
 
 export function headerNotices(lang: Language): string {
   const installBanner = lastInstallWarnings(lang)
-    .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
+    .map((warning) =>
+      rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }),
+    )
     .join("");
   return (
-    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + deployFaultNotice(lang) + restartWaitingNotice(lang)
+    installBanner +
+    checkoutFaultNotices(lang) +
+    toolFaultNotices(lang) +
+    missingModelsNotices(lang) +
+    deployFaultNotice(lang) +
+    restartWaitingNotice(lang)
   );
 }

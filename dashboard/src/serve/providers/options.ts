@@ -12,9 +12,14 @@ export function providerPickerOptions(queue: Pick<QueueStore, "defaults">): {
 } {
   const { providers, modelChoices, provider } = queue.defaults;
   return {
-    providerChoices: providerChoices(providers, modelChoices).map(({ key, provider: p }) => ({
-      key, name: p.name, tool: p.tool, ...(p.enabled === false ? { off: true } : {}),
-    })),
+    providerChoices: providerChoices(providers, modelChoices).map(
+      ({ key, provider: p }) => ({
+        key,
+        name: p.name,
+        tool: p.tool,
+        ...(p.enabled === false ? { off: true } : {}),
+      }),
+    ),
     defaultProviders: provider,
   };
 }

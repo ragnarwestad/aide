@@ -1,10 +1,6 @@
 {
   "title": "A test that stays red",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "expect": {
     "state": "failed",

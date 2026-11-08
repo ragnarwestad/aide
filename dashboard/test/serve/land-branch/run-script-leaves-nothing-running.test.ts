@@ -30,7 +30,10 @@ test("what the script left running is stopped, and its output still comes back",
   const script = join(dir, "leaves-a-server.sh");
   // The leftover keeps the script's stdout open, as a board started by a
   // suite does: a run that waited for the pipe to close never returned.
-  writeFileSync(script, `#!/bin/bash\nsleep 300 &\necho $! > "${dir}/pid"\necho done\n`);
+  writeFileSync(
+    script,
+    `#!/bin/bash\nsleep 300 &\necho $! > "${dir}/pid"\necho done\n`,
+  );
   const began = Date.now();
   const out = await runScript(["bash", script], dir, 30_000);
   expect(Date.now() - began).toBeLessThan(10_000);

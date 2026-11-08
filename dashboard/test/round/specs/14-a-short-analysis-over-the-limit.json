@@ -1,10 +1,6 @@
 {
   "title": "A short analysis over the limit",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "archived",
   "expect": {
     "state": "done"

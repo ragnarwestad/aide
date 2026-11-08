@@ -10,7 +10,10 @@ import { homedir } from "node:os";
 import { parse as parseJsonc } from "jsonc-parser";
 import { NAME_RE } from "../../queue/parse-request.ts";
 import { convertToProviders } from "../../queue/providers/convert.ts";
-import { mergeQueueDefaults, persistQueueSettings } from "../../queue/persist.ts";
+import {
+  mergeQueueDefaults,
+  persistQueueSettings,
+} from "../../queue/persist.ts";
 import { createScheduleStore } from "../../queue/schedule-store.ts";
 import { loadJobs, writeJobs } from "../../queue/store/mirror.ts";
 import type { Job } from "../../queue/types.ts";
@@ -20,7 +23,9 @@ import { QUEUE_DEFAULTS } from "../serve-helpers/config.ts";
 const readConfig = (file: string): Record<string, unknown> | undefined => {
   try {
     const raw = parseJsonc(readFileSync(file, "utf-8")) as unknown;
-    return raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : undefined;
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : undefined;
   } catch {
     return undefined;
   }
@@ -33,7 +38,8 @@ function legacyAccounts(raw: unknown): Record<string, { configDir: string }> {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return out;
   for (const [name, entry] of Object.entries(raw)) {
     const dir = (entry as { configDir?: unknown } | null)?.configDir;
-    if (NAME_RE.test(name) && typeof dir === "string" && dir) out[name] = { configDir: dir };
+    if (NAME_RE.test(name) && typeof dir === "string" && dir)
+      out[name] = { configDir: dir };
   }
   return out;
 }
@@ -47,9 +53,16 @@ function dropProviderDefault(
   raw: Record<string, unknown>,
 ): void {
   const table = raw.provider;
-  if (table === null || typeof table !== "object" || Array.isArray(table) || !("default" in table)) return;
+  if (
+    table === null ||
+    typeof table !== "object" ||
+    Array.isArray(table) ||
+    !("default" in table)
+  )
+    return;
   const error = persistQueueSettings(file, { provider: { default: null } });
-  if (error) return void console.error(`providers: ${error} — default not removed`);
+  if (error)
+    return void console.error(`providers: ${error} — default not removed`);
   const after = readConfig(file);
   if (after) opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, after);
 }
@@ -58,7 +71,10 @@ function dropProviderDefault(
  *  server the defaults read back from what was written. Says why on stderr
  *  when it could not write; the board then starts on the built-in providers. */
 export function convertProvidersAtBoot(
-  opts: Pick<ServerOptions, "queueConfigFile" | "queueMirrorPath" | "queueDefaults">,
+  opts: Pick<
+    ServerOptions,
+    "queueConfigFile" | "queueMirrorPath" | "queueDefaults"
+  >,
   home: string = homedir(),
 ): void {
   const file = opts.queueConfigFile;
@@ -71,7 +87,9 @@ export function convertProvidersAtBoot(
   loadJobs(opts.queueMirrorPath, jobs);
   const store = createScheduleStore(file);
   const schedules = Object.fromEntries(
-    Object.keys((raw.schedules as Record<string, unknown> | undefined) ?? {}).map((project) => [project, store.list(project)]),
+    Object.keys(
+      (raw.schedules as Record<string, unknown> | undefined) ?? {},
+    ).map((project) => [project, store.list(project)]),
   );
   const converted = convertToProviders({
     defaults: mergeQueueDefaults(QUEUE_DEFAULTS, raw),
@@ -83,7 +101,8 @@ export function convertProvidersAtBoot(
 
   if (jobs.size > 0) writeJobs(opts.queueMirrorPath, converted.jobs);
   for (const [project, entries] of Object.entries(converted.schedules)) {
-    if (JSON.stringify(entries) === JSON.stringify(schedules[project])) continue;
+    if (JSON.stringify(entries) === JSON.stringify(schedules[project]))
+      continue;
     const error = store.save(project, entries);
     if (error) return void console.error(`providers: ${error} — not converted`);
   }

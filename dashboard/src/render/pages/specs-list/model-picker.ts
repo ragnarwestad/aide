@@ -86,7 +86,8 @@ export function modelPicker(
   // A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
-  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
+  const locked =
+    archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
@@ -114,7 +115,11 @@ export function modelPicker(
     // (`aiModel()` in phase-rows.ts).
     (locked ? " disabled" : "") +
     `>` +
-    modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen, ranModelId) +
+    modelOptions(
+      pickerModels(models, chosen, archived || alreadyRun, ranModelId),
+      chosen,
+      ranModelId,
+    ) +
     `</select>`
   );
 }
@@ -130,7 +135,9 @@ export function pickerModels<M extends { name: string; ranAs?: string }>(
   ranModelId: string | undefined,
 ): M[] {
   if (!record || !ranModelId) return models;
-  return models.map((m) => (m.name === chosen ? { ...m, ranAs: ranModelId } : m));
+  return models.map((m) =>
+    m.name === chosen ? { ...m, ranAs: ranModelId } : m,
+  );
 }
 
 /** A locked phase's own record of what it spent in TIME, on
@@ -171,7 +178,10 @@ export function lockedDuration(ms: number | undefined): string {
  *  no group at all. */
 /** A recorded model no choice names any more: by the version it ran on
  *  where its run reported one, else by the word it was recorded as. */
-export function recordLabel(recorded: string, ranModelId: string | undefined): string {
+export function recordLabel(
+  recorded: string,
+  ranModelId: string | undefined,
+): string {
   return modelName(ranModelId) ?? recorded;
 }
 
@@ -180,34 +190,35 @@ export function modelOptions(
   chosen?: string,
   ranModelId?: string,
 ): string {
-  const groups = RUNNABLE_TOOLS
-    .map((tool) => {
-      const group = models.filter((m) => (m.tool ?? "claude") === tool);
-      if (!group.length) return "";
-      return (
-        `<optgroup label="${esc(TOOL_NAMES[tool])}">` +
-        group
-          .map(
-            (m) =>
-              `<option value="${esc(m.name)}" data-tool="${esc(providerToolOf(tool))}"` +
-              // The option's own label is the model's name
-              // alone — a per-step dollar figure would read as a price,
-              // so the config does not carry one.
-              // What the alias gives today, when it has run: `Opus 5.5`.
-              `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs, m.named))}</option>`,
-          )
-          .join("") +
-        `</optgroup>`
-      );
-    })
-    .join("");
+  const groups = RUNNABLE_TOOLS.map((tool) => {
+    const group = models.filter((m) => (m.tool ?? "claude") === tool);
+    if (!group.length) return "";
+    return (
+      `<optgroup label="${esc(TOOL_NAMES[tool])}">` +
+      group
+        .map(
+          (m) =>
+            `<option value="${esc(m.name)}" data-tool="${esc(providerToolOf(tool))}"` +
+            // The option's own label is the model's name
+            // alone — a per-step dollar figure would read as a price,
+            // so the config does not carry one.
+            // What the alias gives today, when it has run: `Opus 5.5`.
+            `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs, m.named))}</option>`,
+        )
+        .join("") +
+      `</optgroup>`
+    );
+  }).join("");
   // An archived phase's own record wins unconditionally
   // (`resolveRecordedModel`), including a model retired or renamed since
   // the run — which no group above lists any more. Rather than let that
   // name silently vanish from the select, one bare option carries it,
   // selected, outside any tool's group.
   const known = chosen !== undefined && models.some((m) => m.name === chosen);
-  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(recordLabel(chosen, ranModelId))}</option>` : "";
+  const stale =
+    chosen && !known
+      ? `<option value="${esc(chosen)}" selected>${esc(recordLabel(chosen, ranModelId))}</option>`
+      : "";
   return groups + stale;
 }
 
@@ -272,7 +283,9 @@ export function phaseCaptionCells(
    *  has no "Select" column to head. */
   withBox = true,
 ): string {
-  const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
+  const tools = new Set(
+    (opts.modelChoices ?? []).map((m) => m.tool ?? "claude"),
+  );
   return (
     // The chevron's column is the head row's alone: a phase line spans
     // it with its own first cell, so the lines under a head row start
@@ -291,7 +304,9 @@ export function phaseCaptionCells(
       ? `<span class="muted small" data-cap="ai" data-ai-cap>${t(lang, "list.captionAi")}</span>`
       : "") +
     `<span class="muted small" data-cap="model">${t(lang, "list.captionModel")}</span>` +
-    (withBox ? `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` : "") +
+    (withBox
+      ? `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>`
+      : "") +
     `</span></td>` +
     (includeListColumns
       ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
@@ -310,7 +325,10 @@ function pendingPick(
   step: string,
   live: boolean,
 ): string | undefined {
-  return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  return (
+    (live ? g.lead?.stepModels?.[step] : undefined) ??
+    opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step]
+  );
 }
 
 // The provider a phase will run on, beside the model it will run.
@@ -361,7 +379,8 @@ export function aiPicker(
   // whether or not the row is locked.
   const archived = lockedAsArchived(g, step);
   // And the same `live` the model select beside it takes.
-  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
+  const locked =
+    archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // The same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
@@ -374,12 +393,16 @@ export function aiPicker(
   const picks = [
     live ? g.lead?.stepProviders?.[step] : undefined,
     usedProvider,
-    archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
+    archived
+      ? undefined
+      : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
   ];
   // A provider the step ran on that has since been removed is still the
   // one it ran on: it stays shown, by its key, rather than being replaced
   // by another provider of the same tool.
-  const gone = usedProvider !== undefined && !providers.some((p) => p.key === usedProvider);
+  const gone =
+    usedProvider !== undefined &&
+    !providers.some((p) => p.key === usedProvider);
   const resting = gone ? undefined : resolveProvider(opts, step, on, picks);
   return (
     `<select name="provider.${esc(step)}" data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
@@ -387,7 +410,9 @@ export function aiPicker(
     // line now — not repeated on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
-    (gone ? `<option value="${esc(usedProvider)}" selected>${esc(usedProvider)}</option>` : "") +
+    (gone
+      ? `<option value="${esc(usedProvider)}" selected>${esc(usedProvider)}</option>`
+      : "") +
     offeredProviders(providers, resting?.key)
       .map(
         (p) =>
@@ -415,17 +440,32 @@ export function sidePickers(
   const configured = opts.defaultModels?.[part] ?? opts.defaultModels?.default;
   const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
-  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
+  const resting = resolveProvider(
+    { ...opts, modelChoices: choices, providerChoices: providers },
+    part,
+    chosen,
+    [provider],
+  );
   const disabled = locked || !g.named ? " disabled" : "";
-  const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    offeredProviders(providers, resting?.key).map((p) =>
-      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
-    ).join("") + `</select>`;
-  const options = models.map((choice) => {
-    const tool = choice.tool ?? "claude";
-    return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
-  }).join("");
-  const model = `<select name="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
+  const ai =
+    providers.length === 0 || models.length === 0
+      ? ""
+      : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
+        offeredProviders(providers, resting?.key)
+          .map(
+            (p) =>
+              `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
+          )
+          .join("") +
+        `</select>`;
+  const options = models
+    .map((choice) => {
+      const tool = choice.tool ?? "claude";
+      return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
+    })
+    .join("");
+  const model =
+    `<select name="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
     `${options}</select>`;
   return `${ai}${model}`;
 }

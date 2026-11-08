@@ -132,24 +132,24 @@ Format — follow the existing pattern in the file:
 
 **Claude Code (period):**
 
-| Date | Version | News | Source |
-|------|---------|-------|-------|
-| ... | ... | ... | [Source](url) |
+| Date | Version | News | Source        |
+| ---- | ------- | ---- | ------------- |
+| ...  | ...     | ...  | [Source](url) |
 
 **GitHub Copilot CLI (period):**
 
 | Date | Version | News | Source |
-|------|---------|-------|-------|
+| ---- | ------- | ---- | ------ |
 
 **OpenAI Codex CLI (period):**
 
 | Date | Version | News | Source |
-|------|---------|-------|-------|
+| ---- | ------- | ---- | ------ |
 
 **OpenCode (period):**
 
 | Date | Version | News | Source |
-|------|---------|-------|-------|
+| ---- | ------- | ---- | ------ |
 
 **Relevance for aide:**
 
@@ -180,10 +180,12 @@ proposals, and **ask the user to approve** before you edit:
 Proposed changes (approve before I edit):
 
 AI_SUPPORT_MATRIX.md:
+
 - [ ] Add mechanism: ...
 - [ ] Adjust fidelity grade: ...
 
 ai-tools-reference.md:
+
 - [ ] Update skill path table: ...
 ```
 
@@ -196,6 +198,7 @@ with what each tool actually reports.
 ## Step 6: Summarize
 
 Show a brief summary:
+
 - Number of new news items per tool
 - Most important findings (⭐-marked)
 - Proposed matrix/reference changes awaiting approval

@@ -12,8 +12,15 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { archiveWithOpenAcceptance, blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
-import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
+import {
+  archiveWithOpenAcceptance,
+  blockedForMissingAnalyze,
+  type ScheduleContext,
+} from "../../../src/serve/schedules";
+import {
+  targets,
+  type SpecLookupContext,
+} from "../../../src/serve/spec-lookup.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
 
 const FOLDER = "81-queue-and-runner";
@@ -41,14 +48,23 @@ function projectsRoot(): { root: string; specDir: string } {
   );
   writeFileSync(
     join(specDir, "4-status.json"),
-    JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
-      acceptanceCriteria: [{ task: "REQ-1: it works", done: false }], phaseCounts: {} }),
+    JSON.stringify({
+      completedPhases: ["analyze", "implement"],
+      archived: null,
+      reopened: null,
+      acceptanceCriteria: [{ task: "REQ-1: it works", done: false }],
+      phaseCounts: {},
+    }),
   );
   return { root, specDir };
 }
 
 /** A checker that has read the branch copy, where the row IS ticked. */
-async function warmedChecker(specDir: string, done: boolean, phases = ["analyze", "implement"]): Promise<BranchFileStepsChecker> {
+async function warmedChecker(
+  specDir: string,
+  done: boolean,
+  phases = ["analyze", "implement"],
+): Promise<BranchFileStepsChecker> {
   const target: OpenBranchTarget = {
     root: "/root",
     branch: `aide/${FOLDER}`,
@@ -71,8 +87,13 @@ async function warmedChecker(specDir: string, done: boolean, phases = ["analyze"
     if (line.endsWith("4-status.json")) {
       return {
         code: 0,
-        stdout: JSON.stringify({ completedPhases: phases, archived: null, reopened: null,
-          acceptanceCriteria: [{ task: "REQ-1: it works", done }], phaseCounts: {} }),
+        stdout: JSON.stringify({
+          completedPhases: phases,
+          archived: null,
+          reopened: null,
+          acceptanceCriteria: [{ task: "REQ-1: it works", done }],
+          phaseCounts: {},
+        }),
       };
     }
     return { code: 1, stdout: "" };
@@ -82,7 +103,10 @@ async function warmedChecker(specDir: string, done: boolean, phases = ["analyze"
   return checker;
 }
 
-function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {
+function lookupCtx(
+  root: string,
+  checker: BranchFileStepsChecker | undefined,
+): SpecLookupContext {
   return {
     projectRoot: root,
     allowed: new Set(["aide"]),
@@ -98,14 +122,20 @@ describe("the row's own archive held back", () => {
   test("is not said over a spec whose rows are ticked on its branch", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, true);
-    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    const target = targets(lookupCtx(root, checker)).find(
+      (t) => t.specFolder === FOLDER,
+    );
     expect(target?.archiveHeldBack).toBeUndefined();
   });
 
   test("is said off disk when no branch answer exists", () => {
     const { root } = projectsRoot();
-    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
-    expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+    const target = targets(lookupCtx(root, undefined)).find(
+      (t) => t.specFolder === FOLDER,
+    );
+    expect(target?.archiveHeldBack?.reason).toBe(
+      ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+    );
   });
 });
 
@@ -114,13 +144,19 @@ describe("the rows the list unfolds", () => {
   test("the target's rows are the branch's when it has an answer", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
-    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
-    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works on the branch"]);
+    const target = targets(lookupCtx(root, checker)).find(
+      (t) => t.specFolder === FOLDER,
+    );
+    expect(target?.acceptance?.map((r) => r.task)).toEqual([
+      "REQ-1: it works on the branch",
+    ]);
   });
 
   test("and the checkout's own file otherwise", () => {
     const { root } = projectsRoot();
-    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
+    const target = targets(lookupCtx(root, undefined)).find(
+      (t) => t.specFolder === FOLDER,
+    );
     expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
   });
 
@@ -133,10 +169,19 @@ describe("the rows the list unfolds", () => {
     );
     writeFileSync(
       join(specDir, "4-status.json"),
-      JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
-        acceptanceCriteria: [{ task: "REQ-1: it works", done: true, notVerified: true }], phaseCounts: {} }),
+      JSON.stringify({
+        completedPhases: ["analyze", "implement"],
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: [
+          { task: "REQ-1: it works", done: true, notVerified: true },
+        ],
+        phaseCounts: {},
+      }),
     );
-    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
+    const target = targets(lookupCtx(root, undefined)).find(
+      (t) => t.specFolder === FOLDER,
+    );
     expect(target?.notVerified).toBe(1);
     expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
   });
@@ -144,7 +189,9 @@ describe("the rows the list unfolds", () => {
   test("a spec with no open criterion carries none", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, true);
-    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
+    const target = targets(lookupCtx(root, checker)).find(
+      (t) => t.specFolder === FOLDER,
+    );
     expect(target?.acceptance).toBeUndefined();
   });
 });
@@ -171,8 +218,13 @@ describe("a branch answer that predates a tick landed on disk", () => {
   function tickedOnDisk(specDir: string): void {
     writeFileSync(
       join(specDir, "4-status.json"),
-      JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
-        acceptanceCriteria: [{ task: "REQ-1: it works", done: true }], phaseCounts: {} }),
+      JSON.stringify({
+        completedPhases: ["analyze", "implement"],
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: [{ task: "REQ-1: it works", done: true }],
+        phaseCounts: {},
+      }),
     );
   }
 
@@ -180,8 +232,12 @@ describe("a branch answer that predates a tick landed on disk", () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
     tickedOnDisk(specDir);
-    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
-    expect(target?.archiveHeldBack?.reason).toBe(ACCEPTANCE_CRITERIA_UNTICKED_NOTE);
+    const target = targets(lookupCtx(root, checker)).find(
+      (t) => t.specFolder === FOLDER,
+    );
+    expect(target?.archiveHeldBack?.reason).toBe(
+      ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+    );
   });
 
   // The route's own answer to the same situation: the cached branch
@@ -193,7 +249,9 @@ describe("a branch answer that predates a tick landed on disk", () => {
     // An empty checker is what `forget` leaves behind: no answer, so the
     // read falls through to disk.
     new BranchFileStepsChecker({} as never);
-    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
+    const target = targets(lookupCtx(root, undefined)).find(
+      (t) => t.specFolder === FOLDER,
+    );
     expect(target?.archiveHeldBack).toBeUndefined();
   });
 });
@@ -205,8 +263,18 @@ describe("a branch answer that predates a tick landed on disk", () => {
 // "held back: not analyzed yet" with the real reason only in
 // landingError (2026-09-03).
 describe("the queue's analyze gate", () => {
-  const queuedImplement = { id: "job-2", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement"], stepIndex: 0 };
-  function ctxFor(root: string, checker: BranchFileStepsChecker): ScheduleContext {
+  const queuedImplement = {
+    id: "job-2",
+    project: "aide",
+    specFolder: FOLDER,
+    state: "queued",
+    steps: ["implement"],
+    stepIndex: 0,
+  };
+  function ctxFor(
+    root: string,
+    checker: BranchFileStepsChecker,
+  ): ScheduleContext {
     return {
       projectRoot: root,
       queue: { list: () => [queuedImplement] },
@@ -218,7 +286,13 @@ describe("the queue's analyze gate", () => {
     const made = projectsRoot();
     writeFileSync(
       join(made.specDir, "4-status.json"),
-      JSON.stringify({ completedPhases: [], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }),
+      JSON.stringify({
+        completedPhases: [],
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: [],
+        phaseCounts: {},
+      }),
     );
     return made;
   }
@@ -226,13 +300,19 @@ describe("the queue's analyze gate", () => {
   test("reads the branch copy first: analyze on the branch releases implement", async () => {
     const { root, specDir } = unanalyzedOnDisk();
     const checker = await warmedChecker(specDir, true);
-    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(false);
+    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(
+      false,
+    );
   });
 
   test("with no branch answer, disk decides", () => {
     const { root } = unanalyzedOnDisk();
-    const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
-    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(true);
+    const checker = new BranchFileStepsChecker({
+      run: async () => ({ code: 1, stdout: "" }),
+    });
+    expect(blockedForMissingAnalyze(ctxFor(root, checker)).has("job-2")).toBe(
+      true,
+    );
   });
 });
 
@@ -240,8 +320,18 @@ describe("the queue's analyze gate", () => {
 // — but only on a branch answer read since the last
 // tick, since the Checks tab ticks the branch and disk lags behind it.
 describe("the queue's unticked-archive check", () => {
-  const queuedArchive = { id: "job-3", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement", "archive"], stepIndex: 1 };
-  function ctxFor(root: string, checker: BranchFileStepsChecker): ScheduleContext {
+  const queuedArchive = {
+    id: "job-3",
+    project: "aide",
+    specFolder: FOLDER,
+    state: "queued",
+    steps: ["implement", "archive"],
+    stepIndex: 1,
+  };
+  function ctxFor(
+    root: string,
+    checker: BranchFileStepsChecker,
+  ): ScheduleContext {
     return {
       projectRoot: root,
       queue: { list: () => [queuedArchive] },
@@ -251,18 +341,30 @@ describe("the queue's unticked-archive check", () => {
 
   test("an open row on the branch names the job", async () => {
     const { root, specDir } = projectsRoot();
-    expect(archiveWithOpenAcceptance(ctxFor(root, await warmedChecker(specDir, false))).has("job-3")).toBe(true);
+    expect(
+      archiveWithOpenAcceptance(
+        ctxFor(root, await warmedChecker(specDir, false)),
+      ).has("job-3"),
+    ).toBe(true);
   });
 
   test("every row ticked on the branch leaves it to start, though disk is unticked", async () => {
     const { root, specDir } = projectsRoot();
-    expect(archiveWithOpenAcceptance(ctxFor(root, await warmedChecker(specDir, true))).has("job-3")).toBe(false);
+    expect(
+      archiveWithOpenAcceptance(
+        ctxFor(root, await warmedChecker(specDir, true)),
+      ).has("job-3"),
+    ).toBe(false);
   });
 
   test("an unread branch answer decides nothing: the script's own pre-check does", () => {
     const { root } = projectsRoot();
-    const checker = new BranchFileStepsChecker({ run: async () => ({ code: 1, stdout: "" }) });
-    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
+    const checker = new BranchFileStepsChecker({
+      run: async () => ({ code: 1, stdout: "" }),
+    });
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(
+      false,
+    );
   });
 
   // Implement never ran — it was taken out of the job while analyze ran
@@ -271,13 +373,17 @@ describe("the queue's unticked-archive check", () => {
   test("a spec implement has not run on is left to the script, which says so", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false, ["analyze"]);
-    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(
+      false,
+    );
   });
 
   test("an answer a tick has marked stale decides nothing either", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
     checker.forget(specDir, FOLDER);
-    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(false);
+    expect(archiveWithOpenAcceptance(ctxFor(root, checker)).has("job-3")).toBe(
+      false,
+    );
   });
 });

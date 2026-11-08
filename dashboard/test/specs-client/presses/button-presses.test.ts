@@ -3,11 +3,15 @@ import { harness, OK_ACTION, swapUrl } from "../fixtures.ts";
 
 describe("a row button posts from the page", () => {
   test("it asks for JSON on the form's own route", async () => {
-    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
+    const h = harness((url) =>
+      url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true },
+    );
     await h.submit();
     const posted = h.requests.find((r) => r.url.includes("/cancel"))!;
     expect(posted.init.method).toBe("POST");
-    expect((posted.init.headers as Record<string, string>).accept).toBe("application/json");
+    expect((posted.init.headers as Record<string, string>).accept).toBe(
+      "application/json",
+    );
   });
 
   test("the rows are swapped as soon as the answer arrives, not on the next tick", async () => {
@@ -25,7 +29,11 @@ describe("a row button posts from the page", () => {
   test("the tick does not swap the rows while a press is in flight", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
-    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true }));
+    const h = harness((url) =>
+      url.includes("/cancel")
+        ? { ok: true, body: OK_ACTION, hold: held }
+        : { ok: true },
+    );
     h.document.visibilityState = "visible";
     const pressed = h.submit();
     await Promise.resolve();
@@ -48,7 +56,11 @@ describe("a row button posts from the page", () => {
   // filter they had set were gone (seen 2026-08-19: "Spec ▴" reset to
   // "Started ▾" with no press of theirs).
   test("a press that cannot be sent at all reloads rather than lying — and keeps the view", async () => {
-    const h = harness(() => ({ ok: false, throws: true }), "actionform", "?sort=spec&dir=asc");
+    const h = harness(
+      () => ({ ok: false, throws: true }),
+      "actionform",
+      "?sort=spec&dir=asc",
+    );
     await h.submit();
     expect(h.location.href).toBe("/?sort=spec&dir=asc");
   });
@@ -71,9 +83,14 @@ describe("a row button posts from the page", () => {
 // itself (`row-refusal/`); where it is drawn is `row-refusal.test.ts`'s.
 describe("a refused action keeps the view and says why", () => {
   test("the rows are asked for again in the reader's own view, with the address left as it is", async () => {
-    const refused = { ok: false, spec: "aide/99-x", error: "the tree is dirty in /repos/aide-specs" };
+    const refused = {
+      ok: false,
+      spec: "aide/99-x",
+      error: "the tree is dirty in /repos/aide-specs",
+    };
     const h = harness(
-      (url) => (url.includes("/cancel") ? { ok: true, body: refused } : { ok: true }),
+      (url) =>
+        url.includes("/cancel") ? { ok: true, body: refused } : { ok: true },
       "actionform",
       "?state=active&sort=cost",
     );
@@ -87,7 +104,9 @@ describe("a refused action keeps the view and says why", () => {
 
   test("a refusal the server did not attribute is written in the list's own line", async () => {
     const h = harness((url) =>
-      url.includes("/cancel") ? { ok: true, body: { ok: false, error: "the tree is dirty" } } : { ok: true },
+      url.includes("/cancel")
+        ? { ok: true, body: { ok: false, error: "the tree is dirty" } }
+        : { ok: true },
     );
     await h.submit();
     expect(h.listRefused.textContent).toBe("Problem: The tree is dirty");
@@ -117,7 +136,13 @@ describe("every action button says it was pressed", () => {
         (url) =>
           url.includes("rows=1")
             ? { ok: true }
-            : { ok: false, body: { error: "analyze is already running on this spec", spec: "aide/101-x" } },
+            : {
+                ok: false,
+                body: {
+                  error: "analyze is already running on this spec",
+                  spec: "aide/101-x",
+                },
+              },
         formClass,
       );
       await h.submit();
@@ -135,9 +160,9 @@ describe("every action button says it was pressed", () => {
     await h.submit();
     const post = h.requests.find((r) => r.init.method === "POST")!;
     expect(String(post.init.body)).toContain("steps=analyze");
-    expect((post.init.headers as Record<string, string>)["content-type"]).toContain(
-      "application/x-www-form-urlencoded",
-    );
+    expect(
+      (post.init.headers as Record<string, string>)["content-type"],
+    ).toContain("application/x-www-form-urlencoded");
   });
 });
 
@@ -146,7 +171,10 @@ describe("every action button says it was pressed", () => {
 // reason goes beside the form the reader was typing into.
 describe("the New-spec form answers for itself", () => {
   test("a refusal is written beside the form, and the reader stays on the page", async () => {
-    const h = harness(() => ({ ok: false, body: { error: "no such project: nope" } }));
+    const h = harness(() => ({
+      ok: false,
+      body: { error: "no such project: nope" },
+    }));
     await h.submitCreate();
     expect(h.slot.textContent).toContain("No such project");
     // Still on `/new`, with everything typed still typed.
@@ -160,7 +188,10 @@ describe("the New-spec form answers for itself", () => {
   // reader asked to see — the new spec's row, with its progress — is on
   // the page this navigates to.
   test("a created spec takes the reader to the Running tab, opened by its job", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
+    const h = harness(() => ({
+      ok: true,
+      body: { ok: true, job: { id: "job-2" } },
+    }));
     await h.submitCreate();
     expect(h.location.href).toBe("/?created=job-2");
     // Nothing is put back in place first: the reader has left.
@@ -228,7 +259,10 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
   // half-cleared form to leave behind. What the reader picked stands
   // until the browser leaves the page.
   test("a successful create leaves them alone — the page is on its way out", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
+    const h = harness(() => ({
+      ok: true,
+      body: { ok: true, job: { id: "job-2" } },
+    }));
     h.changeProject("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
     await h.submitCreate();

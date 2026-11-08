@@ -10,21 +10,44 @@ import type { Job } from "../../../queue/types.ts";
 import type { Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderScheduleRuns } from "./runs.ts";
-import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
-import { renderScheduleSettings, type ScheduleSettingsOptions } from "./settings.ts";
 import {
-  schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, SCHEDULE_TABS, scheduleTabPath,
+  renderScheduleList,
+  type ScheduleFilter,
+  type SchedulePageRow,
+} from "./list.ts";
+import {
+  renderScheduleSettings,
+  type ScheduleSettingsOptions,
+} from "./settings.ts";
+import {
+  schedulePagePath,
+  schedulePromptPath,
+  scheduleRunPath,
+  scheduleSettingsPath,
+  SCHEDULE_TABS,
+  scheduleTabPath,
 } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
 export { renderReportPanel } from "./report.ts";
 export { buildReportDocument } from "./report-document.ts";
 export { renderProposalsPanel } from "./proposals.ts";
-export { NEW_SCHEDULE_DEFAULTS, renderScheduleNewPage, scheduleNewPath } from "./new-page.ts";
+export {
+  NEW_SCHEDULE_DEFAULTS,
+  renderScheduleNewPage,
+  scheduleNewPath,
+} from "./new-page.ts";
 export type { ScheduleNewPageOptions } from "./new-page.ts";
 export { renderSchedulePromptPage } from "./prompt-page.ts";
 export type { SchedulePromptPageOptions } from "./prompt-page.ts";
-export { SCHEDULE_TABS, schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath };
+export {
+  SCHEDULE_TABS,
+  schedulePagePath,
+  schedulePromptPath,
+  scheduleRunPath,
+  scheduleSettingsPath,
+  scheduleTabPath,
+};
 export type { SchedulePageRow, ScheduleFilter };
 
 export const SCHEDULE_ROUTE = "/schedule";
@@ -44,7 +67,11 @@ export interface SchedulePageOptions {
   modelNames?: readonly string[];
 }
 
-export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
+export function renderSchedulePage(
+  nav: NavEntry[],
+  generatedAt: string,
+  opts: SchedulePageOptions,
+): string {
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice.
   const body = renderScheduleList(opts);
@@ -104,16 +131,36 @@ export function renderScheduleDetailPage(
   const panel =
     tab === "settings"
       ? renderScheduleSettings({
-          project: opts.project, entry: opts.entry, editing: opts.editing, modelChoices: opts.modelChoices,
-          defaultModels: opts.defaultModels, providerChoices: opts.providerChoices,
-          defaultProviders: opts.defaultProviders, deleteDone: opts.deleteDone, lang: opts.lang ?? "en",
+          project: opts.project,
+          entry: opts.entry,
+          editing: opts.editing,
+          modelChoices: opts.modelChoices,
+          defaultModels: opts.defaultModels,
+          providerChoices: opts.providerChoices,
+          defaultProviders: opts.defaultProviders,
+          deleteDone: opts.deleteDone,
+          lang: opts.lang ?? "en",
         })
       : (opts.reportPanel ?? "") +
         renderScheduleRuns({
-          lang: opts.lang ?? "en", project: opts.project, name: opts.entry.name, runs: opts.runs,
-          shown: opts.shownRun, sort: opts.runSort?.sort, dir: opts.runSort?.dir,
+          lang: opts.lang ?? "en",
+          project: opts.project,
+          name: opts.entry.name,
+          runs: opts.runs,
+          shown: opts.shownRun,
+          sort: opts.runSort?.sort,
+          dir: opts.runSort?.dir,
         });
-  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name, false, "", opts.lang ?? "en");
+  const body = tabbedBody(
+    "",
+    bar,
+    panel,
+    opts.backHref ?? SCHEDULE_ROUTE,
+    opts.entry.name,
+    false,
+    "",
+    opts.lang ?? "en",
+  );
   return pageShell(opts.entry.name, nav, base, body, generatedAt, {
     script: opts.script,
     hideHeading: true,

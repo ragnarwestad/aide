@@ -1,8 +1,6 @@
 {
   "title": "Analysis only",
-  "steps": [
-    "analyze"
-  ],
+  "steps": ["analyze"],
   "expected": "not-archived",
   "expect": {
     "state": "done"

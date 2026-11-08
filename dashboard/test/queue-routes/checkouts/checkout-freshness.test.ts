@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createServer } from "../../../src/serve/serve.ts";
 import {
-  createServer,
-} from "../../../src/serve/serve.ts";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+  createGitRunner,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
@@ -17,7 +18,8 @@ const { git, realProject } = checkoutSafetyHelpers(ownDirs);
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // The dashboard works in checkouts of its own.
@@ -27,11 +29,17 @@ afterEach(() => {
 // tests and the checkout-listing tests are their own sibling
 // files, sharing `git` and `realProject` via ./checkout-safety-fixtures.ts.
 describe("the dashboard works in checkouts of its own", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
   /** Poll until `check` says yes, or give up. Nothing here can be
    *  awaited directly: what is under test is a background tick. */
-  async function until(check: () => boolean, budgetMs = 5000): Promise<boolean> {
+  async function until(
+    check: () => boolean,
+    budgetMs = 5000,
+  ): Promise<boolean> {
     const deadline = Date.now() + budgetMs;
     while (Date.now() < deadline) {
       if (check()) return true;
@@ -95,9 +103,15 @@ describe("the dashboard works in checkouts of its own", () => {
 
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: gated,
-      queueRunnerBin: bin, queueResultDir: join(site, "jobs"),
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      gitRun: gated,
+      queueRunnerBin: bin,
+      queueResultDir: join(site, "jobs"),
     });
     try {
       // The boot-time warm's bring-up-to-date, in flight and going
@@ -105,7 +119,10 @@ describe("the dashboard works in checkouts of its own", () => {
       expect(await until(() => holding)).toBe(true);
 
       // Somebody pushes — after that fetch took its picture.
-      writeFileSync(join(person, "pushed.md"), "on origin before the job was queued\n");
+      writeFileSync(
+        join(person, "pushed.md"),
+        "on origin before the job was queued\n",
+      );
       git(person, "add", "-A");
       git(person, "commit", "-qm", "pushed");
       git(person, "push", "-q", "origin", "main");
@@ -117,7 +134,11 @@ describe("the dashboard works in checkouts of its own", () => {
       const posted = fetch(`http://127.0.0.1:${server.port}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: "81-queue-and-runner",
+          steps: ["analyze"],
+        }),
       });
       await new Promise((r) => setTimeout(r, 500));
       releaseFetch();

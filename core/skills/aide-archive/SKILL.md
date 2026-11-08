@@ -47,7 +47,6 @@ it is done.
 
 First write `--- Step 1 of 5: Move the spec to the archive — started`, and when this step ends, `--- Step 1 of 5: Move the spec to the archive — done`.
 
-
 A script does everything mechanical: resolving the argument to a
 folder, checking whether a merge is open, reading `4-status.md`'s
 tables, and, when the work is done, stamping and moving the folder:
@@ -117,7 +116,6 @@ archived past is ticked on the spec's page, and archive is run again.
 
 First write `--- Step 2 of 5: Close the loop — started`, and when this step ends, `--- Step 2 of 5: Close the loop — done`.
 
-
 First, what should NOT outlive it. **If this spec replaced behaviour, the
 tests for the behaviour it replaced are deleted here, before the commit
 in Step 3** (`core/rules/testing.md`, "Replaced behaviour takes its tests
@@ -155,14 +153,13 @@ says so or `AIDE_HEADLESS` is set; then nobody can answer.
   append the proposal under a new `## Deferred documentation feedback`
   heading, one item per entry: the destination file and the exact text
   proposed, then write the result with `aide-write-spec --file
-  4-status.md` (never Write/Edit; `aide-write-spec` resolves
+4-status.md` (never Write/Edit; `aide-write-spec` resolves
   the folder under either the active specs root or its `archive/`
   subfolder automatically). Then continue straight to Step 3.
 
 ### Step 3 of 5: Commit
 
 First write `--- Step 3 of 5: Commit — started`, and when this step ends, `--- Step 3 of 5: Commit — done`.
-
 
 Steps 1 to 4 left their changes in the working directory; this step
 gets them onto a commit.
@@ -212,7 +209,6 @@ at once. The project's own code is pushed as before.
 
 First write `--- Step 4 of 5: Confirm — started`, and when this step ends, `--- Step 4 of 5: Confirm — done`.
 
-
 The archive is not finished until the code and the spec are merged into
 the default branch, and that is Step 5, after this session. Everything
 this session did is on the spec's branches. So the report:
@@ -259,6 +255,7 @@ Working interactively, the branches are merged by hand. Either way the
 archive is finished when the merge is, and not before.
 
 IMPORTANT:
+
 - Archiving is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's

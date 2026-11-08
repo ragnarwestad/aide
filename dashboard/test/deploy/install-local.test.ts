@@ -7,7 +7,14 @@
 // Asserted against `make -n`, the real recipe expansion, like
 // `install-serve-paths.test.ts`.
 import { afterAll, describe, expect, test } from "bun:test";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -37,20 +44,27 @@ describe("install-local is install-serve on this machine", () => {
   });
 
   test("the plist lands in this machine's LaunchAgents", () => {
-    expect(recipe).toContain('cp "$plist" "$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist"');
+    expect(recipe).toContain(
+      'cp "$plist" "$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist"',
+    );
   });
 
   test("it keeps install-serve's steps: the service's own checkout, and the wait before bootstrap", () => {
     expect(recipe).toContain("git -C .aide/dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("is still loaded after 10s");
-    expect(recipe).toContain("launchctl bootstrap gui/$(id -u) Library/LaunchAgents/com.aide-dashboard.serve.plist");
+    expect(recipe).toContain(
+      "launchctl bootstrap gui/$(id -u) Library/LaunchAgents/com.aide-dashboard.serve.plist",
+    );
   });
 });
 
 // HTTPS through Tailscale is an add-on the user sets up by hand
 // (docs/hosting.md); an install never changes a machine's tailnet.
 describe("neither install touches Tailscale", () => {
-  test.each([["install-serve", ["MINI=example-host"]], ["install-local", []]])("%s", (target, vars) => {
+  test.each([
+    ["install-serve", ["MINI=example-host"]],
+    ["install-local", []],
+  ])("%s", (target, vars) => {
     expect(dryRun(target, ...vars).toLowerCase()).not.toContain("tailscale");
   });
 });
@@ -60,18 +74,26 @@ describe("install-serve gives a fresh host a projects root", () => {
     const recipe = dryRun("install-serve", "MINI=example-host");
 
     expect(recipe).toContain('--root "$home/.aide/dashboard/projects"');
-    expect(recipe).toContain('ln -s "$HOME/.aide/dashboard/checkouts/aide/code" .aide/dashboard/projects/aide');
+    expect(recipe).toContain(
+      'ln -s "$HOME/.aide/dashboard/checkouts/aide/code" .aide/dashboard/projects/aide',
+    );
   });
 
   test("a ROOT that is set is passed as it is, and nothing is linked", () => {
-    const recipe = dryRun("install-serve", "MINI=example-host", "ROOT=/srv/projects");
+    const recipe = dryRun(
+      "install-serve",
+      "MINI=example-host",
+      "ROOT=/srv/projects",
+    );
 
     expect(recipe).toContain('--root "/srv/projects"');
     expect(recipe).not.toContain("ln -s");
   });
 
   test("the server binds localhost unless told otherwise", () => {
-    expect(dryRun("install-serve", "MINI=example-host")).toContain('--bind "127.0.0.1"');
+    expect(dryRun("install-serve", "MINI=example-host")).toContain(
+      '--bind "127.0.0.1"',
+    );
   });
 });
 
@@ -94,11 +116,15 @@ describe("check-prerequisites.sh", () => {
 
   // launchctl is a function handed down to the script, answering with the
   // exit code asked for: a test cannot log a user in or out.
-  function check(home: string, launchctlExit = 0): { code: number; err: string } {
+  function check(
+    home: string,
+    launchctlExit = 0,
+  ): { code: number; err: string } {
     const res = Bun.spawnSync(["bash", CHECK, BUN], {
       cwd: home,
       env: {
-        HOME: home, PATH: process.env.PATH ?? "/usr/bin:/bin",
+        HOME: home,
+        PATH: process.env.PATH ?? "/usr/bin:/bin",
         "BASH_FUNC_launchctl%%": `() { return ${launchctlExit}; }`,
       },
     });
@@ -152,9 +178,13 @@ describe("install.sh on a machine with no launchd", () => {
   test("it installs nothing and points to serve.sh", () => {
     const empty = mkdtempSync(join(tmpdir(), "aide-no-launchd-"));
     try {
-      const res = Bun.spawnSync(["/bin/bash", join(ROOT, "install.sh")], { env: { PATH: empty, HOME: empty } });
+      const res = Bun.spawnSync(["/bin/bash", join(ROOT, "install.sh")], {
+        env: { PATH: empty, HOME: empty },
+      });
       expect(res.exitCode).toBe(1);
-      expect(new TextDecoder().decode(res.stderr)).toContain("dashboard/serve.sh");
+      expect(new TextDecoder().decode(res.stderr)).toContain(
+        "dashboard/serve.sh",
+      );
     } finally {
       rmSync(empty, { recursive: true, force: true });
     }

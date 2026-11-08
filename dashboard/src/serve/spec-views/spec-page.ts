@@ -2,18 +2,41 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
-  acceptanceNotRequiredIn, createChoicesIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
+  parseAcCoverage,
+  readAcCoverage,
+  withAcCoverage,
+} from "../../project/ac-coverage.ts";
+import {
+  acceptanceNotRequiredIn,
+  createChoicesIn,
+  specAcceptanceNotRequired,
+  specCloseReason,
+  specClosedDate,
+  specFileText,
   stripDependsOnLine,
 } from "../../project/discover";
-import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-status";
-import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
+import {
+  acceptanceSectionUnreadable,
+  parseStatus,
+} from "../../project/parse-status";
+import {
+  phasesFor,
+  specPagePath,
+  resolveSpecTab,
+  EDITABLE_SPEC_FILE,
+  STATUS_SPEC_FILE,
+  TAB_FILES,
+  type SpecPageView,
+} from "../../render";
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { PDF_UNAVAILABLE } from "../../render/pages/spec-page/overview.ts";
 import { landingInProject } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
-import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import {
+  readStatusFromFetchedBranch,
+  resolveOpenBranchTarget,
+} from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
 import { type SpecViewsContext, specFileViews } from "./";
 import { type BranchCopy, readBranchCopy } from "./branch-copy.ts";
@@ -61,21 +84,40 @@ export async function specPageView(
     // The ordinary CACHED call (never `fresh`): the same tolerance for
     // a few seconds of staleness the Checks section already has for
     // git answers generally (the reasoning above).
-    const target = await resolveOpenBranchTarget(ctx, dir, specFolder, STATUS_SPEC_FILE, false);
+    const target = await resolveOpenBranchTarget(
+      ctx,
+      dir,
+      specFolder,
+      STATUS_SPEC_FILE,
+      false,
+    );
     // Wherever the folder is ON the branch — `archive` moves it to
     // `archive/<folder>` there, and a branch that has not landed yet
     // still answers for that path while the default branch holds the
     // folder in its active one.
     const branchRead = target
-      ? ((await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.relPath)) ??
-        (await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.archivedRelPath)))
+      ? ((await readStatusFromFetchedBranch(
+          ctx.gitRun,
+          target.root,
+          target.branch,
+          target.relPath,
+        )) ??
+        (await readStatusFromFetchedBranch(
+          ctx.gitRun,
+          target.root,
+          target.branch,
+          target.archivedRelPath,
+        )))
       : null;
     if (branchRead) {
       checksText = branchRead.text;
       branchBaseSha = branchRead.sha;
       for (const relPath of [target!.relPath, target!.archivedRelPath]) {
         const coverage = await readStatusFromFetchedBranch(
-          ctx.gitRun, target!.root, target!.branch, relPath.replace(/4-status\.md$/, "ac-coverage.json"),
+          ctx.gitRun,
+          target!.root,
+          target!.branch,
+          relPath.replace(/4-status\.md$/, "ac-coverage.json"),
         );
         if (coverage) {
           branchCoverage = parseAcCoverage(coverage.text);
@@ -117,12 +159,17 @@ export async function specPageView(
   // canonical place per request.
   const target = {
     ...ctx.withFreshness(
-      ctx.targets().filter((t) => t.project === project && t.specFolder === specFolder),
+      ctx
+        .targets()
+        .filter((t) => t.project === project && t.specFolder === specFolder),
     )[0],
     phase: parsedStatus.phase ?? undefined,
     acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
   };
-  const rows = withAcCoverage(parsedStatus.checks, branchCoverage ?? readAcCoverage(dir));
+  const rows = withAcCoverage(
+    parsedStatus.checks,
+    branchCoverage ?? readAcCoverage(dir),
+  );
   // The Acceptance section alone: the Phase tables are the implement
   // run's own record and the Checks tab no longer offers them (see
   // `checklist`'s own comment), so a spec whose only open rows are
@@ -130,7 +177,10 @@ export async function specPageView(
   // A Not verified row counts: it is done for the gates (so `acceptancePhase`
   // no longer names its section), and still the row a reader ticks or
   // un-marks, so the form has to carry the file's commit.
-  const anyTickable = rows.some((row) => row.notVerified || (!row.done && row.phase === target.acceptancePhase));
+  const anyTickable = rows.some(
+    (row) =>
+      row.notVerified || (!row.done && row.phase === target.acceptancePhase),
+  );
   // `branchBaseSha` is already the exact commit that last touched the
   // file ON THE BRANCH (`readStatusFromFetchedBranch`'s own answer) — no
   // second git call needed. Off disk, read out of the DASHBOARD's own
@@ -180,7 +230,12 @@ export async function specPageView(
       : await readBranchCopy(ctx, dir, specFolder, EDITABLE_SPEC_FILE);
   // The Steps tab's jobs, lead and steps: one function, which the follow
   // answer calls too.
-  const { jobs, lead, steps } = await stepsOfRound(ctx.queue, (job) => jobDetailView(ctx, job), project, specFolder);
+  const { jobs, lead, steps } = await stepsOfRound(
+    ctx.queue,
+    (job) => jobDetailView(ctx, job),
+    project,
+    specFolder,
+  );
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
   // "a branch that carries code" is read off the same
   // source `landArchivedSpec` already reads (`branchesFor`) — a spec
@@ -199,7 +254,9 @@ export async function specPageView(
   const testServerCapable =
     !ref?.archived &&
     ctx.testServers.previewAvailable(project) &&
-    ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.testServers.aideCheckout(project));
+    ctx.queue
+      .branchesFor(project, specFolder)
+      .some((r) => r.root === ctx.testServers.aideCheckout(project));
   const testServerEntry = ctx.testServers.store.get(project, specFolder)
     ? refreshTestServerStatus(ctx.testServers, project, specFolder)
     : undefined;
@@ -215,7 +272,9 @@ export async function specPageView(
   // a board is another lifecycle action against this spec's own branch,
   // and neither should run while a job for it is in flight or a landing
   // is under way.
-  const busyReason = matchingJobs.some((job) => job.state === "queued" || job.state === "running")
+  const busyReason = matchingJobs.some(
+    (job) => job.state === "queued" || job.state === "running",
+  )
     ? "another job for this spec is still running"
     : landingInProject(ctx.queue.list(), project)
       ? "a merge is in progress"
@@ -238,7 +297,9 @@ export async function specPageView(
       // the text came off the branch.
       const stamp = formCopy ? { sha: formCopy.sha, at: formCopy.at } : {};
       if (f.label === EDITABLE_SPEC_FILE) {
-        return formText === null ? { ...f, ...stamp, text: formText } : { ...f, ...stamp, text: stripDependsOnLine(formText) };
+        return formText === null
+          ? { ...f, ...stamp, text: formText }
+          : { ...f, ...stamp, text: stripDependsOnLine(formText) };
       }
       return { ...f, ...stamp, text: formText };
     }),
@@ -251,9 +312,13 @@ export async function specPageView(
     // Read off the description — a fresh read, since the
     // banner is drawn once per page load and this fact only changes via
     // the banner's own Save.
-    acceptanceNotRequired: descriptionCopy ? acceptanceNotRequiredIn(descriptionCopy.text) : specAcceptanceNotRequired(dir),
+    acceptanceNotRequired: descriptionCopy
+      ? acceptanceNotRequiredIn(descriptionCopy.text)
+      : specAcceptanceNotRequired(dir),
     // The choices the spec was created with, off the same description.
-    createChoices: createChoicesIn(descriptionCopy?.text ?? specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
+    createChoices: createChoicesIn(
+      descriptionCopy?.text ?? specFileText(dir, EDITABLE_SPEC_FILE) ?? "",
+    ),
     phases: phasesFor(jobRows, target),
     // `targets()` deliberately drops an archived spec (serve.ts:792-796),
     // so `target` — and `target?.done` — is always empty for one. The
@@ -274,14 +339,20 @@ export async function specPageView(
     // archived. No fallback page behind it, so this is a flag.
     closeAvailable: true,
     closeUnavailableReason: busyReason,
-    testServerAction: testServerCapable ? `/api/queue${specPagePath(project, specFolder)}/test-server` : undefined,
-    testServerStopAction: testServerEntry ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop` : undefined,
+    testServerAction: testServerCapable
+      ? `/api/queue${specPagePath(project, specFolder)}/test-server`
+      : undefined,
+    testServerStopAction: testServerEntry
+      ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop`
+      : undefined,
     // The way IN to a running test server is this dashboard's own start
     // link, not the address the round printed: that one is loopback,
     // and a reader on another device reaches nothing at 127.0.0.1. The
     // link's own route already builds the address the reader can reach
     // — from the host THEY used — so the banner sends them through it.
-    testServerOpenHref: testServerEntry ? `${specPagePath(project, specFolder)}?tab=steps&startTestServer=1` : undefined,
+    testServerOpenHref: testServerEntry
+      ? `${specPagePath(project, specFolder)}?tab=steps&startTestServer=1`
+      : undefined,
     testServerUnavailableReason: testServerCapable ? busyReason : undefined,
     testServer,
     saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,

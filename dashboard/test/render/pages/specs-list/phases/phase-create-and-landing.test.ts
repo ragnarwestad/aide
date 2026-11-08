@@ -1,14 +1,17 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+  renderSpecsRows,
+  type SpecsPageOptions,
+  type QueueRowView,
+  type SpecTarget,
+} from "../../../../../src/render";
+import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
-const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+const noFold = (html: string): string =>
+  html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
 
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
@@ -22,12 +25,18 @@ const stateCell = (line: string): string =>
   line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
 
 describe("create is the first phase line", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
-  const createJob = (specFolder: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+  const createJob = (
+    specFolder: string,
+    extra: Partial<QueueRowView> = {},
+  ): QueueRowView =>
     row({
       id: "c1",
       specFolder,
@@ -37,22 +46,39 @@ describe("create is the first phase line", () => {
       startedAt: "2026-08-19T10:00:00Z",
       ...extra,
     });
-  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
+  const rows = (
+    list: QueueRowView[],
+    targets: SpecTarget[],
+    opts: Partial<SpecsPageOptions> = {},
+  ) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
       Date.parse("2026-08-19T12:00:00Z"),
     );
-  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const head = (html: string) =>
+    html.match(
+      /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
+    )?.[0] ?? "";
   /** Everything one row draws: its header line and, when it is open,
    *  the phase lines under it — where the boxes live. */
   const runLine = (html: string) =>
-    html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
+    html.match(
+      /<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/,
+    )?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  const order = (html: string) => [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
+    )?.[0] ?? "";
+  const order = (html: string) =>
+    [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
   /** The pips came off the specs list on 2026-09-07; each phase's own
    *  state is read on its LINE here, and the pips are tested where they
    *  still are, on the spec page's Overview. */
@@ -60,7 +86,10 @@ describe("create is the first phase line", () => {
   // --- Five lines, create first ---------------------------------
 
   test("a spec with no job at all leads with create", () => {
-    const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
+    const html = rows(
+      [],
+      [target("116-hand-made", { done: ["create", "analyze"] })],
+    );
     expect(order(html)).toEqual(["create", "analyze", "implement", "archive"]);
   });
 
@@ -73,7 +102,10 @@ describe("create is the first phase line", () => {
     //
     // The name is plain text: no job ever ran create here —
     // the folder was made by hand — and the line has nothing to click.
-    const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
+    const html = rows(
+      [],
+      [target("116-hand-made", { done: ["create", "analyze"] })],
+    );
     const line = subRow(html, "create");
     expect(line).toContain("b-done");
     expect(line).not.toContain("<form");
@@ -88,7 +120,9 @@ describe("create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      new RegExp(`<td class="phasecell" colspan="2">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`),
+      new RegExp(
+        `<td class="phasecell" colspan="2">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`,
+      ),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
@@ -122,7 +156,10 @@ describe("create is the first phase line", () => {
 
   test("an unlanded create row locks every AI and model picker (AC-1)", () => {
     const choices = {
-      modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" as const }],
+      modelChoices: [
+        { name: "sonnet" },
+        { name: "codex-fast", tool: "codex" as const },
+      ],
       providerChoices: [
         { key: "Claude", name: "Claude", tool: "claude" as const },
         { key: "Codex", name: "Codex", tool: "codex" as const },
@@ -130,18 +167,25 @@ describe("create is the first phase line", () => {
     };
     for (const state of ["queued", "running", "done"] as const) {
       const html = rows(
-        [createJob("new-1234abcd", {
-          state,
-          landing: state === "done",
-          editableSteps: ["analyze", "implement", "archive"],
-        })],
+        [
+          createJob("new-1234abcd", {
+            state,
+            landing: state === "done",
+            editableSteps: ["analyze", "implement", "archive"],
+          }),
+        ],
         [],
         choices,
       );
       const selects = runLine(html).match(/<select[\s\S]*?<\/select>/g) ?? [];
       expect(selects.length).toBeGreaterThan(0);
-      expect([state, ...selects.map((select) => select.match(/^<select[^>]*>/)?.[0])])
-        .toEqual([state, ...selects.map(() => expect.stringContaining(" disabled"))]);
+      expect([
+        state,
+        ...selects.map((select) => select.match(/^<select[^>]*>/)?.[0]),
+      ]).toEqual([
+        state,
+        ...selects.map(() => expect.stringContaining(" disabled")),
+      ]);
     }
   });
 
@@ -150,12 +194,19 @@ describe("create is the first phase line", () => {
       [createJob("116-landed")],
       [target("116-landed", { done: ["create"] })],
       {
-        modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" }],
+        modelChoices: [
+          { name: "sonnet" },
+          { name: "codex-fast", tool: "codex" },
+        ],
         providerChoices: [{ key: "Claude", name: "Claude", tool: "claude" }],
       },
     );
     const analyze = subRow(html, "analyze");
-    expect(analyze.match(/<select[\s\S]*?<\/select>/g)?.every((select) => !/^<select[^>]* disabled/.test(select))).toBe(true);
+    expect(
+      analyze
+        .match(/<select[\s\S]*?<\/select>/g)
+        ?.every((select) => !/^<select[^>]* disabled/.test(select)),
+    ).toBe(true);
   });
 
   test("a landed create job's line reads done, name as plain text", () => {
@@ -208,8 +259,10 @@ describe("create is the first phase line", () => {
     // so its badge stays "not run yet" — the folder existing is the
     // answer, and that is what the box carries.
     for (const html of [withJob, handMade]) {
-      expect(subRow(html, "create")).toContain('checked disabled');
-      expect(subRow(html, "create")).toContain("already done, and not a step you can run");
+      expect(subRow(html, "create")).toContain("checked disabled");
+      expect(subRow(html, "create")).toContain(
+        "already done, and not a step you can run",
+      );
     }
   });
 
@@ -229,9 +282,9 @@ describe("create is the first phase line", () => {
       [target("116-landed", { done: ["create", "analyze"] })],
     );
     const line = runLine(html);
-    const boxes = [...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
-      (m) => m[1],
-    );
+    const boxes = [
+      ...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g),
+    ].map((m) => m[1]);
     // `analyze` has run and may be run again; `create` never is.
     expect(boxes).toEqual(["analyze", "implement", "archive"]);
   });
@@ -243,14 +296,26 @@ describe("create is the first phase line", () => {
     // finished job, so the sentence is the one that names the phase the
     // spec is ready for — "ready for create" is what a widened
     // `RUN_STEPS` would produce here, and must not.
-    const analyzed = row({ id: "a1", specFolder: "116-status", steps: ["analyze"], state: "done" });
-    const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
-    const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
+    const analyzed = row({
+      id: "a1",
+      specFolder: "116-status",
+      steps: ["analyze"],
+      state: "done",
+    });
+    const withCreate = rows(
+      [analyzed],
+      [target("116-status", { done: ["create", "analyze"] })],
+    );
+    const withoutCreate = rows(
+      [analyzed],
+      [target("116-status", { done: ["analyze"] })],
+    );
     // The sentence is the badge itself once the job is at
     // rest.
     const said = (html: string) =>
-      head(html)
-        .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
+      head(html).match(
+        /<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/,
+      )?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
     expect(said(withCreate)).toBe("Ready");
     // The button is named for the phase a press would run,
@@ -259,7 +324,10 @@ describe("create is the first phase line", () => {
     expect(runLine(withoutCreate)).toContain(">Implement</button>");
     // And with everything built it names archive — never "create", and
     // never the again-variant that went 2026-08-19.
-    const allBuilt = rows([analyzed], [target("116-status", { done: ["analyze", "implement"] })]);
+    const allBuilt = rows(
+      [analyzed],
+      [target("116-status", { done: ["analyze", "implement"] })],
+    );
     expect(runLine(allBuilt)).not.toContain("Run again");
     expect(runLine(allBuilt)).toContain(">Archive</button>");
   });
@@ -268,7 +336,15 @@ describe("create is the first phase line", () => {
 
   test("a create job appears once, never also appended after archive", () => {
     const html = rows(
-      [createJob("116-landed"), row({ id: "a1", specFolder: "116-landed", steps: ["analyze"], state: "done" })],
+      [
+        createJob("116-landed"),
+        row({
+          id: "a1",
+          specFolder: "116-landed",
+          steps: ["analyze"],
+          state: "done",
+        }),
+      ],
       [target("116-landed", { done: ["create", "analyze"] })],
     );
     expect(order(html)).toEqual(["create", "analyze", "implement", "archive"]);
@@ -284,7 +360,10 @@ describe("create is the first phase line", () => {
 // finishes, well before the merge settles, and offers "ready" with a
 // Run/Analyze button for a spec whose files do not exist yet.
 describe("a step still landing reads busy, not ready", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -299,11 +378,20 @@ describe("a step still landing reads busy, not ready", () => {
   ) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
       Date.parse("2026-08-26T12:00:00Z"),
     );
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`,
+      ),
+    )?.[0] ?? "";
   /** The row's own controls line: the run form and
    *  Cancel are a `<tr>` under the header, not a cell inside it. */
   const controlsLine = (html: string, folder: string) =>
@@ -319,8 +407,14 @@ describe("a step still landing reads busy, not ready", () => {
    *  the badge, and in the header's last cell (shut) or a
    *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
-    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const caption =
+      chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ??
+      "";
+    const cells = [
+      ...caption
+        .replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "")
+        .matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g),
+    ].map((m) => m[1] ?? "");
     return cells[2] ?? "";
   };
 
@@ -335,7 +429,16 @@ describe("a step still landing reads busy, not ready", () => {
   // looking at before deciding whether a press is safe.
   test("a job done but still landing reads busy and offers no press at all", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "254-landing", steps: ["create"], stepIndex: 0, state: "done", landing: true })],
+      [
+        row({
+          id: "j1",
+          specFolder: "254-landing",
+          steps: ["create"],
+          stepIndex: 0,
+          state: "done",
+          landing: true,
+        }),
+      ],
       [target("254-landing")],
     );
     const line = head(html, "254-landing");
@@ -359,10 +462,16 @@ describe("a step still landing reads busy, not ready", () => {
   // is the landing's own, the one just finished.
   test("a job queued on its next step while the last one lands says so", () => {
     const html = rows(
-      [row({
-        id: "j1", specFolder: "254-landing", steps: ["analyze", "implement"], stepIndex: 1,
-        state: "queued", landing: true,
-      })],
+      [
+        row({
+          id: "j1",
+          specFolder: "254-landing",
+          steps: ["analyze", "implement"],
+          stepIndex: 1,
+          state: "queued",
+          landing: true,
+        }),
+      ],
       [target("254-landing")],
     );
     const line = head(html, "254-landing");
@@ -376,7 +485,16 @@ describe("a step still landing reads busy, not ready", () => {
   // is today — no visible change for the settled state.
   test("a job done and no longer landing reads ready, as before", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "254-landed", steps: ["create"], stepIndex: 0, state: "done", landing: false })],
+      [
+        row({
+          id: "j1",
+          specFolder: "254-landed",
+          steps: ["create"],
+          stepIndex: 0,
+          state: "done",
+          landing: false,
+        }),
+      ],
       [target("254-landed")],
     );
     const line = head(html, "254-landed");
@@ -400,7 +518,10 @@ describe("a step still landing reads busy, not ready", () => {
 // (`notice-row.ts`) could let an earlier, unrelated phase's own softer
 // qualifier hide archive's real one.
 describe("an unlanded archive failure names itself, not an unrelated phase", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -408,10 +529,15 @@ describe("an unlanded archive failure names itself, not an unrelated phase", () 
   const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+      },
       Date.parse("2026-08-30T12:00:00Z"),
     );
-  const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const panel = (html: string) =>
+    html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const BUILT = ["create", "analyze", "implement", "archive"];
 
   // Archive's own `unlanded` failure is what the panel names —
@@ -501,8 +627,11 @@ describe("a landing marks only the step being landed, not every finished step", 
    *  `phase-row-rendering.test.ts`'s own helper does. */
   const badgeLabel = (html: string, step: string): string =>
     (
-      html
-        .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
+      html.match(
+        new RegExp(
+          `<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`,
+        ),
+      )?.[0] ?? ""
     ).match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
 
   const chained = row({

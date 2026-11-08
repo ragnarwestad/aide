@@ -32,7 +32,10 @@ export interface TestServersContext {
    *  is, what this server depends on is the same two things: the process
    *  group stays alive while the board serves, and the log carries the
    *  "board up: pid N, <url>" line `refreshTestServerStatus` reads. */
-  startCommand: (project: string, opts: { branch: string; port: number }) => string[] | undefined;
+  startCommand: (
+    project: string,
+    opts: { branch: string; port: number },
+  ) => string[] | undefined;
   /** Whether a board is OFFERED for this project: its manifest says a
    *  branch is tried by a board (`deployment.previewFrom: command`) and
    *  this host can start one — never a hardcoded project name. Whether a
@@ -53,7 +56,9 @@ export interface TestServersContext {
    *  `recover.ts` asks this once per port after a restart; the real
    *  implementation reads the process table, and a test injects an
    *  answer. `undefined` for a free port, or one held by anything else. */
-  testServerOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  testServerOnPort: (
+    port: number,
+  ) => Promise<{ pid: number; workDir: string } | undefined>;
   /** Whether Tailscale exposes `port` on this host right now
    *  — `undefined` when there is no Tailscale here at all, which the caller
    *  reads as "the check does not apply, start as before". Asked once,
@@ -77,8 +82,17 @@ export interface TestServersContext {
  *  (a branch the checkout has not fetched yet; this runs BEFORE the
  *  round script's own fetch fallback). `undefined` when the branch does
  *  not exist on origin at all. */
-export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch: string): Promise<string | undefined> {
-  const result = await gitRun(aideCheckout, ["ls-remote", "--heads", "origin", branch]);
+export async function headCommit(
+  gitRun: GitRunner,
+  aideCheckout: string,
+  branch: string,
+): Promise<string | undefined> {
+  const result = await gitRun(aideCheckout, [
+    "ls-remote",
+    "--heads",
+    "origin",
+    branch,
+  ]);
   if (result.code !== 0) return undefined;
   const sha = result.stdout.trim().split("\n")[0]?.split(/\s+/)[0];
   return sha || undefined;
@@ -114,7 +128,11 @@ const bindable: PortProbe = (port) => {
     // `tailscale serve` has a listener of its own on the tailnet
     // address for these very ports. Probing on every address would
     // collide with that and report a free port as taken.
-    const probe = Bun.serve({ port, hostname: "127.0.0.1", fetch: () => new Response("") });
+    const probe = Bun.serve({
+      port,
+      hostname: "127.0.0.1",
+      fetch: () => new Response(""),
+    });
     void probe.stop(true);
     return true;
   } catch {
@@ -122,7 +140,10 @@ const bindable: PortProbe = (port) => {
   }
 };
 
-export async function findFreePort(reserved: number[], canBind: PortProbe = bindable): Promise<number | undefined> {
+export async function findFreePort(
+  reserved: number[],
+  canBind: PortProbe = bindable,
+): Promise<number | undefined> {
   const taken = new Set(reserved);
   for (const port of TEST_SERVER_PORTS) {
     if (taken.has(port)) continue;
@@ -135,25 +156,40 @@ export async function findFreePort(reserved: number[], canBind: PortProbe = bind
 // moment its server answers, minutes before "left running" closes the
 // round off — a reader gets in while the fixture specs are still being
 // created, and watches the list fill.
-const LEFT_RUNNING_RE = /(?:left running|board up): pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
+const LEFT_RUNNING_RE =
+  /(?:left running|board up): pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
 
 /** Why a board whose start has exited did not come up: the port its log
  *  says was taken and who holds it, or the command that ran, with the
  *  log's last whole lines as the detail. */
-export function whyNotUp(ctx: Pick<TestServersContext, "portHolder">, entry: TestServer, log: string): { error: string; detail?: string } {
+export function whyNotUp(
+  ctx: Pick<TestServersContext, "portHolder">,
+  entry: TestServer,
+  log: string,
+): { error: string; detail?: string } {
   const detail = outputTail(log) || undefined;
   const port = portInUse(log);
   if (port !== undefined) {
     const holder = ctx.portHolder?.(port);
-    const who = holder ? `${holder.command ?? "a process"} (pid ${holder.pid})` : "another process";
-    return { error: `port ${port} is taken by ${who} — stop it on the serving host, then try again`, ...(detail ? { detail } : {}) };
+    const who = holder
+      ? `${holder.command ?? "a process"} (pid ${holder.pid})`
+      : "another process";
+    return {
+      error: `port ${port} is taken by ${who} — stop it on the serving host, then try again`,
+      ...(detail ? { detail } : {}),
+    };
   }
   const what = entry.command ?? "the start command";
   const last = detail?.split("\n").at(-1)?.trim();
   const cause = last && last.length > 160 ? `${last.slice(0, 160)}…` : last;
   return detail
-    ? { error: `${what} exited before the test server came up: ${cause} — put right what it printed, on the serving host, then try again`, detail }
-    : { error: `${what} exited with no output before the test server came up — run it by hand on the serving host to see why` };
+    ? {
+        error: `${what} exited before the test server came up: ${cause} — put right what it printed, on the serving host, then try again`,
+        detail,
+      }
+    : {
+        error: `${what} exited with no output before the test server came up — run it by hand on the serving host to see why`,
+      };
 }
 
 /** The registry key `restartMainTestServer` tracks its board under —
@@ -168,12 +204,16 @@ export async function startTestServer(
   opts: { branch?: string } = {},
 ): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
   if (!ctx.previewAvailable(project)) {
-    return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
+    return {
+      ok: false,
+      error: `${project} says nothing about how to start a board for a branch`,
+    };
   }
   const branch = opts.branch ?? `aide/${specFolder}`;
   const aideCheckout = ctx.aideCheckout(project);
   const commit = await headCommit(ctx.gitRun, aideCheckout, branch);
-  if (!commit) return { ok: false, error: `no such branch on origin: ${branch}` };
+  if (!commit)
+    return { ok: false, error: `no such branch on origin: ${branch}` };
 
   // The same branch AND commit already up (or starting) — hand
   // back that entry rather than spawning a second round.
@@ -185,7 +225,11 @@ export async function startTestServer(
     existing.status !== "failed" &&
     // A board that is up has a wrapper that has exited, which is what
     // success looks like; its own process is the one to ask.
-    ctx.isAlive(existing.status === "running" && existing.pid ? existing.pid : existing.wrapperPid)
+    ctx.isAlive(
+      existing.status === "running" && existing.pid
+        ? existing.pid
+        : existing.wrapperPid,
+    )
   ) {
     return { ok: true, entry: existing };
   }
@@ -194,7 +238,12 @@ export async function startTestServer(
   // running where the page could no longer show or stop it, and held a
   // port the next board then went without.
   if (existing) {
-    stopTestServer(ctx, project, specFolder, `a board for ${commit.slice(0, 7)} replaces it`);
+    stopTestServer(
+      ctx,
+      project,
+      specFolder,
+      `a board for ${commit.slice(0, 7)} replaces it`,
+    );
   }
 
   // The pool being full is a refusal like any other in
@@ -212,7 +261,9 @@ export async function startTestServer(
   }
   const exposed = await ctx.portExposed(port);
   if (exposed === false) {
-    ctx.log?.(`boards: :${port} is not exposed through Tailscale on this host — refusing to start ${branch}`);
+    ctx.log?.(
+      `boards: :${port} is not exposed through Tailscale on this host — refusing to start ${branch}`,
+    );
     return {
       ok: false,
       error:
@@ -224,16 +275,27 @@ export async function startTestServer(
   const workDir = ctx.makeWorkDir();
   const logPath = join(workDir, "board.log");
   const cmd = ctx.startCommand(project, { branch, port });
-  if (!cmd) return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
+  if (!cmd)
+    return {
+      ok: false,
+      error: `${project} says nothing about how to start a board for a branch`,
+    };
   let proc: SpawnResult;
   try {
     proc = ctx.spawn(cmd, logPath);
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
-    ctx.log?.(`boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`);
-    return { ok: false, error: `could not run ${cmd.join(" ")}: ${why} — check that it is installed on the serving host, then try again` };
+    ctx.log?.(
+      `boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`,
+    );
+    return {
+      ok: false,
+      error: `could not run ${cmd.join(" ")}: ${why} — check that it is installed on the serving host, then try again`,
+    };
   }
-  ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
+  ctx.log?.(
+    `boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`,
+  );
   const entry: TestServer = {
     branch,
     commit,
@@ -252,7 +314,11 @@ export async function startTestServer(
 /** Tails the board's own log to learn whether it has come up or failed.
  *  Called on read (the spec page's own render), not on a timer of its
  *  own — the page already polls every ten seconds. */
-export function refreshTestServerStatus(ctx: TestServersContext, project: string, specFolder: string): TestServer | undefined {
+export function refreshTestServerStatus(
+  ctx: TestServersContext,
+  project: string,
+  specFolder: string,
+): TestServer | undefined {
   const entry = ctx.store.get(project, specFolder);
   // A "running" entry is never re-examined below this point — the
   // early return just past this only ever revisits "starting". Once the
@@ -267,7 +333,12 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
   // comment) — the same trade-off `store.ts`'s own doc comment on `pid`
   // already makes for the field itself.
   if (entry?.status === "running" && !ctx.isAlive(entry.pid!)) {
-    stopTestServer(ctx, project, specFolder, `its process (pid ${entry.pid}) is gone`);
+    stopTestServer(
+      ctx,
+      project,
+      specFolder,
+      `its process (pid ${entry.pid}) is gone`,
+    );
     return undefined;
   }
   if (entry?.status !== "starting") return entry;
@@ -286,14 +357,25 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
   const m = LEFT_RUNNING_RE.exec(log);
   if (!m) {
     if (!ctx.isAlive(entry.wrapperPid)) {
-      const failed: TestServer = { ...entry, status: "failed", ...whyNotUp(ctx, entry, log) };
+      const failed: TestServer = {
+        ...entry,
+        status: "failed",
+        ...whyNotUp(ctx, entry, log),
+      };
       ctx.store.set(project, specFolder, failed);
-      ctx.log?.(`boards: ${entry.branch} did not come up on :${entry.port} — ${failed.error} (log ${entry.logPath})`);
+      ctx.log?.(
+        `boards: ${entry.branch} did not come up on :${entry.port} — ${failed.error} (log ${entry.logPath})`,
+      );
       return failed;
     }
     return entry;
   }
-  const running: TestServer = { ...entry, status: "running", pid: Number(m[1]), url: m[2] };
+  const running: TestServer = {
+    ...entry,
+    status: "running",
+    pid: Number(m[1]),
+    url: m[2],
+  };
   ctx.store.set(project, specFolder, running);
   return running;
 }
@@ -305,7 +387,12 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
  *  bun-serve process — see 3-solution.md's Risk analysis for the
  *  measured process-group fact this depends on). The round's own
  *  disowned watcher removes the worktree once that process dies. */
-export function stopTestServer(ctx: TestServersContext, project: string, specFolder: string, reason: string): void {
+export function stopTestServer(
+  ctx: TestServersContext,
+  project: string,
+  specFolder: string,
+  reason: string,
+): void {
   const entry = ctx.store.get(project, specFolder);
   if (!entry) return;
   // Said before the signal goes, with who asked and what is signalled:
@@ -346,6 +433,11 @@ export async function restartMainTestServer(
   project: string,
   branch: string,
 ): Promise<{ ok: true; entry: TestServer } | { ok: false; error: string }> {
-  stopTestServer(ctx, project, MAIN_TEST_SERVER_KEY, `a new main board (${branch}) replaces it`);
+  stopTestServer(
+    ctx,
+    project,
+    MAIN_TEST_SERVER_KEY,
+    `a new main board (${branch}) replaces it`,
+  );
   return startTestServer(ctx, project, MAIN_TEST_SERVER_KEY, { branch });
 }

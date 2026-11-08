@@ -3,10 +3,16 @@
 // (/api/queue/events, text/event-stream) that must stay unbuffered.
 import { afterEach, describe, expect, test } from "bun:test";
 import { gunzipSync, constants } from "node:zlib";
-import { compressResponse, streamedPage } from "../../../src/serve/serve-helpers";
+import {
+  compressResponse,
+  streamedPage,
+} from "../../../src/serve/serve-helpers";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
-const gzipReq = () => new Request("http://x/", { headers: { "accept-encoding": "gzip, deflate, br" } });
+const gzipReq = () =>
+  new Request("http://x/", {
+    headers: { "accept-encoding": "gzip, deflate, br" },
+  });
 const plainReq = () => new Request("http://x/");
 
 const big = (type: string, bytes = 2000) =>
@@ -15,7 +21,8 @@ const big = (type: string, bytes = 2000) =>
 describe("compressResponse (unit)", () => {
   test("gzips a compressible, over-threshold response when the client asked for gzip", async () => {
     const original = big("text/html; charset=utf-8");
-    const originalBytes = new Uint8Array(await original.clone().arrayBuffer()).byteLength;
+    const originalBytes = new Uint8Array(await original.clone().arrayBuffer())
+      .byteLength;
     const res = await compressResponse(gzipReq(), original);
     expect(res.headers.get("content-encoding")).toBe("gzip");
     expect(res.headers.get("vary")).toBe("accept-encoding");
@@ -34,7 +41,10 @@ describe("compressResponse (unit)", () => {
   });
 
   test("leaves a non-whitelisted content-type alone, even over threshold with gzip requested", async () => {
-    const res = await compressResponse(gzipReq(), big("application/octet-stream"));
+    const res = await compressResponse(
+      gzipReq(),
+      big("application/octet-stream"),
+    );
     expect(res.headers.get("content-encoding")).toBeNull();
   });
 
@@ -57,7 +67,10 @@ describe("compressResponse (unit)", () => {
   });
 
   test("leaves a 304 alone", async () => {
-    const notModified = new Response(null, { status: 304, headers: { "content-type": "text/html" } });
+    const notModified = new Response(null, {
+      status: 304,
+      headers: { "content-type": "text/html" },
+    });
     const res = await compressResponse(gzipReq(), notModified);
     expect(res.headers.get("content-encoding")).toBeNull();
   });
@@ -70,13 +83,20 @@ describe("compressResponse (unit)", () => {
         // long as the connection lives.
       },
     });
-    const sse = new Response(stream, { headers: { "content-type": "text/event-stream; charset=utf-8" } });
+    const sse = new Response(stream, {
+      headers: { "content-type": "text/event-stream; charset=utf-8" },
+    });
     const res = await compressResponse(gzipReq(), sse);
     expect(res).toBe(sse);
     expect(res.headers.get("content-encoding")).toBeNull();
   });
 
-  for (const type of ["text/javascript", "application/json", "application/manifest+json", "image/svg+xml"]) {
+  for (const type of [
+    "text/javascript",
+    "application/json",
+    "application/manifest+json",
+    "image/svg+xml",
+  ]) {
     test(`compresses ${type} too`, async () => {
       const res = await compressResponse(gzipReq(), big(type));
       expect(res.headers.get("content-encoding")).toBe("gzip");
@@ -88,7 +108,9 @@ describe("compressResponse (unit)", () => {
 // chunk, so what has been sent is decodable before the rest exists.
 describe("compressResponse (a streamed page)", () => {
   const decode = (bytes: Uint8Array) =>
-    gunzipSync(bytes, { finishFlush: constants.Z_SYNC_FLUSH }).toString("utf-8");
+    gunzipSync(bytes, { finishFlush: constants.Z_SYNC_FLUSH }).toString(
+      "utf-8",
+    );
 
   /** Collects what the reader delivers, so a read is never left pending
    *  (and never swallows a chunk) between two looks at what has arrived. */
@@ -108,8 +130,15 @@ describe("compressResponse (a streamed page)", () => {
   test("the head is decodable before the rest exists, and the whole page after it", async () => {
     const head = `<!doctype html><body>${"filler ".repeat(30_000)}<div class="pageloading">MARKER</div>`;
     let release!: (s: string) => void;
-    const held = new Promise<string>((r) => { release = r; });
-    const streamed = streamedPage({ head, rest: () => held, failedRest: "<failed>", headers: new Headers({ "content-type": "text/html" }) });
+    const held = new Promise<string>((r) => {
+      release = r;
+    });
+    const streamed = streamedPage({
+      head,
+      rest: () => held,
+      failedRest: "<failed>",
+      headers: new Headers({ "content-type": "text/html" }),
+    });
     const res = await compressResponse(gzipReq(), streamed);
     expect(res.headers.get("content-encoding")).toBe("gzip");
     expect(res.headers.get("vary")).toBe("accept-encoding");
@@ -130,9 +159,12 @@ describe("compressResponse, wired into the real server", () => {
 
   test("a document tab's HTML is served gzipped when the client asks for it", async () => {
     const { base } = harness.start();
-    const res = await fetch(`${base}/specs/aide/81-queue-and-runner?tab=description`, {
-      headers: { "accept-encoding": "gzip" },
-    });
+    const res = await fetch(
+      `${base}/specs/aide/81-queue-and-runner?tab=description`,
+      {
+        headers: { "accept-encoding": "gzip" },
+      },
+    );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-encoding")).toBe("gzip");
   });

@@ -8,7 +8,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupProjectResolution } from "../../../src/serve/setup/project-resolution.ts";
 import { createServerState } from "../../../src/serve/state.ts";
-import { checkoutFaults, clearCheckoutFaults } from "../../../src/render/ui/checkout-faults.ts";
+import {
+  checkoutFaults,
+  clearCheckoutFaults,
+} from "../../../src/render/ui/checkout-faults.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import type { ScheduleStore } from "../../../src/queue/schedule-store.ts";
 
@@ -23,7 +26,11 @@ async function ensureBroken(stopped: boolean) {
   const base = mkdtempSync(join(tmpdir(), "aide-stopped-board-"));
   dirs.push(base);
   mkdirSync(join(base, "aide", "code"), { recursive: true });
-  const refuse: GitRunner = async () => ({ code: 128, stdout: "", stderr: "fatal: not a git repository" });
+  const refuse: GitRunner = async () => ({
+    code: 128,
+    stdout: "",
+    stderr: "fatal: not a git repository",
+  });
   const state = createServerState();
   const resolution = setupProjectResolution(
     { dashboardCheckoutRoot: base, queueProjectRoot: base, gitRun: refuse },

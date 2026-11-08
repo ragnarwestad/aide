@@ -5,8 +5,15 @@
 // textarea, never between it and the editor's mount, which the stylesheet
 // reads as adjacent siblings.
 
-import { DESCRIPTION_MAX, descriptionPart } from "../project/description-bound.ts";
-import { countText, limitState, overText } from "../specs-client/limits/measure.ts";
+import {
+  DESCRIPTION_MAX,
+  descriptionPart,
+} from "../project/description-bound.ts";
+import {
+  countText,
+  limitState,
+  overText,
+} from "../specs-client/limits/measure.ts";
 
 const DESCRIPTION_FILE = "1-description.md";
 
@@ -17,7 +24,9 @@ export interface DescriptionCount {
 
 /** The count for the form `raw` sits in, or `null` when that form saves any
  *  file but `1-description.md`: the other tabs are never bounded. */
-export function mountDescriptionCount(raw: HTMLTextAreaElement): DescriptionCount | null {
+export function mountDescriptionCount(
+  raw: HTMLTextAreaElement,
+): DescriptionCount | null {
   const file = raw.form?.querySelector<HTMLInputElement>('input[name="file"]');
   if (file?.value !== DESCRIPTION_FILE) return null;
   const count = document.createElement("span");
@@ -38,7 +47,9 @@ export function mountDescriptionCount(raw: HTMLTextAreaElement): DescriptionCoun
       const over = length > DESCRIPTION_MAX;
       count.textContent = countText(length, DESCRIPTION_MAX);
       count.setAttribute("data-limit", limitState(length, DESCRIPTION_MAX));
-      note.textContent = over ? overText(length - DESCRIPTION_MAX, DESCRIPTION_MAX) : "";
+      note.textContent = over
+        ? overText(length - DESCRIPTION_MAX, DESCRIPTION_MAX)
+        : "";
       if (over) note.setAttribute("data-over", "");
       else note.removeAttribute("data-over");
       return over;

@@ -3,7 +3,14 @@
 // against.
 
 import { t, type Language, type TranslationKey } from "../../../../i18n";
-import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, type SpecsFilter, type SpecGroup } from "./types.ts";
+import {
+  ARCHIVED_OPEN_STATE,
+  ARCHIVED_STATE,
+  CLOSED_STATE,
+  isFinishedGroup,
+  type SpecsFilter,
+  type SpecGroup,
+} from "./types.ts";
 
 // "Failed" holds everything that did not simply finish and did not
 // merely stop on its own terms — a cap-stop reads differently from a
@@ -25,9 +32,21 @@ export const NOT_VERIFIED_KEY = "not-verified";
 
 /** What the state filter and the search read off a row: a spec's group, or a
  *  scheduled job's facts on the Jobs tab. */
-type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed">;
+type FilterFacts = Pick<
+  SpecGroup,
+  | "project"
+  | "specFolder"
+  | "title"
+  | "description"
+  | "state"
+  | "notVerified"
+  | "failed"
+>;
 /** What the column sort reads off a row. */
-type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">;
+type SortFacts = Pick<
+  SpecGroup,
+  "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead"
+>;
 
 type StateFilterEntry = {
   key: string;
@@ -54,7 +73,11 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // is no more "everything still going on" than an archived one is, but
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
   // just to be kept out of this entry.
-  { key: ACTIVE_FILTER_KEY, label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
+  {
+    key: ACTIVE_FILTER_KEY,
+    label: "Active",
+    excludeStates: [ARCHIVED_STATE, CLOSED_STATE],
+  },
   // `["running"]` alone, not IN_FLIGHT (queued+running): `group-builders.ts`
   // now folds a job's `landing` flag into this same state before it reaches
   // here (see below), so "running" already means "running, or a step's
@@ -71,10 +94,19 @@ export const STATE_FILTERS: StateFilterEntry[] = [
     // row of its own.
     states: ["failed", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
   },
-  { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
+  {
+    key: ARCHIVED_STATE,
+    label: "Archived",
+    states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE],
+  },
   { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
   // Live and archived alike, and never a closed spec.
-  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
+  {
+    key: NOT_VERIFIED_KEY,
+    label: "Not verified",
+    where: (g) =>
+      g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0,
+  },
 ];
 
 /** The default, by position and not by name — so an entry moved to the
@@ -114,7 +146,11 @@ export const DEFAULT_SORT = "created";
 // Each column has the direction you almost always want first: newest
 // run, dearest job, but names from A.
 export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
-  started: "desc", cost: "desc", spec: "desc", state: "asc", created: "desc",
+  started: "desc",
+  cost: "desc",
+  spec: "desc",
+  state: "asc",
+  created: "desc",
 };
 
 export function stateFilter(key: string | undefined): StateFilterEntry {
@@ -124,7 +160,8 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
   // meant to a reader who never saw the sub-menu — "show me what is
   // running" — so both resolve to the one Running entry rather than
   // silently landing on "All".
-  const resolved = key === "active" || key?.startsWith("active:") ? "active:all" : key;
+  const resolved =
+    key === "active" || key?.startsWith("active:") ? "active:all" : key;
   return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
 }
 
@@ -135,9 +172,14 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
 export const matchesState = (
   f: { states?: string[]; excludeStates?: string[] },
   state: string,
-): boolean => (!f.states || f.states.includes(state)) && !(f.excludeStates ?? []).includes(state);
+): boolean =>
+  (!f.states || f.states.includes(state)) &&
+  !(f.excludeStates ?? []).includes(state);
 
-export function matchesStateFilter(f: StateFilterEntry, g: FilterFacts): boolean {
+export function matchesStateFilter(
+  f: StateFilterEntry,
+  g: FilterFacts,
+): boolean {
   return matchesState(f, g.state) && (!f.where || f.where(g));
 }
 
@@ -168,7 +210,10 @@ export function filterShowsArchived(state: string | undefined): boolean {
  *  wherever the ROW SHAPE is the question rather than the filter's —
  *  which is the routing in `groupRows` and the entry counts. */
 export const isArchivedRow = (g: SpecGroup): boolean =>
-  !!g.archive || g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE || g.state === CLOSED_STATE;
+  !!g.archive ||
+  g.state === ARCHIVED_STATE ||
+  g.state === ARCHIVED_OPEN_STATE ||
+  g.state === CLOSED_STATE;
 
 /** An archived spec whose code never landed: its own branch is still on
  *  origin and not open for review. The queue counts it as active, so it
@@ -198,7 +243,10 @@ export const matchesSearch = (g: FilterFacts, f: SpecsFilter): boolean => {
   return !term || haystack(g).includes(term);
 };
 
-export function applyFilter<T extends FilterFacts>(groups: T[], f: SpecsFilter): T[] {
+export function applyFilter<T extends FilterFacts>(
+  groups: T[],
+  f: SpecsFilter,
+): T[] {
   const entry = stateFilter(f.state);
   return groups.filter(
     (g) =>
@@ -213,14 +261,19 @@ export function applyFilter<T extends FilterFacts>(groups: T[], f: SpecsFilter):
 // order gets wrong the moment there are three digits. Same number (or
 // no number: a state, a create job's provisional key) falls back to text.
 function compareFolders(a: string, b: string): number {
-  const na = Number.parseInt(a, 10), nb = Number.parseInt(b, 10);
+  const na = Number.parseInt(a, 10),
+    nb = Number.parseInt(b, 10);
   if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
   return a.localeCompare(b);
 }
 
-export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[] {
+export function sortGroups<T extends SortFacts>(
+  groups: T[],
+  f: SpecsFilter,
+): T[] {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  const dir =
+    f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
   // Every row's Time cell shows its own summed duration now, live or
   // archived (`activeDurationCell`/`archiveDateCell`, the live half
@@ -228,32 +281,40 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
   // figure has to SORT by that figure, for both kinds of row alike, or
   // a click on "Time" reorders the page by a number nobody can see.
   const key = (g: SortFacts): number | string =>
-    sort === "cost" ? g.spentUsd
-    : sort === "spec" ? g.specFolder
-    : sort === "state" ? g.state
-    // A spec git could not date sorts as the NEWEST, not the oldest.
-    // The epoch looks like where "unknown" would surprise least. In
-    // use it is the opposite:
-    // the cell reads "–" because git has not caught up with a folder
-    // that was made moments ago, so the one spec that is certainly
-    // newest was the one sent to the bottom of a newest-first list.
-    // Never a job's own time, as before.
-    //
-    // MAX_SAFE_INTEGER rather than Infinity: two undated specs would
-    // subtract to NaN, and a comparator returning NaN orders them by
-    // nothing at all — the folder tie-break below never runs, because
-    // NaN !== 0.
-    //
-    // The other undated case is the opposite end (2026-09-09): an
-    // archived or closed spec git could not date was made before the
-    // board recorded creation dates at all — older than every dated
-    // row, so it sorts as the oldest, never as the newest.
-    : sort === "created" ? (Date.parse(g.createdAt ?? "") || (isFinishedGroup(g) ? 0 : Number.MAX_SAFE_INTEGER))
-    : (g.totalDurationMs ?? 0);
+    sort === "cost"
+      ? g.spentUsd
+      : sort === "spec"
+        ? g.specFolder
+        : sort === "state"
+          ? g.state
+          : // A spec git could not date sorts as the NEWEST, not the oldest.
+            // The epoch looks like where "unknown" would surprise least. In
+            // use it is the opposite:
+            // the cell reads "–" because git has not caught up with a folder
+            // that was made moments ago, so the one spec that is certainly
+            // newest was the one sent to the bottom of a newest-first list.
+            // Never a job's own time, as before.
+            //
+            // MAX_SAFE_INTEGER rather than Infinity: two undated specs would
+            // subtract to NaN, and a comparator returning NaN orders them by
+            // nothing at all — the folder tie-break below never runs, because
+            // NaN !== 0.
+            //
+            // The other undated case is the opposite end (2026-09-09): an
+            // archived or closed spec git could not date was made before the
+            // board recorded creation dates at all — older than every dated
+            // row, so it sorts as the oldest, never as the newest.
+            sort === "created"
+            ? Date.parse(g.createdAt ?? "") ||
+              (isFinishedGroup(g) ? 0 : Number.MAX_SAFE_INTEGER)
+            : (g.totalDurationMs ?? 0);
   return [...groups].sort((a, b) => {
-    const x = key(a), y = key(b);
+    const x = key(a),
+      y = key(b);
     const cmp =
-      (typeof x === "string" ? compareFolders(String(x), String(y)) : (x as number) - (y as number)) * sign;
+      (typeof x === "string"
+        ? compareFolders(String(x), String(y))
+        : (x as number) - (y as number)) * sign;
     if (cmp !== 0) return cmp;
     // Only between two specs that have BOTH never run AND that git
     // could date neither of. A general folder tie-break is not free: 29

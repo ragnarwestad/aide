@@ -7,8 +7,23 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { queueHarness } from "../helpers/queue-server.ts";
-import { onOrigin, rootWithOrigin, specBranchAhead, specRelPath, type BranchFixture } from "../helpers/branch-fixture.ts";
-import { DESCRIPTION_TAB, ANALYSIS_TAB, SAVE, SPEC, TRACKING, descriptionPath, post, answer } from "./spec-save-fixtures.ts";
+import {
+  onOrigin,
+  rootWithOrigin,
+  specBranchAhead,
+  specRelPath,
+  type BranchFixture,
+} from "../helpers/branch-fixture.ts";
+import {
+  DESCRIPTION_TAB,
+  ANALYSIS_TAB,
+  SAVE,
+  SPEC,
+  TRACKING,
+  descriptionPath,
+  post,
+  answer,
+} from "./spec-save-fixtures.ts";
 
 const OTHER = "82-another-spec";
 /** The spec's open row on the Running tab, where its settings are changed. */
@@ -24,8 +39,13 @@ const ON_BRANCH = tracked("As the branch has it.");
 const NOT_REQUIRED = "- **Acceptance:** not required\n";
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString().trim();
 }
 
@@ -39,15 +59,31 @@ async function draw(base: string, tab: string): Promise<string> {
 // What the page holds, read out of the html: the textarea's text, the
 // version the form will save against, the version the heading names, and
 // the banner's two facts.
-const unescape = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-const textareaText = (html: string) => unescape(html.match(/<textarea name="text"[^>]*>([\s\S]*?)<\/textarea>/)![1]!);
-const baseShaOf = (html: string) => html.match(/name="baseSha" value="([0-9a-f]*)"/)![1]!;
-const stampedSha7 = (html: string) => html.match(/committed[\s\S]{0,120}? · ([0-9a-f]{7})</)?.[1];
-const inputTag = (html: string, name: string, value?: string) =>
-  [...html.matchAll(/<input [^>]*>/g)].map((m) => m[0]).find(
-    (tag) => tag.includes(`name="${name}"`) && (value === undefined || tag.includes(`value="${value}"`)),
+const unescape = (s: string) =>
+  s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+const textareaText = (html: string) =>
+  unescape(
+    html.match(/<textarea name="text"[^>]*>([\s\S]*?)<\/textarea>/)![1]!,
   );
-const acceptanceRequiredShown = (html: string) => inputTag(html, "acceptanceRequired")!.includes(" checked");
+const baseShaOf = (html: string) =>
+  html.match(/name="baseSha" value="([0-9a-f]*)"/)![1]!;
+const stampedSha7 = (html: string) =>
+  html.match(/committed[\s\S]{0,120}? · ([0-9a-f]{7})</)?.[1];
+const inputTag = (html: string, name: string, value?: string) =>
+  [...html.matchAll(/<input [^>]*>/g)]
+    .map((m) => m[0])
+    .find(
+      (tag) =>
+        tag.includes(`name="${name}"`) &&
+        (value === undefined || tag.includes(`value="${value}"`)),
+    );
+const acceptanceRequiredShown = (html: string) =>
+  inputTag(html, "acceptanceRequired")!.includes(" checked");
 
 const failed = async (res: Response) => {
   const { status, body } = await answer(res);
@@ -55,12 +91,23 @@ const failed = async (res: Response) => {
 };
 const branchTip = (fx: BranchFixture) => git(fx.origin, "rev-parse", fx.branch);
 const lastTouch = (fx: BranchFixture, ref: string, file = "1-description.md") =>
-  git(fx.origin, "log", "-1", "--format=%H", ref, "--", specRelPath(SPEC, file));
+  git(
+    fx.origin,
+    "log",
+    "-1",
+    "--format=%H",
+    ref,
+    "--",
+    specRelPath(SPEC, file),
+  );
 
 /** A spec whose branch holds `onBranch`, one commit ahead of main's copy. */
 function withBranch(onBranch: string, onMain = ON_MAIN) {
   const started = harness.start({ description: onMain, alsoSpecs: [OTHER] });
-  return { ...started, fx: specBranchAhead(started.dir, SPEC, { "1-description.md": onBranch }) };
+  return {
+    ...started,
+    fx: specBranchAhead(started.dir, SPEC, { "1-description.md": onBranch }),
+  };
 }
 
 describe("a spec with a branch of its own", () => {
@@ -78,7 +125,10 @@ describe("a spec with a branch of its own", () => {
     const { base, fx } = withBranch(ON_BRANCH);
     const first = await draw(base, DESCRIPTION_TAB);
 
-    const firstSave = await post(base, { text: `${textareaText(first)}First change.\n`, baseSha: baseShaOf(first) });
+    const firstSave = await post(base, {
+      text: `${textareaText(first)}First change.\n`,
+      baseSha: baseShaOf(first),
+    });
     expect(await failed(firstSave)).toBe(false);
 
     const second = await draw(base, DESCRIPTION_TAB);
@@ -86,7 +136,10 @@ describe("a spec with a branch of its own", () => {
     expect(stampedSha7(second)).toBe(branchTip(fx).slice(0, 7));
     expect(stampedSha7(second)).not.toBe(stampedSha7(first));
 
-    const secondSave = await post(base, { text: `${textareaText(second)}Second change.\n`, baseSha: baseShaOf(second) });
+    const secondSave = await post(base, {
+      text: `${textareaText(second)}Second change.\n`,
+      baseSha: baseShaOf(second),
+    });
     expect(await failed(secondSave)).toBe(false);
     const onBranch = onOrigin(fx, fx.branch, SPEC, "1-description.md");
     expect(onBranch).toContain("As the branch has it.");
@@ -108,24 +161,34 @@ describe("a spec with a branch of its own", () => {
   test("a second Save from the open row, with the switch as the row shows it, keeps the Acceptance line", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     await draw(base, OPEN_ROW);
-    expect(await failed(await post(base, { settingsEditable: "1" }, TRACKING))).toBe(false);
+    expect(
+      await failed(await post(base, { settingsEditable: "1" }, TRACKING)),
+    ).toBe(false);
 
     const page = await draw(base, OPEN_ROW);
     const again = await post(
       base,
-      { settingsEditable: "1", ...(acceptanceRequiredShown(page) ? { acceptanceRequired: "1" } : {}) },
+      {
+        settingsEditable: "1",
+        ...(acceptanceRequiredShown(page) ? { acceptanceRequired: "1" } : {}),
+      },
       TRACKING,
     );
 
     expect(await failed(again)).toBe(false);
-    expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain("- **Acceptance:** not required");
+    expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain(
+      "- **Acceptance:** not required",
+    );
   });
 
   test("a Depends on saved onto the branch is named on the row's own line at once", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     const rowLine = async () => {
       const rows = await (await fetch(`${base}/?rows=1`)).text();
-      return rows.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
+      return (
+        rows.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ??
+        ""
+      );
     };
     await draw(base, ANALYSIS_TAB);
     expect(await rowLine()).not.toContain("Depends on:");
@@ -133,25 +196,50 @@ describe("a spec with a branch of its own", () => {
     const saved = await post(base, { dependsOn: OTHER }, TRACKING);
 
     expect(await failed(saved)).toBe(false);
-    expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain(`- **Depends on:** \`${OTHER}\``);
+    expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain(
+      `- **Depends on:** \`${OTHER}\``,
+    );
     expect(await rowLine()).toContain("Depends on: aide:82");
   });
 });
 
 describe("a spec with no branch of its own", () => {
   test("the text, the stamp and the open row's settings are the default branch's, and a Save writes to it", async () => {
-    const { base, dir } = harness.start({ description: tracked("As it was on main.", NOT_REQUIRED), alsoSpecs: [OTHER] });
+    const { base, dir } = harness.start({
+      description: tracked("As it was on main.", NOT_REQUIRED),
+      alsoSpecs: [OTHER],
+    });
     const fx = rootWithOrigin(dir);
 
     const html = await draw(base, DESCRIPTION_TAB);
 
     expect(textareaText(html)).toContain("As it was on main.");
-    expect(stampedSha7(html)).toBe(git(fx.root, "log", "-1", "--format=%H", "--", specRelPath(SPEC, "1-description.md")).slice(0, 7));
+    expect(stampedSha7(html)).toBe(
+      git(
+        fx.root,
+        "log",
+        "-1",
+        "--format=%H",
+        "--",
+        specRelPath(SPEC, "1-description.md"),
+      ).slice(0, 7),
+    );
     expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(false);
 
-    const saved = await post(base, { text: `${textareaText(html)}Saved on main.\n`, baseSha: baseShaOf(html) }, SAVE);
+    const saved = await post(
+      base,
+      {
+        text: `${textareaText(html)}Saved on main.\n`,
+        baseSha: baseShaOf(html),
+      },
+      SAVE,
+    );
     expect(await failed(saved)).toBe(false);
-    expect(git(fx.origin, "show", `main:${specRelPath(SPEC, "1-description.md")}`)).toContain("Saved on main.");
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toContain("Saved on main.");
+    expect(
+      git(fx.origin, "show", `main:${specRelPath(SPEC, "1-description.md")}`),
+    ).toContain("Saved on main.");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toContain(
+      "Saved on main.",
+    );
   });
 });

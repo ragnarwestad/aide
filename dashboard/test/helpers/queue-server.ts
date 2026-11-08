@@ -4,7 +4,13 @@
 // kept in two copies is a fixture that will one day disagree with
 // itself about what a project looks like.
 
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../../src/serve/serve.ts";
@@ -33,7 +39,14 @@ export interface StartOptions {
    *  default. */
   archivedSpecs?: Record<
     string,
-    { description?: string; status?: string; project?: string; analysis?: string; solution?: string; state?: string }
+    {
+      description?: string;
+      status?: string;
+      project?: string;
+      analysis?: string;
+      solution?: string;
+      state?: string;
+    }
   >;
   /** The live spec's 4-status.json, verbatim. Absent writes none. `state`
    *  on an archived spec is the same file for that spec. */
@@ -58,7 +71,11 @@ export interface QueueHarness {
    *  answer: what `stop()` let go of (the filesystem watchers).
    *  `cleanup()` still stops it, so a suite that takes it does not have
    *  to. */
-  start(opts?: StartOptions): { base: string; dir: string; server: ReturnType<typeof createServer> };
+  start(opts?: StartOptions): {
+    base: string;
+    dir: string;
+    server: ReturnType<typeof createServer>;
+  };
   /** For afterEach: stops every server and removes every directory. */
   cleanup(): void;
 }
@@ -66,7 +83,10 @@ export interface QueueHarness {
 /** `defaultStatus` is the spec's 4-status.md when a start names none. A
  *  suite that queues implement or archive through the run route starts
  *  from `IMPLEMENTED`: the route refuses a start out of order. */
-export function queueHarness(prefix: string, defaultStatus?: string): QueueHarness {
+export function queueHarness(
+  prefix: string,
+  defaultStatus?: string,
+): QueueHarness {
   const servers: { stop: () => void }[] = [];
   const dirs: string[] = [];
 
@@ -87,28 +107,58 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       dirs.push(dir);
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description, status);
-      if (liveState !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), liveState);
-      if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
+      if (liveState !== undefined)
+        writeFileSync(
+          join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"),
+          liveState,
+        );
+      if (analysis !== undefined)
+        writeFileSync(
+          join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
+          analysis,
+        );
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
-        writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
-        writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
+        writeFileSync(
+          join(root, "aide", "specs", folder, "1-description.md"),
+          `# ${folder}\n`,
+        );
+        writeFileSync(
+          join(root, "aide", "specs", folder, "4-status.md"),
+          status,
+        );
       }
       for (const name of alsoProjects) {
         project(root, name, "01-first", "# First - Description\n", status);
       }
       for (const [folder, spec] of Object.entries(archivedSpecs)) {
-        const archived = join(root, spec.project ?? "aide", "specs", "archive", folder);
+        const archived = join(
+          root,
+          spec.project ?? "aide",
+          "specs",
+          "archive",
+          folder,
+        );
         mkdirSync(archived, { recursive: true });
-        writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
+        writeFileSync(
+          join(archived, "1-description.md"),
+          spec.description ?? `# ${folder} - Description\n`,
+        );
         writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
-        if (spec.state !== undefined) writeFileSync(join(archived, "4-status.json"), spec.state);
-        if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
-        if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
+        if (spec.state !== undefined)
+          writeFileSync(join(archived, "4-status.json"), spec.state);
+        if (spec.analysis !== undefined)
+          writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
+        if (spec.solution !== undefined)
+          writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }
-      if (emptySpecs) rmSync(join(root, "aide", "specs", "81-queue-and-runner"), { recursive: true });
+      if (emptySpecs)
+        rmSync(join(root, "aide", "specs", "81-queue-and-runner"), {
+          recursive: true,
+        });
       // The queue as the last process left it: a board read back after a restart.
-      if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
+      if (queueMirror !== undefined)
+        writeFileSync(join(dir, "queue.json"), queueMirror);
       const server = createServer({
         port: 0,
         mirrorPath: join(dir, "runs.json"),
@@ -208,8 +258,13 @@ export function ran(
 }
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args[0]} failed: ${out.stderr.toString()}`);
 }
 
 /** A 4-status.md whose Tracking info says which workflow steps the spec
@@ -225,11 +280,20 @@ export const statusSaying = (steps: string[], rest = ""): string =>
 export const IMPLEMENTED = statusSaying(["create", "analyze", "implement"]);
 
 // One manifest and one spec: the least a project needs to be discovered.
-function project(root: string, name: string, specFolder: string, description: string, status: string): void {
+function project(
+  root: string,
+  name: string,
+  specFolder: string,
+  description: string,
+  status: string,
+): void {
   const dir = join(root, name);
   mkdirSync(join(dir, ".aide"), { recursive: true });
   writeFileSync(join(dir, ".aide", "project.yaml"), `name: ${name}\n`);
   mkdirSync(join(dir, "specs", specFolder), { recursive: true });
-  writeFileSync(join(dir, "specs", specFolder, "1-description.md"), description);
+  writeFileSync(
+    join(dir, "specs", specFolder, "1-description.md"),
+    description,
+  );
   writeFileSync(join(dir, "specs", specFolder, "4-status.md"), status);
 }

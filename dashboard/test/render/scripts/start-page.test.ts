@@ -9,8 +9,23 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "start-page.ts"), "utf-8"),
+const SOURCE = new Bun.Transpiler({
+  loader: "ts",
+  target: "browser",
+}).transformSync(
+  readFileSync(
+    join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "src",
+      "render",
+      "scripts",
+      "start-page.ts",
+    ),
+    "utf-8",
+  ),
 );
 
 interface Opts {
@@ -39,10 +54,16 @@ function run(opts: Opts = {}) {
   };
   const document = {
     querySelector: (selector: string) =>
-      selector.includes("aide-start") && opts.meta !== undefined ? { getAttribute: () => opts.meta } : null,
+      selector.includes("aide-start") && opts.meta !== undefined
+        ? { getAttribute: () => opts.meta }
+        : null,
   };
   const location = { replace: (to: string) => replaced.push(to) };
-  new Function("sessionStorage", "document", "location", SOURCE)(sessionStorage, document, location);
+  new Function("sessionStorage", "document", "location", SOURCE)(
+    sessionStorage,
+    document,
+    location,
+  );
   return { replaced, stored };
 }
 

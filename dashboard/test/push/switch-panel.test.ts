@@ -3,7 +3,14 @@
 // pressability each answer gives, and the order a press moves things in
 // `bindPushPanel` takes those objects as
 // its second argument, so no browser is involved.
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 
 let bindPushPanel: typeof import("../../src/specs-client/push.ts").bindPushPanel;
 let setSwitch: typeof import("../../src/specs-client/press.ts").setSwitch;
@@ -15,7 +22,8 @@ beforeAll(async () => {
   GlobalRegistrator.register();
   ({ bindPushPanel } = await import("../../src/specs-client/push.ts"));
   ({ setSwitch } = await import("../../src/specs-client/press.ts"));
-  ({ notificationsPanel } = await import("../../src/render/pages/settings-page/notifications.ts"));
+  ({ notificationsPanel } =
+    await import("../../src/render/pages/settings-page/notifications.ts"));
   ({ switchControl } = await import("../../src/render/ui/components"));
 });
 
@@ -26,7 +34,9 @@ afterAll(async () => {
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-type Deps = Parameters<typeof import("../../src/specs-client/push.ts").bindPushPanel>[1];
+type Deps = Parameters<
+  typeof import("../../src/specs-client/push.ts").bindPushPanel
+>[1];
 
 interface Fake {
   log: string[];
@@ -36,7 +46,12 @@ interface Fake {
   deps: NonNullable<Deps>;
 }
 
-function fake(o: { supported?: boolean; permission?: NotificationPermission; subscribed?: boolean; prompt?: NotificationPermission }): Fake {
+function fake(o: {
+  supported?: boolean;
+  permission?: NotificationPermission;
+  subscribed?: boolean;
+  prompt?: NotificationPermission;
+}): Fake {
   const log: string[] = [];
   let permission = o.permission ?? "default";
   let sub = o.subscribed ?? false;
@@ -52,8 +67,13 @@ function fake(o: { supported?: boolean; permission?: NotificationPermission; sub
   };
   return {
     log,
-    get subscribed() { return sub; },
-    async answer(ok) { settle?.({ ok }); await flush(); },
+    get subscribed() {
+      return sub;
+    },
+    async answer(ok) {
+      settle?.({ ok });
+      await flush();
+    },
     deps: {
       supported: o.supported ?? true,
       permission: () => permission,
@@ -74,7 +94,9 @@ function fake(o: { supported?: boolean; permission?: NotificationPermission; sub
       }),
       post: (path) => {
         log.push(`post ${path}`);
-        return new Promise((r) => { settle = r; });
+        return new Promise((r) => {
+          settle = r;
+        });
       },
     },
   } as Fake;
@@ -117,7 +139,9 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.checked()).toBe("false");
     expect(m.word()).toBe("Off");
     expect(m.sw.disabled).toBe(true);
-    expect(m.status.textContent).toStartWith("Notifications are blocked for this site");
+    expect(m.status.textContent).toStartWith(
+      "Notifications are blocked for this site",
+    );
   });
 
   test("no push support: off, unpressable and still drawn, and the sentence says the app is needed", async () => {
@@ -126,7 +150,9 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.checked()).toBe("false");
     expect(m.sw.disabled).toBe(true);
     expect(m.sw.hidden).toBe(false);
-    expect(m.status.textContent).toStartWith("Notifications need the installed app");
+    expect(m.status.textContent).toStartWith(
+      "Notifications need the installed app",
+    );
   });
 });
 
@@ -168,7 +194,9 @@ describe("a press moves the switch only once the answer is in", () => {
     await flush();
     expect(m.checked()).toBe("false");
     expect(m.sw.disabled).toBe(true);
-    expect(m.status.textContent).toStartWith("Notifications are blocked for this site");
+    expect(m.status.textContent).toStartWith(
+      "Notifications are blocked for this site",
+    );
   });
 
   test("a server that refuses the subscription leaves it off and pressable, with the try-again sentence", async () => {
@@ -180,13 +208,19 @@ describe("a press moves the switch only once the answer is in", () => {
     await f.answer(false);
     expect(m.checked()).toBe("false");
     expect(m.sw.disabled).toBe(false);
-    expect(m.status.textContent).toBe("Notifications could not be turned on. Try again.");
+    expect(m.status.textContent).toBe(
+      "Notifications could not be turned on. Try again.",
+    );
   });
 });
 
 describe("the switch is a component of its own", () => {
   test("setSwitch moves a switch drawn anywhere: position, word and pressability", () => {
-    document.body.innerHTML = switchControl({ label: "Anything", onWord: "Yes", offWord: "No" });
+    document.body.innerHTML = switchControl({
+      label: "Anything",
+      onWord: "Yes",
+      offWord: "No",
+    });
     const el = document.querySelector("button")!;
     setSwitch(el, { checked: true, disabled: true });
     expect(el.getAttribute("aria-checked")).toBe("true");

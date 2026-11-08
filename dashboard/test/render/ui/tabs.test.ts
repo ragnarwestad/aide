@@ -8,7 +8,8 @@ describe("tabBar() with a link function and a label function", () => {
   const TABS = ["log", "files", "errors"] as const;
   const html = tabBar(
     TABS,
-    (tab) => (tab === "errors" ? undefined : `/jobs/j1?tab=steps&step=0&steptab=${tab}`),
+    (tab) =>
+      tab === "errors" ? undefined : `/jobs/j1?tab=steps&step=0&steptab=${tab}`,
     "files",
     {},
     "",
@@ -16,8 +17,12 @@ describe("tabBar() with a link function and a label function", () => {
   );
 
   test("links each tab to the function's address, escaped once, and shows the label function's word", () => {
-    expect(html).toContain('href="/jobs/j1?tab=steps&amp;step=0&amp;steptab=log"');
-    expect(html).toContain('href="/jobs/j1?tab=steps&amp;step=0&amp;steptab=files"');
+    expect(html).toContain(
+      'href="/jobs/j1?tab=steps&amp;step=0&amp;steptab=log"',
+    );
+    expect(html).toContain(
+      'href="/jobs/j1?tab=steps&amp;step=0&amp;steptab=files"',
+    );
     expect(html).not.toContain("&amp;amp;");
     expect(html).toContain("&lt;log&gt;");
   });

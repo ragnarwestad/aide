@@ -5,7 +5,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import {
+  browserDeadline,
+  withBrowser,
+} from "../../helpers/browser-deadline.ts";
 import { queueHarness, statusSaying } from "../../helpers/queue-server.ts";
 import { recording } from "../../spec-page/spec-checks-fixtures.ts";
 
@@ -15,7 +18,10 @@ const DESCRIPTION =
   "# Queue - Description\n\n## Tracking info\n\n- **Created:** `2026-10-03 07:00 UTC`\n" +
   "- **Let me choose the approach:** yes\n\n---\n\n## Description\n\nText.\n";
 // Long enough above the leads that landing on one means scrolling to it.
-const FILLER = Array.from({ length: 60 }, (_, i) => `Paragraph ${i + 1} of the scope, before the approaches.`).join("\n\n");
+const FILLER = Array.from(
+  { length: 60 },
+  (_, i) => `Paragraph ${i + 1} of the scope, before the approaches.`,
+).join("\n\n");
 const SOLUTION =
   `# Queue - Solution\n\n## Scope\n\n${FILLER}\n\n## Approaches\n\n` +
   "**Approach A: Hold the chained implement (recommended).** a\n\n" +
@@ -29,11 +35,16 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
+async function waitUntil(
+  cond: () => Promise<boolean>,
+  ms: number,
+  label: string,
+): Promise<void> {
   const deadline = Date.now() + ms;
   for (;;) {
     if (await cond()) return;
-    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
+    if (Date.now() >= deadline)
+      throw new Error(`${label} did not happen within ${ms}ms`);
     await new Promise((r) => setTimeout(r, 50));
   }
 }
@@ -47,9 +58,15 @@ beforeAll(async () => {
     status: statusSaying(["create", "analyze"]),
   });
   base = started.base;
-  writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "3-solution.md"), SOLUTION);
+  writeFileSync(
+    join(started.dir, "root", "aide", "specs", FOLDER, "3-solution.md"),
+    SOLUTION,
+  );
   await waitUntil(
-    async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes('class="actionform approachform"'),
+    async () =>
+      (await (await fetch(`${base}/specs?live=0`)).text()).includes(
+        'class="actionform approachform"',
+      ),
     10_000,
     "the specs list to carry the approach warning",
   );
@@ -61,7 +78,8 @@ afterAll(async () => {
 });
 
 const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
-const radio = (letter: string) => notice().locator(`input[name="approach"][value="${letter}"]`);
+const radio = (letter: string) =>
+  notice().locator(`input[name="approach"][value="${letter}"]`);
 
 describe("the approach warning", () => {
   test("Cancel puts the recommended approach back", async () => {
@@ -81,7 +99,11 @@ describe("the approach warning", () => {
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     await notice().locator('a[href*="#approach-b"]').click();
     await page.waitForURL(/tab=solution#approach-b$/);
-    const lead = page.locator("strong:visible", { hasText: "Approach B: End the job after analyze" }).first();
+    const lead = page
+      .locator("strong:visible", {
+        hasText: "Approach B: End the job after analyze",
+      })
+      .first();
     await lead.waitFor();
     await waitUntil(
       async () =>

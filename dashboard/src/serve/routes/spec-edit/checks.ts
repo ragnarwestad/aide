@@ -3,7 +3,11 @@
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
 import { saveSpecFiles } from "../../../git/specs-pull.ts";
-import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import {
+  readStatusFromBranch,
+  resolveOpenBranchTarget,
+  writeStatusToBranch,
+} from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
 import { specFileText } from "../../../project/discover";
@@ -25,7 +29,16 @@ import {
 } from "../../../project/parse-status";
 import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
 import { STATUS_SPEC_FILE } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, refusal, tickMessage } from "../../serve-helpers";
+import {
+  ARCHIVED_REFUSAL,
+  MAX_SAVE_BODY,
+  bodyToObject,
+  json,
+  logRefusal,
+  readBounded,
+  refusal,
+  tickMessage,
+} from "../../serve-helpers";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
@@ -36,9 +49,12 @@ export async function checkRoutes(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  const tick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/);
+  const tick = path.match(
+    /^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/,
+  );
   if (tick) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = tick;
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
@@ -47,10 +63,12 @@ export async function checkRoutes(
     // it has no file-level base sha to send (see `statusBaseSha` below).
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
-    const refuse = (error: string, solution?: string): Response => refusal({ error, solution }, { spec }, 409);
+    const refuse = (error: string, solution?: string): Response =>
+      refusal({ error, solution }, { spec }, 409);
     /** `changed` is false for a press that committed nothing, so the page
      *  can say so instead of loading again. */
-    const succeed = (note: string, changed: boolean): Response => json({ ok: true, note, changed });
+    const succeed = (note: string, changed: boolean): Response =>
+      json({ ok: true, note, changed });
     // Before the body is even read: this one WRITES, commits and
     // pushes, and an archived spec's folder is in `archive/`. Hiding
     // the boxes leaves this route reachable for anyone who already
@@ -71,11 +89,17 @@ export async function checkRoutes(
     // the Acceptance criteria are not all ticked yet") is queued, so
     // refusing on `queued` made the tick and the hold-back wait for
     // each other.
-    const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder && specWriteInFlight(job),
-    );
+    const activeJob = ctx.queue
+      .list()
+      .some(
+        (job) =>
+          job.project === project &&
+          job.specFolder === specFolder &&
+          specWriteInFlight(job),
+      );
     if (activeJob) {
-      const reason = "another job for this spec is still running — nothing was saved";
+      const reason =
+        "another job for this spec is still running — nothing was saved";
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(reason);
     }
@@ -83,7 +107,11 @@ export async function checkRoutes(
     if ("refusal" in sent) return sent.refusal;
     let body: Record<string, unknown> = {};
     try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      if (sent.text)
+        body = bodyToObject(
+          sent.text,
+          req.headers.get("content-type"),
+        ) as Record<string, unknown>;
     } catch {
       return json({ error: "malformed body" }, 400);
     }
@@ -96,7 +124,9 @@ export async function checkRoutes(
     // and every box clear is a legitimate press rather than an empty
     // one. That is what makes a mis-click correctable here instead of by
     // hand in `4-status.md`.
-    const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
+    const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter(
+      (v): v is string => typeof v === "string",
+    );
     // Every row the form DREW, ticked or not, as its own hidden field.
     // It is what scopes the press: only these rows are decided by it, so
     // a request that carries none changes nothing rather than clearing
@@ -104,14 +134,18 @@ export async function checkRoutes(
     // left alone instead of being answered for by a reader who never
     // saw it.
     // The second box: rows whose Not verified box was left checked.
-    const unverifieds = (Array.isArray(body.unverified) ? body.unverified : [body.unverified]).filter(
+    const unverifieds = (
+      Array.isArray(body.unverified) ? body.unverified : [body.unverified]
+    ).filter((v): v is string => typeof v === "string");
+    const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter(
       (v): v is string => typeof v === "string",
     );
-    const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
     // The archived form's third choice: rows marked Failed, and the note for
     // the n-th drawn row, in the order the rows were drawn.
     const failedLines = new Set(
-      (Array.isArray(body.failed) ? body.failed : [body.failed]).filter((v): v is string => typeof v === "string"),
+      (Array.isArray(body.failed) ? body.failed : [body.failed]).filter(
+        (v): v is string => typeof v === "string",
+      ),
     );
     const failNote = (line: string): string => {
       const at = drawn.indexOf(line);
@@ -132,7 +166,15 @@ export async function checkRoutes(
     // hit (see 3-solution.md's Plan review, Coherence's must-fix).
     // An archived spec's own branch has landed already — its folder sits under
     // `archive/` on the default branch — so there is no branch to ask about.
-    const branchTarget = archived ? null : await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, true);
+    const branchTarget = archived
+      ? null
+      : await resolveOpenBranchTarget(
+          ctx,
+          dir,
+          specFolder!,
+          STATUS_SPEC_FILE,
+          true,
+        );
     // The row-level guard, on top of the file-level `baseSha` one
     // below. A `null` is every way the page can be out of date at
     // once: no such phase, no such row inside it, or a row someone
@@ -148,9 +190,16 @@ export async function checkRoutes(
     // a tick never reflows the table, so every other row's text is
     // still what it was.
     const branchRead = branchTarget
-      ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
+      ? await readStatusFromBranch(
+          ctx.gitRun,
+          branchTarget.root,
+          branchTarget.branch,
+          branchTarget.relPath,
+        )
       : null;
-    let ticked = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
+    let ticked = branchTarget
+      ? (branchRead?.text ?? "")
+      : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
     // What the file says now, so the press can be read as a state rather
     // than as a list: a row the reader left ticked that is already done
     // needs nothing, and a row that is done and no longer ticked is a
@@ -166,11 +215,16 @@ export async function checkRoutes(
     const unverified = new Set(unverifieds);
     // An archived spec answers for every row the request names, drawn or not:
     // a post that names a box it never drew is not a press of its form.
-    for (const line of archived ? new Set([...drawn, ...ticks, ...failedLines]) : drawn) {
+    for (const line of archived
+      ? new Set([...drawn, ...ticks, ...failedLines])
+      : drawn) {
       const current = state.get(line);
       // A Failed row is never drawn as a box: it leaves that state through Reopen.
       if (current === undefined || current === "failed") {
-        return refuse("that check is not there to change any more", "reload the page and look again");
+        return refuse(
+          "that check is not there to change any more",
+          "reload the page and look again",
+        );
       }
       // An archived spec is the record of what was judged: a check that was
       // put off may still be completed or marked Failed, and nothing else
@@ -192,10 +246,15 @@ export async function checkRoutes(
       if (target === "failed") {
         const note = failNote(line);
         if (!cleanFailNote(note)) {
-          return refuse("say what did not hold before marking a check Failed — nothing was saved");
+          return refuse(
+            "say what did not hold before marking a check Failed — nothing was saved",
+          );
         }
         if (failNoteTooLong(note)) {
-          return refuse(`the note is over ${FAIL_NOTE_MAX} characters, so nothing was saved`, "shorten it and press Save again");
+          return refuse(
+            `the note is over ${FAIL_NOTE_MAX} characters, so nothing was saved`,
+            "shorten it and press Save again",
+          );
         }
       }
       const next =
@@ -204,20 +263,29 @@ export async function checkRoutes(
           : target === "open"
             ? untickStatusLine(ticked, body.checksPhase, line)
             : target === "failed"
-              ? markFailedStatusLine(ticked, body.checksPhase, line, failNote(line))
+              ? markFailedStatusLine(
+                  ticked,
+                  body.checksPhase,
+                  line,
+                  failNote(line),
+                )
               : markNotVerifiedStatusLine(ticked, body.checksPhase, line);
       // One row that is not there refuses the WHOLE press, the boxes
       // beside it included — never applied silently while one of them
       // is dropped.
       if (next === null) {
-        return refuse("that check is not there to change any more", "reload the page and look again");
+        return refuse(
+          "that check is not there to change any more",
+          "reload the page and look again",
+        );
       }
       ticked = next;
     }
     // A press that moved nothing: the reader opened the tab, pressed
     // Save and changed their mind about nothing. Not a refusal, and not
     // a commit either.
-    if (ticked === asRead) return succeed("no check was changed — nothing was saved", false);
+    if (ticked === asRead)
+      return succeed("no check was changed — nothing was saved", false);
     // The hold-back note goes with the last check it was
     // waiting on. A declined archive run writes `## Archive held
     // back` naming one open row and where to close it out; ticking
@@ -249,7 +317,11 @@ export async function checkRoutes(
     // never a second, TypeScript-side computation of the derived state.
     // Refuses rather than ticking with a state file that would fall out
     // of step with what was just ticked.
-    const derived = await runAideWriteSpec(specFolder!, STATUS_SPEC_FILE, ticked);
+    const derived = await runAideWriteSpec(
+      specFolder!,
+      STATUS_SPEC_FILE,
+      ticked,
+    );
     if (!derived.ok || !derived.stateJson) {
       const reason = derived.error ?? "the state file could not be derived";
       logRefusal("tick", `${project}/${specFolder}`, reason);
@@ -257,9 +329,13 @@ export async function checkRoutes(
     }
     // A state derived by scripts older than this dashboard has no flag, and
     // would hold archive back on a row the reader has just marked.
-    const derivedRows = parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
+    const derivedRows =
+      parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
     const written = parseStatusChecks(ticked);
-    if (notVerifiedCount(derivedRows) < notVerifiedCount(written) || failedCount(derivedRows) < failedCount(written)) {
+    if (
+      notVerifiedCount(derivedRows) < notVerifiedCount(written) ||
+      failedCount(derivedRows) < failedCount(written)
+    ) {
       const reason = "the installed scripts are older than the dashboard";
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(`${reason} — nothing was saved`);
@@ -280,7 +356,10 @@ export async function checkRoutes(
             branchTarget.branch,
             [
               { relPath: branchTarget.relPath, text: ticked },
-              { relPath: stateRelPath(branchTarget.relPath), text: derived.stateJson! },
+              {
+                relPath: stateRelPath(branchTarget.relPath),
+                text: derived.stateJson!,
+              },
             ],
             statusBaseSha,
             tickMessage(specFolder!),
@@ -293,7 +372,11 @@ export async function checkRoutes(
             (root) => ctx.branchStatus.defaultBranch(root),
             [
               { file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha },
-              { file: STATE_SPEC_FILE, text: derived.stateJson!, baseSha: currentState?.sha ?? null },
+              {
+                file: STATE_SPEC_FILE,
+                text: derived.stateJson!,
+                baseSha: currentState?.sha ?? null,
+              },
             ],
             { specLabel: specFolder!, message: tickMessage(specFolder!) },
           ),
@@ -303,7 +386,10 @@ export async function checkRoutes(
       return refuse(result.note);
     }
     await afterTick(ctx, dir, specFolder!);
-    return succeed(result.note, (result as { committed?: boolean }).committed !== false);
+    return succeed(
+      result.note,
+      (result as { committed?: boolean }).committed !== false,
+    );
   }
 
   return null;
@@ -313,7 +399,11 @@ export async function checkRoutes(
  *  checked is a browser without script leaving the old box checked beside a
  *  newly checked one: the box just checked wins, so a done row becomes Not
  *  verified and any other row becomes done. */
-function wantedState(tick: boolean, unverified: boolean, current: CheckState): Exclude<CheckState, "failed"> {
+function wantedState(
+  tick: boolean,
+  unverified: boolean,
+  current: CheckState,
+): Exclude<CheckState, "failed"> {
   if (tick && unverified) return current === "done" ? "notVerified" : "done";
   return tick ? "done" : unverified ? "notVerified" : "open";
 }
@@ -326,7 +416,10 @@ function wantedState(tick: boolean, unverified: boolean, current: CheckState): E
  *  what the reader had just saved. So it is read again before the reader
  *  is sent back, and the list's own scan, which copied it, is dropped. */
 export async function afterTick(
-  ctx: Pick<RoutesContext, "forgetBranchFileSteps" | "rereadSpec" | "invalidateScan">,
+  ctx: Pick<
+    RoutesContext,
+    "forgetBranchFileSteps" | "rereadSpec" | "invalidateScan"
+  >,
   dir: string,
   specFolder: string,
 ): Promise<void> {

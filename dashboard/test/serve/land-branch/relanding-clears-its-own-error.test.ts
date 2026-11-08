@@ -15,7 +15,11 @@ import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
 
 const failedAt = (step: string) => ({
-  landingError: { key: "landing.stepFailed", values: { step }, inner: { key: "landing.createAssignNumberFailed" } },
+  landingError: {
+    key: "landing.stepFailed",
+    values: { step },
+    inner: { key: "landing.createAssignNumberFailed" },
+  },
   landingErrorDetail: "aide-create-spec: no readable answer",
 });
 
@@ -24,14 +28,23 @@ async function landAnalyzeWhile(current: Record<string, unknown>) {
   const { ctx } = landCtx(landingGit().run, {
     queue: {
       get: () => ({ ...JOB, ...current }),
-      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
-      transition: (_id: string, event: string, patch?: Record<string, unknown>) => {
+      update: (_id: string, patch: Record<string, unknown>) =>
+        void updates.push(patch),
+      transition: (
+        _id: string,
+        event: string,
+        patch?: Record<string, unknown>,
+      ) => {
         updates.push({ event, ...(patch ?? {}) });
         return { ok: true };
       },
       branchesFor: () => [],
     },
-    branchStatus: { defaultBranch: async () => "master", invalidate: () => {}, forgetOpenSpecBranch: () => {} },
+    branchStatus: {
+      defaultBranch: async () => "master",
+      invalidate: () => {},
+      forgetOpenSpecBranch: () => {},
+    },
   });
   const here = mkdtempSync(join(tmpdir(), "aide-relanding-"));
   await landBranch(
@@ -41,7 +54,10 @@ async function landAnalyzeWhile(current: Record<string, unknown>) {
     {
       step: "analyze" as const,
       repos: [{ root: here, url: "" }],
-      failedNote: (why: string) => ({ key: "landing.analyzeLandingFailed" as const, values: { why } }),
+      failedNote: (why: string) => ({
+        key: "landing.analyzeLandingFailed" as const,
+        values: { why },
+      }),
     } as unknown as Parameters<typeof landBranch>[3],
   );
   return updates.find((u) => "branchUrls" in u)!;

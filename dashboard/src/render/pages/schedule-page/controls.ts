@@ -15,7 +15,11 @@ const entryApi = (project: string, name: string): string =>
   `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(name)}`;
 
 /** The three cells, in order: Enabled, Run now, Delete. */
-export function scheduleControlCells(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
+export function scheduleControlCells(
+  project: string,
+  entry: ScheduleEntry,
+  lang: Language = "en",
+): string {
   return (
     `<td>${enabledBox(project, entry, lang)}</td>` +
     `<td>${runNowForm(project, entry.name, lang)}</td>` +
@@ -27,7 +31,11 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
 // `postTailStep`'s own tail-step chip has and for the same reason: it
 // does nothing without script, and flips the flag immediately — no
 // confirm — the instant it does (`schedule-actions.ts`).
-export function enabledBox(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
+export function enabledBox(
+  project: string,
+  entry: ScheduleEntry,
+  lang: Language = "en",
+): string {
   return (
     `<input type="checkbox" class="scheduleenabled"${entry.enabled ? " checked" : ""} ` +
     `aria-label="${esc(t(lang, "schedule.enabledAria", { name: entry.name }))}" data-post-to="${esc(`${entryApi(project, entry.name)}/enabled`)}">`
@@ -36,11 +44,18 @@ export function enabledBox(project: string, entry: ScheduleEntry, lang: Language
 
 /** The page's ordinary button: this is the entry's action, and it
  *  stands beside Delete. */
-export function runNowForm(project: string, name: string, lang: Language = "en"): string {
+export function runNowForm(
+  project: string,
+  name: string,
+  lang: Language = "en",
+): string {
   return buttonForm({
     action: `${entryApi(project, name)}/run`,
     hook: "actionform schedulerun",
-    button: { label: t(lang, "schedule.runNow"), pending: t(lang, "schedule.running") },
+    button: {
+      label: t(lang, "schedule.runNow"),
+      pending: t(lang, "schedule.running"),
+    },
   });
 }
 
@@ -60,12 +75,18 @@ export function runNowForm(project: string, name: string, lang: Language = "en")
 // answers under it. It asked for the entry's exact name, typed back,
 // until 2026-09-08.
 export function deleteControl(
-  project: string, name: string, o: { done?: string } = {}, lang: Language = "en",
+  project: string,
+  name: string,
+  o: { done?: string } = {},
+  lang: Language = "en",
 ): string {
   const id = `deleteask-${project}/${name}`;
   return (
     askButton({
-      label: t(lang, "schedule.delete"), dialogId: id, variant: "danger", ariaLabel: t(lang, "schedule.deleteAria", { name }),
+      label: t(lang, "schedule.delete"),
+      dialogId: id,
+      variant: "danger",
+      ariaLabel: t(lang, "schedule.deleteAria", { name }),
     }) +
     // The dialog's own heading asks the question: the press is the
     // whole of "yes".
@@ -77,7 +98,10 @@ export function deleteControl(
       post: {
         action: `${entryApi(project, name)}/delete`,
         hook: "reloadform",
-        data: { line: SCHEDULE_REFUSED_LINE, ...(o.done ? { done: o.done } : {}) },
+        data: {
+          line: SCHEDULE_REFUSED_LINE,
+          ...(o.done ? { done: o.done } : {}),
+        },
       },
     })
   );

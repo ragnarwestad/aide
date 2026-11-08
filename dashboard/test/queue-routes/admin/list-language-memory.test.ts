@@ -26,7 +26,9 @@ describe("the language the reader chose is remembered", () => {
     const { base } = start();
     const chosen = await fetch(`${base}/specs?lang=nb`);
     const jar = langCookie(chosen).split(";")[0]!;
-    const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
+    const plain = await fetch(`${base}/specs`, {
+      headers: { cookie: `${jar}` },
+    });
     expect(await plain.text()).toContain('<html lang="nb">');
   });
 
@@ -55,5 +57,4 @@ describe("the language the reader chose is remembered", () => {
     });
     expect(await projects.text()).toContain('<html lang="nb">');
   });
-
 });

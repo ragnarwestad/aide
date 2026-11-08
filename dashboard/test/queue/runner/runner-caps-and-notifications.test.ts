@@ -3,7 +3,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { dir, events, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import {
+  dir,
+  events,
+  spawns,
+  store,
+  enqueue,
+  makeRunner,
+  okResult,
+  resetHarness,
+  cleanupHarness,
+} from "./runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -14,7 +24,13 @@ afterEach(cleanupHarness);
 describe("a step's token usage", () => {
   const withTokens = (cost: number, total: number) => ({
     ...okResult(cost),
-    tokens: { input: 10, output: 90, cacheRead: 500, cacheCreation: 400, total },
+    tokens: {
+      input: 10,
+      output: 90,
+      cacheRead: 500,
+      cacheCreation: 400,
+      total,
+    },
   });
 
   test("a result carrying tokens records them on the step", () => {
@@ -23,7 +39,11 @@ describe("a step's token usage", () => {
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.results[0]?.tokens).toEqual({
-      input: 10, output: 90, cacheRead: 500, cacheCreation: 400, total: 1000,
+      input: 10,
+      output: 90,
+      cacheRead: 500,
+      cacheCreation: 400,
+      total: 1000,
     });
   });
 
@@ -62,20 +82,35 @@ describe("a step's token usage", () => {
 describe("a step's context use", () => {
   const stored = (context: unknown) => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), context }) });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), context }),
+    });
     runner.tick();
     runner.poll();
     return store.get(job.id)?.results[0]?.context;
   };
 
   test("a result carrying context records it on the step", () => {
-    const context = { fullest: 312600, beforeChecks: 185000, window: 1000000, fullestPercent: 31, beforeChecksPercent: 19 };
+    const context = {
+      fullest: 312600,
+      beforeChecks: 185000,
+      window: 1000000,
+      fullestPercent: 31,
+      beforeChecksPercent: 19,
+    };
     expect(stored(context)).toEqual(context);
   });
 
   test("a part that is not a number is dropped, the rest kept", () => {
-    expect(stored({ fullest: 120000, beforeChecks: "lots", window: -5, fullestPercent: null, beforeChecksPercent: 12 }))
-      .toEqual({ fullest: 120000, beforeChecksPercent: 12 });
+    expect(
+      stored({
+        fullest: 120000,
+        beforeChecks: "lots",
+        window: -5,
+        fullestPercent: null,
+        beforeChecksPercent: 12,
+      }),
+    ).toEqual({ fullest: 120000, beforeChecksPercent: 12 });
   });
 
   test("a result with no usable context leaves the step's undefined", () => {
@@ -89,13 +124,24 @@ describe("a step's context use", () => {
 // own. Another process's JSON: a part that is malformed is dropped alone.
 describe("a step's review and verification", () => {
   const review = {
-    outcome: "completed", tool: "claude" as const, durationSec: 41, costUsd: 0.05,
-    tokens: { input: 30, output: 700, cacheRead: 4000, cacheCreation: 200, total: 4930 },
+    outcome: "completed",
+    tool: "claude" as const,
+    durationSec: 41,
+    costUsd: 0.05,
+    tokens: {
+      input: 30,
+      output: 700,
+      cacheRead: 4000,
+      cacheCreation: 200,
+      total: 4930,
+    },
     transcript: { from: 18234, to: 24410 },
   };
   const stored = (extra: Record<string, unknown>) => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ...extra }) });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), ...extra }),
+    });
     runner.tick();
     runner.poll();
     return store.get(job.id)?.results[0];
@@ -110,13 +156,24 @@ describe("a step's review and verification", () => {
 
   test("a part that is malformed is dropped, the rest kept (AC-7)", () => {
     const result = stored({
-      review: { ...review, tokens: { input: 1 }, transcript: { from: 90, to: 10 }, durationSec: -3 },
+      review: {
+        ...review,
+        tokens: { input: 1 },
+        transcript: { from: 90, to: 10 },
+        durationSec: -3,
+      },
     });
-    expect(result?.review).toEqual({ outcome: "completed", tool: "claude", costUsd: 0.05 });
+    expect(result?.review).toEqual({
+      outcome: "completed",
+      tool: "claude",
+      costUsd: 0.05,
+    });
   });
 
   test("a review with no outcome is dropped whole (AC-7)", () => {
-    expect(stored({ review: { ...review, outcome: undefined } })?.review).toBeUndefined();
+    expect(
+      stored({ review: { ...review, outcome: undefined } })?.review,
+    ).toBeUndefined();
   });
 
   test("a result with neither stores neither (AC-6)", () => {
@@ -131,7 +188,9 @@ describe("a step's review and verification", () => {
 describe("a step's model id", () => {
   const stored = (modelId: unknown) => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), modelId }) });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), modelId }),
+    });
     runner.tick();
     runner.poll();
     return store.get(job.id)?.results[0]?.modelId;
@@ -141,12 +200,14 @@ describe("a step's model id", () => {
     expect(stored("claude-opus-5-5")).toBe("claude-opus-5-5");
   });
 
-  test.each([["missing", undefined], ["empty", ""], ["a number", 5], ["a list", ["x"]]])(
-    "a model id that is %s leaves the step's undefined",
-    (_name, value) => {
-      expect(stored(value)).toBeUndefined();
-    },
-  );
+  test.each([
+    ["missing", undefined],
+    ["empty", ""],
+    ["a number", 5],
+    ["a list", ["x"]],
+  ])("a model id that is %s leaves the step's undefined", (_name, value) => {
+    expect(stored(value)).toBeUndefined();
+  });
 });
 
 // The usage limit that stopped a step, as the tool reported it. Another
@@ -164,8 +225,16 @@ describe("a step's provider limit", () => {
   test("a result carrying one records it on the step", () => {
     const job = enqueue();
     const limit = {
-      tool: "codex", window: "five_hour", resetsAt: "2026-09-17T10:10:00Z",
-      windows: [{ name: "five_hour", usedPercent: 100, resetsAt: "2026-09-17T10:10:00Z" }],
+      tool: "codex",
+      window: "five_hour",
+      resetsAt: "2026-09-17T10:10:00Z",
+      windows: [
+        {
+          name: "five_hour",
+          usedPercent: 100,
+          resetsAt: "2026-09-17T10:10:00Z",
+        },
+      ],
       plan: "plus",
     };
     const runner = makeRunner({ readResult: () => stopped(limit) });
@@ -177,16 +246,27 @@ describe("a step's provider limit", () => {
   test("a malformed window is dropped, the rest kept", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => stopped({ tool: "claude", window: "seven_day", windows: [{ name: "seven_day" }, "junk"], plan: 3 }),
+      readResult: () =>
+        stopped({
+          tool: "claude",
+          window: "seven_day",
+          windows: [{ name: "seven_day" }, "junk"],
+          plan: 3,
+        }),
     });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.results[0]?.providerLimit).toEqual({ tool: "claude", window: "seven_day" });
+    expect(store.get(job.id)?.results[0]?.providerLimit).toEqual({
+      tool: "claude",
+      window: "seven_day",
+    });
   });
 
   test("one with no window is no limit at all", () => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => stopped({ tool: "claude" }) });
+    const runner = makeRunner({
+      readResult: () => stopped({ tool: "claude" }),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.results[0]?.providerLimit).toBeUndefined();
@@ -200,16 +280,25 @@ describe("a usage-limit stop records when the step starts again", () => {
     ...okResult(1),
     ok: false,
     terminalReason: "provider-limit",
-    providerLimit: { tool: "claude", window: "five_hour", ...(resetsAt ? { resetsAt } : {}) },
+    providerLimit: {
+      tool: "claude",
+      window: "five_hour",
+      ...(resetsAt ? { resetsAt } : {}),
+    },
   });
 
   test("a reset time later than the stop is the wait (AC-2)", () => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => limited("2026-08-16T14:00:00Z") });
+    const runner = makeRunner({
+      readResult: () => limited("2026-08-16T14:00:00Z"),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.state).toBe("stopped");
-    expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T14:00:00.000Z", resetKnown: true });
+    expect(store.get(job.id)?.usageLimitWait).toEqual({
+      until: "2026-08-16T14:00:00.000Z",
+      resetKnown: true,
+    });
   });
 
   test("no reset time is one hour after the stop (AC-2)", () => {
@@ -217,12 +306,21 @@ describe("a usage-limit stop records when the step starts again", () => {
     const runner = makeRunner({ readResult: () => limited() });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T11:00:00.000Z", resetKnown: false });
+    expect(store.get(job.id)?.usageLimitWait).toEqual({
+      until: "2026-08-16T11:00:00.000Z",
+      resetKnown: false,
+    });
   });
 
   test("a stop for another reason records no wait (AC-2)", () => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "timeout" }) });
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(1),
+        ok: false,
+        terminalReason: "timeout",
+      }),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.state).toBe("stopped");
@@ -257,7 +355,8 @@ describe("reconciliation after a restart", () => {
     writeFileSync(join(dir, `${job.id}.json`), JSON.stringify(okResult(2)));
     const runner = makeRunner({
       alive: () => false,
-      readResult: (path) => JSON.parse(require("node:fs").readFileSync(path, "utf-8")),
+      readResult: (path) =>
+        JSON.parse(require("node:fs").readFileSync(path, "utf-8")),
     });
     runner.reconcile();
     const after = store.get(job.id)!;
@@ -275,7 +374,10 @@ describe("reconciliation after a restart", () => {
     // this step was running..." sentence is drawn from this `error`
     // field, which this test used to leave unasserted.
     // The message names the row's own button: the phase this job was on.
-    expect(store.get(job.id)?.error).toEqual({ key: "runner.serverRestarted", values: { button: "Analyze" } });
+    expect(store.get(job.id)?.error).toEqual({
+      key: "runner.serverRestarted",
+      values: { button: "Analyze" },
+    });
   });
 });
 
@@ -300,7 +402,10 @@ describe("notifications", () => {
   test("a finished job notifies once, with the branch to look at", () => {
     enqueue({ steps: ["analyze"] });
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(1), branchUrl: "https://example.test/compare" }),
+      readResult: () => ({
+        ...okResult(1),
+        branchUrl: "https://example.test/compare",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -311,7 +416,11 @@ describe("notifications", () => {
   test("a stop notifies with its reason — the 02:00 case", () => {
     enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "timeout" }),
+      readResult: () => ({
+        ...okResult(3),
+        ok: false,
+        terminalReason: "timeout",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -322,7 +431,12 @@ describe("notifications", () => {
   test("a failure notifies too", () => {
     enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "refused", error: "the tree is dirty" }),
+      readResult: () => ({
+        ...okResult(0),
+        ok: false,
+        terminalReason: "refused",
+        error: "the tree is dirty",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -333,7 +447,11 @@ describe("notifications", () => {
   test("a failure the board words notifies with the board's sentence in English, not the bare ending (AC-2)", () => {
     enqueue({ steps: ["implement"] });
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "no-progress" }),
+      readResult: () => ({
+        ...okResult(0),
+        ok: false,
+        terminalReason: "no-progress",
+      }),
     });
     runner.tick();
     runner.poll();

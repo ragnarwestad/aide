@@ -9,7 +9,13 @@ import { rmSync } from "node:fs";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
 import {
-  INSTALLS, behindBy, harness, loadUntil, ownDirs, projectsRoot, serve,
+  INSTALLS,
+  behindBy,
+  harness,
+  loadUntil,
+  ownDirs,
+  projectsRoot,
+  serve,
 } from "../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
@@ -27,7 +33,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 /** Escape twice and a click in the page's corner, outside the cover. */
@@ -43,14 +50,19 @@ describe("a press that asks first covers the page while it is sent", () => {
     const page = await browser.newPage();
     await page.route(
       (u) => u.pathname.endsWith("/remove"),
-      (route) => (route.request().method() === "POST" ? new Promise<void>(() => {}) : route.continue()),
+      (route) =>
+        route.request().method() === "POST"
+          ? new Promise<void>(() => {})
+          : route.continue(),
     );
     await page.goto(`${base}/projects?live=0`);
     await page.locator('button[data-ask="removeask-aide"]').click();
     const ask = page.locator('dialog[id="removeask-aide"]');
     await ask.getByRole("button", { name: "OK" }).click();
     const cover = page.locator("dialog.pageoverlay");
-    await cover.getByText("Removing…").waitFor({ state: "visible", timeout: 5000 });
+    await cover
+      .getByText("Removing…")
+      .waitFor({ state: "visible", timeout: 5000 });
     expect(await ask.isVisible()).toBe(false);
     await tryToClose(page);
     expect(await cover.isVisible()).toBe(true);

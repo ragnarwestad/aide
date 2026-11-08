@@ -16,7 +16,6 @@
 
 This guide is for you who want to **contribute to or further develop** Aide.
 
-
 ## Tools you need
 
 Using Aide needs what each installer's own INSTALL.md lists. Developing it
@@ -202,4 +201,4 @@ cd core/implementations/claude-code && ./uninstall.sh
 
 - **Aide:** `.claude/CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
 - **The AI installations are global** and apply to all your projects
-- **aide-* skills:** Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts
+- _*aide-* skills:_* Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts

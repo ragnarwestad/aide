@@ -15,7 +15,11 @@
 
 import { realPathOrOriginal as resolved } from "../../git/real-path.ts";
 import { join } from "node:path";
-import { TEST_SERVER_PORTS, MAIN_TEST_SERVER_KEY, type TestServersContext } from "./lifecycle.ts";
+import {
+  TEST_SERVER_PORTS,
+  MAIN_TEST_SERVER_KEY,
+  type TestServersContext,
+} from "./lifecycle.ts";
 import type { TestServer } from "./store.ts";
 
 /** One worktree of a project's checkout, as `git worktree list
@@ -42,7 +46,14 @@ export function parseWorktrees(porcelain: string): WorktreeLine[] {
       continue;
     }
     if (line.startsWith("branch ") && path) {
-      out.push({ path, branch: line.slice("branch ".length).trim().replace(/^refs\/heads\//, ""), commit });
+      out.push({
+        path,
+        branch: line
+          .slice("branch ".length)
+          .trim()
+          .replace(/^refs\/heads\//, ""),
+        commit,
+      });
       path = undefined;
     }
     // A detached worktree has no branch line; `""` is what says so. The
@@ -83,7 +94,10 @@ function isRoundWorktree(wt: WorktreeLine): boolean {
  *  is checked out there, and the branch says which spec. A port held by
  *  something that is not a test server matches no worktree and is left
  *  alone. */
-export async function recoverTestServers(ctx: TestServersContext, projects: string[]): Promise<TestServer[]> {
+export async function recoverTestServers(
+  ctx: TestServersContext,
+  projects: string[],
+): Promise<TestServer[]> {
   const known = new Map<string, { project: string } & WorktreeLine>();
   // What each project's serving checkout has checked out: the branch a
   // detached round worktree was cut from, and so the branch the main
@@ -96,10 +110,18 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
     // a board still running on a project that has since left `command`
     // is found all the same.
     if (!ctx.startCommand(project, { branch: "x", port: 0 })) continue;
-    const listed = await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "list", "--porcelain"]);
+    const listed = await ctx.gitRun(ctx.aideCheckout(project), [
+      "worktree",
+      "list",
+      "--porcelain",
+    ]);
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
-      if (resolved(wt.path) === resolved(ctx.aideCheckout(project)) && wt.branch) checkedOut.set(project, wt.branch);
+      if (
+        resolved(wt.path) === resolved(ctx.aideCheckout(project)) &&
+        wt.branch
+      )
+        checkedOut.set(project, wt.branch);
       // The round's own shape, and nothing else. A project with none of
       // those has no test server running, and the ports are not worth
       // asking about.
@@ -173,7 +195,9 @@ export async function sweepDeadTestServers(
   ctx: TestServersContext,
   projects: string[],
 ): Promise<string[]> {
-  const live = new Set(ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))));
+  const live = new Set(
+    ctx.store.all().map((e) => resolved(join(e.workDir, "checkout"))),
+  );
   const removed: string[] = [];
   for (const project of projects) {
     if (!ctx.startCommand(project, { branch: "x", port: 0 })) continue;
@@ -182,12 +206,18 @@ export async function sweepDeadTestServers(
     if (listed.code !== 0) continue;
     for (const wt of parseWorktrees(listed.stdout)) {
       if (!isRoundWorktree(wt) || live.has(resolved(wt.path))) continue;
-      const gone = await ctx.gitRun(root, ["worktree", "remove", "--force", wt.path]);
+      const gone = await ctx.gitRun(root, [
+        "worktree",
+        "remove",
+        "--force",
+        wt.path,
+      ]);
       if (gone.code === 0) removed.push(wt.path);
     }
   }
   if (removed.length) {
-    for (const project of projects) await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "prune"]);
+    for (const project of projects)
+      await ctx.gitRun(ctx.aideCheckout(project), ["worktree", "prune"]);
   }
   return removed;
 }

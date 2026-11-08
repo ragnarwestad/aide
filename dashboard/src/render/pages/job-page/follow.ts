@@ -21,15 +21,23 @@ export function followMarker(
   o: { tab: string; step?: string; runningIndex?: number },
 ): string {
   if (!inFlight(job)) return "";
-  const open = o.tab === "steps" && o.runningIndex !== undefined && resolveOpenStep(o.step, o.runningIndex) === String(o.runningIndex);
+  const open =
+    o.tab === "steps" &&
+    o.runningIndex !== undefined &&
+    resolveOpenStep(o.step, o.runningIndex) === String(o.runningIndex);
   const attrs =
     ` data-tab="${o.tab}"` +
     (o.runningIndex !== undefined ? ` data-running="${o.runningIndex}"` : "") +
-    (open ? ` data-phases="${job.steps.map((s) => phaseKey(job.project, job.specFolder, s)).join(",")}"` : "");
+    (open
+      ? ` data-phases="${job.steps.map((s) => phaseKey(job.project, job.specFolder, s)).join(",")}"`
+      : "");
   return `<span hidden data-follow${attrs}></span>`;
 }
 
 /** A part the page script swaps by itself, and that draws no box of its own
  *  (`display: contents`). A `<span>` where the part sits in a line. */
-export const followPart = (name: "head" | "panel", html: string, tag: "div" | "span" = "div"): string =>
-  `<${tag} data-follow-part="${name}">${html}</${tag}>`;
+export const followPart = (
+  name: "head" | "panel",
+  html: string,
+  tag: "div" | "span" = "div",
+): string => `<${tag} data-follow-part="${name}">${html}</${tag}>`;

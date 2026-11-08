@@ -28,18 +28,19 @@
 
 **Playwright & Chrome DevTools MCP Servers**
 
-
 ## Overview
 
 These MCP servers let Codex interact with the browser for testing and debugging.
 
 **Playwright MCP:**
+
 - Browser automation (navigate, click, fill out forms)
 - Generate E2E tests
 - Accessibility tree analysis
 - UI verification
 
 **Chrome DevTools MCP:**
+
 - Console logs and errors
 - Network tab (API calls, CORS, timing)
 - Performance tracing (LCP, CLS, FCP)
@@ -52,6 +53,7 @@ These MCP servers let Codex interact with the browser for testing and debugging.
 [Playwright MCP Server](https://github.com/microsoft/playwright-mcp) from Microsoft.
 
 **Prerequisites:**
+
 - Node.js 18 or newer
 
 ---
@@ -61,6 +63,7 @@ These MCP servers let Codex interact with the browser for testing and debugging.
 [Chrome DevTools MCP Server](https://developer.chrome.com/blog/chrome-devtools-mcp) from the Google Chrome team.
 
 **Prerequisites:**
+
 - Chrome browser
 
 ---
@@ -70,6 +73,7 @@ These MCP servers let Codex interact with the browser for testing and debugging.
 ### Automatic configuration (via install.sh)
 
 Run the installation script:
+
 ```bash
 cd core/implementations/codex
 ./install.sh
@@ -95,11 +99,13 @@ args = ["chrome-devtools-mcp@latest"]
 ```
 
 **Tip:** If you want to avoid npx downloading every time, install globally:
+
 ```bash
 npm install -g @playwright/mcp chrome-devtools-mcp
 ```
 
 And update the config:
+
 ```toml
 [mcp_servers.playwright]
 command = "playwright-mcp"

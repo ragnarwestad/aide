@@ -11,11 +11,26 @@
 // — unless the landing is a `close`, where it is deleted.
 
 import {
-  GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep,
-  type RepoMergeResult, type Wait,
+  GIT_LOCKED,
+  LOCK_RETRIES,
+  LOCK_WAIT_MS,
+  mergeWorktreePath,
+  pushRefusal,
+  pushWithRetry,
+  refuse,
+  sleep,
+  type RepoMergeResult,
+  type Wait,
 } from "./branch-merge/index.ts";
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
-import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./branch-merge/worktree.ts";
+import {
+  LS_REMOTE_NO_MATCH,
+  lsRemoteBranch,
+  type GitRunner,
+} from "./branch-status.ts";
+import {
+  prepareMergeWorktree,
+  WORKTREE_TIMEOUT_MS,
+} from "./branch-merge/worktree.ts";
 import type { MergeHooks } from "./merge-hooks.ts";
 
 export interface SpecFolderLanding {
@@ -41,26 +56,46 @@ export async function landSpecFolderOnly(
   try {
     const onOrigin = await run(root, lsRemoteBranch(branch));
     if (onOrigin.code === LS_REMOTE_NO_MATCH) {
-      return { ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }), reason: "gone" };
+      return {
+        ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }),
+        reason: "gone",
+      };
     }
     await run(root, ["fetch", "-q", "origin", base, branch]);
     work = mergeWorktreePath(root, branch);
     await prepareMergeWorktree(run, root, work);
-    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
+    const added = await run(
+      root,
+      ["worktree", "add", "--detach", "-q", work, `origin/${base}`],
+      WORKTREE_TIMEOUT_MS,
+    );
     if (added.code !== 0) {
       await run(root, ["worktree", "prune"]);
-      return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } }, (added.stderr ?? "").trim() || undefined);
+      return refuse(
+        root,
+        branch,
+        { key: "landing.cannotSwitch", values: { base } },
+        (added.stderr ?? "").trim() || undefined,
+      );
     }
     const ref = `refs/remotes/origin/${branch}`;
     for (let attempt = 0; ; attempt++) {
       // What the branch changed under the spec's paths since it left
       // base. `--no-renames`, so a folder move reads as the deletes and
       // adds it is, and each is replayed as such.
-      const diff = await run(work, ["diff", "--name-status", "--no-renames", `HEAD...${ref}`, "--", ...spec.paths]);
+      const diff = await run(work, [
+        "diff",
+        "--name-status",
+        "--no-renames",
+        `HEAD...${ref}`,
+        "--",
+        ...spec.paths,
+      ]);
       for (const line of diff.stdout.split("\n").filter(Boolean)) {
         const [status, path] = line.split("\t");
         if (!path) continue;
-        if (status === "D") await run(work, ["rm", "-q", "--ignore-unmatch", "--", path]);
+        if (status === "D")
+          await run(work, ["rm", "-q", "--ignore-unmatch", "--", path]);
         else await run(work, ["checkout", ref, "--", path]);
       }
       const staged = await run(work, ["diff", "--cached", "--quiet"]);
@@ -71,7 +106,13 @@ export async function landSpecFolderOnly(
       if (!pushed.moved) {
         return pushRefusal(root, branch, base, pushed);
       }
-      if (attempt >= 1) return refuse(root, branch, { key: "landing.baseMovedTwice", values: { base } }, pushed.error);
+      if (attempt >= 1)
+        return refuse(
+          root,
+          branch,
+          { key: "landing.baseMovedTwice", values: { base } },
+          pushed.error,
+        );
       await run(work, ["fetch", "--quiet", "origin", base]);
       await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
     }
@@ -79,30 +120,64 @@ export async function landSpecFolderOnly(
     if (spec.deleteBranch) await spec.hooks?.beforeCheckoutMoves?.({});
     // The shared checkout catches up, as after any landing; not fatal.
     await run(root, ["fetch", "-q", "origin", base]);
-    let caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    for (let n = 0; caughtUp.code !== 0 && GIT_LOCKED.test(caughtUp.stderr ?? "") && n < LOCK_RETRIES; n++) {
+    let caughtUp = await run(root, [
+      "merge",
+      "-q",
+      "--ff-only",
+      `origin/${base}`,
+    ]);
+    for (
+      let n = 0;
+      caughtUp.code !== 0 &&
+      GIT_LOCKED.test(caughtUp.stderr ?? "") &&
+      n < LOCK_RETRIES;
+      n++
+    ) {
       await wait(LOCK_WAIT_MS);
-      caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+      caughtUp = await run(root, [
+        "merge",
+        "-q",
+        "--ff-only",
+        `origin/${base}`,
+      ]);
     }
     // Nothing of the code landed: the caller installs and reports nothing.
     if (!spec.deleteBranch) return { root, ok: true, discarded: true };
-    const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
+    const deleted = await run(root, [
+      "push",
+      "-q",
+      "origin",
+      "--delete",
+      branch,
+    ]);
     if (deleted.code !== 0) {
       return {
         root,
         ok: true,
         discarded: true,
-        branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
+        branchDeleteError: {
+          key: "landing.branchDeleteFailed",
+          values: { branch },
+        },
         detail: (deleted.stderr ?? "").trim().slice(-200) || "unknown reason",
       };
     }
     await run(root, ["branch", "-D", branch]);
     return { root, ok: true, discarded: true };
   } catch (err) {
-    return refuse(root, branch, { key: "landing.gitCouldNotRun" }, err instanceof Error ? err.message : String(err));
+    return refuse(
+      root,
+      branch,
+      { key: "landing.gitCouldNotRun" },
+      err instanceof Error ? err.message : String(err),
+    );
   } finally {
     if (work) {
-      await run(root, ["worktree", "remove", "--force", work], WORKTREE_TIMEOUT_MS);
+      await run(
+        root,
+        ["worktree", "remove", "--force", work],
+        WORKTREE_TIMEOUT_MS,
+      );
       await run(root, ["worktree", "prune"]);
     }
   }

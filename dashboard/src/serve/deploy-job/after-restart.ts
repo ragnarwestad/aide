@@ -31,18 +31,35 @@ function runningCommit(deps: AfterRestartDeps): string | undefined {
 
 /** Whether `served` is the fetched commit or a later one containing it: a
  *  landing into the checkout moves it on while the restart waits. */
-function containsFetched(deps: AfterRestartDeps, served: string, fetched: string): boolean {
+function containsFetched(
+  deps: AfterRestartDeps,
+  served: string,
+  fetched: string,
+): boolean {
   if (served === fetched) return true;
-  return deps.git(deps.dashboardRoot, ["merge-base", "--is-ancestor", fetched, served]).code === 0;
+  return (
+    deps.git(deps.dashboardRoot, [
+      "merge-base",
+      "--is-ancestor",
+      fetched,
+      served,
+    ]).code === 0
+  );
 }
 
-function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void {
-  const mark = (step: DeployStep, ending: DeployMark): void => stepLogLine(job, deployMark(step, ending), ending.startsWith("stopped"));
+function finish(
+  deps: AfterRestartDeps,
+  job: Job & { resultFile: string },
+): void {
+  const mark = (step: DeployStep, ending: DeployMark): void =>
+    stepLogLine(job, deployMark(step, ending), ending.startsWith("stopped"));
   const fail = (step: DeployStep, sentence: Sentence): void => {
     mark(step, `stopped: ${writeDeployFailed(job.resultFile, sentence)}`);
   };
-  const waited = (deps.now ?? Date.now)() - Date.parse(job.deploy?.restartedAt ?? "");
-  if (waited > (deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS)) return fail("wait", { key: "landing.deployNoAnswer" });
+  const waited =
+    (deps.now ?? Date.now)() - Date.parse(job.deploy?.restartedAt ?? "");
+  if (waited > (deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS))
+    return fail("wait", { key: "landing.deployNoAnswer" });
   mark("wait", "done");
   mark("check", "started");
   const fetched = job.deploy?.commit;
@@ -56,7 +73,10 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
     mark("check", "done");
     return writeDeployDone(job.resultFile);
   }
-  const older: Sentence = { key: "landing.deployServiceOlder", values: { served: served.slice(0, 7), head: fetched.slice(0, 7) } };
+  const older: Sentence = {
+    key: "landing.deployServiceOlder",
+    values: { served: served.slice(0, 7), head: fetched.slice(0, 7) },
+  };
   deps.setFault(older);
   fail("check", older);
 }
@@ -64,7 +84,13 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
 /** Finish every deploy job the last process left running after its restart. */
 export function finishDeployAfterRestart(deps: AfterRestartDeps): void {
   for (const job of deps.queue.list()) {
-    if (job.state !== "running" || !isDeployJob(job) || !job.deploy?.restartedAt || !job.resultFile) continue;
+    if (
+      job.state !== "running" ||
+      !isDeployJob(job) ||
+      !job.deploy?.restartedAt ||
+      !job.resultFile
+    )
+      continue;
     if (deps.startedAt && job.deploy.leaving === deps.startedAt) continue;
     finish(deps, job as Job & { resultFile: string });
   }

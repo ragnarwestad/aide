@@ -32,8 +32,15 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
  *  held-back queue exactly as this file's notice line already does —
  *  one classification, asked from two places, rather than the same
  *  four keys copied a second time and left free to drift apart. */
-export function heldBackResolvesOnItsOwn(r: Pick<QueueRowView, "errorReason" | "error">): boolean {
-  if (r.errorReason !== "held-back" || !r.error || typeof r.error !== "object" || Array.isArray(r.error)) {
+export function heldBackResolvesOnItsOwn(
+  r: Pick<QueueRowView, "errorReason" | "error">,
+): boolean {
+  if (
+    r.errorReason !== "held-back" ||
+    !r.error ||
+    typeof r.error !== "object" ||
+    Array.isArray(r.error)
+  ) {
     return false;
   }
   return HELD_BACK_INFO_KEYS.has(r.error.key);
@@ -81,13 +88,18 @@ export interface NoticePart {
 /** What a step's raw detail adds to the sentence on its row, shown whole.
  *  A detail the sentence already carries word for word adds nothing, and
  *  gets no (?). */
-export function detailBeyond(text: string, detail: string | undefined): string | undefined {
+export function detailBeyond(
+  text: string,
+  detail: string | undefined,
+): string | undefined {
   const shown = detail?.trim();
   return shown && !text.includes(shown) ? shown : undefined;
 }
 
 const isArchiveTestsRed = (error: unknown): boolean =>
-  typeof error === "object" && error !== null && (error as { key?: unknown }).key === "runner.testsRedArchive";
+  typeof error === "object" &&
+  error !== null &&
+  (error as { key?: unknown }).key === "runner.testsRedArchive";
 
 /** The sentence for a spec whose analyze stands stopped on files other open
  *  specs change: its lead job stopped so, or the analyze phase's own history
@@ -105,11 +117,24 @@ export function sharedFilesSentence(
   overlaps: () => OpenOverlap[] | undefined,
   lang: Language = "en",
 ): string | undefined {
-  const leadStopped = lead?.state === "stopped" && lead.stopReason === "shared-files";
-  const historyStopped = analyzeStopped === "shared-files" && !(lead && (inFlight(lead) || lead.error));
+  const leadStopped =
+    lead?.state === "stopped" && lead.stopReason === "shared-files";
+  const historyStopped =
+    analyzeStopped === "shared-files" &&
+    !(lead && (inFlight(lead) || lead.error));
   if (!leadStopped && !historyStopped) return undefined;
-  if (leadStopped && lead?.error && typeof lead.error === "object" && !Array.isArray(lead.error) &&
-      ["runner.dependencyCycle", "runner.autoDependenciesFailed", "runner.overlapDecisionMissing"].includes(lead.error.key)) return renderSentence(lang, lead.error);
+  if (
+    leadStopped &&
+    lead?.error &&
+    typeof lead.error === "object" &&
+    !Array.isArray(lead.error) &&
+    [
+      "runner.dependencyCycle",
+      "runner.autoDependenciesFailed",
+      "runner.overlapDecisionMissing",
+    ].includes(lead.error.key)
+  )
+    return renderSentence(lang, lead.error);
   const open = overlaps();
   const button = stepButton("analyze");
   if (open?.length) {
@@ -117,10 +142,20 @@ export function sharedFilesSentence(
       key: "runner.sharedFilesSpec" as const,
       values: { spec: o.label, files: o.files.join(", ") },
     }));
-    return renderMessage(lang, { key: "wordPhase.stopSharedFilesNamed", values: { button }, inner });
+    return renderMessage(lang, {
+      key: "wordPhase.stopSharedFilesNamed",
+      values: { button },
+      inner,
+    });
   }
-  if (open) return renderMessage(lang, { key: "wordPhase.stopSharedFilesArchived", values: { button } });
-  return leadStopped && lead!.error ? renderSentence(lang, lead!.error) : undefined;
+  if (open)
+    return renderMessage(lang, {
+      key: "wordPhase.stopSharedFilesArchived",
+      values: { button },
+    });
+  return leadStopped && lead!.error
+    ? renderSentence(lang, lead!.error)
+    : undefined;
 }
 
 /** Which applies, if any. The order is the row's own: a job that
@@ -196,8 +231,14 @@ export function specNotice(
    *  comment for its rank. */
   readyToArchive?: boolean,
 ): RowNotice | undefined {
-  const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
-  if (lead?.dependencyNotice) parts.push({ variant: "info", text: renderSentence(lang, lead.dependencyNotice)!, own: true });
+  const parts: (NoticePart & { variant: MessageVariant; title?: string })[] =
+    [];
+  if (lead?.dependencyNotice)
+    parts.push({
+      variant: "info",
+      text: renderSentence(lang, lead.dependencyNotice)!,
+      own: true,
+    });
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.
@@ -230,20 +271,27 @@ export function specNotice(
     // A usage-limit stop the board starts again by itself, and a job held
     // behind one, say so — with the time — in place of the run's own words.
     const usageText = usageLimitText(lead, lang, Date.now());
-    const text = usageText !== undefined
-      ? lead.errorReason === "held-back" ? `${stepLabel(currentStep(lead), lang)} ${usageText}` : usageText
-      : limited?.providerLimit
-      ? providerLimitSentence(
-          limited.providerLimit,
-          (limited.step && lead.stepModels?.[limited.step]) || lead.model,
-          lang,
-          Date.now(),
-          undefined,
-          limited.provider?.name ?? lead.provider,
-        )
-      : lead.errorReason === "held-back"
-        ? renderSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
-        : renderSentence(lang, lead.error)!;
+    const text =
+      usageText !== undefined
+        ? lead.errorReason === "held-back"
+          ? `${stepLabel(currentStep(lead), lang)} ${usageText}`
+          : usageText
+        : limited?.providerLimit
+          ? providerLimitSentence(
+              limited.providerLimit,
+              (limited.step && lead.stepModels?.[limited.step]) || lead.model,
+              lang,
+              Date.now(),
+              undefined,
+              limited.provider?.name ?? lead.provider,
+            )
+          : lead.errorReason === "held-back"
+            ? renderSentence(lang, {
+                key: "message.lead",
+                values: { lead: stepLabel(currentStep(lead), lang) },
+                inner: lead.error,
+              })!
+            : renderSentence(lang, lead.error)!;
     if (!said(text)) {
       // Three of the six held-back reasons resolve on their own —
       // nothing for the reader to act on — so they read as info, not
@@ -262,17 +310,27 @@ export function specNotice(
       // a model the provider had no room for, on pressing it again or
       // choosing another model.
       const waiting =
-        lead.errorReason === "held-back" || lead.errorReason === "tests-red" || usageText !== undefined ||
+        lead.errorReason === "held-back" ||
+        lead.errorReason === "tests-red" ||
+        usageText !== undefined ||
         (lead.state === "stopped" &&
-          (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files" ||
+          (lead.stopReason === "acceptance-criteria" ||
+            lead.stopReason === "shared-files" ||
             lead.stopReason === "model-at-capacity"));
-      const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
+      const variant: MessageVariant = heldBackInfo
+        ? "info"
+        : waiting
+          ? "waiting"
+          : "failed";
       const extra = detailBeyond(text, lead.errorDetail);
       // An archive's own red run lists its failing lines on the row when
       // the result names no tests. Otherwise the log's own lines, if the
       // runner kept any, stay behind the (?).
       if (extra && isArchiveTestsRed(lead.error)) {
-        parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
+        parts.push(
+          { variant, text },
+          { variant, text: extra.split("\n").join(" · ") },
+        );
       } else {
         parts.push({ variant, text, title: extra });
       }
@@ -284,14 +342,23 @@ export function specNotice(
       variant: parts[0]!.variant,
       text: parts.map((p) => p.text).join(" · "),
       title: parts.length === 1 ? parts[0]!.title : undefined,
-      parts: parts.map((p) => ({ text: p.text, href: p.href, variant: p.variant, own: p.own, kind: p.kind })),
+      parts: parts.map((p) => ({
+        text: p.text,
+        href: p.href,
+        variant: p.variant,
+        own: p.own,
+        kind: p.kind,
+      })),
     };
   }
   if (lead && inFlight(lead)) return undefined;
   // The same amber the badge takes, and for the same reason: a held-back
   // archive is a common, healthy outcome — notice, not alarm. A
   // disagreement takes the same amber for the same reason.
-  const heldBackReason = archiveHeldBack === undefined ? undefined : heldBackReasonText(lang, archiveHeldBack);
+  const heldBackReason =
+    archiveHeldBack === undefined
+      ? undefined
+      : heldBackReasonText(lang, archiveHeldBack);
   if (heldBackReason && disagreement) {
     // Both true at once, and both said. The prefix below already names
     // archive, and a disagreement competing with a held-back note is
@@ -299,14 +366,26 @@ export function specNotice(
     // comes off rather than being written twice in one sentence.
     const archiveWord = stepLabel("archive", lang);
     const detail = disagreement.replace(`${archiveWord} `, "");
-    return { variant: "waiting", text: `${t(lang, "list.archiveHeldBack", { step: archiveWord, reason: heldBackReason })} · ${detail}` };
+    return {
+      variant: "waiting",
+      text: `${t(lang, "list.archiveHeldBack", { step: archiveWord, reason: heldBackReason })} · ${detail}`,
+    };
   }
   if (heldBackReason) {
-    return { variant: "waiting", text: t(lang, "list.archiveHeldBack", { step: stepLabel("archive", lang), reason: heldBackReason }) };
+    return {
+      variant: "waiting",
+      text: t(lang, "list.archiveHeldBack", {
+        step: stepLabel("archive", lang),
+        reason: heldBackReason,
+      }),
+    };
   }
   if (disagreement) return { variant: "waiting", text: disagreement };
   if (readyToArchive) {
-    return { variant: "waiting", text: t(lang, "list.readyToArchive", { button: stepButton("archive") }) };
+    return {
+      variant: "waiting",
+      text: t(lang, "list.readyToArchive", { button: stepButton("archive") }),
+    };
   }
   return undefined;
 }

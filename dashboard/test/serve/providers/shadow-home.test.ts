@@ -2,13 +2,26 @@
 // of a `CODEX_HOME`, so two providers on one `CODEX_HOME` can continue each
 // other's sessions.
 
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { prepareShadowHome } from "../../../src/serve/providers/shadow-home.ts";
 import { readCodexSession } from "../../../src/serve/spec-views/codex-sessions.ts";
-import { feasibility, lines, S, writeSessions } from "../../helpers/codex-fixtures.ts";
+import {
+  feasibility,
+  lines,
+  S,
+  writeSessions,
+} from "../../helpers/codex-fixtures.ts";
 
 const temp = () => mkdtempSync(join(tmpdir(), "shadow-home-"));
 const shared = () => {
@@ -30,11 +43,17 @@ describe("prepareShadowHome", () => {
     writeFileSync(join(first, "auth.json"), '{"login":"first"}');
     writeFileSync(join(second, "auth.json"), '{"login":"second"}');
 
-    expect(readlinkSync(join(first, "sessions"))).toBe(join(codexHome, "sessions"));
+    expect(readlinkSync(join(first, "sessions"))).toBe(
+      join(codexHome, "sessions"),
+    );
     expect(readCodexSession(S, second)).toBe(lines(feasibility.child));
     expect(lstatSync(join(first, "auth.json")).isSymbolicLink()).toBe(false);
-    expect(readFileSync(join(second, "auth.json"), "utf8")).toBe('{"login":"second"}');
-    expect(readFileSync(join(codexHome, "auth.json"), "utf8")).toBe('{"login":"shared"}');
+    expect(readFileSync(join(second, "auth.json"), "utf8")).toBe(
+      '{"login":"second"}',
+    );
+    expect(readFileSync(join(codexHome, "auth.json"), "utf8")).toBe(
+      '{"login":"shared"}',
+    );
   });
 
   test("an entry the CODEX_HOME gained since is linked on the next preparation, and a link already there is kept", () => {
@@ -73,13 +92,17 @@ describe("prepareShadowHome", () => {
     const shadow = temp();
     writeFileSync(join(shadow, "config.toml"), "mine");
 
-    expect(prepareShadowHome(codexHome, shadow)).toContain("has a config.toml of its own");
+    expect(prepareShadowHome(codexHome, shadow)).toContain(
+      "has a config.toml of its own",
+    );
     expect(prepareShadowHome(codexHome, codexHome)).toContain("must differ");
   });
 
   test("a CODEX_HOME that is not there is refused, naming it", () => {
     const missing = join(temp(), "gone");
-    expect(prepareShadowHome(missing, join(temp(), "shadow"))).toContain(missing);
+    expect(prepareShadowHome(missing, join(temp(), "shadow"))).toContain(
+      missing,
+    );
   });
 });
 

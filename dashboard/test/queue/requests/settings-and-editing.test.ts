@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  rmSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,7 +41,11 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+const REQ = {
+  project: "aide",
+  specFolder: "81-queue-and-runner",
+  steps: ["analyze"],
+};
 
 let dir: string;
 
@@ -63,20 +73,33 @@ describe("the project allowlist round-trips through queue-config.json", () => {
   };
 
   afterEach(() => {
-    while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+    while (configDirs.length)
+      rmSync(configDirs.pop()!, { recursive: true, force: true });
   });
 
   test("a written list is read back as the allowlist", () => {
     const file = configFile({ concurrency: 3 });
     expect(persistQueueProjects(file, ["aide", "atlasaurus"])).toBeNull();
-    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+    const opts = parseArgs([
+      "--queue-config",
+      file,
+      "--queue-projects",
+      "aide",
+    ]);
     expect(opts.queueProjects).toEqual(["aide", "atlasaurus"]);
   });
 
   test("the file's other keys survive the write", () => {
-    const file = configFile({ concurrency: 3, push: "none", notifyCommand: ["/bin/echo", "hi"] });
+    const file = configFile({
+      concurrency: 3,
+      push: "none",
+      notifyCommand: ["/bin/echo", "hi"],
+    });
     persistQueueProjects(file, ["aide"]);
-    const raw = JSON.parse(readFileSync(file, "utf-8")) as Record<string, unknown>;
+    const raw = JSON.parse(readFileSync(file, "utf-8")) as Record<
+      string,
+      unknown
+    >;
     expect(raw).toEqual({
       concurrency: 3,
       push: "none",
@@ -92,28 +115,45 @@ describe("the project allowlist round-trips through queue-config.json", () => {
   test("the config beats a conflicting --queue-projects", () => {
     const file = configFile({ projects: ["atlasaurus"] });
     const opts = parseArgs([
-      "--queue-config", file,
-      "--queue-projects", "aide,aide-dashboard",
+      "--queue-config",
+      file,
+      "--queue-projects",
+      "aide,aide-dashboard",
     ]);
     expect(opts.queueProjects).toEqual(["atlasaurus"]);
   });
 
   test("no projects field means the CLI flag still seeds a first install", () => {
     const file = configFile({ concurrency: 2 });
-    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide,aide-dashboard"]);
+    const opts = parseArgs([
+      "--queue-config",
+      file,
+      "--queue-projects",
+      "aide,aide-dashboard",
+    ]);
     expect(opts.queueProjects).toEqual(["aide", "aide-dashboard"]);
   });
 
   test("an empty list is a real answer, not a missing one", () => {
     const file = configFile({ projects: [] });
-    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+    const opts = parseArgs([
+      "--queue-config",
+      file,
+      "--queue-projects",
+      "aide",
+    ]);
     expect(opts.queueProjects).toEqual([]);
   });
 
   test("a malformed projects field is ignored, and the flag is kept", () => {
     for (const projects of ["aide", [1, 2], ["../escape"], ["a/b"], {}]) {
       const file = configFile({ projects });
-      const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+      const opts = parseArgs([
+        "--queue-config",
+        file,
+        "--queue-projects",
+        "aide",
+      ]);
       expect([projects, opts.queueProjects]).toEqual([projects, ["aide"]]);
     }
   });
@@ -134,7 +174,9 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     persistQueueProjects(file, [...allowed]);
     allowed.delete("aide");
     persistQueueProjects(file, [...allowed]);
-    expect(parseArgs(["--queue-config", file]).queueProjects).toEqual(["atlasaurus"]);
+    expect(parseArgs(["--queue-config", file]).queueProjects).toEqual([
+      "atlasaurus",
+    ]);
   });
 
   test("a config file that does not exist yet is created", () => {
@@ -170,13 +212,22 @@ describe("headerAuth in queue-config.json", () => {
   };
 
   afterEach(() => {
-    while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+    while (configDirs.length)
+      rmSync(configDirs.pop()!, { recursive: true, force: true });
   });
 
   test("a well-formed block is read into opts.headerAuth", () => {
-    const file = configFile({ headerAuth: { header: "Tailscale-User-Login", users: ["alice@example.com"] } });
+    const file = configFile({
+      headerAuth: {
+        header: "Tailscale-User-Login",
+        users: ["alice@example.com"],
+      },
+    });
     const opts = parseArgs(["--queue-config", file]);
-    expect(opts.headerAuth).toEqual({ header: "Tailscale-User-Login", users: ["alice@example.com"] });
+    expect(opts.headerAuth).toEqual({
+      header: "Tailscale-User-Login",
+      users: ["alice@example.com"],
+    });
   });
 
   test("no headerAuth field at all leaves it unset", () => {
@@ -220,11 +271,20 @@ describe("editing a running job's tail", () => {
     // A mirror of its own per job: a second store on the same file
     // loads the first one's job and refuses the enqueue as a clash.
     const mirror = join(dir, `queue-${(made_ += 1)}.json`);
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: mirror });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      mirrorPath: mirror,
+    });
     const made = store.enqueue({ ...REQ, steps });
     if (!made.ok) throw new Error(made.error);
     store.update(made.job.id, { state: "running", stepIndex });
-    return { store, mirror, id: made.job.id, steps: () => store.get(made.job.id)!.steps };
+    return {
+      store,
+      mirror,
+      id: made.job.id,
+      steps: () => store.get(made.job.id)!.steps,
+    };
   };
 
   test("an added step lands in WORKFLOW_STEPS order, not at the array end", () => {
@@ -248,8 +308,10 @@ describe("editing a running job's tail", () => {
   test("the running step and everything behind it are closed", () => {
     const job = running(["analyze", "implement"], 1);
     for (const [step, add] of [
-      ["implement", false], ["implement", true],
-      ["analyze", false], ["analyze", true],
+      ["implement", false],
+      ["implement", true],
+      ["analyze", false],
+      ["analyze", true],
     ] as const) {
       const answer = job.store.editTailStep(job.id, step, add);
       expect(`${step} ${add}: ${answer.ok}`).toBe(`${step} ${add}: false`);
@@ -260,7 +322,14 @@ describe("editing a running job's tail", () => {
   });
 
   test("a job that is not running is closed altogether", () => {
-    for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
+    for (const state of [
+      "queued",
+      "done",
+      "failed",
+      "cancelled",
+      "stopped",
+      "interrupted",
+    ] as const) {
       const job = running(["analyze"]);
       job.store.update(job.id, { state });
       const answer = job.store.editTailStep(job.id, "implement", true);
@@ -289,7 +358,9 @@ describe("editing a running job's tail", () => {
 
   test("an unknown job is not found", () => {
     const job = running(["analyze"]);
-    expect(job.store.editTailStep("no-such-job", "implement", true).ok).toBe(false);
+    expect(job.store.editTailStep("no-such-job", "implement", true).ok).toBe(
+      false,
+    );
   });
 
   // The mirror is what survives a restart, and a tail edited only in
@@ -297,8 +368,14 @@ describe("editing a running job's tail", () => {
   test("the edit reaches the mirror", () => {
     const job = running(["analyze"]);
     expect(job.store.editTailStep(job.id, "implement", true).ok).toBe(true);
-    const stored = JSON.parse(readFileSync(job.mirror, "utf-8")) as { id: string; steps: string[] }[];
-    expect(stored.find((j) => j.id === job.id)!.steps).toEqual(["analyze", "implement"]);
+    const stored = JSON.parse(readFileSync(job.mirror, "utf-8")) as {
+      id: string;
+      steps: string[];
+    }[];
+    expect(stored.find((j) => j.id === job.id)!.steps).toEqual([
+      "analyze",
+      "implement",
+    ]);
   });
 
   // What the ROW needs to know before it draws a box: which steps are
@@ -307,7 +384,10 @@ describe("editing a running job's tail", () => {
   describe("tailEdits", () => {
     test("names the tail and every later step the job does not have, in workflow order", () => {
       const job = running(["analyze", "archive"]);
-      expect(tailEdits(job.store.get(job.id)!)).toEqual(["implement", "archive"]);
+      expect(tailEdits(job.store.get(job.id)!)).toEqual([
+        "implement",
+        "archive",
+      ]);
     });
 
     test("a job that is not running has nothing open", () => {
@@ -331,7 +411,12 @@ describe("editing a running job's tail", () => {
 // `UNFINISHED`. A job could enqueue and sit `queued` behind a landing it
 // never named.
 describe("refusing an enqueue while the spec's last job is still landing", () => {
-  const store = () => new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: join(dir, "queue.json") });
+  const store = () =>
+    new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      mirrorPath: join(dir, "queue.json"),
+    });
 
   test("a new job for the same spec is refused while the prior one is landing", () => {
     const s = store();
@@ -348,7 +433,11 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const create = s.enqueue({ ...REQ, steps: ["create"] });
     if (!create.ok) throw new Error(create.error);
     s.update(create.job.id, { state: "done", landing: true });
-    const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] });
+    const answer = s.enqueue({
+      project: "aide-dashboard",
+      specFolder: "01-first",
+      steps: ["analyze"],
+    });
     expect(answer.ok).toBe(true);
   });
 
@@ -371,7 +460,11 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const first = s.enqueue({ ...REQ, steps: ["create", "analyze"] });
     if (!first.ok) throw new Error(first.error);
     s.update(first.job.id, { state: "queued", stepIndex: 1, landing: true });
-    const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["create"] });
+    const answer = s.enqueue({
+      project: "aide-dashboard",
+      specFolder: "01-first",
+      steps: ["create"],
+    });
     // sanity check only: a different spec is never held back by this
     expect(answer.ok).toBe(true);
     const clash = s.enqueue({ ...REQ, steps: ["archive"] });

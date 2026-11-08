@@ -16,6 +16,7 @@ and install into other projects. There are implementations
 for Claude Code, Codex, OpenCode and Copilot.
 
 **Implementation priority:**
+
 1. **Claude Code** — most important
 2. **Codex** — second
 3. **OpenCode** — third. It brings no model of its own: every model is a
@@ -74,7 +75,7 @@ process started by hand with `pkill` + `bun run` is not the service.
 the dashboard's docs pages to 550; they are written to be searched. Where to look:
 
 | Question                                                  | Page                                          | Who it's for      |
-|-----------------------------------------------------------|-----------------------------------------------|-------------------|
+| --------------------------------------------------------- | --------------------------------------------- | ----------------- |
 | What the dashboard is, its URLs, live runs                | `dashboard/README.md`                         | Both              |
 | How the queue runs specs, and what it tells you           | `dashboard/docs/running-specs.md`             | Both              |
 | What a run does to the repositories and its checkouts     | `dashboard/docs/the-runner.md`                | Changing the code |

@@ -2,7 +2,14 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { askButton, btn, buttonForm, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
+import {
+  askButton,
+  btn,
+  buttonForm,
+  confirmDialog,
+  foldArrow,
+  stepLabel,
+} from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -17,7 +24,13 @@ import {
 } from "./data-model";
 import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
-import { actionState, archivingAgain, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
+import {
+  actionState,
+  archivingAgain,
+  rowAnchorId,
+  runFormId,
+  specBusy,
+} from "./row-state.ts";
 import { specPagePath } from "../spec-page/tabs.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
@@ -95,7 +108,11 @@ function actionForm(r: QueueRowView, lang: Language): string {
     // filled button beside it said nothing different to the eye. And a
     // cancelled run can be started again, so it was never what `danger`
     // is for.
-    askButton({ label: t(lang, "list.cancel"), dialogId: id, variant: "primary" }) +
+    askButton({
+      label: t(lang, "list.cancel"),
+      dialogId: id,
+      variant: "primary",
+    }) +
     confirmDialog(lang, {
       id,
       title: t(lang, "list.cancelConfirmTitle", { step }),
@@ -114,14 +131,24 @@ function actionForm(r: QueueRowView, lang: Language): string {
 // whether it would land the plan or the code.
 
 /** Reopen's dialog over the list, `id` being the one its button names. */
-export function listReopenDialog(g: SpecGroup, lang: Language, id: string): string {
+export function listReopenDialog(
+  g: SpecGroup,
+  lang: Language,
+  id: string,
+): string {
   return reopenAskDialog(g.project, g.specFolder, lang, id);
 }
 
 /** The one action an archived spec offers: a button, and the dialog it opens beside it. */
 function reopenAsk(g: SpecGroup, lang: Language): string {
   const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
-  return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, lang, id);
+  return (
+    askButton({
+      label: t(lang, "list.reopen"),
+      dialogId: id,
+      variant: "primary",
+    }) + listReopenDialog(g, lang, id)
+  );
 }
 
 /** Archive again: the form the Archive line's AI and model selects name
@@ -132,7 +159,11 @@ function archiveAgainForm(g: SpecGroup, lang: Language): string {
     action: "/api/queue",
     hook: "actionform",
     hidden: { project: g.project, specFolder: g.specFolder, steps: "archive" },
-    button: { label: stepLabel("archive", lang), variant: "primary", pending: "starting…" },
+    button: {
+      label: stepLabel("archive", lang),
+      variant: "primary",
+      pending: "starting…",
+    },
   });
 }
 
@@ -142,7 +173,11 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
   return buttonForm({
     action: `/api/queue/specs/${g.project}/${g.specFolder}/delete-branch`,
     hook: "actionform",
-    button: { label: t(lang, "list.deleteBranch"), pending: t(lang, "list.deletingBranch"), small: true },
+    button: {
+      label: t(lang, "list.deleteBranch"),
+      pending: t(lang, "list.deletingBranch"),
+      small: true,
+    },
   });
 }
 
@@ -181,7 +216,9 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   if (isArchivedRow(g)) {
     if (archivingAgain(g)) return actionForm(g.lead!, lang);
     if (specBusy(g)) return "";
-    return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : reopenAsk(g, lang);
+    return offersArchiveAgain(g)
+      ? archiveAgainForm(g, lang)
+      : reopenAsk(g, lang);
   }
   const busy = specBusy(g);
   // A conflict draws no Resolve control of its own here: `archive`
@@ -232,7 +269,13 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // and `type="submit"` throughout is what makes that re-enabling
     // actually able to submit, rather than a live control a script can
     // turn on but never press.
-    return btn({ label: action.label, variant: "primary", form: runFormId(g), pending: "starting…", disabled: !action.active });
+    return btn({
+      label: action.label,
+      variant: "primary",
+      form: runFormId(g),
+      pending: "starting…",
+      disabled: !action.active,
+    });
   })();
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and
@@ -243,4 +286,3 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // once needs the naming built back, deliberately.
   return runForm + primary;
 }
-

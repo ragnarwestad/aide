@@ -1,12 +1,21 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createFailedCreates, failedCreateFrom, type FailedCreate } from "../../src/push/failed-creates.ts";
+import {
+  createFailedCreates,
+  failedCreateFrom,
+  type FailedCreate,
+} from "../../src/push/failed-creates.ts";
 import { tempDir } from "./fixtures.ts";
 
 const rec = (n: number, over: Partial<FailedCreate> = {}): FailedCreate => ({
-  id: `id-${n}`, project: "aide", title: `Title ${n}`, description: `text ${n}`,
-  reason: "the step failed", failedAt: new Date(2026, 8, 19, 12, 0, n).toISOString(), ...over,
+  id: `id-${n}`,
+  project: "aide",
+  title: `Title ${n}`,
+  description: `text ${n}`,
+  reason: "the step failed",
+  failedAt: new Date(2026, 8, 19, 12, 0, n).toISOString(),
+  ...over,
 });
 
 let tmp: ReturnType<typeof tempDir>;
@@ -53,7 +62,11 @@ describe("the record of a failed create", () => {
     tmp = tempDir();
     const path = join(tmp.dir, "f.json");
     createFailedCreates(path).add(rec(1));
-    expect(createFailedCreates(path).list().map((r) => r.id)).toEqual(["id-1"]);
+    expect(
+      createFailedCreates(path)
+        .list()
+        .map((r) => r.id),
+    ).toEqual(["id-1"]);
   });
 
   test("keeps the newest 50 dismissed and every undismissed", () => {
@@ -86,12 +99,24 @@ describe("what the file may hold", () => {
   test("a record whose reason names a message this build lacks is dropped, the rest stay", () => {
     tmp = tempDir();
     const path = join(tmp.dir, "f.json");
-    writeFileSync(path, JSON.stringify([
-      rec(1, { reason: { key: "removed.long.ago" } as never }),
-      rec(2, { reason: [{ key: "runner.serverRestarted", values: { button: "Create" } }, "text"] }),
-      { id: "bad" },
-    ]));
-    expect(createFailedCreates(path).list().map((r) => r.id)).toEqual(["id-2"]);
+    writeFileSync(
+      path,
+      JSON.stringify([
+        rec(1, { reason: { key: "removed.long.ago" } as never }),
+        rec(2, {
+          reason: [
+            { key: "runner.serverRestarted", values: { button: "Create" } },
+            "text",
+          ],
+        }),
+        { id: "bad" },
+      ]),
+    );
+    expect(
+      createFailedCreates(path)
+        .list()
+        .map((r) => r.id),
+    ).toEqual(["id-2"]);
   });
 
   test("with no path it keeps records in memory", () => {
@@ -115,10 +140,20 @@ describe("what the file may hold", () => {
 describe("failedCreateFrom", () => {
   test("takes project, typed text and the reason off the job", () => {
     const r = failedCreateFrom({
-      id: "j1", project: "aide", createTitle: "T", createDescription: "D", error: "boom",
+      id: "j1",
+      project: "aide",
+      createTitle: "T",
+      createDescription: "D",
+      error: "boom",
       finishedAt: "2026-09-19T17:05:00.000Z",
     } as never);
-    expect(r).toMatchObject({ id: "j1", project: "aide", title: "T", description: "D", reason: "boom" });
+    expect(r).toMatchObject({
+      id: "j1",
+      project: "aide",
+      title: "T",
+      description: "D",
+      reason: "boom",
+    });
     expect(r.failedAt).toBe("2026-09-19T17:05:00.000Z");
   });
 
@@ -133,13 +168,19 @@ describe("failedCreateFrom", () => {
 describe("the detail behind a failed create", () => {
   test("keeps the step's raw detail, or the landing's when the landing failed", () => {
     const step = failedCreateFrom({
-      id: "j3", project: "aide", error: { key: "runner.serverRestarted", values: { button: "Create" } },
+      id: "j3",
+      project: "aide",
+      error: { key: "runner.serverRestarted", values: { button: "Create" } },
       errorDetail: "git@github.com: Permission denied (publickey).",
     } as never);
     expect(step.detail).toBe("git@github.com: Permission denied (publickey).");
     const landing = failedCreateFrom({
-      id: "j4", project: "aide", error: "held back", errorDetail: "the held-back line",
-      landingError: { key: "landing.createNothingToLand" }, landingErrorDetail: "the merge's own words",
+      id: "j4",
+      project: "aide",
+      error: "held back",
+      errorDetail: "the held-back line",
+      landingError: { key: "landing.createNothingToLand" },
+      landingErrorDetail: "the merge's own words",
     } as never);
     expect(landing.detail).toBe("the merge's own words");
   });

@@ -19,8 +19,18 @@
       "line": "- **Sent back to a full analysis:** it changes the result format every page reads, in nine files",
       "sentBack": "it changes the result format every page reads, in nine files"
     },
-    { "name": "no-line", "where": "tracking-info", "line": null, "sentBack": null },
-    { "name": "an-empty-value", "where": "tracking-info", "line": "- **Sent back to a full analysis:**", "sentBack": null },
+    {
+      "name": "no-line",
+      "where": "tracking-info",
+      "line": null,
+      "sentBack": null
+    },
+    {
+      "name": "an-empty-value",
+      "where": "tracking-info",
+      "line": "- **Sent back to a full analysis:**",
+      "sentBack": null
+    },
     {
       "name": "another-letter-case",
       "where": "tracking-info",

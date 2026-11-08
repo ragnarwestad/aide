@@ -35,7 +35,7 @@ Eks:  /unit-tests src/core/geo.ts
    `Cargo.toml`…). Finn test- og coverage-kommandoen prosjektet faktisk bruker. Vanlige:
 
    | Stack     | Kjør én fil                | Coverage                                   |
-   |-----------|----------------------------|--------------------------------------------|
+   | --------- | -------------------------- | ------------------------------------------ |
    | Vitest    | `pnpm test -- --run <fil>` | `pnpm test -- --coverage`                  |
    | Jest      | `npx jest <fil>`           | `npx jest --coverage`                      |
    | Mocha     | `npx mocha <fil>`          | `npx nyc mocha`                            |
@@ -45,6 +45,7 @@ Eks:  /unit-tests src/core/geo.ts
 
    Bruk **prosjektets** script (f.eks. `pnpm test`), ikke et antatt. Kjør alltid i
    **ikke-watch / engangs-modus** så prosessen avslutter (Vitest: `--run`).
+
 2. **Plassering + navngiving:** Ligger tester ved siden av kilden (`x.test.ts`) eller i en
    egen mappe (`__tests__/`, `tests/`)? Hvilket suffiks (`.test.`/`.spec.`/`_test`)?
 3. **Stil:** Les 1–2 eksisterende testfiler. Noter assertion-stil (`expect`/`assert`/…),
@@ -59,11 +60,14 @@ Eks:  /unit-tests src/core/geo.ts
 ## Arbeidsflyt
 
 ### Steg 1 — Analyser filen
+
 - Les fila. Identifiser alle eksporterte enheter (funksjoner/klasser/moduler).
 - Finn eksisterende testfil. Kartlegg hva som allerede er dekket → **gaps**.
 
 ### Steg 2 — Skriv testene
+
 For hver utestede enhet, dekk:
+
 - **Happy path** — normale, forventede input.
 - **Edge cases** — `null`/`undefined`, tomt/grense (0, tom liste, lange strenger,
   negative tall), Unicode, antimeridian/wraparound — det som er relevant for nettopp denne koden.
@@ -72,10 +76,12 @@ For hver utestede enhet, dekk:
 Følg prosjektets stil (Steg 0.3). Bruk eksisterende test som mal.
 
 ### Steg 3 — Kjør og verifiser
+
 - Kjør de nye testene med prosjektets kommando (engangs-modus). Fiks til alt er grønt.
 - Kjør så **hele** suiten for å fange regresjoner.
 
 ### Steg 4 — Dekning
+
 - Har prosjektet en coverage-kommando, kjør den. Vis før/etter + antall nye tester.
 
 **Stopp og be om bekreftelse:** etter at testene er skrevet (før kjøring) og etter kjøring

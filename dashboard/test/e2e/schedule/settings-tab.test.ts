@@ -23,12 +23,26 @@ beforeAll(async () => {
   const since = new Date(Date.now() + 3_600_000).toISOString();
   writeFileSync(
     queueConfigFile,
-    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", since }] } }),
+    JSON.stringify({
+      schedules: {
+        aide: [
+          {
+            name: "nightly-report",
+            cron: "0 3 * * *",
+            prompt: "docs/nightly.md",
+            since,
+          },
+        ],
+      },
+    }),
   );
   const started = harness.start({ extra: { queueConfigFile } });
   // The save checks that the prompt file is in the project's checkout.
   mkdirSync(join(started.dir, "root", "aide", "docs"), { recursive: true });
-  writeFileSync(join(started.dir, "root", "aide", "docs", "nightly.md"), "# nightly\n");
+  writeFileSync(
+    join(started.dir, "root", "aide", "docs", "nightly.md"),
+    "# nightly\n",
+  );
   base = started.base;
   browser = await chromium.launch();
 });
@@ -47,12 +61,19 @@ test("Edit, a refused Save that keeps what was typed, then a Save that shows the
 
   await cron.fill("not a cron");
   await page.getByRole("button", { name: "Save" }).click();
-  await page.locator("form.scheduleform .refused", { hasText: "not a valid cron expression" }).waitFor();
+  await page
+    .locator("form.scheduleform .refused", {
+      hasText: "not a valid cron expression",
+    })
+    .waitFor();
   expect(await cron.inputValue()).toBe("not a cron");
 
   await cron.fill("0 5 * * *");
   await page.getByRole("button", { name: "Save" }).click();
-  await page.waitForURL((u) => u.searchParams.get("tab") === "settings" && !u.searchParams.has("edit"));
+  await page.waitForURL(
+    (u) =>
+      u.searchParams.get("tab") === "settings" && !u.searchParams.has("edit"),
+  );
   await page.locator("table.facts", { hasText: "0 5 * * *" }).waitFor();
   expect(await page.locator('input[name="cron"]').count()).toBe(0);
   await page.close();
@@ -61,11 +82,19 @@ test("Edit, a refused Save that keeps what was typed, then a Save that shows the
 test("Delete on the Settings tab lands on the project's Schedule tab, without the entry", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report?tab=settings`);
-  await page.locator('button[data-ask="deleteask-aide/nightly-report"]').click();
+  await page
+    .locator('button[data-ask="deleteask-aide/nightly-report"]')
+    .click();
   const box = page.locator('dialog[id="deleteask-aide/nightly-report"]');
   await box.waitFor({ state: "visible" });
   await box.getByRole("button", { name: "OK" }).click();
-  await page.waitForURL((u) => u.pathname === "/projects/aide" && u.searchParams.get("tab") === "schedule");
-  expect(await page.locator('a[href="/schedule/aide/nightly-report"]').count()).toBe(0);
+  await page.waitForURL(
+    (u) =>
+      u.pathname === "/projects/aide" &&
+      u.searchParams.get("tab") === "schedule",
+  );
+  expect(
+    await page.locator('a[href="/schedule/aide/nightly-report"]').count(),
+  ).toBe(0);
   await page.close();
 });

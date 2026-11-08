@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  SOURCE,
-  harness,
-} from "./fixtures.ts";
+import { SOURCE, harness } from "./fixtures.ts";
 import { makeFakeFormData } from "./fixtures-runtime.ts";
 
 // --- The Projects panel --------------------------------------------
@@ -19,7 +16,10 @@ describe("Remove", () => {
 
   test("a removal hands the current view to the shared page change", async () => {
     const h = harness(
-      () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
+      () => ({
+        ok: true,
+        body: { ok: true, results: [{ step: "confirm", ok: true }] },
+      }),
       "actionform",
       "?state=running&sort=cost",
       { pathname: "/projects" },
@@ -27,7 +27,9 @@ describe("Remove", () => {
     await h.submitRemove();
     const post = h.requests.find((r) => r.url.includes("/remove"))!;
     expect(post.init.method).toBe("POST");
-    expect((post.init.headers as Record<string, string>).accept).toBe("application/json");
+    expect((post.init.headers as Record<string, string>).accept).toBe(
+      "application/json",
+    );
     // The panel is markup the server owns, and what changed is which
     // projects are in it — so the page is asked again, with the
     // reader's own query string. THIS page: no route name is written
@@ -39,7 +41,10 @@ describe("Remove", () => {
     let coveredWhileOut = false;
     const h = harness(
       (url) => {
-        if (url.includes("/remove")) coveredWhileOut = h.dispatchedEvents.some((e) => e.type === "aide-cover");
+        if (url.includes("/remove"))
+          coveredWhileOut = h.dispatchedEvents.some(
+            (e) => e.type === "aide-cover",
+          );
         return { ok: true, body: { ok: true, results: [] } };
       },
       "actionform",
@@ -48,14 +53,19 @@ describe("Remove", () => {
     );
     await h.submitRemove();
     expect(coveredWhileOut).toBe(true);
-    expect(h.dispatchedEvents.find((e) => e.type === "aide-cover")?.detail).toEqual({ note: "Removing…" });
+    expect(
+      h.dispatchedEvents.find((e) => e.type === "aide-cover")?.detail,
+    ).toEqual({ note: "Removing…" });
     expect(h.removeDialog.open).toBe(false);
   });
 
   test("a refusal lifts the cover and asks again with its words in the dialog's own line", async () => {
     const h = harness(() => ({
       ok: false,
-      body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
+      body: {
+        ok: false,
+        results: [{ step: "allowlist", error: "not on the allowlist" }],
+      },
     }));
     await h.submitRemove();
     expect(h.dispatched).toContain("aide-cover-done");
@@ -66,7 +76,10 @@ describe("Remove", () => {
   test("a refusal is written in the dialog's own line, the dialog stays open and the page stays put", async () => {
     const h = harness(() => ({
       ok: false,
-      body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
+      body: {
+        ok: false,
+        results: [{ step: "allowlist", error: "not on the allowlist" }],
+      },
     }));
     await h.submitRemove();
     expect(h.removeSlot.textContent).toContain("Not on the allowlist");
@@ -88,9 +101,16 @@ describe("on /projects, where there is no New-spec form", () => {
    *  `:not(.class)` ones may be. */
   const matches = (selector: string, className: string): boolean => {
     const classes = className.split(/\s+/);
-    const negated = [...selector.matchAll(/:not\(\.([\w-]+)\)/g)].map((m) => m[1]!);
-    const required = [...selector.replace(/:not\([^)]*\)/g, "").matchAll(/\.([\w-]+)/g)].map((m) => m[1]!);
-    return required.every((c) => classes.includes(c)) && !negated.some((c) => classes.includes(c));
+    const negated = [...selector.matchAll(/:not\(\.([\w-]+)\)/g)].map(
+      (m) => m[1]!,
+    );
+    const required = [
+      ...selector.replace(/:not\([^)]*\)/g, "").matchAll(/\.([\w-]+)/g),
+    ].map((m) => m[1]!);
+    return (
+      required.every((c) => classes.includes(c)) &&
+      !negated.some((c) => classes.includes(c))
+    );
   };
 
   test("the Add form is bound once — as a project change, not also as a create", () => {
@@ -104,15 +124,24 @@ describe("on /projects, where there is no New-spec form", () => {
     };
     const document = {
       getElementById: () => null,
-      querySelector: (sel: string) => (matches(sel, addForm.className) ? addForm : null),
+      querySelector: (sel: string) =>
+        matches(sel, addForm.className) ? addForm : null,
       querySelectorAll: (sel: string) =>
-        sel.includes("addprojectform") || sel.includes("removeform") ? [addForm] : [],
+        sel.includes("addprojectform") || sel.includes("removeform")
+          ? [addForm]
+          : [],
       addEventListener: () => {},
       visibilityState: "hidden",
     };
     // eslint-disable-next-line no-new-func -- the file under test IS a script
     new Function(
-      "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+      "document",
+      "location",
+      "fetch",
+      "setInterval",
+      "history",
+      "FormData",
+      "EventSource",
       SOURCE,
     )(
       document,
@@ -130,7 +159,6 @@ describe("on /projects, where there is no New-spec form", () => {
     );
     expect(bound).toEqual(["submit"]);
   });
-
 });
 
 // --- The project settings form's own Save ---------------------------
@@ -159,25 +187,42 @@ describe("the project settings form's own Save", () => {
       closest: () => null,
       querySelector: (sel: string) => (sel === ".refused" ? refusedSlot : null),
       querySelectorAll: () => [],
-      addEventListener: (type: string, fn: (e: Event) => void | Promise<void>) => void bound.push([type, fn]),
+      addEventListener: (
+        type: string,
+        fn: (e: Event) => void | Promise<void>,
+      ) => void bound.push([type, fn]),
     };
     const document = {
       getElementById: () => null,
       querySelector: () => null,
-      querySelectorAll: (sel: string) => (sel.includes("projectsettingsform") ? [form] : []),
+      querySelectorAll: (sel: string) =>
+        sel.includes("projectsettingsform") ? [form] : [],
       addEventListener: () => {},
       visibilityState: "hidden",
     };
-    const location = { search: "", href: "http://dash.test/projects/aide?edit=config", pathname: "/projects/aide" };
+    const location = {
+      search: "",
+      href: "http://dash.test/projects/aide?edit=config",
+      pathname: "/projects/aide",
+    };
     const fetchCalls: { url: string; init: Record<string, unknown> }[] = [];
-    const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
+    const fetchStub = async (
+      url: unknown,
+      init: Record<string, unknown> = {},
+    ) => {
       fetchCalls.push({ url: String(url), init });
       const r = reply();
       return { ok: r.ok, json: async () => r.body, text: async () => "" };
     };
     // eslint-disable-next-line no-new-func -- the file under test IS a script
     new Function(
-      "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+      "document",
+      "location",
+      "fetch",
+      "setInterval",
+      "history",
+      "FormData",
+      "EventSource",
       SOURCE,
     )(
       document,
@@ -196,23 +241,38 @@ describe("the project settings form's own Save", () => {
   };
 
   test("a successful save reloads the reader's own project on Config, dropping ?edit=config", async () => {
-    const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
-    await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
+    const h = buildHarness(() => ({
+      ok: true,
+      body: { ok: true, results: [] },
+    }));
+    await h.submit!({
+      defaultPrevented: false,
+      preventDefault: () => {},
+    } as unknown as Event);
     expect(h.location.href).toBe("/projects/aide?tab=config");
   });
 
   test("a refusal is written into the form's own .refused slot, and the page stays put", async () => {
     const h = buildHarness(() => ({
       ok: false,
-      body: { ok: false, results: [{ step: "specsPath", error: "not a directory" }] },
+      body: {
+        ok: false,
+        results: [{ step: "specsPath", error: "not a directory" }],
+      },
     }));
-    await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
+    await h.submit!({
+      defaultPrevented: false,
+      preventDefault: () => {},
+    } as unknown as Event);
     expect(h.location.href).toBe("http://dash.test/projects/aide?edit=config");
     expect(h.refusedSlot.textContent).toContain("Not a directory");
   });
 
   test("the settings form is bound exactly once, as its own handler", () => {
-    const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
+    const h = buildHarness(() => ({
+      ok: true,
+      body: { ok: true, results: [] },
+    }));
     expect(h.bound.map(([type]) => type)).toEqual(["submit"]);
   });
 });

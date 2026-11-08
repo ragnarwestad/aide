@@ -23,11 +23,10 @@ and which configuration files each tool reads.
 
 **Update this document** when you upgrade a tool or discover new/changed config support.
 
-
 ## Supported versions
 
 | Tool               | Version | Last verified | Status       |
-|--------------------|---------|---------------|--------------|
+| ------------------ | ------- | ------------- | ------------ |
 | Claude Code        | 2.1.319 | 2026-11-08    | ✅ Supported |
 | GitHub Copilot CLI | 1.0.107 | 2026-11-08    | ✅ Supported |
 | Codex CLI          | 0.167.0 | 2026-11-08    | ✅ Supported |
@@ -51,7 +50,7 @@ Yes/no hides the difference that matters: WHO guarantees that a piece is
 followed. Every cell in the next table carries one of these grades:
 
 | Grade               | Meaning                                                                    | Guaranteed by         |
-|---------------------|----------------------------------------------------------------------------|-----------------------|
+| ------------------- | -------------------------------------------------------------------------- | --------------------- |
 | **E — Enforced**    | The tool mechanically enforces it (a hook blocks, config is applied)       | The tool              |
 | **H — Heuristic**   | A tool feature usually triggers it (skill activation on description match) | The tool, best-effort |
 | **I — Instruction** | Plain text the model usually follows — nothing checks it                   | The model             |
@@ -64,13 +63,13 @@ everyone believed was an E is how rules break silently.
 
 ## How the Aide pieces land
 
-| Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                                                 | OpenCode                                                       |
-|-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| Rules (git, testing, communication, …)                          | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                                                  | **I** — text in `~/.config/opencode/AGENTS.md`                 |
-| Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                                                 | **H** — scanned in `~/.agents/skills/` and `~/.claude/skills/` |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141)                    | **—**                                                          |
-| Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                                                 | **—**                                                          |
-| Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                                                                                                           | **H** — the skills carry it                                    |
+| Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                              | OpenCode                                                       |
+| --------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Rules (git, testing, communication, …)                          | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                               | **I** — text in `~/.config/opencode/AGENTS.md`                 |
+| Skills (`/aide-create`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                              | **H** — scanned in `~/.agents/skills/` and `~/.claude/skills/` |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141) | **—**                                                          |
+| Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                              | **—**                                                          |
+| Spec workflow (explore → create → … → archive)                  | **H** — the skills carry it                    | **H** — the skills carry it                          | **H** — the skills carry it                                                                                                                                        | **H** — the skills carry it                                    |
 
 Verified hands-on against Copilot CLI 1.0.79 (`copilot skill list`,
 2026-08-13): personal skills are read from `~/.agents/skills/` — **not**
@@ -94,7 +93,7 @@ an allowlist test. See the frontmatter table in the ai-tools reference.
 ## Current models
 
 | Tool               | Default / recommended model                                                                                                                           |
-|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Claude Code        | Claude Fable 5.1 (default Fable, v2.1.257); Opus 5 (v2.1.219) and Sonnet 5 (v2.1.197); Claude Haiku 5.5 (`claude-haiku-5-5`, default Haiku, v2.1.293) |
 | GitHub Copilot CLI | `auto` (chooses itself); Claude Fable 5.1, Sonnet 5, Haiku 5.5, GPT-6 Astra and GPT-5.6 available                                                     |
 | OpenAI Codex CLI   | GPT-6.1 Sol (bundled default since 0.159.1); GPT-6 Astra before it                                                                                    |
@@ -122,7 +121,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 Which files each tool reads automatically:
 
 | File/directory                              |    Claude Code    |               Copilot                |             Codex              |
-|---------------------------------------------|:-----------------:|:------------------------------------:|:------------------------------:|
+| ------------------------------------------- | :---------------: | :----------------------------------: | :----------------------------: |
 | `CLAUDE.md`                                 |    ✅ primary     |               ✅ read                | — (not read; verified 0.147.0) |
 | `AGENTS.md`                                 |    ✅ fallback    |               ✅ read                | ✅ primary (verified 0.147.0)  |
 | `.claude/rules/*.md`                        |  ✅ auto-include  |    ✅ read (confirmed v1.0.89-5)     |               —                |
@@ -160,7 +159,7 @@ Which files each tool reads automatically:
 ### Instruction files (read automatically)
 
 | File                  | Description                                        |
-|-----------------------|----------------------------------------------------|
+| --------------------- | -------------------------------------------------- |
 | `CLAUDE.md`           | Primary instruction file — read at startup         |
 | `~/.claude/CLAUDE.md` | Global instruction file (user level)               |
 | `.claude/rules/*.md`  | Rule files — **automatically included** in context |
@@ -168,7 +167,7 @@ Which files each tool reads automatically:
 ### Configuration
 
 | File                        | Description                                       |
-|-----------------------------|---------------------------------------------------|
+| --------------------------- | ------------------------------------------------- |
 | `.claude/settings.json`     | MCP servers, hooks, permissions                   |
 | `.claude/skills/*/SKILL.md` | Native skills (activated by Claude automatically) |
 | `.claude/commands/*.md`     | Slash commands (`/command`)                       |
@@ -200,7 +199,7 @@ Which files each tool reads automatically:
     tool that writes;
   - a symlink to a denied path is denied as well;
   - Chromium cannot start inside it (`bootstrap_check_in … Permission
-    denied`); `network.allowMachLookup` does not help, since it allows
+denied`); `network.allowMachLookup` does not help, since it allows
     looking a service up, not registering one.
 - **Hooks:** Pre/post hooks for tool calls via `settings.json`
 - **Auto-apply edits:** Can be configured to write files without confirmation
@@ -223,7 +222,7 @@ core/implementations/claude-code/
 ### Instruction files (read automatically)
 
 | File                                        | Description                                |
-|---------------------------------------------|--------------------------------------------|
+| ------------------------------------------- | ------------------------------------------ |
 | `.github/copilot-instructions.md`           | Repository-wide instructions — primary     |
 | `.github/instructions/**/*.instructions.md` | Path-specific instructions                 |
 | `~/.copilot/copilot-instructions.md`        | Global user instructions                   |
@@ -238,7 +237,7 @@ core/implementations/claude-code/
 > re-checked. See [Open follow-up items](#open-follow-up-items).
 
 | File                    | Description                                                 |
-|-------------------------|-------------------------------------------------------------|
+| ----------------------- | ----------------------------------------------------------- |
 | `.claude/skills/`       | Agent skills — read automatically (verified against 1.0.79) |
 | `.claude/commands/*.md` | Read as skills by the Copilot CLI (verified against 1.0.79) |
 | `.claude/agents/*.md`   | Custom agents — read by the Copilot CLI                     |
@@ -247,7 +246,7 @@ core/implementations/claude-code/
 **Skills (native Copilot locations):**
 
 | File                           | Description                                         |
-|--------------------------------|-----------------------------------------------------|
+| ------------------------------ | --------------------------------------------------- |
 | `.github/skills/*/SKILL.md`    | Repo-specific skills (Copilot's native location)    |
 | `.agents/skills/*/SKILL.md`    | Repo-specific skills (shared standard with Codex)   |
 | `~/.agents/skills/*/SKILL.md`  | Personal skills (Aide installs `core/skills/` here) |
@@ -289,14 +288,14 @@ core/implementations/copilot/
 ### Instruction files (read automatically)
 
 | File                               | Description                                                                         |
-|------------------------------------|-------------------------------------------------------------------------------------|
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
 | `AGENTS.md` (`~/.codex/AGENTS.md`) | Primary instruction file (installed from `core/AGENTS.md`)                          |
 | `CLAUDE.md`                        | Not read (verified 0.147.0) — needs `project_doc_fallback_filenames` in config.toml |
 
 ### Configuration
 
 | File                   | Description                            |
-|------------------------|----------------------------------------|
+| ---------------------- | -------------------------------------- |
 | `~/.codex/config.toml` | Global config: execPolicy, MCP servers |
 
 ### Features
@@ -336,7 +335,7 @@ the machine's Claude Code login.
 ### Instruction files (read automatically)
 
 | File                                         | Description                                                                                                                                                                                                                            |
-|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md` (`~/.config/opencode/AGENTS.md`) | Global instruction file (installed from `core/AGENTS.md`)                                                                                                                                                                              |
 | `~/.claude/CLAUDE.md`                        | OpenCode 1: read only when `~/.config/opencode/AGENTS.md` does not exist, so not where Aide is installed. OpenCode 2: not read                                                                                                         |
 | `AGENTS.md` / `CLAUDE.md` in the project     | OpenCode 1: the first of `AGENTS.md`, `CLAUDE.md` and `CONTEXT.md` that exists wins, searched from the working directory up to the root. OpenCode 2: `AGENTS.md` only, every one up to the project root, combined with the global file |
@@ -344,7 +343,7 @@ the machine's Claude Code login.
 ### Skills (read in place — nothing installed)
 
 | Directory           | Description                                              |
-|---------------------|----------------------------------------------------------|
+| ------------------- | -------------------------------------------------------- |
 | `~/.agents/skills/` | Scanned for `**/SKILL.md`, shared with Codex and Copilot |
 | `~/.claude/skills/` | Scanned the same way, shared with Claude Code            |
 
@@ -370,7 +369,7 @@ them to the model.
 ### Configuration
 
 | File                               | Description                                   |
-|------------------------------------|-----------------------------------------------|
+| ---------------------------------- | --------------------------------------------- |
 | `~/.config/opencode/opencode.json` | Global config: providers, agents, permissions |
 
 ### Headless use

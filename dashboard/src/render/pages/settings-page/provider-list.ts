@@ -10,9 +10,17 @@ import { messageSlot, switchControl, TOOL_ICONS } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { Provider } from "../../../queue/providers/index.ts";
 import {
-  PROVIDERS_SWITCH_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerRows, type ProviderRow, type ProviderStatus,
+  PROVIDERS_SWITCH_ROUTE,
+  PROVIDERS_TAB_PATH,
+  providerEditPath,
+  providerRows,
+  type ProviderRow,
+  type ProviderStatus,
 } from "./providers.ts";
-import { providerDetail, type ProviderDetailOptions } from "./provider-detail.ts";
+import {
+  providerDetail,
+  type ProviderDetailOptions,
+} from "./provider-detail.ts";
 import { PROVIDER_ADD_DIALOG, providerAddDialog } from "./provider-add.ts";
 
 /** The line a refused switch is written into. */
@@ -25,26 +33,39 @@ function rowLine(r: ProviderRow, lang: Language): string {
 
 /** The switch, as a form of its own: the press sends the other state, and
  *  the page loads again with it. */
-function switchForm(r: ProviderRow, chosen: string | undefined, lang: Language): string {
+function switchForm(
+  r: ProviderRow,
+  chosen: string | undefined,
+  lang: Language,
+): string {
   const back = chosen ? providerEditPath(chosen) : PROVIDERS_TAB_PATH;
   return (
     `<form class="reloadform" method="post" action="${PROVIDERS_SWITCH_ROUTE}" data-done="${esc(back)}" data-line="${PROVIDER_SWITCH_REFUSED}">` +
     `<input type="hidden" name="key" value="${esc(r.key)}"><input type="hidden" name="enabled" value="${r.on ? "false" : "true"}">` +
     switchControl({
-      label: t(lang, "settings.providers.switchLabel", { name: r.name }), checked: r.on, submit: true,
-      onWord: t(lang, "settings.providers.on"), offWord: t(lang, "settings.providers.off"),
+      label: t(lang, "settings.providers.switchLabel", { name: r.name }),
+      checked: r.on,
+      submit: true,
+      onWord: t(lang, "settings.providers.on"),
+      offWord: t(lang, "settings.providers.off"),
     }) +
     `</form>`
   );
 }
 
-function row(r: ProviderRow, chosen: string | undefined, lang: Language): string {
+function row(
+  r: ProviderRow,
+  chosen: string | undefined,
+  lang: Language,
+): string {
   return (
     `<li class="providerrow${r.key === chosen ? " chosen" : ""}">` +
     `<a class="provideritem" href="${esc(r.href)}"${r.key === chosen ? ` aria-current="page"` : ""}>` +
     `<span class="providericon" title="${esc(r.toolName)}">${TOOL_ICONS[r.tool]}</span>` +
     `<span class="providertext"><span class="providername"><strong>${esc(r.name)}</strong>` +
-    (r.version ? ` <span class="providerversion">${esc(r.version)}</span>` : "") +
+    (r.version
+      ? ` <span class="providerversion">${esc(r.version)}</span>`
+      : "") +
     `</span><span class="muted small">${esc(rowLine(r, lang))}</span></span></a>` +
     switchForm(r, chosen, lang) +
     `</li>`
@@ -62,7 +83,9 @@ export interface ProvidersTabOptions {
 export function providersTab(o: ProvidersTabOptions, lang: Language): string {
   const rows = providerRows(o.providers, o.statuses);
   const chosen = o.detail?.key;
-  const read = Object.values(o.statuses ?? {}).map((s) => s.at).sort()[0];
+  const read = Object.values(o.statuses ?? {})
+    .map((s) => s.at)
+    .sort()[0];
   const head =
     `<div class="providershead"><h2>${esc(t(lang, "settings.providers.heading"))}</h2>` +
     `<button type="button" class="iconlink" data-ask="${PROVIDER_ADD_DIALOG}" aria-label="${esc(t(lang, "settings.providers.addProvider"))}" title="${esc(t(lang, "settings.providers.addProvider"))}">+</button>` +
@@ -75,7 +98,9 @@ export function providersTab(o: ProvidersTabOptions, lang: Language): string {
     `<ul class="providerlist">${rows.map((r) => row(r, chosen, lang)).join("")}` +
     `<li class="providerrow"><button type="button" class="provideritem" data-ask="${PROVIDER_ADD_DIALOG}"><span class="providericon" aria-hidden="true">+</span>` +
     `<span class="providertext">${esc(t(lang, "settings.providers.addProvider"))}</span></button></li></ul>`;
-  const detail = o.detail ? providerDetail(o.detail, o.now, lang) : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`;
+  const detail = o.detail
+    ? providerDetail(o.detail, o.now, lang)
+    : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`;
   return (
     head +
     messageSlot("refused", "failed", { id: PROVIDER_SWITCH_REFUSED }) +

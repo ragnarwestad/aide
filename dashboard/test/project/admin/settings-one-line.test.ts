@@ -1,7 +1,14 @@
 // A setting's value is one line: a break that reaches the server is
 // folded to a space before it is written.
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { oneLine } from "../../../src/project/project-admin/manifest-io.ts";
@@ -16,13 +23,18 @@ const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "aide-oneline-"));
   dirs.push(dir);
   mkdirSync(join(dir, ".aide"));
-  writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ndescription: d\n");
+  writeFileSync(
+    join(dir, ".aide", "project.yaml"),
+    "name: p\ndescription: d\n",
+  );
   mkdirSync(join(dir, "specs", "archive"), { recursive: true });
   return dir;
 };
 const run = async () => ({ code: 1, stdout: "" });
 const files = (dir: string) => ({
-  config: existsSync(join(dir, ".aide", "config")) ? readFileSync(join(dir, ".aide", "config"), "utf-8") : "",
+  config: existsSync(join(dir, ".aide", "config"))
+    ? readFileSync(join(dir, ".aide", "config"), "utf-8")
+    : "",
   manifest: readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"),
 });
 
@@ -50,22 +62,36 @@ describe("updateProjectSettings folds line breaks", () => {
     expect(config).toContain(`AIDE_SPECS_PATH=${specs}\n`);
     expect(config).toContain("AIDE_INSTALL_CMD=bun install\n");
     expect(manifest).not.toMatch(/\r/);
-    for (const line of ["worktreeLinks: node_modules .venv", "previewCmd: bun run dev", "AIDE_TEST_CMD: make test"]) {
+    for (const line of [
+      "worktreeLinks: node_modules .venv",
+      "previewCmd: bun run dev",
+      "AIDE_TEST_CMD: make test",
+    ]) {
       expect(manifest).toContain(line);
     }
-    expect(config.split("\n").every((l) => l === "" || /^[A-Z_]+=/.test(l))).toBe(true);
+    expect(
+      config.split("\n").every((l) => l === "" || /^[A-Z_]+=/.test(l)),
+    ).toBe(true);
   });
 
   test("a break in the description is written on one line", async () => {
     const dir = project();
-    await updateProjectSettings(run, dir, { description: "the\r\nboard\nfor specs" });
+    await updateProjectSettings(run, dir, {
+      description: "the\r\nboard\nfor specs",
+    });
     expect(files(dir).manifest).toContain("description: the board for specs\n");
   });
 
   test("a save carrying only the test command leaves the other four as they were", async () => {
     const dir = project();
-    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=bun install\n");
-    await updateProjectSettings(run, dir, { installCmd: "bun install", worktreeLinks: "node_modules" });
+    writeFileSync(
+      join(dir, ".aide", "config"),
+      "AIDE_INSTALL_CMD=bun install\n",
+    );
+    await updateProjectSettings(run, dir, {
+      installCmd: "bun install",
+      worktreeLinks: "node_modules",
+    });
     const before = files(dir);
     await updateProjectSettings(run, dir, { testCmd: "make\ntest" });
     const after = files(dir);

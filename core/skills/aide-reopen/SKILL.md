@@ -49,7 +49,6 @@ the board: Aide writes its marks there.
 
 First write `--- Step 1 of 6: Find the spec — started`, and when this step ends, `--- Step 1 of 6: Find the spec — done`.
 
-
 Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
 where the spec is. `aide_resolve_spec` in `_aide-spec-lib.sh` already
 searches both and returns `archive/<NN>-slug` for an archived spec.
@@ -67,12 +66,11 @@ the same `aide-reopen-spec` call itself.
 
 First write `--- Step 2 of 6: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 6: Remove the branch the earlier round left behind — done`.
 
-
 `aide/<NN>-slug` can be in four places, and the one that is missed is
 the one the next run refuses on:
 
 | Repository     | Where                         |
-|----------------|-------------------------------|
+| -------------- | ----------------------------- |
 | the project    | the local ref in the checkout |
 | the project    | `origin`                      |
 | the specs repo | the local ref in the checkout |
@@ -87,7 +85,6 @@ that cannot be reached is no reason to stop.
 
 First write `--- Step 3 of 6: Move the folder back — started`, and when this step ends, `--- Step 3 of 6: Move the folder back — done`.
 
-
 Run, from the specs repository as it stands before anything is moved:
 
 ```bash
@@ -101,7 +98,7 @@ modes.
 
 - **Keep mode:** `2-analysis.md` and `3-solution.md` stay too; `archive`
   leaves the `Workflow steps completed:` line, and a `**Round
-  boundary:**` line is appended to `4-status.md`.
+boundary:**` line is appended to `4-status.md`.
 - **Reset mode:** `2-analysis.md`, `3-solution.md` and `4-status.md` are
   written fresh from the templates, and `4-status.md` gets a
   `**Reopened:**` mark at the specs repository's HEAD.
@@ -112,7 +109,6 @@ refusal, report the script's `error` and stop.
 ### Step 4 of 6: Commit
 
 First write `--- Step 4 of 6: Commit — started`, and when this step ends, `--- Step 4 of 6: Commit — done`.
-
 
 ASK whether to commit, and suggest this message:
 
@@ -144,6 +140,7 @@ keyboard there is no such step: the commit in Step 4 is what reaches
 the specs repository.
 
 IMPORTANT:
+
 - Never delete a commit, and never rewrite the default branch's history.
   The mark is what stops the earlier round counting; the repository keeps
   it.

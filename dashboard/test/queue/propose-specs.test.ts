@@ -1,13 +1,26 @@
 // What the board does when a scheduled run ends green: read the proposals the
 // run left, and queue a Create job for each one that passes.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
-import { proposeSpecs, type ProposeDeps } from "../../src/queue/propose-specs.ts";
+import {
+  proposeSpecs,
+  type ProposeDeps,
+} from "../../src/queue/propose-specs.ts";
 import { DESCRIPTION_MAX } from "../../src/queue/parse-request.ts";
-import { PROPOSALS_FILE, PROPOSALS_RESULT_FILE, readProposalsRecord } from "../../src/queue/spec-proposals.ts";
+import {
+  PROPOSALS_FILE,
+  PROPOSALS_RESULT_FILE,
+  readProposalsRecord,
+} from "../../src/queue/spec-proposals.ts";
 import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
 
 const DEFAULTS = {
@@ -42,7 +55,10 @@ const runJob = (over: Partial<Job> = {}): Job =>
 
 function spec(dir: string, folder: string, title: string, status = ""): void {
   mkdirSync(join(dir, folder), { recursive: true });
-  writeFileSync(join(dir, folder, "1-description.md"), `# ${title} - Description\n`);
+  writeFileSync(
+    join(dir, folder, "1-description.md"),
+    `# ${title} - Description\n`,
+  );
   if (status) writeFileSync(join(dir, folder, "4-status.md"), status);
 }
 
@@ -50,7 +66,10 @@ const outDir = (id = RUN) => scheduleRunOutputDir(outputRoot, "aide", KEY, id);
 
 function leave(proposals: unknown, id = RUN): void {
   mkdirSync(outDir(id), { recursive: true });
-  writeFileSync(join(outDir(id), PROPOSALS_FILE), typeof proposals === "string" ? proposals : JSON.stringify(proposals));
+  writeFileSync(
+    join(outDir(id), PROPOSALS_FILE),
+    typeof proposals === "string" ? proposals : JSON.stringify(proposals),
+  );
 }
 
 const deps = (over: Partial<ProposeDeps> = {}): ProposeDeps => ({
@@ -59,7 +78,8 @@ const deps = (over: Partial<ProposeDeps> = {}): ProposeDeps => ({
   specsRoot: () => specsRoot,
   reportPath: (name, runId) => `/schedule/aide/${name}?run=${runId}#report`,
   now: () => "2026-09-26T18:00:09Z",
-  log: (action, spec, reason) => void logged.push(`${action}|${spec}|${reason}`),
+  log: (action, spec, reason) =>
+    void logged.push(`${action}|${spec}|${reason}`),
   ...over,
 });
 
@@ -94,14 +114,19 @@ describe("proposeSpecs", () => {
       expect(j.steps).toEqual(["create"]);
       expect(j.state).toBe("queued");
     }
-    expect(record()?.proposals.map((p) => p.result)).toEqual(["created", "created"]);
+    expect(record()?.proposals.map((p) => p.result)).toEqual([
+      "created",
+      "created",
+    ]);
   });
 
   test("a description begins with the proposal's own text and ends with the source block", () => {
     leave([{ title: "First", description: "Do the first\n\n- with a list" }]);
     proposeSpecs(deps(), runJob());
     const d = queued()[0]!.createDescription!;
-    expect(d.startsWith("Do the first\n\n- with a list\n\n### Source")).toBe(true);
+    expect(d.startsWith("Do the first\n\n- with a list\n\n### Source")).toBe(
+      true,
+    );
     expect(d).toContain("`nyhetssjekk`");
     expect(d).toContain(`\`${RUN}\``);
     expect(d).toContain(`/schedule/aide/nyhetssjekk?run=${RUN}#report`);
@@ -124,7 +149,12 @@ describe("proposeSpecs", () => {
   test("titles of active, archived and closed specs are skipped as existing, with folder and kind", () => {
     spec(specsRoot, "01-alpha", "Alpha");
     spec(join(specsRoot, "archive"), "02-beta", "Beta");
-    spec(join(specsRoot, "archive"), "03-gamma", "Gamma", "- **Closed:** 2026-09-01 — declined\n");
+    spec(
+      join(specsRoot, "archive"),
+      "03-gamma",
+      "Gamma",
+      "- **Closed:** 2026-09-01 — declined\n",
+    );
     leave([
       { title: "  alpha ", description: "d" },
       { title: "BETA", description: "d" },
@@ -133,10 +163,24 @@ describe("proposeSpecs", () => {
     ]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["Fresh"]);
-    const why = record()!.proposals.map((p) => (p.result === "skipped" ? p.why : null));
-    expect(why[0]).toEqual({ code: "exists", folder: "01-alpha", kind: "active" });
-    expect(why[1]).toEqual({ code: "exists", folder: "02-beta", kind: "archived" });
-    expect(why[2]).toEqual({ code: "exists", folder: "03-gamma", kind: "closed" });
+    const why = record()!.proposals.map((p) =>
+      p.result === "skipped" ? p.why : null,
+    );
+    expect(why[0]).toEqual({
+      code: "exists",
+      folder: "01-alpha",
+      kind: "active",
+    });
+    expect(why[1]).toEqual({
+      code: "exists",
+      folder: "02-beta",
+      kind: "archived",
+    });
+    expect(why[2]).toEqual({
+      code: "exists",
+      folder: "03-gamma",
+      kind: "closed",
+    });
   });
 
   test("a title listed twice is created once and the second names the first's job", () => {
@@ -148,7 +192,10 @@ describe("proposeSpecs", () => {
     expect(queued()).toHaveLength(1);
     const [a, b] = record()!.proposals;
     expect(a).toMatchObject({ result: "created" });
-    expect(b).toMatchObject({ result: "skipped", why: { code: "queued", jobId: (a as { jobId: string }).jobId } });
+    expect(b).toMatchObject({
+      result: "skipped",
+      why: { code: "queued", jobId: (a as { jobId: string }).jobId },
+    });
   });
 
   test("a Create job queued by an earlier run blocks the same title", () => {
@@ -156,14 +203,20 @@ describe("proposeSpecs", () => {
     leave([{ title: "wanted", description: "d" }]);
     proposeSpecs(deps(), runJob());
     expect(queued()).toHaveLength(1);
-    expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "queued" } });
+    expect(record()!.proposals[0]).toMatchObject({
+      result: "skipped",
+      why: { code: "queued" },
+    });
   });
 
   test("an invalid entry is skipped with what is wrong and the rest are still created", () => {
     leave([{ description: "no title" }, { title: "Good", description: "d" }]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["Good"]);
-    expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "invalid", what: "title-missing" } });
+    expect(record()!.proposals[0]).toMatchObject({
+      result: "skipped",
+      why: { code: "invalid", what: "title-missing" },
+    });
   });
 
   test("a description too long to leave room for the source block is skipped, one that fits is created", () => {
@@ -173,7 +226,10 @@ describe("proposeSpecs", () => {
     ]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["Fits"]);
-    expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "invalid", what: "description-long" } });
+    expect(record()!.proposals[0]).toMatchObject({
+      result: "skipped",
+      why: { code: "invalid", what: "description-long" },
+    });
   });
 
   test("a refusal from the queue is logged, recorded without its words, and the entries after it are created", () => {
@@ -183,7 +239,11 @@ describe("proposeSpecs", () => {
     ]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["After"]);
-    expect(record()!.proposals[0]).toEqual({ title: "Has\u0007control", result: "skipped", why: { code: "refused" } });
+    expect(record()!.proposals[0]).toEqual({
+      title: "Has\u0007control",
+      result: "skipped",
+      why: { code: "refused" },
+    });
     expect(logged).toHaveLength(1);
     expect(logged[0]).toContain("aide/nyhetssjekk");
   });
@@ -221,7 +281,9 @@ describe("proposeSpecs", () => {
         return store.enqueueCreate(raw);
       },
     };
-    expect(() => proposeSpecs(deps({ store: throwing }), runJob())).not.toThrow();
+    expect(() =>
+      proposeSpecs(deps({ store: throwing }), runJob()),
+    ).not.toThrow();
     const r = record()!;
     expect(r.problem).toBe("failed");
     expect(r.detail).toContain("disk full");
@@ -241,6 +303,11 @@ describe("proposeSpecs", () => {
     };
     proposeSpecs(deps({ store: spy }), runJob());
     expect(writes).toEqual(["enqueueCreate"]);
-    expect(store.list().flatMap((j) => j.steps).filter((s) => s !== "create")).toEqual([]);
+    expect(
+      store
+        .list()
+        .flatMap((j) => j.steps)
+        .filter((s) => s !== "create"),
+    ).toEqual([]);
   });
 });

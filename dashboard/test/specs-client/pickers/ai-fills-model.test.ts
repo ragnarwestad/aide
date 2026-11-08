@@ -1,10 +1,7 @@
 // Split out of model-and-phase-picks.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  harness,
-  flush,
-} from "../fixtures.ts";
+import { harness, flush } from "../fixtures.ts";
 import { Window } from "happy-dom";
 import { syncSidePickers } from "../../../src/specs-client/ai-sync.ts";
 
@@ -13,16 +10,25 @@ test("Review and Verify keep every configured model when Implement's tool change
   window.document.body.innerHTML = `<form id="f"></form>
     <select name="model.implement" form="f"><option value="sonnet" data-tool="claude">sonnet</option><option value="pickle" data-tool="opencode">pickle</option></select>
     <select name="model.review" form="f" data-side-picker><option value=""></option><option value="sonnet" data-tool="claude">sonnet</option><option value="codex" data-tool="codex">codex</option><option value="pickle" data-tool="opencode">pickle</option></select>`;
-  const implement = window.document.querySelector('select[name="model.implement"]') as unknown as HTMLSelectElement;
-  const review = window.document.querySelector('select[name="model.review"]') as unknown as HTMLSelectElement;
-  const option = (value: string) => Array.from(review.options).find((entry) => entry.value === value)!;
+  const implement = window.document.querySelector(
+    'select[name="model.implement"]',
+  ) as unknown as HTMLSelectElement;
+  const review = window.document.querySelector(
+    'select[name="model.review"]',
+  ) as unknown as HTMLSelectElement;
+  const option = (value: string) =>
+    Array.from(review.options).find((entry) => entry.value === value)!;
 
   syncSidePickers(window.document as unknown as ParentNode);
-  for (const value of ["sonnet", "codex", "pickle"]) expect(option(value).disabled).toBe(false);
+  for (const value of ["sonnet", "codex", "pickle"])
+    expect(option(value).disabled).toBe(false);
   implement.value = "pickle";
   syncSidePickers(window.document as unknown as ParentNode, "f");
   for (const value of ["sonnet", "codex", "pickle"]) {
-    expect([option(value).hidden, option(value).disabled]).toEqual([false, false]);
+    expect([option(value).hidden, option(value).disabled]).toEqual([
+      false,
+      false,
+    ]);
   }
 });
 
@@ -43,8 +49,10 @@ test("Review and Verify keep every configured model when Implement's tool change
 // server marks those selects `data-ran="1"` so the two can never
 // disagree about where the tail starts.
 describe("an AI picked on a phase line fills that phase's model", () => {
-  const values = (h: ReturnType<typeof harness>) => h.modelSelects.map((s) => s.value);
-  const tools = (h: ReturnType<typeof harness>) => h.aiSelects.map((s) => s.value);
+  const values = (h: ReturnType<typeof harness>) =>
+    h.modelSelects.map((s) => s.value);
+  const tools = (h: ReturnType<typeof harness>) =>
+    h.aiSelects.map((s) => s.value);
 
   test("nothing is written until the reader picks an AI", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
@@ -89,13 +97,21 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     h.changeAi(2, "claude");
     for (const o of implement.options) {
       const claude = o.dataset.tool === "claude";
-      expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !claude, !claude]);
+      expect([o.value, o.hidden, o.disabled]).toEqual([
+        o.value,
+        !claude,
+        !claude,
+      ]);
     }
     // Back the other way, on the same line.
     h.changeAi(2, "codex");
     for (const o of implement.options) {
       const codex = o.dataset.tool === "codex";
-      expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !codex, !codex]);
+      expect([o.value, o.hidden, o.disabled]).toEqual([
+        o.value,
+        !codex,
+        !codex,
+      ]);
     }
   });
 
@@ -107,9 +123,11 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeAi(2, "codex");
     const analyze = h.modelSelects.find((s) => s.name === "model.analyze")!;
-    expect(analyze.options.filter((o) => o.dataset.tool === "claude").every((o) => !o.hidden)).toBe(
-      true,
-    );
+    expect(
+      analyze.options
+        .filter((o) => o.dataset.tool === "claude")
+        .every((o) => !o.hidden),
+    ).toBe(true);
   });
 
   // The pairing is `data-ai` plus the shared form id, because the
@@ -196,10 +214,17 @@ describe("an AI picked on a phase line fills that phase's model", () => {
   test("switching between two providers of one tool keeps the model, and posts the provider (AC-9)", async () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     const analyze = h.aiSelects[1]!;
-    analyze.options.push({ value: "claude-2", dataset: { default: "sonnet", tool: "claude" }, hidden: false, selected: false });
+    analyze.options.push({
+      value: "claude-2",
+      dataset: { default: "sonnet", tool: "claude" },
+      hidden: false,
+      selected: false,
+    });
     await h.changeAi(1, "claude-2");
     expect(values(h)[1]).toBe("fable");
-    const posted = h.requests.filter((r) => r.url.includes("/api/queue/specs/"))[0]!;
+    const posted = h.requests.filter((r) =>
+      r.url.includes("/api/queue/specs/"),
+    )[0]!;
     expect(String(posted.init.body)).toContain("provider=claude-2");
     expect(String(posted.init.body)).toContain("model=fable");
   });
@@ -248,17 +273,24 @@ describe("a non-live pick posts itself to the spec-scoped route", () => {
   // job's own route and never to this new one — the two
   // routes are for two different moments and must not both fire.
   test("a live pick still posts to the job's own route, not the spec-scoped one", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-1" } } }));
+    const h = harness(() => ({
+      ok: true,
+      body: { ok: true, job: { id: "job-1" } },
+    }));
     await h.changeModel(3, "fable"); // archive — live
     expect(posts(h)).toHaveLength(0);
-    expect(h.requests.some((r) => r.url.includes("/api/queue/job-1/model"))).toBe(true);
+    expect(
+      h.requests.some((r) => r.url.includes("/api/queue/job-1/model")),
+    ).toBe(true);
   });
 
   test("a refused live model change without an error names its action and HTTP status (AC-4)", async () => {
     const h = harness(() => ({ ok: false, status: 502, body: null }));
     await h.changeModel(3, "fable");
     await flush();
-    expect(h.listRefused.textContent).toBe("Problem: Change the model failed with HTTP 502");
+    expect(h.listRefused.textContent).toBe(
+      "Problem: Change the model failed with HTTP 502",
+    );
   });
 
   for (const reply of [

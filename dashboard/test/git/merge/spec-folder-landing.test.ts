@@ -8,11 +8,22 @@
 // holds afterwards, which a fake git can answer whatever the code does.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { mergeBranchIntoDefault, mergeWorktreePath } from "../../../src/git/branch-merge/index.ts";
+import {
+  mergeBranchIntoDefault,
+  mergeWorktreePath,
+} from "../../../src/git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../../src/git/spec-folder-landing.ts";
 
 const FOLDER = "03-a-spec";
@@ -25,7 +36,8 @@ afterEach(() => {
 
 function git(cwd: string, ...args: string[]): string {
   const res = Bun.spawnSync(["git", ...args], { cwd });
-  if (res.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${res.stderr.toString()}`);
+  if (res.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")}: ${res.stderr.toString()}`);
   return res.stdout.toString();
 }
 
@@ -68,21 +80,32 @@ const onMain = (origin: string, path: string): string | null => {
   const res = Bun.spawnSync(["git", "show", `main:${path}`], { cwd: origin });
   return res.exitCode === 0 ? res.stdout.toString() : null;
 };
-const branchOnOrigin = (origin: string): boolean => git(origin, "branch", "--list", BRANCH).trim() !== "";
+const branchOnOrigin = (origin: string): boolean =>
+  git(origin, "branch", "--list", BRANCH).trim() !== "";
 
 describe("landing a spec's own folder", () => {
   test("brings the spec files to main and leaves the code, and the branch, where they were", async () => {
     const { root, origin } = repo();
-    const result = await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
-      paths: PATHS, message: "Land it", deleteBranch: false,
-    });
+    const result = await landSpecFolderOnly(
+      createGitRunner(),
+      root,
+      BRANCH,
+      "main",
+      {
+        paths: PATHS,
+        message: "Land it",
+        deleteBranch: false,
+      },
+    );
     expect(result.ok).toBe(true);
     expect(result.discarded).toBe(true);
     expect(onMain(origin, `specs/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
     expect(onMain(origin, "src/app.ts")).toBe("old\n");
     expect(branchOnOrigin(origin)).toBe(true);
     expect(git(root, "status", "--porcelain")).toBe("");
-    expect(git(root, "rev-parse", "HEAD")).toBe(git(origin, "rev-parse", "main"));
+    expect(git(root, "rev-parse", "HEAD")).toBe(
+      git(origin, "rev-parse", "main"),
+    );
   });
 
   test("a close carries the folder's move to archive/ and then deletes the branch", async () => {
@@ -92,11 +115,21 @@ describe("landing a spec's own folder", () => {
     git(work, "mv", `specs/${FOLDER}`, `specs/archive/${FOLDER}`);
     git(work, "commit", "-qm", "close");
     git(work, "push", "-q", "origin", BRANCH);
-    const result = await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
-      paths: PATHS, message: "Land it", deleteBranch: true,
-    });
+    const result = await landSpecFolderOnly(
+      createGitRunner(),
+      root,
+      BRANCH,
+      "main",
+      {
+        paths: PATHS,
+        message: "Land it",
+        deleteBranch: true,
+      },
+    );
     expect(result.ok).toBe(true);
-    expect(onMain(origin, `specs/archive/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
+    expect(onMain(origin, `specs/archive/${FOLDER}/2-analysis.md`)).toBe(
+      "analysed\n",
+    );
     expect(onMain(origin, `specs/${FOLDER}/1-description.md`)).toBeNull();
     expect(onMain(origin, "src/app.ts")).toBe("old\n");
     expect(branchOnOrigin(origin)).toBe(false);
@@ -108,16 +141,26 @@ describe("landing a spec's own folder", () => {
     const spec = { paths: PATHS, message: "Land it", deleteBranch: false };
     await landSpecFolderOnly(run, root, BRANCH, "main", spec);
     const once = git(origin, "rev-parse", "main");
-    expect((await landSpecFolderOnly(run, root, BRANCH, "main", spec)).ok).toBe(true);
+    expect((await landSpecFolderOnly(run, root, BRANCH, "main", spec)).ok).toBe(
+      true,
+    );
     expect(git(origin, "rev-parse", "main")).toBe(once);
   });
 
   test("a branch already gone is the ordinary refusal", async () => {
     const { root, work } = repo();
     git(work, "push", "-q", "origin", "--delete", BRANCH);
-    const result = await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
-      paths: PATHS, message: "Land it", deleteBranch: false,
-    });
+    const result = await landSpecFolderOnly(
+      createGitRunner(),
+      root,
+      BRANCH,
+      "main",
+      {
+        paths: PATHS,
+        message: "Land it",
+        deleteBranch: false,
+      },
+    );
     expect(result.reason).toBe("gone");
   });
 });
@@ -127,18 +170,25 @@ for (const kind of ["branch", "folder"] as const) {
     const { root, origin } = repo();
     const work = mergeWorktreePath(root, BRANCH);
     write(work, "unfinished.txt", "keep this content\n");
-    const result = kind === "branch"
-      ? await mergeBranchIntoDefault(createGitRunner(), root, BRANCH, "main")
-      : await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
-        paths: PATHS, message: "Land analysis", deleteBranch: false,
-      });
+    const result =
+      kind === "branch"
+        ? await mergeBranchIntoDefault(createGitRunner(), root, BRANCH, "main")
+        : await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
+            paths: PATHS,
+            message: "Land analysis",
+            deleteBranch: false,
+          });
     expect(result.ok).toBe(true);
     expect(onMain(origin, `specs/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
     expect(existsSync(work)).toBe(false);
     const parent = join(root, "..");
-    const backup = readdirSync(parent).find((name) => name.startsWith(work.split("/").pop()! + ".incomplete-"));
+    const backup = readdirSync(parent).find((name) =>
+      name.startsWith(work.split("/").pop()! + ".incomplete-"),
+    );
     expect(backup).toBeDefined();
-    expect(readFileSync(join(parent, backup!, "unfinished.txt"), "utf8")).toBe("keep this content\n");
+    expect(readFileSync(join(parent, backup!, "unfinished.txt"), "utf8")).toBe(
+      "keep this content\n",
+    );
   });
 }
 
@@ -146,17 +196,33 @@ for (const kind of ["branch", "folder"] as const) {
   test(`${kind} landing allows a large worktree longer than a status query`, async () => {
     const { root } = repo();
     const real = createGitRunner();
-    const run: ReturnType<typeof createGitRunner> = async (dir, args, timeout, env) => {
-      if (args[0] === "worktree" && args[1] === "add" && (timeout ?? 4000) < 30_000) {
-        return { code: 143, stdout: "", stderr: "fatal: Could not write new index file." };
+    const run: ReturnType<typeof createGitRunner> = async (
+      dir,
+      args,
+      timeout,
+      env,
+    ) => {
+      if (
+        args[0] === "worktree" &&
+        args[1] === "add" &&
+        (timeout ?? 4000) < 30_000
+      ) {
+        return {
+          code: 143,
+          stdout: "",
+          stderr: "fatal: Could not write new index file.",
+        };
       }
       return real(dir, args, timeout, env);
     };
-    const result = kind === "branch"
-      ? await mergeBranchIntoDefault(run, root, BRANCH, "main")
-      : await landSpecFolderOnly(run, root, BRANCH, "main", {
-        paths: PATHS, message: "Land analysis", deleteBranch: false,
-      });
+    const result =
+      kind === "branch"
+        ? await mergeBranchIntoDefault(run, root, BRANCH, "main")
+        : await landSpecFolderOnly(run, root, BRANCH, "main", {
+            paths: PATHS,
+            message: "Land analysis",
+            deleteBranch: false,
+          });
     expect(result.ok).toBe(true);
   });
 }

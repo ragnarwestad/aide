@@ -3,7 +3,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createGitRunner, type GitRunner } from "../../src/git/branch-status.ts";
+import {
+  createGitRunner,
+  type GitRunner,
+} from "../../src/git/branch-status.ts";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness, IMPLEMENTED } from "../helpers/queue-server.ts";
 
@@ -21,11 +24,18 @@ const start = (extra: Partial<ServerOptions> = {}) =>
 
 afterEach(() => harness.cleanup());
 
-async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
+async function enqueue(
+  base: string,
+  steps: string[] = ["analyze"],
+): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
+    body: JSON.stringify({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps,
+    }),
   });
   const body = (await res.json()) as { job: { id: string } };
   return body.job.id;
@@ -40,9 +50,16 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
 describe("a Codex step's job page", () => {
   /** Seed a job the way a finished step leaves it, and hand back a
    *  mirror a second server can read. */
-  const seed = (dir: string, id: string, mutate: (job: Record<string, unknown>) => void): string => {
+  const seed = (
+    dir: string,
+    id: string,
+    mutate: (job: Record<string, unknown>) => void,
+  ): string => {
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     mutate(jobs.find((j) => j.id === id)!);
     writeFileSync(mirror, JSON.stringify(jobs));
     return mirror;
@@ -65,15 +82,29 @@ describe("a Codex step's job page", () => {
       job.state = "done";
       job.results = [
         {
-          step: "implement", ok: true, tool: "codex", costUsd: 0, costMeasured: false,
-          tokens: { input: 1, output: 2, cacheRead: 3, cacheCreation: 0, total: 6 },
-          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
+          step: "implement",
+          ok: true,
+          tool: "codex",
+          costUsd: 0,
+          costMeasured: false,
+          tokens: {
+            input: 1,
+            output: 2,
+            cacheRead: 3,
+            cacheCreation: 0,
+            total: 6,
+          },
+          terminalReason: "completed",
+          streamFile: stream,
+          at: "2026-08-20T10:01:00Z",
         },
       ];
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const activity = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
+    const activity = await (
+      await fetch(`${base2}/specs/${id}?tab=steps&step=0`)
+    ).text();
     expect(activity).toContain("bun test");
     const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
     expect(steps).not.toContain("$0.00");
@@ -91,14 +122,21 @@ describe("a Codex step's job page", () => {
       job.state = "done";
       job.results = [
         {
-          step: "implement", ok: true, costUsd: 0, costMeasured: false,
-          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
+          step: "implement",
+          ok: true,
+          costUsd: 0,
+          costMeasured: false,
+          terminalReason: "completed",
+          streamFile: stream,
+          at: "2026-08-20T10:01:00Z",
         },
       ];
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
+    const html = await (
+      await fetch(`${base2}/specs/${id}?tab=steps&step=0`)
+    ).text();
     expect(html).toContain("bun test");
   });
 
@@ -108,32 +146,69 @@ describe("a Codex step's job page", () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const stream = join(dir, "filtered.stream.jsonl");
-    writeFileSync(stream, [
-      JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
-      JSON.stringify({ type: "item.completed", item: { id: "i0", item_type: "agent_message", text: "thinking it over" } }),
-      JSON.stringify({ type: "item.completed", item: { id: "i1", item_type: "command_execution", command: "bun test", exit_code: 1 } }),
-      JSON.stringify({ type: "item.completed", item: { id: "i2", item_type: "command_execution", command: "git status", exit_code: 0 } }),
-    ].join("\n"));
+    writeFileSync(
+      stream,
+      [
+        JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
+        JSON.stringify({
+          type: "item.completed",
+          item: {
+            id: "i0",
+            item_type: "agent_message",
+            text: "thinking it over",
+          },
+        }),
+        JSON.stringify({
+          type: "item.completed",
+          item: {
+            id: "i1",
+            item_type: "command_execution",
+            command: "bun test",
+            exit_code: 1,
+          },
+        }),
+        JSON.stringify({
+          type: "item.completed",
+          item: {
+            id: "i2",
+            item_type: "command_execution",
+            command: "git status",
+            exit_code: 0,
+          },
+        }),
+      ].join("\n"),
+    );
     const mirror = seed(dir, id, (job) => {
       job.state = "done";
       job.results = [
         {
-          step: "implement", ok: true, costUsd: 0, costMeasured: false,
-          terminalReason: "completed", streamFile: stream, at: "2026-09-17T10:01:00Z",
+          step: "implement",
+          ok: true,
+          costUsd: 0,
+          costMeasured: false,
+          terminalReason: "completed",
+          streamFile: stream,
+          at: "2026-09-17T10:01:00Z",
         },
       ];
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const log = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
+    const log = await (
+      await fetch(`${base2}/specs/${id}?tab=steps&step=0`)
+    ).text();
     expect(log).toContain("thinking it over");
 
-    const errors = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&steptab=errors`)).text();
+    const errors = await (
+      await fetch(`${base2}/specs/${id}?tab=steps&step=0&steptab=errors`)
+    ).text();
     expect(errors).toContain("bun test");
     expect(errors).not.toContain("thinking it over");
     expect(errors).not.toContain("git status");
 
-    const old = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)).text();
+    const old = await (
+      await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)
+    ).text();
     expect(old).toContain("thinking it over");
     expect(old).toContain("git status");
   });
@@ -144,15 +219,31 @@ describe("a Codex step's job page", () => {
     const mirror = seed(dir, id, (job) => {
       job.state = "done";
       job.results = [
-        { step: "implement", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed", at: "2026-09-17T10:01:00Z" },
+        {
+          step: "implement",
+          ok: true,
+          costUsd: 0,
+          costMeasured: false,
+          terminalReason: "completed",
+          at: "2026-09-17T10:01:00Z",
+        },
       ];
     });
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const current = (html: string) => html.match(/<a class="tab"[^>]*href="[^"]*steptab=[^"]*"[^>]*aria-current="page"[^>]*>([^<]*)</)?.[1];
+    const current = (html: string) =>
+      html.match(
+        /<a class="tab"[^>]*href="[^"]*steptab=[^"]*"[^>]*aria-current="page"[^>]*>([^<]*)</,
+      )?.[1];
 
-    const job = await (await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)).text();
+    const job = await (
+      await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)
+    ).text();
     expect(current(job)).toBe("Changed files");
-    const spec = await (await fetch(`${base2}/specs/aide/81-queue-and-runner?tab=steps&step=0&steptab=files`)).text();
+    const spec = await (
+      await fetch(
+        `${base2}/specs/aide/81-queue-and-runner?tab=steps&step=0&steptab=files`,
+      )
+    ).text();
     expect(current(spec)).toBe("Changed files");
   });
 });
@@ -180,7 +271,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
   /** The three files the harness does not write. */
   const fillSpec = (dir: string): void => {
     const spec = join(dir, "root", "aide", "specs", SPEC);
-    writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\n## Findings\n\nSeven files.\n");
+    writeFileSync(
+      join(spec, "2-analysis.md"),
+      "# Q - Analysis\n\n## Findings\n\nSeven files.\n",
+    );
     writeFileSync(
       join(spec, "3-solution.md"),
       "# Q - Solution\n\n## Plan review\n\nOne must-fix.\n\n## Risk analysis\n\nMedium.\n",
@@ -221,8 +315,17 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(html).toContain('id="jobrows"');
     expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
     // The tabs, each a link to the spec's own address, and the Description panel.
-    for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
-      expect([tab, new RegExp(`href="/specs/aide/${SPEC}\\?[^"]*tab=${tab}`).test(html)]).toEqual([tab, true]);
+    for (const tab of [
+      "description",
+      "analysis",
+      "solution",
+      "status",
+      "steps",
+    ]) {
+      expect([
+        tab,
+        new RegExp(`href="/specs/aide/${SPEC}\\?[^"]*tab=${tab}`).test(html),
+      ]).toEqual([tab, true]);
     }
     expect(html).toContain("It shows nothing about");
   });
@@ -231,30 +334,50 @@ describe("GET /specs/<project>/<specFolder>", () => {
   // disabled criteria-checks select. The caption line is looked for as a
   // row, since the page's stylesheet names `data-caption` too.
   test("the open row is the spec alone: no phase line and no Run, and Close or Reopen at the end of its tabs", async () => {
-    const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
+    const live = harness.start({
+      description: DESCRIPTION,
+      archivedSpecs: { "70-an-old-spec": {} },
+    });
     const open = await (await fetch(`${live.base}${PATH}`)).text();
     expect(open).toContain('data-ask="closeask"');
     // The spec's own phase table sits inside its detail row; the list row
     // around it has no phase line of its own.
-    const row = open.replace(/<tr class="specdetail"[\s\S]*?(?=<tr class="specgap")/, "");
-    for (const absent of ['class="subrow"', '<tr class="subrow" data-caption', 'class="rowrun"']) {
+    const row = open.replace(
+      /<tr class="specdetail"[\s\S]*?(?=<tr class="specgap")/,
+      "",
+    );
+    for (const absent of [
+      'class="subrow"',
+      '<tr class="subrow" data-caption',
+      'class="rowrun"',
+    ]) {
       expect([absent, row.includes(absent)]).toEqual([absent, false]);
     }
-    const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();
+    const archived = await (
+      await fetch(`${live.base}/specs/aide/70-an-old-spec`)
+    ).text();
     expect(archived).toContain('data-ask="reopenask"');
     expect(archived).not.toContain('data-ask="reopenask-aide/70-an-old-spec"');
   });
 
   test("a spec archived while the list shows only the active ones is still the open row", async () => {
-    const { base } = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
-    const html = await (await fetch(`${base}/specs/aide/70-an-old-spec`)).text();
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      archivedSpecs: { "70-an-old-spec": {} },
+    });
+    const html = await (
+      await fetch(`${base}/specs/aide/70-an-old-spec`)
+    ).text();
     expect(html).toContain('id="spec-aide/70-an-old-spec"');
     expect(html).toContain('data-spec-detail="aide/70-an-old-spec"');
   });
 
   test("/specs?open= leads to the spec's address with the rest of the query", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs?open=${encodeURIComponent(`aide/${SPEC},aide/82-other`)}&q=queue`, { redirect: "manual" });
+    const res = await fetch(
+      `${base}/specs?open=${encodeURIComponent(`aide/${SPEC},aide/82-other`)}&q=queue`,
+      { redirect: "manual" },
+    );
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(`/specs/aide/${SPEC}?q=queue`);
   });
@@ -263,7 +386,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const { base } = start();
     const html = await (await fetch(`${base}/specs`)).text();
     // The loading-row template holds a detail row of its own, outside the rows.
-    const rows = html.slice(html.indexOf('<div id="jobrows">'), html.indexOf('<template id="refusal-row">'));
+    const rows = html.slice(
+      html.indexOf('<div id="jobrows">'),
+      html.indexOf('<template id="refusal-row">'),
+    );
     expect(rows).not.toContain('<tr class="specdetail"');
     expect(html).not.toMatch(/<a class="fold"[^>]*aria-expanded="true"/);
     expect(html).toMatch(/<a class="fold shut"[^>]*aria-expanded="false"/);
@@ -286,10 +412,14 @@ describe("GET /specs/<project>/<specFolder>", () => {
   // The page script copies this template for the row it draws while it waits.
   test("/specs and a spec's address carry the loading-row template the page script reads", async () => {
     const { base } = start();
-    const { SPEC_LOADING_ROW_ID } = await import("../../src/specs-client/spec-detail/open.ts");
+    const { SPEC_LOADING_ROW_ID } =
+      await import("../../src/specs-client/spec-detail/open.ts");
     for (const path of ["/specs", PATH]) {
       const html = await (await fetch(`${base}${path}`)).text();
-      expect([path, html.includes(`<template id="${SPEC_LOADING_ROW_ID}">`)]).toEqual([path, true]);
+      expect([
+        path,
+        html.includes(`<template id="${SPEC_LOADING_ROW_ID}">`),
+      ]).toEqual([path, true]);
     }
   });
 
@@ -302,7 +432,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
       return real(cwd, args, timeoutMs, env);
     };
     const { base } = start({ gitRun });
-    const reads = (): number => hits.filter((h) => /\d-(description|analysis|solution|status)\.md/.test(h)).length;
+    const reads = (): number =>
+      hits.filter((h) =>
+        /\d-(description|analysis|solution|status)\.md/.test(h),
+      ).length;
 
     await (await fetch(`${base}/specs`)).text();
     await (await fetch(`${base}/specs?rows=1`)).text();
@@ -317,8 +450,12 @@ describe("GET /specs/<project>/<specFolder>", () => {
 
   test("a spec nobody has is a 404, not a blank page", async () => {
     const { base } = start();
-    expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(404);
-    expect((await fetch(`${base}/specs/no-such-project/${SPEC}`)).status).toBe(404);
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(
+      404,
+    );
+    expect((await fetch(`${base}/specs/no-such-project/${SPEC}`)).status).toBe(
+      404,
+    );
   });
 
   // The two routes are one path segment apart and must stay disjoint:
@@ -344,7 +481,9 @@ describe("GET /specs/<project>/<specFolder>", () => {
     // failed this test for a week's worth of head-scratching
     // (2026-08-24) while the files were being re-read just fine.
     writeFileSync(join(spec, "2-analysis.md"), "sentinel-first-write\n");
-    expect(await (await fetch(`${base}${analysis}`)).text()).toContain("sentinel-first-write");
+    expect(await (await fetch(`${base}${analysis}`)).text()).toContain(
+      "sentinel-first-write",
+    );
     writeFileSync(join(spec, "2-analysis.md"), "sentinel-second-write\n");
     const html = await (await fetch(`${base}${analysis}`)).text();
     expect(html).toContain("sentinel-second-write");
@@ -366,21 +505,29 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
   // The spec is drawn in the open row of the Specs list. The rest of the
   // list (the header's language links, the freshness marks of its rows) varies
   // with the address and the clock, so what is compared is the spec's own cell.
-  const detailOf = (html: string): string => html.match(/<tr class="specdetail"[\s\S]*?<tr class="specgap"/)?.[0] ?? "";
+  const detailOf = (html: string): string =>
+    html.match(/<tr class="specdetail"[\s\S]*?<tr class="specgap"/)?.[0] ?? "";
 
   /** Two finished analyze jobs on one spec, oldest last — which is one
    *  more than the queue will accept through its own route, so the
    *  second is written into the mirror the server reads at boot. */
   const twoAttempts = (dir: string, id: string): string => {
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     const newer = jobs.find((j) => j.id === id)!;
     newer.state = "done";
     newer.startedAt = "2026-08-21T11:00:00Z";
     newer.results = [
       {
-        step: "analyze", ok: true, costUsd: 7.77, costMeasured: true,
-        terminalReason: "completed", at: "2026-08-21T11:30:00Z",
+        step: "analyze",
+        ok: true,
+        costUsd: 7.77,
+        costMeasured: true,
+        terminalReason: "completed",
+        at: "2026-08-21T11:30:00Z",
       },
     ];
     jobs.push({
@@ -391,8 +538,12 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
       startedAt: "2026-08-19T11:00:00Z",
       results: [
         {
-          step: "analyze", ok: false, costUsd: 1.11, costMeasured: true,
-          terminalReason: "completed", at: "2026-08-19T11:30:00Z",
+          step: "analyze",
+          ok: false,
+          costUsd: 1.11,
+          costMeasured: true,
+          terminalReason: "completed",
+          at: "2026-08-19T11:30:00Z",
         },
       ],
     });
@@ -406,7 +557,9 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = detailOf(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
+    const bare = detailOf(
+      await (await fetch(`${base2}${PATH}?tab=steps`)).text(),
+    );
     const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`);
     expect(res.status).toBe(200);
     expect(bare).toContain("$7.77");
@@ -423,5 +576,4 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     expect(html).toContain("$7.77");
     expect(html).toContain("$1.11");
   });
-
 });

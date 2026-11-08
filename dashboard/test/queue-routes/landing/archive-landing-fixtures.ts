@@ -25,12 +25,18 @@ export function sentence(s: unknown): string {
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
-export const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
+export const { harness, start } = setupQueueRoutesHarness(
+  undefined,
+  IMPLEMENTED,
+);
 
 /** Temp directories this suite makes for itself, outside the harness. */
 export const ownDirs: string[] = [];
 
-export const AUTH = { "content-type": "application/json", accept: "application/json" };
+export const AUTH = {
+  "content-type": "application/json",
+  accept: "application/json",
+};
 export const SPECS_REPO = "/repos/aide-specs";
 
 export function gitFor({
@@ -56,22 +62,37 @@ export function gitFor({
   const run = async (dir: string, args: string[]) => {
     calls.push({ dir, args });
     const a = args.join(" ");
-    if (a.startsWith("ls-remote --exit-code") && gone.includes(dir)) return { code: 2, stdout: "" };
+    if (a.startsWith("ls-remote --exit-code") && gone.includes(dir))
+      return { code: 2, stdout: "" };
     if (a.startsWith("ls-remote --heads")) {
       const open = stillOpenAfterDelete.filter((o) => o.root === dir);
       if (open.length) {
-        return { code: 0, stdout: open.map((o) => `abc123\trefs/heads/${o.branch}\n`).join("") };
+        return {
+          code: 0,
+          stdout: open.map((o) => `abc123\trefs/heads/${o.branch}\n`).join(""),
+        };
       }
       return { code: 0, stdout: "" };
     }
-    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("symbolic-ref"))
+      return { code: 0, stdout: "refs/remotes/origin/master\n" };
     if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
+    if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+      return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("merge -q --ff-only origin/"))
+      return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
+      return {
+        code:
+          conflicting.includes(repoOf(dir)) ||
+          needsRealMerge.includes(repoOf(dir))
+            ? 1
+            : 0,
+        stdout: "",
+      };
     }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
+    if (a.startsWith("merge -q --no-edit"))
+      return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
     if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
     if (a.startsWith("push -q origin --delete") && deleteFails.includes(dir)) {
       return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
@@ -114,7 +135,8 @@ export async function settle(
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // An archive run's whole diff is two markdown changes in the
@@ -146,16 +168,26 @@ export const ARCHIVE_RESULT = {
 
 /** Queue one step for the harness's own spec, straight through — no
  *  gate, so the run reaches `onStepDone` without a press. */
-export async function runStep(base: string, step: string): Promise<{ id: string; specFolder: string }> {
+export async function runStep(
+  base: string,
+  step: string,
+): Promise<{ id: string; specFolder: string }> {
   const made = (await (
     await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: SPEC,
+        steps: [step],
+      }),
     })
   ).json()) as { job: { id: string; specFolder: string } };
   return made.job;
 }
 
 export const merges = (calls: { dir: string; args: string[] }[]) =>
-  calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
+  calls.filter(
+    (c) =>
+      c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`),
+  );

@@ -4,12 +4,17 @@
 import { t, type Language } from "../../../i18n";
 import { badge } from "../../ui/components";
 import { esc, relTime } from "../../ui/html.ts";
-import { BADGE_VARIANT, stateWord, type QueueRowView } from "../../ui/job-state";
+import {
+  BADGE_VARIANT,
+  stateWord,
+  type QueueRowView,
+} from "../../ui/job-state";
 
 /** No `allow-scripts`: nothing in a report runs. `allow-same-origin` lets
  *  the page's own script reach the frame's document (theme, height);
  *  `allow-popups-to-escape-sandbox` makes a clicked link a normal tab. */
-export const REPORT_SANDBOX = "allow-same-origin allow-popups allow-popups-to-escape-sandbox";
+export const REPORT_SANDBOX =
+  "allow-same-origin allow-popups allow-popups-to-escape-sandbox";
 
 export interface ReportPanelRun {
   view: QueueRowView;
@@ -18,16 +23,23 @@ export interface ReportPanelRun {
   document?: string;
 }
 
-export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun; now?: number }): string {
+export function renderReportPanel(opts: {
+  lang: Language;
+  run?: ReportPanelRun;
+  now?: number;
+}): string {
   const { lang, run } = opts;
-  if (!run) return `<section id="report"><p class="muted">${esc(t(lang, "report.neverRan"))}</p></section>`;
+  if (!run)
+    return `<section id="report"><p class="muted">${esc(t(lang, "report.neverRan"))}</p></section>`;
   const label = stateWord(run.view, lang);
   // The time as the board says it everywhere else ("5 d ago"), with the
   // exact stamp in its tooltip; placed into the sentence after escaping.
   const MARK = "\u0000";
-  const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(MARK, relTime(run.startedAt, opts.now ?? Date.now(), lang));
-  const head =
-    `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}</p>`;
+  const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(
+    MARK,
+    relTime(run.startedAt, opts.now ?? Date.now(), lang),
+  );
+  const head = `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}</p>`;
   const body =
     run.document !== undefined
       ? `<iframe class="reportframe" data-report-frame sandbox="${REPORT_SANDBOX}" ` +

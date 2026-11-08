@@ -1,10 +1,6 @@
 {
   "title": "A model at capacity",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "expect": {
     "state": "stopped",

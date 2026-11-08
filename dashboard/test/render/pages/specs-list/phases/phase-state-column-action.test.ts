@@ -9,10 +9,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { row, openKeys } from "../../fixtures.ts";
 
 // --- One action per row, and the phases hard left -----------------
 //
@@ -29,7 +26,10 @@ import {
 // The button is named for the first TICKED phase, not for the state's
 // own suggestion, so a reader can see the two disagree before pressing.
 describe("the row draws one action, on its caption line", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -54,15 +54,23 @@ describe("the row draws one action, on its caption line", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
   };
-  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const headRow = (html: string) =>
+    html.match(
+      /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
+    )?.[0] ?? "";
   const cells = (tr: string): string[] =>
-    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
-      .map((m) => m[1] ?? "");
+    [
+      ...tr
+        .replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "")
+        .matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g),
+    ].map((m) => m[1] ?? "");
   /** The State column of the header, by its column rather than its
    *  position: the header is two rows since 2026-09-22, and the chevron
    *  has a cell of its own. The badge is what it holds. */
   const state = (html: string) =>
-    headRow(html).match(/<td[^>]*data-col="state"[^>]*>([\s\S]*?)<\/td>/)?.[1] ?? "";
+    headRow(html).match(
+      /<td[^>]*data-col="state"[^>]*>([\s\S]*?)<\/td>/,
+    )?.[1] ?? "";
   /** The caption line's State cell, which is where the row's one
    *  control lives since 2026-09-08: the head line says what the spec
    *  IS, and the line that heads what it is set to do carries the
@@ -74,11 +82,18 @@ describe("the row draws one action, on its caption line", () => {
   /** What the row's one control SAYS. `<button>` for Run, and the
    *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
-  const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+  const labels = (cell: string) =>
+    [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
   const BUILT = ["analyze"];
   const ALL = ["analyze", "implement", "archive"];
   const lead = (extra: Partial<QueueRowView> = {}) =>
-    row({ id: "j1", specFolder: "157-one-action", steps: ["analyze"], state: "done", ...extra });
+    row({
+      id: "j1",
+      specFolder: "157-one-action",
+      steps: ["analyze"],
+      state: "done",
+      ...extra,
+    });
 
   // --- the button is named for what is ticked --------------------------------
 
@@ -93,7 +108,9 @@ describe("the row draws one action, on its caption line", () => {
   // press is one click in, on the line that heads what the spec is set
   // to do. The state is still readable shut — only the action moved.
   test("a shut row draws no action at all, and no form to carry one", () => {
-    const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: false });
+    const html = rows([lead()], [target("157-one-action", { done: BUILT })], {
+      open: false,
+    });
     expect(state(html)).toContain(">Ready<");
     // Off the table alone: the search field above it has a Search
     // button, and that is not a row's action.
@@ -154,7 +171,12 @@ describe("the row draws one action, on its caption line", () => {
     // back reads "archive held back · Analyze".
     const html = rows(
       [lead({ steps: ["archive"] })],
-      [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
+      [
+        target("157-one-action", {
+          done: BUILT,
+          archiveHeldBack: { reason: "the tree is dirty" },
+        }),
+      ],
     );
     expect(state(html)).toContain("Stopped");
     expect(labels(action(html))).toEqual(["Implement"]);
@@ -180,7 +202,13 @@ describe("the row draws one action, on its caption line", () => {
 
   test("a queued implement cancels by the reader's own word", () => {
     const html = rows(
-      [lead({ steps: ["analyze", "implement"], stepIndex: 1, state: "queued" })],
+      [
+        lead({
+          steps: ["analyze", "implement"],
+          stepIndex: 1,
+          state: "queued",
+        }),
+      ],
       [target("157-one-action", { done: [] })],
     );
     expect(labels(action(html))).toEqual(["Cancel", "OK", "Cancel"]);
@@ -202,16 +230,20 @@ describe("the row draws one action, on its caption line", () => {
       [
         target("159-ci", {
           done: ["analyze", "implement", "archive"],
-          archiveHeldBack: { reason: "the first real Actions run is unwatched" },
+          archiveHeldBack: {
+            reason: "the first real Actions run is unwatched",
+          },
         }),
       ],
     );
     expect(labels(action(html))).toEqual(["Archive"]);
     // And archive alone is what a press would run. Read off the boxes,
     // which are what carries `steps` now.
-    const ticked = [...html.matchAll(
-      /<input type="checkbox" name="steps" value="([^"]+)" checked/g,
-    )].map((m) => m[1]);
+    const ticked = [
+      ...html.matchAll(
+        /<input type="checkbox" name="steps" value="([^"]+)" checked/g,
+      ),
+    ].map((m) => m[1]);
     expect(ticked).toEqual(["archive"]);
   });
 
@@ -238,7 +270,11 @@ describe("the row draws one action, on its caption line", () => {
   test("the badge and the button name the same phase once archive has run and declined", () => {
     const html = rows(
       [],
-      [target("191-agree", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      [
+        target("191-agree", {
+          done: ["analyze", "review-plan", "implement", "archive"],
+        }),
+      ],
     );
     expect(state(html)).toContain(">Ready<");
     expect(labels(action(html))).toEqual(["Archive"]);
@@ -251,7 +287,11 @@ describe("the row draws one action, on its caption line", () => {
   test("a cleared held-back note leaves the badge saying archive is ready", () => {
     const html = rows(
       [],
-      [target("191-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      [
+        target("191-cleared", {
+          done: ["analyze", "review-plan", "implement", "archive"],
+        }),
+      ],
     );
     expect(state(html)).toContain(">Ready<");
     expect(labels(action(html))).toEqual(["Archive"]);
@@ -272,7 +312,10 @@ describe("the row draws one action, on its caption line", () => {
 // `pendingModels`/`pendingEffort` already keep — and `actionState()`'s
 // `active` flag is its answer to the second.
 describe("a recorded phase choice survives the render", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -289,14 +332,22 @@ describe("a recorded phase choice survives the render", () => {
       Date.parse("2026-08-21T12:00:00Z"),
     );
   const cells = (tr: string): string[] =>
-    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
-      .map((m) => m[1] ?? "");
+    [
+      ...tr
+        .replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "")
+        .matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g),
+    ].map((m) => m[1] ?? "");
   const captionLine = (html: string) =>
     html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
   const action = (html: string) => cells(captionLine(html))[2] ?? "";
-  const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+  const labels = (cell: string) =>
+    [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
   const ticked = (html: string): string[] =>
-    [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map((m) => m[1]!);
+    [
+      ...html.matchAll(
+        /<input type="checkbox" name="steps" value="([^"]+)" checked/g,
+      ),
+    ].map((m) => m[1]!);
 
   test("a create-time choice with phases unticked survives the render, not every remaining phase re-ticked", () => {
     const html = rows([target("439-create")], {
@@ -340,9 +391,12 @@ describe("a recorded phase choice survives the render", () => {
   });
 
   test("nothing ticked never shows Archive active, even with only archive left", () => {
-    const html = rows([target("439-archive-disabled", { done: ["analyze", "implement"] })], {
-      pendingSteps: { "aide/439-archive-disabled": [] },
-    });
+    const html = rows(
+      [target("439-archive-disabled", { done: ["analyze", "implement"] })],
+      {
+        pendingSteps: { "aide/439-archive-disabled": [] },
+      },
+    );
     expect(action(html)).toMatch(/<button type="submit"[^>]*disabled/);
     expect(labels(action(html))).toEqual(["Archive"]);
   });
@@ -352,18 +406,33 @@ describe("a recorded phase choice survives the render", () => {
   // under it falls back to the old, history-only derivation — unchanged
   // until its own next interaction.
   test("a spec with no recorded choice at all keeps today's default: Archive active with nothing ticked", () => {
-    const html = rows([target("439-fallback", { done: ["analyze", "implement"] })]);
+    const html = rows([
+      target("439-fallback", { done: ["analyze", "implement"] }),
+    ]);
     expect(action(html)).toMatch(/<button type="submit"/);
     expect(labels(action(html))).toEqual(["Archive"]);
   });
 });
 
-
 test("an active spec offers Archive again after a stopped archive", () => {
   const specFolder = "664-archive";
   const [group] = groupBySpec(
-    [row({ specFolder, steps: ["archive"], state: "stopped", stopReason: "provider-limit" })],
-    [{ project: "aide", specFolder, done: ["create", "analyze", "implement"], stopped: { archive: "provider-limit" } }],
+    [
+      row({
+        specFolder,
+        steps: ["archive"],
+        state: "stopped",
+        stopReason: "provider-limit",
+      }),
+    ],
+    [
+      {
+        project: "aide",
+        specFolder,
+        done: ["create", "analyze", "implement"],
+        stopped: { archive: "provider-limit" },
+      },
+    ],
   );
   expect(actionState(group!, {})).toEqual({ label: "Archive", active: true });
 });

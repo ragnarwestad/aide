@@ -33,13 +33,34 @@ export async function detectRemoteTestCommand(
     // option.
     const cloned = await run(
       scratch,
-      ["-c", "credential.helper=", "clone", "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet", "--", url, "probe"],
+      [
+        "-c",
+        "credential.helper=",
+        "clone",
+        "--depth",
+        "1",
+        "--filter=blob:none",
+        "--no-checkout",
+        "--quiet",
+        "--",
+        url,
+        "probe",
+      ],
       PROBE_TIMEOUT_MS,
     );
     if (cloned.code !== 0) return null;
-    const listed = await run(join(scratch, "probe"), ["ls-tree", "--name-only", "HEAD"], PROBE_TIMEOUT_MS);
+    const listed = await run(
+      join(scratch, "probe"),
+      ["ls-tree", "--name-only", "HEAD"],
+      PROBE_TIMEOUT_MS,
+    );
     if (listed.code !== 0) return null;
-    const names = new Set(listed.stdout.split("\n").map((name) => name.trim()).filter(Boolean));
+    const names = new Set(
+      listed.stdout
+        .split("\n")
+        .map((name) => name.trim())
+        .filter(Boolean),
+    );
     return detectCommandsIn((file) => names.has(file)).test?.cmd ?? null;
   } catch {
     return null;

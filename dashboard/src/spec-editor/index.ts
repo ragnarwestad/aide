@@ -128,9 +128,13 @@ if (host && raw) {
   document.addEventListener(
     "click",
     (event) => {
-      if (event.detail === 0 || !toolbar?.contains(event.target as Node)) return;
+      if (event.detail === 0 || !toolbar?.contains(event.target as Node))
+        return;
       const clickedButton = toolbarButton(event.target);
-      if (clickedButton && toolbarButton(lastMouseDownTarget) !== clickedButton) {
+      if (
+        clickedButton &&
+        toolbarButton(lastMouseDownTarget) !== clickedButton
+      ) {
         event.stopPropagation();
       }
     },
@@ -166,7 +170,10 @@ if (host && raw) {
     // Counting serialises the whole document, so it waits for a pause.
     if (!descriptionCount) return;
     clearTimeout(countTimer);
-    countTimer = setTimeout(() => descriptionCount.show(unescapeMarkdown(instance.getMarkdown())), 300);
+    countTimer = setTimeout(
+      () => descriptionCount.show(unescapeMarkdown(instance.getMarkdown())),
+      300,
+    );
   });
   // spec-form-actions.ts's Cancel handler resets raw.value from outside
   // and asks a mounted editor to redraw from it — the WYSIWYG view is a
@@ -210,15 +217,21 @@ if (host && raw) {
   // `data-theme` on `<html>` wins, and its absence means "follow the
   // system", never a hardcoded default.
   const currentTheme = (): string =>
-    document.documentElement.dataset.theme ?? (prefersDark.matches ? "dark" : "light");
+    document.documentElement.dataset.theme ??
+    (prefersDark.matches ? "dark" : "light");
   const applyTheme = (): void => {
-    themedEl?.classList.toggle("toastui-editor-dark", currentTheme() === "dark");
+    themedEl?.classList.toggle(
+      "toastui-editor-dark",
+      currentTheme() === "dark",
+    );
   };
   applyTheme();
   // Two ways the theme can change while this tab stays open, with no
   // reload: `theme-script.ts`'s own click handler sets `data-theme`
   // directly, and — for a reader on "auto" — the OS's own preference
   // can flip underneath the page.
-  new MutationObserver(applyTheme).observe(document.documentElement, { attributeFilter: ["data-theme"] });
+  new MutationObserver(applyTheme).observe(document.documentElement, {
+    attributeFilter: ["data-theme"],
+  });
   prefersDark.addEventListener("change", applyTheme);
 }

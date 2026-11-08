@@ -1,23 +1,51 @@
 :root {
   color-scheme: light dark;
-/* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F4F4F5;
-  --text: #09090B; --muted: #71717A; --heading: #52525B; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
-  --link: #09090B; --link-strong: #3F3F46;
-  --link-text: #1D4ED8; --link-text-strong: #1E40AF;
-  --pip-skim: #F0A48B;
-  --on-accent: #FCFAF7;
-  --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
-  --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
-  --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
-  --pdf: #D0342C;
-  --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
+  /* tokens:start */
+  --bg: #efece5;
+  --surface: #fbfaf7;
+  --surface-2: #f4f4f5;
+  --text: #09090b;
+  --muted: #71717a;
+  --heading: #52525b;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --accent: #a8331a;
+  --accent-strong: #8c2b16;
+  --accent-soft: #f8e4dd;
+  --link: #09090b;
+  --link-strong: #3f3f46;
+  --link-text: #1d4ed8;
+  --link-text-strong: #1e40af;
+  --pip-skim: #f0a48b;
+  --on-accent: #fcfaf7;
+  --ok: #15803d;
+  --ok-soft: #e3f0e7;
+  --ok-ground: #e3f0e7;
+  --warn: #b45309;
+  --warn-soft: #f8edd6;
+  --warn-ground: #f8edd6;
+  --danger: #dc2626;
+  --danger-soft: #f1ddd7;
+  --danger-ground: #f1ddd7;
+  --pdf: #d0342c;
+  --mark-openai: #000000;
+  --mark-opencode: #211e1e;
+  --mark-opencode-inner: #cfcecd;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
-  --fs-s: 12px; --fs-m: 14px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
+  --fs-s: 12px;
+  --fs-m: 14px;
+  --fs-l: 16px;
+  --fs-xl: 20px;
+  --fs-brand: 26px;
   --lh: 1.45;
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
-  --r: 10px; --r-s: 6px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --r: 10px;
+  --r-s: 6px;
   --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   --backdrop: rgba(0, 0, 0, 0.35);
   /* A state badge's icon, drawn as a mask in the badge's own colour (Lucide, ISC). */
@@ -33,7 +61,7 @@
   --icon-help: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2371717A'%20stroke-width='2.25'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='10'/%3E%3Cpath%20d='M9.09%209a3%203%200%200%201%205.83%201c0%202-3%203-3%203'/%3E%3Cpath%20d='M12%2017h.01'/%3E%3C/svg%3E");
   --icon-loader: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2371717A'%20stroke-width='2.25'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M21%2012a9%209%200%201%201-6.219-8.56'/%3E%3C/svg%3E");
   --icon-dashed: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2371717A'%20stroke-width='2.25'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10.1%202.182a10%2010%200%200%201%203.8%200'/%3E%3Cpath%20d='M13.9%2021.818a10%2010%200%200%201-3.8%200'/%3E%3Cpath%20d='M17.609%203.721a10%2010%200%200%201%202.69%202.7'/%3E%3Cpath%20d='M2.182%2013.9a10%2010%200%200%201%200-3.8'/%3E%3Cpath%20d='M20.279%2017.609a10%2010%200%200%201-2.7%202.69'/%3E%3Cpath%20d='M21.818%2010.1a10%2010%200%200%201%200%203.8'/%3E%3Cpath%20d='M3.721%206.391a10%2010%200%200%201%202.7-2.69'/%3E%3Cpath%20d='M6.391%2020.279a10%2010%200%200%201-2.69-2.7'/%3E%3C/svg%3E");
-/* tokens:end */
+  /* tokens:end */
   --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
 }
@@ -62,27 +90,51 @@
    it written after the blocks (as it was until 2026-08-21) a machine set
    to dark, with no explicit choice, hid both marks and showed the word
    alone. */
-.brand .mark-d { display: none; }
-@media (prefers-color-scheme: dark) {
-:root {
-/* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
-  --text: #FAFAFA; --muted: #A1A1AA; --heading: #A1A1AA; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
-  --link: #FAFAFA; --link-strong: #D4D4D8;
-  --link-text: #60A5FA; --link-text-strong: #93C5FD;
-  --pip-skim: #FFC4AC;
-  --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
-  --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
-  --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
-  --pdf: #E0473C;
-  --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
-  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
-/* tokens:end */
+.brand .mark-d {
+  display: none;
 }
-.brand .mark-l { display: none; }
-.brand .mark-d { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* tokens:start */
+    --bg: #16181c;
+    --surface: #1f2226;
+    --surface-2: #272b30;
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --heading: #a1a1aa;
+    --line: #33373d;
+    --line-strong: #4a4f56;
+    --accent: #da5a34;
+    --accent-strong: #f0663f;
+    --accent-soft: #3a2620;
+    --link: #fafafa;
+    --link-strong: #d4d4d8;
+    --link-text: #60a5fa;
+    --link-text-strong: #93c5fd;
+    --pip-skim: #ffc4ac;
+    --on-accent: #16181c;
+    --ok: #6fc08f;
+    --ok-soft: #22352a;
+    --ok-ground: #252f2e;
+    --warn: #e0a84a;
+    --warn-soft: #3a2f1c;
+    --warn-ground: #2e2d29;
+    --danger: #eb7878;
+    --danger-soft: #3d211b;
+    --danger-ground: #2f292d;
+    --pdf: #e0473c;
+    --mark-openai: #ffffff;
+    --mark-opencode: #f1ecec;
+    --mark-opencode-inner: #4b4646;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
+    /* tokens:end */
+  }
+  .brand .mark-l {
+    display: none;
+  }
+  .brand .mark-d {
+    display: block;
+  }
 }
 /* The same two sets again, this time by choice rather than by
    preference. Both directions need a block of their own, and the reason
@@ -93,45 +145,89 @@
    "Auto" has no block at all: it is the ABSENCE of the attribute, which
    falls straight through to the two rules above, unchanged. */
 :root[data-theme="dark"] {
-/* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
-  --text: #FAFAFA; --muted: #A1A1AA; --heading: #A1A1AA; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
-  --link: #FAFAFA; --link-strong: #D4D4D8;
-  --link-text: #60A5FA; --link-text-strong: #93C5FD;
-  --pip-skim: #FFC4AC;
-  --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
-  --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
-  --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
-  --pdf: #E0473C;
-  --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
+  /* tokens:start */
+  --bg: #16181c;
+  --surface: #1f2226;
+  --surface-2: #272b30;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --heading: #a1a1aa;
+  --line: #33373d;
+  --line-strong: #4a4f56;
+  --accent: #da5a34;
+  --accent-strong: #f0663f;
+  --accent-soft: #3a2620;
+  --link: #fafafa;
+  --link-strong: #d4d4d8;
+  --link-text: #60a5fa;
+  --link-text-strong: #93c5fd;
+  --pip-skim: #ffc4ac;
+  --on-accent: #16181c;
+  --ok: #6fc08f;
+  --ok-soft: #22352a;
+  --ok-ground: #252f2e;
+  --warn: #e0a84a;
+  --warn-soft: #3a2f1c;
+  --warn-ground: #2e2d29;
+  --danger: #eb7878;
+  --danger-soft: #3d211b;
+  --danger-ground: #2f292d;
+  --pdf: #e0473c;
+  --mark-openai: #ffffff;
+  --mark-opencode: #f1ecec;
+  --mark-opencode-inner: #4b4646;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
-/* tokens:end */
+  /* tokens:end */
   color-scheme: dark;
 }
-:root[data-theme="dark"] .brand .mark-l { display: none; }
-:root[data-theme="dark"] .brand .mark-d { display: block; }
+:root[data-theme="dark"] .brand .mark-l {
+  display: none;
+}
+:root[data-theme="dark"] .brand .mark-d {
+  display: block;
+}
 :root[data-theme="light"] {
-/* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F4F4F5;
-  --text: #09090B; --muted: #71717A; --heading: #52525B; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
-  --link: #09090B; --link-strong: #3F3F46;
-  --link-text: #1D4ED8; --link-text-strong: #1E40AF;
-  --pip-skim: #F0A48B;
-  --on-accent: #FCFAF7;
-  --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
-  --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
-  --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
-  --pdf: #D0342C;
-  --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
+  /* tokens:start */
+  --bg: #efece5;
+  --surface: #fbfaf7;
+  --surface-2: #f4f4f5;
+  --text: #09090b;
+  --muted: #71717a;
+  --heading: #52525b;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --accent: #a8331a;
+  --accent-strong: #8c2b16;
+  --accent-soft: #f8e4dd;
+  --link: #09090b;
+  --link-strong: #3f3f46;
+  --link-text: #1d4ed8;
+  --link-text-strong: #1e40af;
+  --pip-skim: #f0a48b;
+  --on-accent: #fcfaf7;
+  --ok: #15803d;
+  --ok-soft: #e3f0e7;
+  --ok-ground: #e3f0e7;
+  --warn: #b45309;
+  --warn-soft: #f8edd6;
+  --warn-ground: #f8edd6;
+  --danger: #dc2626;
+  --danger-soft: #f1ddd7;
+  --danger-ground: #f1ddd7;
+  --pdf: #d0342c;
+  --mark-openai: #000000;
+  --mark-opencode: #211e1e;
+  --mark-opencode-inner: #cfcecd;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
-/* tokens:end */
+  /* tokens:end */
   color-scheme: light;
 }
-:root[data-theme="light"] .brand .mark-l { display: block; }
-:root[data-theme="light"] .brand .mark-d { display: none; }
+:root[data-theme="light"] .brand .mark-l {
+  display: block;
+}
+:root[data-theme="light"] .brand .mark-d {
+  display: none;
+}
 
 /* The same trick again, on text rather than colour. Every
    consumption figure is rendered twice — a dollar span and a token span
@@ -139,6 +235,9 @@
    like Auto above, so a page whose script never ran reads the way it
    always did; the :not() is what makes that work without a
    data-unit="usd" nobody sets. */
-:root[data-unit="tokens"] .u-usd { display: none; }
-:root:not([data-unit="tokens"]) .u-tok { display: none; }
-
+:root[data-unit="tokens"] .u-usd {
+  display: none;
+}
+:root:not([data-unit="tokens"]) .u-tok {
+  display: none;
+}

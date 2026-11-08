@@ -15,13 +15,18 @@ import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 
-import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault } from "../../../src/render/ui/checkout-faults.ts";
+import {
+  clearCheckoutFault,
+  clearCheckoutFaults,
+  setCheckoutFault,
+} from "../../../src/render/ui/checkout-faults.ts";
 import { complain } from "../../../src/serve/project-checkout.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 const AT = "2026-09-21T09:03:03Z";
-const shell = () => pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", AT);
+const shell = () =>
+  pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", AT);
 
 // Process-lifetime state: a file that ran before this one in the same
 // worker may have left a fault behind, and one left here would reach the
@@ -51,7 +56,9 @@ describe("the checkout-fault banner", () => {
 // the page and the log disagree about what is wrong right now.
 describe("what complain() sets", () => {
   test("a refusal reaches the banner, and an answer afterwards clears it", () => {
-    const ctx = { saidAbout: new Map<string, string>() } as Parameters<typeof complain>[0];
+    const ctx = { saidAbout: new Map<string, string>() } as Parameters<
+      typeof complain
+    >[0];
 
     complain(ctx, "woodstack", "/checkouts/woodstack/code is not there");
     expect(shell()).toContain("/checkouts/woodstack/code is not there");
@@ -61,12 +68,16 @@ describe("what complain() sets", () => {
   });
 
   test("the same refusal twice is still one line", () => {
-    const ctx = { saidAbout: new Map<string, string>() } as Parameters<typeof complain>[0];
+    const ctx = { saidAbout: new Map<string, string>() } as Parameters<
+      typeof complain
+    >[0];
 
     complain(ctx, "woodstack", "the same thing");
     complain(ctx, "woodstack", "the same thing");
 
-    const lines = shell().match(/<p class="checkout-fault rowmsg failed">[\s\S]*?<\/p>/g) ?? [];
+    const lines =
+      shell().match(/<p class="checkout-fault rowmsg failed">[\s\S]*?<\/p>/g) ??
+      [];
     expect(lines).toHaveLength(1);
   });
 });

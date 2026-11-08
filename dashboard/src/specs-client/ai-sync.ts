@@ -106,7 +106,9 @@ export function applyAiPick(select: HTMLSelectElement): void {
   if (!tool && option.value === "") {
     model.value = "";
     chosen.set(selectKey(model), "");
-    const step = model.name.startsWith("model.") ? model.name.slice("model.".length) : "";
+    const step = model.name.startsWith("model.")
+      ? model.name.slice("model.".length)
+      : "";
     if (step) void postPendingModel(model, step, "", "");
     return;
   }
@@ -123,10 +125,13 @@ export function applyAiPick(select: HTMLSelectElement): void {
   // above fires no `change` event, so the running job would go on using
   // the provider and model the row has stopped showing. Called with the
   // value already resolved, never by dispatching a synthetic event.
-  if (model.getAttribute("data-post-to")) return void postTailModel(model, model.value, select.value);
+  if (model.getAttribute("data-post-to"))
+    return void postTailModel(model, model.value, select.value);
   // The same gap on a phase that has NOT run yet: without this the pick
   // would live only in `chosen` — gone the moment the tab closes.
-  const step = model.name.startsWith("model.") ? model.name.slice("model.".length) : "";
+  const step = model.name.startsWith("model.")
+    ? model.name.slice("model.".length)
+    : "";
   if (step) void postPendingModel(model, step, model.value, select.value);
 }
 
@@ -155,15 +160,23 @@ export function applyAiPick(select: HTMLSelectElement): void {
 export function refreshAiModelBox(container: Element): void {
   const shortEl = container.querySelector(".aimodelshort");
   const fullEl = container.querySelector(".aimodelfull");
-  const model = container.querySelector(MODEL_SELECTS) as HTMLSelectElement | null;
+  const model = container.querySelector(
+    MODEL_SELECTS,
+  ) as HTMLSelectElement | null;
   if (!shortEl || !fullEl || !model) return;
-  const ai = container.querySelector("select[data-ai]") as HTMLSelectElement | null;
+  const ai = container.querySelector(
+    "select[data-ai]",
+  ) as HTMLSelectElement | null;
   const short =
-    ai?.selectedOptions[0]?.dataset.short ?? model.selectedOptions[0]?.dataset.tool ?? "";
+    ai?.selectedOptions[0]?.dataset.short ??
+    model.selectedOptions[0]?.dataset.tool ??
+    "";
   const collides =
-    Array.from(model.querySelectorAll("option[data-tool]"))
-      .filter((o) => (o as HTMLOptionElement).value === model.value).length > 1;
-  const shortText = collides && short ? `${short} · ${model.value}` : model.value;
+    Array.from(model.querySelectorAll("option[data-tool]")).filter(
+      (o) => (o as HTMLOptionElement).value === model.value,
+    ).length > 1;
+  const shortText =
+    collides && short ? `${short} · ${model.value}` : model.value;
   const fullText = `${short} · ${model.value}`;
   shortEl.textContent = shortText;
   fullEl.textContent = fullText;

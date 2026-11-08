@@ -19,14 +19,21 @@ import { createGitRunner } from "../../../src/git/branch-status.ts";
 
 describe("a directory that is not there is an answer, not a crash", () => {
   test("git somewhere that does not exist returns a failure naming the path", async () => {
-    const res = await createGitRunner()("/no/such/directory/anywhere", ["rev-parse", "HEAD"]);
+    const res = await createGitRunner()("/no/such/directory/anywhere", [
+      "rev-parse",
+      "HEAD",
+    ]);
     expect(res.code).not.toBe(0);
     expect(res.stdout).toBe("");
     expect(res.stderr).toContain("/no/such/directory/anywhere");
   });
 
   test("a directory that does exist still answers normally", async () => {
-    const res = await createGitRunner()(process.cwd(), ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const res = await createGitRunner()(process.cwd(), [
+      "rev-parse",
+      "--abbrev-ref",
+      "HEAD",
+    ]);
     expect(res.code).toBe(0);
     expect(res.stdout.trim().length).toBeGreaterThan(0);
   });
@@ -49,7 +56,11 @@ describe("one call can ask for longer than the default", () => {
   });
 
   test("a call that names its own is not held to it", async () => {
-    const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"], 30_000);
+    const res = await impatient(
+      process.cwd(),
+      ["log", "-1", "--format=%H"],
+      30_000,
+    );
     expect(res.code).toBe(0);
     expect(res.stdout.trim().length).toBeGreaterThan(0);
   });
@@ -70,12 +81,17 @@ describe("the env parameter reaches the real spawn", () => {
       const run = createGitRunner();
       await run(dir, ["init", "-q", "-b", "main"]);
       await run(dir, ["config", "user.email", "test@example.com"]);
-      const committed = await run(dir, ["commit", "-q", "--allow-empty", "-m", "env test"], undefined, {
-        GIT_AUTHOR_NAME: "Env Override",
-        GIT_AUTHOR_EMAIL: "env@example.com",
-        GIT_COMMITTER_NAME: "Env Override",
-        GIT_COMMITTER_EMAIL: "env@example.com",
-      });
+      const committed = await run(
+        dir,
+        ["commit", "-q", "--allow-empty", "-m", "env test"],
+        undefined,
+        {
+          GIT_AUTHOR_NAME: "Env Override",
+          GIT_AUTHOR_EMAIL: "env@example.com",
+          GIT_COMMITTER_NAME: "Env Override",
+          GIT_COMMITTER_EMAIL: "env@example.com",
+        },
+      );
       expect(committed.code).toBe(0);
       const author = await run(dir, ["log", "-1", "--format=%an"]);
       expect(author.stdout.trim()).toBe("Env Override");

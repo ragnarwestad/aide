@@ -8,11 +8,20 @@
 // both whatever the code does.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { commitManifestEdits, updateProjectSettings } from "../../../src/project/project-admin";
+import {
+  commitManifestEdits,
+  updateProjectSettings,
+} from "../../../src/project/project-admin";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -21,7 +30,8 @@ afterEach(() => {
 
 function git(cwd: string, ...args: string[]): string {
   const res = Bun.spawnSync(["git", ...args], { cwd });
-  if (res.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${res.stderr.toString()}`);
+  if (res.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")}: ${res.stderr.toString()}`);
   return res.stdout.toString();
 }
 
@@ -48,15 +58,21 @@ function checkout(): { root: string; origin: string } {
   return { root, origin };
 }
 
-const gitSeam = { run: createGitRunner(30_000), resolveBase: async () => "main" };
-const onOrigin = (origin: string) => git(origin, "show", "main:.aide/project.yaml");
+const gitSeam = {
+  run: createGitRunner(30_000),
+  resolveBase: async () => "main",
+};
+const onOrigin = (origin: string) =>
+  git(origin, "show", "main:.aide/project.yaml");
 const dirty = (root: string) => git(root, "status", "--porcelain").trim();
 
 describe("a Settings save commits the manifest", () => {
   test("the edit reaches origin and leaves the checkout clean", async () => {
     const { root, origin } = checkout();
 
-    const saved = await commitManifestEdits(gitSeam, root, [{ key: "previewCmd", value: "pnpm dev --port $PORT" }]);
+    const saved = await commitManifestEdits(gitSeam, root, [
+      { key: "previewCmd", value: "pnpm dev --port $PORT" },
+    ]);
 
     expect(saved).toEqual({ ok: true });
     expect(onOrigin(origin)).toContain("previewCmd: pnpm dev --port $PORT");
@@ -72,8 +88,12 @@ describe("a Settings save commits the manifest", () => {
       { key: "worktreeLinks", value: "node_modules .env.local" },
     ]);
 
-    expect(Number(git(origin, "rev-list", "--count", "main").trim())).toBe(Number(before) + 1);
-    expect(onOrigin(origin)).toContain("worktreeLinks: node_modules .env.local");
+    expect(Number(git(origin, "rev-list", "--count", "main").trim())).toBe(
+      Number(before) + 1,
+    );
+    expect(onOrigin(origin)).toContain(
+      "worktreeLinks: node_modules .env.local",
+    );
   });
 
   // The dashboard's own checkout can lag origin: another machine pushed,
@@ -86,11 +106,16 @@ describe("a Settings save commits the manifest", () => {
     git(join(root, ".."), "clone", "-q", origin, other);
     git(other, "config", "user.email", "o@example.com");
     git(other, "config", "user.name", "O");
-    writeFileSync(join(other, ".aide", "project.yaml"), "name: demo\ncodeLanding: pr\n");
+    writeFileSync(
+      join(other, ".aide", "project.yaml"),
+      "name: demo\ncodeLanding: pr\n",
+    );
     git(other, "commit", "-qam", "pr from elsewhere");
     git(other, "push", "-q", "origin", "main");
 
-    const saved = await commitManifestEdits(gitSeam, root, [{ key: "codeLanding", value: "" }]);
+    const saved = await commitManifestEdits(gitSeam, root, [
+      { key: "codeLanding", value: "" },
+    ]);
 
     expect(saved).toEqual({ ok: true });
     expect(onOrigin(origin)).not.toContain("codeLanding");
@@ -101,7 +126,9 @@ describe("a Settings save commits the manifest", () => {
     const { root, origin } = checkout();
     const before = git(origin, "rev-parse", "main").trim();
 
-    const saved = await commitManifestEdits(gitSeam, root, [{ key: "codeLanding", value: "" }]);
+    const saved = await commitManifestEdits(gitSeam, root, [
+      { key: "codeLanding", value: "" },
+    ]);
 
     expect(saved).toEqual({ ok: true });
     expect(git(origin, "rev-parse", "main").trim()).toBe(before);
@@ -119,7 +146,9 @@ describe("a Settings save commits the manifest", () => {
 
     expect(result.steps.filter((s) => !s.ok)).toEqual([]);
     expect(onOrigin(origin)).toContain("previewCmd: pnpm dev");
-    expect(readFileSync(join(root, ".aide", "project.yaml"), "utf-8")).toContain("worktreeLinks: node_modules");
+    expect(
+      readFileSync(join(root, ".aide", "project.yaml"), "utf-8"),
+    ).toContain("worktreeLinks: node_modules");
     expect(dirty(root)).toBe("");
   });
 });

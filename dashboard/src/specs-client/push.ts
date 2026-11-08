@@ -28,7 +28,10 @@ export interface PushDeps {
   registration(): Promise<{
     pushManager: {
       getSubscription(): Promise<SubscriptionLike | null>;
-      subscribe(options: { userVisibleOnly: boolean; applicationServerKey: Uint8Array }): Promise<SubscriptionLike>;
+      subscribe(options: {
+        userVisibleOnly: boolean;
+        applicationServerKey: Uint8Array;
+      }): Promise<SubscriptionLike>;
     };
   }>;
   post(path: string, body: unknown): Promise<{ ok: boolean }>;
@@ -44,13 +47,18 @@ const VIEWS: Record<string, PushView> = {
   off: { state: "off", message: "Notifications are off for this device." },
   blocked: {
     state: "blocked",
-    message: "Notifications are blocked for this site. Allow them in the device's own settings, then open this tab again.",
+    message:
+      "Notifications are blocked for this site. Allow them in the device's own settings, then open this tab again.",
   },
   unsupported: {
     state: "unsupported",
-    message: "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
+    message:
+      "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
   },
-  failed: { state: "off", message: "Notifications could not be turned on. Try again." },
+  failed: {
+    state: "off",
+    message: "Notifications could not be turned on. Try again.",
+  },
 };
 
 const keyBytes = (key: string): Uint8Array => {
@@ -60,7 +68,8 @@ const keyBytes = (key: string): Uint8Array => {
 };
 
 export function pushControl(deps: PushDeps) {
-  const subscription = async () => (await deps.registration()).pushManager.getSubscription();
+  const subscription = async () =>
+    (await deps.registration()).pushManager.getSubscription();
 
   /** Drops the device from the server and from the browser. */
   async function forget(sub: SubscriptionLike): Promise<void> {
@@ -99,8 +108,14 @@ export function pushControl(deps: PushDeps) {
         const manager = (await deps.registration()).pushManager;
         const old = await manager.getSubscription();
         if (old) await old.unsubscribe();
-        made = await manager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(deps.publicKey) });
-        const res = await deps.post("/api/push/subscribe", { ...made.toJSON(), lang: deps.lang });
+        made = await manager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: keyBytes(deps.publicKey),
+        });
+        const res = await deps.post("/api/push/subscribe", {
+          ...made.toJSON(),
+          lang: deps.lang,
+        });
         if (res.ok) return VIEWS.on!;
       } catch {
         // falls through to the cleanup below
@@ -125,18 +140,29 @@ export function pushControl(deps: PushDeps) {
 }
 
 /** The real browser objects, read off the page. `deps` stands in for them in a test. */
-export function bindPushPanel(panel: HTMLElement, deps?: Omit<PushDeps, "publicKey" | "lang">): void {
-  const status = panel.querySelector("[data-push-status]") as HTMLElement | null;
+export function bindPushPanel(
+  panel: HTMLElement,
+  deps?: Omit<PushDeps, "publicKey" | "lang">,
+): void {
+  const status = panel.querySelector(
+    "[data-push-status]",
+  ) as HTMLElement | null;
   const toggle = panel.querySelector("#push-toggle") as HTMLElement | null;
   if (!status || !toggle) return;
   const control = pushControl({
     publicKey: panel.dataset.key ?? "",
     lang: panel.dataset.lang ?? "en",
     ...(deps ?? {
-      supported: "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+      supported:
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window,
       permission: () => Notification.permission,
       requestPermission: () => Notification.requestPermission(),
-      registration: () => navigator.serviceWorker.ready as unknown as ReturnType<PushDeps["registration"]>,
+      registration: () =>
+        navigator.serviceWorker.ready as unknown as ReturnType<
+          PushDeps["registration"]
+        >,
       post: async (path: string, body: unknown) => {
         const res = await fetch(path, {
           method: "POST",
@@ -152,9 +178,15 @@ export function bindPushPanel(panel: HTMLElement, deps?: Omit<PushDeps, "publicK
   // refuses (blocked, or no push support) it is off and unpressable.
   const show = (view: PushView) => {
     state = view.state;
-    const key = Object.entries(VIEWS).find(([, v]) => v.message === view.message)?.[0];
-    status.textContent = (key && panel.getAttribute(`data-msg-${key}`)) || view.message;
-    setSwitch(toggle, { checked: view.state === "on", disabled: view.state === "blocked" || view.state === "unsupported" });
+    const key = Object.entries(VIEWS).find(
+      ([, v]) => v.message === view.message,
+    )?.[0];
+    status.textContent =
+      (key && panel.getAttribute(`data-msg-${key}`)) || view.message;
+    setSwitch(toggle, {
+      checked: view.state === "on",
+      disabled: view.state === "blocked" || view.state === "unsupported",
+    });
   };
   toggle.addEventListener("click", () => {
     setSwitch(toggle, { checked: state === "on", disabled: true });

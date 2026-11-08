@@ -13,10 +13,16 @@ import { showRefusal } from "./tail-actions.ts";
  *  (`row-state.ts`). Parsed rather than carried on the select itself: a
  *  background preference save has nowhere else to read the spec from,
  *  since the pick reaches here well before any Run form is submitted. */
-function specFromFormId(formId: string): { project: string; specFolder: string } | null {
-  const rest = formId.startsWith("rowrun-") ? formId.slice("rowrun-".length) : "";
+function specFromFormId(
+  formId: string,
+): { project: string; specFolder: string } | null {
+  const rest = formId.startsWith("rowrun-")
+    ? formId.slice("rowrun-".length)
+    : "";
   const slash = rest.indexOf("/");
-  return slash < 0 ? null : { project: rest.slice(0, slash), specFolder: rest.slice(slash + 1) };
+  return slash < 0
+    ? null
+    : { project: rest.slice(0, slash), specFolder: rest.slice(slash + 1) };
 }
 
 /** Posted from the two places a non-live model/AI pick already updates
@@ -26,11 +32,19 @@ function specFromFormId(formId: string): { project: string; specFolder: string }
  *  action, and disabling every select on the row for each pick would be
  *  a worse interaction than the one being fixed, since a reader may try
  *  several models in a row before settling on one. */
-export async function postPendingModel(select: HTMLSelectElement, step: string, model: string, provider?: string): Promise<void> {
+export async function postPendingModel(
+  select: HTMLSelectElement,
+  step: string,
+  model: string,
+  provider?: string,
+): Promise<void> {
   const formId = select.getAttribute("form") ?? "";
   const spec = specFromFormId(formId);
   if (!spec) return;
-  const url = new URL(`/api/queue/specs/${spec.project}/${spec.specFolder}/model`, location.href);
+  const url = new URL(
+    `/api/queue/specs/${spec.project}/${spec.specFolder}/model`,
+    location.href,
+  );
   const body = new URLSearchParams();
   body.append("step", step);
   body.append("model", model);
@@ -38,12 +52,18 @@ export async function postPendingModel(select: HTMLSelectElement, step: string, 
   try {
     const res = await fetch(url.toString(), {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/x-www-form-urlencoded",
+      },
       body,
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
     if (!(res.ok && answer?.ok)) {
-      await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
+      await showRefusal(
+        refusalText(answer, "change the model", res.status),
+        answer?.spec,
+      );
     }
   } catch {
     // Best effort: the pick still shows correctly for the rest of THIS

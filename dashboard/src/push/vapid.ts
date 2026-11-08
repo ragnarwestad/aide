@@ -2,7 +2,13 @@
 // ES256 key pair made once and kept, and a short-lived signed token that
 // goes with every request. WebCrypto only — no dependency.
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 
 export interface VapidKeys {
@@ -13,11 +19,15 @@ export interface VapidKeys {
 }
 
 const CURVE = { name: "ECDSA", namedCurve: "P-256" } as const;
-const b64u = (bytes: Uint8Array): string => Buffer.from(bytes).toString("base64url");
-const text = (s: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(s);
+const b64u = (bytes: Uint8Array): string =>
+  Buffer.from(bytes).toString("base64url");
+const text = (s: string): Uint8Array<ArrayBuffer> =>
+  new TextEncoder().encode(s);
 
 async function fromJwk(jwk: JsonWebKey): Promise<VapidKeys> {
-  const privateKey = await crypto.subtle.importKey("jwk", jwk, CURVE, true, ["sign"]);
+  const privateKey = await crypto.subtle.importKey("jwk", jwk, CURVE, true, [
+    "sign",
+  ]);
   const x = Buffer.from(jwk.x!, "base64url");
   const y = Buffer.from(jwk.y!, "base64url");
   return { publicKey: b64u(new Uint8Array([4, ...x, ...y])), privateKey };
@@ -28,7 +38,9 @@ async function fromJwk(jwk: JsonWebKey): Promise<VapidKeys> {
  *  made under the old one is dropped when the subscriptions are read
  *  (`subscriptions.ts`), and each device turns notifications on again.
  *  No path keeps the pair in memory only. */
-export async function loadOrCreateKeys(path: string | undefined): Promise<VapidKeys> {
+export async function loadOrCreateKeys(
+  path: string | undefined,
+): Promise<VapidKeys> {
   if (path && existsSync(path)) {
     try {
       const jwk = JSON.parse(readFileSync(path, "utf-8")) as JsonWebKey;
@@ -37,7 +49,9 @@ export async function loadOrCreateKeys(path: string | undefined): Promise<VapidK
       // fall through: a corrupt file is replaced, never thrown over
     }
   }
-  const pair = (await crypto.subtle.generateKey(CURVE, true, ["sign"])) as CryptoKeyPair;
+  const pair = (await crypto.subtle.generateKey(CURVE, true, [
+    "sign",
+  ])) as CryptoKeyPair;
   const jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
   if (path) {
     try {
@@ -59,8 +73,22 @@ export async function signToken(
 ): Promise<string> {
   const now = o.now ?? Math.floor(Date.now() / 1000);
   const header = b64u(text(JSON.stringify({ typ: "JWT", alg: "ES256" })));
-  const claims = b64u(text(JSON.stringify({ aud: new URL(o.endpoint).origin, exp: now + 12 * 60 * 60, sub: o.sub })));
+  const claims = b64u(
+    text(
+      JSON.stringify({
+        aud: new URL(o.endpoint).origin,
+        exp: now + 12 * 60 * 60,
+        sub: o.sub,
+      }),
+    ),
+  );
   const signed = `${header}.${claims}`;
-  const signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, keys.privateKey, text(signed)));
+  const signature = new Uint8Array(
+    await crypto.subtle.sign(
+      { name: "ECDSA", hash: "SHA-256" },
+      keys.privateKey,
+      text(signed),
+    ),
+  );
   return `${signed}.${b64u(signature)}`;
 }

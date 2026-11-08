@@ -18,12 +18,12 @@ run of one or more steps, and its `queued`/`running`/`done` says nothing about h
 
 **Four words, and they are not the same.**
 
-| Word           | What it is                                                                                                                                                                                     | Where it is decided                                                                 |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `schedule`, `reopen`, `close`. A job is a list of steps, and each step has its own log                     | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
-| **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                                             | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
-| **State**      | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                                                                                       | the `phase` column of `core/scripts/lib/transitions.json`                           |
-| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `--- Step 3 of 9: … — started`, say how far the step has got                                                        | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
+| Word           | What it is                                                                                                                                                                 | Where it is decided                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `schedule`, `reopen`, `close`. A job is a list of steps, and each step has its own log | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
+| **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                         | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
+| **State**      | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                                                                   | the `phase` column of `core/scripts/lib/transitions.json`                           |
+| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `--- Step 3 of 9: … — started`, say how far the step has got                                    | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
 stage of it. Two things about that table are worth knowing before reading it:
@@ -139,14 +139,14 @@ is refused by the skill, not by the queue.
 **`implement` to `archive`.** `core/scripts/aide-archive-spec` runs before any model is spawned and decides in this
 order, stopping at the first that applies:
 
-| Outcome                        | Meaning                                                                                         |
-|--------------------------------|-------------------------------------------------------------------------------------------------|
-| `refused`                      | Bad arguments, or the spec cannot be found                                                      |
-| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs             |
-| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
-| `not-implemented-yet`          | `implement` is not on the completed line                                                        |
-| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
-| `archived`                     | Stamped and moved; the landing follows                                                          |
+| Outcome                        | Meaning                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `refused`                      | Bad arguments, or the spec cannot be found                                                    |
+| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs           |
+| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it     |
+| `not-implemented-yet`          | `implement` is not on the completed line                                                      |
+| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those |
+| `archived`                     | Stamped and moved; the landing follows                                                        |
 
 Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
 `already-archived`, `not-implemented-yet` and `acceptance-criteria-unticked`. `conflict-open` and `archived` spawn
@@ -207,7 +207,7 @@ An archived or closed spec is refused rather than held: the server refuses every
 ## Where the work is between phases
 
 | After       | Specs repo                                               | Project                                                                        |
-|-------------|----------------------------------------------------------|--------------------------------------------------------------------------------|
+| ----------- | -------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `create`    | Folder on the default branch                             | Untouched                                                                      |
 | `analyze`   | Analysis, plan and status on the default branch          | Untouched                                                                      |
 | `implement` | Status rows on `aide/<folder>` — implement lands nothing | Code on `aide/<folder>`, pushed to origin                                      |
@@ -230,7 +230,7 @@ ticked and locked on every row, since the spec's folder exists.
 **The server checks a press before anything is queued**, and refuses it at once with the reason on the row:
 
 | Pressed                                                    | Refused because                                                                                |
-|------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Implement, before analyze has run                          | "has not been analyzed yet"                                                                    |
 | Implement, when analyze ran but its merge into main failed | "its analysis has run, but it has not been merged into main" — press Analyze again to merge it |
 | Archive, before implement has run                          | "has not reached implement yet"                                                                |

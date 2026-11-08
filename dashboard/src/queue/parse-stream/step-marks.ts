@@ -35,23 +35,37 @@ export interface StepMark {
 /** A step's key, shared by a mark and the planned line it moves: the place
  *  the step has in its job, whatever words the model gives its title. Aide's
  *  two parts share the place "Aide", so their name stays in. */
-export const stepKey = (place: string, title: string): string => (place === "Aide" ? `Step Aide: ${title}` : `Step ${place}`);
+export const stepKey = (place: string, title: string): string =>
+  place === "Aide" ? `Step Aide: ${title}` : `Step ${place}`;
 
 /** The ending is read loosely, as `STEP_MARK` reads it: `— done (nothing to
  *  keep)` is a done. The title is the shortest match, so a stopped merge's
  *  `— stopped: <why> — the close is not finished` ends it at the step. */
-const MARK = /^--- Step (Aide|\d+ of \d+): (.+?) — (started|done|skipped|stopped)\b(?::\s*(.*))?/;
+const MARK =
+  /^--- Step (Aide|\d+ of \d+): (.+?) — (started|done|skipped|stopped)\b(?::\s*(.*))?/;
 
 /** The run log's `HH:MM:SS +Ns ` stamp and a failure's `error: `. */
 const PREFIX = /^(?:\d\d:\d\d:\d\d \+(\d+)s )?(?:error: )?/;
 
-const STATE: Record<string, StepMark["state"]> = { started: "running", done: "done", skipped: "done", stopped: "failed" };
+const STATE: Record<string, StepMark["state"]> = {
+  started: "running",
+  done: "done",
+  skipped: "done",
+  stopped: "failed",
+};
 
 /** The four entities `esc()` writes, undone; `&amp;` last so it is not read twice. */
 const unescape = (s: string): string =>
-  s.replace(/&quot;/g, '"').replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
+  s
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
 
-export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMark[] {
+export function stepMarks(
+  logs: LogPart[],
+  tokens?: Map<string, number>,
+): StepMark[] {
   const byKey = new Map<string, StepMark>();
   for (const line of logs.flatMap((part) => part.lines)) {
     const bare = unescape(line);
@@ -59,20 +73,35 @@ export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMa
     const at = stamp === undefined ? undefined : Number(stamp);
     const match = MARK.exec(bare.replace(PREFIX, ""));
     if (!match) continue;
-    const [, place, title, ending, why] = match as unknown as [string, string, string, string, string | undefined];
+    const [, place, title, ending, why] = match as unknown as [
+      string,
+      string,
+      string,
+      string,
+      string | undefined,
+    ];
     const key = stepKey(place, title);
     // Steps run one at a time: a later step's mark means one still running
     // ended without saying so, and a spinner on it would be wrong.
     for (const other of byKey.values()) {
       if (other.key !== key && other.state === "running") {
         other.state = "done";
-        if (at !== undefined && other.startedSec !== undefined && at >= other.startedSec) other.endedSec = at;
+        if (
+          at !== undefined &&
+          other.startedSec !== undefined &&
+          at >= other.startedSec
+        )
+          other.endedSec = at;
       }
     }
     const reason = ending === "stopped" ? why?.trim() : undefined;
     const startedSec = ending === "started" ? at : byKey.get(key)?.startedSec;
     // An end stamped before the start (a mark read out of order) is no duration, not a negative one.
-    const endedSec = ending === "started" || (at !== undefined && startedSec !== undefined && at < startedSec) ? undefined : at;
+    const endedSec =
+      ending === "started" ||
+      (at !== undefined && startedSec !== undefined && at < startedSec)
+        ? undefined
+        : at;
     // A Map keeps a key where it was first set: the step keeps its place.
     byKey.set(key, {
       key,
@@ -80,17 +109,25 @@ export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMa
       state: STATE[ending]!,
       ...(reason ? { why: reason } : {}),
       ...(startedSec !== undefined ? { startedSec } : {}),
-      ...(endedSec !== undefined && startedSec !== undefined ? { endedSec } : {}),
-      ...(startedSec !== undefined && tokens?.has(key) ? { tokens: tokens.get(key)! } : {}),
+      ...(endedSec !== undefined && startedSec !== undefined
+        ? { endedSec }
+        : {}),
+      ...(startedSec !== undefined && tokens?.has(key)
+        ? { tokens: tokens.get(key)! }
+        : {}),
     });
   }
   return [...byKey.values()];
 }
 
 /** The step a line marks and whether the mark ends it, or undefined for any other line. */
-export function markOf(line: string): { key: string; ends: boolean } | undefined {
+export function markOf(
+  line: string,
+): { key: string; ends: boolean } | undefined {
   const match = MARK.exec(unescape(line).replace(PREFIX, ""));
-  return match ? { key: stepKey(match[1]!, match[2]!), ends: match[3] !== "started" } : undefined;
+  return match
+    ? { key: stepKey(match[1]!, match[2]!), ends: match[3] !== "started" }
+    : undefined;
 }
 
 /** A step's Log cut at its marks: each marked step's own part of it, by the

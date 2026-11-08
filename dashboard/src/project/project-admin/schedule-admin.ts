@@ -9,12 +9,24 @@ import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
-import { escapesRoot, isScheduleChrome, isScheduleNotify, isScheduleSandbox, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
+import {
+  escapesRoot,
+  isScheduleChrome,
+  isScheduleNotify,
+  isScheduleSandbox,
+  SCHEDULE_NAME_RE,
+  type ScheduleEntry,
+  type ScheduleNotify,
+} from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
 export type ScheduleAdminResult = { ok: true } | { ok: false; error: string };
 
-function saveEntries(store: ScheduleStore, project: string, entries: readonly ScheduleEntry[]): ScheduleAdminResult {
+function saveEntries(
+  store: ScheduleStore,
+  project: string,
+  entries: readonly ScheduleEntry[],
+): ScheduleAdminResult {
   const error = store.save(project, entries);
   return error ? { ok: false, error } : { ok: true };
 }
@@ -26,7 +38,16 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: {
+    name?: string;
+    cron?: string;
+    prompt?: string;
+    model?: string;
+    provider?: string;
+    notify?: string;
+    chrome?: string;
+    sandbox?: string;
+  },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
   /** Every model name the queue config lists. Passed by the
@@ -65,7 +86,8 @@ export function scheduleEntryError(
   // same reading the queue's own request parser gives an empty model.
   const model = req.model?.trim();
   if (model) {
-    if (!SCHEDULE_NAME_RE.test(model)) return `"${model}" is not a usable model name`;
+    if (!SCHEDULE_NAME_RE.test(model))
+      return `"${model}" is not a usable model name`;
     if (knownModels) {
       const listed = listedModelName(knownModels, model);
       if ("candidates" in listed) {
@@ -78,23 +100,30 @@ export function scheduleEntryError(
   // Empty means the phase default decides.
   const provider = req.provider?.trim();
   if (provider) {
-    if (!SCHEDULE_NAME_RE.test(provider)) return `"${provider}" is not a usable provider key`;
-    if (knownProviders && !knownProviders.includes(provider)) return `"${provider}" is not a provider this dashboard offers`;
+    if (!SCHEDULE_NAME_RE.test(provider))
+      return `"${provider}" is not a usable provider key`;
+    if (knownProviders && !knownProviders.includes(provider))
+      return `"${provider}" is not a provider this dashboard offers`;
   }
   // Empty means "keep what the entry has" (an edit) or "none" (a create).
   const notify = req.notify?.trim();
-  if (notify && !isScheduleNotify(notify)) return `"${notify}" is not a notification choice: never, failure or always`;
+  if (notify && !isScheduleNotify(notify))
+    return `"${notify}" is not a notification choice: never, failure or always`;
   // Empty means "keep what the entry has" (an edit) or "no" (a create).
   const chrome = req.chrome?.trim();
-  if (chrome && !isScheduleChrome(chrome)) return `"${chrome}" is not a browser choice: yes or no`;
+  if (chrome && !isScheduleChrome(chrome))
+    return `"${chrome}" is not a browser choice: yes or no`;
   // Empty means "keep what the entry has" (an edit) or "on" (a create).
   const sandbox = req.sandbox?.trim();
-  if (sandbox && !isScheduleSandbox(sandbox)) return `"${sandbox}" is not a sandbox choice: on or off`;
+  if (sandbox && !isScheduleSandbox(sandbox))
+    return `"${sandbox}" is not a sandbox choice: on or off`;
   return null;
 }
 
 /** The notification choice a request names, or `undefined` for none. */
-const postedNotify = (notify: string | undefined): ScheduleNotify | undefined => {
+const postedNotify = (
+  notify: string | undefined,
+): ScheduleNotify | undefined => {
   const posted = notify?.trim();
   return isScheduleNotify(posted) ? posted : undefined;
 };
@@ -115,7 +144,10 @@ const postedSandbox = (sandbox: string | undefined): boolean | undefined => {
 
 /** The model an entry stores: the spelling the dashboard lists, when the
  *  posted one differs from it only in case. */
-function storedModel(model: string | undefined, knownModels?: readonly string[]): string | undefined {
+function storedModel(
+  model: string | undefined,
+  knownModels?: readonly string[],
+): string | undefined {
   const posted = model?.trim();
   if (!posted || !knownModels) return posted || undefined;
   const listed = listedModelName(knownModels, posted);
@@ -128,17 +160,36 @@ export function createScheduleEntry(
   store: ScheduleStore,
   project: string,
   projectDir: string,
-  req: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: {
+    name: string;
+    cron: string;
+    prompt: string;
+    model?: string;
+    provider?: string;
+    notify?: string;
+    chrome?: string;
+    sandbox?: string;
+  },
   knownModels?: readonly string[],
   knownProviders?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
-  const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels, knownProviders);
+  const error = scheduleEntryError(
+    projectDir,
+    req,
+    existing,
+    undefined,
+    knownModels,
+    knownProviders,
+  );
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
   const notify = postedNotify(req.notify);
   const entry: ScheduleEntry = {
-    name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
+    name: req.name.trim(),
+    cron: req.cron.trim(),
+    prompt: req.prompt.trim(),
+    enabled: true,
     // Stamped on every save: a fire at or before this floor reads as
     // already used, so a fresh entry's first real run is its next fire
     // after the save, not whatever the cron's most recent fire already was.
@@ -147,7 +198,9 @@ export function createScheduleEntry(
     ...(req.provider?.trim() ? { provider: req.provider.trim() } : {}),
     ...(notify ? { notify } : {}),
     ...(postedChrome(req.chrome) ? { chrome: true } : {}),
-    ...(postedSandbox(req.sandbox) === false ? { sandbox: false as const } : {}),
+    ...(postedSandbox(req.sandbox) === false
+      ? { sandbox: false as const }
+      : {}),
   };
   return saveEntries(store, project, [...existing, entry]);
 }
@@ -160,21 +213,41 @@ export function updateScheduleEntry(
   project: string,
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: {
+    name: string;
+    cron: string;
+    prompt: string;
+    model?: string;
+    provider?: string;
+    notify?: string;
+    chrome?: string;
+    sandbox?: string;
+  },
   knownModels?: readonly string[],
   knownProviders?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
   const current = existing.find((e) => e.name === currentName);
-  if (!current) return { ok: false, error: `no schedule entry named "${currentName}"` };
-  const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels, knownProviders);
+  if (!current)
+    return { ok: false, error: `no schedule entry named "${currentName}"` };
+  const error = scheduleEntryError(
+    projectDir,
+    req,
+    existing,
+    currentName,
+    knownModels,
+    knownProviders,
+  );
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
   const posted = postedNotify(req.notify);
   const updated = existing.map((e) =>
     e.name === currentName
       ? {
-          name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: e.enabled,
+          name: req.name.trim(),
+          cron: req.cron.trim(),
+          prompt: req.prompt.trim(),
+          enabled: e.enabled,
           // Reset on every save, a bare rename included.
           since: new Date().toISOString(),
           // An edit that posts no model at all CLEARS the entry's own
@@ -187,14 +260,18 @@ export function updateScheduleEntry(
           // Kept like the notify choice when the edit posts none: the form
           // that draws a provider select always posts it, so an absent field
           // is a form drawn without one.
-          ...((req.provider?.trim() || e.provider) ? { provider: (req.provider?.trim() || e.provider)! } : {}),
+          ...(req.provider?.trim() || e.provider
+            ? { provider: (req.provider?.trim() || e.provider)! }
+            : {}),
           // Unlike the model, an edit that posts no choice KEEPS the
           // entry's own: a form drawn without the field is not asking
           // for the default.
           ...((posted ?? e.notify) ? { notify: (posted ?? e.notify)! } : {}),
           // Kept like the notify choice when the edit posts none.
           ...((postedChrome(req.chrome) ?? e.chrome) ? { chrome: true } : {}),
-          ...((postedSandbox(req.sandbox) ?? e.sandbox) === false ? { sandbox: false as const } : {}),
+          ...((postedSandbox(req.sandbox) ?? e.sandbox) === false
+            ? { sandbox: false as const }
+            : {}),
         }
       : e,
   );
@@ -205,10 +282,19 @@ export function updateScheduleEntry(
  *  queue store under its old tracking key and is not touched here; it
  *  simply becomes unreachable through the UI once the entry it belonged
  *  to is gone. */
-export function deleteScheduleEntry(store: ScheduleStore, project: string, name: string): ScheduleAdminResult {
+export function deleteScheduleEntry(
+  store: ScheduleStore,
+  project: string,
+  name: string,
+): ScheduleAdminResult {
   const existing = store.list(project);
-  if (!existing.some((e) => e.name === name)) return { ok: false, error: `no schedule entry named "${name}"` };
-  return saveEntries(store, project, existing.filter((e) => e.name !== name));
+  if (!existing.some((e) => e.name === name))
+    return { ok: false, error: `no schedule entry named "${name}"` };
+  return saveEntries(
+    store,
+    project,
+    existing.filter((e) => e.name !== name),
+  );
 }
 
 /** Pause or resume one entry: an immediate, no-confirm flip. A value
@@ -223,9 +309,16 @@ export function setScheduleEnabled(
 ): ScheduleAdminResult {
   const existing = store.list(project);
   const current = existing.find((e) => e.name === name);
-  if (!current) return { ok: false, error: `no schedule entry named "${name}"` };
+  if (!current)
+    return { ok: false, error: `no schedule entry named "${name}"` };
   if (current.enabled === enabled) return { ok: true };
   const changed = (e: ScheduleEntry): ScheduleEntry =>
-    enabled ? { ...e, enabled, since: new Date().toISOString() } : { ...e, enabled };
-  return saveEntries(store, project, existing.map((e) => (e.name === name ? changed(e) : e)));
+    enabled
+      ? { ...e, enabled, since: new Date().toISOString() }
+      : { ...e, enabled };
+  return saveEntries(
+    store,
+    project,
+    existing.map((e) => (e.name === name ? changed(e) : e)),
+  );
 }

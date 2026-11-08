@@ -20,8 +20,13 @@ export interface ReloadIo {
 }
 
 const browserIo: ReloadIo = {
-  reload: () => void swapPage(location.href, { history: "replace", keepScroll: true }),
-  go: (href) => void swapPage(href, { history: "push", keepScroll: sameAddress(href, location.href) }),
+  reload: () =>
+    void swapPage(location.href, { history: "replace", keepScroll: true }),
+  go: (href) =>
+    void swapPage(href, {
+      history: "push",
+      keepScroll: sameAddress(href, location.href),
+    }),
   line: (id) => document.getElementById(id),
 };
 
@@ -30,10 +35,16 @@ const browserIo: ReloadIo = {
  *  leaves its note in the line the form names with `data-note`, instead of
  *  loading the page again. A form with `data-done` goes there on success,
  *  with `{key}` in it replaced by the key the answer names. */
-export async function submitReloadForm(form: HTMLFormElement, event: Event, io: ReloadIo = browserIo): Promise<void> {
+export async function submitReloadForm(
+  form: HTMLFormElement,
+  event: Event,
+  io: ReloadIo = browserIo,
+): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
-  const line = (form.dataset.line ? io.line(form.dataset.line) : null) ?? form.querySelector(".refused");
+  const line =
+    (form.dataset.line ? io.line(form.dataset.line) : null) ??
+    form.querySelector(".refused");
   const note = form.dataset.note ? io.line(form.dataset.note) : null;
   await postForm(
     form,
@@ -43,13 +54,21 @@ export async function submitReloadForm(form: HTMLFormElement, event: Event, io: 
         writeLine(note, answer.note ?? "");
         return;
       }
-      if (form.dataset.done) io.go(form.dataset.done.replace("{key}", encodeURIComponent(answer?.key ?? "")));
+      if (form.dataset.done)
+        io.go(
+          form.dataset.done.replace(
+            "{key}",
+            encodeURIComponent(answer?.key ?? ""),
+          ),
+        );
       else io.reload();
     },
     (why) => {
       // A confirm dialog's OK: the refusal is written behind it. A dialog
       // that holds a form of its own keeps it open, with the refusal in it.
-      (form.closest("dialog.confirmdialog[open]") as HTMLDialogElement | null)?.close();
+      (
+        form.closest("dialog.confirmdialog[open]") as HTMLDialogElement | null
+      )?.close();
       writeLine(note, "");
       writeLine(line, why);
     },

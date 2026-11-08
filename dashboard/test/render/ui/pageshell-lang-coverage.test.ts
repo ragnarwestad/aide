@@ -37,7 +37,10 @@ function pageShellCallArgs(text: string): string[] {
 describe("every pageShell call passes a real language", () => {
   const pagesDir = join(import.meta.dir, "../../../src/render/pages");
   const callsByFile = tsFilesUnder(pagesDir)
-    .map((file) => ({ file, calls: pageShellCallArgs(readFileSync(file, "utf-8")) }))
+    .map((file) => ({
+      file,
+      calls: pageShellCallArgs(readFileSync(file, "utf-8")),
+    }))
     .filter((f) => f.calls.length > 0);
 
   test("at least 12 pageShell call sites are found (the scan itself is working)", () => {

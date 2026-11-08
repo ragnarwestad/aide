@@ -6,7 +6,15 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { setDeployFaultNotice } from "../../../src/render/ui/faults/deploy-fault.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { AUTH, createOwnDirs, gitFor, installs, repos, serverWith, settle } from "../landing/every-step-lands-fixtures.ts";
+import {
+  AUTH,
+  createOwnDirs,
+  gitFor,
+  installs,
+  repos,
+  serverWith,
+  settle,
+} from "../landing/every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -44,20 +52,31 @@ function deployGit(project: string, repo: Repo, fetchGate?: Promise<void>) {
     // landing running its tests does.
     if (fetchGate && args[0] === "fetch") await fetchGate;
     const a = args.join(" ");
-    if (a === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: `${repo.branch}\n` };
-    if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${repo.top ?? project}\n` };
+    if (a === "rev-parse --abbrev-ref HEAD")
+      return { code: 0, stdout: `${repo.branch}\n` };
+    if (a === "rev-parse --show-toplevel")
+      return { code: 0, stdout: `${repo.top ?? project}\n` };
     if (a === "rev-parse HEAD") {
       headCalls += 1;
-      return { code: 0, stdout: `${headCalls === 1 ? repo.bootSha : repo.headSha}\n` };
+      return {
+        code: 0,
+        stdout: `${headCalls === 1 ? repo.bootSha : repo.headSha}\n`,
+      };
     }
-    if (a.startsWith("rev-list --count")) return { code: 0, stdout: `${repo.behind ?? 0}\n` };
-    if (repo.fetchFails && args[0] === "fetch") return { code: 128, stdout: "" };
+    if (a.startsWith("rev-list --count"))
+      return { code: 0, stdout: `${repo.behind ?? 0}\n` };
+    if (repo.fetchFails && args[0] === "fetch")
+      return { code: 128, stdout: "" };
     return inner.run(dir, args);
   };
   return { run, calls };
 }
 
-const SAME = { bootSha: "abc1234deadbeef", headSha: "abc1234deadbeef", branch: "master" };
+const SAME = {
+  bootSha: "abc1234deadbeef",
+  headSha: "abc1234deadbeef",
+  branch: "master",
+};
 
 /** A server whose checkout is the dashboard's own, drift poll off so the
  *  origin count is only ever what a step filled. */
@@ -82,10 +101,15 @@ async function deployServer(
 }
 
 const noRestart = { registered: async () => false, fire: () => {} };
-const post = (base: string, path: string, headers: Record<string, string> = AUTH) =>
-  fetch(`${base}/api/queue/projects/${path}`, { method: "POST", headers });
-const answer = async (res: Response) => (await res.json()) as Record<string, unknown>;
-const page = async (base: string, path: string) => await (await fetch(`${base}${path}`)).text();
+const post = (
+  base: string,
+  path: string,
+  headers: Record<string, string> = AUTH,
+) => fetch(`${base}/api/queue/projects/${path}`, { method: "POST", headers });
+const answer = async (res: Response) =>
+  (await res.json()) as Record<string, unknown>;
+const page = async (base: string, path: string) =>
+  await (await fetch(`${base}${path}`)).text();
 const FAULT = /<p class="deploy-fault rowmsg failed">/;
 
 /** What the Deploy tab draws for a kept failure, one per load. */
@@ -96,7 +120,11 @@ describe("the per-step deploy routes are gone", () => {
   test("a POST to deploy/fetch, deploy/install, deploy/restart or deploy/check answers 404 and runs nothing, on the board and on another project", async () => {
     for (const extra of [{}, { dashboardRoot: "/somewhere/else" }]) {
       let fired = 0;
-      const { base, git, paths } = await deployServer({ ...SAME, behind: 2 }, { registered: async () => true, fire: () => void fired++ }, extra);
+      const { base, git, paths } = await deployServer(
+        { ...SAME, behind: 2 },
+        { registered: async () => true, fire: () => void fired++ },
+        extra,
+      );
       const marker = installs(paths.project);
       for (const step of ["fetch", "install", "restart", "check"]) {
         expect((await post(base, `aide/deploy/${step}`)).status).toBe(404);
@@ -123,7 +151,9 @@ describe("POST .../drift", () => {
     const res = await post(base, "aide/drift");
     expect(res.status).toBe(200);
     expect(await answer(res)).toEqual({ ok: true, behind: 2 });
-    expect(git.calls.some((c) => c.args.join(" ") === "fetch --quiet origin master")).toBe(true);
+    expect(
+      git.calls.some((c) => c.args.join(" ") === "fetch --quiet origin master"),
+    ).toBe(true);
     expect(await page(base, tab)).toContain("2 commits behind origin");
   });
 
@@ -135,11 +165,17 @@ describe("POST .../drift", () => {
     repo.behind = 3;
     const fetches = git.calls.filter((c) => c.args[0] === "fetch").length;
     expect((await answer(await post(base, "aide/drift"))).behind).toBe(3);
-    expect(git.calls.filter((c) => c.args[0] === "fetch").length).toBe(fetches + 1);
+    expect(git.calls.filter((c) => c.args[0] === "fetch").length).toBe(
+      fetches + 1,
+    );
   });
 
   test("a project that is not the board's, with no install command, answers the count, which its Deploy tab then says", async () => {
-    const { base, git } = await deployServer({ ...SAME, behind: 3 }, noRestart, { dashboardRoot: "/somewhere/else" });
+    const { base, git } = await deployServer(
+      { ...SAME, behind: 3 },
+      noRestart,
+      { dashboardRoot: "/somewhere/else" },
+    );
     const res = await post(base, "aide/drift");
     expect(res.status).toBe(200);
     expect(await answer(res)).toEqual({ ok: true, behind: 3 });
@@ -156,7 +192,9 @@ describe("POST .../drift", () => {
     repo.behind = 5;
     const res = await post(base, "aide/drift");
     expect(res.status).toBe(400);
-    expect(String((await answer(res)).error)).toContain("origin could not be checked");
+    expect(String((await answer(res)).error)).toContain(
+      "origin could not be checked",
+    );
     const html = await page(base, tab);
     expect(html).toContain("1 commit behind origin");
     expect(kept(html).length).toBe(0);
@@ -168,18 +206,26 @@ describe("POST .../drift", () => {
     installs(paths.project);
     const res = await post(base, "nosuch/drift");
     expect(res.status).toBe(400);
-    expect(String((await answer(res)).error)).toContain('"nosuch" is not a project this dashboard knows');
+    expect(String((await answer(res)).error)).toContain(
+      '"nosuch" is not a project this dashboard knows',
+    );
     expect(kept(await page(base, tab)).length).toBe(0);
   });
 
   test("only POST", async () => {
     const { base } = await deployServer(SAME, noRestart);
-    expect((await fetch(`${base}/api/queue/projects/aide/drift`, { headers: AUTH })).status).toBe(405);
+    expect(
+      (await fetch(`${base}/api/queue/projects/aide/drift`, { headers: AUTH }))
+        .status,
+    ).toBe(405);
   });
 
   test("it only reads: no merge, pull, reset, checkout or clean, no install, no restart", async () => {
     let fired = 0;
-    const { base, git, paths } = await deployServer({ ...SAME, behind: 4 }, { registered: async () => true, fire: () => void fired++ });
+    const { base, git, paths } = await deployServer(
+      { ...SAME, behind: 4 },
+      { registered: async () => true, fire: () => void fired++ },
+    );
     const marker = installs(paths.project);
     expect((await post(base, "aide/drift")).status).toBe(200);
     for (const forbidden of ["merge", "pull", "reset", "checkout", "clean"]) {
@@ -192,19 +238,43 @@ describe("POST .../drift", () => {
 });
 
 /** The queue, as the board lists it. */
-const queued = async (base: string): Promise<{ id: string; specFolder: string; steps: string[]; state: string }[]> =>
-  ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: { id: string; specFolder: string; steps: string[]; state: string }[] }).jobs;
+const queued = async (
+  base: string,
+): Promise<
+  { id: string; specFolder: string; steps: string[]; state: string }[]
+> =>
+  (
+    (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      jobs: {
+        id: string;
+        specFolder: string;
+        steps: string[];
+        state: string;
+      }[];
+    }
+  ).jobs;
 
 describe("POST .../deploy queues the board's own deploy as a job", () => {
   test("it answers the job and the queue holds it", async () => {
-    const { base, paths } = await deployServer(SAME, noRestart, {}, new Promise<void>(() => {}));
+    const { base, paths } = await deployServer(
+      SAME,
+      noRestart,
+      {},
+      new Promise<void>(() => {}),
+    );
     installs(paths.project);
     const res = await post(base, "aide/deploy");
     expect(res.status).toBe(200);
     const body = await answer(res);
     expect(body.ok).toBe(true);
-    expect(body.job).toMatchObject({ project: "aide", specFolder: "deploy", steps: ["deploy"] });
-    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
+    expect(body.job).toMatchObject({
+      project: "aide",
+      specFolder: "deploy",
+      steps: ["deploy"],
+    });
+    expect(
+      (await queued(base)).filter((j) => j.specFolder === "deploy"),
+    ).toHaveLength(1);
   });
 
   test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing", async () => {
@@ -214,14 +284,20 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     expect(String((await answer(refused)).error)).toContain("install command");
     expect(await queued(noInstall.base)).toEqual([]);
 
-    const elsewhere = await deployServer(SAME, noRestart, { dashboardRoot: "/somewhere/else" });
+    const elsewhere = await deployServer(SAME, noRestart, {
+      dashboardRoot: "/somewhere/else",
+    });
     installs(elsewhere.paths.project);
     const notBoard = await post(elsewhere.base, "aide/deploy");
     expect(notBoard.status).toBe(400);
-    expect(String((await answer(notBoard)).error)).toContain("only the board itself");
+    expect(String((await answer(notBoard)).error)).toContain(
+      "only the board itself",
+    );
     expect(await queued(elsewhere.base)).toEqual([]);
 
-    const noRunner = await deployServer(SAME, noRestart, { queueRunnerBin: undefined });
+    const noRunner = await deployServer(SAME, noRestart, {
+      queueRunnerBin: undefined,
+    });
     installs(noRunner.paths.project);
     expect((await post(noRunner.base, "aide/deploy")).status).toBe(400);
     expect(await queued(noRunner.base)).toEqual([]);
@@ -232,17 +308,23 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     const gate = new Promise<void>((r) => (release = r));
     const { base, paths } = await deployServer(SAME, noRestart, {}, gate);
     installs(paths.project);
-    const first = (await answer(await post(base, "aide/deploy"))).job as { id: string };
+    const first = (await answer(await post(base, "aide/deploy"))).job as {
+      id: string;
+    };
 
     const second = await post(base, "aide/deploy");
     expect(second.status).toBe(400);
     expect(String((await answer(second)).error)).toContain("already");
-    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
+    expect(
+      (await queued(base)).filter((j) => j.specFolder === "deploy"),
+    ).toHaveLength(1);
 
     release();
     await settle(base, first.id, (j) => j.state === "done");
     const third = await post(base, "aide/deploy");
     expect(third.status).toBe(200);
-    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(2);
+    expect(
+      (await queued(base)).filter((j) => j.specFolder === "deploy"),
+    ).toHaveLength(2);
   });
 });

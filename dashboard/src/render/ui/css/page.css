@@ -4,58 +4,103 @@
    browser's own default, instead of blanking. Reduced motion changes pages
    with no transition. A browser without view transitions drops both rules
    and changes pages as before. */
-@view-transition { navigation: auto; }
-@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+@view-transition {
+  navigation: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
 
 /* The full-viewport-height floor sits on the body, not on a wrapper
    shared with a sidebar, or a short page stops painting the background where
    its content ends. */
-body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
-  background: var(--bg); color: var(--text);
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body {
+  font: var(--fs-m)/var(--lh) var(--sans);
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 /* A link is blue, and only a link: the accent is for action and
    activity (the primary button, the running pip and badge), --danger for
    a failure, and a page of spec titles in the accent read as a page of
    failures beside it. */
-a { color: var(--link); text-decoration: none; }
-a:hover { color: var(--link-strong); text-decoration: underline; }
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--link-strong);
+  text-decoration: underline;
+}
 /* One ring for everything focusable, declared here rather than on each
    component: the page had no focus style anywhere, so every control
    focused in the browser's default blue — the one hue the palette does
    not contain, and which is kept out of the stylesheet on
    purpose. :focus-visible and not :focus, or a mouse press leaves a
    ring behind it. */
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 /* The mark left, the "…" menu right — space-between is what puts the
    menu at the right-hand end; DOM order alone would leave it beside
    the mark. */
-header { display: flex; align-items: center; justify-content: space-between;
-  gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) var(--sp-3); }
-header .brand { margin: 0; padding: 0; }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6) var(--sp-3);
+}
+header .brand {
+  margin: 0;
+  padding: 0;
+}
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
    tab bar being the reference (2026-08-19). Centred deliberately:
    once the bar is exactly as wide as header and main (above),
    nothing else would keep the two or three tabs from sitting flush
    against its left edge instead. */
-body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
-  padding: 0 var(--sp-6); border-bottom: 1px solid var(--line); }
+body > nav.tabbar {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--line);
+}
 /* The same bar's copy inside the header, shown only on a phone held
    sideways (narrow.css). */
-header > nav.tabbar { display: none; }
+header > nav.tabbar {
+  display: none;
+}
 /* The SAME bar one level in: a spec's own seven tabs, and a job's
    three. They were filter pills with a caption beside them until
    2026-08-23 — chips choose among values, tabs move between views, and
    these are views. Inside main, so the row takes the page's width
    rather than the frame's, which is why it is a rule of its own and
    not the body-child one above. */
-nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4);
-  border-bottom: 1px solid var(--line); }
+nav.tabbar.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
 /* The spec page's own actions group, at the row's right end:
    margin-left auto is the same push .specsearch already uses
    elsewhere on this site. Wraps to its own line, still right-aligned on
    it, once the row no longer fits both groups side by side. */
-nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; }
+nav.tabbar.subtabs > .row {
+  margin-left: auto;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
 /* The Settings page alone: its tab rows and each tab's own content sit in
    the middle of the frame, over the phases form `.settingsform` already
    centres. The hook is the bar's own hrefs rather than a class of its
@@ -67,21 +112,42 @@ nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap
    there is — so a long line wraps or scrolls in .checkoutput instead of
    widening the panel and moving the tabs. */
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > nav.tabbar.subtabs {
-  justify-content: center; }
-main:has(> nav.tabbar.subtabs a[href^="/settings"]) > table.settingstable { margin-inline: auto; }
+  justify-content: center;
+}
+main:has(> nav.tabbar.subtabs a[href^="/settings"]) > table.settingstable {
+  margin-inline: auto;
+}
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > .toolpanel {
-  width: min(70ch, 100%); margin-inline: auto; }
+  width: min(70ch, 100%);
+  margin-inline: auto;
+}
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own
    rhythm by their padding instead. */
-nav.tabbar.subtabs .tab { min-width: 0; }
-.tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
-  min-width: 7rem; text-align: center;
-  color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }
-.tabbar .tab:hover { color: var(--text); text-decoration: none; }
-.tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
-  border-bottom-color: var(--accent); }
-main { padding: var(--sp-5) var(--sp-6); }
+nav.tabbar.subtabs .tab {
+  min-width: 0;
+}
+.tabbar .tab {
+  padding: var(--sp-2) 2px calc(var(--sp-2) + 1px);
+  margin-bottom: -1px;
+  min-width: 7rem;
+  text-align: center;
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.tabbar .tab:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+.tabbar .tab[aria-current] {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+main {
+  padding: var(--sp-5) var(--sp-6);
+}
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
 /* Explicit sizing, not `width: auto`: on the Specs page body
@@ -97,13 +163,23 @@ main { padding: var(--sp-5) var(--sp-6); }
    what a content-box `max-width: 72rem` with no `width` set already
    gave every other page — this fix changes nothing about how already-
    correct pages render. */
-header, body > nav.tabbar, main { max-width: calc(72rem + 2 * var(--sp-6));
-  width: 100%; box-sizing: border-box; margin-inline: auto; }
+header,
+body > nav.tabbar,
+main {
+  max-width: calc(72rem + 2 * var(--sp-6));
+  width: 100%;
+  box-sizing: border-box;
+  margin-inline: auto;
+}
 /* Direct-body notices sit under the header, on the same visible edges
    as its content. Other .rowmsg elements stay inside their own row or
    form and do not pick up page-level sizing. */
-body > p.rowmsg { max-width: 72rem; width: calc(100% - 2 * var(--sp-6));
-  box-sizing: border-box; margin-inline: auto; }
+body > p.rowmsg {
+  max-width: 72rem;
+  width: calc(100% - 2 * var(--sp-6));
+  box-sizing: border-box;
+  margin-inline: auto;
+}
 
 /* The Specs list and the Jobs tab, scoped by :has(#jobrows) — the
    id only those two pages write. Their own box (.tablewrap, list.css) is the
@@ -119,15 +195,25 @@ body > p.rowmsg { max-width: 72rem; width: calc(100% - 2 * var(--sp-6));
    is the height without it — the list's last rows sat under the bar.
    The first height is the fallback for a browser without dvh. */
 /*noinspection CssOverwrittenProperties*/
-body:has(#jobrows) { height: 100vh; height: 100dvh; overflow: hidden; box-sizing: border-box;
-  display: flex; flex-direction: column; }
+body:has(#jobrows) {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
 /* min-height: 0 is the flexbox rule an item needs before it will actually
    shrink to the space flex-grow hands it, rather than growing to fit its
    content and pushing the page taller regardless (list.css carries the
    matching rule on #jobrows and .tablewrap, the next two links in the
    same chain). */
-body:has(#jobrows) main { flex: 1 1 auto; min-height: 0;
-  display: flex; flex-direction: column; }
+body:has(#jobrows) main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 /* Window Controls Overlay (asked 2026-08-31): when Chrome has actually
    folded the OS title bar into the page — a person has to opt in per
    window, so `display_override` in the manifest is necessary but not
@@ -142,33 +228,77 @@ body:has(#jobrows) main { flex: 1 1 auto; min-height: 0;
    window instead of responding to a click. */
 /*noinspection CssInvalidMediaFeature*/
 @media (display-mode: window-controls-overlay) {
-  body { padding-top: env(titlebar-area-height, 40px); }
+  body {
+    padding-top: env(titlebar-area-height, 40px);
+  }
   header {
-    position: fixed; top: 0; left: env(titlebar-area-x, 0);
-    width: env(titlebar-area-width, 100%); height: env(titlebar-area-height, 40px);
-    max-width: none; margin: 0; padding: 0 var(--sp-3);
-    background: var(--bg); z-index: 100;
+    position: fixed;
+    top: 0;
+    left: env(titlebar-area-x, 0);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 40px);
+    max-width: none;
+    margin: 0;
+    padding: 0 var(--sp-3);
+    background: var(--bg);
+    z-index: 100;
     /*noinspection CssUnknownProperty*/
     -webkit-app-region: drag;
   }
-  header a, header details, header summary, header button {
+  header a,
+  header details,
+  header summary,
+  header button {
     /*noinspection CssUnknownProperty*/
     -webkit-app-region: no-drag;
   }
 }
-h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
-h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
-.pagehead { display: flex; justify-content: space-between; align-items: baseline;
-  flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
-.pagehead .muted { white-space: pre-line; }
-.backhead { display: flex; align-items: baseline; flex-wrap: wrap;
-  gap: var(--sp-4); margin: 0 0 var(--sp-4); }
-.backhead h1 { margin: 0; }
+h1 {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+main h2 {
+  font-size: var(--fs-l);
+  font-weight: 600;
+  margin: var(--sp-5) 0 var(--sp-3);
+}
+h3 {
+  font-size: var(--fs-l);
+  font-weight: 600;
+  margin: var(--sp-5) 0 var(--sp-3);
+}
+.pagehead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+}
+.pagehead .muted {
+  white-space: pre-line;
+}
+.backhead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: 0 0 var(--sp-4);
+}
+.backhead h1 {
+  margin: 0;
+}
 /* Where the spec stands, at the far end of the line that names it:
    `margin-left: auto` is the same push the tab row's own actions and
    the specs list's search field already use. Baseline-aligned like the
    heading beside it would sit the pips a little high, so this one
    group centres on itself. */
-.backhead .headend { display: flex; align-items: center; gap: var(--sp-3);
-  margin-left: auto; align-self: center; }
+.backhead .headend {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-left: auto;
+  align-self: center;
+}

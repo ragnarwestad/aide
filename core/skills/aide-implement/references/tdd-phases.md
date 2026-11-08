@@ -14,6 +14,7 @@ tools-and-scripts rules).
 6. Report the result and continue to GREEN
 
 Show:
+
 - Number of tests written
 - All fail as expected
 
@@ -27,10 +28,10 @@ For each step in 3-solution.md (a short analysis has no plan: the change 1-descr
 4. Verify that the relevant tests PASS
 5. Repeat for all steps
 
-When all steps are implemented:
-6. Report the result and continue to VERIFY
+When all steps are implemented: 6. Report the result and continue to VERIFY
 
 Show:
+
 - Number of steps implemented
 - All tests pass
 
@@ -51,6 +52,7 @@ pnpm run build
 ```
 
 After all checks:
+
 1. Update `specs/XX-slug/4-status.md` by writing the result with
    `aide-write-spec --file 4-status.md` (never Write/Edit)
 2. Show a summary and confirm completion

@@ -57,8 +57,16 @@ const addressText = (url: string): string => {
 
 // The columns have names of their own (`ts-*`), so no rule written for the
 // specs list's `data-col`s reaches this table.
-const COLUMNS = ["ts-project", "ts-spec", "ts-branch", "ts-status", "ts-address", "ts-stop"] as const;
-const th = (col: (typeof COLUMNS)[number], label: string): string => `<th data-col="${col}">${label}</th>`;
+const COLUMNS = [
+  "ts-project",
+  "ts-spec",
+  "ts-branch",
+  "ts-status",
+  "ts-address",
+  "ts-stop",
+] as const;
+const th = (col: (typeof COLUMNS)[number], label: string): string =>
+  `<th data-col="${col}">${label}</th>`;
 
 const row = (r: TestServerRow): string => {
   const address =
@@ -75,7 +83,12 @@ const row = (r: TestServerRow): string => {
     `<td data-col="ts-status">${esc(r.status)}</td>` +
     `<td data-col="ts-address">${address}</td>` +
     `<td data-col="ts-stop">` +
-    buttonForm({ action: r.stopAction, hook: "actionform", button: { label: "Stop" }, after: messageSlot("refused") }) +
+    buttonForm({
+      action: r.stopAction,
+      hook: "actionform",
+      button: { label: "Stop" },
+      after: messageSlot("refused"),
+    }) +
     `</td>` +
     `</tr>`
   );
@@ -96,14 +109,29 @@ export function renderTestServersPage(
   // 32 px inside the frame every other page's content lines up with.
   const body = !rows.length
     ? `${back}<p class="muted">No test server is running right now.</p>`
-    // The submit listener's delegation anchor (specs-client/index.ts) —
-    // the same role `#jobrows` plays for the specs list.
-    : `${back}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
+    : // The submit listener's delegation anchor (specs-client/index.ts) —
+      // the same role `#jobrows` plays for the specs list.
+      `${back}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
       `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
-      th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
-      th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
+      th("ts-project", "Project") +
+      th("ts-spec", "Spec") +
+      th("ts-branch", "Branch") +
+      th("ts-status", "Status") +
+      th("ts-address", "Address") +
+      th("ts-stop", "") +
       `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>`;
-  return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, {
-    hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl, script: opts.script,
-  });
+  return pageShell(
+    "Test servers",
+    entries,
+    TEST_SERVERS_ROUTE,
+    body,
+    generatedAt,
+    {
+      hideHeading: true,
+      hideTabBar: true,
+      lang: opts.lang,
+      currentUrl: opts.currentUrl,
+      script: opts.script,
+    },
+  );
 }

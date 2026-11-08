@@ -42,7 +42,8 @@
 
   function mark(radios: NodeListOf<Element>, choice: string): void {
     radios.forEach((radio) => {
-      (radio as HTMLInputElement).checked = radio.getAttribute("data-unit-choice") === choice;
+      (radio as HTMLInputElement).checked =
+        radio.getAttribute("data-unit-choice") === choice;
     });
   }
 
@@ -53,10 +54,14 @@
     mark(radios, stored());
   };
   document.addEventListener("change", (event) => {
-    const radio = (event.target as Element | null)?.closest?.("[data-unit-choice]");
+    const radio = (event.target as Element | null)?.closest?.(
+      "[data-unit-choice]",
+    );
     if (!radio) return;
     const choice = radio.getAttribute("data-unit-choice") ?? "usd";
-    try { localStorage.setItem(KEY, choice); } catch {}
+    try {
+      localStorage.setItem(KEY, choice);
+    } catch {}
     apply(choice);
     markPage();
   });

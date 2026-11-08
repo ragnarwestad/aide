@@ -4,23 +4,38 @@
 // unlike `schedules.ts`, nothing here reads a `let` reassigned later in
 // boot, so every field is a plain value.
 
-import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
+import {
+  queuePriorityOrder,
+  tailEdits,
+  type Job,
+  type QueueStore,
+} from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView, SideRunView } from "../render";
 import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
-import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
+import {
+  resolveStepEffort,
+  resolveStepModel,
+  resolveTimeoutSec,
+} from "./serve-helpers";
 
 export interface JobRowContext {
   queue: QueueStore;
   store: AideRunStore;
 }
 
-export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView> {
+export async function jobRow(
+  ctx: JobRowContext,
+  job: Job,
+): Promise<QueueRowView> {
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-  const providerKey = step && step !== "deploy" ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
+  const providerKey =
+    step && step !== "deploy"
+      ? resolveStepProvider(job, step, ctx.queue.defaults)
+      : undefined;
   return {
     id: job.id,
     project: job.project,
@@ -35,13 +50,19 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // that takes its tick cannot disagree about where the tail
     // starts.
     editableSteps: tailEdits(job),
-    queuePosition: job.state === "queued" ? queuePosition(ctx.queue, job) : undefined,
+    queuePosition:
+      job.state === "queued" ? queuePosition(ctx.queue, job) : undefined,
     state: job.state,
     landing: job.landing,
-    model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
+    model: step
+      ? resolveStepModel(job, step, ctx.queue.defaults.model)
+      : job.modelChoice,
     // The newest run of this step that named one; a running step has no
     // result yet and speaks with the id of the attempt before it.
-    modelId: step ? [...job.results].reverse().find((r) => r.step === step && r.modelId)?.modelId : undefined,
+    modelId: step
+      ? [...job.results].reverse().find((r) => r.step === step && r.modelId)
+          ?.modelId
+      : undefined,
     stepModels: job.model,
     stepProviders: job.provider,
     effort: step ? resolveStepEffort(job, step) : undefined,
@@ -53,7 +74,11 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // One number, for the step this row speaks for: `stateLabel` puts
     // it into words ("stopped — 45 min") and has no step to resolve
     // against of its own.
-    timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default", ctx.queue.defaults.timeoutSec),
+    timeoutSec: resolveTimeoutSec(
+      job.timeoutSec,
+      step ?? "default",
+      ctx.queue.defaults.timeoutSec,
+    ),
     createdAt: job.createdAt,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
@@ -65,7 +90,9 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     stopReason: job.stopReason,
     usageLimitWait: job.usageLimitWait,
     // The provider the step runs, or ran, on, as it is named now.
-    provider: providerKey ? (ctx.queue.defaults.providers?.[providerKey]?.name ?? providerKey) : undefined,
+    provider: providerKey
+      ? (ctx.queue.defaults.providers?.[providerKey]?.name ?? providerKey)
+      : undefined,
     error: job.error,
     errorDetail: job.errorDetail,
     dependencyNotice: job.dependencyNotice,
@@ -84,7 +111,13 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
         ? ctx.store.get(job.sessionId)?.phase
         : undefined,
     results: job.results.map((r) => ({
-      step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
+      step: r.step,
+      ok: r.ok,
+      tool: r.tool,
+      costUsd: r.costUsd,
+      tokens: r.tokens?.total,
+      modelId: r.modelId,
+      terminalReason: r.terminalReason,
       providerLimit: r.providerLimit,
       provider: r.provider,
       // When the step ENDED — what a phase's own duration
@@ -97,7 +130,8 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
       // they are summing was over-charged.
       costMeasured: r.costMeasured,
       // The review and the verification, each on its own, with tokens as the total.
-      review: sideView(r.review), verify: sideView(r.verify),
+      review: sideView(r.review),
+      verify: sideView(r.verify),
       // Why `gh` opened no pull request: the step's own answer, said in
       // that phase's log.
       prError: r.prError,
@@ -108,7 +142,13 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
 /** A stored review or verification as the list draws it. */
 function sideView(run: SideRun | undefined): SideRunView | undefined {
   if (!run) return undefined;
-  return { outcome: run.outcome, tool: run.tool, durationSec: run.durationSec, costUsd: run.costUsd, tokens: run.tokens?.total };
+  return {
+    outcome: run.outcome,
+    tool: run.tool,
+    durationSec: run.durationSec,
+    costUsd: run.costUsd,
+    tokens: run.tokens?.total,
+  };
 }
 
 /** The same `queuePriorityOrder()` `Runner.tick()` calls,
@@ -118,13 +158,21 @@ function sideView(run: SideRun | undefined): SideRunView | undefined {
  *  (`errorReason === "held-back"`, set by `Runner.hold()`) is excluded
  *  from both the count and its own place — it is not
  *  competing for a slot at all. */
-function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } | undefined {
+function queuePosition(
+  queue: QueueStore,
+  job: Job,
+): { n: number; total: number } | undefined {
   // Not competing for a slot: it stays where it is even if the queue
   // were empty, so it gets no place, and it does not count toward
   // anyone else's total either.
   if (job.errorReason === "held-back") return undefined;
   const queued = queuePriorityOrder(
-    [...queue.list()].reverse().filter((j) => j.state === "queued" && j.errorReason !== "held-back"),
+    [...queue.list()]
+      .reverse()
+      .filter((j) => j.state === "queued" && j.errorReason !== "held-back"),
   );
-  return { n: queued.findIndex((j) => j.id === job.id) + 1, total: queued.length };
+  return {
+    n: queued.findIndex((j) => j.id === job.id) + 1,
+    total: queued.length,
+  };
 }

@@ -18,14 +18,20 @@ describe("a test process keeps its temp directories inside its own", () => {
   test("that directory is removed when the process exits, whatever a test left in it", () => {
     const dir = mkdtempSync(join(tmpdir(), "probe-"));
     const probe = join(dir, "leaves-a-directory.test.ts");
-    writeFileSync(probe,
+    writeFileSync(
+      probe,
       'import { test } from "bun:test";\n' +
-      'import { mkdtempSync } from "node:fs";\n' +
-      'import { tmpdir } from "node:os";\n' +
-      'import { join } from "node:path";\n' +
-      'test("leaks", () => { mkdtempSync(join(tmpdir(), "left-behind-")); console.log("TMP=" + tmpdir()); });\n');
-    const r = Bun.spawnSync(["bun", "test", probe], { cwd: DASHBOARD, env: process.env });
-    const own = /TMP=(\S+)/.exec(r.stdout.toString() + r.stderr.toString())?.[1] ?? "";
+        'import { mkdtempSync } from "node:fs";\n' +
+        'import { tmpdir } from "node:os";\n' +
+        'import { join } from "node:path";\n' +
+        'test("leaks", () => { mkdtempSync(join(tmpdir(), "left-behind-")); console.log("TMP=" + tmpdir()); });\n',
+    );
+    const r = Bun.spawnSync(["bun", "test", probe], {
+      cwd: DASHBOARD,
+      env: process.env,
+    });
+    const own =
+      /TMP=(\S+)/.exec(r.stdout.toString() + r.stderr.toString())?.[1] ?? "";
     expect(basename(own)).toStartWith("aide-bun-test-");
     expect(existsSync(own)).toBe(false);
   });

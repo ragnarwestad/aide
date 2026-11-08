@@ -27,7 +27,6 @@ Two pages sit beside this one:
 - [The dashboard's README](../README.md#installation) — installing it in the first place
 - [Tailscale](tailscale.md) — the optional way to reach it from a phone or another computer
 
-
 ## HTTPS and other devices
 
 An installed board binds `127.0.0.1` and answers on the machine it runs on alone, at `http://127.0.0.1:8788` —
@@ -212,18 +211,18 @@ Everything is overridable, nothing personal is baked in:
 
 All paths are relative to the serving host's own `$HOME`.
 
-| Variable         | Default                               | What it is                                                        |
-|------------------|---------------------------------------|-------------------------------------------------------------------|
-| `MINI`           | — required                            | the ssh target                                                    |
-| `PORT`           | `8788`                                | port to serve on, behind the proxy                                |
-| `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout          |
-| `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at           |
-| `REMOTE_STATE`   | `.aide/dashboard`                     | mirrors, queue state, logs                                        |
-| `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                                  |
-| `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                                 |
-| `QUEUE_PROJECTS` | `aide`                                | the allowlist's first-boot seed                                   |
-| `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
-| `BIND`           | `127.0.0.1`                           | address to bind                                                   |
+| Variable         | Default                               | What it is                                               |
+| ---------------- | ------------------------------------- | -------------------------------------------------------- |
+| `MINI`           | — required                            | the ssh target                                           |
+| `PORT`           | `8788`                                | port to serve on, behind the proxy                       |
+| `MINI_REPO`      | `.aide/dashboard/checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout |
+| `MINI_SRC`       | `$(MINI_REPO)/dashboard`              | the directory bun runs in, and what the plist points at  |
+| `REMOTE_STATE`   | `.aide/dashboard`                     | mirrors, queue state, logs                               |
+| `REMOTE_BUN`     | `.local/share/mise/shims/bun`         | bun on that host                                         |
+| `LABEL`          | `com.aide-dashboard.serve`            | launchd job label                                        |
+| `QUEUE_PROJECTS` | `aide`                                | the allowlist's first-boot seed                          |
+| `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                          |
+| `BIND`           | `127.0.0.1`                           | address to bind                                          |
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list
@@ -267,12 +266,12 @@ are repaired after the move:
   `git worktree repair`.
 - The launchd plist — which `install-serve` rewrites.
 
-    set -e
-    mkdir -p ~/.aide
-    mv ~/aide-dashboard ~/.aide/dashboard
-    cd ~/.aide/dashboard/projects
-    for l in *; do t="$(readlink "$l")"; case "$t" in "$HOME/aide-dashboard/"*) ln -sfn "$HOME/.aide/dashboard/${t#"$HOME"/aide-dashboard/}" "$l" ;; esac; done
-    for r in ~/.aide/dashboard/checkouts/*/code ~/.aide/dashboard/checkouts/*/specs; do git -C "$r" worktree repair >/dev/null 2>&1 || true; git -C "$r" worktree prune; done
+  set -e
+  mkdir -p ~/.aide
+  mv ~/aide-dashboard ~/.aide/dashboard
+  cd ~/.aide/dashboard/projects
+  for l in _; do t="$(readlink "$l")"; case "$t" in "$HOME/aide-dashboard/"_) ln -sfn "$HOME/.aide/dashboard/${t#"$HOME"/aide-dashboard/}" "$l" ;; esac; done
+  for r in ~/.aide/dashboard/checkouts/_/code ~/.aide/dashboard/checkouts/_/specs; do git -C "$r" worktree repair >/dev/null 2>&1 || true; git -C "$r" worktree prune; done
 
 Update `.env.deploy` on this machine to match — `ROOT=.aide/dashboard/projects`,
 and drop any `MINI_REPO` override, since the default already names

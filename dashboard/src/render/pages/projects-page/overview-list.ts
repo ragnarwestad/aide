@@ -1,7 +1,12 @@
 // The `/projects` list: the counts, then one row per project. Split
 // out of projects-page.ts by theme.
 
-import { ICON_WARN, askButton, progressDialog, rowMessage } from "../../ui/components";
+import {
+  ICON_WARN,
+  askButton,
+  progressDialog,
+  rowMessage,
+} from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
@@ -24,7 +29,12 @@ function projectRemoveControl(name: string, lang: Language): string {
   const id = `removeask-${name}`;
   const label = t(lang, "project.remove");
   return (
-    askButton({ label, dialogId: id, variant: "danger", ariaLabel: `${label} ${name}` }) +
+    askButton({
+      label,
+      dialogId: id,
+      variant: "danger",
+      ariaLabel: `${label} ${name}`,
+    }) +
     progressDialog(lang, {
       id,
       title: t(lang, "dialog.removing"),
@@ -32,7 +42,10 @@ function projectRemoveControl(name: string, lang: Language): string {
         title: t(lang, "project.removeTitle", { name }),
         sentence: t(lang, "project.removeSentence", { name }),
         ok: { variant: "danger", pending: t(lang, "dialog.removing") },
-        post: { action: `/api/queue/projects/${encodeURIComponent(name)}/remove`, hook: "removeform" },
+        post: {
+          action: `/api/queue/projects/${encodeURIComponent(name)}/remove`,
+          hook: "removeform",
+        },
       },
     })
   );
@@ -85,9 +98,18 @@ function overviewRow(
  *  top line beside the Add button, the way the spec list's count and
  *  its New spec link share the filter row. The list itself then starts
  *  with a row, and the word "Projects" is said once — in the tab. */
-export function projectSummary(projects: ProjectView[], lang: Language = "en"): string {
-  const active = projects.reduce((n, p) => n + p.specs.filter((s) => !s.archived).length, 0);
-  const archived = projects.reduce((n, p) => n + p.specs.filter((s) => s.archived).length, 0);
+export function projectSummary(
+  projects: ProjectView[],
+  lang: Language = "en",
+): string {
+  const active = projects.reduce(
+    (n, p) => n + p.specs.filter((s) => !s.archived).length,
+    0,
+  );
+  const archived = projects.reduce(
+    (n, p) => n + p.specs.filter((s) => s.archived).length,
+    0,
+  );
   return (
     `<span class="summary">${t(lang, "project.count", { n: projects.length })} · ` +
     `${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>`
@@ -122,18 +144,16 @@ export function projectListBody(
   },
 ): string {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  return (
-    ordered
-      .map((p) =>
-        overviewRow(
-          p,
-          opts.pageHref(p.name),
-          opts.note?.(p.name),
-          opts.warnHref?.(p.name),
-          opts.lang ?? "en",
-          opts.removable?.(p.name) ?? false,
-        ),
-      )
-      .join("\n")
-  );
+  return ordered
+    .map((p) =>
+      overviewRow(
+        p,
+        opts.pageHref(p.name),
+        opts.note?.(p.name),
+        opts.warnHref?.(p.name),
+        opts.lang ?? "en",
+        opts.removable?.(p.name) ?? false,
+      ),
+    )
+    .join("\n");
 }

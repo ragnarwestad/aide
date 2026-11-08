@@ -1,9 +1,7 @@
 // Split out of model-and-phase-picks.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  harness,
-} from "./fixtures.ts";
+import { harness } from "./fixtures.ts";
 
 // --- A successful Add has something to say -------------------------
 //
@@ -37,7 +35,13 @@ describe("a successful Add goes to the new project's Config tab", () => {
   // A refusal is not a success: it stays on the form, where the fields
   // that fix it are.
   test("a refused Add stays on the form, with the reason beside it", async () => {
-    const h = harness(() => ({ ok: false, body: { ok: false, results: [{ step: "name", error: "that name is taken" }] } }));
+    const h = harness(() => ({
+      ok: false,
+      body: {
+        ok: false,
+        results: [{ step: "name", error: "that name is taken" }],
+      },
+    }));
     await h.submitAdd();
     expect(h.addSlot.textContent).toContain("That name is taken");
     expect(h.location.href).toBe("http://dash.test/");
@@ -46,7 +50,10 @@ describe("a successful Add goes to the new project's Config tab", () => {
   // A Remove has no project left to go to, so it returns to the list.
   test("a removal returns to the list", async () => {
     const h = harness(
-      () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
+      () => ({
+        ok: true,
+        body: { ok: true, results: [{ step: "confirm", ok: true }] },
+      }),
       "actionform",
       "",
       { pathname: "/projects" },
@@ -88,7 +95,13 @@ describe("a tail box's tick posts itself", () => {
   // whole row locks the instant the tick lands, and stays locked until
   // the row has been redrawn from the server's own answer.
   test("the row locks at once and is redrawn from the answer", async () => {
-    let atRequest = { run: false, box: false, tail: false, cancel: false, otherRow: false };
+    let atRequest = {
+      run: false,
+      box: false,
+      tail: false,
+      cancel: false,
+      otherRow: false,
+    };
     let atRedraw = false;
     const h = harness((url) => {
       if (url.includes("/steps")) {
@@ -104,7 +117,13 @@ describe("a tail box's tick posts itself", () => {
       return { ok: true, body: OK };
     });
     await h.changeTail(true);
-    expect(atRequest).toEqual({ run: true, box: true, tail: true, cancel: true, otherRow: false });
+    expect(atRequest).toEqual({
+      run: true,
+      box: true,
+      tail: true,
+      cancel: true,
+      otherRow: false,
+    });
     // Still locked when the redraw is asked for — not merely until the
     // answer arrived.
     expect(atRedraw).toBe(true);
@@ -118,7 +137,10 @@ describe("a tail box's tick posts itself", () => {
     let checkedWhenRedrawn: boolean | undefined;
     const h = harness((url) => {
       if (url.includes("/steps")) {
-        return { ok: false, body: { error: "archive is not an editable step on this job" } };
+        return {
+          ok: false,
+          body: { error: "archive is not an editable step on this job" },
+        };
       }
       if (url.includes("rows=1")) checkedWhenRedrawn = h.tailBox.checked;
       return { ok: true };
@@ -127,7 +149,9 @@ describe("a tail box's tick posts itself", () => {
     // Put back BEFORE the row is re-asked for, so a redraw that never
     // comes still leaves the box telling the truth.
     expect(checkedWhenRedrawn).toBe(false);
-    expect(h.listRefused.textContent).toBe("Problem: Archive is not an editable step on this job");
+    expect(h.listRefused.textContent).toBe(
+      "Problem: Archive is not an editable step on this job",
+    );
     // And the row is live again.
     expect(h.tailBox.disabled).toBe(false);
     expect(h.runButton.disabled).toBe(false);

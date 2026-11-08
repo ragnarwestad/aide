@@ -9,15 +9,20 @@ const FOLD = "details[data-testfile]";
 export function openTestFiles(body: ParentNode): Set<string> {
   const open = new Set<string>();
   for (const el of body.querySelectorAll(FOLD)) {
-    if ((el as HTMLDetailsElement).open) open.add(el.getAttribute("data-testfile")!);
+    if ((el as HTMLDetailsElement).open)
+      open.add(el.getAttribute("data-testfile")!);
   }
   return open;
 }
 
 /** Opens each fold whose `data-testfile` is in `keys`; a fold no longer drawn is passed over. */
-export function reopenTestFiles(body: ParentNode, keys: ReadonlySet<string>): void {
+export function reopenTestFiles(
+  body: ParentNode,
+  keys: ReadonlySet<string>,
+): void {
   if (!keys.size) return;
   for (const el of body.querySelectorAll(FOLD)) {
-    if (keys.has(el.getAttribute("data-testfile")!)) (el as HTMLDetailsElement).open = true;
+    if (keys.has(el.getAttribute("data-testfile")!))
+      (el as HTMLDetailsElement).open = true;
   }
 }

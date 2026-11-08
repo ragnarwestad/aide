@@ -79,5 +79,5 @@ quietly. Change all six, regenerate, reinstall.
 These MUST always mirror each other. When changing one, update the other.
 
 Shared scripts (`core/scripts/` → `~/.local/bin/`) are handled by
-`core/scripts/_install-bin.sh` — change the script list *there*, not in each installer.
+`core/scripts/_install-bin.sh` — change the script list _there_, not in each installer.
 `install-all.sh` / `uninstall-all.sh` (repo root) run all three in sequence.

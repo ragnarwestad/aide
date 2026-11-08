@@ -15,18 +15,31 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { landClosedSpec, landNewSpec, landStepBranch, landStoppedStepBranch } from "../../../src/serve/land-branch";
+import {
+  landClosedSpec,
+  landNewSpec,
+  landStepBranch,
+  landStoppedStepBranch,
+} from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
 
-async function landAnalyze(codeRoot: string, specsRoot: string, pushed: string[]) {
+async function landAnalyze(
+  codeRoot: string,
+  specsRoot: string,
+  pushed: string[],
+) {
   return (await analyzeCalls(codeRoot, specsRoot, pushed))
     .filter((c) => c.args.join(" ").startsWith("merge -q"))
     .map((c) => c.dir);
 }
 
-async function analyzeCalls(codeRoot: string, specsRoot: string, pushed: string[]) {
+async function analyzeCalls(
+  codeRoot: string,
+  specsRoot: string,
+  pushed: string[],
+) {
   const git = landingGit();
   const { ctx } = landCtx(git.run, {
     machineryProjectDir: () => codeRoot,
@@ -44,9 +57,14 @@ async function analyzeCalls(codeRoot: string, specsRoot: string, pushed: string[
 /** Whether the calls merged the branch itself, rather than copying the
  *  spec's own paths off it. */
 const mergedTheBranch = (calls: { args: string[] }[]): boolean =>
-  calls.some((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
+  calls.some(
+    (c) =>
+      c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`),
+  );
 const copiedTheSpec = (calls: { args: string[] }[]): boolean =>
-  calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`));
+  calls.some(
+    (c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`),
+  );
 
 describe("an analyze landing", () => {
   test("merges the specs repo and never the code repo beside it", async () => {
@@ -86,10 +104,17 @@ describe("a create landing", () => {
     });
     await landNewSpec(
       ctx as unknown as Parameters<typeof landNewSpec>[0],
-      { ...JOB, specFolder: "new-a9def7db" } as unknown as Parameters<typeof landNewSpec>[1],
-      { branch: BRANCH, branchUrls: [specs, code].map((root) => ({ root, url: "" })) },
+      { ...JOB, specFolder: "new-a9def7db" } as unknown as Parameters<
+        typeof landNewSpec
+      >[1],
+      {
+        branch: BRANCH,
+        branchUrls: [specs, code].map((root) => ({ root, url: "" })),
+      },
     );
-    const merged = git.calls.filter((c) => c.args.join(" ").startsWith("merge -q")).map((c) => c.dir);
+    const merged = git.calls
+      .filter((c) => c.args.join(" ").startsWith("merge -q"))
+      .map((c) => c.dir);
     expect(merged.some((dir) => dir === specs)).toBe(true);
     expect(merged.some((dir) => dir === code)).toBe(false);
   });
@@ -103,15 +128,27 @@ describe("a close landing with the specs inside the code repo", () => {
     const { ctx } = landCtx(git.run, {
       machineryProjectDir: () => code,
       machinerySpecsRoot: () => join(code, "specs"),
-      testServers: { stop: async () => {}, get: () => undefined, list: () => [] },
+      testServers: {
+        stop: async () => {},
+        get: () => undefined,
+        list: () => [],
+      },
     });
     await landClosedSpec(
       ctx as unknown as Parameters<typeof landClosedSpec>[0],
       JOB as unknown as Parameters<typeof landClosedSpec>[1],
-      { branch: BRANCH, terminalReason: "closed", branchUrls: [{ root: code, url: "" }] },
+      {
+        branch: BRANCH,
+        terminalReason: "closed",
+        branchUrls: [{ root: code, url: "" }],
+      },
     );
-    const copied = git.calls.findIndex((c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`));
-    const deleted = git.calls.findIndex((c) => c.args.join(" ").startsWith("push -q origin --delete"));
+    const copied = git.calls.findIndex(
+      (c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`),
+    );
+    const deleted = git.calls.findIndex((c) =>
+      c.args.join(" ").startsWith("push -q origin --delete"),
+    );
     expect(copied).toBeGreaterThanOrEqual(0);
     expect(deleted).toBeGreaterThan(copied);
   });
@@ -130,7 +167,11 @@ describe("a sent-back implement landing with the specs inside the code repo", ()
       ctx as unknown as Parameters<typeof landStoppedStepBranch>[0],
       JOB as unknown as Parameters<typeof landStoppedStepBranch>[1],
       "implement",
-      { branch: BRANCH, terminalReason: "sent-back", branchUrls: [{ root: code, url: "" }] },
+      {
+        branch: BRANCH,
+        terminalReason: "sent-back",
+        branchUrls: [{ root: code, url: "" }],
+      },
     );
     expect(copiedTheSpec(git.calls)).toBe(true);
     expect(mergedTheBranch(git.calls)).toBe(false);

@@ -3,11 +3,25 @@
 // follows. Both are read from the result file another process left, so
 // every field of `outcome` is a question rather than a promise.
 
-import { mergeBranchRefs, type Job, type QueueDefaults, type StepResult, type TokenUsage, type WorkflowStep } from "../queue.ts";
+import {
+  mergeBranchRefs,
+  type Job,
+  type QueueDefaults,
+  type StepResult,
+  type TokenUsage,
+  type WorkflowStep,
+} from "../queue.ts";
 import { asResultTool } from "../steps.ts";
 import { resolveStepProvider } from "../providers/index.ts";
 import { sideRun } from "./side-run.ts";
-import { contextUse, providerLimit, sharedFiles, stepRepoRanges, testedGreen, type StepOutcome } from "./types.ts";
+import {
+  contextUse,
+  providerLimit,
+  sharedFiles,
+  stepRepoRanges,
+  testedGreen,
+  type StepOutcome,
+} from "./types.ts";
 
 export interface StepMeasures {
   cost: number;
@@ -29,7 +43,9 @@ function providerOfResult(
 ): StepResult["provider"] {
   if (tool === "none") return undefined;
   const key = resolveStepProvider(job, step, defaults);
-  return key ? { key, name: defaults.providers?.[key]?.name ?? key } : undefined;
+  return key
+    ? { key, name: defaults.providers?.[key]?.name ?? key }
+    : undefined;
 }
 
 export function stepResultEntry(
@@ -52,10 +68,17 @@ export function stepResultEntry(
     // rather than a copy of it.
     tool,
     provider: providerOfResult(job, step, tool, defaults),
-    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), review: sideRun(outcome.review), verify: sideRun(outcome.verify), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+    tokens: m.tokens,
+    modelId: m.modelId,
+    context: contextUse(outcome.context),
+    review: sideRun(outcome.review),
+    verify: sideRun(outcome.verify),
+    providerLimit: providerLimit(outcome.providerLimit),
+    testedGreen: testedGreen(outcome.testedGreen),
     costMeasured: outcome.costMeasured !== false,
     terminalReason: outcome.terminalReason ?? "no reason recorded",
-    subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),
+    subtype: outcome.subtype,
+    sharedFiles: sharedFiles(outcome.sharedFiles),
     // What the run reported, or failing that the id we gave it — a
     // step whose result carried no session was still run under one.
     sessionId: outcome.sessionId ?? job.sessionId,

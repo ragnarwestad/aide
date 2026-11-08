@@ -26,7 +26,14 @@ describe("no credential is asked for", () => {
     const res = await fetch(`${base}/?token=abc`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(res.headers.get("set-cookie") ?? "").not.toContain("token");
-    for (const path of ["/", "/new", "/projects", "/settings", "/schedule", "/specs/aide/81-queue-and-runner"]) {
+    for (const path of [
+      "/",
+      "/new",
+      "/projects",
+      "/settings",
+      "/schedule",
+      "/specs/aide/81-queue-and-runner",
+    ]) {
       const html = await (await fetch(`${base}${path}`)).text();
       expect(html).not.toContain('name="token"');
     }
@@ -47,10 +54,15 @@ describe("a request from another site is refused", () => {
       "/api/self-stop",
       "/api/queue/specs/aide/81-queue-and-runner/model",
     ]) {
-      const res = await fetch(`${base}${path}`, { method: "POST", headers: FOREIGN, body: JSON.stringify(JOB) });
+      const res = await fetch(`${base}${path}`, {
+        method: "POST",
+        headers: FOREIGN,
+        body: JSON.stringify(JOB),
+      });
       expect(res.status).toBe(403);
     }
-    const list = (await (await fetch(`${base}/api/queue`)).json()) as { jobs?: unknown[] } | unknown[];
+    const list = (await (await fetch(`${base}/api/queue`)).json()) as
+      { jobs?: unknown[] } | unknown[];
     expect(Array.isArray(list) ? list : (list.jobs ?? [])).toEqual([]);
   });
 
@@ -66,9 +78,12 @@ describe("a request from another site is refused", () => {
 
   test("the GET that starts a test board is refused when it comes from another site", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs/aide/81-queue-and-runner?tab=steps&startTestServer=1`, {
-      headers: { "sec-fetch-site": "cross-site" },
-    });
+    const res = await fetch(
+      `${base}/specs/aide/81-queue-and-runner?tab=steps&startTestServer=1`,
+      {
+        headers: { "sec-fetch-site": "cross-site" },
+      },
+    );
     expect(res.status).toBe(403);
   });
 });
@@ -77,18 +92,34 @@ describe("a Host that is not its own is refused", () => {
   test("on every route, the static site, /live and the emitter's POST included", async () => {
     const { base } = start();
     const headers = { host: "evil.example" };
-    for (const path of ["/", "/api/queue", "/projects.html", "/live", "/api/version"]) {
+    for (const path of [
+      "/",
+      "/api/queue",
+      "/projects.html",
+      "/live",
+      "/api/version",
+    ]) {
       expect((await fetch(`${base}${path}`, { headers })).status).toBe(403);
     }
-    const emitted = await fetch(`${base}/api/aide-run`, { method: "POST", headers, body: "{}" });
+    const emitted = await fetch(`${base}/api/aide-run`, {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
     expect(emitted.status).toBe(403);
   });
 
   test("the loopback names are admitted, with the port", async () => {
     const { base } = start();
     const port = new URL(base).port;
-    for (const host of [`localhost:${port}`, `LOCALHOST:${port}`, `127.0.0.1:${port}`]) {
-      expect((await fetch(`${base}/api/queue`, { headers: { host } })).status).toBe(200);
+    for (const host of [
+      `localhost:${port}`,
+      `LOCALHOST:${port}`,
+      `127.0.0.1:${port}`,
+    ]) {
+      expect(
+        (await fetch(`${base}/api/queue`, { headers: { host } })).status,
+      ).toBe(200);
     }
   });
 
@@ -96,16 +127,32 @@ describe("a Host that is not its own is refused", () => {
     const name = "rw-macmini.tail1234.ts.net";
     const { base } = start({ tailscaleName: async () => name });
     for (const host of [name, `${name}:8801`]) {
-      expect((await fetch(`${base}/api/queue`, { headers: { host } })).status).toBe(200);
+      expect(
+        (await fetch(`${base}/api/queue`, { headers: { host } })).status,
+      ).toBe(200);
     }
     for (const host of ["other.tail1234.ts.net", `evil.${name}`]) {
-      expect((await fetch(`${base}/api/queue`, { headers: { host } })).status).toBe(403);
+      expect(
+        (await fetch(`${base}/api/queue`, { headers: { host } })).status,
+      ).toBe(403);
     }
   });
 
   test("a name in allowedHosts is admitted, in any case", async () => {
     const { base } = start({ allowedHosts: ["board.example.com"] });
-    expect((await fetch(`${base}/api/queue`, { headers: { host: "Board.Example.com" } })).status).toBe(200);
-    expect((await fetch(`${base}/api/queue`, { headers: { host: "other.example.com" } })).status).toBe(403);
+    expect(
+      (
+        await fetch(`${base}/api/queue`, {
+          headers: { host: "Board.Example.com" },
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await fetch(`${base}/api/queue`, {
+          headers: { host: "other.example.com" },
+        })
+      ).status,
+    ).toBe(403);
   });
 });

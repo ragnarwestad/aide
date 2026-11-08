@@ -3,7 +3,10 @@
 // may move a spec between phases (the enqueue-time check).
 
 import { describe, expect, test } from "bun:test";
-import { isLegalMove, phaseFromState } from "../../../src/queue/spec-transitions.ts";
+import {
+  isLegalMove,
+  phaseFromState,
+} from "../../../src/queue/spec-transitions.ts";
 
 describe("phaseFromState", () => {
   test("created: no completed phases", () => {
@@ -13,14 +16,24 @@ describe("phaseFromState", () => {
     expect(phaseFromState(["create", "analyze"], null)).toBe("analyzed");
   });
   test("implemented: implement in completedPhases", () => {
-    expect(phaseFromState(["create", "analyze", "implement"], null)).toBe("implemented");
+    expect(phaseFromState(["create", "analyze", "implement"], null)).toBe(
+      "implemented",
+    );
   });
   test("archived: the archived stamp wins even before completedPhases gains archive", () => {
-    expect(phaseFromState(["create", "analyze", "implement"], { date: "2026-09-01" })).toBe("archived");
+    expect(
+      phaseFromState(["create", "analyze", "implement"], {
+        date: "2026-09-01",
+      }),
+    ).toBe("archived");
   });
   test("closed: the closed stamp wins over archived and completedPhases both", () => {
     expect(
-      phaseFromState(["create", "analyze", "implement"], { date: "2026-09-01" }, { date: "2026-09-05" }),
+      phaseFromState(
+        ["create", "analyze", "implement"],
+        { date: "2026-09-01" },
+        { date: "2026-09-05" },
+      ),
     ).toBe("closed");
   });
 });
@@ -36,14 +49,19 @@ describe("isLegalMove", () => {
     expect(move.ok).toBe(false);
     if (!move.ok) {
       expect(move.reason).toBe("not-analyzed-yet");
-      expect(move.message).toBe("spec 7-x has not been analyzed yet — run /aide-analyze first");
+      expect(move.message).toBe(
+        "spec 7-x has not been analyzed yet — run /aide-analyze first",
+      );
     }
   });
 
   // The earlier bug — analyze/create requested on a spec already
   // past that phase must be refused, naming the way back.
   test("analyze may run again once a spec has implemented, and takes it back to analyzed", () => {
-    expect(isLegalMove("implemented", "analyze", "342-x")).toEqual({ ok: true, next: "analyzed" });
+    expect(isLegalMove("implemented", "analyze", "342-x")).toEqual({
+      ok: true,
+      next: "analyzed",
+    });
   });
 
   test("create is refused once a spec has analyzed", () => {
@@ -88,7 +106,13 @@ describe("isLegalMove", () => {
   });
 
   test("every step but reopen is refused on a closed spec", () => {
-    for (const event of ["create", "analyze", "implement", "archive", "close"]) {
+    for (const event of [
+      "create",
+      "analyze",
+      "implement",
+      "archive",
+      "close",
+    ]) {
       const move = isLegalMove("closed", event, "7-x");
       expect(move.ok).toBe(false);
       if (!move.ok) {

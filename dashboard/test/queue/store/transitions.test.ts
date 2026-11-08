@@ -8,7 +8,13 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JOB_STATES, QueueStore, TRANSITIONS, type QueueDefaults, type TransitionEvent } from "../../../src/queue/queue.ts";
+import {
+  JOB_STATES,
+  QueueStore,
+  TRANSITIONS,
+  type QueueDefaults,
+  type TransitionEvent,
+} from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -16,7 +22,8 @@ const DEFAULTS: QueueDefaults = {
   model: { implement: "opus", default: "sonnet" },
 };
 
-const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null);
+const resolve = (project: string) =>
+  project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null;
 
 // Every event the table's own type declares — read off the table's keys
 // rather than hand-copied, so a member added to the union without a row
@@ -39,7 +46,9 @@ describe("TRANSITIONS", () => {
 
   test("has at least the eleven transitions the queue makes today", () => {
     const pairs = JOB_STATES.flatMap((state) =>
-      ALL_EVENTS.filter((event) => TRANSITIONS[state]?.[event] !== undefined).map((event) => [state, event]),
+      ALL_EVENTS.filter(
+        (event) => TRANSITIONS[state]?.[event] !== undefined,
+      ).map((event) => [state, event]),
     );
     expect(pairs.length).toBeGreaterThanOrEqual(11);
   });
@@ -61,13 +70,21 @@ describe("a red suite stops the landing's job rather than failing it", () => {
 
 function makeStore(): QueueStore {
   const dir = mkdtempSync(join(tmpdir(), "aide-transitions-"));
-  return new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
+  return new QueueStore({
+    mirrorPath: join(dir, "queue.json"),
+    defaults: DEFAULTS,
+    resolve,
+  });
 }
 
 describe("QueueStore.transition", () => {
   test("a refused transition leaves the job unchanged and reports the state and event refused", () => {
     const store = makeStore();
-    const r = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const r = store.enqueue({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze"],
+    });
     if (!r.ok) throw new Error(r.error);
     // `done` has no entry for `cancel` — the job's own work is already
     // over, so this is a refusal by construction, not a fixture that
@@ -75,22 +92,32 @@ describe("QueueStore.transition", () => {
     store.update(r.job.id, { state: "done" });
     const before = store.get(r.job.id);
 
-    const refusal = store.transition(r.job.id, "cancel" as TransitionEvent, { finishedAt: "later" });
+    const refusal = store.transition(r.job.id, "cancel" as TransitionEvent, {
+      finishedAt: "later",
+    });
     expect(refusal).toEqual({ ok: false, state: "done", event: "cancel" });
     expect(store.get(r.job.id)).toEqual(before);
   });
 
   test("a successful transition's state and patch fields are visible together on the very next get", () => {
     const store = makeStore();
-    const r = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const r = store.enqueue({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze"],
+    });
     if (!r.ok) throw new Error(r.error);
     store.update(r.job.id, { state: "running" });
 
-    const result = store.transition(r.job.id, "run-stopped" as TransitionEvent, {
-      stopReason: "timeout",
-      finishedAt: "2026-09-02T00:00:00Z",
-      error: "the step ran out of time",
-    });
+    const result = store.transition(
+      r.job.id,
+      "run-stopped" as TransitionEvent,
+      {
+        stopReason: "timeout",
+        finishedAt: "2026-09-02T00:00:00Z",
+        error: "the step ran out of time",
+      },
+    );
     expect(result.ok).toBe(true);
     const job = store.get(r.job.id)!;
     expect(job.state).toBe("stopped");
@@ -100,7 +127,11 @@ describe("QueueStore.transition", () => {
 
   test("an unknown job id is refused rather than throwing", () => {
     const store = makeStore();
-    const result = store.transition("no-such-id", "start" as TransitionEvent, {});
+    const result = store.transition(
+      "no-such-id",
+      "start" as TransitionEvent,
+      {},
+    );
     expect(result.ok).toBe(false);
   });
 });
@@ -145,10 +176,21 @@ describe("the diagram and the table agree", () => {
     return out;
   }
 
-  const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
+  const docPath = join(
+    import.meta.dir,
+    "..",
+    "..",
+    "..",
+    "docs",
+    "job-states.md",
+  );
 
   test("self-check: the comparison disagrees once an edge is removed from either side", () => {
-    const realEdges = new Set(diagramEdges(readFileSync(docPath, "utf-8")).map(([a, b]) => `${a}->${b}`));
+    const realEdges = new Set(
+      diagramEdges(readFileSync(docPath, "utf-8")).map(
+        ([a, b]) => `${a}->${b}`,
+      ),
+    );
     const realTable = tableEdges();
 
     // A diagram edge removed in this in-memory copy only: the table
@@ -165,7 +207,11 @@ describe("the diagram and the table agree", () => {
   });
 
   test("every diagram edge has a table entry, and every table entry is a diagram edge", () => {
-    const edges = new Set(diagramEdges(readFileSync(docPath, "utf-8")).map(([a, b]) => `${a}->${b}`));
+    const edges = new Set(
+      diagramEdges(readFileSync(docPath, "utf-8")).map(
+        ([a, b]) => `${a}->${b}`,
+      ),
+    );
     const table = tableEdges();
     expect([...edges].sort()).toEqual([...table].sort());
   });
@@ -185,7 +231,8 @@ describe("no state write outside the store", () => {
       const full = join(dir, entry);
       const stat = statSync(full);
       if (stat.isDirectory()) tsFiles(full, out);
-      else if (entry.endsWith(".ts") && !entry.endsWith(".test.ts")) out.push(full);
+      else if (entry.endsWith(".ts") && !entry.endsWith(".test.ts"))
+        out.push(full);
     }
     return out;
   }
@@ -204,9 +251,32 @@ describe("no state write outside the store", () => {
 // the old list. Read both sides and compare, exactly as the diagram
 // check above does.
 describe("the documented reasons and the unions agree", () => {
-  const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
-  const stepsPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "steps.ts");
-  const typesPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "types.ts");
+  const docPath = join(
+    import.meta.dir,
+    "..",
+    "..",
+    "..",
+    "docs",
+    "job-states.md",
+  );
+  const stepsPath = join(
+    import.meta.dir,
+    "..",
+    "..",
+    "..",
+    "src",
+    "queue",
+    "steps.ts",
+  );
+  const typesPath = join(
+    import.meta.dir,
+    "..",
+    "..",
+    "..",
+    "src",
+    "queue",
+    "types.ts",
+  );
 
   /** The members of a `"a" | "b"` union, read as text off its declaration. */
   function members(file: string, declaration: RegExp): string[] {
@@ -220,16 +290,22 @@ describe("the documented reasons and the unions agree", () => {
    *  Anything backticked later in the sentence is prose, not a member. */
   function documented(field: string): string[] {
     const doc = readFileSync(docPath, "utf-8");
-    const bullet = doc.match(new RegExp(`^- \\*\\*\`${field}\`\\*\\* is ([\\s\\S]*?), set`, "m"));
+    const bullet = doc.match(
+      new RegExp(`^- \\*\\*\`${field}\`\\*\\* is ([\\s\\S]*?), set`, "m"),
+    );
     expect(bullet).not.toBeNull();
     return [...bullet![1]!.matchAll(/`([^`]+)`/g)].map((m) => m[1]!).sort();
   }
 
   test("stopReason: every member is named where the field is described", () => {
-    expect(documented("stopReason")).toEqual(members(stepsPath, /export type StopReason =([^;]*);/));
+    expect(documented("stopReason")).toEqual(
+      members(stepsPath, /export type StopReason =([^;]*);/),
+    );
   });
 
   test("errorReason: every member is named where the field is described", () => {
-    expect(documented("errorReason")).toEqual(members(typesPath, /^\s*errorReason\?:([^;]*);/m));
+    expect(documented("errorReason")).toEqual(
+      members(typesPath, /^\s*errorReason\?:([^;]*);/m),
+    );
   });
 });

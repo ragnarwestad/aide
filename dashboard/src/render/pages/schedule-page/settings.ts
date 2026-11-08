@@ -8,8 +8,16 @@ import { scheduleNotifyOf } from "../../../queue/schedule.ts";
 import { t, type Language } from "../../../i18n";
 import { btnLink, facts, messageSlot } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { deleteControl, enabledBox, SCHEDULE_REFUSED_LINE } from "./controls.ts";
-import { NOTIFY_WORDS, renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
+import {
+  deleteControl,
+  enabledBox,
+  SCHEDULE_REFUSED_LINE,
+} from "./controls.ts";
+import {
+  NOTIFY_WORDS,
+  renderScheduleForm,
+  type ScheduleFormOptions,
+} from "./form.ts";
 import { schedulePromptPath, scheduleSettingsPath } from "./tabs.ts";
 
 export interface ScheduleSettingsOptions {
@@ -50,30 +58,76 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
   }
   // What the entry runs on: its own pick, else what the configuration
   // gives the `schedule` step — the model the form would pre-select.
-  const model = entry.model ?? opts.defaultModels?.schedule ?? opts.defaultModels?.default;
-  const notify = NOTIFY_WORDS.find(([value]) => value === scheduleNotifyOf(entry))![1];
+  const model =
+    entry.model ?? opts.defaultModels?.schedule ?? opts.defaultModels?.default;
+  const notify = NOTIFY_WORDS.find(
+    ([value]) => value === scheduleNotifyOf(entry),
+  )![1];
   const table = facts([
     { label: esc(t(lang, "schedule.colName")), value: esc(entry.name) },
-    { label: esc(t(lang, "schedule.cron")), value: `<code>${esc(entry.cron)}</code>` },
+    {
+      label: esc(t(lang, "schedule.cron")),
+      value: `<code>${esc(entry.cron)}</code>`,
+    },
     {
       label: esc(t(lang, "schedule.promptFile")),
       value: `<a href="${esc(schedulePromptPath(project, entry.name))}">${esc(entry.prompt)}</a>`,
     },
-    { label: esc(t(lang, "schedule.model")), value: model ? esc(model) : `<span class="muted">–</span>` },
+    {
+      label: esc(t(lang, "schedule.model")),
+      value: model ? esc(model) : `<span class="muted">–</span>`,
+    },
     ...(entry.provider
-      ? [{ label: esc(t(lang, "job.provider")), value: esc(opts.providerChoices?.find((p) => p.key === entry.provider)?.name ?? entry.provider) }]
+      ? [
+          {
+            label: esc(t(lang, "job.provider")),
+            value: esc(
+              opts.providerChoices?.find((p) => p.key === entry.provider)
+                ?.name ?? entry.provider,
+            ),
+          },
+        ]
       : []),
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
-    { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
-    { label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) },
-    { label: esc(t(lang, "schedule.enabled")), value: enabledBox(project, entry, lang) },
+    {
+      label: esc(t(lang, "schedule.browser")),
+      value: esc(
+        t(
+          lang,
+          entry.chrome ? "schedule.browserChrome" : "schedule.browserNone",
+        ),
+      ),
+    },
+    {
+      label: esc(t(lang, "schedule.sandbox")),
+      value: esc(
+        t(
+          lang,
+          entry.sandbox === false
+            ? "schedule.sandboxOff"
+            : "schedule.sandboxOn",
+        ),
+      ),
+    },
+    {
+      label: esc(t(lang, "schedule.enabled")),
+      value: enabledBox(project, entry, lang),
+    },
   ]);
   const actions =
     `<div class="row">` +
-    btnLink({ href: scheduleSettingsPath(project, entry.name, true), label: t(lang, "schedule.edit"), variant: "primary" }) +
+    btnLink({
+      href: scheduleSettingsPath(project, entry.name, true),
+      label: t(lang, "schedule.edit"),
+      variant: "primary",
+    }) +
     deleteControl(project, entry.name, { done: opts.deleteDone }, lang) +
     `</div>`;
   // The refusal line first: a refused action writes into the first
   // `.refused` on the page (`schedule-actions.ts`), and Delete's OK names this one.
-  return messageSlot("refused", "failed", { id: SCHEDULE_REFUSED_LINE }) + table + actions;
+  return (
+    messageSlot("refused", "failed", { id: SCHEDULE_REFUSED_LINE }) +
+    table +
+    actions
+  );
 }

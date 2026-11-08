@@ -22,7 +22,10 @@ import { row, openKeys } from "../../fixtures.ts";
 // The sentence is not lost: it goes into the panel built for
 // "a sentence too long for a cell", named for the phase it is about.
 describe("a phase line shows its mark and nothing else", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -42,9 +45,12 @@ describe("a phase line shows its mark and nothing else", () => {
       },
       Date.parse("2026-08-22T12:00:00Z"),
     );
-  const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const panel = (html: string) =>
+    html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
+    )?.[0] ?? "";
 
   // The ordinary case, and the one that must stay silent.
   // A phase whose file and history agree has nothing to say anywhere —
@@ -65,8 +71,18 @@ describe("a phase line shows its mark and nothing else", () => {
   test("two disagreeing phases collapse to the earlier one, named", () => {
     const html = rows(
       [
-        row({ id: "reanalyze", specFolder: "195-both", steps: ["analyze"], state: "cancelled" }),
-        row({ id: "impl", specFolder: "195-both", steps: ["implement"], state: "done" }),
+        row({
+          id: "reanalyze",
+          specFolder: "195-both",
+          steps: ["analyze"],
+          state: "cancelled",
+        }),
+        row({
+          id: "impl",
+          specFolder: "195-both",
+          steps: ["implement"],
+          state: "done",
+        }),
       ],
       [target("195-both", { done: ["analyze"] })],
     );
@@ -87,7 +103,12 @@ describe("a phase line shows its mark and nothing else", () => {
           error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
         }),
       ],
-      [target("195-errored", { done: ["analyze"], fileDisagrees: ["analyze"] })],
+      [
+        target("195-errored", {
+          done: ["analyze"],
+          fileDisagrees: ["analyze"],
+        }),
+      ],
     );
     expect(panel(html)).toContain("The specs tree is dirty");
     expect(panel(html)).not.toContain("the files disagree");
@@ -107,7 +128,10 @@ describe("a phase line shows its mark and nothing else", () => {
 // own width never changes — a pip that grew would move everything on the
 // line beside it.
 describe("a running implement says which third it is in", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -128,8 +152,10 @@ describe("a running implement says which third it is in", () => {
       Date.parse("2026-08-23T12:00:00Z"),
     );
   const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-/** The pips came off the specs list on 2026-09-07: what a running
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
+    )?.[0] ?? "";
+  /** The pips came off the specs list on 2026-09-07: what a running
    *  third says in WORDS is on the phase line, and the pips themselves
    *  — thirds included, from the same phase data — are drawn and tested
    *  on the spec page's own Overview
@@ -140,7 +166,15 @@ describe("a running implement says which third it is in", () => {
   // type system catches it, so the worked value is pinned here.
   test("a running implement in GREEN reads (green) and fills one third", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-green", steps: ["implement"], state: "running", tddPhase: "green" })],
+      [
+        row({
+          id: "impl",
+          specFolder: "210-green",
+          steps: ["implement"],
+          state: "running",
+          tddPhase: "green",
+        }),
+      ],
       [target("210-green")],
     );
     expect(subRow(html, "implement")).toContain("Running (green)");
@@ -148,7 +182,15 @@ describe("a running implement says which third it is in", () => {
 
   test("a running implement in VERIFY reads (verify) and fills two thirds", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "verify" })],
+      [
+        row({
+          id: "impl",
+          specFolder: "210-ref",
+          steps: ["implement"],
+          state: "running",
+          tddPhase: "verify",
+        }),
+      ],
       [target("210-ref")],
     );
     expect(subRow(html, "implement")).toContain("Running (verify)");
@@ -159,7 +201,15 @@ describe("a running implement says which third it is in", () => {
   // actively misinform, which is worse than saying nothing.
   test("a running implement in RED reads (red) and fills nothing", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-red", steps: ["implement"], state: "running", tddPhase: "red" })],
+      [
+        row({
+          id: "impl",
+          specFolder: "210-red",
+          steps: ["implement"],
+          state: "running",
+          tddPhase: "red",
+        }),
+      ],
       [target("210-red")],
     );
     expect(subRow(html, "implement")).toContain("Running (red)");
@@ -169,7 +219,14 @@ describe("a running implement says which third it is in", () => {
   // reads exactly as it does today.
   test("a running implement nobody reported on reads plain running, unfilled", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-silent", steps: ["implement"], state: "running" })],
+      [
+        row({
+          id: "impl",
+          specFolder: "210-silent",
+          steps: ["implement"],
+          state: "running",
+        }),
+      ],
       [target("210-silent")],
     );
     expect(subRow(html, "implement")).toContain("Running");
@@ -184,7 +241,14 @@ describe("a running implement says which third it is in", () => {
   // recurring cost.
   test("a running step that is not implement is untouched", () => {
     const html = rows(
-      [row({ id: "an", specFolder: "210-analyze", steps: ["analyze"], state: "running" })],
+      [
+        row({
+          id: "an",
+          specFolder: "210-analyze",
+          steps: ["analyze"],
+          state: "running",
+        }),
+      ],
       [target("210-analyze")],
     );
     expect(subRow(html, "analyze")).toContain("Running");
@@ -196,7 +260,15 @@ describe("a running implement says which third it is in", () => {
   // running, so a leftover report would have read "queued (verify)".
   test("a queued implement carrying a phase still reads plain queued", () => {
     const html = rows(
-      [row({ id: "impl", specFolder: "210-waiting", steps: ["implement"], state: "queued", tddPhase: "green" })],
+      [
+        row({
+          id: "impl",
+          specFolder: "210-waiting",
+          steps: ["implement"],
+          state: "queued",
+          tddPhase: "green",
+        }),
+      ],
       [target("210-waiting")],
     );
     expect(subRow(html, "implement")).toContain("Queued");
@@ -207,9 +279,24 @@ describe("a running implement says which third it is in", () => {
   // once used must not fill a pip for a run that has stopped, nor
   // qualify a word that is no longer "running".
   test("an implement that is NOT running ignores a leftover phase", () => {
-    for (const state of ["queued", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of [
+      "queued",
+      "done",
+      "failed",
+      "stopped",
+      "cancelled",
+      "interrupted",
+    ] as const) {
       const html = rows(
-        [row({ id: "impl", specFolder: "210-over", steps: ["implement"], state, tddPhase: "verify" })],
+        [
+          row({
+            id: "impl",
+            specFolder: "210-over",
+            steps: ["implement"],
+            state,
+            tddPhase: "verify",
+          }),
+        ],
         [target("210-over")],
       );
       expect(subRow(html, "implement")).not.toContain("(verify)");

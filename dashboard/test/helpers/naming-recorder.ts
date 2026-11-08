@@ -4,7 +4,10 @@
  *  tests read by the recorder's own parser (core/scripts/lib/failing-tests.sh).
  *  A line the body prints itself is kept, with the failing tests added. */
 export function namingRecorder(body: string): string {
-  const lib = new URL("../../../core/scripts/lib/failing-tests.sh", import.meta.url).pathname;
+  const lib = new URL(
+    "../../../core/scripts/lib/failing-tests.sh",
+    import.meta.url,
+  ).pathname;
   return `#!/bin/bash
 out="$(mktemp)"
 ( ${body}

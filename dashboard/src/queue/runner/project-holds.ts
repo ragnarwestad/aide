@@ -7,7 +7,8 @@ import type { Job } from "../queue.ts";
 
 /** Running now, or finished but still being merged: a landing is a merge in
  *  progress in the project's repositories. */
-const inFlight = (r: Job): boolean => r.state === "running" || r.landing === true;
+const inFlight = (r: Job): boolean =>
+  r.state === "running" || r.landing === true;
 
 const stepOf = (r: Job) => r.steps[r.stepIndex];
 
@@ -19,8 +20,13 @@ const stepOf = (r: Job) => r.steps[r.stepIndex];
  *  `tick()`, but wider (any step, not only archive) and one-directional: only
  *  the schedule job itself ever waits for this, nothing holds a spec's own
  *  step or landing back for a queued schedule job. */
-export function projectHold(jobs: readonly Job[], job: Job): BoardMessage | undefined {
-  const others = jobs.filter((r) => r.project === job.project && r.id !== job.id);
+export function projectHold(
+  jobs: readonly Job[],
+  job: Job,
+): BoardMessage | undefined {
+  const others = jobs.filter(
+    (r) => r.project === job.project && r.id !== job.id,
+  );
   if (stepOf(job) === "schedule" && others.some(inFlight)) {
     return { key: "runner.scheduleWaitsOnProject" };
   }

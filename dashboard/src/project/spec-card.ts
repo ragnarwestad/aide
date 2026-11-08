@@ -3,7 +3,12 @@
 // nothing at run time: the page script bundles it, and the server runs it.
 
 export type CardPlace = "running-row" | "new-spec";
-export type CardField = "dependsOn" | "acceptanceRequired" | "aiFormulate" | "criteriaChecks" | "chooseApproach";
+export type CardField =
+  | "dependsOn"
+  | "acceptanceRequired"
+  | "aiFormulate"
+  | "criteriaChecks"
+  | "chooseApproach";
 export type CardSetting = Exclude<CardField, "dependsOn">;
 export type CardLock = "job-in-flight" | "analyze-run" | "create-used";
 
@@ -52,29 +57,49 @@ export interface CardView {
   restore: CardValues;
 }
 
-const FIELDS: readonly CardField[] = ["dependsOn", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
+const FIELDS: readonly CardField[] = [
+  "dependsOn",
+  "acceptanceRequired",
+  "aiFormulate",
+  "criteriaChecks",
+  "chooseApproach",
+];
 
 /** The three settings analyze reads: open until it has run. */
-const ANALYZE_READS: readonly CardField[] = ["acceptanceRequired", "criteriaChecks", "chooseApproach"];
+const ANALYZE_READS: readonly CardField[] = [
+  "acceptanceRequired",
+  "criteriaChecks",
+  "chooseApproach",
+];
 
 function locksOf(facts: CardFacts): Record<CardField, CardLock | null> {
-  const locks = Object.fromEntries(FIELDS.map((f) => [f, null])) as Record<CardField, CardLock | null>;
+  const locks = Object.fromEntries(FIELDS.map((f) => [f, null])) as Record<
+    CardField,
+    CardLock | null
+  >;
   if (facts.place === "new-spec") return locks;
   // Create has used the AI formulation; a job in flight does not change why it is locked.
   locks.aiFormulate = "create-used";
   const reason: CardLock | null = facts.jobInFlight ? "job-in-flight" : null;
   locks.dependsOn = reason;
-  for (const f of ANALYZE_READS) locks[f] = reason ?? (facts.analyzeRun ? "analyze-run" : null);
+  for (const f of ANALYZE_READS)
+    locks[f] = reason ?? (facts.analyzeRun ? "analyze-run" : null);
   return locks;
 }
 
 const same = (a: unknown, b: unknown): boolean =>
-  Array.isArray(a) && Array.isArray(b) ? [...a].sort().join("\n") === [...b].sort().join("\n") : a === b;
+  Array.isArray(a) && Array.isArray(b)
+    ? [...a].sort().join("\n") === [...b].sort().join("\n")
+    : a === b;
 
 /** A change is kept while its field is open or locked only by a job in
  *  flight, and dropped once its field is locked for good or it equals what
  *  was saved. */
-function kept(facts: CardFacts, saved: CardValues, changes: Partial<CardValues>): Partial<CardValues> {
+function kept(
+  facts: CardFacts,
+  saved: CardValues,
+  changes: Partial<CardValues>,
+): Partial<CardValues> {
   const locks = locksOf(facts);
   const out: Record<string, unknown> = {};
   for (const f of FIELDS) {
@@ -108,14 +133,21 @@ function viewOf(state: CardState): CardView {
 
 /** The card after an event, and what it shows. An event other than
  *  `opened` needs the card to have been opened before. */
-export function cardStep(state: CardState | undefined, event: CardEvent): { state: CardState; view: CardView } {
+export function cardStep(
+  state: CardState | undefined,
+  event: CardEvent,
+): { state: CardState; view: CardView } {
   const next = nextState(state, event);
   return { state: next, view: viewOf(next) };
 }
 
 function nextState(state: CardState | undefined, event: CardEvent): CardState {
   if (event.type === "opened") {
-    return { facts: event.facts, saved: event.saved, changes: kept(event.facts, event.saved, state?.changes ?? {}) };
+    return {
+      facts: event.facts,
+      saved: event.saved,
+      changes: kept(event.facts, event.saved, state?.changes ?? {}),
+    };
   }
   if (!state) throw new Error(`the card was not opened before "${event.type}"`);
   const { facts, saved } = state;
@@ -129,7 +161,11 @@ function nextState(state: CardState | undefined, event: CardEvent): CardState {
         if (same(value, saved[f])) delete changes[f];
         else changes[f] = value;
       }
-      return { facts, saved, changes: kept(facts, saved, changes as Partial<CardValues>) };
+      return {
+        facts,
+        saved,
+        changes: kept(facts, saved, changes as Partial<CardValues>),
+      };
     }
     case "saved":
       return { facts, saved: viewOf(state).shown, changes: {} };
@@ -140,7 +176,11 @@ function nextState(state: CardState | undefined, event: CardEvent): CardState {
     case "job-started":
     case "job-ended": {
       const now = { ...event.facts, jobInFlight: event.type === "job-started" };
-      return { facts: now, saved: event.saved, changes: kept(now, event.saved, state.changes) };
+      return {
+        facts: now,
+        saved: event.saved,
+        changes: kept(now, event.saved, state.changes),
+      };
     }
   }
 }

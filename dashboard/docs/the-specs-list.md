@@ -18,7 +18,7 @@
 - [Filtering and searching the list](#filtering-and-searching-the-list)
 - [Changing a running job's tail](#changing-a-running-jobs-tail)
 - [The spec page](#the-spec-page)
-    - [Saving from the page](#saving-from-the-page)
+  - [Saving from the page](#saving-from-the-page)
 - [What the script adds](#what-the-script-adds)
 - [The page changes when something changes](#the-page-changes-when-something-changes)
 - [A spec's date does not move, and a phase says how long it took](#a-specs-date-does-not-move-and-a-phase-says-how-long-it-took)
@@ -29,7 +29,6 @@ What a row on `/specs` says, what its controls do, what a spec's own page shows,
 The queue behind the rows is on [Running specs](running-specs.md); how a step's branch lands is on
 [Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
 [Error sentences](error-sentences.md).
-
 
 ## The row, open and shut
 
@@ -692,7 +691,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   `#jobrows` when the rows re-fetch itself fails: without that guard a row can get stuck holding a spinner for a request
   that is already over. The `.phases` boxes are Run's own form fields — the ticked checkboxes live there — so the swap
   only happens after `new
-  FormData(form)` has already read them; writing the spinner in first would silently queue a job with no phases at all.
+FormData(form)` has already read them; writing the spinner in first would silently queue a job with no phases at all.
 - **A press locks its spec until it answers.** Every button, select, text field and visible input on the spec's
   rows — its head row and every row after it up to the next spec, the open spec included — is disabled from the
   moment the press is sent, and none on another spec. A change made in the description's editor meanwhile does not

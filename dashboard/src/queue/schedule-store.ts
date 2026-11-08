@@ -9,10 +9,21 @@
 // tick, not the next restart.
 
 import { CronExpressionParser } from "cron-parser";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, posix } from "node:path";
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
-import { escapesRoot, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry } from "./schedule.ts";
+import {
+  escapesRoot,
+  isScheduleNotify,
+  SCHEDULE_NAME_RE,
+  type ScheduleEntry,
+} from "./schedule.ts";
 
 export interface ScheduleStore {
   /** This project's entries, read fresh; [] for no file, an unreadable file or no key. */
@@ -50,9 +61,14 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
     const since = str(e.since);
     const notify = str(e.notify);
     entries.push({
-      name, cron, prompt: promptPath(prompt), enabled: e.enabled !== false,
+      name,
+      cron,
+      prompt: promptPath(prompt),
+      enabled: e.enabled !== false,
       ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
-      ...(str(e.provider) && SCHEDULE_NAME_RE.test(str(e.provider)!) ? { provider: str(e.provider)! } : {}),
+      ...(str(e.provider) && SCHEDULE_NAME_RE.test(str(e.provider)!)
+        ? { provider: str(e.provider)! }
+        : {}),
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       ...(isScheduleNotify(notify) ? { notify } : {}),
       ...(e.chrome === true ? { chrome: true } : {}),
@@ -66,13 +82,16 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
  *  none of which `git show <ref>:<path>` resolves. */
 const promptPath = (path: string): string => posix.normalize(path);
 
-const str = (v: unknown): string | undefined => (v == null ? undefined : String(v).trim() || undefined);
+const str = (v: unknown): string | undefined =>
+  v == null ? undefined : String(v).trim() || undefined;
 
 /** An entry as it is written: `enabled` only when it is `false`, the
  *  optional fields only when present. */
 function serialize(entry: ScheduleEntry): Record<string, unknown> {
   return {
-    name: entry.name, cron: entry.cron, prompt: promptPath(entry.prompt),
+    name: entry.name,
+    cron: entry.cron,
+    prompt: promptPath(entry.prompt),
     ...(entry.model ? { model: entry.model } : {}),
     ...(entry.provider ? { provider: entry.provider } : {}),
     ...(entry.since ? { since: entry.since } : {}),
@@ -83,19 +102,28 @@ function serialize(entry: ScheduleEntry): Record<string, unknown> {
   };
 }
 
-type Read = { ok: true; source: string; root: Record<string, unknown> } | { ok: false; error: string };
+type Read =
+  | { ok: true; source: string; root: Record<string, unknown> }
+  | { ok: false; error: string };
 
 function read(file: string): Read {
   let source = "";
   try {
     if (existsSync(file)) source = readFileSync(file, "utf-8");
   } catch (err) {
-    return { ok: false, error: `cannot read ${file}: ${err instanceof Error ? err.message : String(err)}` };
+    return {
+      ok: false,
+      error: `cannot read ${file}: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
   if (source.trim() === "") return { ok: true, source, root: {} };
   const errors: ParseError[] = [];
   const raw = parse(source, errors, { allowTrailingComma: true }) as unknown;
-  if (errors.length) return { ok: false, error: `${file} is not valid JSON, so its scheduled jobs cannot be read` };
+  if (errors.length)
+    return {
+      ok: false,
+      error: `${file} is not valid JSON, so its scheduled jobs cannot be read`,
+    };
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return { ok: false, error: `${file} is not a JSON object` };
   }
@@ -117,24 +145,40 @@ export function createScheduleStore(file: string | undefined): ScheduleStore {
         return [];
       }
       const schedules = got.root.schedules;
-      if (schedules === null || typeof schedules !== "object" || Array.isArray(schedules)) return [];
-      return parseScheduleEntries((schedules as Record<string, unknown>)[project]);
+      if (
+        schedules === null ||
+        typeof schedules !== "object" ||
+        Array.isArray(schedules)
+      )
+        return [];
+      return parseScheduleEntries(
+        (schedules as Record<string, unknown>)[project],
+      );
     },
 
     save(project, entries) {
-      if (!file) return "this server has no --queue-config file, so scheduled jobs cannot be stored";
+      if (!file)
+        return "this server has no --queue-config file, so scheduled jobs cannot be stored";
       const got = read(file);
       if (!got.ok) return got.error;
       const schedules = got.root.schedules;
-      if (schedules !== undefined && (schedules === null || typeof schedules !== "object" || Array.isArray(schedules))) {
+      if (
+        schedules !== undefined &&
+        (schedules === null ||
+          typeof schedules !== "object" ||
+          Array.isArray(schedules))
+      ) {
         return `${file} has a "schedules" key that is not an object, so a job cannot be stored in it`;
       }
       try {
         let source = got.source.trim() === "" ? "{}\n" : got.source;
         const value = entries.length > 0 ? entries.map(serialize) : undefined;
-        source = applyEdits(source, modify(source, ["schedules", project], value, {
-          formattingOptions: { insertSpaces: true, tabSize: 2 },
-        }));
+        source = applyEdits(
+          source,
+          modify(source, ["schedules", project], value, {
+            formattingOptions: { insertSpaces: true, tabSize: 2 },
+          }),
+        );
         mkdirSync(dirname(file), { recursive: true });
         const tmp = `${file}.tmp`;
         writeFileSync(tmp, source);

@@ -196,7 +196,7 @@ committed so far and the test results, instead of letting the session grow or co
 A limit is a share of the window, not a number of tokens, since the windows differ by model:
 
 | AI     | Model                                      | Context window | Where the tool says it                                                 |
-|--------|--------------------------------------------|----------------|------------------------------------------------------------------------|
+| ------ | ------------------------------------------ | -------------- | ---------------------------------------------------------------------- |
 | Claude | Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1 | 1,000,000      | `contextWindow` under `modelUsage` in the result that ends the session |
 | Codex  | gpt-6.1-sol                                | 475,000        | `model_context_window` on every `token_count` in Codex's session file  |
 | Codex  | gpt-6-astra                                | 258,400        | the same                                                               |
@@ -425,7 +425,7 @@ reading the whole description and what the sections before it found and built, s
 is today. One landing at the end, and the criteria for the whole ticked with it.
 
 |                                      | A chain of specs today  | One spec in sections         |
-|--------------------------------------|-------------------------|------------------------------|
+| ------------------------------------ | ----------------------- | ---------------------------- |
 | Description                          | One per spec            | One, with a section per part |
 | Analyze and implement                | Per spec                | Per section, in turn         |
 | Branch                               | One per spec            | One for the spec             |

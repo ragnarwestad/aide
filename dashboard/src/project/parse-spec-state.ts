@@ -64,7 +64,9 @@ export function currentPhase(state: SpecState): string | null {
  *  `aide-implement`'s, so they must not sit behind `currentPhase`
  *  reaching "done" first. */
 export function currentAcceptancePhase(state: SpecState): string | null {
-  const heading = Object.keys(state.phaseCounts).find((h) => /^acceptance\b/i.test(h));
+  const heading = Object.keys(state.phaseCounts).find((h) =>
+    /^acceptance\b/i.test(h),
+  );
   if (!heading) return null;
   const counts = state.phaseCounts[heading]!;
   return counts.done < counts.total ? heading : null;
@@ -81,11 +83,18 @@ export function parseSpecStateText(text: string): SpecState | null {
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== "object") return null;
     return {
-      completedPhases: Array.isArray(parsed.completedPhases) ? parsed.completedPhases : [],
+      completedPhases: Array.isArray(parsed.completedPhases)
+        ? parsed.completedPhases
+        : [],
       archived: parsed.archived ?? null,
       reopened: parsed.reopened ?? null,
-      acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
-      phaseCounts: parsed.phaseCounts && typeof parsed.phaseCounts === "object" ? parsed.phaseCounts : {},
+      acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria)
+        ? parsed.acceptanceCriteria
+        : [],
+      phaseCounts:
+        parsed.phaseCounts && typeof parsed.phaseCounts === "object"
+          ? parsed.phaseCounts
+          : {},
     };
   } catch {
     return null;

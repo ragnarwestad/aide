@@ -36,7 +36,9 @@ function miseShims(env: NodeJS.ProcessEnv): string {
 export function extraPathDirs(env: NodeJS.ProcessEnv = process.env): string[] {
   const home = env.HOME ?? "";
   if (!home) return [];
-  return [`${home}/.local/bin`, miseShims(env)].filter((dir) => existsSync(dir));
+  return [`${home}/.local/bin`, miseShims(env)].filter((dir) =>
+    existsSync(dir),
+  );
 }
 
 /** Where `docker` and Homebrew's tools are installed. launchd's PATH
@@ -48,18 +50,27 @@ export const SYSTEM_DIRS = ["/usr/local/bin", "/opt/homebrew/bin"];
 
 /** The server's own PATH with those directories in front of it, and the
  *  system directories it lacks after it. */
-export function pathWithToolDirs(env: NodeJS.ProcessEnv = process.env, systemDirs = SYSTEM_DIRS): string {
+export function pathWithToolDirs(
+  env: NodeJS.ProcessEnv = process.env,
+  systemDirs = SYSTEM_DIRS,
+): string {
   const path = env.PATH ?? "";
   const present = new Set(path.split(":"));
   const missing = extraPathDirs(env).filter((dir) => !present.has(dir));
-  const withTools = missing.length === 0 ? path : `${missing.join(":")}:${path}`;
-  const after = systemDirs.filter((dir) => !present.has(dir) && existsSync(dir));
+  const withTools =
+    missing.length === 0 ? path : `${missing.join(":")}:${path}`;
+  const after = systemDirs.filter(
+    (dir) => !present.has(dir) && existsSync(dir),
+  );
   if (after.length === 0) return withTools;
   return withTools ? `${withTools}:${after.join(":")}` : after.join(":");
 }
 
 /** The whole environment for a spawn, which is the server's own plus
  *  that one PATH change. */
-export function spawnEnv(env: NodeJS.ProcessEnv = process.env, systemDirs = SYSTEM_DIRS): Record<string, string | undefined> {
+export function spawnEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  systemDirs = SYSTEM_DIRS,
+): Record<string, string | undefined> {
   return { ...env, PATH: pathWithToolDirs(env, systemDirs) };
 }

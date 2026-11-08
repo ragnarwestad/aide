@@ -15,14 +15,32 @@ import { runScript, scriptFor } from "./run-script.ts";
  *  all. The links are handed over from the live checkout: a fresh
  *  worktree carries no `.aide/config` to read them from. `undefined`
  *  when the hash cannot be taken, which skips nothing. */
-async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promise<string | undefined> {
-  const lib = scriptFor("_aide-spec-lib.sh", { beside: scriptDir, override: process.env.AIDE_SPEC_LIB });
+async function treeOf(
+  dir: string,
+  liveRoot: string,
+  scriptDir?: string,
+): Promise<string | undefined> {
+  const lib = scriptFor("_aide-spec-lib.sh", {
+    beside: scriptDir,
+    override: process.env.AIDE_SPEC_LIB,
+  });
   // The live checkout's own answer first; the tree's when it has none —
   // a project that keeps its settings in the dashboard has them in an
   // untracked manifest the gate copied into the tree.
-  const links = resolveWorktreeLinks(liveRoot).links || resolveWorktreeLinks(dir).links || "";
+  const links =
+    resolveWorktreeLinks(liveRoot).links ||
+    resolveWorktreeLinks(dir).links ||
+    "";
   const hashed = await runScript(
-    ["/bin/bash", "-c", 'source "$1" && aide_tree_hash "$2" "$3"', "_", lib, dir, links],
+    [
+      "/bin/bash",
+      "-c",
+      'source "$1" && aide_tree_hash "$2" "$3"',
+      "_",
+      lib,
+      dir,
+      links,
+    ],
     dir,
     60_000,
   );
@@ -32,11 +50,18 @@ async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promis
 
 /** What the gate knows of the job it lands: `results` is absent for a
  *  caller that has none to give, and then nothing is skipped. */
-export type GatedJob = Pick<Job, "project" | "specFolder"> & { results?: Job["results"]; id?: string; streamFile?: string; stepStartedAt?: string };
+export type GatedJob = Pick<Job, "project" | "specFolder"> & {
+  results?: Job["results"];
+  id?: string;
+  streamFile?: string;
+  stepStartedAt?: string;
+};
 
 /** The newest green the job's own steps reported: the step that just
  *  ran is the one whose result the landing is merging. */
-function latestGreen(job: GatedJob): { tree: string; commands: string[] } | undefined {
+function latestGreen(
+  job: GatedJob,
+): { tree: string; commands: string[] } | undefined {
   const results = job.results ?? [];
   for (let i = results.length - 1; i >= 0; i--) {
     const green = results[i]?.testedGreen;
@@ -46,7 +71,8 @@ function latestGreen(job: GatedJob): { tree: string; commands: string[] } | unde
 }
 
 const sameCommands = (a: string[], b: string[]): boolean =>
-  a.length === b.length && [...a].sort().every((c, i) => c === [...b].sort()[i]);
+  a.length === b.length &&
+  [...a].sort().every((c, i) => c === [...b].sort()[i]);
 
 /** The tree a skipped run would have tested, when a step of this job has
  *  already seen exactly these commands green on exactly this tree.

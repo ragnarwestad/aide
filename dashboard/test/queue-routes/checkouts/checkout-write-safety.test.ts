@@ -17,7 +17,8 @@ const { git, realProject, recording } = checkoutSafetyHelpers(ownDirs);
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // The dashboard works in checkouts of its own.
@@ -38,30 +39,44 @@ afterEach(() => {
 // tests are their own sibling files, sharing `git`,
 // `realProject` and `recording` via ./checkout-safety-fixtures.ts.
 describe("the dashboard works in checkouts of its own", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
   // And the whole point: `--project-dir` is what decides
   // which checkout a run branches, switches and cuts its worktree from.
   test("the runner is pointed at the dashboard's own checkout, never the person's", () => {
     const job = {
-      id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
-       model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+      id: "j1",
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze"],
+      stepIndex: 0,
+      model: {},
+      timeoutSec: {},
+      permissionMode: {},
+      state: "queued",
+      createdAt: "",
+      results: [],
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide-dashboard/checkouts/aide/code",
       push: "branch",
     });
-    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard/checkouts/aide/code");
+    expect(argv[argv.indexOf("--project-dir") + 1]).toBe(
+      "/home/dev/aide-dashboard/checkouts/aide/code",
+    );
   });
 
   // Named on the command line, because the serving host is where these
   // clones actually take up disk and the default is a directory under
   // $HOME.
   test("the checkout root is a flag, and defaults to nothing the server invents", () => {
-    expect(parseArgs(["--dashboard-checkouts", "/data/owned"]).dashboardCheckoutRoot).toBe(
-      "/data/owned",
-    );
+    expect(
+      parseArgs(["--dashboard-checkouts", "/data/owned"]).dashboardCheckoutRoot,
+    ).toBe("/data/owned");
     expect(parseArgs([]).dashboardCheckoutRoot).toBeUndefined();
   });
 
@@ -72,15 +87,26 @@ describe("the dashboard works in checkouts of its own", () => {
     const originOfSecond = join(projectsRoot, "..", "aide.git");
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
     });
     try {
-      const res = await fetch(`http://127.0.0.1:${server.port}/api/queue/projects`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ name: "second", gitUrl: originOfSecond, codeLanding: "merge" }),
-      });
+      const res = await fetch(
+        `http://127.0.0.1:${server.port}/api/queue/projects`,
+        {
+          method: "POST",
+          headers: AUTH,
+          body: JSON.stringify({
+            name: "second",
+            gitUrl: originOfSecond,
+            codeLanding: "merge",
+          }),
+        },
+      );
       expect(res.status).toBe(200);
       expect(existsSync(join(owned, "second", "code", ".git"))).toBe(true);
     } finally {
@@ -95,13 +121,21 @@ describe("the dashboard works in checkouts of its own", () => {
     const { projectsRoot, person, site, owned } = realProject();
     // Exactly what a run used to refuse over, and used to trample.
     git(person, "switch", "-q", "-c", "wip");
-    writeFileSync(join(person, "specs", "81-queue-and-runner", "1-description.md"), "# Mine, half-written\n");
+    writeFileSync(
+      join(person, "specs", "81-queue-and-runner", "1-description.md"),
+      "# Mine, half-written\n",
+    );
     const before = git(person, "status", "--porcelain=v1", "--branch");
     const recorded = recording();
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: recorded.run,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      gitRun: recorded.run,
     });
     try {
       // Through the form, not around it: the hidden `baseSha` is the
@@ -109,9 +143,12 @@ describe("the dashboard works in checkouts of its own", () => {
       // proves the form and the save agree about WHICH checkout that
       // commit came out of.
       const form = await (
-        await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner?tab=description`, {
-          headers: {},
-        })
+        await fetch(
+          `http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner?tab=description`,
+          {
+            headers: {},
+          },
+        )
       ).text();
       const baseSha = /name="baseSha" value="([^"]*)"/.exec(form)?.[1] ?? "";
       expect(baseSha).not.toBe("");
@@ -130,13 +167,23 @@ describe("the dashboard works in checkouts of its own", () => {
       expect(res.status).toBe(200);
       expect(((await res.json()) as { ok?: boolean }).ok).toBe(true);
       // The dashboard's own copy carries the edit...
-      const saved = join(owned, "aide", "code", "specs", "81-queue-and-runner", "1-description.md");
+      const saved = join(
+        owned,
+        "aide",
+        "code",
+        "specs",
+        "81-queue-and-runner",
+        "1-description.md",
+      );
       expect(readFileSync(saved, "utf-8")).toContain("Saved by the dashboard");
       // ...and the person's half-written file is still theirs, on their
       // own branch, with nothing committed under them.
-      expect(readFileSync(join(person, "specs", "81-queue-and-runner", "1-description.md"), "utf-8")).toBe(
-        "# Mine, half-written\n",
-      );
+      expect(
+        readFileSync(
+          join(person, "specs", "81-queue-and-runner", "1-description.md"),
+          "utf-8",
+        ),
+      ).toBe("# Mine, half-written\n");
       expect(git(person, "status", "--porcelain=v1", "--branch")).toBe(before);
       // And nothing their directory was ever asked can CHANGE it.
       //
@@ -149,8 +196,20 @@ describe("the dashboard works in checkouts of its own", () => {
         .filter((c) => c.dir === person || c.dir.startsWith(`${person}/`))
         .map((c) => c.args.join(" "));
       expect(asked.length).toBeGreaterThan(0);
-      const writes = ["checkout", "switch", "merge", "commit", "push", "add", "fetch", "reset", "clean"];
-      expect(asked.filter((a) => writes.includes(a.split(" ")[0]!))).toEqual([]);
+      const writes = [
+        "checkout",
+        "switch",
+        "merge",
+        "commit",
+        "push",
+        "add",
+        "fetch",
+        "reset",
+        "clean",
+      ];
+      expect(asked.filter((a) => writes.includes(a.split(" ")[0]!))).toEqual(
+        [],
+      );
     } finally {
       server.stop();
     }

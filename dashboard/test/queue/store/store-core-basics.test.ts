@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { rmSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  rmSync,
+  mkdtempSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
@@ -21,7 +27,11 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+const REQ = {
+  project: "aide",
+  specFolder: "81-queue-and-runner",
+  steps: ["analyze"],
+};
 
 let dir: string;
 let mirrorPath: string;
@@ -33,7 +43,6 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-
 describe("QueueStore", () => {
   test("enqueue lists the job, mirrors it, and a new instance reloads it", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
@@ -43,7 +52,11 @@ describe("QueueStore", () => {
     expect(store.list().map((j) => j.id)).toEqual([r.job.id]);
     expect(existsSync(mirrorPath)).toBe(true);
 
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const reloaded = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+    });
     expect(reloaded.list().map((j) => j.id)).toEqual([r.job.id]);
     expect(reloaded.get(r.job.id)?.specFolder).toBe("81-queue-and-runner");
   });
@@ -55,7 +68,12 @@ describe("QueueStore", () => {
   });
 
   test("the oldest job is dropped at the cap", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, cap: 3 });
+    const store = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+      cap: 3,
+    });
     // Distinct steps: the queue refuses the same step twice while the
     // first is unfinished, so four identical requests would not make
     // four jobs to drop one of.
@@ -73,12 +91,17 @@ describe("QueueStore", () => {
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
     store.update(r.job.id, { state: "cancelled" });
-    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("cancelled");
+    expect(
+      new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)
+        ?.state,
+    ).toBe("cancelled");
   });
 
   test("a corrupt mirror is survivable — the store starts empty", () => {
     writeFileSync(mirrorPath, "{not json");
-    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list()).toEqual([]);
+    expect(
+      new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list(),
+    ).toEqual([]);
   });
 
   // Three jobs on this machine were posted with
@@ -94,15 +117,31 @@ describe("QueueStore", () => {
     const keep = store.enqueue(REQ);
     expect(keep.ok).toBe(true);
     if (!keep.ok) return;
-    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     // One row as it was written in August: both retired shapes at once.
-    raw.unshift({ ...raw[0], id: "old-gated", state: "awaiting-approval", gateAfter: ["analyze"] });
+    raw.unshift({
+      ...raw[0],
+      id: "old-gated",
+      state: "awaiting-approval",
+      gateAfter: ["analyze"],
+    });
     // And one that carries only the retired FIELD — that row is fine and
     // stays, minus the field.
-    raw.push({ ...raw[raw.length - 1], id: "old-field", gateAfter: ["analyze"] });
+    raw.push({
+      ...raw[raw.length - 1],
+      id: "old-field",
+      gateAfter: ["analyze"],
+    });
     writeFileSync(mirrorPath, JSON.stringify(raw));
 
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const reloaded = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+    });
     expect(reloaded.get(keep.job.id)?.id).toBe(keep.job.id);
     expect(reloaded.get("old-gated")).toBeUndefined();
     const field = reloaded.get("old-field");
@@ -132,7 +171,11 @@ describe("the running step's session", () => {
       streamFile: "/tmp/jobs/x.stream.jsonl",
     });
 
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    const reloaded = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+    }).get(r.job.id)!;
     expect(reloaded.sessionId).toBe("3f7a1c2e-0000-4000-8000-000000000001");
     expect(reloaded.streamFile).toBe("/tmp/jobs/x.stream.jsonl");
   });
@@ -141,12 +184,19 @@ describe("the running step's session", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
-    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     raw[0].sessionId = 42;
     raw[0].streamFile = { path: "/tmp/x" };
     writeFileSync(mirrorPath, JSON.stringify(raw));
 
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    const reloaded = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+    }).get(r.job.id)!;
     expect(reloaded.sessionId).toBeUndefined();
     expect(reloaded.streamFile).toBeUndefined();
   });
@@ -155,7 +205,11 @@ describe("the running step's session", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    const reloaded = new QueueStore({
+      mirrorPath,
+      defaults: DEFAULTS,
+      resolve,
+    }).get(r.job.id)!;
     expect(reloaded.sessionId).toBeUndefined();
   });
 });
@@ -165,10 +219,18 @@ describe("the running step's session", () => {
 // only about the repos its own steps pushed to. The merge route needs
 // the union — and never trusts the browser for it.
 describe("branchesFor", () => {
-  const seed = (store: QueueStore, steps: string[], branchUrls: { root: string; url: string }[]) => {
+  const seed = (
+    store: QueueStore,
+    steps: string[],
+    branchUrls: { root: string; url: string }[],
+  ) => {
     const r = store.enqueue({ ...REQ, steps });
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "done", branchUrls, startedAt: "2026-08-17T10:00:00Z" });
+    store.update(r.job.id, {
+      state: "done",
+      branchUrls,
+      startedAt: "2026-08-17T10:00:00Z",
+    });
     return r.job.id;
   };
 
@@ -181,8 +243,16 @@ describe("branchesFor", () => {
 
   test("two jobs for one spec union their repos", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    seed(store, ["analyze"], [{ root: "/repos/aide-specs", url: "https://example.test/specs" }]);
-    seed(store, ["implement"], [{ root: "/repos/aide", url: "https://example.test/aide" }]);
+    seed(
+      store,
+      ["analyze"],
+      [{ root: "/repos/aide-specs", url: "https://example.test/specs" }],
+    );
+    seed(
+      store,
+      ["implement"],
+      [{ root: "/repos/aide", url: "https://example.test/aide" }],
+    );
     expect(new Set(store.branchesFor("aide", "81-queue-and-runner"))).toEqual(
       new Set([
         { root: "/repos/aide-specs", url: "https://example.test/specs" },
@@ -214,7 +284,11 @@ describe("branchesFor", () => {
 
   test("another spec's branches are not this spec's", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    seed(store, ["analyze"], [{ root: "/repos/aide", url: "https://example.test/aide" }]);
+    seed(
+      store,
+      ["analyze"],
+      [{ root: "/repos/aide", url: "https://example.test/aide" }],
+    );
     expect(store.branchesFor("aide-dashboard", "01-first")).toEqual([]);
   });
 });
@@ -228,7 +302,9 @@ describe("branchDeleteErrorFor", () => {
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error(r.error);
     store.update(r.job.id, { state: "done" });
-    expect(store.branchDeleteErrorFor("aide", "81-queue-and-runner")).toBeUndefined();
+    expect(
+      store.branchDeleteErrorFor("aide", "81-queue-and-runner"),
+    ).toBeUndefined();
   });
 
   test("the newest job that recorded one wins", () => {
@@ -238,14 +314,16 @@ describe("branchDeleteErrorFor", () => {
     store.update(older.job.id, {
       state: "done",
       startedAt: "2026-08-17T09:00:00Z",
-      branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: old reason",
+      branchDeleteError:
+        "merged, but deleting aide/81-queue-and-runner on origin failed: old reason",
     });
     const newer = store.enqueue({ ...REQ, steps: ["implement"] });
     if (!newer.ok) throw new Error(newer.error);
     store.update(newer.job.id, {
       state: "done",
       startedAt: "2026-08-17T11:00:00Z",
-      branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
+      branchDeleteError:
+        "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
     });
     expect(store.branchDeleteErrorFor("aide", "81-queue-and-runner")).toBe(
       "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
@@ -256,8 +334,13 @@ describe("branchDeleteErrorFor", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "done", branchDeleteError: "merged, but deleting failed: reason" });
-    expect(store.branchDeleteErrorFor("aide-dashboard", "01-first")).toBeUndefined();
+    store.update(r.job.id, {
+      state: "done",
+      branchDeleteError: "merged, but deleting failed: reason",
+    });
+    expect(
+      store.branchDeleteErrorFor("aide-dashboard", "01-first"),
+    ).toBeUndefined();
   });
 });
 
@@ -303,10 +386,22 @@ describe("the same work is not queued twice", () => {
 
   test("the same step on another spec is fine", () => {
     const { store } = queued();
-    expect(store.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] }).ok).toBe(true);
+    expect(
+      store.enqueue({
+        project: "aide-dashboard",
+        specFolder: "01-first",
+        steps: ["analyze"],
+      }).ok,
+    ).toBe(true);
   });
 
-  for (const state of ["done", "cancelled", "failed", "stopped", "interrupted"] as const) {
+  for (const state of [
+    "done",
+    "cancelled",
+    "failed",
+    "stopped",
+    "interrupted",
+  ] as const) {
     test(`a ${state} job does not block the next one`, () => {
       const { store, first } = queued();
       store.update(first.id, { state });

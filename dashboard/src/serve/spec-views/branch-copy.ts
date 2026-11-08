@@ -1,7 +1,11 @@
 // A spec file as the spec's own open branch holds it: the copy a Save
 // writes to, so the copy the page has to draw.
 
-import { commitTimeOf, readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
+import {
+  commitTimeOf,
+  readStatusFromFetchedBranch,
+  resolveOpenBranchTarget,
+} from "../../git/branch-file.ts";
 import type { SpecViewsContext } from "./";
 
 export interface BranchCopy {
@@ -24,8 +28,24 @@ export async function readBranchCopy(
   specFolder: string,
   file: string,
 ): Promise<BranchCopy | null> {
-  const target = await resolveOpenBranchTarget(ctx, dir, specFolder, file, false);
-  const read = target ? await readStatusFromFetchedBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
+  const target = await resolveOpenBranchTarget(
+    ctx,
+    dir,
+    specFolder,
+    file,
+    false,
+  );
+  const read = target
+    ? await readStatusFromFetchedBranch(
+        ctx.gitRun,
+        target.root,
+        target.branch,
+        target.relPath,
+      )
+    : null;
   if (!target || !read) return null;
-  return { ...read, at: (await commitTimeOf(ctx.gitRun, target.root, read.sha)) ?? undefined };
+  return {
+    ...read,
+    at: (await commitTimeOf(ctx.gitRun, target.root, read.sha)) ?? undefined,
+  };
 }

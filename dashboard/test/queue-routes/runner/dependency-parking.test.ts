@@ -1,7 +1,13 @@
 // Split out of step-and-dependency-routes.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  rmSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
@@ -21,7 +27,8 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // --- A queued step waits for its dependency, it does not fail -----
@@ -33,8 +40,12 @@ afterEach(() => {
 // spawning anything, and leaves the job queued with the reason on its
 // row until the answer changes.
 describe("a job parked on an unmerged dependency", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
-  const DEPENDENT = "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+  const DEPENDENT =
+    "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
 
   /** A projects root this suite owns, so the paths git is asked about
    *  are the paths the test names. The shared harness makes its own and
@@ -49,7 +60,10 @@ describe("a job parked on an unmerged dependency", () => {
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
     mkdirSync(join(specs, "81-queue-and-runner"), { recursive: true });
-    writeFileSync(join(specs, "81-queue-and-runner", "1-description.md"), DEPENDENT);
+    writeFileSync(
+      join(specs, "81-queue-and-runner", "1-description.md"),
+      DEPENDENT,
+    );
     // `analyze` already on the line: this suite is about the DEPENDENCY
     // gate, and a job parked by the analyze gate instead would
     // make every assertion below about the dependency's name fail for an
@@ -64,11 +78,19 @@ describe("a job parked on an unmerged dependency", () => {
     // state file beside it too, exactly as that script would have.
     writeFileSync(
       join(specs, "81-queue-and-runner", "4-status.json"),
-      JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null,
-        acceptanceCriteria: [], phaseCounts: {} }),
+      JSON.stringify({
+        completedPhases: ["analyze"],
+        archived: null,
+        reopened: null,
+        acceptanceCriteria: [],
+        phaseCounts: {},
+      }),
     );
     mkdirSync(join(specs, "80-dependency"), { recursive: true });
-    writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
+    writeFileSync(
+      join(specs, "80-dependency", "1-description.md"),
+      "# 80-dependency\n",
+    );
     return { root: projectsRoot, project, specs };
   }
 
@@ -78,7 +100,11 @@ describe("a job parked on an unmerged dependency", () => {
   function stub(dir: string): { bin: string; argvFile: string } {
     const argvFile = join(dir, "runner-argv.txt");
     const bin = join(dir, "fake-run-spec");
-    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${argvFile}\n`, { mode: 0o755 });
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${argvFile}\n`,
+      { mode: 0o755 },
+    );
     return { bin, argvFile };
   }
 
@@ -95,9 +121,12 @@ describe("a job parked on an unmerged dependency", () => {
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("fetch")) return { code: fetchFails ? 128 : 0, stdout: "" };
-      if (a.startsWith("cat-file -e")) return { code: archived() ? 0 : 1, stdout: "" };
+      if (a.startsWith("symbolic-ref"))
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("fetch"))
+        return { code: fetchFails ? 128 : 0, stdout: "" };
+      if (a.startsWith("cat-file -e"))
+        return { code: archived() ? 0 : 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
     return { run, calls };
@@ -107,7 +136,11 @@ describe("a job parked on an unmerged dependency", () => {
     fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: [step] }),
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: [step],
+      }),
     });
   const queueImplement = (base: string) => queueStep(base, "implement");
 
@@ -151,7 +184,9 @@ describe("a job parked on an unmerged dependency", () => {
     await settle();
     expect(existsSync(argvFile)).toBe(false);
 
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: AUTH })
+    ).json()) as {
       jobs: { state: string; error?: unknown }[];
     };
     expect(listed.jobs[0].state).toBe("queued");
@@ -178,7 +213,9 @@ describe("a job parked on an unmerged dependency", () => {
     expect((await queueStep(base, "analyze")).status).toBe(200);
     await settle();
     expect(existsSync(argvFile)).toBe(false);
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: AUTH })
+    ).json()) as {
       jobs: { state: string; error?: unknown }[];
     };
     expect(listed.jobs[0].state).toBe("queued");
@@ -210,7 +247,10 @@ describe("a job parked on an unmerged dependency", () => {
     // the project root for unrelated reasons, so the assertion is on
     // this question's own calls, not on the root being untouched at all.
     const asksThisQuestion = (dir: string) =>
-      git.calls.some((c) => c.dir === dir && (c.args[0] === "fetch" || c.args[0] === "cat-file"));
+      git.calls.some(
+        (c) =>
+          c.dir === dir && (c.args[0] === "fetch" || c.args[0] === "cat-file"),
+      );
     expect(asksThisQuestion(paths.specs)).toBe(true);
     expect(asksThisQuestion(paths.project)).toBe(false);
   });
@@ -240,7 +280,8 @@ describe("a job parked on an unmerged dependency", () => {
       },
     });
     expect((await queueImplement(base)).status).toBe(200);
-    const asked = () => git.calls.filter((c) => c.args[0] === "cat-file").length;
+    const asked = () =>
+      git.calls.filter((c) => c.args[0] === "cat-file").length;
     expect(await until(() => asked() > 0)).toBe(true);
     const first = asked();
 
@@ -273,12 +314,27 @@ describe("a job parked on an unmerged dependency", () => {
         gitRun: gitFor(() => false).run,
       },
     });
-    const made = (await (await queueImplement(base)).json()) as { job: { id: string } };
+    const made = (await (await queueImplement(base)).json()) as {
+      job: { id: string };
+    };
     await settle();
-    expect((await fetch(`${base}/api/queue/${made.job.id}/cancel`, { method: "POST", headers: AUTH })).status)
-      .toBe(200);
-    const after = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: { id: string; state: string; error?: unknown; errorReason?: unknown }[];
+    expect(
+      (
+        await fetch(`${base}/api/queue/${made.job.id}/cancel`, {
+          method: "POST",
+          headers: AUTH,
+        })
+      ).status,
+    ).toBe(200);
+    const after = (await (
+      await fetch(`${base}/api/queue`, { headers: AUTH })
+    ).json()) as {
+      jobs: {
+        id: string;
+        state: string;
+        error?: unknown;
+        errorReason?: unknown;
+      }[];
     };
     const job = after.jobs.find((j) => j.id === made.job.id);
     expect(job?.state).toBe("cancelled");
@@ -297,17 +353,29 @@ describe("a job parked on an unmerged dependency", () => {
   describe("an archive whose acceptance criteria are not all ticked", () => {
     /** `root()` minus the dependency, with implement done and one
      *  acceptance row still open in the state file. */
-    function rootWithOpenRow(dir: string): { root: string; project: string; specs: string } {
+    function rootWithOpenRow(dir: string): {
+      root: string;
+      project: string;
+      specs: string;
+    } {
       const paths = root(dir);
-      writeFileSync(join(paths.specs, "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
+      writeFileSync(
+        join(paths.specs, "81-queue-and-runner", "1-description.md"),
+        "# Queue - Description\n",
+      );
       writeFileSync(
         join(paths.specs, "81-queue-and-runner", "4-status.md"),
         "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze, implement\n",
       );
       writeFileSync(
         join(paths.specs, "81-queue-and-runner", "4-status.json"),
-        JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null,
-          acceptanceCriteria: [{ task: "REQ-1: does the thing", done: false }], phaseCounts: {} }),
+        JSON.stringify({
+          completedPhases: ["analyze", "implement"],
+          archived: null,
+          reopened: null,
+          acceptanceCriteria: [{ task: "REQ-1: does the thing", done: false }],
+          phaseCounts: {},
+        }),
       );
       return paths;
     }
@@ -315,7 +383,11 @@ describe("a job parked on an unmerged dependency", () => {
       fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["archive"] }),
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: "81-queue-and-runner",
+          steps: ["archive"],
+        }),
       });
 
     // Not parked for the tick, and not started either: the runner ends
@@ -338,12 +410,15 @@ describe("a job parked on an unmerged dependency", () => {
       expect((await queueArchive(base)).status).toBe(200);
       await settle();
       expect(existsSync(argvFile)).toBe(false);
-      const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      const listed = (await (
+        await fetch(`${base}/api/queue`, { headers: AUTH })
+      ).json()) as {
         jobs: { state: string; results: { terminalReason: string }[] }[];
       };
       expect(listed.jobs[0].state).toBe("done");
-      expect(listed.jobs[0].results.at(-1)?.terminalReason).toBe("acceptance-criteria-unticked");
+      expect(listed.jobs[0].results.at(-1)?.terminalReason).toBe(
+        "acceptance-criteria-unticked",
+      );
     });
   });
-
 });

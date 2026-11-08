@@ -13,34 +13,55 @@ const LAST = 3;
 export function bindProviderAdd(dialog: HTMLDialogElement): void {
   const form = dialog.querySelector("form") as HTMLFormElement | null;
   if (!form) return;
-  const name = form.querySelector('input[name="name"]') as HTMLInputElement | null;
-  const id = form.querySelector('input[name="providerId"]') as HTMLInputElement | null;
-  const command = form.querySelector("[data-login-command]") as HTMLElement | null;
+  const name = form.querySelector(
+    'input[name="name"]',
+  ) as HTMLInputElement | null;
+  const id = form.querySelector(
+    'input[name="providerId"]',
+  ) as HTMLInputElement | null;
+  const command = form.querySelector(
+    "[data-login-command]",
+  ) as HTMLElement | null;
   const refused = form.querySelector(".refused") as HTMLElement | null;
-  const button = (hook: string) => form.querySelector(`[data-${hook}]`) as HTMLButtonElement | null;
+  const button = (hook: string) =>
+    form.querySelector(`[data-${hook}]`) as HTMLButtonElement | null;
   let step = 1;
   let idTyped = false;
 
   const tool = (): ProviderTool | undefined =>
-    ((form.querySelector('input[name="tool"]:checked') as HTMLInputElement | null)?.value as ProviderTool | undefined);
-  const toolPart = (which: string) => form.querySelector(`.addtool[data-tool="${which}"]`) as HTMLElement | null;
+    (
+      form.querySelector(
+        'input[name="tool"]:checked',
+      ) as HTMLInputElement | null
+    )?.value as ProviderTool | undefined;
+  const toolPart = (which: string) =>
+    form.querySelector(`.addtool[data-tool="${which}"]`) as HTMLElement | null;
 
   function writeCommand(): void {
     const chosen = tool();
     const part = chosen ? toolPart(chosen) : null;
     if (!command || !chosen || !part) return;
     const value = (field: string) =>
-      (part.querySelector(`input[name="${field}"]`) as HTMLInputElement | null)?.value.trim() || undefined;
+      (
+        part.querySelector(`input[name="${field}"]`) as HTMLInputElement | null
+      )?.value.trim() || undefined;
     command.textContent = providerLoginCommand({
-      tool: chosen, binary: value("binary"), configDir: value("configDir"), codexHome: value("codexHome"), shadowHome: value("shadowHome"),
+      tool: chosen,
+      binary: value("binary"),
+      configDir: value("configDir"),
+      codexHome: value("codexHome"),
+      shadowHome: value("shadowHome"),
     });
   }
 
   function show(next: number): void {
     step = next;
-    for (const el of form!.querySelectorAll(".addstep")) (el as HTMLElement).hidden = (el as HTMLElement).dataset.step !== String(step);
+    for (const el of form!.querySelectorAll(".addstep"))
+      (el as HTMLElement).hidden =
+        (el as HTMLElement).dataset.step !== String(step);
     for (const el of form!.querySelectorAll(".addsteps li")) {
-      if ((el as HTMLElement).dataset.step === String(step)) el.setAttribute("aria-current", "step");
+      if ((el as HTMLElement).dataset.step === String(step))
+        el.setAttribute("aria-current", "step");
       else el.removeAttribute("aria-current");
     }
     const back = button("add-back");
@@ -54,7 +75,9 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
       for (const el of form!.querySelectorAll(".addtool")) {
         const own = (el as HTMLElement).dataset.tool === chosen;
         (el as HTMLElement).hidden = !own;
-        const fields = el.querySelector("fieldset") as HTMLFieldSetElement | null;
+        const fields = el.querySelector(
+          "fieldset",
+        ) as HTMLFieldSetElement | null;
         if (fields) fields.disabled = !own;
       }
       writeCommand();
@@ -76,7 +99,9 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
   }
 
   button("add-next")?.addEventListener("click", forward);
-  button("add-back")?.addEventListener("click", () => show(Math.max(1, step - 1)));
+  button("add-back")?.addEventListener("click", () =>
+    show(Math.max(1, step - 1)),
+  );
   button("add-close")?.addEventListener("click", () => dialog.close());
   // Enter in a field before the last step moves on rather than adding. Taken
   // in the capture phase, ahead of the listener that posts the form.
@@ -90,7 +115,8 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
     { capture: true },
   );
   name?.addEventListener("input", () => {
-    if (id && !idTyped) id.value = name.value.trim() ? providerKeyFrom(name.value) : "";
+    if (id && !idTyped)
+      id.value = name.value.trim() ? providerKeyFrom(name.value) : "";
   });
   id?.addEventListener("input", () => {
     idTyped = id.value !== "";

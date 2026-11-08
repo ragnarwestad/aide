@@ -31,5 +31,8 @@ export const isFailedStop = (reason: string | undefined): boolean =>
  *  back to a full analysis, which read Stopped but still have to run
  *  again. */
 export const leavesStepUndone = (reason: string | undefined): boolean =>
-  isFailedStop(reason) || reason === "model-at-capacity" || reason === "acceptance-criteria" || reason === "shared-files" ||
+  isFailedStop(reason) ||
+  reason === "model-at-capacity" ||
+  reason === "acceptance-criteria" ||
+  reason === "shared-files" ||
   reason === "sent-back";

@@ -26,7 +26,7 @@ Three pages sit beside this one:
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
 | State         | Meaning                                                                                                                                                                                                     |
-|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                     |
 | `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set.                                                                                                             |
 | `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
@@ -148,6 +148,7 @@ the last of them.
 
   A row also reads the spec's files and git history; how they are cached is in
   [the specs list](the-specs-list.md#the-page-changes-when-something-changes).
+
 - **`stopReason`** is `timeout`, `provider-limit`, `model-at-capacity`, `tests-red`, `acceptance-criteria`, `shared-files` or `sent-back`, set with `stopped` and
   nowhere else. `stopped` is deliberately not `failed`: a time-stop is a common, healthy outcome, a red suite on a
   landing is work that is not green yet, and an analyze stopped on its acceptance criteria waits for the description

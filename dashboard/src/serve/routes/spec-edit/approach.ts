@@ -6,11 +6,27 @@
 // remaining steps. One of the families `handleSpecEditRoutes` asks in
 // turn; answers JSON only, read by the page script.
 import { saveSpecFiles } from "../../../git/specs-pull.ts";
-import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import {
+  readStatusFromBranch,
+  resolveOpenBranchTarget,
+  writeStatusToBranch,
+} from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
-import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
+import {
+  parseApproaches,
+  pendingChoice,
+  withChosenApproach,
+} from "../../../project/approach-choice.ts";
+import {
+  ARCHIVED_REFUSAL,
+  bodyToObject,
+  editMessage,
+  json,
+  logRefusal,
+  readBounded,
+  refusal,
+} from "../../serve-helpers";
 import { followOnJob, specWriteInFlight } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
@@ -18,10 +34,17 @@ import type { RoutesContext } from "..";
 
 const SOLUTION_FILE = "3-solution.md";
 
-export async function approachRoutes(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
-  const m = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/approach$/);
+export async function approachRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  path: string,
+): Promise<Response | null> {
+  const m = path.match(
+    /^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/approach$/,
+  );
   if (!m) return null;
-  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+  if (req.method !== "POST")
+    return new Response("method not allowed", { status: 405 });
   const [, project, specFolder] = m;
   const found = ctx.specDir(project!, specFolder!);
   if (!found) return new Response("not found", { status: 404 });
@@ -31,33 +54,67 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
     logRefusal("approach", spec, solution ? `${error} — ${solution}` : error);
     return refusal({ error, solution }, { spec }, 409);
   };
-  if (ctx.specRef(project!, specFolder!)?.archived) return refuse(ARCHIVED_REFUSAL);
+  if (ctx.specRef(project!, specFolder!)?.archived)
+    return refuse(ARCHIVED_REFUSAL);
   // A step running or landing is writing the plan this would write into.
   // A job merely queued — the one held for this very choice — is not.
-  const ours = ctx.queue.list().filter((job) => job.project === project && job.specFolder === specFolder);
-  if (ours.some(specWriteInFlight)) return refuse("another job for this spec is still running — nothing was saved");
+  const ours = ctx.queue
+    .list()
+    .filter((job) => job.project === project && job.specFolder === specFolder);
+  if (ours.some(specWriteInFlight))
+    return refuse(
+      "another job for this spec is still running — nothing was saved",
+    );
 
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;
   let body: Record<string, unknown> = {};
   try {
-    if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+    if (sent.text)
+      body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<
+        string,
+        unknown
+      >;
   } catch {
     return json({ error: "malformed body" }, 400);
   }
   const letter = typeof body.approach === "string" ? body.approach : "";
-  if (!/^[A-Z]$/.test(letter)) return json({ error: "no approach was chosen — nothing was saved", spec }, 400);
+  if (!/^[A-Z]$/.test(letter))
+    return json(
+      { error: "no approach was chosen — nothing was saved", spec },
+      400,
+    );
 
   // Read fresh, from the open branch when there is one, as the tick reads
   // the status file: the plan analyze wrote is there before it lands.
-  const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, SOLUTION_FILE, true);
+  const branchTarget = await resolveOpenBranchTarget(
+    ctx,
+    dir,
+    specFolder!,
+    SOLUTION_FILE,
+    true,
+  );
   const branchRead = branchTarget
-    ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
+    ? await readStatusFromBranch(
+        ctx.gitRun,
+        branchTarget.root,
+        branchTarget.branch,
+        branchTarget.relPath,
+      )
     : null;
-  const solution = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, SOLUTION_FILE) ?? "");
-  const pending = pendingChoice(chooseApproachIn(specFileText(dir, "1-description.md") ?? ""), parseApproaches(solution));
+  const solution = branchTarget
+    ? (branchRead?.text ?? "")
+    : (specFileText(dir, SOLUTION_FILE) ?? "");
+  const pending = pendingChoice(
+    chooseApproachIn(specFileText(dir, "1-description.md") ?? ""),
+    parseApproaches(solution),
+  );
   const picked = pending?.find((a) => a.letter === letter);
-  if (!picked) return refuse("there is no approach to choose here any more", "reload the page");
+  if (!picked)
+    return refuse(
+      "there is no approach to choose here any more",
+      "reload the page",
+    );
 
   const recommended = picked.mark === "recommended";
   // Another approach replaces the job held for the choice with one that
@@ -65,9 +122,18 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   // clash with that one, so it is refused before anything is changed.
   const held = recommended
     ? undefined
-    : ours.find((job) => job.state === "queued" && job.steps[job.stepIndex] === "implement");
-  if (!recommended && ours.some((job) => job.state === "queued" && job !== held)) {
-    return refuse("another job for this spec is waiting", "cancel it first, then save again");
+    : ours.find(
+        (job) =>
+          job.state === "queued" && job.steps[job.stepIndex] === "implement",
+      );
+  if (
+    !recommended &&
+    ours.some((job) => job.state === "queued" && job !== held)
+  ) {
+    return refuse(
+      "another job for this spec is waiting",
+      "cancel it first, then save again",
+    );
   }
   // Cancelled BEFORE the write: a tick between the two would otherwise
   // find the choice recorded, release the hold, and start implement on
@@ -78,7 +144,8 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
       error: undefined,
       errorReason: undefined,
     });
-    if (!cancelled.ok) return refuse("the held run could not be cancelled — nothing was saved");
+    if (!cancelled.ok)
+      return refuse("the held run could not be cancelled — nothing was saved");
   }
 
   const text = withChosenApproach(solution, letter);
@@ -102,23 +169,37 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
           dir,
           (root) => ctx.branchStatus.defaultBranch(root),
           [{ file: SOLUTION_FILE, text, baseSha }],
-          { specLabel: specFolder!, message: editMessage(specFolder!, SOLUTION_FILE) },
+          {
+            specLabel: specFolder!,
+            message: editMessage(specFolder!, SOLUTION_FILE),
+          },
         ),
       );
   if (!result.ok) {
-    return held ? refuse(`${result.note}; the held run was cancelled`, "press Save again") : refuse(result.note);
+    return held
+      ? refuse(`${result.note}; the held run was cancelled`, "press Save again")
+      : refuse(result.note);
   }
 
   if (!recommended) {
-    const queued = ctx.queue.enqueue(followOnJob(
-      project!,
-      specFolder!,
-      held ? ["analyze", ...held.steps.slice(held.stepIndex)] : ["analyze"],
-      held,
-    ));
-    if (!queued.ok) return refuse(`the choice was saved, but analyze could not be queued: ${queued.error}`);
+    const queued = ctx.queue.enqueue(
+      followOnJob(
+        project!,
+        specFolder!,
+        held ? ["analyze", ...held.steps.slice(held.stepIndex)] : ["analyze"],
+        held,
+      ),
+    );
+    if (!queued.ok)
+      return refuse(
+        `the choice was saved, but analyze could not be queued: ${queued.error}`,
+      );
   }
   await afterTick(ctx, dir, specFolder!);
   await ctx.tickRunner();
-  return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
+  return json({
+    ok: true,
+    note: result.note,
+    changed: (result as { committed?: boolean }).committed !== false,
+  });
 }

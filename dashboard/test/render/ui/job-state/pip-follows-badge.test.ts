@@ -10,7 +10,12 @@ const noJob = undefined;
 
 describe("the pip follows the badge", () => {
   test("held back: amber pip beside the amber badge", () => {
-    const w = wordPhase(false, { reason: "depends on 1-x, which is not archived yet" }, noJob, {});
+    const w = wordPhase(
+      false,
+      { reason: "depends on 1-x, which is not archived yet" },
+      noJob,
+      {},
+    );
     expect([w.pip, w.badge?.variant]).toEqual(["waiting", "waiting"]);
   });
 
@@ -36,7 +41,10 @@ describe("the pip follows the badge", () => {
   // The sentence names the phase and its own button, so the reader
   // knows what to press; it used to state the mismatch and stop.
   test("files that disagree with the record name the phase and the button to press", () => {
-    const w = wordPhase(true, undefined, noJob, { fileDisagrees: true, step: "analyze" });
+    const w = wordPhase(true, undefined, noJob, {
+      fileDisagrees: true,
+      step: "analyze",
+    });
     expect(renderSentence("en", w.qualifier)).toBe(
       "Problem: The files and the run record disagree about whether analyze ran\nSolution: Press Analyze to run it again",
     );

@@ -23,7 +23,6 @@ who it is made for. The feature pages mention the routes beside their own featur
 place, and `test/guards/http-routes-page.test.ts` fails when a route in the source has no row here, or a row here has no
 route in the source.
 
-
 ## How to read this page
 
 A route is a method and a path shape, so `GET /api/queue` and `POST /api/queue` are two rows. In a path, `<id>` is a
@@ -33,7 +32,7 @@ of its own beside the plain `GET`. A query that only changes what comes back —
 in the Takes column of the one row.
 
 | Column   | Says                                                                                                                                     |
-|----------|------------------------------------------------------------------------------------------------------------------------------------------|
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Route    | The method and the path.                                                                                                                 |
 | Kind     | `read` changes nothing a later request can see. `action` changes something: a job, a file in a repository, a setting, a running process. |
 | Takes    | What the request has to carry: a body, a query, or nothing.                                                                              |
@@ -128,7 +127,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 `src/serve/routes/queue-admin.ts`, beside the project and settings routes.
 
 | Route                                         | Kind   | Takes                                              | Answers                                                                    | Made for  |
-|-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
+| --------------------------------------------- | ------ | -------------------------------------------------- | -------------------------------------------------------------------------- | --------- |
 | `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
 | `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
 | `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                                     | interface |
@@ -145,7 +144,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 Answered by the files under `src/serve/routes/spec-edit/`.
 
 | Route                                                     | Kind   | Takes                                                                  | Answers                                         | Made for  |
-|-----------------------------------------------------------|--------|------------------------------------------------------------------------|-------------------------------------------------|-----------|
+| --------------------------------------------------------- | ------ | ---------------------------------------------------------------------- | ----------------------------------------------- | --------- |
 | `POST /api/queue/specs/<project>/<spec>/tick`             | action | the rows to tick, unverify or fail, and the phase; up to 65,536 bytes  | `{ ok, note, changed }`; 409 for a refused tick | form      |
 | `POST /api/queue/specs/<project>/<spec>/approach`         | action | the approach chosen, by its letter                                     | `{ ok, note, changed }`; 409 `{ error, spec }`  | form      |
 | `POST /api/queue/specs/<project>/<spec>/tracking`         | action | the tracking fields, and optionally a sha to check they have not moved | `{ ok, note, changed }`; 400 `{ error, spec }`  | form      |
@@ -171,7 +170,7 @@ Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, wh
 queues its job. The page script posts `drift` once when the Deploy tab of any project is opened.
 
 | Route                                                 | Kind   | Takes                                                                 | Answers                                                                                                                                                                                                                                                     | Made for  |
-|-------------------------------------------------------|--------|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| ----------------------------------------------------- | ------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | `POST /api/queue/settings`                            | action | model and timeout defaults per step                                   | `{ ok }`; 400 `{ error }` for an unknown step or model                                                                                                                                                                                                      | form      |
 | `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8                                   | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue                                                                                                                                                                | form      |
 | `POST /api/queue/settings/models/add`                 | action | tool and model                                                        | `{ ok, name }`: the new choice's name; 400 `{ error }` for a model the last Models reading did not offer                                                                                                                                                    | form      |
@@ -195,7 +194,7 @@ queues its job. The page script posts `drift` once when the Deploy tab of any pr
 Answered by `src/serve/routes/schedule-admin-routes.ts`.
 
 | Route                                               | Kind   | Takes                                                             | Answers                                                                    | Made for |
-|-----------------------------------------------------|--------|-------------------------------------------------------------------|----------------------------------------------------------------------------|----------|
+| --------------------------------------------------- | ------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------- | -------- |
 | `GET /api/queue/schedule/cron-next`                 | read   | `?cron=` a cron expression                                        | `{ next }`: the next time it fires; 400 for an expression it cannot read   | form     |
 | `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, chrome, sandbox, back | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
 | `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, chrome, sandbox, back          | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
@@ -208,7 +207,7 @@ Answered by `src/serve/routes/schedule-admin-routes.ts`.
 Answered by `src/serve/routes/push-routes.ts`.
 
 | Route                        | Kind   | Takes                                              | Answers                                            | Made for |
-|------------------------------|--------|----------------------------------------------------|----------------------------------------------------|----------|
+| ---------------------------- | ------ | -------------------------------------------------- | -------------------------------------------------- | -------- |
 | `POST /api/push/subscribe`   | action | JSON: a browser's push subscription, at most 8 KiB | `{ ok }`; 400 for a malformed body, 413 over 8 KiB | form     |
 | `POST /api/push/unsubscribe` | action | JSON: the subscription to drop, at most 8 KiB      | `{ ok }`; 400 for a malformed body, 413 over 8 KiB | form     |
 
@@ -221,7 +220,7 @@ script's own seeding press has been made — which is the whole life of such a s
 idle after it.
 
 | Route                      | Kind   | Takes                    | Answers                                                                               | Made for  |
-|----------------------------|--------|--------------------------|---------------------------------------------------------------------------------------|-----------|
+| -------------------------- | ------ | ------------------------ | ------------------------------------------------------------------------------------- | --------- |
 | `GET /api/self-run`        | read   | nothing                  | JSON: how far the round has come                                                      | interface |
 | `POST /api/self-run`       | action | nothing                  | starts queueing the fixtures: `{ ok, stage }`; 409 while one is resetting or queueing | interface |
 | `POST /api/self-stop`      | action | nothing                  | a stopped page, then the board exits                                                  | form      |
@@ -233,7 +232,7 @@ Answered by `src/serve/core-routes.ts`. These three are the only API routes that
 dispatcher.
 
 | Route                | Kind   | Takes                              | Answers                                                                | Made for  |
-|----------------------|--------|------------------------------------|------------------------------------------------------------------------|-----------|
+| -------------------- | ------ | ---------------------------------- | ---------------------------------------------------------------------- | --------- |
 | `POST /api/aide-run` | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body                          | interface |
 | `GET /api/aide-runs` | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight                        | interface |
 | `GET /api/version`   | read   | nothing                            | `{ sha, startedAt }`: the commit this process runs, and when it booted | interface |
@@ -246,7 +245,7 @@ script, from the answer to the press that made it. Every page route also reads
 `?lang=`, and answers with a year-long `set-cookie` when it is set.
 
 | Route                                           | Kind   | Takes                                                                                                 | Answers                                                                                                                                                                                                                                                                                                                                                                                                            | Made for |
-|-------------------------------------------------|--------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| ----------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
 | `GET /`                                         | read   | optional `?state=`, `?sort=`, `?dir=`, `?q=`, `?open=`, `?checks=`, `?phases=`, `?rows=`, `?created=` | the Running tab; `created` names a job whose spec's row is open; with `?rows=1`, the rows alone; with `?only=` too, one row's rows, a spec's or a job's, empty when the view hides it. `state`, `sort`, `dir` and `q` are the tab's view: an address naming any of them is the whole view and is remembered in a cookie of the tab's own, and one naming none gets the remembered view; a `project` key is ignored | page     |
 | `GET /app`                                      | read   | nothing                                                                                               | 302 to `/` when the Running tab's saved filter leaves a row, to `/specs` when it leaves none; the manifest's `start_url`                                                                                                                                                                                                                                                                                           | page     |
 | `GET /new`                                      | read   | optional `?retry=`, `?tab=`                                                                           | the New spec form                                                                                                                                                                                                                                                                                                                                                                                                  | page     |
@@ -280,7 +279,7 @@ Answered by `src/serve/core-routes.ts` and `src/serve/serve-helpers/static.ts`. 
 other method gets 405.
 
 | Route                        | Kind | Takes   | Answers                                                  | Made for |
-|------------------------------|------|---------|----------------------------------------------------------|----------|
+| ---------------------------- | ---- | ------- | -------------------------------------------------------- | -------- |
 | `GET /spec-editor.js`        | read | nothing | the spec page's editor script; 304 against its ETag      | page     |
 | `GET /spec-viewer.js`        | read | nothing | the viewer script of the spec page; 304 against its ETag | page     |
 | `GET /manifest.webmanifest`  | read | nothing | the web app manifest                                     | page     |

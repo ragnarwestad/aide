@@ -7,12 +7,28 @@
 // of a working tree, and a fake would answer whatever the code asked.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { dashboardCheckoutRoot, dashboardSettingsFile, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
-import { resolveCodeLanding, resolvePreviewCmd, resolveWorktreeLinks } from "../../../src/project/discover";
+import {
+  dashboardCheckoutRoot,
+  dashboardSettingsFile,
+  ensureDashboardCheckout,
+} from "../../../src/git/dashboard-checkout.ts";
+import {
+  resolveCodeLanding,
+  resolvePreviewCmd,
+  resolveWorktreeLinks,
+} from "../../../src/project/discover";
 
 const run = createGitRunner(30_000);
 const dirs: string[] = [];
@@ -21,12 +37,18 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
-const SETTINGS = "name: demo\npreviewCmd: make check\nworktreeLinks: node_modules\ncodeLanding: pr\n";
+const SETTINGS =
+  "name: demo\npreviewCmd: make check\nworktreeLinks: node_modules\ncodeLanding: pr\n";
 
 /** A bare origin with one commit, the person's checkout of it, and an
  *  empty checkout base. */
@@ -52,7 +74,13 @@ function world(files: Record<string, string> = { "README.md": "hi\n" }) {
   git(root, "clone", "-q", origin, personDir);
   const base = join(root, "checkouts");
   mkdirSync(join(base, "demo"), { recursive: true });
-  const ensure = () => ensureDashboardCheckout(run, { base, project: "demo", personDir, mayClone: true });
+  const ensure = () =>
+    ensureDashboardCheckout(run, {
+      base,
+      project: "demo",
+      personDir,
+      mayClone: true,
+    });
   const push = (path: string, text: string) => {
     mkdirSync(join(seed, path, ".."), { recursive: true });
     writeFileSync(join(seed, path), text);
@@ -60,7 +88,15 @@ function world(files: Record<string, string> = { "README.md": "hi\n" }) {
     git(seed, "commit", "-qm", `add ${path}`);
     git(seed, "push", "-q", "origin", "main");
   };
-  return { base, personDir, origin, code: dashboardCheckoutRoot(base, "demo"), settings: dashboardSettingsFile(base, "demo"), ensure, push };
+  return {
+    base,
+    personDir,
+    origin,
+    code: dashboardCheckoutRoot(base, "demo"),
+    settings: dashboardSettingsFile(base, "demo"),
+    ensure,
+    push,
+  };
 }
 
 describe("the dashboard's clone carries the settings file", () => {
@@ -71,7 +107,9 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(resolvePreviewCmd(w.code).value).toBe("make check");
     expect(resolveWorktreeLinks(w.code).links).toBe("node_modules");
     expect(resolveCodeLanding(w.code)).toBe("pr");
-    expect(git(w.code, "status", "--porcelain")).not.toContain(".aide/project.yaml");
+    expect(git(w.code, "status", "--porcelain")).not.toContain(
+      ".aide/project.yaml",
+    );
   });
 
   test("aide_manifest_get reads the same three values off the clone", async () => {
@@ -80,9 +118,19 @@ describe("the dashboard's clone carries the settings file", () => {
     await w.ensure();
     const get = (key: string) =>
       Bun.spawnSync({
-        cmd: ["bash", "-c", 'source "$1"; aide_manifest_get "$2" "$3"', "_", join(import.meta.dir, "../../../../core/scripts/_aide-spec-lib.sh"), key, w.code],
+        cmd: [
+          "bash",
+          "-c",
+          'source "$1"; aide_manifest_get "$2" "$3"',
+          "_",
+          join(import.meta.dir, "../../../../core/scripts/_aide-spec-lib.sh"),
+          key,
+          w.code,
+        ],
         stdout: "pipe",
-      }).stdout.toString().trim();
+      })
+        .stdout.toString()
+        .trim();
     expect(get("previewCmd")).toBe("make check");
     expect(get("worktreeLinks")).toBe("node_modules");
     expect(get("codeLanding")).toBe("pr");
@@ -93,7 +141,9 @@ describe("the dashboard's clone carries the settings file", () => {
     const w = world({ "README.md": "hi\n", ".aide/project.yaml": tracked });
     writeFileSync(w.settings, SETTINGS);
     await w.ensure();
-    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe(tracked);
+    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe(
+      tracked,
+    );
     expect(readFileSync(w.settings, "utf-8")).toBe(SETTINGS);
     expect(git(w.code, "status", "--porcelain")).not.toContain("project.yaml");
   });
@@ -104,8 +154,12 @@ describe("the dashboard's clone carries the settings file", () => {
     await w.ensure();
     w.push(".aide/project.yaml", "name: demo\npreviewCmd: team check\n");
     await w.ensure();
-    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe("name: demo\npreviewCmd: team check\n");
-    expect(git(w.code, "ls-files", ".aide/project.yaml").trim()).toBe(".aide/project.yaml");
+    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe(
+      "name: demo\npreviewCmd: team check\n",
+    );
+    expect(git(w.code, "ls-files", ".aide/project.yaml").trim()).toBe(
+      ".aide/project.yaml",
+    );
   });
 
   test("the fast-forward over a legacy copy nobody excluded succeeds", async () => {
@@ -114,7 +168,9 @@ describe("the dashboard's clone carries the settings file", () => {
     writeFileSync(join(w.code, ".aide/project.yaml"), "name: demo\n");
     w.push(".aide/project.yaml", "name: demo\npreviewCmd: team check\n");
     await w.ensure();
-    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe("name: demo\npreviewCmd: team check\n");
+    expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe(
+      "name: demo\npreviewCmd: team check\n",
+    );
   });
 
   test("worktree links are made in the clone on its first ensure", async () => {
@@ -128,10 +184,17 @@ describe("the dashboard's clone carries the settings file", () => {
   test("an untracked manifest in the person's checkout seeds the settings file and is left alone", async () => {
     const w = world();
     mkdirSync(join(w.personDir, ".aide"));
-    writeFileSync(join(w.personDir, ".aide/project.yaml"), "name: demo\npreviewCmd: from draft\n");
+    writeFileSync(
+      join(w.personDir, ".aide/project.yaml"),
+      "name: demo\npreviewCmd: from draft\n",
+    );
     await w.ensure();
-    expect(readFileSync(w.settings, "utf-8")).toBe("name: demo\npreviewCmd: from draft\n");
-    expect(readFileSync(join(w.personDir, ".aide/project.yaml"), "utf-8")).toBe("name: demo\npreviewCmd: from draft\n");
+    expect(readFileSync(w.settings, "utf-8")).toBe(
+      "name: demo\npreviewCmd: from draft\n",
+    );
+    expect(readFileSync(join(w.personDir, ".aide/project.yaml"), "utf-8")).toBe(
+      "name: demo\npreviewCmd: from draft\n",
+    );
     expect(resolvePreviewCmd(w.code).value).toBe("from draft");
   });
 
@@ -141,7 +204,12 @@ describe("the dashboard's clone carries the settings file", () => {
     await w.ensure();
     const link = join(w.base, "linked");
     symlinkSync(w.code, link);
-    await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: link, mayClone: true });
+    await ensureDashboardCheckout(run, {
+      base: w.base,
+      project: "demo",
+      personDir: link,
+      mayClone: true,
+    });
     expect(git(w.personDir, "status", "--porcelain").trim()).toBe("");
   });
 });

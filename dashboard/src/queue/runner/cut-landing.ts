@@ -9,14 +9,18 @@
 import type { WorkflowStep } from "../queue.ts";
 import type { RunnerOptions, StepOutcome } from "./types.ts";
 
-export function resumeCutLandings(o: Pick<RunnerOptions, "store" | "readResult" | "onStepDone">): void {
+export function resumeCutLandings(
+  o: Pick<RunnerOptions, "store" | "readResult" | "onStepDone">,
+): void {
   for (const job of o.store.list()) {
     if (!job.landingCut) continue;
     o.store.update(job.id, { landingCut: undefined });
     const step = job.results.at(-1)?.step as WorkflowStep | undefined;
     const raw = job.resultFile ? o.readResult(job.resultFile) : null;
     if (!step || !raw) {
-      console.error(`queue: ${job.project}/${job.specFolder}'s landing was cut short and has no result to land from`);
+      console.error(
+        `queue: ${job.project}/${job.specFolder}'s landing was cut short and has no result to land from`,
+      );
       continue;
     }
     const work = o.onStepDone?.(job, step, raw as Partial<StepOutcome>);

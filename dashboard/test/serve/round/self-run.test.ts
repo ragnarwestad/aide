@@ -10,11 +10,21 @@
 // that the route then reports the round as queued.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { resetRoundState, settledCreateFolder } from "../../../src/serve/routes/self-run.ts";
+import {
+  resetRoundState,
+  settledCreateFolder,
+} from "../../../src/serve/routes/self-run.ts";
 
 const auth = { headers: { accept: "application/json" } };
 const TEST_BOARD = "aide-wt-run";
@@ -34,10 +44,14 @@ afterEach(() => {
 });
 
 const git = (dir: string, ...args: string[]): string =>
-  execFileSync("git", ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@localhost", ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
+  execFileSync(
+    "git",
+    ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@localhost", ...args],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  ).trim();
 
 /** A repository with a bare origin, its first commit on `main` (tagged
  *  `baseline` when asked), and one more commit after it — the state a
@@ -70,13 +84,18 @@ function repoWithHistory(dir: string, origin: string, tag: boolean): void {
 describe("POST /api/self-run", () => {
   test("refuses a press from another site like every other queue route", async () => {
     const { base } = harness.start({ extra: { testBoardSpec: TEST_BOARD } });
-    const res = await fetch(`${base}/api/self-run`, { method: "POST", headers: { origin: "https://evil.example" } });
+    const res = await fetch(`${base}/api/self-run`, {
+      method: "POST",
+      headers: { origin: "https://evil.example" },
+    });
     expect(res.status).toBe(403);
   });
 
   test("with no board info, answers 404 to both the press and the status", async () => {
     const { base } = harness.start({ extra: {} });
-    expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(404);
+    expect(
+      (await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status,
+    ).toBe(404);
     expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(404);
   });
 
@@ -88,7 +107,10 @@ describe("POST /api/self-run", () => {
   // SECOND round: no Run button is drawn, and a press by hand is refused.
   test("on a board started from a spec's branch, the first press seeds the round and a second is refused", async () => {
     const { base, dir } = harness.start({
-      extra: { testBoardSpec: "424-headeren-sier-hvilket-board", roundFixturesDir: fixtures },
+      extra: {
+        testBoardSpec: "424-headeren-sier-hvilket-board",
+        roundFixturesDir: fixtures,
+      },
     });
     const code = join(dir, "root", "aide");
     const specs = join(dir, "specs-repo");
@@ -97,10 +119,17 @@ describe("POST /api/self-run", () => {
     repoWithHistory(code, join(dir, "code-origin.git"), true);
     repoWithHistory(specs, join(dir, "specs-origin.git"), false);
 
-    const first = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+    const first = await fetch(`${base}/api/self-run`, {
+      method: "POST",
+      ...auth,
+    });
     expect(first.status).toBe(200);
     let state: { stage: string } = { stage: "resetting" };
-    for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+    for (
+      let i = 0;
+      i < 100 && state.stage !== "done" && state.stage !== "failed";
+      i++
+    ) {
       await new Promise((r) => setTimeout(r, 100));
       const res = await fetch(`${base}/api/self-run`, auth);
       expect(res.status).toBe(200);
@@ -108,23 +137,41 @@ describe("POST /api/self-run", () => {
     }
     expect(state.stage).toBe("done");
 
-    expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(404);
+    expect(
+      (await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status,
+    ).toBe(404);
     // The status stays readable: the page's own header reads it.
     expect((await fetch(`${base}/api/self-run`, auth)).status).toBe(200);
   });
 
   test("a board that serves no project ends the round as failed, saying so", async () => {
     const { base } = harness.start({
-      extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, queueProjects: [] },
+      extra: {
+        testBoardSpec: TEST_BOARD,
+        roundFixturesDir: fixtures,
+        queueProjects: [],
+      },
     });
-    const pressed = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+    const pressed = await fetch(`${base}/api/self-run`, {
+      method: "POST",
+      ...auth,
+    });
     expect(pressed.status).toBe(200);
     let state: { stage: string; error?: string } = { stage: "resetting" };
-    for (let i = 0; i < 50 && state.stage !== "done" && state.stage !== "failed"; i++) {
+    for (
+      let i = 0;
+      i < 50 && state.stage !== "done" && state.stage !== "failed";
+      i++
+    ) {
       await new Promise((r) => setTimeout(r, 20));
-      state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+      state = (await (
+        await fetch(`${base}/api/self-run`, auth)
+      ).json()) as typeof state;
     }
-    expect(state).toMatchObject({ stage: "failed", error: "this board serves no project" });
+    expect(state).toMatchObject({
+      stage: "failed",
+      error: "this board serves no project",
+    });
   });
 
   test("before any press the status is idle", async () => {
@@ -150,20 +197,42 @@ describe("POST /api/self-run", () => {
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { ...auth.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["analyze"],
+      }),
     });
     expect(queued.status).toBe(200);
 
-    const pressed = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+    const pressed = await fetch(`${base}/api/self-run`, {
+      method: "POST",
+      ...auth,
+    });
     expect(pressed.status).toBe(200);
     expect(await pressed.json()).toEqual({ ok: true, stage: "resetting" });
 
-    let state: { stage: string; startedAt?: string; error?: string; specs: unknown[] } = { stage: "resetting", specs: [] };
-    for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+    let state: {
+      stage: string;
+      startedAt?: string;
+      error?: string;
+      specs: unknown[];
+    } = { stage: "resetting", specs: [] };
+    for (
+      let i = 0;
+      i < 100 && state.stage !== "done" && state.stage !== "failed";
+      i++
+    ) {
       await new Promise((r) => setTimeout(r, 100));
-      state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+      state = (await (
+        await fetch(`${base}/api/self-run`, auth)
+      ).json()) as typeof state;
     }
-    expect(state).toEqual({ stage: "done", startedAt: expect.any(String), specs: [] });
+    expect(state).toEqual({
+      stage: "done",
+      startedAt: expect.any(String),
+      specs: [],
+    });
 
     // Both working trees are what the first commit held, and main IS
     // that commit again — history and all, on origin too, since the
@@ -176,7 +245,9 @@ describe("POST /api/self-run", () => {
       expect(readFileSync(join(repo, "fact.txt"), "utf8")).toBe("first\n");
       expect(git(repo, "ls-files")).toBe(".gitignore\nfact.txt");
       expect(git(repo, "log", "--format=%s")).toBe("start");
-      expect(git(repo, "rev-parse", "main")).toBe(git(origin, "rev-parse", "main"));
+      expect(git(repo, "rev-parse", "main")).toBe(
+        git(origin, "rev-parse", "main"),
+      );
       expect(git(origin, "branch", "--list", "aide/*")).toBe("");
       expect(git(repo, "branch", "--list", "aide/*")).toBe("");
       // And no ref of any kind reaches the old history any more — the
@@ -188,41 +259,79 @@ describe("POST /api/self-run", () => {
     }
     // The dashboard's own clones, where the landings merge, sit at the
     // same start with the same clean set of refs.
-    for (const owned of [join(dir, "owned", "aide", "code"), join(dir, "owned", "aide", "specs")]) {
+    for (const owned of [
+      join(dir, "owned", "aide", "code"),
+      join(dir, "owned", "aide", "specs"),
+    ]) {
       if (!existsSync(join(owned, ".git"))) continue;
       expect(git(owned, "log", "--all", "--format=%s")).toBe("start");
       expect(git(owned, "for-each-ref", "refs/remotes/origin/aide/")).toBe("");
     }
     // The gitignored config a round writes stays where it was.
-    expect(readFileSync(join(code, ".aide", "config"), "utf8")).toContain("AIDE_SPECS_PATH=");
-    const jobs = (await (await fetch(`${base}/api/queue`, auth)).json()) as { jobs: unknown[] };
+    expect(readFileSync(join(code, ".aide", "config"), "utf8")).toContain(
+      "AIDE_SPECS_PATH=",
+    );
+    const jobs = (await (await fetch(`${base}/api/queue`, auth)).json()) as {
+      jobs: unknown[];
+    };
     expect(jobs.jobs).toEqual([]);
   });
 
   test("a press dismisses the failed-create messages the project's last round left, and no other project's", async () => {
-    const failedCreatesPath = join(fixtures, "..", `failed-creates-${Date.now()}.json`);
+    const failedCreatesPath = join(
+      fixtures,
+      "..",
+      `failed-creates-${Date.now()}.json`,
+    );
     const record = (id: string, project: string) => ({
-      id, project, title: `Title of ${id}`, description: "",
-      reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-10-30T07:00:00.000Z",
+      id,
+      project,
+      title: `Title of ${id}`,
+      description: "",
+      reason: { key: "runner.serverRestarted", values: { button: "Create" } },
+      failedAt: "2026-10-30T07:00:00.000Z",
     });
-    writeFileSync(failedCreatesPath, JSON.stringify([record("last-round", "aide"), record("elsewhere", "other")]));
+    writeFileSync(
+      failedCreatesPath,
+      JSON.stringify([
+        record("last-round", "aide"),
+        record("elsewhere", "other"),
+      ]),
+    );
     try {
       const { base, dir } = harness.start({
-        extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, failedCreatesPath },
+        extra: {
+          testBoardSpec: TEST_BOARD,
+          roundFixturesDir: fixtures,
+          failedCreatesPath,
+        },
       });
       const code = join(dir, "root", "aide");
       repoWithHistory(code, join(dir, "code-origin.git"), true);
 
       await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
       let state: { stage: string } = { stage: "resetting" };
-      for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+      for (
+        let i = 0;
+        i < 100 && state.stage !== "done" && state.stage !== "failed";
+        i++
+      ) {
         await new Promise((r) => setTimeout(r, 100));
-        state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+        state = (await (
+          await fetch(`${base}/api/self-run`, auth)
+        ).json()) as typeof state;
       }
       expect(state.stage).toBe("done");
-      const kept = JSON.parse(readFileSync(failedCreatesPath, "utf8")) as { id: string; dismissedAt?: string }[];
-      expect(kept.find((r) => r.id === "last-round")?.dismissedAt).toEqual(expect.any(String));
-      expect(kept.find((r) => r.id === "elsewhere")?.dismissedAt).toBeUndefined();
+      const kept = JSON.parse(readFileSync(failedCreatesPath, "utf8")) as {
+        id: string;
+        dismissedAt?: string;
+      }[];
+      expect(kept.find((r) => r.id === "last-round")?.dismissedAt).toEqual(
+        expect.any(String),
+      );
+      expect(
+        kept.find((r) => r.id === "elsewhere")?.dismissedAt,
+      ).toBeUndefined();
     } finally {
       rmSync(failedCreatesPath, { force: true });
     }
@@ -238,8 +347,12 @@ describe("POST /api/self-run", () => {
     writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specs}\n`);
     repoWithHistory(code, join(dir, "code-origin.git"), true);
     repoWithHistory(specs, join(dir, "specs-origin.git"), false);
-    expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(200);
-    expect((await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status).toBe(409);
+    expect(
+      (await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status,
+    ).toBe(200);
+    expect(
+      (await fetch(`${base}/api/self-run`, { method: "POST", ...auth })).status,
+    ).toBe(409);
   });
 });
 
@@ -248,11 +361,15 @@ describe("POST /api/self-run", () => {
 // step for a spec whose create is still landing.
 describe("a create's folder counts once its landing is over", () => {
   test("a provisional key is not a folder", () => {
-    expect(settledCreateFolder({ specFolder: "new-0a1b2c3d", landing: true })).toBeUndefined();
+    expect(
+      settledCreateFolder({ specFolder: "new-0a1b2c3d", landing: true }),
+    ).toBeUndefined();
     expect(settledCreateFolder({ specFolder: "new-0a1b2c3d" })).toBeUndefined();
   });
   test("the real folder, while the create still lands, is not one either", () => {
-    expect(settledCreateFolder({ specFolder: "07-a-fact", landing: true })).toBeUndefined();
+    expect(
+      settledCreateFolder({ specFolder: "07-a-fact", landing: true }),
+    ).toBeUndefined();
   });
   test("the real folder with the landing over is", () => {
     expect(settledCreateFolder({ specFolder: "07-a-fact" })).toBe("07-a-fact");

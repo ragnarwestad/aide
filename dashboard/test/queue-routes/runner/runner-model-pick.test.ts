@@ -27,20 +27,31 @@ describe("picking a model for a job", () => {
     const html = renderSpecsPage(
       [
         {
-          id: "a", project: "aide", specFolder: "81-queue-and-runner",
-          steps: ["implement"], stepIndex: 0, state: "done", spentUsd: 24.5,
-          timeoutSec: 1200, createdAt: "2026-08-16T00:00:00Z", model: "fable",
+          id: "a",
+          project: "aide",
+          specFolder: "81-queue-and-runner",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "done",
+          spentUsd: 24.5,
+          timeoutSec: 1200,
+          createdAt: "2026-08-16T00:00:00Z",
+          model: "fable",
         },
       ],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       {
-        runnerAvailable: true, targets: [], filter: OPEN,
+        runnerAvailable: true,
+        targets: [],
+        filter: OPEN,
         modelChoices: [{ name: "sonnet" }, { name: "fable" }],
         defaultModels: { default: "sonnet" },
       },
     );
-    expect(html).toMatch(/<select name="model\.implement"[^>]*>[^]*?<option value="fable"[^>]*selected/);
+    expect(html).toMatch(
+      /<select name="model\.implement"[^>]*>[^]*?<option value="fable"[^>]*selected/,
+    );
   });
 
   test("posting a chosen model runs every step on it", async () => {
@@ -58,7 +69,9 @@ describe("picking a model for a job", () => {
       }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    const body = (await res.json()) as {
+      job: { model: Record<string, string> };
+    };
     expect(body.job.model).toEqual({ implement: "fable" });
   });
 
@@ -77,7 +90,9 @@ describe("picking a model for a job", () => {
       }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    const body = (await res.json()) as {
+      job: { model: Record<string, string> };
+    };
     expect(body.job.model).toEqual({ implement: "opus" });
   });
 
@@ -96,14 +111,17 @@ describe("picking a model for a job", () => {
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
-      body: new URLSearchParams({
-        target: "aide/81-queue-and-runner",
-        steps: "analyze",
-        "model.analyze": "sonnet",
-      }).toString() + "&steps=implement&model.implement=fable",
+      body:
+        new URLSearchParams({
+          target: "aide/81-queue-and-runner",
+          steps: "analyze",
+          "model.analyze": "sonnet",
+        }).toString() + "&steps=implement&model.implement=fable",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    const body = (await res.json()) as {
+      job: { model: Record<string, string> };
+    };
     expect(body.job.model).toEqual({ analyze: "sonnet", implement: "fable" });
   });
 
@@ -124,7 +142,9 @@ describe("picking a model for a job", () => {
         "&model.analyze=fable&model.implement=",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    const body = (await res.json()) as {
+      job: { model: Record<string, string> };
+    };
     expect(body.job.model).toEqual({ analyze: "fable", implement: "opus" });
   });
 
@@ -139,7 +159,9 @@ describe("picking a model for a job", () => {
       body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    const body = (await res.json()) as {
+      job: { model: Record<string, string> };
+    };
     expect(body.job.model).toEqual({ implement: "opus" });
   });
 

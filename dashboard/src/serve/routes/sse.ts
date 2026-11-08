@@ -4,9 +4,14 @@
 import { parsePhaseKeys, scheduleStreamKey } from "../../render";
 import type { RoutesContext } from "./";
 
-export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string): Response | null {
+export function handleQueueEvents(
+  ctx: RoutesContext,
+  req: Request,
+  path: string,
+): Response | null {
   if (path === "/api/queue/events") {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     let mine: ReadableStreamDefaultController<Uint8Array> | null = null;
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -19,7 +24,8 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         // row, whose key is no phase key: its running step's is.
         const url = new URL(req.url);
         const keys = parsePhaseKeys(url.searchParams.get("phases"));
-        for (const key of parsePhaseKeys(url.searchParams.get("open"))) keys.add(key);
+        for (const key of parsePhaseKeys(url.searchParams.get("open")))
+          keys.add(key);
         for (const key of (url.searchParams.get("open") ?? "").split(",")) {
           const followed = scheduleStreamKey(key);
           if (followed) keys.add(followed);

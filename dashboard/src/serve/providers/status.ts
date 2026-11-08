@@ -6,9 +6,18 @@
 // here as not logged in.
 
 import { homedir } from "node:os";
-import { expandDir, providerLoginEnv, type Provider } from "../../queue/providers/index.ts";
+import {
+  expandDir,
+  providerLoginEnv,
+  type Provider,
+} from "../../queue/providers/index.ts";
 import { runScript, scriptFor } from "../land-branch/run-script.ts";
-import { askLogin, CHECK_TIMEOUT_MS, stripAnsi, type CheckOptions } from "../tool-check.ts";
+import {
+  askLogin,
+  CHECK_TIMEOUT_MS,
+  stripAnsi,
+  type CheckOptions,
+} from "../tool-check.ts";
 import { readUsage, type UsageOptions } from "../tool-usage";
 import type { ProviderStatus, ToolUsage } from "../../render";
 
@@ -36,17 +45,38 @@ export async function readProviderStatus(
 
   let printed: string | undefined;
   try {
-    const result = await run([bin, "--version"], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
+    const result = await run(
+      [bin, "--version"],
+      process.cwd(),
+      CHECK_TIMEOUT_MS,
+      undefined,
+      env,
+    );
     // A shim left behind by a version manager runs and exits 127 for a tool
     // it no longer has.
     if (result.code === 127) return { key, at, installed: false };
-    printed = stripAnsi(result.stdout).split("\n").map((l) => l.trim()).find((l) => l !== "");
+    printed = stripAnsi(result.stdout)
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l !== "");
   } catch {
     return { key, at, installed: false };
   }
-  if (opts.login === false) return { key, at, installed: true, ...(printed ? { version: printed } : {}) };
+  if (opts.login === false)
+    return {
+      key,
+      at,
+      installed: true,
+      ...(printed ? { version: printed } : {}),
+    };
   const login = await askLogin(provider.tool, run, bin, provider, home);
-  return { key, at, installed: true, ...(printed ? { version: printed } : {}), login };
+  return {
+    key,
+    at,
+    installed: true,
+    ...(printed ? { version: printed } : {}),
+    login,
+  };
 }
 
 /** Reads `provider`'s usage with its own folders in the environment, so two
@@ -58,6 +88,12 @@ export function readProviderUsage(
 ): Promise<ToolUsage> {
   const { home, ...rest } = opts;
   const at = home ?? homedir();
-  const own = provider.binary ? { scriptPath: () => expandDir(provider.binary!, at) } : {};
-  return readUsage(provider.tool, { ...rest, ...own, env: providerLoginEnv(provider, at) });
+  const own = provider.binary
+    ? { scriptPath: () => expandDir(provider.binary!, at) }
+    : {};
+  return readUsage(provider.tool, {
+    ...rest,
+    ...own,
+    env: providerLoginEnv(provider, at),
+  });
 }

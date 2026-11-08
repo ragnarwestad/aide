@@ -1,7 +1,11 @@
 // Waiting out a lost race for a git lock, and retrying a push.
 
 import type { GitRunner } from "../branch-status.ts";
-import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.ts";
+import {
+  gitError,
+  gitErrorDetail,
+  type GitError,
+} from "../../format/git-error.ts";
 
 /** git's own words when another process is holding the index. A run
  *  starting in the same second pulls the same checkout as a courtesy,
@@ -14,14 +18,16 @@ import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.
  *  prune), and a landing in the same second met `packed-refs.lock` and
  *  `cannot lock ref` — refused as "cannot fast-forward", with git's own
  *  words thrown away (2026-09-03, twice in a row). */
-export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
+export const GIT_LOCKED =
+  /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
 /** Five retries, two seconds at most: a run's ref writes take well under
  *  that, and a lock that is genuinely stuck still refuses in seconds
  *  rather than holding the request open. */
 export const LOCK_RETRIES = 5;
 export const LOCK_WAIT_MS = 400;
 
-export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, ms));
 export type Wait = (ms: number) => Promise<void>;
 
 /** The same bound `aide-run-spec`'s
@@ -62,9 +68,15 @@ interface PushRetryResult {
  *  `pull --rebase` can settle on its own — unless the rebase
  *  itself conflicts, which is a person's call and never this
  *  function's. */
-export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
+export async function pushWithRetry(
+  run: GitRunner,
+  root: string,
+  base: string,
+  wait: Wait,
+): Promise<PushRetryResult> {
   const refspec = `HEAD:refs/heads/${base}`;
-  const push = () => run(root, ["push", "-q", "origin", refspec], PUSH_TIMEOUT_MS);
+  const push = () =>
+    run(root, ["push", "-q", "origin", refspec], PUSH_TIMEOUT_MS);
   let pushed = await push();
   if (pushed.code === 0) return { ok: true };
   // An SSH key GitHub does not take fails this question too, so git's own
@@ -83,7 +95,8 @@ export async function pushWithRetry(run: GitRunner, root: string, base: string, 
   // a rule, a hook, an error at GitHub): nothing moved, so merging again
   // would only be refused again. git's own words say why.
   const said = pushed.stderr ?? "";
-  if (!BASE_MOVED.test(said)) return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
+  if (!BASE_MOVED.test(said))
+    return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
   // Reachable, still rejected: base moved on origin under this landing.
   // Not settled here with `pull --rebase` any more — a rebase of a
   // landing's merge commits failed before it started once (364,

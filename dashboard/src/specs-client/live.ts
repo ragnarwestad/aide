@@ -73,7 +73,8 @@ function announceWaiting(e: Event): void {
   } catch {
     return;
   }
-  if (typeof waiting !== "number" || !Number.isInteger(waiting) || waiting < 0) return;
+  if (typeof waiting !== "number" || !Number.isInteger(waiting) || waiting < 0)
+    return;
   document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
 }
 

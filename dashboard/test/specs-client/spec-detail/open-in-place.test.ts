@@ -9,7 +9,8 @@ import type * as Open from "../../../src/specs-client/spec-detail/open.ts";
 let counter = 0;
 let loads = 0;
 /** The module afresh for each test: it remembers the press in flight and the address last drawn. */
-const openModule = (): Promise<typeof Open> => import(`../../../src/specs-client/spec-detail/open.ts?load=${++loads}`);
+const openModule = (): Promise<typeof Open> =>
+  import(`../../../src/specs-client/spec-detail/open.ts?load=${++loads}`);
 
 let win: Window;
 let mod: typeof Open;
@@ -22,9 +23,17 @@ const pushed: string[] = [];
 const assigned: string[] = [];
 const reloads: number[] = [];
 const saved: Record<string, unknown> = {};
-interface Held { resolve: (r: unknown) => void; reject: (e: unknown) => void; aborted: boolean }
+interface Held {
+  resolve: (r: unknown) => void;
+  reject: (e: unknown) => void;
+  aborted: boolean;
+}
 let held: Held[] = [];
-const answer = (body: string, status = 200) => ({ ok: status >= 200 && status < 300, status, text: async () => body });
+const answer = (body: string, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  text: async () => body,
+});
 
 const link = (key: string, open: boolean) =>
   `<a class="fold${open ? "" : " shut"}" data-goto href="${open ? "/specs?q=x" : `/specs/${key}?q=x`}#spec-${key}" aria-expanded="${open}"></a>`;
@@ -34,52 +43,90 @@ const gap = `<tr class="specgap"><td></td></tr>`;
 const detailRow = (key: string, inner: string) =>
   `<tr class="specdetail" data-spec-detail="${key}"><td colspan="6">${inner}</td></tr>`;
 const shutGroup = (key: string) => head(key, false) + gap;
-const openGroup = (key: string, inner: string) => head(key, true) + detailRow(key, inner) + gap;
+const openGroup = (key: string, inner: string) =>
+  head(key, true) + detailRow(key, inner) + gap;
 const table = (rows: string) => `<table><tbody>${rows}</tbody></table>`;
 
 /** What the server answers for the whole list at an address: the spec the address names open, as its stand-in. */
 const wholeList = (open?: string) =>
-  table([A, B, C].map((k) => (k === open ? openGroup(k, "") : shutGroup(k))).join(""));
+  table(
+    [A, B, C]
+      .map((k) => (k === open ? openGroup(k, "") : shutGroup(k)))
+      .join(""),
+  );
 
 /** happy-dom drops the `<tr>`s of markup inserted without a table around it, which a browser keeps. */
 function parseRowsInContext(window: Window): void {
-  const proto = (window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
-  proto.insertAdjacentHTML = function (this: Element, where: string, html: string): void {
+  const proto = (
+    window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }
+  ).HTMLElement.prototype;
+  proto.insertAdjacentHTML = function (
+    this: Element,
+    where: string,
+    html: string,
+  ): void {
     const template = this.ownerDocument.createElement("template");
     template.innerHTML = html;
     const rows = template.content;
     if (where === "beforebegin") this.parentNode!.insertBefore(rows, this);
     else if (where === "beforeend") this.appendChild(rows);
-    else if (where === "afterend") this.parentNode!.insertBefore(rows, this.nextSibling);
+    else if (where === "afterend")
+      this.parentNode!.insertBefore(rows, this.nextSibling);
   };
 }
 
 const place = (url: string): void => {
   const u = new URL(url, "http://dash.test");
-  Object.assign(globalThis.location, { pathname: u.pathname, search: u.search, hash: u.hash, href: u.href });
+  Object.assign(globalThis.location, {
+    pathname: u.pathname,
+    search: u.search,
+    hash: u.hash,
+    href: u.href,
+  });
 };
 
 beforeEach(async () => {
   counter++;
-  [A, B, C] = ["a", "b", "c"].map((s) => `aide/${counter}${s}-spec`) as [string, string, string];
-  win = new Window({ settings: { disableJavaScriptFileLoading: true, disableJavaScriptEvaluation: true } });
+  [A, B, C] = ["a", "b", "c"].map((s) => `aide/${counter}${s}-spec`) as [
+    string,
+    string,
+    string,
+  ];
+  win = new Window({
+    settings: {
+      disableJavaScriptFileLoading: true,
+      disableJavaScriptEvaluation: true,
+    },
+  });
   parseRowsInContext(win);
   mod = await openModule();
-  const { specLoadingRowTemplate } = await import("../../../src/render/pages/specs-list/notice-row.ts");
+  const { specLoadingRowTemplate } =
+    await import("../../../src/render/pages/specs-list/notice-row.ts");
   asked.length = pushed.length = assigned.length = reloads.length = 0;
   held = [];
-  for (const name of ["document", "location", "fetch", "history", "Event"]) saved[name] = (globalThis as Record<string, unknown>)[name];
+  for (const name of ["document", "location", "fetch", "history", "Event"])
+    saved[name] = (globalThis as Record<string, unknown>)[name];
   Object.assign(globalThis, {
     document: win.document,
     Event: win.Event,
     location: {
-      pathname: "/specs", search: "?q=x", hash: "", href: "http://dash.test/specs?q=x",
-      assign: (to: string) => { assigned.push(to); },
-      reload: () => { reloads.push(1); },
+      pathname: "/specs",
+      search: "?q=x",
+      hash: "",
+      href: "http://dash.test/specs?q=x",
+      assign: (to: string) => {
+        assigned.push(to);
+      },
+      reload: () => {
+        reloads.push(1);
+      },
     },
     history: {
       replaceState: () => {},
-      pushState: (_s: unknown, _t: string, url: string) => { pushed.push(url); place(url); },
+      pushState: (_s: unknown, _t: string, url: string) => {
+        pushed.push(url);
+        place(url);
+      },
     },
     fetch: (url: string, init?: { signal?: AbortSignal }) => {
       asked.push(url);
@@ -87,20 +134,31 @@ beforeEach(async () => {
       if (params.get("detail")) {
         return new Promise((resolve, reject) => {
           const gate: Held = { resolve, reject, aborted: false };
-          init?.signal?.addEventListener("abort", () => { gate.aborted = true; reject(new Error("aborted")); });
+          init?.signal?.addEventListener("abort", () => {
+            gate.aborted = true;
+            reject(new Error("aborted"));
+          });
           held.push(gate);
         });
       }
       const only = params.get("only");
       const open = [A, B, C].find((k) => location.pathname === `/specs/${k}`);
-      return Promise.resolve(answer(only ? table(only === open ? openGroup(only, "") : shutGroup(only)) : wholeList(open)));
+      return Promise.resolve(
+        answer(
+          only
+            ? table(only === open ? openGroup(only, "") : shutGroup(only))
+            : wholeList(open),
+        ),
+      );
     },
   });
   win.document.body.innerHTML =
     `<div id="jobrows"><div class="tablewrap"><table class="list speclist"><tbody>` +
     `${shutGroup(A)}${shutGroup(B)}${shutGroup(C)}</tbody></table></div></div>` +
     specLoadingRowTemplate(6, "en");
-  win.document.getElementById("jobrows")!.addEventListener("click", (e) => { taken = mod.openSpecInPlace(e as unknown as MouseEvent); });
+  win.document.getElementById("jobrows")!.addEventListener("click", (e) => {
+    taken = mod.openSpecInPlace(e as unknown as MouseEvent);
+  });
 });
 
 afterEach(async () => {
@@ -110,21 +168,36 @@ afterEach(async () => {
 
 let taken: boolean | null = null;
 
-const headRow = (key: string) => win.document.getElementById(`spec-${key}`) as unknown as Element;
-const chevron = (key: string) => headRow(key).querySelector("a.fold") as unknown as HTMLAnchorElement;
-const details = () => Array.from(win.document.querySelectorAll("tr[data-spec-detail]")) as unknown as Element[];
+const headRow = (key: string) =>
+  win.document.getElementById(`spec-${key}`) as unknown as Element;
+const chevron = (key: string) =>
+  headRow(key).querySelector("a.fold") as unknown as HTMLAnchorElement;
+const details = () =>
+  Array.from(
+    win.document.querySelectorAll("tr[data-spec-detail]"),
+  ) as unknown as Element[];
 const inert = () => win.document.body.hasAttribute("inert");
-const settle = async (): Promise<void> => { for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); };
+const settle = async (): Promise<void> => {
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+};
 
 function press(key: string, init: Record<string, unknown> = {}): MouseEvent {
   taken = null;
-  const event = new win.MouseEvent("click", { bubbles: true, cancelable: true, button: 0, ...init });
+  const event = new win.MouseEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    ...init,
+  });
   chevron(key).dispatchEvent(event as unknown as Event);
   return event as unknown as MouseEvent;
 }
 
 /** A spec open in its row, with the answer already in. */
-async function openAndSettle(key: string, inner = "<p>the spec</p>"): Promise<void> {
+async function openAndSettle(
+  key: string,
+  inner = "<p>the spec</p>",
+): Promise<void> {
   press(key);
   held[held.length - 1]!.resolve(answer(table(openGroup(key, inner))));
   await settle();
@@ -133,25 +206,44 @@ async function openAndSettle(key: string, inner = "<p>the spec</p>"): Promise<vo
 }
 
 const unsavedIn = (key: string): void => {
-  detailRowOf(key).querySelector("td")!.insertAdjacentHTML("beforeend", `<form class="specform"><button id="specform-save" type="submit">Save</button></form>`);
+  detailRowOf(key)
+    .querySelector("td")!
+    .insertAdjacentHTML(
+      "beforeend",
+      `<form class="specform"><button id="specform-save" type="submit">Save</button></form>`,
+    );
 };
-const detailRowOf = (key: string) => details().find((d) => d.getAttribute("data-spec-detail") === key)!;
+const detailRowOf = (key: string) =>
+  details().find((d) => d.getAttribute("data-spec-detail") === key)!;
 
 describe("a press on a shut › opens the row in place", () => {
   test("the press is taken, nothing else on the page is replaced, and the address pushed is the chevron's href", () => {
-    const others = [headRow(A), headRow(C), win.document.querySelector(".tablewrap")];
+    const others = [
+      headRow(A),
+      headRow(C),
+      win.document.querySelector(".tablewrap"),
+    ];
     const href = chevron(B).getAttribute("href")!;
     const event = press(B);
     expect(taken).toBe(true);
     expect(event.defaultPrevented).toBe(true);
     expect(pushed).toEqual([href]);
-    const now = [headRow(A), headRow(C), win.document.querySelector(".tablewrap")];
+    const now = [
+      headRow(A),
+      headRow(C),
+      win.document.querySelector(".tablewrap"),
+    ];
     expect(now.map((el, i) => el === others[i])).toEqual([true, true, true]);
     expect(chevron(B).getAttribute("aria-expanded")).toBe("true");
   });
 
   test("a click the browser should handle itself is left to it", () => {
-    for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
+    for (const init of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { button: 1 },
+    ]) {
       const event = press(B, init);
       expect([taken, event.defaultPrevented]).toEqual([false, false]);
     }
@@ -171,12 +263,21 @@ describe("a press on a shut › opens the row in place", () => {
     expect(oldDetail.isConnected).toBe(false);
     expect(chevron(A).getAttribute("aria-expanded")).toBe("false");
     expect(chevron(B).getAttribute("aria-expanded")).toBe("true");
-    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([B]);
+    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([
+      B,
+    ]);
     await settle();
-    expect(asked.some((u) => u.includes("rows=1") && u.includes(`only=${encodeURIComponent(A)}`))).toBe(true);
+    expect(
+      asked.some(
+        (u) =>
+          u.includes("rows=1") && u.includes(`only=${encodeURIComponent(A)}`),
+      ),
+    ).toBe(true);
     held[0]!.resolve(answer(table(openGroup(B, "<p>b</p>"))));
     await settle();
-    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([B]);
+    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([
+      B,
+    ]);
     expect(chevron(A).getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -220,26 +321,48 @@ describe("while the spec is on its way", () => {
 describe("when the spec arrives", () => {
   test("its rows are the answer's, the Loading line is gone, the page can be pressed, the event is sent and the script added", async () => {
     let drawn = 0;
-    win.document.addEventListener(mod.SPEC_DETAIL_DRAWN, () => { drawn++; });
+    win.document.addEventListener(mod.SPEC_DETAIL_DRAWN, () => {
+      drawn++;
+    });
     press(B);
-    held[0]!.resolve(answer(table(openGroup(B, "<p>the spec</p>")) + `<script src="/spec-editor.js"></script>`));
+    held[0]!.resolve(
+      answer(
+        table(openGroup(B, "<p>the spec</p>")) +
+          `<script src="/spec-editor.js"></script>`,
+      ),
+    );
     await settle();
-    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([B]);
+    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([
+      B,
+    ]);
     expect(detailRowOf(B).textContent).toContain("the spec");
     expect(win.document.body.textContent).not.toContain("Loading …");
     expect(chevron(B).getAttribute("aria-expanded")).toBe("true");
     expect(chevron(B).getAttribute("href")).toBe("/specs?q=x#spec-" + B);
     expect(inert()).toBe(false);
     expect(drawn).toBe(1);
-    expect(Array.from(win.document.querySelectorAll("script[src]")).map((s) => s.getAttribute("src"))).toEqual(["/spec-editor.js"]);
+    expect(
+      Array.from(win.document.querySelectorAll("script[src]")).map((s) =>
+        s.getAttribute("src"),
+      ),
+    ).toEqual(["/spec-editor.js"]);
   });
 
   test("the rest of the list is asked for again for the new address once it has settled", async () => {
     press(B);
     held[0]!.resolve(answer(table(openGroup(B, "<p>the spec</p>"))));
     await settle();
-    expect(asked.some((u) => u.includes("rows=1") && !u.includes("only=") && u.includes(`/specs/${B}?`))).toBe(true);
-    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([B]);
+    expect(
+      asked.some(
+        (u) =>
+          u.includes("rows=1") &&
+          !u.includes("only=") &&
+          u.includes(`/specs/${B}?`),
+      ),
+    ).toBe(true);
+    expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([
+      B,
+    ]);
   });
 });
 
@@ -247,7 +370,10 @@ describe("when the spec cannot be loaded", () => {
   const failures: [string, () => void][] = [
     ["a non-2xx answer", () => held[0]!.resolve(answer("nope", 500))],
     ["a rejected request", () => held[0]!.reject(new Error("offline"))],
-    ["an answer with no detail row", () => held[0]!.resolve(answer(table(shutGroup(B))))],
+    [
+      "an answer with no detail row",
+      () => held[0]!.resolve(answer(table(shutGroup(B)))),
+    ],
   ];
   for (const [name, fail] of failures) {
     test(`${name}: the row says so and not Loading, the page can be pressed, and the spec's rows are asked for again`, async () => {
@@ -259,7 +385,12 @@ describe("when the spec cannot be loaded", () => {
       expect(cell).not.toContain("Loading");
       expect(details()).toHaveLength(1);
       expect(inert()).toBe(false);
-      expect(asked.some((u) => u.includes("rows=1") && u.includes(`only=${encodeURIComponent(B)}`))).toBe(true);
+      expect(
+        asked.some(
+          (u) =>
+            u.includes("rows=1") && u.includes(`only=${encodeURIComponent(B)}`),
+        ),
+      ).toBe(true);
     });
   }
 });
@@ -268,7 +399,12 @@ describe("Back", () => {
   /** The page as Back finds it: the handler bound at load, on the list's address. */
   function bound(): () => void {
     const handlers: (() => void)[] = [];
-    mod.bindBack({ location: { pathname: "/specs" }, addEventListener: (_n: string, h: () => void) => { handlers.push(h); } });
+    mod.bindBack({
+      location: { pathname: "/specs" },
+      addEventListener: (_n: string, h: () => void) => {
+        handlers.push(h);
+      },
+    });
     return () => handlers.forEach((h) => h());
   }
 

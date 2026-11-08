@@ -8,9 +8,20 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { CriteriaChecks } from "../../../project/discover";
-import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
+import type {
+  CardLock,
+  CardPlace,
+  CardSetting,
+  CardValues,
+  CardView,
+} from "../../../project/spec-card.ts";
 import { PHASE_LINES, type SpecGroup } from "../specs-list";
-import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
+import {
+  aiPicker,
+  modelPicker,
+  phaseCaptionCells,
+  type PickerOptions,
+} from "../specs-list/model-picker.ts";
 import type { NewSpecPageOptions } from ".";
 
 /** What New spec's form opens with: the four settings as they stand
@@ -27,7 +38,11 @@ export const NEW_SPEC_VALUES: CardValues = {
  *  beside it, one to a line, going under it where the screen has no room
  *  for both. One `.frow`, a full-width row of the form's own wrapping
  *  flex. `card` is what `cardStep` says the card shows. */
-export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardView): string {
+export function optionsTab(
+  opts: NewSpecPageOptions,
+  formId: string,
+  card: CardView,
+): string {
   return (
     `<span class="frow options-row">` +
     newSpecPhaseTable(opts, formId) +
@@ -70,9 +85,16 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
     // every time, the same answer `create`'s own picker already gave.
   };
   const row: SpecGroup = {
-    project: "", specFolder: "new", named: false, state: "not-started",
-    spentUsd: 0, costUnmeasured: false, phases: [], done: [],
-    dependsOn: [], analyzeStale: false,
+    project: "",
+    specFolder: "new",
+    named: false,
+    state: "not-started",
+    spentUsd: 0,
+    costUnmeasured: false,
+    phases: [],
+    done: [],
+    dependsOn: [],
+    analyzeStale: false,
   };
   const captionRow = (opts.modelChoices ?? []).length
     ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", lang)}</tr>`
@@ -131,7 +153,12 @@ export interface OptionsGroupValues {
 
 /** The four settings' labels, in the reader's language: the same words on
  *  New spec's Options tab and on the Specs list's open row. */
-export function optionLabels(lang: Language): Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string> {
+export function optionLabels(
+  lang: Language,
+): Record<
+  "acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach",
+  string
+> {
   return {
     acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
     aiFormulate: t(lang, "spec.formulateCriteria"),
@@ -141,8 +168,14 @@ export function optionLabels(lang: Language): Record<"acceptance" | "aiFormulate
 }
 
 /** The three levels of the checks select, in the reader's language. */
-export function checkLevelWords(lang: Language): Record<CriteriaChecks, string> {
-  return { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") };
+export function checkLevelWords(
+  lang: Language,
+): Record<CriteriaChecks, string> {
+  return {
+    off: t(lang, "spec.checksOff"),
+    warn: t(lang, "spec.checksWarn"),
+    stop: t(lang, "spec.checksStop"),
+  };
 }
 
 /** The four settings about the spec as a whole, one to a line, as one
@@ -152,7 +185,9 @@ export function optionsGroup(v: OptionsGroupValues): string {
     `<span class="options-group">` +
     acceptanceField(v) +
     aiFormulateAcceptanceField(v) +
-    (v.checksLast ? chooseApproachField(v) + criteriaChecksField(v) : criteriaChecksField(v) + chooseApproachField(v)) +
+    (v.checksLast
+      ? chooseApproachField(v) + criteriaChecksField(v)
+      : criteriaChecksField(v) + chooseApproachField(v)) +
     `</span>`
   );
 }
@@ -182,7 +217,9 @@ function acceptanceField(v: OptionsGroupValues): string {
     `<span class="field"><span class="fieldhead">` +
     // What tells the route a cleared box from a locked one: a locked box
     // posts nothing, the same as a cleared one.
-    (v.place === "running-row" && open ? `<input type="hidden" name="settingsEditable" value="1">` : "") +
+    (v.place === "running-row" && open
+      ? `<input type="hidden" name="settingsEditable" value="1">`
+      : "") +
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
@@ -194,7 +231,10 @@ function acceptanceField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.acceptance"))) +
+    helpPopover(
+      t(lang, "newSpec.optionHelpTitle"),
+      esc(t(lang, "newSpec.help.acceptance")),
+    ) +
     `</span></span></span>`
   );
 }
@@ -219,7 +259,10 @@ function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.formulate"))) +
+    helpPopover(
+      t(lang, "newSpec.optionHelpTitle"),
+      esc(t(lang, "newSpec.help.formulate")),
+    ) +
     `</span></span></span>`
   );
 }
@@ -243,14 +286,20 @@ function chooseApproachField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.approach"))) +
+    helpPopover(
+      t(lang, "newSpec.optionHelpTitle"),
+      esc(t(lang, "newSpec.help.approach")),
+    ) +
     `</span></span></span>`
   );
 }
 
 /** The three levels of the acceptance criteria checks, in the order the
  *  select lists them; the values are what the create posts. */
-export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string }[] => [
+export const criteriaChecksChoices = (): {
+  value: CriteriaChecks;
+  label: string;
+}[] => [
   { value: "off", label: "Off" },
   { value: "warn", label: "Warn" },
   { value: "stop", label: "Stop" },
@@ -266,17 +315,27 @@ function criteriaChecksField(v: OptionsGroupValues): string {
   const lang = v.lang ?? "en";
   // A row's own form names its select, so two open rows never share an id.
   const row = v.place === "running-row" && v.form;
-  const id = row ? `${v.form}-criteria-checks` : v.place === "running-row" ? "spec-criteria-checks" : "new-spec-criteria-checks";
+  const id = row
+    ? `${v.form}-criteria-checks`
+    : v.place === "running-row"
+      ? "spec-criteria-checks"
+      : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
     `<label for="${esc(id)}">${esc(optionLabels(lang).criteriaChecks)}</label>` +
     `<select ${v.locks.criteriaChecks === null ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
     criteriaChecksChoices()
-      .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(checkLevelWords(lang)[o.value])}</option>`)
+      .map(
+        (o) =>
+          `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(checkLevelWords(lang)[o.value])}</option>`,
+      )
       .join("") +
     `</select></span>` +
     `<span class="fieldend">` +
-    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.checks"))) +
+    helpPopover(
+      t(lang, "newSpec.optionHelpTitle"),
+      esc(t(lang, "newSpec.help.checks")),
+    ) +
     `</span></span></span>`
   );
 }

@@ -27,10 +27,7 @@
         "e2e/specs/tags.spec.ts:19 › events are tagged, and the site groups and filters them",
         "e2e/specs/teams.spec.ts:242 › a team's events are searched by title and tags, and ordered (AC-1, AC-2, AC-4)"
       ],
-      "files": [
-        "e2e/specs/tags.spec.ts",
-        "e2e/specs/teams.spec.ts"
-      ],
+      "files": ["e2e/specs/tags.spec.ts", "e2e/specs/teams.spec.ts"],
       "errors": [
         "Test timeout of 30000ms exceeded.",
         "Error: expect(received).toEqual(expected)"
@@ -45,15 +42,9 @@
         "    e2e/x.spec.ts:5:3 › signing up › a new member gets a mail (retry #1)",
         "  9 passed (12.4s)"
       ],
-      "tests": [
-        "e2e/x.spec.ts:5 › signing up › a new member gets a mail"
-      ],
-      "files": [
-        "e2e/x.spec.ts"
-      ],
-      "errors": [
-        ""
-      ],
+      "tests": ["e2e/x.spec.ts:5 › signing up › a new member gets a mail"],
+      "files": ["e2e/x.spec.ts"],
+      "errors": [""],
       "failed": 1,
       "total": 10
     },
@@ -74,14 +65,8 @@
         "test/x.test.ts › suite > first",
         "test/x.test.ts › suite > second"
       ],
-      "files": [
-        "test/x.test.ts",
-        "test/x.test.ts"
-      ],
-      "errors": [
-        "",
-        "TypeError: Cannot read properties of undefined"
-      ],
+      "files": ["test/x.test.ts", "test/x.test.ts"],
+      "errors": ["", "TypeError: Cannot read properties of undefined"],
       "failed": 2,
       "total": 40
     },
@@ -107,14 +92,8 @@
         "test/a.test.ts › a > breaks",
         "test/b.test.ts › b > also breaks"
       ],
-      "files": [
-        "test/a.test.ts",
-        "test/b.test.ts"
-      ],
-      "errors": [
-        "error: actual failure",
-        "error: element was not found"
-      ],
+      "files": ["test/a.test.ts", "test/b.test.ts"],
+      "errors": ["error: actual failure", "error: element was not found"],
       "failed": 2,
       "total": 42
     },
@@ -127,15 +106,9 @@
         " 0 pass",
         " 1 fail"
       ],
-      "tests": [
-        "test/tab.test.ts › tab > preserves diagnostics"
-      ],
-      "files": [
-        "test/tab.test.ts"
-      ],
-      "errors": [
-        "error: expected\t3, received\t0"
-      ],
+      "tests": ["test/tab.test.ts › tab > preserves diagnostics"],
+      "files": ["test/tab.test.ts"],
+      "errors": ["error: expected\t3, received\t0"],
       "failed": 1,
       "total": 1
     },
@@ -157,15 +130,9 @@
         " 1 fail",
         "Ran 3 tests across 2 files. [218.00ms]"
       ],
-      "tests": [
-        "test/a.test.ts › a > breaks"
-      ],
-      "files": [
-        "test/a.test.ts"
-      ],
-      "errors": [
-        "error: actual failure"
-      ],
+      "tests": ["test/a.test.ts › a > breaks"],
+      "files": ["test/a.test.ts"],
+      "errors": ["error: actual failure"],
       "failed": 1,
       "total": 3
     },
@@ -183,15 +150,9 @@
         " 30 pass",
         " 0 fail"
       ],
-      "tests": [
-        "test/a.test.ts › a > breaks"
-      ],
-      "files": [
-        "test/a.test.ts"
-      ],
-      "errors": [
-        ""
-      ],
+      "tests": ["test/a.test.ts › a > breaks"],
+      "files": ["test/a.test.ts"],
+      "errors": [""],
       "failed": 1
     },
     {
@@ -203,18 +164,9 @@
         "ERROR tests/test_y.py::test_b[param] - fixture 'db' not found",
         "==== 1 failed, 40 passed, 1 error in 3.21s ===="
       ],
-      "tests": [
-        "tests/test_x.py::test_a",
-        "tests/test_y.py::test_b[param]"
-      ],
-      "files": [
-        "tests/test_x.py",
-        "tests/test_y.py"
-      ],
-      "errors": [
-        "assert 1 == 2",
-        "fixture 'db' not found"
-      ],
+      "tests": ["tests/test_x.py::test_a", "tests/test_y.py::test_b[param]"],
+      "files": ["tests/test_x.py", "tests/test_y.py"],
+      "errors": ["assert 1 == 2", "fixture 'db' not found"],
       "failed": 2,
       "total": 42
     },
@@ -228,15 +180,9 @@
         " Tasks:    7 successful, 8 total",
         "Failed:    @x/email#test"
       ],
-      "tests": [
-        "test/a.test.ts › mail > is sent"
-      ],
-      "files": [
-        "test/a.test.ts"
-      ],
-      "errors": [
-        ""
-      ],
+      "tests": ["test/a.test.ts › mail > is sent"],
+      "files": ["test/a.test.ts"],
+      "errors": [""],
       "failed": 1,
       "total": 4
     },
@@ -247,15 +193,9 @@
         " Tasks:    7 successful, 8 total",
         "Failed:    @x/email#test"
       ],
-      "tests": [
-        "@x/email#test"
-      ],
-      "files": [
-        ""
-      ],
-      "errors": [
-        ""
-      ],
+      "tests": ["@x/email#test"],
+      "files": [""],
+      "errors": [""],
       "failed": 1
     },
     {

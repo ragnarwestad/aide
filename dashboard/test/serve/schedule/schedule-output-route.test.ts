@@ -13,7 +13,8 @@ const harness = queueHarness("aide-schedule-output-route-");
 const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 function freshOutputRoot(): string {
@@ -22,7 +23,12 @@ function freshOutputRoot(): string {
   return root;
 }
 
-function writeOutput(outputRoot: string, project: string, specFolder: string, html: string): void {
+function writeOutput(
+  outputRoot: string,
+  project: string,
+  specFolder: string,
+  html: string,
+): void {
   const dir = scheduleOutputDir(outputRoot, project, specFolder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "index.html"), html);
@@ -31,11 +37,21 @@ function writeOutput(outputRoot: string, project: string, specFolder: string, ht
 describe("GET /schedule-output/...", () => {
   test("a file written under the fixture root is served with a valid token", async () => {
     const outputRoot = freshOutputRoot();
-    writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");
-    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
-    const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`, {
-      headers: {},
+    writeOutput(
+      outputRoot,
+      "aide",
+      "schedule-nightly-report",
+      "<h1>traffic</h1>",
+    );
+    const { base } = harness.start({
+      extra: { scheduleOutputRoot: outputRoot },
     });
+    const res = await fetch(
+      `${base}/schedule-output/aide/schedule-nightly-report/index.html`,
+      {
+        headers: {},
+      },
+    );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(await res.text()).toBe("<h1>traffic</h1>");
@@ -43,10 +59,15 @@ describe("GET /schedule-output/...", () => {
 
   test("a missing file is 404, not a crash", async () => {
     const outputRoot = freshOutputRoot();
-    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
-    const res = await fetch(`${base}/schedule-output/aide/schedule-nightly-report/index.html`, {
-      headers: {},
+    const { base } = harness.start({
+      extra: { scheduleOutputRoot: outputRoot },
     });
+    const res = await fetch(
+      `${base}/schedule-output/aide/schedule-nightly-report/index.html`,
+      {
+        headers: {},
+      },
+    );
     expect(res.status).toBe(404);
   });
 
@@ -56,7 +77,9 @@ describe("GET /schedule-output/...", () => {
     // request ever reaches the server, which would prove nothing about
     // the route's own guard.
     const outputRoot = freshOutputRoot();
-    const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });
+    const { base } = harness.start({
+      extra: { scheduleOutputRoot: outputRoot },
+    });
     const res = await fetch(`${base}/schedule-output/..%2F..%2Fetc%2Fpasswd`, {
       headers: {},
     });

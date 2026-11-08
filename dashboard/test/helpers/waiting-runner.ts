@@ -7,7 +7,10 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export const WAITING_RUNNER = join(mkdtempSync(join(tmpdir(), "aide-waiting-runner-")), "runner.sh");
+export const WAITING_RUNNER = join(
+  mkdtempSync(join(tmpdir(), "aide-waiting-runner-")),
+  "runner.sh",
+);
 writeFileSync(
   WAITING_RUNNER,
   '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = --result-file ] && f="$2"; shift; done\n' +

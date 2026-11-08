@@ -46,16 +46,60 @@ export type DetectedCommands = Partial<Record<CommandKind, DetectedCommand>>;
  *  either — Gradle and Maven are given no lint command there, and
  *  pytest neither lint nor build — and inventing one here would put a
  *  command on the page that nobody wrote down. */
-const TABLE: { file: string; toolchain: string; test?: string; lint?: string; build?: string }[] = [
-  { file: "pnpm-lock.yaml", toolchain: "pnpm", test: "pnpm test -- --run", lint: "pnpm run lint", build: "pnpm run build" },
-  { file: "package-lock.json", toolchain: "npm", test: "npm test", lint: "npm run lint", build: "npm run build" },
-  { file: "yarn.lock", toolchain: "yarn", test: "yarn test", lint: "yarn lint", build: "yarn build" },
-  { file: "gradlew", toolchain: "Gradle", test: "./gradlew test", build: "./gradlew build" },
-  { file: "pom.xml", toolchain: "Maven", test: "mvn test", build: "mvn verify" },
+const TABLE: {
+  file: string;
+  toolchain: string;
+  test?: string;
+  lint?: string;
+  build?: string;
+}[] = [
+  {
+    file: "pnpm-lock.yaml",
+    toolchain: "pnpm",
+    test: "pnpm test -- --run",
+    lint: "pnpm run lint",
+    build: "pnpm run build",
+  },
+  {
+    file: "package-lock.json",
+    toolchain: "npm",
+    test: "npm test",
+    lint: "npm run lint",
+    build: "npm run build",
+  },
+  {
+    file: "yarn.lock",
+    toolchain: "yarn",
+    test: "yarn test",
+    lint: "yarn lint",
+    build: "yarn build",
+  },
+  {
+    file: "gradlew",
+    toolchain: "Gradle",
+    test: "./gradlew test",
+    build: "./gradlew build",
+  },
+  {
+    file: "pom.xml",
+    toolchain: "Maven",
+    test: "mvn test",
+    build: "mvn verify",
+  },
   { file: "pytest.ini", toolchain: "pytest", test: "python -m pytest" },
   { file: "pyproject.toml", toolchain: "pytest", test: "python -m pytest" },
-  { file: "go.mod", toolchain: "Go", test: "go test ./...", build: "go build ./..." },
-  { file: "Cargo.toml", toolchain: "Cargo", test: "cargo test", build: "cargo build" },
+  {
+    file: "go.mod",
+    toolchain: "Go",
+    test: "go test ./...",
+    build: "go build ./...",
+  },
+  {
+    file: "Cargo.toml",
+    toolchain: "Cargo",
+    test: "cargo test",
+    build: "cargo build",
+  },
 ];
 
 /** Which of test/lint/build the files of a project's root point at, if
@@ -65,13 +109,16 @@ const TABLE: { file: string; toolchain: string; test?: string; lint?: string; bu
  *  — "not set" is the honest thing to show, and a guess would be worse
  *  than silence on a page whose whole point is saying where a value came
  *  from. */
-export function detectCommandsIn(has: (file: string) => boolean): DetectedCommands {
+export function detectCommandsIn(
+  has: (file: string) => boolean,
+): DetectedCommands {
   for (const row of TABLE) {
     if (!has(row.file)) continue;
     const found: DetectedCommands = {};
     for (const kind of ["test", "lint", "build"] as const) {
       const cmd = row[kind];
-      if (cmd) found[kind] = { cmd, source: row.file, toolchain: row.toolchain };
+      if (cmd)
+        found[kind] = { cmd, source: row.file, toolchain: row.toolchain };
     }
     return found;
   }

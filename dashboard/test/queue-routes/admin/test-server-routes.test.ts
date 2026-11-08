@@ -36,20 +36,28 @@ const mainEntry = (overrides: Partial<TestServer> = {}): TestServer => ({
 describe("POST /api/queue/projects/<name>/test-server", () => {
   test("refuses for a project this dashboard does not know", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/nosuch/test-server`, { method: "POST", headers: AUTH });
+    const res = await fetch(`${base}/api/queue/projects/nosuch/test-server`, {
+      method: "POST",
+      headers: AUTH,
+    });
     expect(res.status).toBe(404);
   });
 
   test("only POST — the route takes no other method", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, { headers: AUTH });
+    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, {
+      headers: AUTH,
+    });
     expect(res.status).toBe(405);
   });
 
   test("the round being unavailable answers testServerFailedPage", async () => {
     const git = onMain();
     const { base } = start({ gitRun: git.run, testServersAvailable: false });
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, { method: "POST", headers: AUTH });
+    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, {
+      method: "POST",
+      headers: AUTH,
+    });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("does not carry the dashboard's source");
@@ -73,7 +81,9 @@ describe("POST /api/queue/projects/<name>/test-server", () => {
       headers: AUTH,
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/projects/aide?startTestServer=1");
+    expect(res.headers.get("location")).toBe(
+      "/projects/aide?startTestServer=1",
+    );
     expect(spawnCalls).toHaveLength(1);
     expect(spawnCalls[0]!.cmd).toContain("main");
   });
@@ -110,7 +120,9 @@ describe("POST /api/queue/projects/<name>/test-server", () => {
   });
 
   test("cannot resolve the default branch: testServerFailedPage, no spawn", async () => {
-    const git = fakeGit({ "ls-remote": { code: 0, stdout: "abc123\trefs/heads/main\n" } }); // no symbolic-ref/show-ref answer at all
+    const git = fakeGit({
+      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/main\n" },
+    }); // no symbolic-ref/show-ref answer at all
     const spawnCalls: unknown[] = [];
     const { base } = start({
       gitRun: git.run,
@@ -120,7 +132,10 @@ describe("POST /api/queue/projects/<name>/test-server", () => {
         return { pid: 1 };
       },
     });
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, { method: "POST", headers: AUTH });
+    const res = await fetch(`${base}/api/queue/projects/aide/test-server`, {
+      method: "POST",
+      headers: AUTH,
+    });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("cannot work out the default branch");
     expect(spawnCalls).toHaveLength(0);
@@ -130,13 +145,19 @@ describe("POST /api/queue/projects/<name>/test-server", () => {
 describe("POST /api/queue/projects/<name>/test-server/stop", () => {
   test("refuses for a project this dashboard does not know", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/nosuch/test-server/stop`, { method: "POST", headers: AUTH });
+    const res = await fetch(
+      `${base}/api/queue/projects/nosuch/test-server/stop`,
+      { method: "POST", headers: AUTH },
+    );
     expect(res.status).toBe(404);
   });
 
   test("only POST — the route takes no other method", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, { headers: AUTH });
+    const res = await fetch(
+      `${base}/api/queue/projects/aide/test-server/stop`,
+      { headers: AUTH },
+    );
     expect(res.status).toBe(405);
   });
 
@@ -145,14 +166,19 @@ describe("POST /api/queue/projects/<name>/test-server/stop", () => {
   test("stops a tracked main-board with no spec ref, answering JSON to a form post", async () => {
     const { base, server } = start();
     server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry());
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-    });
+    const res = await fetch(
+      `${base}/api/queue/projects/aide/test-server/stop`,
+      {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+      },
+    );
     expect(res.status).toBe(200);
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
-    expect(server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY)).toBeUndefined();
+    expect(
+      server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY),
+    ).toBeUndefined();
   });
 
   // The Test servers list's own Stop form carries class="actionform",
@@ -160,11 +186,16 @@ describe("POST /api/queue/projects/<name>/test-server/stop", () => {
   test("answers JSON for the actionform's own XHR", async () => {
     const { base, server } = start();
     server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry());
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, { method: "POST", headers: AUTH });
+    const res = await fetch(
+      `${base}/api/queue/projects/aide/test-server/stop`,
+      { method: "POST", headers: AUTH },
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean };
     expect(body.ok).toBe(true);
-    expect(server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY)).toBeUndefined();
+    expect(
+      server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY),
+    ).toBeUndefined();
   });
 });
 
@@ -189,22 +220,36 @@ describe("GET /projects/<name>?startTestServer=1", () => {
 
   test("already running with a url: redirects to the board", async () => {
     const { base, server } = start({ testServersIsAlive: () => true });
-    server.testServersStore().set(
-      "aide",
-      MAIN_TEST_SERVER_KEY,
-      mainEntry({ status: "running", pid: 4242, url: "http://127.0.0.1:8801/?token=t0ken" }),
-    );
+    server
+      .testServersStore()
+      .set(
+        "aide",
+        MAIN_TEST_SERVER_KEY,
+        mainEntry({
+          status: "running",
+          pid: 4242,
+          url: "http://127.0.0.1:8801/?token=t0ken",
+        }),
+      );
     const res = await fetch(`${base}/projects/aide?startTestServer=1`, {
       headers: {},
       redirect: "manual",
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("http://127.0.0.1:8801/?token=t0ken");
+    expect(res.headers.get("location")).toBe(
+      "http://127.0.0.1:8801/?token=t0ken",
+    );
   });
 
   test("failed: shows testServerFailedPage", async () => {
     const { base, server } = start();
-    server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry({ status: "failed", error: "cannot check out main" }));
+    server
+      .testServersStore()
+      .set(
+        "aide",
+        MAIN_TEST_SERVER_KEY,
+        mainEntry({ status: "failed", error: "cannot check out main" }),
+      );
     const res = await fetch(`${base}/projects/aide?startTestServer=1`, {
       headers: {},
       redirect: "manual",
@@ -215,7 +260,13 @@ describe("GET /projects/<name>?startTestServer=1", () => {
 
   test("still starting: shows the waiting page", async () => {
     const { base, server } = start({ testServersIsAlive: () => true });
-    server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry({ status: "starting", pid: undefined, url: undefined }));
+    server
+      .testServersStore()
+      .set(
+        "aide",
+        MAIN_TEST_SERVER_KEY,
+        mainEntry({ status: "starting", pid: undefined, url: undefined }),
+      );
     const res = await fetch(`${base}/projects/aide?startTestServer=1`, {
       headers: {},
       redirect: "manual",

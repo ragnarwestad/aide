@@ -7,8 +7,13 @@ import { parseAideRun } from "../queue/aide-run-store.ts";
 import { PROJECTS_ROUTE } from "../render";
 import { STARTED_AT } from "./state.ts";
 import {
-  json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
-  serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
+  json,
+  readBounded,
+  servePwaAsset,
+  serveSpecEditorAsset,
+  SPEC_EDITOR_ASSET_PATH,
+  serveSpecViewerAsset,
+  SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers";
 
 export interface CoreRoutesContext {
@@ -28,7 +33,8 @@ export async function handleCore(
   path: string,
 ): Promise<Response> {
   if (path === "/api/aide-run") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
@@ -49,8 +55,12 @@ export async function handleCore(
   }
 
   if (path === "/api/aide-runs") {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    return json({ generatedAt: new Date().toISOString(), rows: ctx.store.list() });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
+    return json({
+      generatedAt: new Date().toISOString(),
+      rows: ctx.store.list(),
+    });
   }
 
   // What commit this process is actually running — read
@@ -59,7 +69,8 @@ export async function handleCore(
   // until something asks this; a probe nobody's
   // monitoring can use needs no more than a Host of its own.
   if (path === "/api/version") {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     return json({ sha: ctx.readServingSha(), startedAt: STARTED_AT });
   }
 
@@ -77,7 +88,10 @@ export async function handleCore(
   // served route — answered here, not from a file, so nothing has to
   // regenerate it when the route it points at changes.
   if (path === "/projects.html") {
-    return new Response(null, { status: 302, headers: { location: `${PROJECTS_ROUTE}${url.search}` } });
+    return new Response(null, {
+      status: 302,
+      headers: { location: `${PROJECTS_ROUTE}${url.search}` },
+    });
   }
 
   return new Response("not found", { status: 404 });

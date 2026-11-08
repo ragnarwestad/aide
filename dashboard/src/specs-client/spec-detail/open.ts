@@ -31,7 +31,8 @@ let current: { controller: AbortController } | null = null;
  *  whole address to put back when Back is refused. */
 let drawn = "";
 
-const specHead = (key: string): Element | null => document.getElementById(`spec-${key}`);
+const specHead = (key: string): Element | null =>
+  document.getElementById(`spec-${key}`);
 
 /** A row's chevron drawn shut. Its link is made right by the redraw that follows. */
 function shutChevron(head: Element | null): void {
@@ -44,13 +45,28 @@ function shutChevron(head: Element | null): void {
  *  list, and the spec can be opened without losing something the reader has
  *  typed. `false` leaves the press to the browser, which loads the page. */
 export function openSpecInPlace(event: MouseEvent): boolean {
-  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+  if (
+    event.defaultPrevented ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    event.button !== 0
+  ) {
     return false;
   }
-  const link = (event.target as Element | null)?.closest?.("a.fold[data-goto]") as HTMLAnchorElement | null;
+  const link = (event.target as Element | null)?.closest?.(
+    "a.fold[data-goto]",
+  ) as HTMLAnchorElement | null;
   const head = link?.closest("tr.spechead") as HTMLElement | null;
   const body = document.getElementById("jobrows");
-  if (!link || !head || !body?.contains(head) || link.getAttribute("aria-expanded") !== "false") return false;
+  if (
+    !link ||
+    !head ||
+    !body?.contains(head) ||
+    link.getAttribute("aria-expanded") !== "false"
+  )
+    return false;
   if (!document.getElementById(SPEC_LOADING_ROW_ID)) return false;
   // A press while another is on its way does nothing, as the page's presses
   // do not answer while a row loads.
@@ -66,7 +82,11 @@ export function openSpecInPlace(event: MouseEvent): boolean {
   return true;
 }
 
-async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElement): Promise<void> {
+async function open(
+  link: HTMLAnchorElement,
+  head: HTMLElement,
+  body: HTMLElement,
+): Promise<void> {
   const key = head.id.slice("spec-".length);
   const controller = new AbortController();
   current = { controller };
@@ -129,7 +149,9 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
 /** The row the spec will be drawn in, copied from the template the page
  *  carries, where the server draws a detail row: before the spec's gap row. */
 function drawLoadingRow(head: Element, key: string): void {
-  const template = document.getElementById(SPEC_LOADING_ROW_ID) as HTMLTemplateElement;
+  const template = document.getElementById(
+    SPEC_LOADING_ROW_ID,
+  ) as HTMLTemplateElement;
   const row = template.content.querySelector("tr")!.cloneNode(true) as Element;
   row.setAttribute(KEY, key);
   const end = groupEnd(head);
@@ -144,7 +166,11 @@ function keepInPlace(head: Element, before: number): void {
   const delta = head.getBoundingClientRect().top - before;
   if (!delta) return;
   const wrap = document.querySelector(".tablewrap") as HTMLElement | null;
-  if (wrap && wrap.scrollHeight > wrap.clientHeight && /auto|scroll/.test(getComputedStyle(wrap).overflowY)) {
+  if (
+    wrap &&
+    wrap.scrollHeight > wrap.clientHeight &&
+    /auto|scroll/.test(getComputedStyle(wrap).overflowY)
+  ) {
     wrap.scrollTop += delta;
   } else {
     globalThis.scrollBy?.(0, delta);
@@ -164,9 +190,14 @@ export function addScripts(html: string): void {
 /** The row says the spec could not be loaded, in its own area. The spec's rows
  *  are drawn again for the new address, with this row held in place. */
 async function showFailure(body: HTMLElement, key: string): Promise<void> {
-  const row = Array.from(body.querySelectorAll(DETAIL)).find((el) => el.getAttribute(KEY) === key);
+  const row = Array.from(body.querySelectorAll(DETAIL)).find(
+    (el) => el.getAttribute(KEY) === key,
+  );
   row?.querySelector("p.muted")?.remove();
-  writeLine(row?.querySelector(".refused"), row?.getAttribute("data-failed") ?? "");
+  writeLine(
+    row?.querySelector(".refused"),
+    row?.getAttribute("data-failed") ?? "",
+  );
   await swapSpec(key);
 }
 

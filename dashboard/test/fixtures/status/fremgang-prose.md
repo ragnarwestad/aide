@@ -30,7 +30,7 @@
 ## Fase 1: Oppdater jira-analyzer.md
 
 | Oppgave                                                 | Status | Notater                                                |
-|---------------------------------------------------------|--------|--------------------------------------------------------|
+| ------------------------------------------------------- | ------ | ------------------------------------------------------ |
 | Les nåværende jira-analyzer.md:115-196 (Steg 0.5)       | ✅     | Strukturen forstått                                    |
 | Legg til REPO_INFO-byggekode etter linje 182            | ✅     | Konkret bash-kode implementert (linjer 194-215)        |
 | Oppdater Sporingsinfo-template i Steg 4 (linje 533-540) | ✅     | Erstatt `${REPO_INFO fra Steg 0.5}` med `${REPO_INFO}` |
@@ -42,7 +42,7 @@
 ## Fase 2: Oppdater todo-analyzer.md
 
 | Oppgave                                                   | Status | Notater                                                |
-|-----------------------------------------------------------|--------|--------------------------------------------------------|
+| --------------------------------------------------------- | ------ | ------------------------------------------------------ |
 | Les nåværende todo-analyzer.md:129-209 (Steg 0.5)         | ✅     | Strukturen forstått                                    |
 | Legg til REPO_INFO-byggekode etter linje 195              | ✅     | Identisk bash-kode implementert (linjer 208-229)       |
 | Oppdater Sporingsinfo-template i Steg 4 (linje 553-561)   | ✅     | Erstatt `${REPO_INFO fra Steg 0.5}` med `${REPO_INFO}` |
@@ -54,7 +54,7 @@
 ## Fase 3: Verifiser andre filer
 
 | Oppgave                                   | Status | Notater                                                                     |
-|-------------------------------------------|--------|-----------------------------------------------------------------------------|
+| ----------------------------------------- | ------ | --------------------------------------------------------------------------- |
 | Les tdd-implementer.md:168-248 (Steg 0.5) | ✅     | Bekreftet - kun én Sporingsinfo-referanse, implementerer ikke dokumentfiler |
 | Les WORKFLOWS.md:23-100                   | ✅     | Bekreftet - komplett branch-strategi allerede implementert                  |
 
@@ -63,7 +63,7 @@
 ## Fase 4: Testing
 
 | Oppgave                                        | Status | Notater                                                             |
-|------------------------------------------------|--------|---------------------------------------------------------------------|
+| ---------------------------------------------- | ------ | ------------------------------------------------------------------- |
 | Test-case 1: Kjør /aide-analyser på JIRA-sak   | ⬜     | Valgfri - kan testes ved neste JIRA-analyse                         |
 | Test-case 2: Kjør /aide-analyser på TODO-plan  | ✅     | TODO-25 fullført - sporingsinfo korrekt (example-web + example-api) |
 | Test-case 3: Kjør /aide-løs (verifisering kun) | ⬜     | Valgfri - kan testes ved neste implementering                       |
@@ -74,7 +74,7 @@
 ## Notasjon
 
 | Symbol | Betydning           |
-|--------|---------------------|
+| ------ | ------------------- |
 | ⬜     | Ikke startet        |
 | 🔄     | Under arbeid        |
 | ✅     | Fullført            |
@@ -89,8 +89,8 @@
 - Dette er agent prompt-endringer (markdown-filer)
 - Testing er manuell (kjør agenter og inspiser output)
 - Total fremgang: 13 av 14 oppgaver fullført (93%)
-    - Fase 1-3: Alle 10 implementeringsoppgaver ✅
-    - Fase 4: 1 av 4 test-cases fullført, 3 valgfrie gjenstår
+  - Fase 1-3: Alle 10 implementeringsoppgaver ✅
+  - Fase 4: 1 av 4 test-cases fullført, 3 valgfrie gjenstår
 - **Kjerneimplementering ferdig:** Alle Må-krav oppfylt
 - **Gjenstående test-cases:** Valgfri verifisering som kan kjøres ved behov
 
@@ -105,10 +105,10 @@
 - **Konsekvens:** TODO-24 (workspace-endringer) fikk feil Sporingsinfo (sa example-web i stedet for workspace)
 - **Rettelse:** Endret logikk til å detektere current repo først, deretter legge til relaterte repos
 - **Ny logikk:**
-    - Current repo = example-web → Inkluder også example-api
-    - Current repo = example-api → Inkluder også example-web
-    - Current repo = workspace → Kun workspace
-    - Current repo = ukjent → Kun current repo
+  - Current repo = example-web → Inkluder også example-api
+  - Current repo = example-api → Inkluder også example-web
+  - Current repo = workspace → Kun workspace
+  - Current repo = ukjent → Kun current repo
 - **Resultat:** Sporingsinfo blir nå alltid korrekt basert på hvor arbeidet faktisk gjøres
 
 **Implementering fullført (2025-11-07):**

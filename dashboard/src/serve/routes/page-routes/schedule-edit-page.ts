@@ -3,8 +3,16 @@
 import { providerPickerOptions } from "../../providers/options.ts";
 import { isBoardPath } from "../../../format/board-path.ts";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { projectScheduleTab, renderScheduleNewPage, schedulePagePath } from "../../../render";
-import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import {
+  projectScheduleTab,
+  renderScheduleNewPage,
+  schedulePagePath,
+} from "../../../render";
+import {
+  languageChoice,
+  modelChoiceOptions,
+  specsClientScript,
+} from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 export { projectScheduleTab };
@@ -18,10 +26,16 @@ export function scheduleBackPath(raw: unknown, fallback: string): string {
 
 /** A rename moves the entry's own page, so a `back` that pointed at the
  *  old one points at the new one instead of at a page that is gone. */
-export function renamedBack(back: string, project: string, from: string, to: string): string {
+export function renamedBack(
+  back: string,
+  project: string,
+  from: string,
+  to: string,
+): string {
   if (from === to) return back;
   const old = schedulePagePath(project, from);
-  if (back === old || back.startsWith(`${old}?`)) return schedulePagePath(project, to) + back.slice(old.length);
+  if (back === old || back.startsWith(`${old}?`))
+    return schedulePagePath(project, to) + back.slice(old.length);
   return back;
 }
 
@@ -31,7 +45,10 @@ export async function scheduleNewPageResponse(
   url: URL,
   page: {
     project: string;
-    values: Pick<ScheduleEntry, "name" | "cron" | "prompt" | "model" | "notify">;
+    values: Pick<
+      ScheduleEntry,
+      "name" | "cron" | "prompt" | "model" | "notify"
+    >;
     back: string;
   },
 ): Promise<Response> {

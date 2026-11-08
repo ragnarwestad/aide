@@ -18,14 +18,22 @@ export interface BranchFixture {
 }
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
 /** Where a spec's file sits in the repository. */
-export const specRelPath = (folder: string, file: string, project = "aide"): string =>
-  `${project}/specs/${folder}/${file}`;
+export const specRelPath = (
+  folder: string,
+  file: string,
+  project = "aide",
+): string => `${project}/specs/${folder}/${file}`;
 
 /** The harness's `root` as a repository on `main`, everything committed
  *  and pushed to a new bare origin beside it. */
@@ -51,7 +59,11 @@ export function rootWithOrigin(dir: string): Omit<BranchFixture, "branch"> {
  *  `root` for projects. In production a project directory is the root of
  *  its clone, and `git show <ref>:<path>` reads from that root. Returns
  *  the origin's path. */
-export function projectWithOrigin(dir: string, project: string, files: Record<string, string>): string {
+export function projectWithOrigin(
+  dir: string,
+  project: string,
+  files: Record<string, string>,
+): string {
   const work = join(dir, "root", project);
   const origin = join(dir, `${project}-origin.git`);
   mkdirSync(work, { recursive: true });
@@ -76,7 +88,11 @@ export function projectWithOrigin(dir: string, project: string, files: Record<st
 /** `rootWithOrigin`, plus `aide/<folder>` on origin holding `files` (by
  *  file name, inside the spec's folder) one commit ahead of `main`. The
  *  branch is never checked out in `root`: the page reads it off origin. */
-export function specBranchAhead(dir: string, folder: string, files: Record<string, string>): BranchFixture {
+export function specBranchAhead(
+  dir: string,
+  folder: string,
+  files: Record<string, string>,
+): BranchFixture {
   const base = rootWithOrigin(dir);
   const branch = `aide/${folder}`;
   const work = mkdtempSync(join(tmpdir(), "aide-branch-work-"));
@@ -97,6 +113,11 @@ export function specBranchAhead(dir: string, folder: string, files: Record<strin
 }
 
 /** A spec file as `ref` (`main` or the branch) holds it on origin. */
-export function onOrigin(fx: Pick<BranchFixture, "origin">, ref: string, folder: string, file: string): string {
+export function onOrigin(
+  fx: Pick<BranchFixture, "origin">,
+  ref: string,
+  folder: string,
+  file: string,
+): string {
   return git(fx.origin, "show", `${ref}:${specRelPath(folder, file)}`);
 }

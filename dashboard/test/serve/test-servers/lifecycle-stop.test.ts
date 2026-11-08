@@ -8,8 +8,14 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
-import { stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import {
+  TestServerStore,
+  type TestServer,
+} from "../../../src/serve/test-servers/store.ts";
+import {
+  stopTestServer,
+  type TestServersContext,
+} from "../../../src/serve/test-servers/lifecycle.ts";
 
 let killed: { pid: number; signal: string }[];
 let killSpy: ReturnType<typeof spyOn>;
@@ -33,8 +39,13 @@ function makeCtx(store: TestServerStore): TestServersContext {
     store,
     aideCheckout: () => "/checkout/aide",
     startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
+      "/checkout/aide/dashboard/test/round/run",
+      "/checkout/aide",
+      "--branch",
+      branch,
+      "--port",
+      String(port),
+      "--keep",
     ],
     previewAvailable: () => true,
     gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
@@ -51,10 +62,12 @@ function makeCtx(store: TestServerStore): TestServersContext {
 
 beforeEach(() => {
   killed = [];
-  killSpy = spyOn(process, "kill").mockImplementation((pid: number, signal?: string) => {
-    killed.push({ pid, signal: signal ?? "" });
-    return true;
-  });
+  killSpy = spyOn(process, "kill").mockImplementation(
+    (pid: number, signal?: string) => {
+      killed.push({ pid, signal: signal ?? "" });
+      return true;
+    },
+  );
 });
 
 afterEach(() => {
@@ -103,13 +116,17 @@ describe("stopTestServer", () => {
     });
     const store = new TestServerStore();
     store.set("aide", "spec-1", entry());
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
+    expect(() =>
+      stopTestServer(makeCtx(store), "aide", "spec-1", "the test"),
+    ).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 
   test("nothing tracked for this spec is a no-op", () => {
     const store = new TestServerStore();
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
+    expect(() =>
+      stopTestServer(makeCtx(store), "aide", "spec-1", "the test"),
+    ).not.toThrow();
     expect(killed).toHaveLength(0);
   });
 });
@@ -122,7 +139,11 @@ describe("stopping a board takes its own files with it", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-board-stop-"));
     writeFileSync(join(dir, "board.log"), "== starting\n");
     const store = new TestServerStore();
-    store.set("aide", "spec-1", entry({ workDir: dir, logPath: join(dir, "board.log") }));
+    store.set(
+      "aide",
+      "spec-1",
+      entry({ workDir: dir, logPath: join(dir, "board.log") }),
+    );
     stopTestServer(makeCtx(store), "aide", "spec-1", "the test");
     expect(existsSync(dir)).toBe(false);
   });
@@ -130,8 +151,14 @@ describe("stopping a board takes its own files with it", () => {
   // A directory that will not go is not worth failing a stop over.
   test("a work directory that is already gone stops the board anyway", () => {
     const store = new TestServerStore();
-    store.set("aide", "spec-1", entry({ workDir: "/tmp/aide-board-that-never-existed" }));
-    expect(() => stopTestServer(makeCtx(store), "aide", "spec-1", "the test")).not.toThrow();
+    store.set(
+      "aide",
+      "spec-1",
+      entry({ workDir: "/tmp/aide-board-that-never-existed" }),
+    );
+    expect(() =>
+      stopTestServer(makeCtx(store), "aide", "spec-1", "the test"),
+    ).not.toThrow();
     expect(store.get("aide", "spec-1")).toBeUndefined();
   });
 });

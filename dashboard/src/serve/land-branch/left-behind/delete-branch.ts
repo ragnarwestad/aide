@@ -5,18 +5,29 @@
 // cached answer trusted is a merged pull request: it never changes, so
 // it only has to match the tip origin has just given.
 
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, specBranch } from "../../../git/branch-status.ts";
+import {
+  LS_REMOTE_NO_MATCH,
+  lsRemoteBranch,
+  specBranch,
+} from "../../../git/branch-status.ts";
 import { deleteBranchOnly } from "../../../git/branch-merge/index.ts";
 import { mergedPullRequest, specRoots } from "../../spec-lookup.ts";
 import type { LandContext } from "../types.ts";
 
 export type DeleteLeftBehindContext = Pick<
   LandContext,
-  "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus" | "gitRun" | "mergeLock" | "specsRoot" | "codeLanding"
+  | "machineryProjectDir"
+  | "machinerySpecsRoot"
+  | "branchStatus"
+  | "gitRun"
+  | "mergeLock"
+  | "specsRoot"
+  | "codeLanding"
   | "pullRequests"
 >;
 
-export type DeleteLeftBehindResult = { ok: true } | { ok: false; error: string };
+export type DeleteLeftBehindResult =
+  { ok: true } | { ok: false; error: string };
 
 export async function deleteLeftBehindBranch(
   ctx: DeleteLeftBehindContext,
@@ -29,11 +40,20 @@ export async function deleteLeftBehindBranch(
   // the row would lose its note although nothing was deleted.
   const holding: { root: string; tip: string }[] = [];
   for (const root of specRoots(ctx, project)) {
-    const asked = await ctx.gitRun(root, lsRemoteBranch(branch)).then((r) => r, () => null);
+    const asked = await ctx.gitRun(root, lsRemoteBranch(branch)).then(
+      (r) => r,
+      () => null,
+    );
     const code = asked?.code ?? null;
-    if (code === 0) holding.push({ root, tip: asked!.stdout.trim().split(/\s/)[0]! });
-    else if (code === LS_REMOTE_NO_MATCH) ctx.branchStatus.forgetOpenSpecBranch(root, branch);
-    else return { ok: false, error: `origin could not be asked about ${branch}. — Press Delete branch again.` };
+    if (code === 0)
+      holding.push({ root, tip: asked!.stdout.trim().split(/\s/)[0]! });
+    else if (code === LS_REMOTE_NO_MATCH)
+      ctx.branchStatus.forgetOpenSpecBranch(root, branch);
+    else
+      return {
+        ok: false,
+        error: `origin could not be asked about ${branch}. — Press Delete branch again.`,
+      };
   }
   // Every root before any delete, so a spec merged in one repository and
   // not in the other loses nothing.
@@ -41,7 +61,8 @@ export async function deleteLeftBehindBranch(
     if (await ctx.branchStatus.isMerged(root, branch, true)) continue;
     // A squash merge never makes git call the branch merged. Origin's tip,
     // asked just now, must still be the head the pull request merged.
-    if (mergedPullRequest(ctx, project, folder, root)?.headSha === tip) continue;
+    if (mergedPullRequest(ctx, project, folder, root)?.headSha === tip)
+      continue;
     return {
       ok: false,
       error: `${branch} has work that is not on the default branch, so nothing was deleted. — Run archive again to land it.`,
@@ -55,10 +76,17 @@ export async function deleteLeftBehindBranch(
     byRepo.set(top, [...(byRepo.get(top) ?? []), root]);
   }
   for (const [top, roots] of byRepo) {
-    const result = await ctx.mergeLock.run(top, () => deleteBranchOnly(ctx.gitRun, top, branch));
+    const result = await ctx.mergeLock.run(top, () =>
+      deleteBranchOnly(ctx.gitRun, top, branch),
+    );
     if (!result.ok || result.branchDeleteError) {
-      console.error(`queue: deleting ${branch} in ${top} failed — ${result.detail ?? "unknown reason"}`);
-      return { ok: false, error: `${branch} could not be deleted on origin. — Press Delete branch again.` };
+      console.error(
+        `queue: deleting ${branch} in ${top} failed — ${result.detail ?? "unknown reason"}`,
+      );
+      return {
+        ok: false,
+        error: `${branch} could not be deleted on origin. — Press Delete branch again.`,
+      };
     }
     // Under exactly the paths the row peeks, so its next draw has no note.
     for (const root of roots) {

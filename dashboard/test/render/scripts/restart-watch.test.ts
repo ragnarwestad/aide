@@ -5,8 +5,23 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "restart-watch.ts"), "utf-8"),
+const SOURCE = new Bun.Transpiler({
+  loader: "ts",
+  target: "browser",
+}).transformSync(
+  readFileSync(
+    join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "src",
+      "render",
+      "scripts",
+      "restart-watch.ts",
+    ),
+    "utf-8",
+  ),
 );
 
 /** Runs the script with a notice drawn by `drawnBy` (none when null), and
@@ -19,7 +34,9 @@ async function run(drawnBy: string | null, answers: (string | "down")[]) {
     readyState: "complete",
     addEventListener: () => {},
     querySelector: (sel: string) =>
-      sel === "[data-started-at]" && drawnBy ? { getAttribute: () => drawnBy } : null,
+      sel === "[data-started-at]" && drawnBy
+        ? { getAttribute: () => drawnBy }
+        : null,
   };
   const fetch = async () => {
     const a = answers[asked++];
@@ -28,7 +45,12 @@ async function run(drawnBy: string | null, answers: (string | "down")[]) {
   };
   const setTimeout = (fn: () => Promise<void>) => void timers.push(fn);
   const location = { reload: () => void (reloads += 1) };
-  new Function("document", "fetch", "setTimeout", "location", SOURCE)(document, fetch, setTimeout, location);
+  new Function("document", "fetch", "setTimeout", "location", SOURCE)(
+    document,
+    fetch,
+    setTimeout,
+    location,
+  );
   // Every ask that is due, in turn, until nothing more is scheduled.
   for (let i = 0; i < 10 && timers.length; i++) await timers.shift()!();
   return { reloads: () => reloads, asked: () => asked };

@@ -2,7 +2,16 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import {
+  dir,
+  spawns,
+  store,
+  enqueue,
+  makeRunner,
+  okResult,
+  resetHarness,
+  cleanupHarness,
+} from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** What a reader would see: a message is stored as
@@ -11,7 +20,6 @@ import { renderSentence } from "../../../src/i18n/message.ts";
 function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
-
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -69,7 +77,10 @@ describe("several jobs at once", () => {
   test("a third job waits for a slot", () => {
     const a = enqueue();
     const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const c = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(2);
@@ -95,14 +106,19 @@ describe("several jobs at once", () => {
     // Both branch from the code root's main and both land into it; the
     // second landing would find a main the first moved under it.
     const a = enqueue({ steps: ["archive"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(1);
     expect(store.get(a.id)?.state).toBe("running");
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("another archive is running in this project");
+    expect(sentence(held.error)).toContain(
+      "another archive is running in this project",
+    );
   });
 
   // The same hold while another job's LANDING is still in flight: the
@@ -113,13 +129,18 @@ describe("several jobs at once", () => {
   test("an archive step waits while another job in the project is landing", () => {
     const a = enqueue({ steps: ["archive"] });
     store.update(a.id, { state: "done", landing: true });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(0);
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("another archive is running in this project");
+    expect(sentence(held.error)).toContain(
+      "another archive is running in this project",
+    );
     // The landing done, the next tick starts it.
     store.update(a.id, { landing: undefined });
     runner.tick();
@@ -129,7 +150,10 @@ describe("several jobs at once", () => {
   test("an archive landing holds no step but archive", () => {
     const a = enqueue({ steps: ["archive"] });
     store.update(a.id, { state: "done", landing: true });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
@@ -138,7 +162,10 @@ describe("several jobs at once", () => {
   test("an analyze landing moves the specs repository alone and holds no archive", () => {
     const a = enqueue({ steps: ["analyze"] });
     store.update(a.id, { state: "done", landing: true });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
@@ -153,7 +180,10 @@ describe("several jobs at once", () => {
   // numbers them the same.
   test("two create steps for the same project both start in one tick", () => {
     const a = enqueue({ steps: ["create"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["create"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(2);
@@ -168,14 +198,20 @@ describe("several jobs at once", () => {
   // reason was a landing in flight (2026-09-04).
   test("the hold-back sentence goes when the reason does", () => {
     enqueue({ steps: ["archive"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
     // The one slot is taken, so this pass never reaches b: the old code
     // left whatever sentence b was carrying from an earlier pass, and
     // the reason it names is long gone.
     expect(store.get(b.id)?.state).toBe("queued");
-    store.update(b.id, { error: "held back: another archive is running in this project", errorReason: "held-back" });
+    store.update(b.id, {
+      error: "held back: another archive is running in this project",
+      errorReason: "held-back",
+    });
     runner.tick();
     expect(store.get(b.id)?.error).toBeUndefined();
     expect(store.get(b.id)?.errorReason).toBeUndefined();
@@ -189,11 +225,16 @@ describe("several jobs at once", () => {
   // `error`/`errorReason` say what the row is waiting for right now.
   test("a stale landing failure gives way to the reason a job is held for now", () => {
     const a = enqueue({ steps: ["archive"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     store.update(b.id, {
-      error: "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
+      error:
+        "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
       errorReason: "conflict",
-      landingError: "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
+      landingError:
+        "cannot bring aide/91-parallel-spec-runs up to date with origin/main (conflict — merge it by hand)",
     });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -201,10 +242,14 @@ describe("several jobs at once", () => {
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
     // The current reason, not the stale one.
-    expect(sentence(held.error)).toContain("another archive is running in this project");
+    expect(sentence(held.error)).toContain(
+      "another archive is running in this project",
+    );
     expect(held.errorReason).toBe("held-back");
     // The attempt that failed keeps its own record.
-    expect(sentence(held.landingError)).toContain("conflict — merge it by hand");
+    expect(sentence(held.landingError)).toContain(
+      "conflict — merge it by hand",
+    );
   });
 
   // The whole queue stops while any job is landing, and every queued row
@@ -218,7 +263,10 @@ describe("several jobs at once", () => {
   // be caught by, and the board runs its six at once.
   test("a job starts while another spec's merge is in flight", () => {
     const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     store.update(a.id, { state: "done", landing: true });
     runner.tick();
@@ -230,9 +278,15 @@ describe("several jobs at once", () => {
   // that the repository no longer decides anything.
   test("a job in another project starts too, while the merge runs", () => {
     const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["analyze"],
+    });
     const c = enqueue({ project: "other-project", steps: ["analyze"] });
-    const runner = makeRunner({ maxConcurrent: 3, projectDir: (p) => join(dir, p) });
+    const runner = makeRunner({
+      maxConcurrent: 3,
+      projectDir: (p) => join(dir, p),
+    });
     store.update(a.id, { state: "done", landing: true });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
@@ -275,7 +329,8 @@ describe("several jobs at once", () => {
     const b = enqueue({ project: "other-project", steps: ["analyze"] });
     const runner = makeRunner({
       maxConcurrent: 2,
-      projectDir: (p) => (p === "aide" || p === "other-project" ? sharedRoot : join(dir, p)),
+      projectDir: (p) =>
+        p === "aide" || p === "other-project" ? sharedRoot : join(dir, p),
     });
     store.update(a.id, { state: "done", landing: true });
     runner.tick();
@@ -284,7 +339,10 @@ describe("several jobs at once", () => {
 
   test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {
     const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const b = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
     expect(spawns.length).toBe(2);
@@ -295,14 +353,16 @@ describe("several jobs at once", () => {
   test("poll completes EVERY running job, not just the first", () => {
     const a = enqueue();
     const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+    const runner = makeRunner({
+      maxConcurrent: 2,
+      readResult: () => okResult(1),
+    });
     runner.tick();
     expect(spawns.length).toBe(2);
     runner.poll();
     expect(store.get(a.id)?.state).toBe("done");
     expect(store.get(b.id)?.state).toBe("done");
   });
-
 });
 
 // A schedule job never starts while anything else for its
@@ -334,7 +394,10 @@ describe("a schedule job holds while other work runs in its project", () => {
   test("starts on a later tick once the project is free, the same night", () => {
     const a = enqueue({ steps: ["implement"] });
     const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+    const runner = makeRunner({
+      maxConcurrent: 2,
+      readResult: () => okResult(1),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(a.id)?.state).toBe("done");
@@ -358,7 +421,10 @@ describe("a schedule job holds while other work runs in its project", () => {
 describe("quick steps before slow ones", () => {
   test("a younger queued archive starts before an older queued analyze", () => {
     const analyze = enqueue({ steps: ["analyze"] });
-    const archive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const archive = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
     expect(spawns.length).toBe(1);
@@ -378,7 +444,10 @@ describe("quick steps before slow ones", () => {
 
   test("a held-back quick job does not block an older unblocked slow job behind it", () => {
     const archive = enqueue({ steps: ["archive"] });
-    const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const analyze = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["analyze"],
+    });
     const runner = makeRunner({ maxConcurrent: 1 });
     const blocked = new Map([[archive.id, "80-some-dependency"]]);
     runner.tick(blocked);
@@ -407,7 +476,12 @@ describe("steps and cost", () => {
   test("a timeout is a stop too, with the reason kept", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "timeout", costMeasured: false }),
+      readResult: () => ({
+        ...okResult(3),
+        ok: false,
+        terminalReason: "timeout",
+        costMeasured: false,
+      }),
     });
     runner.tick();
     runner.poll();
@@ -419,7 +493,9 @@ describe("steps and cost", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({
       readResult: () => ({
-        ...okResult(0), ok: false, terminalReason: "provider-limit",
+        ...okResult(0),
+        ok: false,
+        terminalReason: "provider-limit",
         error: "seven day provider limit; resets 2026-08-24 12:00 UTC",
       }),
     });
@@ -437,7 +513,12 @@ describe("steps and cost", () => {
   test("a refused or broken step fails the job", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "refused", error: "the tree is dirty" }),
+      readResult: () => ({
+        ...okResult(0),
+        ok: false,
+        terminalReason: "refused",
+        error: "the tree is dirty",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -460,7 +541,8 @@ describe("steps and cost", () => {
         ...okResult(0),
         ok: false,
         terminalReason: "refused",
-        error: "cannot bring aide/153-x up to date with origin/main in /repos/aide (conflict — merge it by hand)",
+        error:
+          "cannot bring aide/153-x up to date with origin/main in /repos/aide (conflict — merge it by hand)",
         errorReason: "conflict",
       }),
     });
@@ -473,7 +555,12 @@ describe("steps and cost", () => {
   test("a refusal with no reason leaves the field unset", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "refused", error: "missing --spec" }),
+      readResult: () => ({
+        ...okResult(0),
+        ok: false,
+        terminalReason: "refused",
+        error: "missing --spec",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -487,7 +574,9 @@ describe("steps and cost", () => {
 describe("a result file that left fields out", () => {
   test("a cost with no measured flag counts as measured, not as an estimate", () => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ok: true, costUsd: 2, terminalReason: "completed" }) });
+    const runner = makeRunner({
+      readResult: () => ({ ok: true, costUsd: 2, terminalReason: "completed" }),
+    });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.results[0]?.costMeasured).toBe(true);
@@ -515,7 +604,9 @@ describe("a result file that left fields out", () => {
   // existed.
   test("a result with no tokens leaves the step and the job without a count", () => {
     const job = enqueue();
-    const runner = makeRunner({ readResult: () => ({ ok: true, costUsd: 1, terminalReason: "completed" }) });
+    const runner = makeRunner({
+      readResult: () => ({ ok: true, costUsd: 1, terminalReason: "completed" }),
+    });
     runner.tick();
     runner.poll();
     const after = store.get(job.id)!;
@@ -526,7 +617,12 @@ describe("a result file that left fields out", () => {
   test("a tokens field of the wrong shape is dropped, not carried", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ok: true, costUsd: 1, terminalReason: "completed", tokens: "lots" }),
+      readResult: () => ({
+        ok: true,
+        costUsd: 1,
+        terminalReason: "completed",
+        tokens: "lots",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -602,7 +698,10 @@ describe("a deploy takes no slot", () => {
   test("it starts with every slot busy, and a queued analyze still waits", () => {
     const a = enqueue();
     const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const queuedAnalyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const queuedAnalyze = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const d = deploy();
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -610,7 +709,11 @@ describe("a deploy takes no slot", () => {
     expect(store.get(b.id)?.state).toBe("running");
     expect(store.get(d.id)?.state).toBe("running");
     expect(store.get(queuedAnalyze.id)?.state).toBe("queued");
-    expect(spawns.map((s) => s.step).sort()).toEqual(["analyze", "analyze", "deploy"]);
+    expect(spawns.map((s) => s.step).sort()).toEqual([
+      "analyze",
+      "analyze",
+      "deploy",
+    ]);
   });
 
   test("a running deploy is not counted against the slots", () => {
@@ -633,7 +736,10 @@ describe("a create takes no slot", () => {
     const a = enqueue();
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
-    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const c = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["create"],
+    });
     runner.tick();
     expect(store.get(a.id)?.state).toBe("running");
     expect(store.get(c.id)?.state).toBe("running");
@@ -664,9 +770,16 @@ describe("a create takes no slot", () => {
     const a = enqueue();
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
-    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const c = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["create"],
+    });
     const i = enqueue({ project: "other-project", steps: ["implement"] });
-    const r = enqueue({ project: "other-project", specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    const r = enqueue({
+      project: "other-project",
+      specFolder: "91-parallel-spec-runs",
+      steps: ["archive"],
+    });
     runner.tick();
     expect(store.get(a.id)?.state).toBe("running");
     expect(store.get(c.id)?.state).toBe("running");
@@ -682,7 +795,10 @@ describe("a create takes no slot", () => {
       readResult: (path) => (finished.has(path) ? okResult(1) : null),
     });
     runner.tick();
-    const j = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create", "analyze"] });
+    const j = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["create", "analyze"],
+    });
     runner.tick();
     expect(store.get(j.id)?.state).toBe("running");
     finished.add(join(dir, `${j.id}.json`));
@@ -698,27 +814,46 @@ describe("a create takes no slot", () => {
 // place after it.
 describe("a job held for a usage limit", () => {
   const limitHold = (id: string) =>
-    new Map([[id, { key: "runner.usageLimitHeld" as const, values: { tool: "claude", at: "2026-08-16T14:00:00.000Z" } }]]);
+    new Map([
+      [
+        id,
+        {
+          key: "runner.usageLimitHeld" as const,
+          values: { tool: "claude", at: "2026-08-16T14:00:00.000Z" },
+        },
+      ],
+    ]);
 
   test("carries its sentence and is not spawned, even while every slot is busy (AC-8)", () => {
     enqueue({ steps: ["implement"] });
-    const held = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const held = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
     expect(spawns).toHaveLength(1);
     runner.tick(undefined, undefined, undefined, limitHold(held.id));
     expect(store.get(held.id)?.state).toBe("queued");
     expect(store.get(held.id)?.errorReason).toBe("held-back");
-    expect((store.get(held.id)?.error as { key: string }).key).toBe("runner.usageLimitHeld");
+    expect((store.get(held.id)?.error as { key: string }).key).toBe(
+      "runner.usageLimitHeld",
+    );
     expect(spawns).toHaveLength(1);
   });
 
   test("a job held for another reason while every slot is busy still reads as queued (AC-8)", () => {
     enqueue({ steps: ["implement"] });
-    const waiting = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const waiting = enqueue({
+      specFolder: "91-parallel-spec-runs",
+      steps: ["implement"],
+    });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
-    runner.tick(undefined, new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]));
+    runner.tick(
+      undefined,
+      new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]),
+    );
     expect(store.get(waiting.id)?.error).toBeUndefined();
   });
 

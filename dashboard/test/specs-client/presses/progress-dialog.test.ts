@@ -4,23 +4,36 @@
 // refusal lifts the cover and asks again with the reason.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { coverWhile, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import {
+  coverWhile,
+  submitProgress,
+  type ProgressIo,
+} from "../../../src/specs-client/progress-dialog";
 
-type Listener = (e: { preventDefault(): void; defaultPrevented: boolean }) => void;
+type Listener = (e: {
+  preventDefault(): void;
+  defaultPrevented: boolean;
+}) => void;
 
 function fakeDialog() {
   const listeners: Record<string, Listener[]> = {};
   const dialog = {
     shows: 0,
     closes: 0,
-    addEventListener: (type: string, fn: Listener) => (listeners[type] ??= []).push(fn),
+    addEventListener: (type: string, fn: Listener) =>
+      (listeners[type] ??= []).push(fn),
     /** How many listeners of `type` are attached. */
     count: (type: string) => (listeners[type] ?? []).length,
     close() {
       dialog.closes += 1;
     },
     fire(type: string) {
-      const e = { defaultPrevented: false, preventDefault() { e.defaultPrevented = true; } };
+      const e = {
+        defaultPrevented: false,
+        preventDefault() {
+          e.defaultPrevented = true;
+        },
+      };
       for (const fn of listeners[type] ?? []) fn(e);
       return e;
     },
@@ -64,12 +77,21 @@ afterEach(() => {
 /** The post: what the server answers, and the requests it received. */
 function stubPost(status: number, body: unknown) {
   const requests: { headers: Record<string, string> }[] = [];
-  (globalThis as unknown as { document: unknown }).document = { dispatchEvent: () => true, querySelectorAll: () => [] };
+  (globalThis as unknown as { document: unknown }).document = {
+    dispatchEvent: () => true,
+    querySelectorAll: () => [],
+  };
   (globalThis as unknown as { FormData: unknown }).FormData = class {
     forEach(): void {}
   };
-  (globalThis as unknown as { location: unknown }).location = { href: "http://dash.test/", pathname: "/" };
-  (globalThis as unknown as { fetch: unknown }).fetch = async (_url: string, init: { headers: Record<string, string> }) => {
+  (globalThis as unknown as { location: unknown }).location = {
+    href: "http://dash.test/",
+    pathname: "/",
+  };
+  (globalThis as unknown as { fetch: unknown }).fetch = async (
+    _url: string,
+    init: { headers: Record<string, string> },
+  ) => {
     requests.push(init);
     return { ok: status < 400, status, json: async () => body };
   };
@@ -77,7 +99,12 @@ function stubPost(status: number, body: unknown) {
 }
 
 const submit = () => {
-  const e = { defaultPrevented: false, preventDefault() { e.defaultPrevented = true; } };
+  const e = {
+    defaultPrevented: false,
+    preventDefault() {
+      e.defaultPrevented = true;
+    },
+  };
   return e as unknown as Event;
 };
 
@@ -95,7 +122,8 @@ function fakeAsk() {
       ask.closes += 1;
       ask.open = false;
     },
-    getAttribute: (name: string) => (name === "data-cover-note" ? "Deploying…" : null),
+    getAttribute: (name: string) =>
+      name === "data-cover-note" ? "Deploying…" : null,
     querySelector: (sel: string) => (sel === ".refused" ? refused : null),
   });
   const form = {
@@ -104,14 +132,24 @@ function fakeAsk() {
     dataset: { progress: "" } as Record<string, string>,
     querySelector: () => null,
     querySelectorAll: () => [],
-    closest: (sel: string) => (sel.includes("data-progress-dialog") ? ask : null),
+    closest: (sel: string) =>
+      sel.includes("data-progress-dialog") ? ask : null,
   } as unknown as HTMLFormElement;
   return { ask, form, line: refused };
 }
 
 describe("submitProgress from inside the ask", () => {
   test("posts for JSON, covers the page with the dialog's word, and goes to the Running page with the job's row open", async () => {
-    const requests = stubPost(200, { ok: true, job: { id: "j1", project: "aide", specFolder: "150-x", steps: ["reopen"], stepIndex: 0 } });
+    const requests = stubPost(200, {
+      ok: true,
+      job: {
+        id: "j1",
+        project: "aide",
+        specFolder: "150-x",
+        steps: ["reopen"],
+        stepIndex: 0,
+      },
+    });
     const a = fakeAsk();
     a.ask.open = true;
     const io = fakeIo();

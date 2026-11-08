@@ -5,10 +5,22 @@ import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue } from "../discover";
 import { isPreviewFrom, parseManifest } from "../parse-manifest.ts";
-import { oneLine, previewFromError, specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";
+import {
+  oneLine,
+  previewFromError,
+  specsPathError,
+  upsertManifestScalar,
+  worktreeLinksError,
+  writeAideConfig,
+} from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
 import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
-import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
+import {
+  fail,
+  type ProjectAdminResult,
+  type ProjectStep,
+  type ProjectStepName,
+} from "./types.ts";
 
 /** What a project may say about where its archived code goes.
  *  Two values, not the runner's three: `none` is an operational
@@ -85,7 +97,15 @@ export async function updateProjectSettings(
   // A value is one line. A field the request does not carry stays
   // absent, so a partial save clears nothing.
   const req = { ...raw };
-  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "acPrefix", "description"] as const) {
+  for (const key of [
+    "specsPath",
+    "worktreeLinks",
+    "installCmd",
+    "previewCmd",
+    "testCmd",
+    "acPrefix",
+    "description",
+  ] as const) {
     if (req[key] !== undefined) req[key] = oneLine(req[key]);
   }
   const links = (req.worktreeLinks ?? "").trim();
@@ -100,7 +120,10 @@ export async function updateProjectSettings(
   // written at all.
   const landing = (req.codeLanding ?? "").trim();
   if (landing && !(CODE_LANDINGS as readonly string[]).includes(landing)) {
-    return fail("codeLanding", `code landing must be ${CODE_LANDINGS.join(" or ")} — not "${landing}"`);
+    return fail(
+      "codeLanding",
+      `code landing must be ${CODE_LANDINGS.join(" or ")} — not "${landing}"`,
+    );
   }
   const previewFrom = (req.previewFrom ?? "").trim();
   if (req.previewFrom !== undefined && !isPreviewFrom(previewFrom)) {
@@ -114,7 +137,10 @@ export async function updateProjectSettings(
   });
 
   const specsPath = (req.specsPath ?? "").trim();
-  if (req.specsPath !== undefined && specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
+  if (
+    req.specsPath !== undefined &&
+    specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")
+  ) {
     // Made where it is not there yet, `archive/` and all — the same
     // thing Add does, for the same reason: a path configured and absent
     // is a refusal over something known the moment it was written.
@@ -147,18 +173,35 @@ export async function updateProjectSettings(
   // and nothing reaches the project's repository; git unable to say
   // writes nothing for a manifest key. Callers that give no settings
   // file keep the older behaviour.
-  const home = opts.settingsFile ? await manifestTracked(run, projectDir) : { tracked: true as boolean | null };
+  const home = opts.settingsFile
+    ? await manifestTracked(run, projectDir)
+    : { tracked: true as boolean | null };
   const settingsFile = home.tracked === false ? opts.settingsFile : undefined;
-  const readPath = settingsFile ? (existsSync(settingsFile) ? settingsFile : manifest) : manifest;
-  const settingsEdits: { key: string; value: string; step: ProjectStepName }[] = [];
+  const readPath = settingsFile
+    ? existsSync(settingsFile)
+      ? settingsFile
+      : manifest
+    : manifest;
+  const settingsEdits: { key: string; value: string; step: ProjectStepName }[] =
+    [];
   // Where a manifest edit goes: into the file here, or — when the
   // caller commits it (the Settings route, into the dashboard's own
   // checkout) — gathered and handed over once at the end, so three keys
   // changed in one save are one commit and nothing is left on disk.
-  const manifestEdits: { key: string; value: string; step: ProjectStepName }[] = [];
-  const writeManifest = (key: string, value: string, step: ProjectStepName): void => {
+  const manifestEdits: { key: string; value: string; step: ProjectStepName }[] =
+    [];
+  const writeManifest = (
+    key: string,
+    value: string,
+    step: ProjectStepName,
+  ): void => {
     if (home.tracked === null) {
-      steps.push({ step, ok: false, error: home.why ?? "git could not say whether .aide/project.yaml is tracked" });
+      steps.push({
+        step,
+        ok: false,
+        error:
+          home.why ?? "git could not say whether .aide/project.yaml is tracked",
+      });
       return;
     }
     if (settingsFile) {
@@ -188,11 +231,16 @@ export async function updateProjectSettings(
       })()
     : {};
   const fromManifest = (v: string | undefined): string => (v ?? "").trim();
-  const fromConfig = (key: string): string => configValue(projectDir, key) ?? "";
+  const fromConfig = (key: string): string =>
+    configValue(projectDir, key) ?? "";
 
   // Changed-only, like `specsPath` above, and gated on presence in `req`:
   // a caller that never mentions a field must not blank it.
-  const writeConfigField = (step: ProjectStepName, configKey: string, value: string): void => {
+  const writeConfigField = (
+    step: ProjectStepName,
+    configKey: string,
+    value: string,
+  ): void => {
     const trimmed = value.trim();
     if (trimmed === fromConfig(configKey)) return;
     try {
@@ -220,52 +268,115 @@ export async function updateProjectSettings(
   ): void => {
     if (value === undefined) return;
     if (inConfig) writeConfigField(step, configKey, value);
-    else if (value.trim() !== stored) writeManifest(manifestKey, value.trim(), step);
+    else if (value.trim() !== stored)
+      writeManifest(manifestKey, value.trim(), step);
   };
   const storedLinks = fromManifest(manifestData.worktreeLinks);
-  save("worktreeLinks", req.worktreeLinks, "", "worktreeLinks", storedLinks, false);
-  save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
-  save("previewCmd", req.previewCmd, "", "previewCmd", fromManifest(manifestData.previewCmd), false);
-  save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
-  save("acPrefix", req.acPrefix, "", "acPrefix", fromManifest(manifestData.acPrefix), false);
+  save(
+    "worktreeLinks",
+    req.worktreeLinks,
+    "",
+    "worktreeLinks",
+    storedLinks,
+    false,
+  );
+  save(
+    "installCmd",
+    req.installCmd,
+    "AIDE_INSTALL_CMD",
+    "installCmd",
+    "",
+    true,
+  );
+  save(
+    "previewCmd",
+    req.previewCmd,
+    "",
+    "previewCmd",
+    fromManifest(manifestData.previewCmd),
+    false,
+  );
+  save(
+    "testCmd",
+    req.testCmd,
+    "",
+    "AIDE_TEST_CMD",
+    fromManifest(manifestData.AIDE_TEST_CMD),
+    false,
+  );
+  save(
+    "acPrefix",
+    req.acPrefix,
+    "",
+    "acPrefix",
+    fromManifest(manifestData.acPrefix),
+    false,
+  );
   // Compared folded to one line, as the form posts it back: a description
   // an older Add stored over several lines would otherwise differ from its
   // own folded value and be rewritten by every save.
-  save("description", req.description, "", "description", oneLine(fromManifest(manifestData.description)), false);
+  save(
+    "description",
+    req.description,
+    "",
+    "description",
+    oneLine(fromManifest(manifestData.description)),
+    false,
+  );
 
   // `merge` is the default, so choosing it takes the key OUT
   // rather than spelling today's behaviour into every project's
   // manifest — which is exactly what `upsertManifestScalar` does with an
   // empty value.
   const wanted = landing === "merge" ? "" : landing;
-  if (req.codeLanding !== undefined && wanted !== (manifestData.codeLanding ?? "")) {
+  if (
+    req.codeLanding !== undefined &&
+    wanted !== (manifestData.codeLanding ?? "")
+  ) {
     writeManifest("codeLanding", wanted, "codeLanding");
   }
 
   // Compared with what the readers resolve (`resolvePreviewFrom`): no key
   // and a word they do not know both count as `none`. A changed value is
   // written as it is, `none` included, so the line is replaced in place.
-  if (req.previewFrom !== undefined && previewFrom !== (manifestData.deployment?.previewFrom ?? "none")) {
+  if (
+    req.previewFrom !== undefined &&
+    previewFrom !== (manifestData.deployment?.previewFrom ?? "none")
+  ) {
     writeManifest("deployment.previewFrom", previewFrom, "previewFrom");
   }
 
   if (settingsFile && settingsEdits.length) {
     try {
-      applySettingsEdits(settingsFile, settingsEdits.map(({ key, value }) => ({ key, value })), [manifest]);
+      applySettingsEdits(
+        settingsFile,
+        settingsEdits.map(({ key, value }) => ({ key, value })),
+        [manifest],
+      );
     } catch (err) {
       for (const edit of settingsEdits) {
         const failed = steps.find((st) => st.ok && st.step === edit.step);
-        if (failed) Object.assign(failed, { ok: false, error: `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}` });
+        if (failed)
+          Object.assign(failed, {
+            ok: false,
+            error: `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`,
+          });
       }
     }
   }
   if (opts.saveManifest && manifestEdits.length) {
-    const saved = await opts.saveManifest(manifestEdits.map(({ key, value }) => ({ key, value })));
+    const saved = await opts.saveManifest(
+      manifestEdits.map(({ key, value }) => ({ key, value })),
+    );
     for (const edit of manifestEdits) {
       steps.push(
         saved.ok
           ? { step: edit.step, ok: true }
-          : { step: edit.step, ok: false, error: `could not commit .aide/project.yaml: ${saved.note ?? "no reason given"}` },
+          : {
+              step: edit.step,
+              ok: false,
+              error: `could not commit .aide/project.yaml: ${saved.note ?? "no reason given"}`,
+            },
       );
     }
   }
@@ -275,4 +386,6 @@ export async function updateProjectSettings(
 
 /** How a caller commits the manifest keys a save changed, instead of
  *  leaving them on disk. `ok: false` carries the reason in `note`. */
-export type SaveManifest = (edits: { key: string; value: string }[]) => Promise<{ ok: boolean; note?: string }>;
+export type SaveManifest = (
+  edits: { key: string; value: string }[],
+) => Promise<{ ok: boolean; note?: string }>;

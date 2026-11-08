@@ -8,14 +8,25 @@ import type { ProjectView } from "../../../src/render";
 import { settingsHome } from "../../../src/project/project-admin";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
-const view: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
+const view: ProjectView = {
+  name: "aide",
+  manifest: { ok: false, error: "no manifest" },
+  specs: [],
+};
 const page = (home: "project" | "dashboard" | "shadowed" | "none") =>
-  renderProjectPage(view, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", NAV, {
-    worktreeLinkCandidates: [],
-    editingGroup: null,
-    tab: "config",
-    settingsHome: home,
-  });
+  renderProjectPage(
+    view,
+    { hasConfigFile: false, rows: [] },
+    null,
+    "2026-09-20T00:00:00Z",
+    NAV,
+    {
+      worktreeLinkCandidates: [],
+      editingGroup: null,
+      tab: "config",
+      settingsHome: home,
+    },
+  );
 
 describe("where the settings are kept", () => {
   test.each([
@@ -24,9 +35,12 @@ describe("where the settings are kept", () => {
     [true, true, "shadowed"],
     [false, false, "none"],
     [null, false, "none"],
-  ] as const)("tracked=%p, settings file=%p is %p", (tracked, exists, expected) => {
-    expect(settingsHome(tracked, exists)).toBe(expected);
-  });
+  ] as const)(
+    "tracked=%p, settings file=%p is %p",
+    (tracked, exists, expected) => {
+      expect(settingsHome(tracked, exists)).toBe(expected);
+    },
+  );
 
   test("the manifest table is headed settings.yaml when the dashboard keeps them", () => {
     const html = page("dashboard");

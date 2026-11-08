@@ -4,18 +4,24 @@
 import { describe, expect, test } from "bun:test";
 import { harness, OK_ACTION } from "./fixtures.ts";
 
-const carriesToken = (url: string) => new URL(url, "http://x").searchParams.has("token");
+const carriesToken = (url: string) =>
+  new URL(url, "http://x").searchParams.has("token");
 
 describe("no token parameter is appended to a press", () => {
   test("press: a row button posts to the form's address as it is", async () => {
-    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
+    const h = harness((url) =>
+      url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true },
+    );
     await h.submit();
     const posted = h.requests.find((r) => r.url.includes("/cancel"))!;
     expect(carriesToken(posted.url)).toBe(false);
   });
 
   test("tail-actions: a tail box's tick posts without it", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-1" } } }));
+    const h = harness(() => ({
+      ok: true,
+      body: { ok: true, job: { id: "job-1" } },
+    }));
     await h.changeTail(true);
     const posted = h.requests.find((r) => r.url.includes("/steps"))!;
     expect(carriesToken(posted.url)).toBe(false);

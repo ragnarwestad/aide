@@ -4,7 +4,12 @@
 // folded into run-controls.ts, so that file stays the size its own
 // header comment already notes a 2026-09-04 split at. Has no fallback
 // page behind it: the dialog's page script reads the answer.
-import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
+import {
+  bodyToObject,
+  json,
+  logRefusal,
+  readBounded,
+} from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
@@ -14,15 +19,22 @@ export async function closeControlRoutes(
   req: Request,
   path: string,
 ): Promise<Response | null> {
-  const closePost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/);
+  const closePost = path.match(
+    /^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/close$/,
+  );
   if (closePost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = closePost;
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     let body: Record<string, unknown> = {};
     try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      if (sent.text)
+        body = bodyToObject(
+          sent.text,
+          req.headers.get("content-type"),
+        ) as Record<string, unknown>;
     } catch {
       return json({ error: "malformed body" }, 400);
     }
@@ -33,14 +45,30 @@ export async function closeControlRoutes(
     if (!reason) return refuseClose("type a reason to close this spec");
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
-    if (ref.archived) return refuseClose(`${specFolder} is archived — Close is only for active specs`);
+    if (ref.archived)
+      return refuseClose(
+        `${specFolder} is archived — Close is only for active specs`,
+      );
     // The same job-in-flight check Reset's own POST makes.
-    if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
-    if (ctx.queue.list().some((job) =>
-      job.project === project && job.specFolder === specFolder &&
-      (job.state === "queued" || job.state === "running")
-    )) return refuseClose("another job for this spec is still running");
-    const result = ctx.queue.enqueue({ project, specFolder, steps: ["close"], closeReason: reason });
+    if (landingInProject(ctx.queue.list(), project!))
+      return refuseClose("a landing is in progress");
+    if (
+      ctx.queue
+        .list()
+        .some(
+          (job) =>
+            job.project === project &&
+            job.specFolder === specFolder &&
+            (job.state === "queued" || job.state === "running"),
+        )
+    )
+      return refuseClose("another job for this spec is still running");
+    const result = ctx.queue.enqueue({
+      project,
+      specFolder,
+      steps: ["close"],
+      closeReason: reason,
+    });
     if (!result.ok) {
       logRefusal("close", `${project}/${specFolder}`, result.error);
       return refuseClose(result.error);

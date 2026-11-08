@@ -24,7 +24,11 @@ async function queued(base: string): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { accept: "application/json", "content-type": "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
+    body: JSON.stringify({
+      project: "aide",
+      specFolder: SPEC,
+      steps: ["analyze"],
+    }),
   });
   return ((await res.json()) as { job: { id: string } }).job.id;
 }
@@ -35,41 +39,160 @@ async function expectJson(res: Response): Promise<void> {
   expect(res.status < 300 || res.status >= 400).toBe(true);
   expect(res.headers.get("location")).toBeNull();
   expect(res.headers.get("content-type") ?? "").toContain("application/json");
-  const body = (await res.json()) as { ok?: boolean; error?: string; results?: { error?: string }[] };
+  const body = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    results?: { error?: string }[];
+  };
   if (res.status < 400) expect(body.ok).toBe(true);
-  else expect(body.error ?? body.results?.find((r) => r.error)?.error).toEqual(expect.any(String));
+  else
+    expect(body.error ?? body.results?.find((r) => r.error)?.error).toEqual(
+      expect.any(String),
+    );
 }
 
 /** Each action family, with a body that reaches its answer: a refusal
  *  where a refusal is cheap to reach, a success where it is not. */
-const PRESSES: { name: string; path: (job: string) => string; fields?: [string, string][] }[] = [
-  { name: "create", path: () => "/api/queue/create", fields: [["project", "nope"], ["title", "x"]] },
-  { name: "run", path: () => "/api/queue", fields: [["project", "aide"], ["specFolder", "no-such-spec"], ["steps", "analyze"]] },
+const PRESSES: {
+  name: string;
+  path: (job: string) => string;
+  fields?: [string, string][];
+}[] = [
+  {
+    name: "create",
+    path: () => "/api/queue/create",
+    fields: [
+      ["project", "nope"],
+      ["title", "x"],
+    ],
+  },
+  {
+    name: "run",
+    path: () => "/api/queue",
+    fields: [
+      ["project", "aide"],
+      ["specFolder", "no-such-spec"],
+      ["steps", "analyze"],
+    ],
+  },
   { name: "cancel", path: (job) => `/api/queue/${job}/cancel` },
-  { name: "a running job's steps", path: (job) => `/api/queue/${job}/steps`, fields: [["step", "bogus"], ["checked", "1"]] },
-  { name: "a running job's model", path: (job) => `/api/queue/${job}/model`, fields: [["step", "bogus"], ["model", "x"]] },
-  { name: "a spec's model", path: () => `/api/queue/specs/aide/${SPEC}/model`, fields: [["step", "bogus"], ["model", "x"]] },
-  { name: "close", path: () => `/api/queue/specs/aide/${SPEC}/close`, fields: [["reason", ""]] },
-  { name: "delete branch", path: () => `/api/queue/specs/aide/${SPEC}/delete-branch` },
-  { name: "a spec's test server start", path: () => `/api/queue/specs/aide/${SPEC}/test-server` },
-  { name: "a spec's test server stop", path: () => `/api/queue/specs/aide/${SPEC}/test-server/stop` },
+  {
+    name: "a running job's steps",
+    path: (job) => `/api/queue/${job}/steps`,
+    fields: [
+      ["step", "bogus"],
+      ["checked", "1"],
+    ],
+  },
+  {
+    name: "a running job's model",
+    path: (job) => `/api/queue/${job}/model`,
+    fields: [
+      ["step", "bogus"],
+      ["model", "x"],
+    ],
+  },
+  {
+    name: "a spec's model",
+    path: () => `/api/queue/specs/aide/${SPEC}/model`,
+    fields: [
+      ["step", "bogus"],
+      ["model", "x"],
+    ],
+  },
+  {
+    name: "close",
+    path: () => `/api/queue/specs/aide/${SPEC}/close`,
+    fields: [["reason", ""]],
+  },
+  {
+    name: "delete branch",
+    path: () => `/api/queue/specs/aide/${SPEC}/delete-branch`,
+  },
+  {
+    name: "a spec's test server start",
+    path: () => `/api/queue/specs/aide/${SPEC}/test-server`,
+  },
+  {
+    name: "a spec's test server stop",
+    path: () => `/api/queue/specs/aide/${SPEC}/test-server/stop`,
+  },
   { name: "tick", path: () => `/api/queue/specs/aide/${SPEC}/tick` },
-  { name: "tracking", path: () => `/api/queue/specs/aide/${SPEC}/tracking`, fields: [["dependsOn", "999"]] },
-  { name: "save", path: () => `/api/queue/specs/aide/${SPEC}/save`, fields: [["file", "4-status.md"], ["text", "x"]] },
+  {
+    name: "tracking",
+    path: () => `/api/queue/specs/aide/${SPEC}/tracking`,
+    fields: [["dependsOn", "999"]],
+  },
+  {
+    name: "save",
+    path: () => `/api/queue/specs/aide/${SPEC}/save`,
+    fields: [
+      ["file", "4-status.md"],
+      ["text", "x"],
+    ],
+  },
   { name: "update", path: () => `/api/queue/specs/aide/${SPEC}/update` },
   { name: "settings", path: () => "/api/queue/settings" },
-  { name: "concurrency", path: () => "/api/queue/settings/concurrency", fields: [["concurrency", "2"]] },
-  { name: "add a model choice", path: () => "/api/queue/settings/models/add", fields: [["tool", "codex"], ["model", "gpt-5.5"]] },
-  { name: "remove a model choice", path: () => "/api/queue/settings/models/remove", fields: [["name", "nope"]] },
-  { name: "add project", path: () => "/api/queue/projects", fields: [["name", ""]] },
-  { name: "project settings", path: () => "/api/queue/projects/nope/settings", fields: [["specsPath", "x"]] },
+  {
+    name: "concurrency",
+    path: () => "/api/queue/settings/concurrency",
+    fields: [["concurrency", "2"]],
+  },
+  {
+    name: "add a model choice",
+    path: () => "/api/queue/settings/models/add",
+    fields: [
+      ["tool", "codex"],
+      ["model", "gpt-5.5"],
+    ],
+  },
+  {
+    name: "remove a model choice",
+    path: () => "/api/queue/settings/models/remove",
+    fields: [["name", "nope"]],
+  },
+  {
+    name: "add project",
+    path: () => "/api/queue/projects",
+    fields: [["name", ""]],
+  },
+  {
+    name: "project settings",
+    path: () => "/api/queue/projects/nope/settings",
+    fields: [["specsPath", "x"]],
+  },
   { name: "remove project", path: () => "/api/queue/projects/nope/remove" },
-  { name: "a project's test server stop", path: () => "/api/queue/projects/aide/test-server/stop" },
-  { name: "schedule create", path: () => "/api/queue/schedule", fields: [["project", "aide"], ["name", ""], ["cron", "x"]] },
-  { name: "schedule edit", path: () => "/api/queue/schedule/aide/nightly", fields: [["name", ""], ["cron", "x"]] },
-  { name: "schedule enabled", path: () => "/api/queue/schedule/aide/nightly/enabled", fields: [["enabled", "1"]] },
+  {
+    name: "a project's test server stop",
+    path: () => "/api/queue/projects/aide/test-server/stop",
+  },
+  {
+    name: "schedule create",
+    path: () => "/api/queue/schedule",
+    fields: [
+      ["project", "aide"],
+      ["name", ""],
+      ["cron", "x"],
+    ],
+  },
+  {
+    name: "schedule edit",
+    path: () => "/api/queue/schedule/aide/nightly",
+    fields: [
+      ["name", ""],
+      ["cron", "x"],
+    ],
+  },
+  {
+    name: "schedule enabled",
+    path: () => "/api/queue/schedule/aide/nightly/enabled",
+    fields: [["enabled", "1"]],
+  },
   { name: "schedule run", path: () => "/api/queue/schedule/aide/nightly/run" },
-  { name: "schedule delete", path: () => "/api/queue/schedule/aide/nightly/delete" },
+  {
+    name: "schedule delete",
+    path: () => "/api/queue/schedule/aide/nightly/delete",
+  },
 ];
 
 describe("every action answers JSON, never a redirect", () => {
@@ -85,7 +208,12 @@ describe("every action answers JSON, never a redirect", () => {
 describe("a refused Run gives the problem and the fix apart", () => {
   test("an unknown model answers error and solution", async () => {
     const { base } = start();
-    const res = await press(base, "/api/queue", [["project", "aide"], ["specFolder", SPEC], ["steps", "analyze"], ["model", "no-such-model"]]);
+    const res = await press(base, "/api/queue", [
+      ["project", "aide"],
+      ["specFolder", SPEC],
+      ["steps", "analyze"],
+      ["model", "no-such-model"],
+    ]);
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error?: string; solution?: string };
     expect(body.error).toEqual(expect.any(String));

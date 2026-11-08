@@ -5,7 +5,16 @@
 // (`core/scripts/lib/run-spec/setup/git-hooks.sh`).
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../src/git/branch-status.ts";
@@ -25,12 +34,16 @@ function repoWithPlantedHook(): { repo: string; marker: string } {
   const repo = join(dir, "repo");
   const marker = join(dir, "hook-ran.txt");
   mkdirSync(join(repo, ".githooks"), { recursive: true });
-  const git = (...args: string[]) => Bun.spawnSync({ cmd: ["git", ...args], cwd: repo });
+  const git = (...args: string[]) =>
+    Bun.spawnSync({ cmd: ["git", ...args], cwd: repo });
   git("init", "-q");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "Test");
   git("config", "core.hooksPath", ".githooks");
-  writeFileSync(join(repo, ".githooks", "pre-commit"), `#!/bin/sh\necho ran >> ${marker}\n`);
+  writeFileSync(
+    join(repo, ".githooks", "pre-commit"),
+    `#!/bin/sh\necho ran >> ${marker}\n`,
+  );
   chmodSync(join(repo, ".githooks", "pre-commit"), 0o755);
   return { repo, marker };
 }
@@ -38,7 +51,13 @@ function repoWithPlantedHook(): { repo: string; marker: string } {
 describe("the landing's git runs no hooks", () => {
   test("a commit through the dashboard's git runner", async () => {
     const { repo, marker } = repoWithPlantedHook();
-    const result = await createGitRunner()(repo, ["commit", "-q", "--allow-empty", "-m", "landed"]);
+    const result = await createGitRunner()(repo, [
+      "commit",
+      "-q",
+      "--allow-empty",
+      "-m",
+      "landed",
+    ]);
     expect(result.code).toBe(0);
     expect(existsSync(marker)).toBe(false);
   });
@@ -52,7 +71,13 @@ describe("the landing's git runs no hooks", () => {
       `#!/bin/sh\ngit commit -q --allow-empty -m numbered || exit 1\nprintf '{"ok":true,"specFolder":"07-x"}\\n'\n`,
     );
     chmodSync(join(bin, "aide-create-spec"), 0o755);
-    const answer = await assignSpecNumberAfterMerge(repo, repo, repo, "new-abc12345", { scriptDir: bin });
+    const answer = await assignSpecNumberAfterMerge(
+      repo,
+      repo,
+      repo,
+      "new-abc12345",
+      { scriptDir: bin },
+    );
     expect(answer).toEqual({ ok: true, specFolder: "07-x" });
     expect(existsSync(marker)).toBe(false);
   });
@@ -61,23 +86,33 @@ describe("the landing's git runs no hooks", () => {
 describe("the runner and the landing turn hooks off the same way", () => {
   test("the bash side's git function passes the same setting", () => {
     const bash = readFileSync(
-      new URL("../../../core/scripts/lib/run-spec/setup/git-hooks.sh", import.meta.url),
+      new URL(
+        "../../../core/scripts/lib/run-spec/setup/git-hooks.sh",
+        import.meta.url,
+      ),
       "utf8",
     );
     const calls = bash.match(/command git -c \S+/g) ?? [];
     expect(calls.length).toBeGreaterThan(0);
-    expect(new Set(calls)).toEqual(new Set([`command git ${NO_GIT_HOOKS.join(" ")}`]));
+    expect(new Set(calls)).toEqual(
+      new Set([`command git ${NO_GIT_HOOKS.join(" ")}`]),
+    );
   });
 });
 
 describe("every git the landing starts itself carries the setting", () => {
   test("no git command line under src/serve/land-branch goes without it", () => {
-    const dir = new URL("../../src/serve/land-branch/", import.meta.url).pathname;
+    const dir = new URL("../../src/serve/land-branch/", import.meta.url)
+      .pathname;
     const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
     const bare: string[] = [];
     for (const f of files) {
       for (const line of readFileSync(join(dir, f), "utf8").split("\n")) {
-        if (line.includes('["git",') && !line.includes('["git", ...NO_GIT_HOOKS')) bare.push(`${f}: ${line.trim()}`);
+        if (
+          line.includes('["git",') &&
+          !line.includes('["git", ...NO_GIT_HOOKS')
+        )
+          bare.push(`${f}: ${line.trim()}`);
       }
     }
     expect(bare).toEqual([]);

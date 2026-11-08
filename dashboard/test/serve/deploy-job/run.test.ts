@@ -8,10 +8,19 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import type { Sentence } from "../../../src/i18n/message.ts";
-import { runDeploy, type DeployRunDeps } from "../../../src/serve/deploy-job/run.ts";
+import {
+  runDeploy,
+  type DeployRunDeps,
+} from "../../../src/serve/deploy-job/run.ts";
 import type { DeployFailure } from "../../../src/serve/state.ts";
 import { createRootLock } from "../../../src/serve/serve-helpers";
-import { cleanupHarness, dir, enqueue, resetHarness, store } from "../../queue/runner/runner-fixtures.ts";
+import {
+  cleanupHarness,
+  dir,
+  enqueue,
+  resetHarness,
+  store,
+} from "../../queue/runner/runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -34,7 +43,10 @@ interface Setup {
 }
 
 /** A started deploy job and the dependencies its run is given. */
-function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean } = {}): Setup {
+function setup(
+  over: Partial<DeployRunDeps> = {},
+  opts: { mergeFails?: boolean } = {},
+): Setup {
   const job = enqueue({ specFolder: "deploy", steps: ["deploy"] });
   const resultFile = join(dir, `${job.id}.json`);
   const streamFile = join(dir, `${job.id}.deploy.stream.jsonl`);
@@ -50,9 +62,11 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
   const gitRun: GitRunner = async (_dir, args) => {
     const line = args.join(" ");
     git.push(line);
-    if (line === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: "master\n" };
+    if (line === "rev-parse --abbrev-ref HEAD")
+      return { code: 0, stdout: "master\n" };
     if (line === "rev-parse HEAD") return { code: 0, stdout: `${HEAD}\n` };
-    if (line.startsWith("merge") && opts.mergeFails) return { code: 1, stdout: "", stderr: "not a fast-forward" };
+    if (line.startsWith("merge") && opts.mergeFails)
+      return { code: 1, stdout: "", stderr: "not a fast-forward" };
     return { code: 0, stdout: "" };
   };
   const calls = { install: 0, restart: 0, restartWhenSettled: 0 };
@@ -71,7 +85,10 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     projectRoot: () => ROOT,
     isBoard: (root) => root === ROOT,
     gitRun,
-    branchStatus: { defaultBranch: async () => "master", commitsBehindOrigin: async () => 0 },
+    branchStatus: {
+      defaultBranch: async () => "master",
+      commitsBehindOrigin: async () => 0,
+    },
     mergeLock: lock,
     installCheckout: async () => {
       calls.install += 1;
@@ -99,26 +116,50 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     failures,
     lock,
     writes: () => updates,
-    result: () => (existsSync(resultFile) ? (JSON.parse(readFileSync(resultFile, "utf-8")) as Record<string, unknown>) : undefined),
+    result: () =>
+      existsSync(resultFile)
+        ? (JSON.parse(readFileSync(resultFile, "utf-8")) as Record<
+            string,
+            unknown
+          >)
+        : undefined,
     marks: () => {
       const log = streamFile.replace(/\.stream\.jsonl$/, ".run.log");
       return existsSync(log)
-        ? readFileSync(log, "utf-8").split("\n").filter((l) => l.includes("--- Step")).map((l) => l.replace(/^.*?(--- Step)/, "$1"))
+        ? readFileSync(log, "utf-8")
+            .split("\n")
+            .filter((l) => l.includes("--- Step"))
+            .map((l) => l.replace(/^.*?(--- Step)/, "$1"))
         : [];
     },
   };
 }
 
-const sentenceKey = (s: Setup): unknown => (s.result()?.sentence as { key?: string } | undefined)?.key;
+const sentenceKey = (s: Setup): unknown =>
+  (s.result()?.sentence as { key?: string } | undefined)?.key;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe("a deploy with nothing to restart", () => {
   test("marks its five steps, records the commit it fetched and ends done when the service runs it", async () => {
     const s = setup();
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: true, terminalReason: "completed", tool: "none", costMeasured: false });
-    expect(s.marks().map((m) => m.replace(/^--- Step (\d) of 5: .* — /, "$1 "))).toEqual([
-      "1 started", "1 done", "2 started", "2 done", "3 skipped", "4 skipped", "5 started", "5 done",
+    expect(s.result()).toMatchObject({
+      ok: true,
+      terminalReason: "completed",
+      tool: "none",
+      costMeasured: false,
+    });
+    expect(
+      s.marks().map((m) => m.replace(/^--- Step (\d) of 5: .* — /, "$1 ")),
+    ).toEqual([
+      "1 started",
+      "1 done",
+      "2 started",
+      "2 done",
+      "3 skipped",
+      "4 skipped",
+      "5 started",
+      "5 done",
     ]);
     expect(store.get(s.id)?.deploy).toMatchObject({ root: ROOT, commit: HEAD });
     expect(s.git).toContain("merge -q --ff-only origin/master");
@@ -129,8 +170,14 @@ describe("a deploy with nothing to restart", () => {
   test("ends failed when the service runs an older commit than the checkout, and says so at the top", async () => {
     const s = setup({ readServing: () => ({ sha: OLDER, repoRoot: ROOT }) });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: false, terminalReason: "deploy-failed" });
-    expect(s.result()?.sentence).toEqual({ key: "landing.deployNoRestart", values: { served: OLDER.slice(0, 7), head: HEAD.slice(0, 7) } });
+    expect(s.result()).toMatchObject({
+      ok: false,
+      terminalReason: "deploy-failed",
+    });
+    expect(s.result()?.sentence).toEqual({
+      key: "landing.deployNoRestart",
+      values: { served: OLDER.slice(0, 7), head: HEAD.slice(0, 7) },
+    });
     expect(s.faults.at(-1)).toMatchObject({ key: "landing.deployNoRestart" });
   });
 
@@ -143,9 +190,15 @@ describe("a deploy with nothing to restart", () => {
 
 describe("a deploy that fails stops where it failed", () => {
   test("a fetch that cannot fast-forward ends failed with that sentence, installs nothing and restarts nothing", async () => {
-    const s = setup({ restartRegistered: async () => true }, { mergeFails: true });
+    const s = setup(
+      { restartRegistered: async () => true },
+      { mergeFails: true },
+    );
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: false, terminalReason: "deploy-failed" });
+    expect(s.result()).toMatchObject({
+      ok: false,
+      terminalReason: "deploy-failed",
+    });
     expect(sentenceKey(s)).toBe("landing.deployCannotFastForward");
     expect(s.marks().at(-1)).toContain("Step 1 of 5");
     expect(s.marks().at(-1)).toContain("stopped");
@@ -159,15 +212,25 @@ describe("a deploy that fails stops where it failed", () => {
     const s = setup({
       restartRegistered: async () => true,
       installCheckout: async (r) => {
-        r.installError = { key: "landing.installCommandFailed", values: { command: "make install", code: 2 } };
+        r.installError = {
+          key: "landing.installCommandFailed",
+          values: { command: "make install", code: 2 },
+        };
         r.installDetail = said;
         return false;
       },
     });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: false, sentence: { key: "landing.installCommandFailed" } });
+    expect(s.result()).toMatchObject({
+      ok: false,
+      sentence: { key: "landing.installCommandFailed" },
+    });
     expect(String(s.result()?.error)).toContain(said);
-    expect(s.failures.at(-1)).toMatchObject({ step: "install", sentence: { key: "landing.installCommandFailed" }, detail: said });
+    expect(s.failures.at(-1)).toMatchObject({
+      step: "install",
+      sentence: { key: "landing.installCommandFailed" },
+      detail: said,
+    });
     expect(s.marks().at(-1)).toContain("Step 2 of 5");
     expect(s.marks().at(-1)).toContain("stopped");
     expect(s.calls.restartWhenSettled).toBe(0);
@@ -175,7 +238,12 @@ describe("a deploy that fails stops where it failed", () => {
   });
 
   test("a checkout with no default branch to fetch ends failed with the board's own sentence", async () => {
-    const s = setup({ branchStatus: { defaultBranch: async () => undefined, commitsBehindOrigin: async () => 0 } } as never);
+    const s = setup({
+      branchStatus: {
+        defaultBranch: async () => undefined,
+        commitsBehindOrigin: async () => 0,
+      },
+    } as never);
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(sentenceKey(s)).toBe("landing.deployNoDefaultBranch");
     expect(s.failures.at(-1)).toMatchObject({ step: "fetch" });
@@ -189,13 +257,18 @@ describe("a deploy that fails stops where it failed", () => {
     });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(sentenceKey(s)).toBe("landing.deployBroke");
-    expect(s.failures.at(-1)?.detail).toContain("ENOSPC: no space left on device");
+    expect(s.failures.at(-1)?.detail).toContain(
+      "ENOSPC: no space left on device",
+    );
   });
 
   test("a checkout that is not the board's ends failed before anything is fetched", async () => {
     const s = setup({ isBoard: () => false });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: false, terminalReason: "deploy-failed" });
+    expect(s.result()).toMatchObject({
+      ok: false,
+      terminalReason: "deploy-failed",
+    });
     expect(s.git).toEqual([]);
     expect(s.calls.install).toBe(0);
   });
@@ -205,7 +278,10 @@ describe("a deploy waits for a landing before its fetch", () => {
   test("it fetches nothing while a landing holds the checkout, the job carries the hold, and both go when it clears", async () => {
     const s = setup();
     let release = (): void => {};
-    const held = s.lock.run(ROOT, () => new Promise<void>((r) => (release = r)));
+    const held = s.lock.run(
+      ROOT,
+      () => new Promise<void>((r) => (release = r)),
+    );
     const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     await wait(60);
     expect(s.git.some((l) => l.startsWith("fetch"))).toBe(false);
@@ -226,7 +302,10 @@ describe("a deploy waits for a landing before its fetch", () => {
 describe("a deploy whose service can be restarted", () => {
   /** A restart that waits for a landing for three polls, then clears and fires. */
   function restarting() {
-    const snap: { during?: ReturnType<typeof store.get>; after?: ReturnType<typeof store.get> } = {};
+    const snap: {
+      during?: ReturnType<typeof store.get>;
+      after?: ReturnType<typeof store.get>;
+    } = {};
     const own = { id: "" };
     let fired = 0;
     const s = setup({
@@ -284,7 +363,10 @@ describe("a deploy whose service can be restarted", () => {
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toBeUndefined();
     await wait(120);
-    expect(s.result()).toMatchObject({ ok: false, terminalReason: "deploy-failed" });
+    expect(s.result()).toMatchObject({
+      ok: false,
+      terminalReason: "deploy-failed",
+    });
     expect(sentenceKey(s)).toBe("landing.deployNoAnswer");
   });
 
@@ -298,7 +380,9 @@ describe("a deploy whose service can be restarted", () => {
       restartWaitMs: 30,
     });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    store.transition(s.id, "step-succeeded-last", { finishedAt: new Date().toISOString() });
+    store.transition(s.id, "step-succeeded-last", {
+      finishedAt: new Date().toISOString(),
+    });
     await wait(120);
     expect(s.result()).toBeUndefined();
   });

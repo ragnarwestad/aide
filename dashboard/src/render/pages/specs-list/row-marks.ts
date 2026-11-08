@@ -3,14 +3,31 @@
 // an archive held back for unticked acceptance criteria. Split out of
 // cell-helpers.ts by theme.
 
-import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components";
+import {
+  stepLabel,
+  type BadgeVariant,
+  type MessageVariant,
+} from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
-import { heldBackReasonText, type NoticePart } from "../../ui/job-state/notice.ts";
+import {
+  heldBackReasonText,
+  type NoticePart,
+} from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
-import { BRANCH_PREVIEW, LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
+import {
+  BRANCH_PREVIEW,
+  LANDING_FAILED,
+  NO_PULL_REQUEST,
+  NOT_PUSHED,
+  prErrorOf,
+  prErrorSentence,
+  PULL_REQUEST,
+  TEST_SERVER,
+  TESTS_RED,
+} from "./row-shared.ts";
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
 import { approachChoiceShown } from "./approach-choice";
@@ -19,13 +36,15 @@ import { approachChoiceShown } from "./approach-choice";
  *  there, and a request describes it — worded for both a live row's
  *  `prUrl` and an archived row's `archive.prOpen`, which are the same
  *  fact from a reader's chair. */
-const waitingOnReviewSentence = (lang: Language): string => t(lang, "list.waitingOnReview");
+const waitingOnReviewSentence = (lang: Language): string =>
+  t(lang, "list.waitingOnReview");
 
 /** The sentence a LIVE row carries once implement has completed and the
  *  spec is not yet archived — the same
  *  shape `waitingOnReviewSentence` has, for a fact this dashboard already
  *  knows how to act on (a board on the spec's own branch). */
-const testServerStartLinkSentence = (lang: Language): string => t(lang, "list.testServerStartLink");
+const testServerStartLinkSentence = (lang: Language): string =>
+  t(lang, "list.testServerStartLink");
 
 /** The sentence a LIVE row carries when a push never reached origin
  *  Fixed prose, not `pushError`'s own
@@ -42,7 +61,8 @@ const pushErrorSentence = (lang: Language): string => t(lang, "list.pushError");
  *  Fixed prose, not `branchDeleteError`'s own text: that
  *  text is raw `git push --delete` stderr, tail 200 chars. Names the
  *  checkout. */
-const branchLeftBehindSentence = (lang: Language): string => t(lang, "list.branchLeftBehind");
+const branchLeftBehindSentence = (lang: Language): string =>
+  t(lang, "list.branchLeftBehind");
 
 /** One mark this row's own live-job fields carry, before it is chosen
  *  between (`pullRequestMark`/`errorMarkNotices`, below). */
@@ -72,7 +92,12 @@ function liveMarks(
   branchPreview: (project: string, specFolder: string) => string | undefined,
 ): LiveMark[] {
   const marks: LiveMark[] = [];
-  if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
+  if (g.pushError)
+    marks.push({
+      variant: "refused",
+      label: NOT_PUSHED(lang),
+      sentence: pushErrorSentence(lang),
+    });
   // A landing the project's own suite refused is the one that is not a
   // refusal: the merge was built, the tests on it went red, and nothing
   // was pushed. Amber and its own word, so the row does not read as a
@@ -91,7 +116,11 @@ function liveMarks(
   // phase lines at all, and a badge's title is nothing to read on a
   // phone — and the phase line is what says WHICH step it was.
   if (g.phases.some((p) => prErrorOf(p))) {
-    marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
+    marks.push({
+      variant: "refused",
+      label: NO_PULL_REQUEST(lang),
+      sentence: prErrorSentence(lang),
+    });
   }
   // The same field `resting.ts` already reads to draw the
   // "ready" badge for this exact state — a spec waiting on the round,
@@ -100,7 +129,8 @@ function liveMarks(
   // the hold clears, and also carry the test-server sentence verbatim —
   // the pair joins with " · " the same way any other two marks do rather
   // than one silently dropping the other fact.
-  const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack
+    ?.reason;
   // Not while the archive is running. The note lives in `4-status.md`
   // and is only rewritten when that run gets far enough to write it, so
   // a reader who ticks the last check — which starts the run at once —
@@ -120,7 +150,15 @@ function liveMarks(
   // two — it offers a board built from a branch the run is moving.
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
-    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason), own: true, kind: "acceptance-hold" });
+    marks.push({
+      variant: "waiting",
+      label: t(lang, "list.archiveHeldBackWord", {
+        step: stepLabel("archive", lang),
+      }),
+      sentence: heldBackReasonText(lang, heldBackReason),
+      own: true,
+      kind: "acceptance-hold",
+    });
   }
   // The approaches a ticked spec's analysis found wait for a choice.
   // Worded from the same two calls the held job's own sentence is, so
@@ -130,7 +168,11 @@ function liveMarks(
     marks.push({
       variant: "waiting",
       label: t(lang, "list.archiveHeldBackWord", { step: implement }),
-      sentence: renderSentence(lang, { key: "message.lead", values: { lead: implement }, inner: { key: "runner.approachChoice" } })!,
+      sentence: renderSentence(lang, {
+        key: "message.lead",
+        values: { lead: implement },
+        inner: { key: "runner.approachChoice" },
+      })!,
       own: true,
       kind: "approach-choice",
     });
@@ -145,14 +187,20 @@ function liveMarks(
   // that question again. `quiet` already reads as "a step of this spec is
   // running" across all three run steps (above) — reused as-is, not
   // redefined, so the two marks agree on what "running" means.
-  const implementDone = g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
+  const implementDone =
+    g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
   // Queued counts here, unlike for the note above: an archive that finds
   // a criterion unticked is ended on the spot, so a queued one has been
   // pressed and is about to move the branch the link would build.
   const archiveStarted = !!g.phases
     .find((p) => p.step === "archive")
     ?.attempts.some((a) => a.state === "queued");
-  if (implementDone && !quiet && !archiveStarted && testServerAvailable(g.project, g.specFolder)) {
+  if (
+    implementDone &&
+    !quiet &&
+    !archiveStarted &&
+    testServerAvailable(g.project, g.specFolder)
+  ) {
     marks.push({
       variant: "waiting",
       label: TEST_SERVER(lang),
@@ -164,12 +212,26 @@ function liveMarks(
   // One window says when a branch can be tried, whichever way it is tried:
   // a running or queued step is about to replace or merge what the address
   // shows.
-  const previewAddress = implementDone && !quiet && !archiveStarted ? branchPreview(g.project, g.specFolder) : undefined;
+  const previewAddress =
+    implementDone && !quiet && !archiveStarted
+      ? branchPreview(g.project, g.specFolder)
+      : undefined;
   if (previewAddress) {
-    marks.push({ variant: "waiting", label: BRANCH_PREVIEW(lang), sentence: t(lang, "list.branchPreviewLink"), own: true, href: previewAddress });
+    marks.push({
+      variant: "waiting",
+      label: BRANCH_PREVIEW(lang),
+      sentence: t(lang, "list.branchPreviewLink"),
+      own: true,
+      href: previewAddress,
+    });
   }
   if (g.prUrl) {
-    marks.push({ variant: "waiting", label: PULL_REQUEST(lang), sentence: waitingOnReviewSentence(lang), href: g.prUrl });
+    marks.push({
+      variant: "waiting",
+      label: PULL_REQUEST(lang),
+      sentence: waitingOnReviewSentence(lang),
+      href: g.prUrl,
+    });
   }
   return marks;
 }
@@ -190,7 +252,9 @@ export interface RowMarkNotice {
  *  line takes the label after "Problem:", so the line label stays first. */
 function withLead(lang: Language, lead: string, sentence: string): string {
   const prefix = `${t(lang, "message.problem")}: `;
-  return sentence.startsWith(prefix) ? `${prefix}${lead}: ${sentence.slice(prefix.length)}` : `${lead}: ${sentence}`;
+  return sentence.startsWith(prefix)
+    ? `${prefix}${lead}: ${sentence.slice(prefix.length)}`
+    : `${lead}: ${sentence}`;
 }
 
 /** The four things a LIVE row's own fields can say, ranked exactly as
@@ -206,14 +270,20 @@ export function errorMarkNotices(
   g: SpecGroup,
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
-  branchPreview: (project: string, specFolder: string) => string | undefined = () => undefined,
+  branchPreview: (
+    project: string,
+    specFolder: string,
+  ) => string | undefined = () => undefined,
 ): RowMarkNotice[] {
   const marks = liveMarks(g, lang, testServerAvailable, branchPreview);
   // The mark's own variant decides the colour: every one of these is a
   // refusal except a landing the project's suite went red on, or a pull
   // request waiting on review, neither of which is broken.
   return marks.map((m) => ({
-    variant: m.variant === "waiting" ? ("waiting" as MessageVariant) : ("failed" as MessageVariant),
+    variant:
+      m.variant === "waiting"
+        ? ("waiting" as MessageVariant)
+        : ("failed" as MessageVariant),
     text: marks.length > 1 ? withLead(lang, m.label, m.sentence) : m.sentence,
     href: m.href,
     own: m.own,
@@ -231,33 +301,54 @@ export function errorMarkNotices(
  *  story `errorMarkNotices()` already tells in red for a live row — an
  *  archived row telling it in amber was the description's own bug
  *  pattern, live in the one place it had not yet been reported. */
-export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number, lang: Language): RowMarkNotice[] {
+export function archivedRowNotices(
+  a: ArchivedSpecView | undefined,
+  now: number,
+  lang: Language,
+): RowMarkNotice[] {
   if (!a) return [];
   if (a.prOpen) {
-    return [{
-      variant: "waiting",
-      text: a.prUrl ? waitingOnReviewSentence(lang) : t(lang, "list.noPullRequestOpened"),
-      href: a.prUrl,
-    }];
+    return [
+      {
+        variant: "waiting",
+        text: a.prUrl
+          ? waitingOnReviewSentence(lang)
+          : t(lang, "list.noPullRequestOpened"),
+        href: a.prUrl,
+      },
+    ];
   }
   // Merged, so archived: what is left is one press, not a failure.
   // Amber, not the red of a push that did
   // not reach origin; a line of its own, since it carries the button.
   if (a.branchLeftBehind) {
-    return [{ variant: "waiting", text: t(lang, "list.branchStillOnOrigin"), own: true, kind: "branch-left-behind" }];
+    return [
+      {
+        variant: "waiting",
+        text: t(lang, "list.branchStillOnOrigin"),
+        own: true,
+        kind: "branch-left-behind",
+      },
+    ];
   }
   const title = lockedStateTitle(a, now, lang);
   if (title) return [{ variant: "failed", text: title }];
   // Landed, so not a failure: the suite was red once and green on its
   // retry, which is a test worth looking at before it goes red twice.
-  return a.testsGreenOnRetry ? [{ variant: "info", text: t(lang, "list.landedAfterRetry") }] : [];
+  return a.testsGreenOnRetry
+    ? [{ variant: "info", text: t(lang, "list.landedAfterRetry") }]
+    : [];
 }
 
 /** The sentence an archived row's branch mark carries —
  *  `branchDeleteError`/`notLanded` used to be folded into the removed
  *  Spec-column badge, then into `stateBadge`'s own `title`;
  *  it is a notice-line sentence now (`archivedRowNotices`, above). */
-export function lockedStateTitle(a: ArchivedSpecView | undefined, now: number, lang: Language): string | undefined {
+export function lockedStateTitle(
+  a: ArchivedSpecView | undefined,
+  now: number,
+  lang: Language,
+): string | undefined {
   if (a?.branchDeleteError) return branchLeftBehindSentence(lang);
   // Outside the translated set of sentences: stays
   // English regardless of `lang`, same as the workflow step names.

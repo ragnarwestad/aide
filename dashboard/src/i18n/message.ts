@@ -61,13 +61,20 @@ function joined(texts: string[]): string {
 
 /** The message's own text in one piece: two-line parts as the problem
  *  and its fix, the way a message not yet in that shape reads. */
-const flat = (p: Parts): string => (p.lines && p.solution ? `${p.problem} — ${p.solution}` : p.problem);
+const flat = (p: Parts): string =>
+  p.lines && p.solution ? `${p.problem} — ${p.solution}` : p.problem;
 
-function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts {
+function messageParts(
+  lang: Language,
+  m: BoardMessage,
+  catalog: Catalog,
+): Parts {
   const entry = catalog[m.key]!;
   const fill = (text: string): string => {
     let out = text;
-    if (m.values) for (const [k, v] of Object.entries(m.values)) out = out.replaceAll(`{${k}}`, () => String(v));
+    if (m.values)
+      for (const [k, v] of Object.entries(m.values))
+        out = out.replaceAll(`{${k}}`, () => String(v));
     return out;
   };
   let lines = entry.solution !== undefined;
@@ -82,16 +89,28 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
     }
     // A message in the two-line shape takes the problem of the one inside
     // it and keeps one fix; one that is not takes the inner one whole.
-    problem = problem.replaceAll("{message}", () => (lines ? inner.problem : flat(inner)));
+    problem = problem.replaceAll("{message}", () =>
+      lines ? inner.problem : flat(inner),
+    );
     innerSolution = inner.solution;
   }
   if (!lines) return { problem, lines, information };
-  return { problem, solution: entry.solution ? fill(entry.solution[lang]) : innerSolution, lines };
+  return {
+    problem,
+    solution: entry.solution ? fill(entry.solution[lang]) : innerSolution,
+    lines,
+  };
 }
 
-function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalog): Parts {
+function sentenceParts(
+  lang: Language,
+  s: Sentence | Sentence[],
+  catalog: Catalog,
+): Parts {
   if (Array.isArray(s)) {
-    const parts = s.map((one) => sentenceParts(lang, one, catalog)).filter((p) => p.problem);
+    const parts = s
+      .map((one) => sentenceParts(lang, one, catalog))
+      .filter((p) => p.problem);
     const lines = parts.some((p) => p.lines);
     return {
       problem: joined(parts.map((p) => (lines ? p.problem : flat(p)))),
@@ -100,21 +119,35 @@ function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalo
       information: parts.every((p) => p.information),
     };
   }
-  return typeof s === "string" ? { problem: s, lines: false } : messageParts(lang, s, catalog);
+  return typeof s === "string"
+    ? { problem: s, lines: false }
+    : messageParts(lang, s, catalog);
 }
 
 /** The Problem line and, when there is a fix, the Solution line under it. */
-function asLines(lang: Language, problem: string, solution: string | undefined): string {
+function asLines(
+  lang: Language,
+  problem: string,
+  solution: string | undefined,
+): string {
   const label = translations[lang];
   const first = `${label["message.problem"]}: ${opensWithCapital(problem)}`;
-  return solution ? `${first}\n${label["message.solution"]}: ${opensWithCapital(solution)}` : first;
+  return solution
+    ? `${first}\n${label["message.solution"]}: ${opensWithCapital(solution)}`
+    : first;
 }
 
-export function renderMessage(lang: Language, m: BoardMessage, catalog: Catalog = MESSAGES): string {
+export function renderMessage(
+  lang: Language,
+  m: BoardMessage,
+  catalog: Catalog = MESSAGES,
+): string {
   const p = messageParts(lang, m, catalog);
   if (p.lines) return asLines(lang, p.problem, p.solution);
   // A statement stands alone as a sentence of its own.
-  return catalog[m.key]?.statement !== undefined ? opensWithCapital(p.problem) : p.problem;
+  return catalog[m.key]?.statement !== undefined
+    ? opensWithCapital(p.problem)
+    : p.problem;
 }
 
 export function renderSentence(
@@ -123,16 +156,39 @@ export function renderSentence(
   catalog: Catalog = MESSAGES,
 ): string | undefined {
   if (s === undefined) return undefined;
-  if (!Array.isArray(s)) return typeof s === "string" ? s : renderMessage(lang, s, catalog);
-  const parts = s.map((one) => sentenceParts(lang, one, catalog)).filter((p) => p.problem);
+  if (!Array.isArray(s))
+    return typeof s === "string" ? s : renderMessage(lang, s, catalog);
+  const parts = s
+    .map((one) => sentenceParts(lang, one, catalog))
+    .filter((p) => p.problem);
   if (!parts.some((p) => p.lines)) return joined(parts.map(flat));
   // Messages that share a fix share one Solution line; a message with a
   // fix of its own gets a Problem and a Solution line of its own.
-  const groups: { problems: string[]; solution?: string; information: boolean }[] = [];
+  const groups: {
+    problems: string[];
+    solution?: string;
+    information: boolean;
+  }[] = [];
   for (const p of parts) {
     const last = groups.at(-1);
-    if (last && last.solution === p.solution && last.information === !!p.information) last.problems.push(p.problem);
-    else groups.push({ problems: [p.problem], solution: p.solution, information: !!p.information });
+    if (
+      last &&
+      last.solution === p.solution &&
+      last.information === !!p.information
+    )
+      last.problems.push(p.problem);
+    else
+      groups.push({
+        problems: [p.problem],
+        solution: p.solution,
+        information: !!p.information,
+      });
   }
-  return groups.map((g) => g.information ? joined(g.problems.map(opensWithCapital)) : asLines(lang, joined(g.problems), g.solution)).join("\n");
+  return groups
+    .map((g) =>
+      g.information
+        ? joined(g.problems.map(opensWithCapital))
+        : asLines(lang, joined(g.problems), g.solution),
+    )
+    .join("\n");
 }

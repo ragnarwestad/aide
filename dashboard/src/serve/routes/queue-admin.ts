@@ -4,17 +4,42 @@
 // serve.ts step 2).
 import { realPathOrOriginal as realpathOr } from "../../git/real-path.ts";
 import { join } from "node:path";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
-import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
+import {
+  DEFAULT_DASHBOARD_CHECKOUT_ROOT,
+  dashboardSettingsFile,
+} from "../../git/dashboard-checkout.ts";
+import {
+  MAIN_TEST_SERVER_KEY,
+  restartMainTestServer,
+  stopTestServer,
+} from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
-import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
-import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
+import {
+  providerKeyFrom,
+  providerModelError,
+} from "../../queue/providers/parse.ts";
+import {
+  addProject,
+  assessProjectReadiness,
+  commitManifestEdits,
+  detectRemoteTestCommand,
+  projectNameError,
+  removeProject,
+  updateProjectSettings,
+  type SaveManifest,
+} from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
 import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 import { splitFix } from "../../format/request-fixes.ts";
-import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
+import {
+  MAX_CREATE_BODY,
+  bodyToObject,
+  json,
+  readBounded,
+  refusal,
+} from "../serve-helpers";
 import type { RoutesContext } from "./";
 
 export async function handleQueueAdminRoutes(
@@ -23,7 +48,8 @@ export async function handleQueueAdminRoutes(
   path: string,
 ): Promise<Response | null> {
   if (path === "/api/queue/create") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req, MAX_CREATE_BODY);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
@@ -40,30 +66,50 @@ export async function handleQueueAdminRoutes(
   }
 
   if (path === "/api/queue/settings") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
-    try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
-    catch { return json({ error: "malformed body" }, 400); }
+    try {
+      raw = bodyToObject(body.text, req.headers.get("content-type"));
+    } catch {
+      return json({ error: "malformed body" }, 400);
+    }
     const asked = raw as Record<string, unknown> | null;
     const models = asked?.model;
     const refuse = (error: string) => json({ error }, 400);
-    if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
-    if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
+    if (!ctx.opts.queueConfigFile)
+      return refuse("this server has no queue config file");
+    if (!models || typeof models !== "object" || Array.isArray(models))
+      return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
-    const knownSettings = [...SETTINGS_STEPS, ...SIDE_PARTS] as readonly string[];
-    const unknown = Object.keys(table).find((step) => !knownSettings.includes(step));
+    const knownSettings = [
+      ...SETTINGS_STEPS,
+      ...SIDE_PARTS,
+    ] as readonly string[];
+    const unknown = Object.keys(table).find(
+      (step) => !knownSettings.includes(step),
+    );
     if (unknown) return refuse(`unknown workflow step: ${unknown}`);
     const next: Record<string, string> = {};
     for (const step of SETTINGS_STEPS) {
       const value = table[step];
-      if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
-      if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
-      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
+      if (Array.isArray(value))
+        return refuse(`duplicate model value for ${step}`);
+      if (typeof value !== "string" || !value)
+        return refuse(`missing model for ${step}`);
+      const listed = listedModelName(
+        Object.keys(ctx.queue.defaults.modelChoices ?? {}),
+        value,
+      );
       if ("candidates" in listed) {
-        const hint = listed.candidates.length ? ` (listed as ${listed.candidates.join(" or ")})` : "";
-        return refuse(`unknown or not-allowed model for ${step}: ${value}${hint}`);
+        const hint = listed.candidates.length
+          ? ` (listed as ${listed.candidates.join(" or ")})`
+          : "";
+        return refuse(
+          `unknown or not-allowed model for ${step}: ${value}${hint}`,
+        );
       }
       next[step] = listed.name;
     }
@@ -71,10 +117,18 @@ export async function handleQueueAdminRoutes(
     for (const part of SIDE_PARTS) {
       const value = table[part];
       if (value === undefined) continue;
-      if (Array.isArray(value) || typeof value !== "string") return refuse(`invalid model for ${part}`);
-      if (!value) { sideModels[part] = null; continue; }
-      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
-      if ("candidates" in listed) return refuse(`unknown or not-allowed model for ${part}: ${value}`);
+      if (Array.isArray(value) || typeof value !== "string")
+        return refuse(`invalid model for ${part}`);
+      if (!value) {
+        sideModels[part] = null;
+        continue;
+      }
+      const listed = listedModelName(
+        Object.keys(ctx.queue.defaults.modelChoices ?? {}),
+        value,
+      );
+      if ("candidates" in listed)
+        return refuse(`unknown or not-allowed model for ${part}: ${value}`);
       sideModels[part] = listed.name;
     }
 
@@ -83,17 +137,29 @@ export async function handleQueueAdminRoutes(
     // they are. Each must be configured and run the model saved with it.
     const providers = asked?.provider;
     const nextProvider: Record<string, string> = {};
-    if (providers !== undefined && (providers === null || typeof providers !== "object" || Array.isArray(providers))) {
+    if (
+      providers !== undefined &&
+      (providers === null ||
+        typeof providers !== "object" ||
+        Array.isArray(providers))
+    ) {
       return refuse("provider defaults are malformed");
     }
-    for (const [step, value] of Object.entries((providers ?? {}) as Record<string, unknown>)) {
-      if (!knownSettings.includes(step)) return refuse(`unknown workflow step: ${step}`);
+    for (const [step, value] of Object.entries(
+      (providers ?? {}) as Record<string, unknown>,
+    )) {
+      if (!knownSettings.includes(step))
+        return refuse(`unknown workflow step: ${step}`);
       if (value === "" || value === undefined) continue;
       const found = providerKeyFrom(ctx.queue.defaults, value, ` for ${step}`);
       if ("error" in found) return refuse(found.error);
       const selectedModel = next[step] ?? sideModels[step];
       if (!selectedModel) continue;
-      const refusal = providerModelError(ctx.queue.defaults, found.key, selectedModel);
+      const refusal = providerModelError(
+        ctx.queue.defaults,
+        found.key,
+        selectedModel,
+      );
       if (refusal) return refuse(refusal);
       nextProvider[step] = found.key;
     }
@@ -101,14 +167,25 @@ export async function handleQueueAdminRoutes(
     // timeoutSec: the ceiling a per-job request can only tighten
     // (`tighten()` above), never loosen — this range catches an
     // operator's typo.
-    const numField = (v: unknown, name: string, min: number, max: number): number | { error: string } => {
-      if (typeof v !== "number" || !Number.isFinite(v)) return { error: `invalid ${name}` };
-      if (v < min || v > max) return { error: `${name} must be between ${min} and ${max}` };
+    const numField = (
+      v: unknown,
+      name: string,
+      min: number,
+      max: number,
+    ): number | { error: string } => {
+      if (typeof v !== "number" || !Number.isFinite(v))
+        return { error: `invalid ${name}` };
+      if (v < min || v > max)
+        return { error: `${name} must be between ${min} and ${max}` };
       return v;
     };
 
     const askedTimeout = asked?.timeoutSec;
-    if (!askedTimeout || typeof askedTimeout !== "object" || Array.isArray(askedTimeout)) {
+    if (
+      !askedTimeout ||
+      typeof askedTimeout !== "object" ||
+      Array.isArray(askedTimeout)
+    ) {
       return refuse("timeoutSec is missing");
     }
     const minutesTable = askedTimeout as Record<string, unknown>;
@@ -118,7 +195,12 @@ export async function handleQueueAdminRoutes(
       // render/job-state.ts:145 display convention) — converted to
       // seconds, the unit every reader of `queue.defaults.timeoutSec`
       // already expects.
-      const minutes = numField(minutesTable[step], `timeoutSec.${step}`, 1, 360);
+      const minutes = numField(
+        minutesTable[step],
+        `timeoutSec.${step}`,
+        1,
+        360,
+      );
       if (typeof minutes !== "number") return refuse(minutes.error);
       timeoutSec[step] = minutes * 60;
     }
@@ -130,16 +212,28 @@ export async function handleQueueAdminRoutes(
       if (value === null) delete merged[part];
       else if (value) merged[part] = value;
     }
-    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: modelUpdate, timeoutSec, provider: nextProvider });
+    const error = persistQueueSettings(ctx.opts.queueConfigFile, {
+      model: modelUpdate,
+      timeoutSec,
+      provider: nextProvider,
+    });
     if (error) return refuse(error);
     ctx.queue.defaults.model = merged;
-    if (Object.keys(nextProvider).length) ctx.queue.defaults.provider = { ...ctx.queue.defaults.provider, ...nextProvider };
-    ctx.queue.defaults.timeoutSec = { ...ctx.queue.defaults.timeoutSec, ...timeoutSec };
+    if (Object.keys(nextProvider).length)
+      ctx.queue.defaults.provider = {
+        ...ctx.queue.defaults.provider,
+        ...nextProvider,
+      };
+    ctx.queue.defaults.timeoutSec = {
+      ...ctx.queue.defaults.timeoutSec,
+      ...timeoutSec,
+    };
     return json({ ok: true, model: next, timeoutSec });
   }
 
   if (path === "/api/queue/projects") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
@@ -159,21 +253,29 @@ export async function handleQueueAdminRoutes(
     // root, and without `--root` there is no such root: refused in
     // those words rather than half-done somewhere arbitrary.
     if (!ctx.opts.projectRoot) {
-      return ctx.answerProjectChange(
-        "add-project",
-        name,
-        [{ step: "name", ok: false, error: "this server was started without --root, so it has no projects root to add to" }],
-      );
+      return ctx.answerProjectChange("add-project", name, [
+        {
+          step: "name",
+          ok: false,
+          error:
+            "this server was started without --root, so it has no projects root to add to",
+        },
+      ]);
     }
-    const result = await addProject(ctx.gitRun, ctx.opts.projectRoot, {
-      name: rawName,
-      gitUrl: text(asked.gitUrl),
-      description: text(asked.description),
-      specsPath: text(asked.specsPath),
-      worktreeLinks: text(asked.worktreeLinks),
-      codeLanding: text(asked.codeLanding),
-      previewFrom: text(asked.previewFrom),
-    }, ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT);
+    const result = await addProject(
+      ctx.gitRun,
+      ctx.opts.projectRoot,
+      {
+        name: rawName,
+        gitUrl: text(asked.gitUrl),
+        description: text(asked.description),
+        specsPath: text(asked.specsPath),
+        worktreeLinks: text(asked.worktreeLinks),
+        codeLanding: text(asked.codeLanding),
+        previewFrom: text(asked.previewFrom),
+      },
+      ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT,
+    );
     const steps = [...result.steps];
     let readiness = result.readiness;
     if (result.ok) {
@@ -196,18 +298,30 @@ export async function handleQueueAdminRoutes(
       const later = {
         ...(previewFrom && previewFrom !== "none" && { previewFrom }),
         ...(codeLanding === "pr" && { codeLanding }),
-        ...(text(asked.worktreeLinks) && { worktreeLinks: text(asked.worktreeLinks) }),
-        ...(text(asked.description) && { description: text(asked.description) }),
+        ...(text(asked.worktreeLinks) && {
+          worktreeLinks: text(asked.worktreeLinks),
+        }),
+        ...(text(asked.description) && {
+          description: text(asked.description),
+        }),
         ...(text(asked.testCmd) && { testCmd: text(asked.testCmd) }),
         ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
         ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
         ...(text(asked.acPrefix) && { acPrefix: text(asked.acPrefix) }),
       };
       if (Object.keys(later).length) {
-        const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), later, {
-          saveManifest: manifestSaver(ctx, name),
-          settingsFile: dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name),
-        });
+        const saved = await updateProjectSettings(
+          ctx.gitRun,
+          join(ctx.opts.projectRoot, name),
+          later,
+          {
+            saveManifest: manifestSaver(ctx, name),
+            settingsFile: dashboardSettingsFile(
+              ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT,
+              name,
+            ),
+          },
+        );
         steps.push(...saved.steps);
       }
       // Eagerly, and here rather than inside `addProject` —
@@ -244,7 +358,8 @@ export async function handleQueueAdminRoutes(
   // request guard's same-origin check applies — a GET could be fired by
   // another site's page and make this server clone an address of its choosing.
   if (path === "/api/queue/projects/test-command") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
     let raw: unknown;
@@ -254,12 +369,21 @@ export async function handleQueueAdminRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const gitUrl = (raw as Record<string, unknown> | null)?.gitUrl;
-    return json({ ok: true, testCmd: typeof gitUrl === "string" ? await detectRemoteTestCommand(ctx.gitRun, gitUrl) : null });
+    return json({
+      ok: true,
+      testCmd:
+        typeof gitUrl === "string"
+          ? await detectRemoteTestCommand(ctx.gitRun, gitUrl)
+          : null,
+    });
   }
 
-  const settingsPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/settings$/);
+  const settingsPost = path.match(
+    /^\/api\/queue\/projects\/([^/]+)\/settings$/,
+  );
   if (settingsPost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(settingsPost[1]!);
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
@@ -270,11 +394,13 @@ export async function handleQueueAdminRoutes(
       return json({ error: "malformed body" }, 400);
     }
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
-      return ctx.answerProjectChange(
-        "project-settings",
-        name,
-        [{ step: "name", ok: false, error: `"${name}" is not a project this dashboard knows` }],
-      );
+      return ctx.answerProjectChange("project-settings", name, [
+        {
+          step: "name",
+          ok: false,
+          error: `"${name}" is not a project this dashboard knows`,
+        },
+      ]);
     }
     const asked = (raw ?? {}) as Record<string, unknown>;
     const str = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -284,22 +410,33 @@ export async function handleQueueAdminRoutes(
     // serving host that entry is a link to the dashboard's own checkout
     // (projects.md), so the lock is taken on the directory it resolves
     // to: the same key a landing into that checkout takes.
-    const checkoutBase = ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
+    const checkoutBase =
+      ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
     const settingsDir = join(ctx.opts.projectRoot, name);
-    const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
-      ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
-      ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
-      // Only when the form actually sent one: a caller posting only the older
-      // fields must not be read as clearing the ones it never
-      // mentioned.
-      ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
-      ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
-      ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
-      ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
-      ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
-      ...("description" in asked && { description: str(asked.description) }),
-      ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
-    }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });
+    const result = await updateProjectSettings(
+      ctx.gitRun,
+      settingsDir,
+      {
+        ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
+        ...("worktreeLinks" in asked && {
+          worktreeLinks: str(asked.worktreeLinks),
+        }),
+        // Only when the form actually sent one: a caller posting only the older
+        // fields must not be read as clearing the ones it never
+        // mentioned.
+        ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
+        ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
+        ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
+        ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
+        ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
+        ...("description" in asked && { description: str(asked.description) }),
+        ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
+      },
+      {
+        saveManifest: manifestSaver(ctx, name),
+        settingsFile: dashboardSettingsFile(checkoutBase, name),
+      },
+    );
     // The specs root a save just named is where the scan goes looking
     // for this project's specs — without this the very next request
     // would still read the old one.
@@ -314,13 +451,22 @@ export async function handleQueueAdminRoutes(
     // reaches the clone's derived manifest only in an ensure that
     // started after the save.
     const readiness = result.ok
-      ? await ctx.ensureCheckout(name, { fresh: true, clone: true }).then(() =>
-          assessProjectReadiness(ctx.gitRun, join(ctx.opts.projectRoot!, name), ctx.machineryProjectDir(name)).catch(
-            () => result.readiness,
-          ),
-        )
+      ? await ctx
+          .ensureCheckout(name, { fresh: true, clone: true })
+          .then(() =>
+            assessProjectReadiness(
+              ctx.gitRun,
+              join(ctx.opts.projectRoot!, name),
+              ctx.machineryProjectDir(name),
+            ).catch(() => result.readiness),
+          )
       : result.readiness;
-    return ctx.answerProjectChange("project-settings", name, result.steps, readiness);
+    return ctx.answerProjectChange(
+      "project-settings",
+      name,
+      result.steps,
+      readiness,
+    );
   }
 
   // The Deploy tab's "Testserver med testspecene" button.
@@ -329,9 +475,12 @@ export async function handleQueueAdminRoutes(
   // always a plain browser POST followed by a real navigation — never an
   // XHR — which is what lets it open in a new tab and land the reader on
   // the same waiting page the spec-page's own test-server link uses.
-  const testServerPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-server$/);
+  const testServerPost = path.match(
+    /^\/api\/queue\/projects\/([^/]+)\/test-server$/,
+  );
   if (testServerPost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(testServerPost[1]!);
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
@@ -339,16 +488,26 @@ export async function handleQueueAdminRoutes(
       return new Response("no such project\n", { status: 404 });
     }
     if (!ctx.testServers.previewAvailable(name)) {
-      return testServerFailedPage(MAIN_TEST_SERVER_KEY, "this project's own checkout does not carry the dashboard's source");
+      return testServerFailedPage(
+        MAIN_TEST_SERVER_KEY,
+        "this project's own checkout does not carry the dashboard's source",
+      );
     }
     const root = ctx.testServers.aideCheckout(name);
     const branch = await ctx.branchStatus.defaultBranch(root);
-    if (!branch) return testServerFailedPage(MAIN_TEST_SERVER_KEY, `cannot work out the default branch in ${root}`);
+    if (!branch)
+      return testServerFailedPage(
+        MAIN_TEST_SERVER_KEY,
+        `cannot work out the default branch in ${root}`,
+      );
     const result = await restartMainTestServer(ctx.testServers, name, branch);
-    if (!result.ok) return testServerFailedPage(MAIN_TEST_SERVER_KEY, result.error);
+    if (!result.ok)
+      return testServerFailedPage(MAIN_TEST_SERVER_KEY, result.error);
     return new Response(null, {
       status: 303,
-      headers: { location: `/projects/${encodeURIComponent(name)}?startTestServer=1` },
+      headers: {
+        location: `/projects/${encodeURIComponent(name)}?startTestServer=1`,
+      },
     });
   }
 
@@ -357,29 +516,47 @@ export async function handleQueueAdminRoutes(
   // cannot reach `board-controls.ts`'s spec-scoped route. That row's form
   // carries `class="actionform"` (test-servers-page.ts), which IS posted
   // through `specs-client.ts`'s XHR — unlike the start route above.
-  const testServerStop = path.match(/^\/api\/queue\/projects\/([^/]+)\/test-server\/stop$/);
+  const testServerStop = path.match(
+    /^\/api\/queue\/projects\/([^/]+)\/test-server\/stop$/,
+  );
   if (testServerStop) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(testServerStop[1]!);
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
     }
-    stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY, "the Stop button on the Deploy tab");
+    stopTestServer(
+      ctx.testServers,
+      name,
+      MAIN_TEST_SERVER_KEY,
+      "the Stop button on the Deploy tab",
+    );
     return json({ ok: true });
   }
 
   // A session on another machine pushed specs and says so: ask origin again now instead of at the next sweep.
   // It takes nothing, so an unknown project is refused before anything is read.
-  const fetchSpecs = path.match(/^\/api\/queue\/projects\/([^/]+)\/fetch-specs$/);
+  const fetchSpecs = path.match(
+    /^\/api\/queue\/projects\/([^/]+)\/fetch-specs$/,
+  );
   if (fetchSpecs) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(fetchSpecs[1]!);
-    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) return new Response("no such project\n", { status: 404 });
+    if (!ctx.opts.projectRoot || !ctx.allowed.has(name))
+      return new Response("no such project\n", { status: 404 });
     // `fresh`, as a queued job asks: a fetch already running took its picture of origin before this push.
     if (!(await ctx.ensureCheckout(name, { fresh: true }))) {
-      return json({ ok: false, error: `the dashboard has no checkout of its own for ${name}, so there was nothing to fetch` }, 400);
+      return json(
+        {
+          ok: false,
+          error: `the dashboard has no checkout of its own for ${name}, so there was nothing to fetch`,
+        },
+        400,
+      );
     }
     ctx.invalidateScan();
     await ctx.rereadProject(name).catch(() => {});
@@ -388,7 +565,8 @@ export async function handleQueueAdminRoutes(
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
   if (removal) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST")
+      return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(removal[1]!);
     const body = await readBounded(req);
     if ("refusal" in body) return body.refusal;
@@ -399,7 +577,9 @@ export async function handleQueueAdminRoutes(
     }
     const nameError = projectNameError(name);
     if (nameError) {
-      return ctx.answerProjectChange("remove-project", name, [{ step: "name", ok: false, error: nameError }]);
+      return ctx.answerProjectChange("remove-project", name, [
+        { step: "name", ok: false, error: nameError },
+      ]);
     }
     const result = removeProject(ctx.allowed, { name });
     const steps = [...result.steps];
@@ -408,7 +588,9 @@ export async function handleQueueAdminRoutes(
       // `removeProject` already reported the allowlist step; this
       // replaces it with the same step told from the other side of the
       // write, rather than reporting the one thing twice.
-      steps[steps.length - 1] = ctx.persistAllowlist("removed from the allowlist");
+      steps[steps.length - 1] = ctx.persistAllowlist(
+        "removed from the allowlist",
+      );
     }
     return ctx.answerProjectChange("remove-project", name, steps);
   }
@@ -428,7 +610,10 @@ function manifestSaver(ctx: RoutesContext, name: string): SaveManifest {
   return (edits) =>
     ctx.mergeLock.run(codeRoot, () =>
       commitManifestEdits(
-        { run: ctx.gitRun, resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root) },
+        {
+          run: ctx.gitRun,
+          resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root),
+        },
         codeRoot,
         edits,
       ),

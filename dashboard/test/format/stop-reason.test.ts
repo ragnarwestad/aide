@@ -4,7 +4,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FAILED_STOPS, isFailedStop, leavesStepUndone } from "../../src/format/stop-reason.ts";
+import {
+  FAILED_STOPS,
+  isFailedStop,
+  leavesStepUndone,
+} from "../../src/format/stop-reason.ts";
 import { runSpecParts } from "../helpers/run-spec-source.ts";
 
 const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
@@ -16,22 +20,39 @@ const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 // declining before any model ran, and a close that found a merge still open or
 // the spec already archived.
 const NOT_FAILURES = [
-  "completed", "closed", "timeout", "provider-limit", "model-at-capacity", "acceptance-criteria", "shared-files", "sent-back", "cancelled", "refused",
-  "conflict-open", "already-archived",
+  "completed",
+  "closed",
+  "timeout",
+  "provider-limit",
+  "model-at-capacity",
+  "acceptance-criteria",
+  "shared-files",
+  "sent-back",
+  "cancelled",
+  "refused",
+  "conflict-open",
+  "already-archived",
 ];
 
 describe("isFailedStop", () => {
   test("names the ten reasons a step ends failed for", () => {
-    expect([...FAILED_STOPS].sort()).toEqual(
-      [
-        "cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "sent-back-refused",
-        "short-analysis-over-limit", "tests-not-started", "tests-red", "unpushed",
-      ],
-    );
+    expect([...FAILED_STOPS].sort()).toEqual([
+      "cli-error",
+      "merge-unfinished",
+      "model-refused",
+      "no-progress",
+      "scope-violation",
+      "sent-back-refused",
+      "short-analysis-over-limit",
+      "tests-not-started",
+      "tests-red",
+      "unpushed",
+    ]);
   });
 
   test("the limits, a cancel and a refusal to start are not failures", () => {
-    for (const reason of ["timeout", "provider-limit", "cancelled", "refused"]) expect(isFailedStop(reason)).toBe(false);
+    for (const reason of ["timeout", "provider-limit", "cancelled", "refused"])
+      expect(isFailedStop(reason)).toBe(false);
   });
 
   test("no reason is not a failure, and neither is one nobody has classified", () => {
@@ -42,19 +63,21 @@ describe("isFailedStop", () => {
   // A reason the script starts writing that nobody classified would read
   // as today's amber Stopped by default; this names it instead.
   test("every reason the scripts write is either a failure or named as not one", () => {
-    const files = [
-      join(SCRIPTS, "aide-run-spec"),
-      ...runSpecParts(),
-    ];
+    const files = [join(SCRIPTS, "aide-run-spec"), ...runSpecParts()];
     const written = new Set<string>();
     for (const file of files) {
       const source = readFileSync(file, "utf-8");
-      for (const m of source.matchAll(/terminal_reason="([a-z][a-z-]*)"/g)) written.add(m[1]!);
-      for (const m of source.matchAll(/\(stopped: ([a-z][a-z-]*)\)/g)) written.add(m[1]!);
-      for (const m of source.matchAll(/\bstop_(?:step|suffix) ([a-z][a-z-]*)/g)) written.add(m[1]!);
+      for (const m of source.matchAll(/terminal_reason="([a-z][a-z-]*)"/g))
+        written.add(m[1]!);
+      for (const m of source.matchAll(/\(stopped: ([a-z][a-z-]*)\)/g))
+        written.add(m[1]!);
+      for (const m of source.matchAll(/\bstop_(?:step|suffix) ([a-z][a-z-]*)/g))
+        written.add(m[1]!);
     }
     expect(written.size).toBeGreaterThan(5);
-    const unclassified = [...written].filter((r) => !isFailedStop(r) && !NOT_FAILURES.includes(r));
+    const unclassified = [...written].filter(
+      (r) => !isFailedStop(r) && !NOT_FAILURES.includes(r),
+    );
     expect(unclassified).toEqual([]);
   });
 });
@@ -76,7 +99,8 @@ describe("leavesStepUndone", () => {
   });
 
   test("every failed stop leaves its step undone, and the clock does not", () => {
-    for (const reason of FAILED_STOPS) expect(leavesStepUndone(reason)).toBe(true);
+    for (const reason of FAILED_STOPS)
+      expect(leavesStepUndone(reason)).toBe(true);
     expect(leavesStepUndone("timeout")).toBe(false);
     expect(leavesStepUndone(undefined)).toBe(false);
   });

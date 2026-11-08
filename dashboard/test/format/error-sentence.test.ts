@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { capitalizeFirst, errorSentence, writtenMessage } from "../../src/format/error-sentence.ts";
+import {
+  capitalizeFirst,
+  errorSentence,
+  writtenMessage,
+} from "../../src/format/error-sentence.ts";
 import { renderSentence } from "../../src/i18n/message.ts";
 
 // The shared builder every render-facing sentence is
@@ -8,8 +12,13 @@ import { renderSentence } from "../../src/i18n/message.ts";
 
 describe("errorSentence", () => {
   test("joins what and resolve with an em dash", () => {
-    const { text } = errorSentence({ what: "A step's push did not reach origin.", resolve: "Pull it and push again." });
-    expect(text).toBe("A step's push did not reach origin. — Pull it and push again.");
+    const { text } = errorSentence({
+      what: "A step's push did not reach origin.",
+      resolve: "Pull it and push again.",
+    });
+    expect(text).toBe(
+      "A step's push did not reach origin. — Pull it and push again.",
+    );
   });
 
   test("an exempt sentence carries no dash, just what", () => {
@@ -17,7 +26,9 @@ describe("errorSentence", () => {
       what: "this spec is archived — it is a record, and cannot be edited",
       exempt: "editing an archive is intentionally impossible",
     });
-    expect(text).toBe("this spec is archived — it is a record, and cannot be edited");
+    expect(text).toBe(
+      "this spec is archived — it is a record, and cannot be edited",
+    );
   });
 
   test("detail becomes the title, never part of the text", () => {
@@ -31,19 +42,27 @@ describe("errorSentence", () => {
   });
 
   test("gives the problem and the fix apart (AC-6)", () => {
-    const sentence = errorSentence({ what: "the push did not reach origin", resolve: "pull it and push again" });
+    const sentence = errorSentence({
+      what: "the push did not reach origin",
+      resolve: "pull it and push again",
+    });
     expect(sentence.problem).toBe("the push did not reach origin");
     expect(sentence.solution).toBe("pull it and push again");
   });
 
   test("an exempt sentence has a problem and no fix (AC-6)", () => {
-    const sentence = errorSentence({ what: "this spec is archived", exempt: "a record" });
+    const sentence = errorSentence({
+      what: "this spec is archived",
+      exempt: "a record",
+    });
     expect(sentence.problem).toBe("this spec is archived");
     expect(sentence.solution).toBeUndefined();
   });
 
   test("neither resolve nor exempt throws", () => {
-    expect(() => errorSentence({ what: "something happened" })).toThrow(/neither resolve nor exempt/);
+    expect(() => errorSentence({ what: "something happened" })).toThrow(
+      /neither resolve nor exempt/,
+    );
   });
 });
 
@@ -52,13 +71,15 @@ describe("errorSentence", () => {
 // because its entries are reused both standalone and mid-sentence.
 describe("capitalizeFirst", () => {
   test("capitalizes a lowercase-starting sentence", () => {
-    expect(capitalizeFirst("archive merge failed: cannot merge into main")).toBe(
-      "Archive merge failed: cannot merge into main",
-    );
+    expect(
+      capitalizeFirst("archive merge failed: cannot merge into main"),
+    ).toBe("Archive merge failed: cannot merge into main");
   });
 
   test("leaves an already-capitalized sentence unchanged", () => {
-    expect(capitalizeFirst("Already capitalized.")).toBe("Already capitalized.");
+    expect(capitalizeFirst("Already capitalized.")).toBe(
+      "Already capitalized.",
+    );
   });
 
   test("an empty string is unchanged", () => {
@@ -68,12 +89,17 @@ describe("capitalizeFirst", () => {
 
 describe("writtenMessage", () => {
   test("a problem with a fix renders as a Problem line and a Solution line (AC-6)", () => {
-    expect(renderSentence("en", writtenMessage("the push failed", "push it by hand"))).toBe(
-      "Problem: The push failed\nSolution: Push it by hand",
-    );
+    expect(
+      renderSentence(
+        "en",
+        writtenMessage("the push failed", "push it by hand"),
+      ),
+    ).toBe("Problem: The push failed\nSolution: Push it by hand");
   });
 
   test("a problem without a fix renders as the Problem line alone (AC-6)", () => {
-    expect(renderSentence("en", writtenMessage("this spec is archived"))).toBe("Problem: This spec is archived");
+    expect(renderSentence("en", writtenMessage("this spec is archived"))).toBe(
+      "Problem: This spec is archived",
+    );
   });
 });

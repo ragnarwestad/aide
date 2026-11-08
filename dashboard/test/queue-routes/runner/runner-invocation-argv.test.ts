@@ -1,9 +1,20 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { extraPathDirs, pathWithToolDirs } from "../../../src/serve/tool-path.ts";
+import {
+  extraPathDirs,
+  pathWithToolDirs,
+} from "../../../src/serve/tool-path.ts";
 import { fileOnceWritten } from "../../helpers/file-once-written.ts";
-import { existsSync, readdirSync, readFileSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
@@ -19,20 +30,26 @@ const { harness } = setupQueueRoutesHarness();
 // implement on a spec with no analyze on its steps line is held back
 // in the queue instead, and the spawn these tests wait for never comes.
 const ANALYZED = statusSaying(["create", "analyze"]);
-const start = (extra: Partial<ServerOptions> = {}) => harness.start({ extra, status: ANALYZED });
+const start = (extra: Partial<ServerOptions> = {}) =>
+  harness.start({ extra, status: ANALYZED });
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // Slice 81c: what the server actually hands the runner. The binary is a
 // recording stub — one tiny local process, no claude, no network.
 describe("the runner invocation", () => {
-  function stub(dir: string): { bin: string; argvFile: string; envFile: string } {
+  function stub(dir: string): {
+    bin: string;
+    argvFile: string;
+    envFile: string;
+  } {
     const argvFile = join(dir, "runner-argv.txt");
     const envFile = join(dir, "runner-env.txt");
     const bin = join(dir, "fake-run-spec");
@@ -53,9 +70,24 @@ describe("the runner invocation", () => {
 
   /** What the spawned child actually had in its environment: the run
    *  URL on the first line, PATH on the second. */
-  async function envOf(envFile: string): Promise<{ runUrl: string; path: string; queueConfig: string; checkoutRoot: string; queueMirror: string }> {
-    const [runUrl = "", path = "", queueConfig = "", checkoutRoot = "", queueMirror = ""] =
-      (await fileOnceWritten(envFile, "the runner was never invoked")).split("\n");
+  async function envOf(
+    envFile: string,
+  ): Promise<{
+    runUrl: string;
+    path: string;
+    queueConfig: string;
+    checkoutRoot: string;
+    queueMirror: string;
+  }> {
+    const [
+      runUrl = "",
+      path = "",
+      queueConfig = "",
+      checkoutRoot = "",
+      queueMirror = "",
+    ] = (await fileOnceWritten(envFile, "the runner was never invoked")).split(
+      "\n",
+    );
     return { runUrl, path, queueConfig, checkoutRoot, queueMirror };
   }
 
@@ -63,7 +95,10 @@ describe("the runner invocation", () => {
    *  spawn happens, so it is set and restored around the whole test,
    *  not merely before `start()`. A developer whose own shell exports
    *  it would otherwise get a false pass on the derived-URL test. */
-  async function withRunUrlEnv<T>(value: string | null, body: () => Promise<T>): Promise<T> {
+  async function withRunUrlEnv<T>(
+    value: string | null,
+    body: () => Promise<T>,
+  ): Promise<T> {
     const before = process.env.AIDE_RUN_URL;
     if (value === null) delete process.env.AIDE_RUN_URL;
     else process.env.AIDE_RUN_URL = value;
@@ -78,7 +113,9 @@ describe("the runner invocation", () => {
   /** Queues one implement step against a stub runner and hands back
    *  what the child was given, plus the port the server actually bound
    *  (`port: 0` here, so it is never `opts.port`). */
-  async function envHandedToTheRunner(prefix: string): Promise<{ env: { runUrl: string; path: string }; port: number }> {
+  async function envHandedToTheRunner(
+    prefix: string,
+  ): Promise<{ env: { runUrl: string; path: string }; port: number }> {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     ownDirs.push(dir);
     const { bin, envFile } = stub(dir);
@@ -89,8 +126,15 @@ describe("the runner invocation", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     // `port: 0` above means "let the OS pick", so the bound port is the
@@ -111,12 +155,23 @@ describe("the runner invocation", () => {
     const queueConfigFile = join(dir, "queue-config.json");
     const dashboardCheckoutRoot = join(dir, "checkouts");
     const { base } = start({
-      queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueConfigFile, dashboardCheckoutRoot,
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      queuePush: "branch",
+      queueConfigFile,
+      dashboardCheckoutRoot,
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     const env = await envOf(envFile);
@@ -132,12 +187,22 @@ describe("the runner invocation", () => {
     const { bin, envFile } = stub(dir);
     const queueMirrorPath = join(dir, "aide-queue.json");
     const { base } = start({
-      queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueMirrorPath,
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      queuePush: "branch",
+      queueMirrorPath,
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     expect((await envOf(envFile)).queueMirror).toBe(queueMirrorPath);
@@ -147,18 +212,35 @@ describe("the runner invocation", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-run-log-"));
     ownDirs.push(dir);
     const bin = join(dir, "fake-run-spec");
-    writeFileSync(bin, `#!/usr/bin/env bash\necho "aide-run-spec 10:45:08 +0s fetching main" >&2\n`, { mode: 0o755 });
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env bash\necho "aide-run-spec 10:45:08 +0s fetching main" >&2\n`,
+      { mode: 0o755 },
+    );
     const jobs = join(dir, "jobs");
-    const { base } = start({ queueRunnerBin: bin, queueResultDir: jobs, queuePush: "branch" });
+    const { base } = start({
+      queueRunnerBin: bin,
+      queueResultDir: jobs,
+      queuePush: "branch",
+    });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     let log = "";
     for (let i = 0; i < 200 && !log.includes("fetching main"); i++) {
-      const name = existsSync(jobs) ? readdirSync(jobs).find((f) => f.endsWith(".implement.run.log")) : undefined;
+      const name = existsSync(jobs)
+        ? readdirSync(jobs).find((f) => f.endsWith(".implement.run.log"))
+        : undefined;
       log = name ? readFileSync(join(jobs, name), "utf-8") : "";
       if (!log.includes("fetching main")) await Bun.sleep(50);
     }
@@ -176,8 +258,15 @@ describe("the runner invocation", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     const argv = await argvOf(argvFile);
@@ -203,7 +292,9 @@ describe("the runner invocation", () => {
   // has pointed reporting at another sink keeps it.
   test("and an AIDE_RUN_URL the server was started with wins over the derived one", async () => {
     await withRunUrlEnv("http://example.test/elsewhere", async () => {
-      const { env } = await envHandedToTheRunner("aide-queue-run-url-explicit-");
+      const { env } = await envHandedToTheRunner(
+        "aide-queue-run-url-explicit-",
+      );
       expect(env.runUrl).toBe("http://example.test/elsewhere");
     });
   });
@@ -243,7 +334,10 @@ describe("the runner invocation", () => {
   // A projects root of the test's own, because the shared harness
   // leaves `queueProjectRoot` unset and the runner is then handed a bare
   // relative name — there is no manifest at the end of that.
-  function projectSaying(prefix: string, landing: string | null): { root: string; dir: string } {
+  function projectSaying(
+    prefix: string,
+    landing: string | null,
+  ): { root: string; dir: string } {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     ownDirs.push(dir);
     const root = join(dir, "root");
@@ -253,14 +347,28 @@ describe("the runner invocation", () => {
       join(project, ".aide", "project.yaml"),
       `name: aide\n${landing ? `codeLanding: ${landing}\n` : ""}`,
     );
-    mkdirSync(join(project, "specs", "81-queue-and-runner"), { recursive: true });
-    writeFileSync(join(project, "specs", "81-queue-and-runner", "1-description.md"), "# 81 - Description\n");
-    writeFileSync(join(project, "specs", "81-queue-and-runner", "4-status.md"), ANALYZED);
+    mkdirSync(join(project, "specs", "81-queue-and-runner"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(project, "specs", "81-queue-and-runner", "1-description.md"),
+      "# 81 - Description\n",
+    );
+    writeFileSync(
+      join(project, "specs", "81-queue-and-runner", "4-status.md"),
+      ANALYZED,
+    );
     return { root, dir };
   }
 
-  async function pushArgOf(landing: string | null, queuePush: "none" | "branch" | "pr"): Promise<string> {
-    const { root, dir } = projectSaying(`aide-queue-landing-${landing ?? "unset"}-`, landing);
+  async function pushArgOf(
+    landing: string | null,
+    queuePush: "none" | "branch" | "pr",
+  ): Promise<string> {
+    const { root, dir } = projectSaying(
+      `aide-queue-landing-${landing ?? "unset"}-`,
+      landing,
+    );
     const { bin, argvFile } = stub(dir);
     const { base } = start({
       queueRunnerBin: bin,
@@ -272,8 +380,15 @@ describe("the runner invocation", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     return (await argvOf(argvFile)).match(/--push (\S+)/)![1]!;
@@ -319,13 +434,25 @@ describe("the schedule step's output directory", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "schedule-nightly-report",
+        steps: ["schedule"],
+      }),
     });
     expect(res.status).toBe(200);
     const env = await fileOnceWritten(envFile, "the runner was never invoked");
     const { job } = await res.json();
-    const expected = scheduleRunOutputDir(outputRoot, "aide", "schedule-nightly-report", job.id);
+    const expected = scheduleRunOutputDir(
+      outputRoot,
+      "aide",
+      "schedule-nightly-report",
+      job.id,
+    );
     expect(env.trim()).toBe(expected);
     expect(existsSync(expected)).toBe(true);
   });
@@ -348,8 +475,15 @@ describe("the schedule step's output directory", () => {
     });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
     const env = await fileOnceWritten(envFile, "the runner was never invoked");
@@ -363,10 +497,22 @@ describe("--reset-files", () => {
   const argvFor = (step: string, extra: Record<string, unknown>): string[] =>
     runnerArgv(
       {
-        id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: [step], stepIndex: 0,
-        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [], ...extra,
+        id: "j1",
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: [step],
+        stepIndex: 0,
+        model: {},
+        timeoutSec: {},
+        permissionMode: {},
+        state: "queued",
+        createdAt: "",
+        results: [],
+        ...extra,
       } as unknown as Parameters<typeof runnerArgv>[0],
-      step, "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch" },
+      step,
+      "/tmp/r.json",
+      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch" },
     );
 
   test("a reopen job with resetFiles passes it", () => {
@@ -376,7 +522,9 @@ describe("--reset-files", () => {
     expect(argvFor("reopen", {})).not.toContain("--reset-files");
   });
   test("another step never passes it, whatever the job says", () => {
-    expect(argvFor("analyze", { resetFiles: true })).not.toContain("--reset-files");
+    expect(argvFor("analyze", { resetFiles: true })).not.toContain(
+      "--reset-files",
+    );
   });
 });
 
@@ -384,11 +532,27 @@ describe("--chrome", () => {
   const argvFor = (chrome: boolean | undefined): string[] =>
     runnerArgv(
       {
-        id: "j1", project: "aide", specFolder: "schedule-x-list", steps: ["schedule"], stepIndex: 0,
-        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+        id: "j1",
+        project: "aide",
+        specFolder: "schedule-x-list",
+        steps: ["schedule"],
+        stepIndex: 0,
+        model: {},
+        timeoutSec: {},
+        permissionMode: {},
+        state: "queued",
+        createdAt: "",
+        results: [],
       } as unknown as Parameters<typeof runnerArgv>[0],
-      "schedule", "/tmp/r.json",
-      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", promptFile: "docs/x.md", chrome },
+      "schedule",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/p",
+        push: "branch",
+        promptFile: "docs/x.md",
+        chrome,
+      },
     );
 
   test("a scheduled job whose entry asks for Chrome passes it", () => {
@@ -404,11 +568,27 @@ describe("--no-sandbox", () => {
   const argvFor = (noSandbox: boolean | undefined): string[] =>
     runnerArgv(
       {
-        id: "j1", project: "aide", specFolder: "schedule-nightly-e2e", steps: ["schedule"], stepIndex: 0,
-        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+        id: "j1",
+        project: "aide",
+        specFolder: "schedule-nightly-e2e",
+        steps: ["schedule"],
+        stepIndex: 0,
+        model: {},
+        timeoutSec: {},
+        permissionMode: {},
+        state: "queued",
+        createdAt: "",
+        results: [],
       } as unknown as Parameters<typeof runnerArgv>[0],
-      "schedule", "/tmp/r.json",
-      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", promptFile: "docs/x.md", noSandbox },
+      "schedule",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/p",
+        push: "branch",
+        promptFile: "docs/x.md",
+        noSandbox,
+      },
     );
 
   test("a scheduled job whose entry turns the sandbox off passes it", () => {
@@ -424,10 +604,26 @@ describe("--no-sandbox", () => {
 // analysis of the spec, run with the same AI, ended within the hour.
 describe("the analysis session an implement continues", () => {
   const NOW = Date.parse("2026-09-26T14:00:00Z");
-  const job = (results: Record<string, unknown>[], extra: Record<string, unknown> = {}) =>
-    ({ id: "j", project: "aide", specFolder: "541-x", steps: ["analyze", "implement"], results, ...extra }) as never;
-  const analysis = (at: string, extra: Record<string, unknown> = {}) =>
-    ({ step: "analyze", ok: true, sessionId: "s-analyze", tool: "claude", at, ...extra });
+  const job = (
+    results: Record<string, unknown>[],
+    extra: Record<string, unknown> = {},
+  ) =>
+    ({
+      id: "j",
+      project: "aide",
+      specFolder: "541-x",
+      steps: ["analyze", "implement"],
+      results,
+      ...extra,
+    }) as never;
+  const analysis = (at: string, extra: Record<string, unknown> = {}) => ({
+    step: "analyze",
+    ok: true,
+    sessionId: "s-analyze",
+    tool: "claude",
+    at,
+    ...extra,
+  });
 
   test("a recent analysis with the same AI is continued", () => {
     const j = job([analysis("2026-09-26T13:30:00Z")]);
@@ -446,31 +642,77 @@ describe("the analysis session an implement continues", () => {
   });
 
   test("the analysis may be in an earlier job for the same spec, and the latest one wins", () => {
-    const earlier = job([analysis("2026-09-26T13:10:00Z", { sessionId: "s-old" }), analysis("2026-09-26T13:40:00Z", { sessionId: "s-new" })], { id: "e" });
-    const other = job([analysis("2026-09-26T13:50:00Z", { sessionId: "s-other" })], { id: "o", specFolder: "540-y" });
+    const earlier = job(
+      [
+        analysis("2026-09-26T13:10:00Z", { sessionId: "s-old" }),
+        analysis("2026-09-26T13:40:00Z", { sessionId: "s-new" }),
+      ],
+      { id: "e" },
+    );
+    const other = job(
+      [analysis("2026-09-26T13:50:00Z", { sessionId: "s-other" })],
+      { id: "o", specFolder: "540-y" },
+    );
     const now = job([], { id: "n", steps: ["implement"] });
-    expect(analysisSessionToResume(now, [earlier, other, now], "claude", NOW)).toBe("s-new");
+    expect(
+      analysisSessionToResume(now, [earlier, other, now], "claude", NOW),
+    ).toBe("s-new");
   });
 
   test("it is continued across two Codex providers that share a CODEX_HOME, not across two that do not (AC-16)", () => {
     const providers = {
-      A: { name: "A", tool: "codex", codexHome: "/shared", shadowHome: "/shadow-a" },
-      B: { name: "B", tool: "codex", codexHome: "/shared", shadowHome: "/shadow-b" },
+      A: {
+        name: "A",
+        tool: "codex",
+        codexHome: "/shared",
+        shadowHome: "/shadow-a",
+      },
+      B: {
+        name: "B",
+        tool: "codex",
+        codexHome: "/shared",
+        shadowHome: "/shadow-b",
+      },
       C: { name: "C", tool: "codex", codexHome: "/own" },
     } as never;
-    const j = job([analysis("2026-09-26T13:30:00Z", { tool: "codex", provider: { key: "A", name: "A" } })]);
-    expect(analysisSessionToResume(j, [j], "codex", NOW, { key: "B", providers })).toBe("s-analyze");
-    expect(analysisSessionToResume(j, [j], "codex", NOW, { key: "C", providers })).toBeUndefined();
+    const j = job([
+      analysis("2026-09-26T13:30:00Z", {
+        tool: "codex",
+        provider: { key: "A", name: "A" },
+      }),
+    ]);
+    expect(
+      analysisSessionToResume(j, [j], "codex", NOW, { key: "B", providers }),
+    ).toBe("s-analyze");
+    expect(
+      analysisSessionToResume(j, [j], "codex", NOW, { key: "C", providers }),
+    ).toBeUndefined();
   });
 
   test("only an implement is handed the session", () => {
     const argvFor = (step: string): string[] =>
       runnerArgv(
         {
-          id: "j1", project: "aide", specFolder: "541-x", steps: [step], stepIndex: 0,
-          model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+          id: "j1",
+          project: "aide",
+          specFolder: "541-x",
+          steps: [step],
+          stepIndex: 0,
+          model: {},
+          timeoutSec: {},
+          permissionMode: {},
+          state: "queued",
+          createdAt: "",
+          results: [],
         } as unknown as Parameters<typeof runnerArgv>[0],
-        step, "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", resumeSession: "s-analyze" },
+        step,
+        "/tmp/r.json",
+        {
+          runnerBin: "/bin/aide-run-spec",
+          projectDir: "/p",
+          push: "branch",
+          resumeSession: "s-analyze",
+        },
       );
     expect(argvFor("implement")).toContain("--resume-session");
     expect(argvFor("archive")).not.toContain("--resume-session");
@@ -484,24 +726,52 @@ describe("--claude-config-dir and --codex-home", () => {
     Claude: { name: "Claude", tool: "claude" },
     Capra: { name: "Capra", tool: "claude", configDir: "~/.claude-2" },
     Codex: { name: "Codex", tool: "codex" },
-    "Codex-own": { name: "Codex-own", tool: "codex", codexHome: "/opt/codex-own" },
-    "Codex-shadow": { name: "Codex-shadow", tool: "codex", codexHome: "/opt/codex-shared", shadowHome: "~/.codex-shadow" },
+    "Codex-own": {
+      name: "Codex-own",
+      tool: "codex",
+      codexHome: "/opt/codex-own",
+    },
+    "Codex-shadow": {
+      name: "Codex-shadow",
+      tool: "codex",
+      codexHome: "/opt/codex-shared",
+      shadowHome: "~/.codex-shadow",
+    },
   } as const;
   const choices = { opus: {}, gpt: { tool: "codex" } } as never;
   const argvFor = (provider: string, model = "opus"): string[] =>
     runnerArgv(
       {
-        id: "j1", project: "aide", specFolder: "700-x", steps: ["implement"], stepIndex: 0,
-        model: { implement: model }, provider: { implement: provider }, timeoutSec: {}, permissionMode: {},
-        state: "queued", createdAt: "", results: [],
+        id: "j1",
+        project: "aide",
+        specFolder: "700-x",
+        steps: ["implement"],
+        stepIndex: 0,
+        model: { implement: model },
+        provider: { implement: provider },
+        timeoutSec: {},
+        permissionMode: {},
+        state: "queued",
+        createdAt: "",
+        results: [],
       } as unknown as Parameters<typeof runnerArgv>[0],
-      "implement", "/tmp/r.json",
-      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", modelChoices: choices, providers, home: "/home/ragnar" } as never,
+      "implement",
+      "/tmp/r.json",
+      {
+        runnerBin: "/bin/aide-run-spec",
+        projectDir: "/p",
+        push: "branch",
+        modelChoices: choices,
+        providers,
+        home: "/home/ragnar",
+      } as never,
     );
   const after = (argv: string[], flag: string) => argv[argv.indexOf(flag) + 1];
 
   test("a Claude Code provider with a config folder hands it over expanded (AC-14)", () => {
-    expect(after(argvFor("Capra"), "--claude-config-dir")).toBe("/home/ragnar/.claude-2");
+    expect(after(argvFor("Capra"), "--claude-config-dir")).toBe(
+      "/home/ragnar/.claude-2",
+    );
   });
 
   test("a Claude Code provider with no folder, and a Codex step, are handed no config folder (AC-14)", () => {
@@ -510,31 +780,57 @@ describe("--claude-config-dir and --codex-home", () => {
   });
 
   test("a Codex provider hands over its shadow home, else its CODEX_HOME, else nothing (AC-15)", () => {
-    expect(after(argvFor("Codex-shadow", "gpt"), "--codex-home")).toBe("/home/ragnar/.codex-shadow");
-    expect(after(argvFor("Codex-own", "gpt"), "--codex-home")).toBe("/opt/codex-own");
+    expect(after(argvFor("Codex-shadow", "gpt"), "--codex-home")).toBe(
+      "/home/ragnar/.codex-shadow",
+    );
+    expect(after(argvFor("Codex-own", "gpt"), "--codex-home")).toBe(
+      "/opt/codex-own",
+    );
     expect(argvFor("Codex", "gpt")).not.toContain("--codex-home");
     expect(argvFor("Capra")).not.toContain("--codex-home");
   });
 });
 
 describe("the provider folders handed to the runner's environment", () => {
-  async function envListFor(queueDefaults: Record<string, unknown>): Promise<string> {
+  async function envListFor(
+    queueDefaults: Record<string, unknown>,
+  ): Promise<string> {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-account-dirs-"));
     ownDirs.push(dir);
     const envFile = join(dir, "runner-env.txt");
     const bin = join(dir, "fake-run-spec");
-    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '<%s>\\n<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" "\${AIDE_CODEX_HOMES-unset}" > ${envFile}\n`, { mode: 0o755 });
-    const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env bash\nprintf '<%s>\\n<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" "\${AIDE_CODEX_HOMES-unset}" > ${envFile}\n`,
+      { mode: 0o755 },
+    );
+    const { base } = start({
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      queuePush: "branch",
+      queueDefaults,
+    } as never);
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["implement"],
+      }),
     });
     expect(res.status).toBe(200);
-    return (await fileOnceWritten(envFile, "the runner was never invoked")).trimEnd();
+    return (
+      await fileOnceWritten(envFile, "the runner was never invoked")
+    ).trimEnd();
   }
   const BASE = {
-    timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { implement: "opus", default: "sonnet" },
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
   };
 
   test("every provider's folders, expanded, one list per tool, the normal ones left out (AC-17)", async () => {
@@ -545,10 +841,17 @@ describe("the provider folders handed to the runner's environment", () => {
         Work: { name: "Work", tool: "claude", configDir: "~/.claude-2" },
         Spare: { name: "Spare", tool: "claude", configDir: "/opt/claude-3" },
         Codex: { name: "Codex", tool: "codex" },
-        Shadow: { name: "Shadow", tool: "codex", codexHome: "~/.codex", shadowHome: "~/.codex-shadow" },
+        Shadow: {
+          name: "Shadow",
+          tool: "codex",
+          codexHome: "~/.codex",
+          shadowHome: "~/.codex-shadow",
+        },
       },
     });
-    expect(env).toBe(`<${homedir()}/.claude-2\n/opt/claude-3>\n<${homedir()}/.codex-shadow>`);
+    expect(env).toBe(
+      `<${homedir()}/.claude-2\n/opt/claude-3>\n<${homedir()}/.codex-shadow>`,
+    );
   });
 
   test("neither list is set when no provider has a folder of its own (AC-17)", async () => {

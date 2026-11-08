@@ -10,22 +10,40 @@ const NUMBERED = new Set(["agent_message", "command_execution", "file_change"]);
 
 /** A reader of a stream's events that keeps the count. */
 export function itemCounter(from?: ItemNumbering) {
-  const state: ItemNumbering = { thread: from?.thread, counts: { ...from?.counts } };
+  const state: ItemNumbering = {
+    thread: from?.thread,
+    counts: { ...from?.counts },
+  };
   const started: string[] = [];
   return {
     state,
     /** Threads a `thread.started` event named while reading. */
     started,
     /** One event: the place of the numbered item it completes, if it completes one. */
-    read(event: Record<string, unknown>): { thread: string; n: number } | undefined {
-      if (event.type === "thread.started" && typeof event.thread_id === "string") {
+    read(
+      event: Record<string, unknown>,
+    ): { thread: string; n: number } | undefined {
+      if (
+        event.type === "thread.started" &&
+        typeof event.thread_id === "string"
+      ) {
         state.thread = event.thread_id;
         started.push(event.thread_id);
         return undefined;
       }
       const item = event.item;
-      if (event.type !== "item.completed" || item === null || typeof item !== "object" || Array.isArray(item)) return undefined;
-      if (!NUMBERED.has(codexKind(item as Record<string, unknown>)) || state.thread === undefined) return undefined;
+      if (
+        event.type !== "item.completed" ||
+        item === null ||
+        typeof item !== "object" ||
+        Array.isArray(item)
+      )
+        return undefined;
+      if (
+        !NUMBERED.has(codexKind(item as Record<string, unknown>)) ||
+        state.thread === undefined
+      )
+        return undefined;
       const n = (state.counts[state.thread] ?? 0) + 1;
       state.counts[state.thread] = n;
       return { thread: state.thread, n };
@@ -34,7 +52,10 @@ export function itemCounter(from?: ItemNumbering) {
 }
 
 /** Where the numbering stands after `text`, and the threads it named. */
-export function codexNumbering(text: string, from?: ItemNumbering): ItemNumbering & { started: string[] } {
+export function codexNumbering(
+  text: string,
+  from?: ItemNumbering,
+): ItemNumbering & { started: string[] } {
   const counter = itemCounter(from);
   for (const event of events(text)) counter.read(event);
   return { ...counter.state, started: counter.started };

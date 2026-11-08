@@ -31,12 +31,28 @@ describe("QueueStore.dropProject", () => {
   test("drops every job of the project, keeps the others, and mirrors the result", () => {
     const mirror = join(dir, "queue.json");
     let changes = 0;
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: mirror, onChange: () => (changes += 1) });
-    for (const specFolder of ["01-add-the-first-fact", "02-add-a-second-fact"]) {
-      const made = store.enqueue({ project: "aide-test", specFolder, steps: ["analyze"] });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      mirrorPath: mirror,
+      onChange: () => (changes += 1),
+    });
+    for (const specFolder of [
+      "01-add-the-first-fact",
+      "02-add-a-second-fact",
+    ]) {
+      const made = store.enqueue({
+        project: "aide-test",
+        specFolder,
+        steps: ["analyze"],
+      });
       if (!made.ok) throw new Error(made.error);
     }
-    const kept = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const kept = store.enqueue({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["analyze"],
+    });
     if (!kept.ok) throw new Error(kept.error);
     const before = changes;
 
@@ -44,13 +60,19 @@ describe("QueueStore.dropProject", () => {
     expect(store.list().map((j) => j.project)).toEqual(["aide"]);
     expect(changes).toBe(before + 1);
     expect(existsSync(mirror)).toBe(true);
-    const onDisk = JSON.parse(readFileSync(mirror, "utf8")) as { project: string }[];
+    const onDisk = JSON.parse(readFileSync(mirror, "utf8")) as {
+      project: string;
+    }[];
     expect(onDisk.map((j) => j.project)).toEqual(["aide"]);
   });
 
   test("a project with no jobs drops nothing and says so", () => {
     let changes = 0;
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, onChange: () => (changes += 1) });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      onChange: () => (changes += 1),
+    });
     expect(store.dropProject("aide-test")).toBe(0);
     expect(changes).toBe(0);
   });

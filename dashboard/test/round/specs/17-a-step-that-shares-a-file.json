@@ -1,10 +1,6 @@
 {
   "title": "A step that shares a file",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "after": "05",
   "expect": {

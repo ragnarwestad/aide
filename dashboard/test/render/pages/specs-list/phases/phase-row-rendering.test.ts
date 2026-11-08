@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import {
+  renderSpecsRows,
+  type SpecsPageOptions,
+  type QueueRowView,
+  type SpecTarget,
+} from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of row-status-and-controls.test.ts by theme: the rest of
@@ -8,10 +13,24 @@ import { row, openKeys } from "../../fixtures.ts";
 // the model dropdown, folding, the row's own summary, and the two
 // specs about a busy job and the State line.
 describe("a spec's row runs its own phases", () => {
-  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
-    row({ id, specFolder: "94-row-runs-it", steps: [step], stepIndex: 0, state: "done", ...extra });
+  const job = (
+    id: string,
+    step: string,
+    extra: Partial<QueueRowView> = {},
+  ): QueueRowView =>
+    row({
+      id,
+      specFolder: "94-row-runs-it",
+      steps: [step],
+      stepIndex: 0,
+      state: "done",
+      ...extra,
+    });
 
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -34,7 +53,11 @@ describe("a spec's row runs its own phases", () => {
     );
 
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`,
+      ),
+    )?.[0] ?? "";
 
   // The row carries no title, phase or percentage: the percentage counted the checkbox rows
   // the implement step ticks, so it read 0 with analyze finished and
@@ -90,7 +113,10 @@ describe("a spec's row runs its own phases", () => {
 // step tickable, which promised a press the queue was going to refuse
 // anyway.
 describe("a busy job holds every step on the row", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -100,7 +126,11 @@ describe("a busy job holds every step on the row", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+      },
       Date.parse("2026-08-18T12:00:00Z"),
     );
   /** The line an open row reveals under its header, where the phase
@@ -113,7 +143,11 @@ describe("a busy job holds every step on the row", () => {
       ),
     )?.[0] ?? "";
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+    line.match(
+      new RegExp(
+        `<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`,
+      ),
+    )?.[0] ?? "";
 
   /** One job holding two steps, to exercise the lock across a step
    *  boundary. */
@@ -126,7 +160,10 @@ describe("a busy job holds every step on the row", () => {
     });
 
   const line = (r: QueueRowView) =>
-    runLine(rows([r], [target("101-specs-page-ui-pass")]), "101-specs-page-ui-pass");
+    runLine(
+      rows([r], [target("101-specs-page-ui-pass")]),
+      "101-specs-page-ui-pass",
+    );
 
   test("a later step of the running job is disabled too, not only the one in flight", () => {
     const l = line(pair("running"));
@@ -162,13 +199,18 @@ describe("a busy job holds every step on the row", () => {
     const l = line(pair("done", 1));
     for (const step of ["analyze", "implement", "archive"]) {
       expect(box(l, step)).not.toContain("disabled");
-      expect(box(l, step)).not.toContain("title=\"analyze");
+      expect(box(l, step)).not.toContain('title="analyze');
     }
     expect(l).not.toContain("This phase can't be changed right now");
   });
 
   test("a job that failed, stopped or was cancelled holds nothing either", () => {
-    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of [
+      "failed",
+      "stopped",
+      "cancelled",
+      "interrupted",
+    ] as const) {
       const l = line(pair(state, 1));
       expect(box(l, "analyze")).not.toContain("disabled");
       expect(box(l, "implement")).not.toContain("disabled");
@@ -185,39 +227,75 @@ describe("a busy job holds every step on the row", () => {
 // `queued` because nothing said WHICH step was waiting.
 
 describe("the State line says what is happening, or what is next", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
-  const rows = (list: QueueRowView[], targets: SpecTarget[] = [], opts: Partial<SpecsPageOptions> = {}) =>
+  const rows = (
+    list: QueueRowView[],
+    targets: SpecTarget[] = [],
+    opts: Partial<SpecsPageOptions> = {},
+  ) =>
     renderSpecsRows(
       list,
       { runnerAvailable: true, targets, ...opts },
       Date.parse("2026-08-20T12:00:00Z"),
     );
   const chip = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
-    return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
+    const head =
+      html.match(
+        /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
+      )?.[0] ?? "";
+    const state =
+      head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
+    return (
+      state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ??
+      ""
+    );
   };
   const chipTitle = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
-    return state.match(/<span class="badge b-[a-z]+" title="([^"]*)"/)?.[1] ?? "";
+    const head =
+      html.match(
+        /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
+      )?.[0] ?? "";
+    const state =
+      head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
+    return (
+      state.match(/<span class="badge b-[a-z]+" title="([^"]*)"/)?.[1] ?? ""
+    );
   };
   const actionCell = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...head.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    const head =
+      html.match(
+        /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
+      )?.[0] ?? "";
+    const cells = [
+      ...head
+        .replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "")
+        .matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g),
+    ].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
   };
-  const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
+  const done = () =>
+    row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
   // A queued row said one word and nothing else, while
   // the step it was waiting to run was known all along.
   test("a queued job names the step it is waiting to run", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
+      [
+        row({
+          id: "j1",
+          specFolder: "132-a",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "queued",
+        }),
+      ],
       [target("132-a")],
     );
     expect(chip(html)).toBe("Implementing queued");

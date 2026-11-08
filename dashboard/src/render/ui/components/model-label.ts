@@ -2,7 +2,9 @@
  *  `Opus 5.5`, `claude-haiku-4-5-20251001` is `Haiku 4.5`. Undefined for an
  *  id of any other shape, which is then shown as it is. */
 export function modelName(modelId: string | undefined): string | undefined {
-  const m = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(modelId ?? "");
+  const m = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(
+    modelId ?? "",
+  );
   if (!m) return undefined;
   const family = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1);
   return `${family} ${m[2]}${m[3] ? `.${m[3]}` : ""}`;
@@ -21,12 +23,16 @@ function endsInFamily(label: string, name: string): boolean {
  *  follows the choice, as `Opus · x`. No id shows the choice alone: the id
  *  is what the run's own log named, and where it named none there is
  *  nothing to add. */
-export function withModelId(choice: string | undefined, modelId: string | undefined): string | undefined {
+export function withModelId(
+  choice: string | undefined,
+  modelId: string | undefined,
+): string | undefined {
   if (!modelId) return choice;
   const name = modelName(modelId);
   if (!name) return choice ? `${choice} · ${modelId}` : modelId;
   if (!choice) return name;
-  if (endsInFamily(choice, name)) return [...choice.split(" ").slice(0, -1), name].join(" ");
+  if (endsInFamily(choice, name))
+    return [...choice.split(" ").slice(0, -1), name].join(" ");
   return choice.toLowerCase().startsWith("claude ") ? `Claude ${name}` : name;
 }
 

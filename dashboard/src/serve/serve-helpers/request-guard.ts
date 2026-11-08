@@ -9,7 +9,10 @@ import type { HostAllowlist } from "./tailscale-name.ts";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 const refuse = (why: string): Response =>
-  new Response(`forbidden: ${why}\n`, { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
+  new Response(`forbidden: ${why}\n`, {
+    status: 403,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
 
 /** `"[::1]:8788"` -> `"[::1]"`; `undefined` for an empty or malformed value. */
 function hostName(host: string): string | undefined {
@@ -31,7 +34,12 @@ function originHost(origin: string): string {
 function changesSomething(req: Request): boolean {
   if (!SAFE_METHODS.has(req.method)) return true;
   try {
-    return req.method === "GET" && new URL(req.url, "http://localhost").searchParams.get("startTestServer") === "1";
+    return (
+      req.method === "GET" &&
+      new URL(req.url, "http://localhost").searchParams.get(
+        "startTestServer",
+      ) === "1"
+    );
   } catch {
     return false;
   }
@@ -39,15 +47,21 @@ function changesSomething(req: Request): boolean {
 
 /** `null` admits the request; a 403 refuses it. Runs before `new URL(req.url)`
  *  anywhere else: a request with no Host has a `req.url` that does not parse. */
-export async function checkRequest(req: Request, hosts: HostAllowlist): Promise<Response | null> {
+export async function checkRequest(
+  req: Request,
+  hosts: HostAllowlist,
+): Promise<Response | null> {
   const host = req.headers.get("host")?.toLowerCase();
   const name = host ? hostName(host) : undefined;
   if (!host || !name || !(await hosts.has(name))) {
-    return refuse(`this address is not one the dashboard is served at: ${host || "no Host header"}`);
+    return refuse(
+      `this address is not one the dashboard is served at: ${host || "no Host header"}`,
+    );
   }
   if (!changesSomething(req)) return null;
   const origin = req.headers.get("origin");
-  if (origin !== null && originHost(origin) !== host) return refuse(`a request from another site: Origin ${origin}`);
+  if (origin !== null && originHost(origin) !== host)
+    return refuse(`a request from another site: Origin ${origin}`);
   const site = req.headers.get("sec-fetch-site");
   if (site !== null && site !== "same-origin" && site !== "none") {
     return refuse(`a request from another site: Sec-Fetch-Site ${site}`);

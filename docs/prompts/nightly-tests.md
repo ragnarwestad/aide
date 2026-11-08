@@ -38,5 +38,5 @@ propose a spec for each failure, and stop.
      the code, or in the test when the test is what is wrong; and an
      `## Acceptance criteria` section with `- **AC-1:**` lines, each one
      sentence. Under 4,000 characters.
-   Write no file when everything is green.
+     Write no file when everything is green.
 5. Change no file in the repository, and commit nothing.

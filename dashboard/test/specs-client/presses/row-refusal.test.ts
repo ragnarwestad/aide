@@ -6,7 +6,10 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { listRefusalLine, refusalRowTemplate } from "../../../src/render/pages/specs-list/notice-row.ts";
+import {
+  listRefusalLine,
+  refusalRowTemplate,
+} from "../../../src/render/pages/specs-list/notice-row.ts";
 import { clearRefusal } from "../../../src/specs-client/row-refusal";
 import { showRefusal } from "../../../src/specs-client/tail-actions.ts";
 import { submitAction } from "../../../src/specs-client/forms.ts";
@@ -51,27 +54,45 @@ const rows = (drawn: number, a = "", b = "") =>
 
 /** The list as the server draws it: the line above the rows, the row the
  *  script copies, and `#jobrows`; `answer` is what the rows' redraw gets. */
-function list(inside: string, answer: { rows: () => string; press?: { status: number; body: unknown } }) {
+function list(
+  inside: string,
+  answer: { rows: () => string; press?: { status: number; body: unknown } },
+) {
   win = new Window({ url: "http://dash.test/?state=active" });
-  win.document.write(`${listRefusalLine()}${refusalRowTemplate()}<div id="jobrows">${inside}</div>`);
+  win.document.write(
+    `${listRefusalLine()}${refusalRowTemplate()}<div id="jobrows">${inside}</div>`,
+  );
   (globalThis as { document?: unknown }).document = win.document;
   (globalThis as { location?: unknown }).location = win.location;
-  (globalThis as { history?: unknown }).history = { replaceState() { throw new Error("the address is not written"); } };
+  (globalThis as { history?: unknown }).history = {
+    replaceState() {
+      throw new Error("the address is not written");
+    },
+  };
   (globalThis as unknown as { FormData: unknown }).FormData = win.FormData;
   (globalThis as unknown as { fetch: unknown }).fetch = async (url: string) => {
-    if (url.includes("rows=1")) return { ok: true, text: async () => answer.rows() };
+    if (url.includes("rows=1"))
+      return { ok: true, text: async () => answer.rows() };
     const press = answer.press ?? { status: 200, body: { ok: true } };
-    return { ok: press.status < 400, status: press.status, json: async () => press.body };
+    return {
+      ok: press.status < 400,
+      status: press.status,
+      json: async () => press.body,
+    };
   };
   return win.document as unknown as Document;
 }
 
-const refusalRows = (doc: Document) => Array.from(doc.querySelectorAll("tr[data-refusal]"));
-const words = (el: Element | null | undefined) => el?.querySelector("span")?.textContent ?? "";
+const refusalRows = (doc: Document) =>
+  Array.from(doc.querySelectorAll("tr[data-refusal]"));
+const words = (el: Element | null | undefined) =>
+  el?.querySelector("span")?.textContent ?? "";
 
 describe("a refused press on the list", () => {
   test("is written under its spec at once, before the group's gap", async () => {
-    const doc = list(rows(1), { rows: () => new Promise<string>(() => {}) as unknown as string });
+    const doc = list(rows(1), {
+      rows: () => new Promise<string>(() => {}) as unknown as string,
+    });
     void showRefusal("the job is already done", "aide/a");
     const [row] = refusalRows(doc);
     expect(words(row)).toBe("The job is already done");
@@ -96,26 +117,50 @@ describe("a refused press on the list", () => {
   test("is gone once another press starts", async () => {
     const doc = list(rows(4), { rows: () => rows(4) });
     await showRefusal("the job is already done", "aide/a");
-    doc.getElementById("spec-aide/b")!.insertAdjacentHTML(
-      "beforeend",
-      `<td><form class="actionform" method="post" action="/api/queue/j2/cancel"><button>Cancel</button></form></td>`,
-    );
-    const form = doc.querySelector("form.actionform") as unknown as HTMLFormElement;
-    const event = { target: form, defaultPrevented: false, preventDefault() { event.defaultPrevented = true; } };
+    doc
+      .getElementById("spec-aide/b")!
+      .insertAdjacentHTML(
+        "beforeend",
+        `<td><form class="actionform" method="post" action="/api/queue/j2/cancel"><button>Cancel</button></form></td>`,
+      );
+    const form = doc.querySelector(
+      "form.actionform",
+    ) as unknown as HTMLFormElement;
+    const event = {
+      target: form,
+      defaultPrevented: false,
+      preventDefault() {
+        event.defaultPrevented = true;
+      },
+    };
     await submitAction(event as unknown as Event);
     expect(refusalRows(doc)).toHaveLength(0);
   });
 
   test("closes the confirm dialog its form was posted from", async () => {
-    const reason = "the job is already done; only a queued or running job can be cancelled";
-    const doc = list(rows(5, CANCEL), { rows: () => rows(5, CANCEL), press: { status: 409, body: { error: reason, spec: "aide/a" } } });
-    const dialog = doc.getElementById("cancelask-j1") as unknown as HTMLDialogElement;
+    const reason =
+      "the job is already done; only a queued or running job can be cancelled";
+    const doc = list(rows(5, CANCEL), {
+      rows: () => rows(5, CANCEL),
+      press: { status: 409, body: { error: reason, spec: "aide/a" } },
+    });
+    const dialog = doc.getElementById(
+      "cancelask-j1",
+    ) as unknown as HTMLDialogElement;
     dialog.setAttribute("open", "");
     const form = dialog.querySelector("form") as unknown as HTMLFormElement;
-    const event = { target: form, defaultPrevented: false, preventDefault() { event.defaultPrevented = true; } };
+    const event = {
+      target: form,
+      defaultPrevented: false,
+      preventDefault() {
+        event.defaultPrevented = true;
+      },
+    };
     await submitAction(event as unknown as Event);
     expect(dialog.hasAttribute("open")).toBe(false);
-    expect(refusalRows(doc).map(words)).toEqual(["Problem: The job is already done; only a queued or running job can be cancelled"]);
+    expect(refusalRows(doc).map(words)).toEqual([
+      "Problem: The job is already done; only a queued or running job can be cancelled",
+    ]);
   });
 
   test("naming no spec, goes into the list's own line, which a redraw leaves", async () => {

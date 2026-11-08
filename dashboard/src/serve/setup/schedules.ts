@@ -7,14 +7,20 @@
 // `runner` genuinely does not exist yet when this stage runs — only
 // when a schedule timer actually fires, long afterwards.
 
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type {
+  BranchStatusChecker,
+  GitRunner,
+} from "../../git/branch-status.ts";
 import { DEFAULT_TTL_MS } from "../../git/branch-status.ts";
 import {
   DescriptionFreshnessChecker,
   SpecCreatedAtChecker,
   SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
-import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import {
+  WorkflowHistoryChecker,
+  BranchFileStepsChecker,
+} from "../../git/workflow-history.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
@@ -31,7 +37,12 @@ import {
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
 } from "../schedules";
-import { BRANCH_PREVIEW_POLL_MS, dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../schedules/branch-previews.ts";
+import {
+  BRANCH_PREVIEW_POLL_MS,
+  dropPreviewsOfRunningSteps,
+  refreshBranchPreviews,
+  type BranchPreviewContext,
+} from "../schedules/branch-previews.ts";
 import { runScript } from "../land-branch/run-script.ts";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
@@ -74,24 +85,48 @@ export interface ScheduleSetupInputs {
  *  `0` turns the schedule off, which is a test seam and not a window — the
  *  checkers keep their own default there, so an answer put in by hand
  *  still stands. */
-export function specCacheTimes(pollMs = SPEC_CACHE_POLL_MS): { pollMs: number; ttlMs: number } {
-  return { pollMs, ttlMs: pollMs > 0 ? Math.min(pollMs, DEFAULT_TTL_MS) : DEFAULT_TTL_MS };
+export function specCacheTimes(pollMs = SPEC_CACHE_POLL_MS): {
+  pollMs: number;
+  ttlMs: number;
+} {
+  return {
+    pollMs,
+    ttlMs: pollMs > 0 ? Math.min(pollMs, DEFAULT_TTL_MS) : DEFAULT_TTL_MS,
+  };
 }
 
 /** `gh` on the PATH a step's own spawn gets, so it is the one the runner
  *  finds. No answer, not an error, where it cannot be run. */
 const runGh: GhRunner = (dir, args) =>
-  runScript(["gh", ...args], dir, 10_000, undefined, { GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1" }).catch(
-    () => ({ code: 127, stdout: "" }),
-  );
+  runScript(["gh", ...args], dir, 10_000, undefined, {
+    GH_PROMPT_DISABLED: "1",
+    GH_NO_UPDATE_NOTIFIER: "1",
+  }).catch(() => ({ code: 127, stdout: "" }));
 
-export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
+export function setupSchedules(
+  opts: ScheduleSetupOptions,
+  state: ServerState,
+  inputs: ScheduleSetupInputs,
+) {
   const {
-    machineryProjectDir, branchStatus, targets, allowed, scheduleStore, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
-    notifyQueueChanged, specsRoot, recheckTools,
+    machineryProjectDir,
+    branchStatus,
+    targets,
+    allowed,
+    scheduleStore,
+    ensureCheckout,
+    queue,
+    specRoots,
+    checkoutEnsurer,
+    gitRun,
+    notifyQueueChanged,
+    specsRoot,
+    recheckTools,
   } = inputs;
 
-  const { pollMs: specCachePollMs, ttlMs: specCacheTtlMs } = specCacheTimes(opts.specCachePollMs);
+  const { pollMs: specCachePollMs, ttlMs: specCacheTtlMs } = specCacheTimes(
+    opts.specCachePollMs,
+  );
 
   // One merge at a time per repo. Every spec shares the specs root, and
   // two specs in one project share that repo too, so two presses a few
@@ -99,17 +134,32 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   const mergeLock = createRootLock();
   // A third user of the same runner: has the description moved on since
   // the plan was written?
-  const freshness = new DescriptionFreshnessChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  const freshness = new DescriptionFreshnessChecker({
+    run: gitRun,
+    ttlMs: specCacheTtlMs,
+  });
   // And a fourth: which steps this spec has actually had.
-  const workflowHistory = new WorkflowHistoryChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  const workflowHistory = new WorkflowHistoryChecker({
+    run: gitRun,
+    ttlMs: specCacheTtlMs,
+  });
   // A fifth: when the spec was MADE.
-  const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  const specCreatedAt = new SpecCreatedAtChecker({
+    run: gitRun,
+    ttlMs: specCacheTtlMs,
+  });
   // And a sixth: which commit last touched each spec file.
-  const specFileCommits = new SpecFileCommitChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  const specFileCommits = new SpecFileCommitChecker({
+    run: gitRun,
+    ttlMs: specCacheTtlMs,
+  });
   // And a seventh: the file half of the disagreement
   // comparison, read from a spec's own open branch instead of the
   // default-branch checkout's stale copy.
-  const branchFileSteps = new BranchFileStepsChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  const branchFileSteps = new BranchFileStepsChecker({
+    run: gitRun,
+    ttlMs: specCacheTtlMs,
+  });
 
   const scheduleCtx: ScheduleContext = {
     projectRoot: opts.projectRoot,
@@ -149,7 +199,14 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     branchStatus,
     previewFrom: (project) => resolvePreviewFrom(machineryProjectDir(project)),
     stepRunning: (project, specFolder) =>
-      queue.list().some((j) => j.project === project && j.specFolder === specFolder && j.state === "running"),
+      queue
+        .list()
+        .some(
+          (j) =>
+            j.project === project &&
+            j.specFolder === specFolder &&
+            j.state === "running",
+        ),
     ghRun: opts.ghRun ?? runGh,
     branchPreviews: state.branchPreviews,
     notifyQueueChanged,
@@ -157,10 +214,18 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   function refreshDrift() {
     return refreshDriftImpl(scheduleCtx);
   }
-  function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
+  function warmSpec(t: {
+    dir?: string;
+    specFolder: string;
+    reopenedAfter?: string;
+  }) {
     return warmSpecImpl(scheduleCtx, t);
   }
-  function rereadSpec(dir: string, specFolder: string, opts?: { askOrigin?: boolean }) {
+  function rereadSpec(
+    dir: string,
+    specFolder: string,
+    opts?: { askOrigin?: boolean },
+  ) {
     return rereadSpecImpl(scheduleCtx, dir, specFolder, opts);
   }
   function rereadProject(project: string) {
@@ -214,19 +279,32 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       : null;
   scheduleTimer?.unref?.();
 
-  const branchPreviewPollMs = opts.branchPreviewPollMs ?? BRANCH_PREVIEW_POLL_MS;
+  const branchPreviewPollMs =
+    opts.branchPreviewPollMs ?? BRANCH_PREVIEW_POLL_MS;
   const branchPreviewTimer =
     branchPreviewPollMs > 0
       ? (() => {
           void refreshBranchPreviews(branchPreviewCtx);
-          return setInterval(() => void refreshBranchPreviews(branchPreviewCtx), branchPreviewPollMs);
+          return setInterval(
+            () => void refreshBranchPreviews(branchPreviewCtx),
+            branchPreviewPollMs,
+          );
         })()
       : null;
   branchPreviewTimer?.unref?.();
 
   return {
-    mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    warmSpec, rereadSpec, rereadProject, refreshSpecCaches, tickRunner,
+    mergeLock,
+    freshness,
+    workflowHistory,
+    specCreatedAt,
+    specFileCommits,
+    branchFileSteps,
+    warmSpec,
+    rereadSpec,
+    rereadProject,
+    refreshSpecCaches,
+    tickRunner,
     timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer],
   };
 }

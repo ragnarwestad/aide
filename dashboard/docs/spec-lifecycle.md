@@ -21,7 +21,7 @@ take it back or close it. How each move is decided and recorded is in
 ## The four phases
 
 | Phase       | Writes                                                                                                                   | Lands                                                                                |
-|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| ----------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | `create`    | The spec folder: `0-README.md`, `1-description.md` and empty `2-`, `3-`, `4-` files, via `core/scripts/aide-create-spec` | Merged into the specs repo's default branch at once; the branch is deleted on origin |
 | `analyze`   | `2-analysis.md`, `3-solution.md`, `4-status.md`, in the specs repo only                                                  | Merged into the specs repo's default branch at once; the branch is deleted on origin |
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
@@ -59,7 +59,7 @@ it:
   The condition comes first, so a reader knows when the criterion holds before reading what it asks for:
 
   | Pattern            | Form                                                 | Example                                                                          |
-  |--------------------|------------------------------------------------------|----------------------------------------------------------------------------------|
+  | ------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
   | Always             | `The <system> SHALL <response>`                      | The status file SHALL carry one row per AC-n id.                                 |
   | Event              | `WHEN <trigger>, the <system> SHALL <response>`      | WHEN a step ends, the runner SHALL write its result into the status file.        |
   | State              | `WHILE <state>, the <system> SHALL <response>`       | WHILE a job runs on a spec, the specs list SHALL lock that spec's Run button.    |
@@ -67,6 +67,7 @@ it:
   | Optional feature   | `WHERE <feature>, the <system> SHALL <response>`     | WHERE a project sets a test command, the runner SHALL run it before the commit.  |
 
   Each criterion becomes a row. With acceptance ticking required it must be ticked before archive; otherwise the runner marks it Not verified after analyze.
+
 - **Out of scope**, an optional section under exactly the heading `## Out of scope`: a list of what the change must
   not do or touch. Create keeps it word for word and never writes one itself. Analyze's plan review treats any part of
   the plan under an item as a must-fix, and the review after implement treats any change under an item as a defect,
@@ -76,7 +77,7 @@ it:
 **The Options tab** holds how the spec is run, and most specs leave it as it opens:
 
 | Option                               | When the form opens | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-|--------------------------------------|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Acceptance ticking required          | Ticked              | Archive waits until every acceptance criterion is ticked on the spec. Cleared, every criterion is marked Not verified after analyze. Archive can proceed, and each row can be verified later.                                                                                                                                                                                                                                                                               |
 | Let AI formulate acceptance criteria | Ticked              | Create runs a short AI session that adds a criterion, in EARS, for each requirement in the description that has none. The criteria you wrote are kept word for word, with their numbers, and the added ones are numbered on from yours. Cleared, the description is saved exactly as typed.                                                                                                                                                                                 |
 | Acceptance criteria checks           | Off                 | How strictly analyze checks the criteria: that the description has some, that each follows an EARS pattern, that each WHEN, WHILE or WHERE criterion has a scenario for when its condition does not hold, that no two contradict each other, and that each can be built. Off makes no checks; Warn lists what it finds and analyze completes; Stop holds analyze until the criteria are put right. Can be changed on its open row on the Running tab until analyze has run. |
@@ -111,7 +112,7 @@ Every stop writes its own sentence onto the spec's row, and most of them end by 
 is the whole set:
 
 | What the row says                     | What happened                                                                      | What moves it on                                                           |
-|---------------------------------------|------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| ------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | held back: not analyzed yet           | The spec has not analyzed, and implement needs a plan                              | Run Analyze                                                                |
 | held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                         |
 | held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                          |
@@ -201,8 +202,8 @@ queue step the dashboard presses, never a step the runner decides on its own.
   `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark is history, and the spec reads as active again. A new
   stamp after that boundary counts. [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run)
   has which readers apply that rule.
-There is no `reset` step for an ACTIVE spec: another round covers that, and a reopen with its reset covers the
-rest. A `**Reset:**` stamp is still read where an older job left one, so such a spec keeps its boundary.
+  There is no `reset` step for an ACTIVE spec: another round covers that, and a reopen with its reset covers the
+  rest. A `**Reset:**` stamp is still read where an older job left one, so such a spec keeps its boundary.
 
 A spec reopened with reset reads as `created` again: the line is empty until a step runs. It also drops the phase
 choice recorded under the spec (`pending-steps.json`): the ticks belonged to the round just discarded, so the row falls

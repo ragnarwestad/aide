@@ -1,10 +1,6 @@
 {
   "title": "A step that runs past its time limit",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "timeoutSec": 10,
   "expect": {

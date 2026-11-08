@@ -18,12 +18,21 @@ describe("usageView", () => {
       tool: "codex",
       at: AT,
       windows: [
-        { name: "five_hour", usedPercent: 51, resetsAt: "2026-10-02T21:54:46.000Z" },
-        { name: "seven_day", usedPercent: 8, resetsAt: "2026-10-03T18:10:17.000Z" },
+        {
+          name: "five_hour",
+          usedPercent: 51,
+          resetsAt: "2026-10-02T21:54:46.000Z",
+        },
+        {
+          name: "seven_day",
+          usedPercent: 8,
+          resetsAt: "2026-10-03T18:10:17.000Z",
+        },
       ],
     };
     const view = usageView(usage, NOW);
-    if (view.kind !== "windows") throw new Error(`expected windows, got ${view.kind}`);
+    if (view.kind !== "windows")
+      throw new Error(`expected windows, got ${view.kind}`);
     expect(view.at).toBe(AT);
     expect(view.rows.map((r) => r.usedPercent)).toEqual([51, 8]);
     for (const row of view.rows) {
@@ -34,27 +43,71 @@ describe("usageView", () => {
   });
 
   test("a label the tool wrote itself is kept, and so are its reset words", () => {
-    const view = usageView({
-      tool: "claude",
-      at: AT,
-      windows: [{ name: "Current session", usedPercent: 24, resets: "Oct 2 at 11:20pm (Europe/Oslo)" }],
-    }, NOW);
-    if (view.kind !== "windows") throw new Error(`expected windows, got ${view.kind}`);
-    expect(view.rows).toEqual([{ label: "Current session", usedPercent: 24, resets: "Oct 2 at 11:20pm (Europe/Oslo)" }]);
+    const view = usageView(
+      {
+        tool: "claude",
+        at: AT,
+        windows: [
+          {
+            name: "Current session",
+            usedPercent: 24,
+            resets: "Oct 2 at 11:20pm (Europe/Oslo)",
+          },
+        ],
+      },
+      NOW,
+    );
+    if (view.kind !== "windows")
+      throw new Error(`expected windows, got ${view.kind}`);
+    expect(view.rows).toEqual([
+      {
+        label: "Current session",
+        usedPercent: 24,
+        resets: "Oct 2 at 11:20pm (Europe/Oslo)",
+      },
+    ]);
   });
 
   test("text with no windows is shown as the tool gave it", () => {
-    const view = usageView({ tool: "claude", at: AT, windows: [], text: "Not logged in · Please run /login" }, NOW);
-    expect(view).toEqual({ kind: "text", at: AT, text: "Not logged in · Please run /login" });
+    const view = usageView(
+      {
+        tool: "claude",
+        at: AT,
+        windows: [],
+        text: "Not logged in · Please run /login",
+      },
+      NOW,
+    );
+    expect(view).toEqual({
+      kind: "text",
+      at: AT,
+      text: "Not logged in · Please run /login",
+    });
   });
 
   test("an AI that reports no windows has none", () => {
-    expect(usageView({ tool: "opencode", at: AT, windows: [] }, NOW).kind).toBe("none");
-    expect(usageView({ tool: "codex", at: AT, windows: [] }, NOW).kind).toBe("none");
+    expect(usageView({ tool: "opencode", at: AT, windows: [] }, NOW).kind).toBe(
+      "none",
+    );
+    expect(usageView({ tool: "codex", at: AT, windows: [] }, NOW).kind).toBe(
+      "none",
+    );
   });
 
   test("a reading that failed keeps its reason and is never none", () => {
-    const view = usageView({ tool: "codex", at: AT, windows: [], error: "codex app-server did not answer in time." }, NOW);
-    expect(view).toEqual({ kind: "failed", at: AT, reason: "codex app-server did not answer in time." });
+    const view = usageView(
+      {
+        tool: "codex",
+        at: AT,
+        windows: [],
+        error: "codex app-server did not answer in time.",
+      },
+      NOW,
+    );
+    expect(view).toEqual({
+      kind: "failed",
+      at: AT,
+      reason: "codex app-server did not answer in time.",
+    });
   });
 });

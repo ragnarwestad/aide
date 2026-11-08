@@ -27,15 +27,21 @@ const FORBIDDEN: [string, RegExp][] = [
 function files(path: string): string[] {
   const s = statSync(path);
   if (!s.isDirectory()) return [path];
-  return readdirSync(path).flatMap((n) => (n === "node_modules" ? [] : files(join(path, n))));
+  return readdirSync(path).flatMap((n) =>
+    n === "node_modules" ? [] : files(join(path, n)),
+  );
 }
 
 describe("nothing names the token", () => {
-  const all = SCANNED.flatMap((p) => files(join(ROOT, p))).filter((f) => !f.endsWith(".png"));
+  const all = SCANNED.flatMap((p) => files(join(ROOT, p))).filter(
+    (f) => !f.endsWith(".png"),
+  );
 
   for (const [label, re] of FORBIDDEN) {
     test(`no file mentions ${label}`, () => {
-      const hits = all.filter((f) => re.test(readFileSync(f, "utf8"))).map((f) => f.slice(ROOT.length + 1));
+      const hits = all
+        .filter((f) => re.test(readFileSync(f, "utf8")))
+        .map((f) => f.slice(ROOT.length + 1));
       expect(hits).toEqual([]);
     });
   }

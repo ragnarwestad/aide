@@ -1,9 +1,21 @@
 /* --- the job page --------------------------------------------------------- */
 
-table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
-table.facts td { padding: 2px var(--sp-4) 2px 0; }
-table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
-table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
+table.facts {
+  width: auto;
+  margin: var(--sp-3) 0 var(--sp-4);
+}
+table.facts td {
+  padding: 2px var(--sp-4) 2px 0;
+}
+table.facts .label {
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+table.facts .pipwrap {
+  margin-left: var(--sp-2);
+  vertical-align: middle;
+}
 /* Each Logs row expands to its own log rather than one
    shared Activity tab. The step link carries the same .fold chevron the
    specs list uses (2026-08-25) — sized and hover-styled entirely by
@@ -11,25 +23,50 @@ table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
    name the click target, which had no visible affordance until hovered.
    .steplog sits right under its summary row with no top padding, so the
    pair reads as one unit rather than two unrelated rows of the table. */
-tr.steplog td { padding-top: 0; }
+tr.steplog td {
+  padding-top: 0;
+}
 /* A part the page script swaps while its job runs adds no box of its own. */
-[data-follow-part] { display: contents; }
+[data-follow-part] {
+  display: contents;
+}
 /* A step's log: about a hundred lines, then it scrolls. Laid out bottom
    first, so it opens at the newest line and a log that grows while the step
    runs keeps showing the end without a script. */
-.logbox { max-height: 100lh; overflow-y: auto; display: flex; flex-direction: column-reverse; }
-.logbox > div { flex: none; }
-.logbox .specfile { margin: 0; }
-.tabpanel { padding-top: var(--sp-4); }
-.tabpanel > h2:first-child { margin-top: var(--sp-2); }
-
+.logbox {
+  max-height: 100lh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+}
+.logbox > div {
+  flex: none;
+}
+.logbox .specfile {
+  margin: 0;
+}
+.tabpanel {
+  padding-top: var(--sp-4);
+}
+.tabpanel > h2:first-child {
+  margin-top: var(--sp-2);
+}
 
 /* A scheduled run's report on the entry's page: the header
    line, and the sandboxed frame that holds the report. The frame's own
    document is styled by report-frame.css. */
-.reportpanel { margin-bottom: var(--sp-5); }
-.reporthead { margin: 0 0 var(--sp-2); }
+.reportpanel {
+  margin-bottom: var(--sp-5);
+}
+.reporthead {
+  margin: 0 0 var(--sp-2);
+}
 .reportframe {
-  display: block; width: 100%; min-height: var(--sp-6); height: 60vh;
-  border: 1px solid var(--line); border-radius: var(--r); background: var(--bg);
+  display: block;
+  width: 100%;
+  min-height: var(--sp-6);
+  height: 60vh;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg);
 }

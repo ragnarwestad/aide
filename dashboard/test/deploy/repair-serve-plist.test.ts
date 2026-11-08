@@ -16,8 +16,16 @@ const PARSE_ARGS = join(ROOT, "src", "serve", "serve-helpers", "parse-args.ts");
 const BUDDY = "/usr/libexec/PlistBuddy";
 
 function programArguments(plist: string): string[] {
-  const out = Bun.spawnSync([BUDDY, "-c", "Print :ProgramArguments", plist]).stdout.toString();
-  return out.split("\n").slice(1, -2).map((l) => l.trim());
+  const out = Bun.spawnSync([
+    BUDDY,
+    "-c",
+    "Print :ProgramArguments",
+    plist,
+  ]).stdout.toString();
+  return out
+    .split("\n")
+    .slice(1, -2)
+    .map((l) => l.trim());
 }
 
 describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh", () => {
@@ -26,19 +34,44 @@ describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh", () => {
 
   function plistWith(serveArgv: string[]): string {
     const path = join(dir, `${serveArgv.join("_").replace(/\W/g, "")}.plist`);
-    writeFileSync(path, renderPlist({
-      label: "L", bunPath: "/b/bun", script: "/s/serve.ts", workingDirectory: "/w", logPath: "/l", serveArgv,
-    }));
+    writeFileSync(
+      path,
+      renderPlist({
+        label: "L",
+        bunPath: "/b/bun",
+        script: "/s/serve.ts",
+        workingDirectory: "/w",
+        logPath: "/l",
+        serveArgv,
+      }),
+    );
     return path;
   }
 
   test("an option the code dropped goes, with its value; the rest stays in order", () => {
-    const plist = plistWith(["serve", "--root", "/x/root", "--token-file", "/x/token", "--port", "8788"]);
+    const plist = plistWith([
+      "serve",
+      "--root",
+      "/x/root",
+      "--token-file",
+      "/x/token",
+      "--port",
+      "8788",
+    ]);
     const res = Bun.spawnSync(["bash", REPAIR, plist, PARSE_ARGS]);
 
     expect(res.exitCode).toBe(0);
     expect(res.stdout.toString()).toContain("removed --token-file");
-    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--root", "/x/root", "--port", "8788"]);
+    expect(programArguments(plist)).toEqual([
+      "/b/bun",
+      "run",
+      "/s/serve.ts",
+      "serve",
+      "--root",
+      "/x/root",
+      "--port",
+      "8788",
+    ]);
   });
 
   test("a job passing only accepted options is left as it was", () => {
@@ -55,9 +88,15 @@ describe("the restart reloads the job from its plist", () => {
   const script = reloadScript("com.example.serve");
 
   test("it takes the job down, waits for it to go, then loads the plist", () => {
-    const bootout = script.indexOf("launchctl bootout gui/$(id -u)/com.example.serve");
-    const wait = script.indexOf("launchctl print gui/$(id -u)/com.example.serve");
-    const bootstrap = script.indexOf('launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/com.example.serve.plist"');
+    const bootout = script.indexOf(
+      "launchctl bootout gui/$(id -u)/com.example.serve",
+    );
+    const wait = script.indexOf(
+      "launchctl print gui/$(id -u)/com.example.serve",
+    );
+    const bootstrap = script.indexOf(
+      'launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/com.example.serve.plist"',
+    );
 
     expect(bootout).toBeGreaterThan(-1);
     expect(wait).toBeGreaterThan(bootout);

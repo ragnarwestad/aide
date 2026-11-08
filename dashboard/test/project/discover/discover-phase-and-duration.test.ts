@@ -6,7 +6,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { specArchivedDate, specPhaseFile } from "../../../src/project/discover";
 
-
 // --- What a phase MADE --------------------------------------------
 //
 // "A phase's page shows what that phase made": analyze wrote
@@ -19,11 +18,15 @@ describe("specPhaseFile", () => {
   let dir: string;
   const STATUS_HEAD = "# S - Status\n\n## Tracking info\n\n- **Task:** `x`\n";
 
-  const write = (name: string, text: string) => writeFileSync(join(dir, name), text);
+  const write = (name: string, text: string) =>
+    writeFileSync(join(dir, name), text);
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "aide-phase-"));
-    write("1-description.md", "# S - Description\n\n## Description\n\nWhat it is about.\n");
+    write(
+      "1-description.md",
+      "# S - Description\n\n## Description\n\nWhat it is about.\n",
+    );
     write("2-analysis.md", "# S - Analysis\n\n## Findings\n\nSeven files.\n");
     write(
       "3-solution.md",
@@ -50,7 +53,9 @@ describe("specPhaseFile", () => {
   test("analyze shows the whole 3-solution.md, plan and review together", () => {
     expect(specPhaseFile(dir, "analyze")?.label).toBe("3-solution.md");
     expect(specPhaseFile(dir, "analyze")?.text).toContain("Approach 1.");
-    expect(specPhaseFile(dir, "analyze")?.text).toContain("One must-fix, five should-fix.");
+    expect(specPhaseFile(dir, "analyze")?.text).toContain(
+      "One must-fix, five should-fix.",
+    );
     expect(specPhaseFile(dir, "analyze")?.text).toContain("Medium.");
   });
 
@@ -66,7 +71,10 @@ describe("specPhaseFile", () => {
 
   test("a phase whose file is not written yet keeps its name and says nothing was written", () => {
     const empty = mkdtempSync(join(tmpdir(), "aide-phase-empty-"));
-    expect(specPhaseFile(empty, "analyze")).toEqual({ label: "3-solution.md", text: null });
+    expect(specPhaseFile(empty, "analyze")).toEqual({
+      label: "3-solution.md",
+      text: null,
+    });
     rmSync(empty, { recursive: true, force: true });
   });
 
@@ -81,14 +89,19 @@ describe("specPhaseFile", () => {
         `${STATUS_HEAD}\n## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n`,
       );
       const phase = specPhaseFile(held, "archive");
-      expect(phase?.text).toContain("the Slack webhook (Phase 4, still unchecked)");
+      expect(phase?.text).toContain(
+        "the Slack webhook (Phase 4, still unchecked)",
+      );
       expect(phase?.text).not.toContain("Archived:");
       rmSync(held, { recursive: true, force: true });
     });
 
     test("a spec that was archived shows the stamp", () => {
       const done = mkdtempSync(join(tmpdir(), "aide-phase-done-"));
-      writeFileSync(join(done, "4-status.md"), `${STATUS_HEAD}\n**Archived:** 2026-08-21\n`);
+      writeFileSync(
+        join(done, "4-status.md"),
+        `${STATUS_HEAD}\n**Archived:** 2026-08-21\n`,
+      );
       const phase = specPhaseFile(done, "archive");
       expect(phase?.text).toContain("2026-08-21");
       expect(phase?.text).not.toContain("held back");
@@ -110,7 +123,10 @@ describe("specPhaseFile", () => {
     });
 
     test("an archive that has run neither way says nothing was written", () => {
-      expect(specPhaseFile(dir, "archive")).toEqual({ label: "4-status.md", text: null });
+      expect(specPhaseFile(dir, "archive")).toEqual({
+        label: "4-status.md",
+        text: null,
+      });
     });
   });
 });
@@ -144,12 +160,18 @@ describe("specArchivedDate", () => {
   // Both shapes are on disk in aide's own archive today: the newer
   // template writes it as a Tracking-info bullet, in backticks.
   test("reads it as a Tracking info bullet, backticks and all", () => {
-    const d = withStatus("bullet", "# Status\n\n## Tracking info\n\n- **Archived:** `2026-08-21`\n");
+    const d = withStatus(
+      "bullet",
+      "# Status\n\n## Tracking info\n\n- **Archived:** `2026-08-21`\n",
+    );
     expect(specArchivedDate(d)).toBe("2026-08-21");
   });
 
   test("a status file with no stamp answers null, not a blank string", () => {
-    const d = withStatus("nostamp", "# Status\n\n## Tracking info\n\n- **Created:** 2026-08-01\n");
+    const d = withStatus(
+      "nostamp",
+      "# Status\n\n## Tracking info\n\n- **Created:** 2026-08-01\n",
+    );
     expect(specArchivedDate(d)).toBeNull();
   });
 

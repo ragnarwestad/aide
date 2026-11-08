@@ -2,7 +2,14 @@
 // closure state, so moving it carries no risk the rest of that file's
 // wiring does.
 
-import type { CheckableTool, NavEntry, ProviderStatus, ToolCheck, ToolModels, ToolUsage } from "../render";
+import type {
+  CheckableTool,
+  NavEntry,
+  ProviderStatus,
+  ToolCheck,
+  ToolModels,
+  ToolUsage,
+} from "../render";
 import type { Provider } from "../queue/providers/index.ts";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
@@ -120,12 +127,19 @@ export interface ServerOptions {
    *  sets it can never fall through to a real CLI on the other. */
   toolProbe?: {
     check: (tool: CheckableTool) => Promise<ToolCheck>;
-    models: (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }) => Promise<ToolModels>;
+    models: (
+      tool: CheckableTool,
+      opts: { configured: string[]; env?: Record<string, string> },
+    ) => Promise<ToolModels>;
   };
   /** What opening Settings on its Providers tab, a provider's page, or a
    *  save runs in place of the real read of a provider's tool and login. A
    *  test seam. `login: false` asks only whether the tool starts. */
-  providerProbe?: (key: string, provider: Provider, opts?: { login?: boolean }) => Promise<ProviderStatus>;
+  providerProbe?: (
+    key: string,
+    provider: Provider,
+    opts?: { login?: boolean },
+  ) => Promise<ProviderStatus>;
   /** What opening a provider's page runs in place of the real read of its
    *  usage. A test seam. */
   usageProbe?: (key: string, provider: Provider) => Promise<ToolUsage>;
@@ -141,7 +155,12 @@ export interface ServerOptions {
     root: string,
     job: { project: string; specFolder: string },
     branch: string,
-  ) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
+  ) => Promise<{
+    ok: boolean;
+    error?: Sentence;
+    detail?: string;
+    retriedAfter?: string;
+  }>;
   /** Landing's own finalize step for a `create` job; the real
    *  one calls `aide-create-spec --assign-number`. Tests pass a stub. */
   finalizeCreateSpec?: (
@@ -149,7 +168,10 @@ export interface ServerOptions {
     repoRoot: string,
     specsRootAbs: string,
     provisionalFolder: string,
-  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
+  ) => Promise<
+    | { ok: true; specFolder: string }
+    | { ok: false; error: Sentence; detail?: string }
+  >;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind. It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never
@@ -244,7 +266,9 @@ export interface ServerOptions {
    *  still running is found again after a restart (`test-servers/recover.ts`).
    *  A test seam, like `testServersSpawn`: the real one reads the process
    *  table with `lsof` and `ps`. */
-  testServersOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  testServersOnPort?: (
+    port: number,
+  ) => Promise<{ pid: number; workDir: string } | undefined>;
   /** Whether Tailscale exposes a test-server pool port on this host
    *  right now. A test seam, like `testServersOnPort`: no
    *  test should shell out to a real `tailscale` binary. */

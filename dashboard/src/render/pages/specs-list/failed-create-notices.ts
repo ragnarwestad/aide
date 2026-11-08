@@ -9,19 +9,37 @@ import { renderMessage, type Sentence } from "../../../i18n/message.ts";
 import { stepButton } from "../../../format/step-label.ts";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import { esc } from "../../ui/html.ts";
-import { btnLink, buttonForm, helpPopover, rowMessage } from "../../ui/components";
+import {
+  btnLink,
+  buttonForm,
+  helpPopover,
+  rowMessage,
+} from "../../ui/components";
 
 /** The address that opens New spec filled in from a failed create. */
-export const retryHref = (id: string): string => `/new?retry=${encodeURIComponent(id)}`;
+export const retryHref = (id: string): string =>
+  `/new?retry=${encodeURIComponent(id)}`;
 
 /** A reason that says to press the create step's button means the New
  *  spec form's own Create, which this message reaches through Try again:
  *  named with the form's label, in the reader's language. */
 function withFormButton(s: Sentence, lang: Language): Sentence {
   if (typeof s === "string") return s;
-  const inner = s.inner === undefined ? undefined : Array.isArray(s.inner) ? s.inner.map((i) => withFormButton(i, lang)) : withFormButton(s.inner, lang);
-  const values = s.values?.button === stepButton("create") ? { ...s.values, button: t(lang, "form.create") } : s.values;
-  return { ...s, ...(values ? { values } : {}), ...(inner !== undefined ? { inner } : {}) };
+  const inner =
+    s.inner === undefined
+      ? undefined
+      : Array.isArray(s.inner)
+        ? s.inner.map((i) => withFormButton(i, lang))
+        : withFormButton(s.inner, lang);
+  const values =
+    s.values?.button === stepButton("create")
+      ? { ...s.values, button: t(lang, "form.create") }
+      : s.values;
+  return {
+    ...s,
+    ...(values ? { values } : {}),
+    ...(inner !== undefined ? { inner } : {}),
+  };
 }
 
 /** Whether the reason already says what to do, so the message must not add
@@ -40,7 +58,9 @@ function carriesFix(r: Sentence | Sentence[] | undefined): boolean {
 
 /** What failed and why, then what to press. */
 export function failedCreateText(r: FailedCreate, lang: Language): string {
-  const reasons = Array.isArray(r.reason) ? r.reason.map((s) => withFormButton(s, lang)) : withFormButton(r.reason, lang);
+  const reasons = Array.isArray(r.reason)
+    ? r.reason.map((s) => withFormButton(s, lang))
+    : withFormButton(r.reason, lang);
   return renderMessage(lang, {
     key: carriesFix(r.reason) ? "create.failed" : "create.failedTryAgain",
     values: {
@@ -53,14 +73,22 @@ export function failedCreateText(r: FailedCreate, lang: Language): string {
   });
 }
 
-export function renderFailedCreateNotices(records: FailedCreate[], lang: Language): string {
+export function renderFailedCreateNotices(
+  records: FailedCreate[],
+  lang: Language,
+): string {
   return records
     .map((r) => {
       const text = failedCreateText(r, lang);
       const detail = r.detail ? helpPopover("more detail", esc(r.detail)) : "";
       const actions =
         detail +
-        btnLink({ href: retryHref(r.id), label: t(lang, "list.createTryAgain"), variant: "primary", small: true }) +
+        btnLink({
+          href: retryHref(r.id),
+          label: t(lang, "list.createTryAgain"),
+          variant: "primary",
+          small: true,
+        }) +
         buttonForm({
           action: `/api/queue/failed-creates/${encodeURIComponent(r.id)}/dismiss`,
           hook: "actionform",

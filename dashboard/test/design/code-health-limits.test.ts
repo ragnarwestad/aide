@@ -47,7 +47,14 @@ const OVER_LINE_LIMIT: Record<string, number> = {};
 
 // src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME
 // below) and is deliberately not duplicated here.
-const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts", "es.ts", "de.ts", "fr.ts"];
+const EXEMPT_BY_FILENAME = [
+  "messages.ts",
+  "en.ts",
+  "nb.ts",
+  "es.ts",
+  "de.ts",
+  "fr.ts",
+];
 
 // What a failure says to do, for the session that meets it: the message is what it reads.
 const RULE = '.claude/rules/development.md, "Code health"';
@@ -64,9 +71,20 @@ const SPLIT_FOLDER = `split it into subfolders named for what their files are ab
 // than by a matching src/ directory name — a deliberate, existing
 // pattern, not drift to clean up.
 const TEST_ONLY_TOP_LEVEL_DIRS = [
-  "archived", "deploy", "design", "e2e", "fixtures", "guards",
-  "helpers", "preview", "queue-detail", "queue-routes", "round", "routes",
-  "scripts", "spec-page",
+  "archived",
+  "deploy",
+  "design",
+  "e2e",
+  "fixtures",
+  "guards",
+  "helpers",
+  "preview",
+  "queue-detail",
+  "queue-routes",
+  "round",
+  "routes",
+  "scripts",
+  "spec-page",
 ];
 
 function relPath(file: string): string {
@@ -91,10 +109,14 @@ describe("dashboard code health", () => {
       const lines = lineCount(file);
       const recorded = OVER_LINE_LIMIT[rel];
       if (recorded !== undefined) {
-        if (lines !== recorded) bad.push(`${rel}: ${lines} lines (recorded ${recorded} — update or remove the exception)`);
+        if (lines !== recorded)
+          bad.push(
+            `${rel}: ${lines} lines (recorded ${recorded} — update or remove the exception)`,
+          );
         continue;
       }
-      if (lines > 500) bad.push(`${rel}: ${lines} lines (limit 500) — ${SPLIT_FILE}`);
+      if (lines > 500)
+        bad.push(`${rel}: ${lines} lines (limit 500) — ${SPLIT_FILE}`);
     }
     expect(bad).toEqual([]);
   });
@@ -103,32 +125,48 @@ describe("dashboard code health", () => {
     const bad: string[] = [];
     for (const file of testFiles) {
       const lines = lineCount(file);
-      if (lines > 800) bad.push(`${relPath(file)}: ${lines} lines (limit 800) — ${SPLIT_FILE}`);
+      if (lines > 800)
+        bad.push(
+          `${relPath(file)}: ${lines} lines (limit 800) — ${SPLIT_FILE}`,
+        );
     }
     expect(bad).toEqual([]);
   });
 
   test("every directory holds at most 15 .ts and .css files directly inside it, unless exempt", () => {
     const dirs = new Set<string>();
-    for (const file of [...srcFiles, ...testFiles, ...filesUnder(SRC, ".css")]) {
+    for (const file of [
+      ...srcFiles,
+      ...testFiles,
+      ...filesUnder(SRC, ".css"),
+    ]) {
       dirs.add(join(file, ".."));
     }
     const bad: string[] = [];
     for (const dir of dirs) {
-      const count = readdirSync(dir).filter((name) => /\.(ts|css)$/.test(name) && statSync(join(dir, name)).isFile()).length;
+      const count = readdirSync(dir).filter(
+        (name) =>
+          /\.(ts|css)$/.test(name) && statSync(join(dir, name)).isFile(),
+      ).length;
       const rel = relPath(dir);
-      if (count > 15) bad.push(`${rel}: ${count} files (limit 15) — ${SPLIT_FOLDER}`);
+      if (count > 15)
+        bad.push(`${rel}: ${count} files (limit 15) — ${SPLIT_FOLDER}`);
     }
     expect(bad).toEqual([]);
   });
 
   test("every top-level test/ directory matches a src/ directory name or is a named exception", () => {
     const srcTopLevel = new Set(
-      readdirSync(SRC).filter((name) => statSync(join(SRC, name)).isDirectory()),
+      readdirSync(SRC).filter((name) =>
+        statSync(join(SRC, name)).isDirectory(),
+      ),
     );
-    const testTopLevel = readdirSync(TEST).filter((name) => statSync(join(TEST, name)).isDirectory());
+    const testTopLevel = readdirSync(TEST).filter((name) =>
+      statSync(join(TEST, name)).isDirectory(),
+    );
     const bad = testTopLevel.filter(
-      (name) => !srcTopLevel.has(name) && !TEST_ONLY_TOP_LEVEL_DIRS.includes(name),
+      (name) =>
+        !srcTopLevel.has(name) && !TEST_ONLY_TOP_LEVEL_DIRS.includes(name),
     );
     expect(bad).toEqual([]);
   });

@@ -16,7 +16,9 @@ function shellWord(path: string): string {
 /** The command that logs the provider in, its folder and its program
  *  written as they are stored (quoted where a shell needs it), so a person
  *  can paste it into a terminal. */
-export function providerLoginCommand(provider: Pick<Provider, "tool"> & Partial<Provider>): string {
+export function providerLoginCommand(
+  provider: Pick<Provider, "tool"> & Partial<Provider>,
+): string {
   const program = provider.binary ? shellWord(provider.binary) : provider.tool;
   if (provider.tool === "opencode") return `${program} auth login`;
   if (provider.tool === "claude") {

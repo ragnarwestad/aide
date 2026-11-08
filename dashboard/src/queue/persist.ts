@@ -2,12 +2,25 @@
 // project allowlist, the workflow defaults, and reading a stored job
 // back.
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { asRunnableTool } from "./steps.ts";
 import { dirname } from "node:path";
 import { applyEdits, modify, parse } from "jsonc-parser";
 import { JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
-import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type QueueDefaults, type StepResult } from "./types.ts";
+import {
+  mergeBranchRefs,
+  type BranchRef,
+  type Job,
+  type ModelChoice,
+  type QueueDefaults,
+  type StepResult,
+} from "./types.ts";
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
 import { listedModelName } from "./model-name.ts";
 import { parseProviders, type Provider } from "./providers/index.ts";
@@ -16,15 +29,26 @@ import { parseProviders, type Provider } from "./providers/index.ts";
 // id/state/results), but still validated: a corrupt row is dropped, not
 // trusted.
 export function parseStoredJob(raw: unknown): Job | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || !r.id) return null;
   if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return null;
-  if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) return null;
-  if (!Array.isArray(r.steps) || r.steps.some((s) => !(WORKFLOW_STEPS as readonly string[]).includes(s as string))) {
+  if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder))
+    return null;
+  if (
+    !Array.isArray(r.steps) ||
+    r.steps.some(
+      (s) => !(WORKFLOW_STEPS as readonly string[]).includes(s as string),
+    )
+  ) {
     return null;
   }
-  if (typeof r.state !== "string" || !(JOB_STATES as readonly string[]).includes(r.state)) return null;
+  if (
+    typeof r.state !== "string" ||
+    !(JOB_STATES as readonly string[]).includes(r.state)
+  )
+    return null;
   // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten
   // below, because the spread is what would otherwise carry it straight
@@ -36,7 +60,9 @@ export function parseStoredJob(raw: unknown): Job | null {
   return {
     ...(kept as unknown as Job),
     steps: r.steps as WorkflowStep[],
-    results: Array.isArray(r.results) ? settleRestoredLanding(r.results as StepResult[], r) : [],
+    results: Array.isArray(r.results)
+      ? settleRestoredLanding(r.results as StepResult[], r)
+      : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
     // Undefined, never 0, when the mirror has no figure: the page shows
     // a dash for a job nothing measured, and a zero is a claim.
@@ -49,7 +75,9 @@ export function parseStoredJob(raw: unknown): Job | null {
     // Each `root` here becomes a git working directory on the merge
     // path, so a malformed entry is dropped rather than carried — the
     // same rule the two fields above already follow.
-    branchUrls: Array.isArray(r.branchUrls) ? mergeBranchRefs([], r.branchUrls as BranchRef[]) : undefined,
+    branchUrls: Array.isArray(r.branchUrls)
+      ? mergeBranchRefs([], r.branchUrls as BranchRef[])
+      : undefined,
     // Dropped on purpose. `landing` marks a merge in flight in THIS
     // process; a mirror read back after a restart has no such call behind
     // it, and the flag holds the whole queue shut for as long as it is
@@ -65,10 +93,16 @@ export function parseStoredJob(raw: unknown): Job | null {
  *  the step reads as unfinished for good, its phase shows no duration and
  *  its implement cannot continue the analysis's session. It ends when the
  *  job did, or at this boot when the job had more steps to run. */
-function settleRestoredLanding(results: StepResult[], r: Record<string, unknown>): StepResult[] {
+function settleRestoredLanding(
+  results: StepResult[],
+  r: Record<string, unknown>,
+): StepResult[] {
   if (!r.landing) return results;
-  const end = typeof r.finishedAt === "string" ? r.finishedAt : new Date().toISOString();
-  return results.map((res) => (res.at === undefined ? { ...res, at: end } : res));
+  const end =
+    typeof r.finishedAt === "string" ? r.finishedAt : new Date().toISOString();
+  return results.map((res) =>
+    res.at === undefined ? { ...res, at: end } : res,
+  );
 }
 
 /** The project allowlist, as it is written in `queue-config.json`.
@@ -88,7 +122,12 @@ function settleRestoredLanding(results: StepResult[], r: Record<string, unknown>
  *  names under the projects root. */
 export function parseQueueProjects(raw: unknown): string[] | null {
   if (!Array.isArray(raw)) return null;
-  if (!raw.every((p) => typeof p === "string" && NAME_RE.test(p) && !p.includes(".."))) return null;
+  if (
+    !raw.every(
+      (p) => typeof p === "string" && NAME_RE.test(p) && !p.includes(".."),
+    )
+  )
+    return null;
   return raw as string[];
 }
 
@@ -101,8 +140,11 @@ export function parseQueueProjects(raw: unknown): string[] | null {
  *  parsers are allowed to fail in. Whether the BIND address makes the
  *  header trustworthy at all is not this parser's question; that is
  *  `createServer`'s own start-up refusal. */
-export function parseHeaderAuth(raw: unknown): { header: string; users: string[] } | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+export function parseHeaderAuth(
+  raw: unknown,
+): { header: string; users: string[] } | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.header !== "string" || !r.header) return null;
   if (!Array.isArray(r.users) || r.users.length === 0) return null;
@@ -115,7 +157,13 @@ export function parseHeaderAuth(raw: unknown): { header: string; users: string[]
  *  name, lower-cased. `null` for anything malformed. */
 export function parseAllowedHosts(raw: unknown): string[] | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
-  if (!raw.every((h) => typeof h === "string" && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(h))) return null;
+  if (
+    !raw.every(
+      (h) =>
+        typeof h === "string" && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(h),
+    )
+  )
+    return null;
   return (raw as string[]).map((h) => h.toLowerCase());
 }
 
@@ -133,12 +181,19 @@ export function parseAllowedHosts(raw: unknown): string[] | null {
  *  Written-then-renamed, exactly as `QueueStore.mirror()` does it: a
  *  half-written config is a server that comes up with no allowlist.
  *  Returns why it could not be written, or `null`. */
-export function persistQueueProjects(file: string, projects: string[]): string | null {
+export function persistQueueProjects(
+  file: string,
+  projects: string[],
+): string | null {
   try {
     let raw: Record<string, unknown> = {};
     if (existsSync(file)) {
       const parsed = JSON.parse(readFileSync(file, "utf-8")) as unknown;
-      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
         raw = parsed as Record<string, unknown>;
       }
     }
@@ -160,14 +215,26 @@ export function persistQueueProjects(file: string, projects: string[]): string |
  *  an entry that does not parse is dropped rather than trusted, and a
  *  totally malformed file starts the table empty rather than crashing
  *  the server. */
-export function parsePendingModels(raw: unknown): Record<string, Record<string, string>> | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+export function parsePendingModels(
+  raw: unknown,
+): Record<string, Record<string, string>> | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return null;
   const out: Record<string, Record<string, string>> = {};
   for (const [key, steps] of Object.entries(raw as Record<string, unknown>)) {
-    if (steps === null || typeof steps !== "object" || Array.isArray(steps)) continue;
+    if (steps === null || typeof steps !== "object" || Array.isArray(steps))
+      continue;
     const perStep: Record<string, string> = {};
-    for (const [step, model] of Object.entries(steps as Record<string, unknown>)) {
-      if (typeof model === "string" && model && ([...WORKFLOW_STEPS, "review", "verify"] as readonly string[]).includes(step)) {
+    for (const [step, model] of Object.entries(
+      steps as Record<string, unknown>,
+    )) {
+      if (
+        typeof model === "string" &&
+        model &&
+        ([...WORKFLOW_STEPS, "review", "verify"] as readonly string[]).includes(
+          step,
+        )
+      ) {
         perStep[step] = model;
       }
     }
@@ -181,7 +248,8 @@ export function parsePendingModels(raw: unknown): Record<string, Record<string, 
  *  anything that is not an object; an entry that is not a non-empty string
  *  is dropped, the same fail-closed rule `parsePendingModels` follows. */
 export function parseModelIds(raw: unknown): Record<string, string> | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return null;
   const out: Record<string, string> = {};
   for (const [name, id] of Object.entries(raw as Record<string, unknown>)) {
     if (typeof id === "string" && id) out[name] = id;
@@ -193,7 +261,10 @@ export function parseModelIds(raw: unknown): Record<string, string> | null {
  *  this store writes. No comments to preserve and nothing else in the
  *  file — unlike `queue-config.json` nothing shares it, so there is no
  *  "read the rest back first" step. */
-export function persistPendingModels(file: string, table: Record<string, unknown>): string | null {
+export function persistPendingModels(
+  file: string,
+  table: Record<string, unknown>,
+): string | null {
   try {
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
@@ -213,7 +284,9 @@ export function persistPendingModels(file: string, table: Record<string, unknown
  *  fail-closed rule every other parser here follows. An empty list for a
  *  key is kept, not dropped: it is the recorded answer "nothing was
  *  ticked", a real choice and not the same thing as no entry at all. */
-export function parsePendingSteps(raw: unknown): Record<string, string[]> | null {
+export function parsePendingSteps(
+  raw: unknown,
+): Record<string, string[]> | null {
   if (!raw || typeof raw !== "object") return null;
   const out: Record<string, string[]> = {};
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -241,35 +314,62 @@ export interface QueueSettingsUpdate {
 
 /** Atomically replace the dashboard-owned workflow defaults while leaving
  * comments, formatting, the fallback and future model keys intact. */
-export function persistQueueSettings(file: string, next: QueueSettingsUpdate): string | null {
+export function persistQueueSettings(
+  file: string,
+  next: QueueSettingsUpdate,
+): string | null {
   try {
-    if (!existsSync(file)) return `could not write ${file}: file does not exist`;
+    if (!existsSync(file))
+      return `could not write ${file}: file does not exist`;
     let source = readFileSync(file, "utf-8");
     const errors: { error: number; offset: number; length: number }[] = [];
     const raw = parse(source, errors, { allowTrailingComma: true }) as unknown;
-    if (errors.length || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    if (
+      errors.length ||
+      raw === null ||
+      typeof raw !== "object" ||
+      Array.isArray(raw)
+    ) {
       return `could not write ${file}: invalid JSONC configuration`;
     }
     const opts = { formattingOptions: { insertSpaces: true, tabSize: 2 } };
     for (const [step, model] of Object.entries(next.model ?? {})) {
-      source = applyEdits(source, modify(source, ["model", step], model ?? undefined, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["model", step], model ?? undefined, opts),
+      );
     }
     for (const [step, sec] of Object.entries(next.timeoutSec ?? {})) {
-      source = applyEdits(source, modify(source, ["timeoutSec", step], sec, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["timeoutSec", step], sec, opts),
+      );
     }
     if (next.concurrency !== undefined) {
-      source = applyEdits(source, modify(source, ["concurrency"], next.concurrency, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["concurrency"], next.concurrency, opts),
+      );
     }
     // `modify` deletes a property handed `undefined`; `null` would be
     // written as a value.
     for (const [name, choice] of Object.entries(next.modelChoices ?? {})) {
-      source = applyEdits(source, modify(source, ["modelChoices", name], choice ?? undefined, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["modelChoices", name], choice ?? undefined, opts),
+      );
     }
     for (const [key, provider] of Object.entries(next.providers ?? {})) {
-      source = applyEdits(source, modify(source, ["providers", key], provider ?? undefined, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["providers", key], provider ?? undefined, opts),
+      );
     }
     for (const [step, key] of Object.entries(next.provider ?? {})) {
-      source = applyEdits(source, modify(source, ["provider", step], key ?? undefined, opts));
+      source = applyEdits(
+        source,
+        modify(source, ["provider", step], key ?? undefined, opts),
+      );
     }
     for (const key of next.removeKeys ?? []) {
       source = applyEdits(source, modify(source, [key], undefined, opts));
@@ -287,23 +387,30 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
 // Caps and per-step policy belong in a file on the machine that runs
 // the jobs, never in the code: a number that turns out wrong should
 // cost a config edit and a restart, not a release.
-export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefaults {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
+export function mergeQueueDefaults(
+  base: QueueDefaults,
+  raw: unknown,
+): QueueDefaults {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return base;
   const r = raw as Record<string, unknown>;
   // The numeric sibling of `table` below: `timeoutSec` is per step since
   // and a file still carrying the old flat number is dropped
   // in favour of the built-in defaults rather than crashing — the same
   // direction every other malformed key here fails in.
   const numTable = (v: unknown, fallback: Record<string, number>) => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+    if (v === null || typeof v !== "object" || Array.isArray(v))
+      return fallback;
     const out: Record<string, number> = { ...fallback };
     for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-      if (typeof val === "number" && Number.isFinite(val) && val > 0) out[k] = val;
+      if (typeof val === "number" && Number.isFinite(val) && val > 0)
+        out[k] = val;
     }
     return out;
   };
   const table = (v: unknown, fallback: Record<string, string>) => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+    if (v === null || typeof v !== "object" || Array.isArray(v))
+      return fallback;
     const out: Record<string, string> = { ...fallback };
     for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
       if (typeof val === "string" && val) out[k] = val;
@@ -314,7 +421,10 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   // last provider; it stays empty. One whose entries are all invalid is a
   // mistake, and the built-in providers stand in.
   const emptiedProviders = (v: unknown): boolean =>
-    v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
+    v !== null &&
+    typeof v === "object" &&
+    !Array.isArray(v) &&
+    Object.keys(v).length === 0;
   // Providers have no default: an old `provider.default` is not read.
   const withoutDefault = (t: Record<string, string>): Record<string, string> =>
     Object.fromEntries(Object.entries(t).filter(([k]) => k !== "default"));
@@ -322,10 +432,17 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   // entry: an entry that loses its tool falls back to claude — which
   // is the default every other entry already has.
   const choices = (v: unknown): Record<string, ModelChoice> | undefined => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return base.modelChoices;
+    if (v === null || typeof v !== "object" || Array.isArray(v))
+      return base.modelChoices;
     const out: Record<string, ModelChoice> = {};
     for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
-      if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+      if (
+        !NAME_RE.test(name) ||
+        entry === null ||
+        typeof entry !== "object" ||
+        Array.isArray(entry)
+      )
+        continue;
       const e = entry as Record<string, unknown>;
       const choice: ModelChoice = {};
       // Read from the one list (`steps.ts`), never spelled out again:
@@ -343,10 +460,12 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   // that name in any case; the file's own names are left as written.
   const modelChoices = choices(r.modelChoices);
   const listed = Object.keys(modelChoices ?? {});
-  const builtIn = Object.fromEntries(Object.entries(base.model).map(([step, name]) => {
-    const match = listedModelName(listed, name);
-    return [step, "name" in match ? match.name : name];
-  }));
+  const builtIn = Object.fromEntries(
+    Object.entries(base.model).map(([step, name]) => {
+      const match = listedModelName(listed, name);
+      return [step, "name" in match ? match.name : name];
+    }),
+  );
   return {
     timeoutSec: numTable(r.timeoutSec, base.timeoutSec),
     permissionMode: table(r.permissionMode, base.permissionMode),
@@ -354,8 +473,17 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     modelChoices,
     ...(r.providers !== undefined && parseProviders(r.providers)
       ? { providers: parseProviders(r.providers) }
-      : emptiedProviders(r.providers) ? {} : base.providers ? { providers: base.providers } : {}),
-    ...(r.provider !== undefined || base.provider ? { provider: withoutDefault(table(r.provider, base.provider ?? {})) } : {}),
-    ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
+      : emptiedProviders(r.providers)
+        ? {}
+        : base.providers
+          ? { providers: base.providers }
+          : {}),
+    ...(r.provider !== undefined || base.provider
+      ? { provider: withoutDefault(table(r.provider, base.provider ?? {})) }
+      : {}),
+    ...(r.resumeAnalysis === true ||
+    (r.resumeAnalysis === undefined && base.resumeAnalysis)
+      ? { resumeAnalysis: true }
+      : {}),
   };
 }

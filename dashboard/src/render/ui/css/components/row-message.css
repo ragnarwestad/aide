@@ -1,46 +1,103 @@
 /* --- row-level message ---------------------------------------------- */
 
-.rowmsg { display: flex; align-items: center; gap: var(--sp-2);
-  padding: 6px 10px; border-radius: var(--r); font-size: var(--fs-s);
-  border: 1px solid; margin: var(--sp-1) 0 0; }
-.rowmsg svg { width: 14px; height: 14px; flex: none; }
+.rowmsg {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px 10px;
+  border-radius: var(--r);
+  font-size: var(--fs-s);
+  border: 1px solid;
+  margin: var(--sp-1) 0 0;
+}
+.rowmsg svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
 /* A refusal that lands under a form needs air between it and the Save
    it is answering: 4px read as part of the button row. */
-.dependsform + .rowmsg, .specform + .rowmsg { margin-top: var(--sp-3); }
-.rowmsg.failed { background: var(--danger-ground); border-color: var(--danger); color: var(--danger); }
-.rowmsg.waiting { background: var(--warn-ground); border-color: var(--warn); color: var(--warn); }
+.dependsform + .rowmsg,
+.specform + .rowmsg {
+  margin-top: var(--sp-3);
+}
+.rowmsg.failed {
+  background: var(--danger-ground);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.rowmsg.waiting {
+  background: var(--warn-ground);
+  border-color: var(--warn);
+  color: var(--warn);
+}
 /* The light background, framed — not a filled grey box: a card on the
    specs list sits inside the open row's own frame, and two greys one
    inside the other read as a panel rather than a message. */
-.rowmsg.info { background: var(--surface); border-color: var(--line-strong); color: var(--muted); }
+.rowmsg.info {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--muted);
+}
 /* A message that carries a path: `<span>` takes the room the icon
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */
-.rowmsg > span { min-width: 0; overflow-wrap: anywhere; }
+.rowmsg > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 /* A message's Solution line stands under its Problem line. */
-.rowmsg > span { white-space: pre-line; }
+.rowmsg > span {
+  white-space: pre-line;
+}
 /* A link inside a message's sentence is told apart from the words around
    it, whatever colour the message's state gives them. */
-.rowmsg a:not(.btn) { color: var(--link-text); text-decoration: underline; }
-.rowmsg a:not(.btn):hover { color: var(--link-text-strong); }
+.rowmsg a:not(.btn) {
+  color: var(--link-text);
+  text-decoration: underline;
+}
+.rowmsg a:not(.btn):hover {
+  color: var(--link-text-strong);
+}
 /* A button the message carries (the empty Running tab's New) keeps its
    own look and stands at the box's right edge, where New stands on the
    controls line of a tab with rows. */
-.rowmsg > .btn { margin-left: auto; flex: none; }
+.rowmsg > .btn {
+  margin-left: auto;
+  flex: none;
+}
 /* A line with no words yet — the slot the page's script writes a
    refusal into. It takes no room and shows nothing, but is not
    display: none: that would take it out of what a screen reader hears
    fill. */
-.rowmsg:has(> span:empty) { position: absolute; width: 1px; height: 1px; overflow: hidden;
-  clip-path: inset(50%); white-space: nowrap; padding: 0; border: 0; margin: 0; }
-p.rowmsg { margin: 0 0 var(--sp-3); }
-
+.rowmsg:has(> span:empty) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+p.rowmsg {
+  margin: 0 0 var(--sp-3);
+}
 
 /* Several messages on one notice line, each in a box of its own.
    The list of acceptance criteria unfolded under the held-back one
    is the second child of the stack. */
-.msgstack { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.msgstack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
 /* The › that opens the criteria sits inside the message it belongs to,
    reaching into its padding so a message with one stands as tall as one
    without: the › is taller than a line of the message's text. */
-.rowmsg .fold { margin: -4px 0; flex: none; }
+.rowmsg .fold {
+  margin: -4px 0;
+  flex: none;
+}

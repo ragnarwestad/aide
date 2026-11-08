@@ -33,7 +33,8 @@ export interface RouteGaps {
 const FALLBACK_ROW = "/<file>";
 const METHOD_WINDOW = 6;
 const CONSTANT = /\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*"(\/[^"]*)"/g;
-const NAMED_REGEX = /\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/;/g;
+const NAMED_REGEX =
+  /\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/;/g;
 const REGEX_BODY = String.raw`\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/`;
 const METHOD_CHECK = /req\.method\s*(===|!==)\s*"([A-Z]+)"/g;
 
@@ -41,14 +42,22 @@ const wildcard = (path: string): string => path.replace(/<[^>]+>/g, "*");
 
 /** `^\/api\/queue\/([^/]+)\/cancel$` -> the paths it matches, captures as `*`. */
 const regexPaths = (body: string): string[] => {
-  let paths = [body.replace(/^\^/, "").replace(/\$$/, "").replace(/\\\//g, "/")];
+  let paths = [
+    body.replace(/^\^/, "").replace(/\$$/, "").replace(/\\\//g, "/"),
+  ];
   for (;;) {
     const next = paths.flatMap((p) => {
       const group = /\(([^()]*)\)/.exec(p);
       if (!group) return [p];
       const inner = group[1]!;
-      const parts = inner.includes("|") && !inner.includes("[") ? inner.split("|") : ["*"];
-      return parts.map((part) => p.slice(0, group.index) + part + p.slice(group.index + group[0].length));
+      const parts =
+        inner.includes("|") && !inner.includes("[") ? inner.split("|") : ["*"];
+      return parts.map(
+        (part) =>
+          p.slice(0, group.index) +
+          part +
+          p.slice(group.index + group[0].length),
+      );
     });
     if (next.join("\n") === paths.join("\n")) return paths;
     paths = next;
@@ -70,17 +79,27 @@ const sitesIn = (text: string, constants: Record<string, string>): Site[] => {
   text.split("\n").forEach((line, line0) => {
     if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
     const paths: string[] = [];
-    for (const m of line.matchAll(/\bpath\s*[!=]==\s*(?:"([^"]*)"|([A-Z][A-Z0-9_]*))/g)) {
+    for (const m of line.matchAll(
+      /\bpath\s*[!=]==\s*(?:"([^"]*)"|([A-Z][A-Z0-9_]*))/g,
+    )) {
       if (m[1] !== undefined) paths.push(m[1]);
       else if (local[m[2]!] !== undefined) paths.push(local[m[2]!]!);
-      else throw new Error(`route-scan: cannot resolve the constant ${m[2]} on line ${line0 + 1}`);
+      else
+        throw new Error(
+          `route-scan: cannot resolve the constant ${m[2]} on line ${line0 + 1}`,
+        );
     }
-    for (const m of line.matchAll(/\bpath\.startsWith\("([^"]*)"\)/g)) paths.push(`${m[1]}*`);
-    for (const m of line.matchAll(new RegExp(String.raw`\bpath\.match\(${REGEX_BODY}\)`, "g"))) {
+    for (const m of line.matchAll(/\bpath\.startsWith\("([^"]*)"\)/g))
+      paths.push(`${m[1]}*`);
+    for (const m of line.matchAll(
+      new RegExp(String.raw`\bpath\.match\(${REGEX_BODY}\)`, "g"),
+    )) {
       paths.push(...regexPaths(m[1]!));
     }
     for (const [name, body] of namedRegex) {
-      const use = new RegExp(String.raw`\b${name}\.(?:exec|test)\(path\)|\bpath\.match\(${name}\)`);
+      const use = new RegExp(
+        String.raw`\b${name}\.(?:exec|test)\(path\)|\bpath\.match\(${name}\)`,
+      );
       if (use.test(line)) paths.push(...regexPaths(body));
     }
     if (paths.length > 0) sites.push({ line: line0, paths });
@@ -88,10 +107,17 @@ const sitesIn = (text: string, constants: Record<string, string>): Site[] => {
   return sites;
 };
 
-const methodsAfter = (lines: string[], from: number, until: number): string[] => {
+const methodsAfter = (
+  lines: string[],
+  from: number,
+  until: number,
+): string[] => {
   const methods: string[] = [];
   const end = Math.min(until, from + 1 + METHOD_WINDOW);
-  for (const m of lines.slice(from + 1, end).join("\n").matchAll(METHOD_CHECK)) {
+  for (const m of lines
+    .slice(from + 1, end)
+    .join("\n")
+    .matchAll(METHOD_CHECK)) {
     methods.push(m[2]!);
     if (m[1] !== "===") break;
   }
@@ -100,7 +126,10 @@ const methodsAfter = (lines: string[], from: number, until: number): string[] =>
 
 /** Pure: file name -> text in, routes out. `constants` maps a name to the path
  *  it holds; a name it cannot resolve throws. */
-export const scanSource = (files: Record<string, string>, constants: Record<string, string>): SourceRoute[] => {
+export const scanSource = (
+  files: Record<string, string>,
+  constants: Record<string, string>,
+): SourceRoute[] => {
   const found = new Map<string, Set<string>>();
   for (const text of Object.values(files)) {
     const lines = text.split("\n");
@@ -126,13 +155,19 @@ export const readServeSources = (
   root: string,
 ): { files: Record<string, string>; constants: Record<string, string> } => {
   const files: Record<string, string> = {};
-  const globs = ["src/serve/routes/**/*.ts", "src/serve/core-routes.ts", "src/serve/serve-helpers/static.ts"];
+  const globs = [
+    "src/serve/routes/**/*.ts",
+    "src/serve/core-routes.ts",
+    "src/serve/serve-helpers/static.ts",
+  ];
   for (const pattern of globs) {
-    for (const rel of new Bun.Glob(pattern).scanSync(root)) files[rel] = readFileSync(join(root, rel), "utf-8");
+    for (const rel of new Bun.Glob(pattern).scanSync(root))
+      files[rel] = readFileSync(join(root, rel), "utf-8");
   }
   const constants: Record<string, string> = {};
   for (const rel of new Bun.Glob("src/**/*.ts").scanSync(root)) {
-    for (const m of readFileSync(join(root, rel), "utf-8").matchAll(CONSTANT)) constants[m[1]!] = m[2]!;
+    for (const m of readFileSync(join(root, rel), "utf-8").matchAll(CONSTANT))
+      constants[m[1]!] = m[2]!;
   }
   return { files, constants };
 };
@@ -142,7 +177,10 @@ export const routesOnPage = (markdown: string): PageRoute[] => {
   const rows: PageRoute[] = [];
   for (const line of markdown.split("\n")) {
     if (!line.startsWith("|")) continue;
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    const cells = line
+      .split("|")
+      .slice(1, -1)
+      .map((c) => c.trim());
     const route = /^`([A-Z]+) (\/\S*)`$/.exec(cells[0] ?? "");
     if (!route) continue;
     rows.push({
@@ -157,7 +195,10 @@ export const routesOnPage = (markdown: string): PageRoute[] => {
   return rows;
 };
 
-export const compareRoutes = (source: SourceRoute[], page: PageRoute[]): RouteGaps => {
+export const compareRoutes = (
+  source: SourceRoute[],
+  page: PageRoute[],
+): RouteGaps => {
   const shape = (path: string): string => wildcard(path.split("?")[0]!);
   const bySource = new Map(source.map((r) => [r.path, r.methods]));
   const rowsByPath = new Map<string, Set<string>>();
@@ -173,7 +214,8 @@ export const compareRoutes = (source: SourceRoute[], page: PageRoute[]): RouteGa
       if (!have) missingRows.push(path);
       continue;
     }
-    for (const m of methods) if (!have?.has(m)) missingRows.push(`${m} ${path}`);
+    for (const m of methods)
+      if (!have?.has(m)) missingRows.push(`${m} ${path}`);
   }
 
   const unknownRows: string[] = [];
@@ -182,7 +224,8 @@ export const compareRoutes = (source: SourceRoute[], page: PageRoute[]): RouteGa
     if (r.path === FALLBACK_ROW) continue;
     const stated = bySource.get(shape(r.path));
     if (!stated) unknownRows.push(`${r.method} ${r.path}`);
-    else if (stated.length > 0 && !stated.includes(r.method)) wrongMethod.push(`${r.method} ${r.path}`);
+    else if (stated.length > 0 && !stated.includes(r.method))
+      wrongMethod.push(`${r.method} ${r.path}`);
   }
   return { missingRows, unknownRows, wrongMethod };
 };

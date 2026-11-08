@@ -13,11 +13,26 @@ import type { Language } from "../i18n";
 import { renderMessage } from "../i18n/message.ts";
 import type { Job } from "../queue/queue.ts";
 import { scheduleRunPath } from "../render";
-import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
-import { attentionFor, messageKeyFor, seenOf, type Attention, type Seen } from "./attention.ts";
+import {
+  createFailedCreates,
+  failedCreateFrom,
+  type FailedCreates,
+} from "./failed-creates.ts";
+import {
+  attentionFor,
+  messageKeyFor,
+  seenOf,
+  type Attention,
+  type Seen,
+} from "./attention.ts";
 import { scheduleNameOf, type ScheduleNotify } from "../queue/schedule.ts";
 import { sendPush } from "./send.ts";
-import { parseSubscribe, readSubscriptions, writeSubscriptions, type Subscription } from "./subscriptions.ts";
+import {
+  parseSubscribe,
+  readSubscriptions,
+  writeSubscriptions,
+  type Subscription,
+} from "./subscriptions.ts";
 import { loadOrCreateKeys } from "./vapid.ts";
 
 export interface PushOptions {
@@ -49,8 +64,13 @@ export interface Push {
   failedCreates: FailedCreates;
   /** The server's public key, base64url — what a device subscribes with. */
   publicKey(): Promise<string>;
-  subscribe(body: unknown, origin: string): Promise<{ ok: true } | { ok: false; error: string }>;
-  unsubscribe(body: unknown): Promise<{ ok: true } | { ok: false; error: string }>;
+  subscribe(
+    body: unknown,
+    origin: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }>;
+  unsubscribe(
+    body: unknown,
+  ): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Resolves once every send started so far has settled. A test seam. */
   idle(): Promise<void>;
 }
@@ -60,10 +80,17 @@ export interface Push {
 const BODY_MAX = 500;
 
 /** The three fields of a push, by kind: a failed create names its title and opens the form again. */
-function payloadFor(a: Attention, job: Job, lang: Language): { title: string; body: string; url: string } {
+function payloadFor(
+  a: Attention,
+  job: Job,
+  lang: Language,
+): { title: string; body: string; url: string } {
   if (a.kind === "create-failed") {
     const r = failedCreateFrom(job);
-    const body = renderMessage(lang, { key: messageKeyFor(a), inner: r.reason });
+    const body = renderMessage(lang, {
+      key: messageKeyFor(a),
+      inner: r.reason,
+    });
     return {
       title: `${r.project} · ${r.title}`,
       body: body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body,
@@ -78,7 +105,11 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
       url: scheduleRunPath(job.project, name, job.id),
     };
   }
-  const values = { step: stepLabel(a.step, lang), button: stepButton(a.step), specs: a.specs?.join(", ") ?? "" };
+  const values = {
+    step: stepLabel(a.step, lang),
+    button: stepButton(a.step),
+    specs: a.specs?.join(", ") ?? "",
+  };
   // Both open the Running tab, scrolled to the spec's row: a held-back
   // archive with its criteria unfolded, since they are ticked there, and a
   // failed, stopped or interrupted step with its row unfolded.
@@ -91,7 +122,8 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
   };
 }
 
-const where = (endpoint: string): string => `${new URL(endpoint).origin}/…${endpoint.slice(-12)}`;
+const where = (endpoint: string): string =>
+  `${new URL(endpoint).origin}/…${endpoint.slice(-12)}`;
 
 export function createPush(opts: PushOptions): Push {
   const send = opts.fetch ?? fetch;
@@ -100,11 +132,14 @@ export function createPush(opts: PushOptions): Push {
   const pending = new Set<Promise<void>>();
   const keys = loadOrCreateKeys(opts.keyPath);
   const failedCreates = createFailedCreates(opts.failedCreatesPath);
-  const store: FailedCreates = { ...failedCreates, dismiss: (id) => {
-    const found = failedCreates.dismiss(id);
-    if (found) opts.notify?.();
-    return found;
-  } };
+  const store: FailedCreates = {
+    ...failedCreates,
+    dismiss: (id) => {
+      const found = failedCreates.dismiss(id);
+      if (found) opts.notify?.();
+      return found;
+    },
+  };
   let memory: Subscription[] = [];
   // Reads and writes of the subscriptions run one after another.
   let chain: Promise<unknown> = Promise.resolve();
@@ -115,15 +150,19 @@ export function createPush(opts: PushOptions): Push {
   };
 
   const load = async (): Promise<Subscription[]> =>
-    opts.subscriptionsPath ? readSubscriptions(opts.subscriptionsPath, (await keys).publicKey) : memory;
+    opts.subscriptionsPath
+      ? readSubscriptions(opts.subscriptionsPath, (await keys).publicKey)
+      : memory;
   const save = (subs: Subscription[]): void => {
-    if (opts.subscriptionsPath) writeSubscriptions(opts.subscriptionsPath, subs);
+    if (opts.subscriptionsPath)
+      writeSubscriptions(opts.subscriptionsPath, subs);
     else memory = subs;
   };
   const remove = (endpoint: string) =>
     exclusive(async () => {
       const subs = await load();
-      if (subs.some((s) => s.endpoint === endpoint)) save(subs.filter((s) => s.endpoint !== endpoint));
+      if (subs.some((s) => s.endpoint === endpoint))
+        save(subs.filter((s) => s.endpoint !== endpoint));
     });
 
   async function deliver(a: Attention, job: Job): Promise<void> {
@@ -132,21 +171,34 @@ export function createPush(opts: PushOptions): Push {
     const waiting = opts.waiting?.();
     await Promise.all(
       subs.map(async (sub) => {
-        const payload = JSON.stringify({ ...payloadFor(a, job, sub.lang), ...(waiting === undefined ? {} : { waiting }) });
+        const payload = JSON.stringify({
+          ...payloadFor(a, job, sub.lang),
+          ...(waiting === undefined ? {} : { waiting }),
+        });
         const outcome = await sendPush(sub, payload, vapid, send);
-        if ("error" in outcome) return log(`push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`);
+        if ("error" in outcome)
+          return log(
+            `push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`,
+          );
         if (outcome.status >= 200 && outcome.status < 300) return;
         // The push service says this device is gone for good.
-        if (outcome.status === 404 || outcome.status === 410) return void (await remove(sub.endpoint));
+        if (outcome.status === 404 || outcome.status === 410)
+          return void (await remove(sub.endpoint));
         // Anything else may be this server's own fault (a rejected `sub`,
         // a bad token): keep the device, say what the service said.
-        log(`push: ${where(sub.endpoint)} answered ${outcome.status} ${outcome.detail}`.trim());
+        log(
+          `push: ${where(sub.endpoint)} answered ${outcome.status} ${outcome.detail}`.trim(),
+        );
       }),
     );
   }
 
   const start = (a: Attention, job: Job): void => {
-    const p = deliver(a, job).catch((e) => log(`push: delivery failed — ${e instanceof Error ? e.message : String(e)}`));
+    const p = deliver(a, job).catch((e) =>
+      log(
+        `push: delivery failed — ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    );
     pending.add(p);
     void p.finally(() => pending.delete(p));
   };
@@ -157,9 +209,14 @@ export function createPush(opts: PushOptions): Push {
       const live = new Set<string>();
       for (const job of jobs) {
         live.add(job.id);
-        const a = attentionFor(seen.get(job.id), job, () => opts.scheduleNotify?.(job.project, job.specFolder) ?? null);
+        const a = attentionFor(
+          seen.get(job.id),
+          job,
+          () => opts.scheduleNotify?.(job.project, job.specFolder) ?? null,
+        );
         seen.set(job.id, seenOf(job));
-        if (a?.kind === "create-failed") failedCreates.add(failedCreateFrom(job));
+        if (a?.kind === "create-failed")
+          failedCreates.add(failedCreateFrom(job));
         if (a) start(a, job);
       }
       // A job the store has dropped must not keep its snapshot.
@@ -176,14 +233,17 @@ export function createPush(opts: PushOptions): Push {
       if (!parsed.ok) return parsed;
       const key = (await keys).publicKey;
       await exclusive(async () => {
-        const subs = (await load()).filter((s) => s.endpoint !== parsed.sub.endpoint);
+        const subs = (await load()).filter(
+          (s) => s.endpoint !== parsed.sub.endpoint,
+        );
         save([...subs, { ...parsed.sub, key }]);
       });
       return { ok: true };
     },
     async unsubscribe(body) {
       const endpoint = (body as { endpoint?: unknown } | null)?.endpoint;
-      if (typeof endpoint !== "string" || !endpoint) return { ok: false, error: "no endpoint" };
+      if (typeof endpoint !== "string" || !endpoint)
+        return { ok: false, error: "no endpoint" };
       await remove(endpoint);
       return { ok: true };
     },

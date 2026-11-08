@@ -6,7 +6,10 @@
 // a process; the caller hands in the runner, as `GitRunner` does for git.
 
 /** One `gh` call: the arguments after `gh`, run in `dir`. */
-export type GhRunner = (dir: string, args: string[]) => Promise<{ code: number; stdout: string }>;
+export type GhRunner = (
+  dir: string,
+  args: string[],
+) => Promise<{ code: number; stdout: string }>;
 
 /** `merged` is true only for a pull request that merged and none open;
  *  `headSha` is the head that merged. */
@@ -18,7 +21,18 @@ export interface PullRequestAnswer {
 /** Every request, in every state, that was opened from `branch`. The link
  *  is not read: the row's link is the queue's own. */
 export function pullRequestListArgs(branch: string): string[] {
-  return ["pr", "list", "--head", branch, "--state", "all", "--json", "state,headRefOid", "--limit", "20"];
+  return [
+    "pr",
+    "list",
+    "--head",
+    branch,
+    "--state",
+    "all",
+    "--json",
+    "state,headRefOid",
+    "--limit",
+    "20",
+  ];
 }
 
 /** `null` for output that is not a JSON array: no answer, never "not
@@ -35,11 +49,17 @@ export function readPullRequestList(stdout: string): PullRequestAnswer | null {
   const requests = list as { state?: string; headRefOid?: string }[];
   if (requests.some((r) => r?.state === "OPEN")) return { merged: false };
   const merged = requests.find((r) => r?.state === "MERGED");
-  return merged ? { merged: true, headSha: merged.headRefOid } : { merged: false };
+  return merged
+    ? { merged: true, headSha: merged.headRefOid }
+    : { merged: false };
 }
 
 /** `null` when `gh` could not answer. */
-export async function askPullRequest(run: GhRunner, codeRoot: string, branch: string): Promise<PullRequestAnswer | null> {
+export async function askPullRequest(
+  run: GhRunner,
+  codeRoot: string,
+  branch: string,
+): Promise<PullRequestAnswer | null> {
   const result = await run(codeRoot, pullRequestListArgs(branch));
   return result.code === 0 ? readPullRequestList(result.stdout) : null;
 }

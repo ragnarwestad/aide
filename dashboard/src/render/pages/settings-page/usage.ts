@@ -3,7 +3,11 @@
 // Declared here rather than beside the code that reads it, for the same
 // reason `ToolCheck` is: `src/render` may not import `src/serve`.
 
-import { capitalizeFirst, when, windowPhrase } from "../../ui/job-state/provider-limit.ts";
+import {
+  capitalizeFirst,
+  when,
+  windowPhrase,
+} from "../../ui/job-state/provider-limit.ts";
 import type { ProviderLimitWindow } from "../../../queue/types.ts";
 import type { Language } from "../../../i18n";
 import type { CheckableTool } from "./tools.ts";
@@ -45,19 +49,36 @@ export type UsageView =
 const BOARD_NAME = /^(five_hour|seven_day|\d+_minutes)$/;
 
 function row(window: UsageWindow, now: number, lang: Language): UsageRow {
-  const label = BOARD_NAME.test(window.name) ? capitalizeFirst(windowPhrase(window.name, lang)) : window.name;
-  const resets = window.resets ?? (window.resetsAt ? when(window.resetsAt, now, lang) : undefined);
-  return { label, usedPercent: window.usedPercent, ...(resets ? { resets } : {}) };
+  const label = BOARD_NAME.test(window.name)
+    ? capitalizeFirst(windowPhrase(window.name, lang))
+    : window.name;
+  const resets =
+    window.resets ??
+    (window.resetsAt ? when(window.resetsAt, now, lang) : undefined);
+  return {
+    label,
+    usedPercent: window.usedPercent,
+    ...(resets ? { resets } : {}),
+  };
 }
 
 /** What the tab says of a reading. A reading that failed comes before
  *  everything else it carries, and only a reading that succeeded with
  *  neither windows nor text is "none". */
-export function usageView(usage: ToolUsage | undefined, now: number, lang: Language = "en"): UsageView {
+export function usageView(
+  usage: ToolUsage | undefined,
+  now: number,
+  lang: Language = "en",
+): UsageView {
   if (!usage) return { kind: "unread" };
   const at = usage.at;
   if (usage.error) return { kind: "failed", at, reason: usage.error };
-  if (usage.windows.length > 0) return { kind: "windows", at, rows: usage.windows.map((w) => row(w, now, lang)) };
+  if (usage.windows.length > 0)
+    return {
+      kind: "windows",
+      at,
+      rows: usage.windows.map((w) => row(w, now, lang)),
+    };
   if (usage.text) return { kind: "text", at, text: usage.text };
   return { kind: "none", at };
 }

@@ -5,7 +5,10 @@
 
 import { describe, expect, test } from "bun:test";
 import {
-  askBranchPreview, branchPreviewArgs, readBranchPreview, type CheckRun,
+  askBranchPreview,
+  branchPreviewArgs,
+  readBranchPreview,
+  type CheckRun,
 } from "../../src/integrations/branch-previews.ts";
 import type { GhRunner } from "../../src/integrations/pull-requests.ts";
 
@@ -13,7 +16,9 @@ const BRANCH_URL = "https://aide-40-x.woodstack.pages.dev";
 const COMMIT_URL = "https://f66306f3.woodstack.pages.dev";
 
 /** The summary table Cloudflare writes, trimmed to the rows read. */
-const summary = (branchRow = `<a href='${BRANCH_URL}'>${BRANCH_URL}</a>`): string =>
+const summary = (
+  branchRow = `<a href='${BRANCH_URL}'>${BRANCH_URL}</a>`,
+): string =>
   "<table><tr><td><strong>Latest commit:</strong> </td><td><code>6e59726</code></td></tr>" +
   "<tr><td><strong>Status:</strong></td><td>&nbsp;✅&nbsp; Deploy successful!</td></tr>" +
   `<tr><td><strong>Preview URL:</strong></td><td><a href='${COMMIT_URL}'>${COMMIT_URL}</a></td></tr>` +
@@ -29,7 +34,8 @@ const run = (o: Partial<CheckRun> & { text?: string } = {}): CheckRun => ({
   ...o,
 });
 
-const answer = (...runs: CheckRun[]): string => JSON.stringify({ total_count: runs.length, check_runs: runs });
+const answer = (...runs: CheckRun[]): string =>
+  JSON.stringify({ total_count: runs.length, check_runs: runs });
 
 describe("readBranchPreview", () => {
   test("a successful run gives the Branch Preview URL, not the one fixed to a commit", () => {
@@ -40,17 +46,31 @@ describe("readBranchPreview", () => {
     const other = run({ name: "build", app: { slug: "github-actions" } });
     expect(readBranchPreview(answer(other))).toEqual({});
     expect(readBranchPreview(answer())).toEqual({});
-    expect(readBranchPreview(answer(run({ text: summary("<a href='http://x.pages.dev'>x</a>") })))).toEqual({});
-    expect(readBranchPreview(answer(run({ text: "<table></table>" })))).toEqual({});
+    expect(
+      readBranchPreview(
+        answer(run({ text: summary("<a href='http://x.pages.dev'>x</a>") })),
+      ),
+    ).toEqual({});
+    expect(readBranchPreview(answer(run({ text: "<table></table>" })))).toEqual(
+      {},
+    );
   });
 
   test("a run still queued or in progress gives no address", () => {
-    expect(readBranchPreview(answer(run({ status: "queued", conclusion: null })))).toEqual({});
-    expect(readBranchPreview(answer(run({ status: "in_progress", conclusion: null })))).toEqual({});
+    expect(
+      readBranchPreview(answer(run({ status: "queued", conclusion: null }))),
+    ).toEqual({});
+    expect(
+      readBranchPreview(
+        answer(run({ status: "in_progress", conclusion: null })),
+      ),
+    ).toEqual({});
   });
 
   test("a run that completed without success gives no address", () => {
-    expect(readBranchPreview(answer(run({ conclusion: "failure" })))).toEqual({});
+    expect(readBranchPreview(answer(run({ conclusion: "failure" })))).toEqual(
+      {},
+    );
   });
 
   test("the newest of two Cloudflare runs is the one that counts", () => {
@@ -75,13 +95,22 @@ describe("askBranchPreview", () => {
       asked.push({ dir, args });
       return { code: 0, stdout: answer(run()) };
     };
-    expect(await askBranchPreview(ghRun, "/code/woodstack", "aide/40-x")).toEqual({ address: BRANCH_URL });
-    expect(asked).toEqual([{ dir: "/code/woodstack", args: branchPreviewArgs("aide/40-x") }]);
-    expect(branchPreviewArgs("aide/40-x")).toEqual(["api", "repos/{owner}/{repo}/commits/aide/40-x/check-runs"]);
+    expect(
+      await askBranchPreview(ghRun, "/code/woodstack", "aide/40-x"),
+    ).toEqual({ address: BRANCH_URL });
+    expect(asked).toEqual([
+      { dir: "/code/woodstack", args: branchPreviewArgs("aide/40-x") },
+    ]);
+    expect(branchPreviewArgs("aide/40-x")).toEqual([
+      "api",
+      "repos/{owner}/{repo}/commits/aide/40-x/check-runs",
+    ]);
   });
 
   test("a gh that exits non-zero is no answer", async () => {
     const ghRun: GhRunner = async () => ({ code: 1, stdout: answer(run()) });
-    expect(await askBranchPreview(ghRun, "/code/woodstack", "aide/40-x")).toBeNull();
+    expect(
+      await askBranchPreview(ghRun, "/code/woodstack", "aide/40-x"),
+    ).toBeNull();
   });
 });

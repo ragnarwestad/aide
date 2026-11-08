@@ -23,6 +23,7 @@ Analyze the codebase for a spec.
 Parse `$ARGUMENTS`:
 
 **The spec:** the first word is its number, its folder name, or an issue key its title began with
+
 - Example: `/aide-analyze 55` or `/aide-analyze 55-dark-mode`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
@@ -68,7 +69,6 @@ done.
 
 First write `--- Step 1 of 11: Read the description — started`, and when this step ends, `--- Step 1 of 11: Read the description — done`.
 
-
 - Working interactively, run `date +%s` before anything else and keep the
   number for Step 9.
 - Read `specs/XX-slug/1-description.md`
@@ -82,16 +82,15 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
   `1-description.md`. Absent or any other value is `off`.
 - **Learn whether the spec asks to choose the approach**, for Steps 4,
   7 and 8. A headless run says so in the prompt (`Let me choose the
-  approach is on for this spec`) and says nothing when it is not.
+approach is on for this spec`) and says nothing when it is not.
   Working interactively, read the `Let me choose the approach:` line in
   Tracking info of the spec's own `1-description.md`. Only `yes` is on.
-- **Learn whether a short analysis is allowed**, for Steps 3, 5, 7, 8 and
-  9. A headless run says so in the prompt, in the line `A short analysis is allowed for this spec, per Step 3`
+- **Learn whether a short analysis is allowed**, for Steps 3, 5, 7, 8 and 9. A headless run says so in the prompt, in the line `A short analysis is allowed for this spec, per Step 3`
   followed by the runner's limits, and says nothing when it is not.
   Working interactively there is no such line: write the full analysis. The runner sets
   the limits and checks the analysis against them after the turn. A spec whose
   `1-description.md` has a `Sent back to a full
-  analysis:` line in Tracking info is never given a short analysis, run
+analysis:` line in Tracking info is never given a short analysis, run
   headless or not: implement found it is not small.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
@@ -110,7 +109,6 @@ possible in the same session.
 ### Step 2 of 11: Analyze the codebase
 
 First write `--- Step 2 of 11: Analyze the codebase — started`, and when this step ends, `--- Step 2 of 11: Analyze the codebase — done`.
-
 
 Search the code for what the change touches. For each
 function, format or interface the change modifies, ask once what depends
@@ -139,13 +137,13 @@ symbol — a message, a config key, a CSS class.
 
 First write `--- Step 3 of 11: Grade the complexity — started`, and when this step ends, `--- Step 3 of 11: Grade the complexity — done`.
 
-
 Grade the change LOW, MEDIUM or HIGH by its risk, from what Step 2 found,
 with the criteria and the two worked examples in
 `references/complexity-and-analysis.md`, the one place they are written.
 Keep each factor with the files that show it, for Step 7's Scope.
 
 Scale the analysis to the complexity:
+
 - **LOW:** Find the file, read it, check tests. < 15 min.
 - **MEDIUM:** Find dependencies, related files, API impact. 20-45 min.
 - **HIGH:** Search broadly, categorize files, create a migration plan. 1-3 hours.
@@ -167,7 +165,6 @@ limit, so the choice is never worth stretching.
 ### Step 4 of 11: Check for work already begun
 
 First write `--- Step 4 of 11: Check for work already begun — started`, and when this step ends, `--- Step 4 of 11: Check for work already begun — done`.
-
 
 An earlier run stopped by its time limit lands what it wrote, so the
 three files may already hold its answers. Read `specs/XX-slug/2-analysis.md`,
@@ -193,7 +190,7 @@ writes afresh. Run `aide-spec-overlap --specs-root <root> --spec XX-slug`,
 then read that reference before writing anything when one of these holds:
 
 - `2-analysis.md`'s Tracking info reads `Result: stopped
-  (acceptance-criteria)` or `Result: stopped (short-analysis-over-limit)`
+(acceptance-criteria)` or `Result: stopped (short-analysis-over-limit)`
 - the description's Tracking info has a `Sent back to a full analysis:`
   line, and `2-analysis.md` reads `Analysis: short`
 - the newest round of `3-solution.md` records a `**Chosen approach:**`
@@ -209,7 +206,6 @@ them untouched — see `references/requirements-tracing.md`.
 ### Step 5 of 11: Update 2-analysis.md
 
 First write `--- Step 5 of 11: Update 2-analysis.md — started`, and when this step ends, `--- Step 5 of 11: Update 2-analysis.md — done`.
-
 
 Assemble the complete new text of `2-analysis.md` (sections already
 filled in per Step 4 copied verbatim; placeholder sections replaced with
@@ -252,7 +248,6 @@ findings are prefixed with the AC-id(s) they support.
 
 First write `--- Step 6 of 11: Compare with the other open specs — started`, and when this step ends, `--- Step 6 of 11: Compare with the other open specs — done`.
 
-
 Run, with the specs root Step 1 found:
 
     aide-spec-overlap --specs-root <specs-root> --spec XX-slug --record
@@ -277,7 +272,6 @@ a valid decision authorizes no automatic change.
 
 First write `--- Step 7 of 11: Create the implementation plan (3-solution.md) — started`, and when this step ends, `--- Step 7 of 11: Create the implementation plan (3-solution.md) — done`.
 
-
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
 then write it with `aide-write-spec --file 3-solution.md` (never
 Write/Edit). Follow the spec structure § 3-solution.
@@ -300,7 +294,6 @@ the tests sit and the TDD tasks. Read it before writing a full
 ### Step 8 of 11: Review the plan
 
 First write `--- Step 8 of 11: Review the plan — started`, and when this step ends, `--- Step 8 of 11: Review the plan — done`.
-
 
 Attack the plan while the mistake is still cheap, before any test is
 written: reviewers with distinct perspectives (feasibility, scope,
@@ -331,10 +324,10 @@ must-fix check on missing coverage.
 
 First write `--- Step 9 of 11: Update 4-status.md — started`, and when this step ends, `--- Step 9 of 11: Update 4-status.md — done`.
 
-
 Assemble the complete new text of `4-status.md` the same way as Step 5,
 then write it with `aide-write-spec --file 4-status.md` (never
 Write/Edit). Follow the spec structure § 4-status.
+
 - A short analysis: the template's four phase tables, one row each, the
   last one `Run the full test suite`, and no `## Plan review` section
 - LOW: Simple checklist (< 30 lines)
@@ -399,7 +392,6 @@ In a headless run nothing of this is on the default branch yet: the
 analyze is finished only once Step 11, the merge into main, is done. So the
 report's first line ends `— not finished, the merge into main is next
 (Step 11)`, and the report never calls the analyze done or complete.
-
 
 Show a summary with complexity, which analysis was written (short or
 full), number of affected files, the plan

@@ -15,13 +15,24 @@
     {
       "name": "a red implement run",
       "step": "implement",
-      "result": { "terminalReason": "tests-red", "testsRed": { "tests": ["a test"], "errors": ["boom"], "failed": 1, "total": 3 } },
+      "result": {
+        "terminalReason": "tests-red",
+        "testsRed": {
+          "tests": ["a test"],
+          "errors": ["boom"],
+          "failed": 1,
+          "total": 3
+        }
+      },
       "boardWords": true
     },
     {
       "name": "tests that never started",
       "step": "implement",
-      "result": { "terminalReason": "tests-not-started", "testsNotStarted": { "kind": "test-command-unresolved" } },
+      "result": {
+        "terminalReason": "tests-not-started",
+        "testsNotStarted": { "kind": "test-command-unresolved" }
+      },
       "boardWords": true
     },
     {
@@ -39,7 +50,11 @@
     {
       "name": "a write outside the spec folder",
       "step": "implement",
-      "result": { "terminalReason": "scope-violation", "scopeViolation": "specs", "scopeSpecs": ["00-x/5-note.md"] },
+      "result": {
+        "terminalReason": "scope-violation",
+        "scopeViolation": "specs",
+        "scopeSpecs": ["00-x/5-note.md"]
+      },
       "boardWords": true
     },
     {
@@ -48,20 +63,31 @@
       "result": {
         "terminalReason": "scope-violation",
         "scopeViolation": "analyze",
-        "scopeAnalyze": { "project": { "committed": ["src/a.ts"], "uncommitted": [] }, "phaseRows": false, "workflowSteps": false }
+        "scopeAnalyze": {
+          "project": { "committed": ["src/a.ts"], "uncommitted": [] },
+          "phaseRows": false,
+          "workflowSteps": false
+        }
       },
       "boardWords": true
     },
     {
       "name": "a model at capacity",
       "step": "analyze",
-      "result": { "terminalReason": "model-at-capacity", "modelId": "claude-sonnet-5" },
+      "result": {
+        "terminalReason": "model-at-capacity",
+        "modelId": "claude-sonnet-5"
+      },
       "boardWords": true
     },
     {
       "name": "the AI tool failing",
       "step": "implement",
-      "result": { "terminalReason": "cli-error", "tool": "claude", "providerError": { "kind": "login", "message": "Please run /login" } },
+      "result": {
+        "terminalReason": "cli-error",
+        "tool": "claude",
+        "providerError": { "kind": "login", "message": "Please run /login" }
+      },
       "boardWords": true
     },
     {
@@ -85,13 +111,19 @@
     {
       "name": "a time limit the result names",
       "step": "analyze",
-      "result": { "terminalReason": "timeout", "timeLimit": { "seconds": 600, "during": "session" } },
+      "result": {
+        "terminalReason": "timeout",
+        "timeLimit": { "seconds": 600, "during": "session" }
+      },
       "boardWords": true
     },
     {
       "name": "files other open specs share",
       "step": "analyze",
-      "result": { "terminalReason": "shared-files", "sharedFiles": [{ "spec": "80-neighbour", "files": ["shared.ts"] }] },
+      "result": {
+        "terminalReason": "shared-files",
+        "sharedFiles": [{ "spec": "80-neighbour", "files": ["shared.ts"] }]
+      },
       "boardWords": true
     },
     {
@@ -117,7 +149,13 @@
       "step": "analyze",
       "result": {
         "terminalReason": "acceptance-criteria",
-        "criteriaFaults": { "missing": false, "notEars": ["AC-1"], "noScenario": [], "contradictions": [], "cannotBuild": [] }
+        "criteriaFaults": {
+          "missing": false,
+          "notEars": ["AC-1"],
+          "noScenario": [],
+          "contradictions": [],
+          "cannotBuild": []
+        }
       },
       "boardWords": true
     },
@@ -126,14 +164,25 @@
       "step": "analyze",
       "result": {
         "terminalReason": "acceptance-criteria",
-        "criteriaFaults": { "missing": true, "notEars": [], "noScenario": [], "contradictions": [], "cannotBuild": [] }
+        "criteriaFaults": {
+          "missing": true,
+          "notEars": [],
+          "noScenario": [],
+          "contradictions": [],
+          "cannotBuild": []
+        }
       },
       "boardWords": true
     },
     {
       "name": "a push git refused",
       "step": "implement",
-      "result": { "terminalReason": "unpushed", "pushFailures": [{ "repo": "code", "branch": "aide/1-x", "kind": "auth" }] },
+      "result": {
+        "terminalReason": "unpushed",
+        "pushFailures": [
+          { "repo": "code", "branch": "aide/1-x", "kind": "auth" }
+        ]
+      },
       "boardWords": true
     },
     {
@@ -159,7 +208,13 @@
       "step": "analyze",
       "result": {
         "terminalReason": "acceptance-criteria",
-        "criteriaFaults": { "missing": false, "notEars": [], "noScenario": [], "contradictions": [], "cannotBuild": [] }
+        "criteriaFaults": {
+          "missing": false,
+          "notEars": [],
+          "noScenario": [],
+          "contradictions": [],
+          "cannotBuild": []
+        }
       },
       "boardWords": false
     },

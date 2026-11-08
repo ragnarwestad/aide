@@ -16,7 +16,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ProjectReadiness, ReadinessCheck } from "../../../src/project/project-admin";
+import type {
+  ProjectReadiness,
+  ReadinessCheck,
+} from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import {
   DERIVABLE,
@@ -37,7 +40,10 @@ describe("the manifest group is keyed by keys the parser reads", () => {
     for (const key of manifest.keys) {
       const result = parseManifest(`name: p\n${key}: x\n`);
       if (!result.ok) throw new Error(result.error);
-      expect([key, (result.data as Record<string, unknown>)[key]]).toEqual([key, "x"]);
+      expect([key, (result.data as Record<string, unknown>)[key]]).toEqual([
+        key,
+        "x",
+      ]);
     }
   });
 });
@@ -86,14 +92,19 @@ describe("every recognized key gets a row, in one order", () => {
   });
 
   test("a project WITH the file says so", () => {
-    expect(projectSettings(project("AIDE_TEST_CMD=make test\n"), null).hasConfigFile).toBe(true);
+    expect(
+      projectSettings(project("AIDE_TEST_CMD=make test\n"), null).hasConfigFile,
+    ).toBe(true);
   });
 });
 
 describe("configured, worked out, or not set", () => {
   test("a configured command wins over the lockfile beside it", () => {
     const dir = project("", "pnpm-lock.yaml");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nAIDE_TEST_CMD: make test\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\nAIDE_TEST_CMD: make test\n",
+    );
     const r = row(dir, "AIDE_TEST_CMD");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("make test");
@@ -125,7 +136,10 @@ describe("configured, worked out, or not set", () => {
   }
 
   test("a configured non-command key is shown as configured", () => {
-    const r = row(project("AIDE_INSTALL_CMD=make install\n"), "AIDE_INSTALL_CMD");
+    const r = row(
+      project("AIDE_INSTALL_CMD=make install\n"),
+      "AIDE_INSTALL_CMD",
+    );
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("make install");
   });
@@ -137,19 +151,24 @@ describe("a value that does not resolve is marked, in the words readiness alread
     subject: "/tmp/p",
     ok: false,
     blocking: true,
-    detail: "a run refuses a worktree link with nothing to link: node_modules is not in /tmp/p",
+    detail:
+      "a run refuses a worktree link with nothing to link: node_modules is not in /tmp/p",
   };
   const missingSpecs: ReadinessCheck = {
     check: "specsRoot",
     subject: "/tmp/elsewhere",
     ok: false,
     blocking: true,
-    detail: "there is no specs root at /tmp/elsewhere, and a run refuses without one",
+    detail:
+      "there is no specs root at /tmp/elsewhere, and a run refuses without one",
   };
 
   test("a worktree link with nothing to link carries readiness's own sentence", () => {
     const dir = project("");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: node_modules\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\nworktreeLinks: node_modules\n",
+    );
     expect(row(dir, "worktreeLinks", readiness(missingLinks)).problem).toEqual({
       text: missingLinks.detail,
       blocking: true,
@@ -158,7 +177,9 @@ describe("a value that does not resolve is marked, in the words readiness alread
 
   test("a specs root that is not there carries readiness's own sentence", () => {
     const dir = project("AIDE_SPECS_PATH=/tmp/elsewhere\n");
-    expect(row(dir, "AIDE_SPECS_PATH", readiness(missingSpecs)).problem).toEqual({
+    expect(
+      row(dir, "AIDE_SPECS_PATH", readiness(missingSpecs)).problem,
+    ).toEqual({
       text: missingSpecs.detail,
       blocking: true,
     });
@@ -181,7 +202,10 @@ describe("a value that does not resolve is marked, in the words readiness alread
   // missing on no evidence.
   test("with no readiness result nothing is marked as unresolved", () => {
     const dir = project("AIDE_SPECS_PATH=/tmp/elsewhere\n");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: node_modules\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\nworktreeLinks: node_modules\n",
+    );
     for (const key of ["worktreeLinks", "AIDE_SPECS_PATH"]) {
       expect([key, row(dir, key, null).problem]).toEqual([key, undefined]);
     }
@@ -198,7 +222,8 @@ describe("a value that does not resolve is marked, in the words readiness alread
       subject: "/tmp/p",
       ok: false,
       blocking: false,
-      detail: "no worktree links are configured — a run's worktree carries tracked files only",
+      detail:
+        "no worktree links are configured — a run's worktree carries tracked files only",
     };
     const r = row(project(""), "worktreeLinks", readiness(unsetNote));
     expect(r.origin).toBe("unset");
@@ -214,11 +239,19 @@ describe("a value that does not resolve is marked, in the words readiness alread
       subject: "/tmp/p/specs",
       ok: false,
       blocking: true,
-      detail: "no specs root was given, so a run looks for /tmp/p/specs — and there is no such directory",
+      detail:
+        "no specs root was given, so a run looks for /tmp/p/specs — and there is no such directory",
     };
-    const r = row(project(""), "AIDE_SPECS_PATH", readiness(unresolvedFallback));
+    const r = row(
+      project(""),
+      "AIDE_SPECS_PATH",
+      readiness(unresolvedFallback),
+    );
     expect(r.origin).toBe("unset");
-    expect(r.problem).toEqual({ text: unresolvedFallback.detail, blocking: true });
+    expect(r.problem).toEqual({
+      text: unresolvedFallback.detail,
+      blocking: true,
+    });
   });
 
   // A check readiness reports as PASSED for the unset case (most
@@ -251,7 +284,10 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks()", () => 
 
   test("the manifest's worktreeLinks: is the row's value, and the row names that file", () => {
     const dir = project("");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: deps\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\nworktreeLinks: deps\n",
+    );
     const r = row(dir, "worktreeLinks");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("deps");
@@ -273,7 +309,10 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks()", () => 
 describe("the Install/Test command rows are sourced from resolveInstallCmd()/resolveTestCmd()", () => {
   test("installCmd is read from .aide/config; a manifest installCmd: beside it is not read", () => {
     const dir = project("AIDE_INSTALL_CMD=./from-config.sh\n");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\ninstallCmd: ./from-manifest.sh\n",
+    );
     const r = row(dir, "AIDE_INSTALL_CMD");
     expect(r.origin).toBe("configured");
     expect(r.value).toBe("./from-config.sh");
@@ -282,7 +321,10 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
 
   test("a manifest installCmd: alone is not read: the row reads unset", () => {
     const dir = project("");
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\ninstallCmd: ./from-manifest.sh\n",
+    );
     const r = row(dir, "AIDE_INSTALL_CMD");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
@@ -302,7 +344,10 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
 // rather than a second hand-written list.
 describe("groupForEditParam", () => {
   test("groupForEditParam round-trips every EDIT_GROUP_PARAM value", () => {
-    for (const [group, param] of Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]) {
+    for (const [group, param] of Object.entries(EDIT_GROUP_PARAM) as [
+      SettingsGroupFile,
+      string,
+    ][]) {
       expect(groupForEditParam(param)).toBe(group);
     }
   });
@@ -330,7 +375,10 @@ describe("every row's purpose starts with a capital letter", () => {
 describe("the manifest's Description row", () => {
   test("a description in the manifest is a row of the manifest group, posted as description", () => {
     const dir = project(null);
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ndescription: A board\n");
+    writeFileSync(
+      join(dir, ".aide", "project.yaml"),
+      "name: p\ndescription: A board\n",
+    );
     const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
     expect(manifest.keys).toContain("description");
     const r = row(dir, "description");

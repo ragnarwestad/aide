@@ -23,7 +23,10 @@ let restoringHistory = false;
 
 function indexedState(index: number): Record<string, unknown> {
   const state = history.state;
-  return { ...(state && typeof state === "object" ? state : {}), [HISTORY_INDEX]: index };
+  return {
+    ...(state && typeof state === "object" ? state : {}),
+    [HISTORY_INDEX]: index,
+  };
 }
 
 function restoreShownAddress(targetIndex: number | undefined): void {
@@ -38,21 +41,35 @@ function restoreShownAddress(targetIndex: number | undefined): void {
 function mayLeave(): Promise<boolean> {
   return new Promise((resolve) => {
     let settled = false;
-    const finish = (answer: boolean) => { if (!settled) { settled = true; resolve(answer); } };
-    const event = new CustomEvent(PAGE_LEAVE, { cancelable: true, detail: { proceed: () => finish(true), stay: () => finish(false) } });
+    const finish = (answer: boolean) => {
+      if (!settled) {
+        settled = true;
+        resolve(answer);
+      }
+    };
+    const event = new CustomEvent(PAGE_LEAVE, {
+      cancelable: true,
+      detail: { proceed: () => finish(true), stay: () => finish(false) },
+    });
     const allowed = document.dispatchEvent(event);
     if (allowed) finish(true);
     else queueMicrotask(() => finish(false));
   });
 }
 
-export async function swapPage(target: string, options: SwapOptions): Promise<boolean> {
-  if (typeof document.dispatchEvent !== "function" || typeof DOMParser === "undefined") {
+export async function swapPage(
+  target: string,
+  options: SwapOptions,
+): Promise<boolean> {
+  if (
+    typeof document.dispatchEvent !== "function" ||
+    typeof DOMParser === "undefined"
+  ) {
     location.href = target;
     return true;
   }
   if (!shownAddress) shownAddress = location.href;
-  if (!await mayLeave()) {
+  if (!(await mayLeave())) {
     if (options.history === "none") restoreShownAddress(options.historyIndex);
     return false;
   }
@@ -73,12 +90,18 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
     const requestedUrl = new URL(target, from);
     const finalUrl = new URL(response.url || requestedUrl.href, from);
     if (!finalUrl.hash) finalUrl.hash = requestedUrl.hash;
-    if (!response.ok || !contentType.includes("text/html") || finalUrl.origin !== location.origin) throw new Error("not a board page");
+    if (
+      !response.ok ||
+      !contentType.includes("text/html") ||
+      finalUrl.origin !== location.origin
+    )
+      throw new Error("not a board page");
     const html = await response.text();
     const next = new DOMParser().parseFromString(html, "text/html");
     if (!isBoardPage(next, finalUrl)) throw new Error("not a board page");
     // A newer server drew it: loaded whole, so the script that runs it is the new one too.
-    if (servedByAnother(document, next)) throw new Error("served by a newer server");
+    if (servedByAnother(document, next))
+      throw new Error("served by a newer server");
     hooks.unmount?.();
     press.pressGen += 1;
     chosen.clear();
@@ -86,13 +109,20 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
     if (options.history === "push") {
       shownIndex += 1;
       history.pushState(indexedState(shownIndex), "", finalUrl.href);
-    } else if (options.history === "replace") history.replaceState(indexedState(shownIndex), "", finalUrl.href);
-    else if (options.historyIndex !== undefined) shownIndex = options.historyIndex;
+    } else if (options.history === "replace")
+      history.replaceState(indexedState(shownIndex), "", finalUrl.href);
+    else if (options.historyIndex !== undefined)
+      shownIndex = options.historyIndex;
     placePage(document, next);
     addScripts(html);
-    globalThis.scrollTo?.(options.keepScroll ? scroll.x : 0, options.keepScroll ? scroll.y : 0);
+    globalThis.scrollTo?.(
+      options.keepScroll ? scroll.x : 0,
+      options.keepScroll ? scroll.y : 0,
+    );
     if (!options.keepScroll && finalUrl.hash) {
-      document.getElementById(decodeURIComponent(finalUrl.hash.slice(1)))?.scrollIntoView();
+      document
+        .getElementById(decodeURIComponent(finalUrl.hash.slice(1)))
+        ?.scrollIntoView();
     }
     hooks.mount?.(options.referrer === "none" ? "" : from);
     document.dispatchEvent(new Event(PAGE_DRAWN));
@@ -116,12 +146,18 @@ export function bindPageSwap(doc: Document, nextHooks: MountHooks = {}): void {
   shownIndex = typeof stateIndex === "number" ? stateIndex : 0;
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   doc.addEventListener("click", ((event: MouseEvent) => {
-    const link = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+    const link = (event.target as Element | null)?.closest?.(
+      "a[href]",
+    ) as HTMLAnchorElement | null;
     if (!link) return;
     const taken = takesLink(event, link, location.href);
     if (!taken) return;
     event.preventDefault();
-    void swapPage(taken.url.href, { history: "push", keepScroll: sameAddress(taken.url.href, location.href), referrer: taken.referrer });
+    void swapPage(taken.url.href, {
+      history: "push",
+      keepScroll: sameAddress(taken.url.href, location.href),
+      referrer: taken.referrer,
+    });
   }) as EventListener);
   globalThis.addEventListener?.("popstate", (event: Event) => {
     if (restoringHistory) {
@@ -130,6 +166,9 @@ export function bindPageSwap(doc: Document, nextHooks: MountHooks = {}): void {
     }
     if (onBack()) return;
     const index = (event as PopStateEvent).state?.[HISTORY_INDEX];
-    void swapPage(location.href, { history: "none", historyIndex: typeof index === "number" ? index : undefined });
+    void swapPage(location.href, {
+      history: "none",
+      historyIndex: typeof index === "number" ? index : undefined,
+    });
   });
 }

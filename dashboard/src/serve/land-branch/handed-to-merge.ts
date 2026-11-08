@@ -31,22 +31,29 @@ export function cacheRootsWithin(
   root: string,
 ): string[] {
   const top = resolve(root);
-  const inside = (d: string): boolean => resolve(d) === top || resolve(d).startsWith(top + sep);
-  const candidates = [root, ctx.machineryProjectDir(project), ctx.machinerySpecsRoot(project)].filter(
-    (d): d is string => !!d,
-  );
+  const inside = (d: string): boolean =>
+    resolve(d) === top || resolve(d).startsWith(top + sep);
+  const candidates = [
+    root,
+    ctx.machineryProjectDir(project),
+    ctx.machinerySpecsRoot(project),
+  ].filter((d): d is string => !!d);
   return [...new Set(candidates.filter(inside))];
 }
 
 /** A branch whose delete failed IS still on origin: put it back under
  *  the same roots it was forgotten under before the checkout moved. */
 export function rememberUnderRoots(
-  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus">,
+  ctx: Pick<
+    LandContext,
+    "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus"
+  >,
   project: string,
   root: string,
   branch: string,
 ): void {
-  for (const r of cacheRootsWithin(ctx, project, root)) ctx.branchStatus.rememberOpenSpecBranch(r, branch);
+  for (const r of cacheRootsWithin(ctx, project, root))
+    ctx.branchStatus.rememberOpenSpecBranch(r, branch);
 }
 
 /** The same roots, for the other half of that answer: a merge whose delete
@@ -54,12 +61,16 @@ export function rememberUnderRoots(
  *  the archived row reads it as merged rather than as a landing that did
  *  not finish. */
 export function rememberMergedUnderRoots(
-  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus">,
+  ctx: Pick<
+    LandContext,
+    "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus"
+  >,
   project: string,
   root: string,
   branch: string,
 ): void {
-  for (const r of cacheRootsWithin(ctx, project, root)) ctx.branchStatus.rememberMerged(r, branch);
+  for (const r of cacheRootsWithin(ctx, project, root))
+    ctx.branchStatus.rememberMerged(r, branch);
 }
 
 export function handedToMerge(
@@ -69,27 +80,42 @@ export function handedToMerge(
   root: string,
   branch: string,
   codeRoots: Pick<Set<string>, "has">,
-): { gate?: LandingGate; finalizeCreate?: CreateFinalizer; hooks: MergeHooks; specOnly?: SpecFolderLanding } {
-  const gate = codeRoots.has(root) && ctx.landingGate
-    ? async (r: string) => {
-        const verdict = await ctx.landingGate!(r, job, branch);
-        // Green only on a second run: the archived row says so, and the
-        // lines the first run failed on are kept with it.
-        if (verdict.ok && verdict.retriedAfter) ctx.queue.update(job.id, { testsGreenOnRetry: verdict.retriedAfter });
-        return verdict;
-      }
-    : undefined;
+): {
+  gate?: LandingGate;
+  finalizeCreate?: CreateFinalizer;
+  hooks: MergeHooks;
+  specOnly?: SpecFolderLanding;
+} {
+  const gate =
+    codeRoots.has(root) && ctx.landingGate
+      ? async (r: string) => {
+          const verdict = await ctx.landingGate!(r, job, branch);
+          // Green only on a second run: the archived row says so, and the
+          // lines the first run failed on are kept with it.
+          if (verdict.ok && verdict.retriedAfter)
+            ctx.queue.update(job.id, {
+              testsGreenOnRetry: verdict.retriedAfter,
+            });
+          return verdict;
+        }
+      : undefined;
   // A `create` job's folder exists only under its literal
   // provisional key until this runs, under the SAME per-repo lock the
   // merge takes — the one place two landings for this repo cannot both
   // be renaming a folder at once.
-  const specsRootAbs = what.step === "create" ? ctx.machinerySpecsRoot(job.project) : undefined;
-  const finalizeCreate = ctx.finalizeCreateSpec && specsRootAbs
-    ? (work: string) => ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
-    : undefined;
+  const specsRootAbs =
+    what.step === "create" ? ctx.machinerySpecsRoot(job.project) : undefined;
+  const finalizeCreate =
+    ctx.finalizeCreateSpec && specsRootAbs
+      ? (work: string) =>
+          ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
+      : undefined;
   const hooks: MergeHooks = {
     // A code root only: the translation files are the project's code.
-    mergeArgs: codeRoots.has(root) && ctx.translationMergeArgs ? (work) => ctx.translationMergeArgs!(root, work) : undefined,
+    mergeArgs:
+      codeRoots.has(root) && ctx.translationMergeArgs
+        ? (work) => ctx.translationMergeArgs!(root, work)
+        : undefined,
     beforeCheckoutMoves: (info) => {
       if (info.assignedSpecFolder) {
         // The pendingModels rename runs BEFORE the job's own specFolder
@@ -97,19 +123,25 @@ export function handedToMerge(
         // ORIGINAL, still-correct provisional key, so a pick already
         // banked under it stays reachable rather than becoming orphaned
         // under a real folder the job itself has not moved to yet
-        ctx.queue.renamePendingModel(job.project, job.specFolder, info.assignedSpecFolder);
+        ctx.queue.renamePendingModel(
+          job.project,
+          job.specFolder,
+          info.assignedSpecFolder,
+        );
         ctx.queue.update(job.id, { specFolder: info.assignedSpecFolder });
       }
       // The branch is merged on origin by now; its delete is the very
       // next thing. A delete that then fails is reported through
       // `branchDeleteError` on the job, and the landing's own fresh
       // origin check repopulates this set with the truth.
-      for (const r of cacheRootsWithin(ctx, job.project, root)) ctx.branchStatus.forgetOpenSpecBranch(r, branch);
+      for (const r of cacheRootsWithin(ctx, job.project, root))
+        ctx.branchStatus.forgetOpenSpecBranch(r, branch);
     },
   };
-  const paths = SPEC_ONLY_STEPS.has(what.step) && codeRoots.has(root)
-    ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), job.specFolder)
-    : undefined;
+  const paths =
+    SPEC_ONLY_STEPS.has(what.step) && codeRoots.has(root)
+      ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), job.specFolder)
+      : undefined;
   const specOnly = paths
     ? {
         paths,
@@ -131,14 +163,21 @@ const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close", "implement"]);
 
 /** Whether the specs root lies inside `root`, by the very test that makes
  *  a landing from `root` carry the spec's folder alone. */
-export function specsLiveInside(root: string, specsRoot: string | undefined): boolean {
+export function specsLiveInside(
+  root: string,
+  specsRoot: string | undefined,
+): boolean {
   return specPathsIn(root, specsRoot, "") !== undefined;
 }
 
 /** The spec's folder and its `archive/` twin
  *  relative to `root`, or `undefined` when the specs root is not inside
  *  `root` at all. */
-function specPathsIn(root: string, specsRoot: string | undefined, folder: string): string[] | undefined {
+function specPathsIn(
+  root: string,
+  specsRoot: string | undefined,
+  folder: string,
+): string[] | undefined {
   if (!specsRoot) return undefined;
   const rel = relative(real(root), real(specsRoot));
   if (rel.startsWith("..") || isAbsolute(rel)) return undefined;

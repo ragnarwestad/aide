@@ -179,10 +179,14 @@ export interface StepRepoRange {
  *  an earlier one must not erase the others: analyze changes only the
  *  specs repo, implement changes both, and a wholesale replace would make
  *  the project's branch disappear from a spec that has one. */
-export function mergeBranchRefs(prev: BranchRef[] | undefined, next: BranchRef[] | undefined): BranchRef[] {
+export function mergeBranchRefs(
+  prev: BranchRef[] | undefined,
+  next: BranchRef[] | undefined,
+): BranchRef[] {
   const out = [...(prev ?? [])];
   for (const ref of next ?? []) {
-    if (!ref || typeof ref.root !== "string" || typeof ref.url !== "string") continue;
+    if (!ref || typeof ref.root !== "string" || typeof ref.url !== "string")
+      continue;
     const at = out.findIndex((r) => r.root === ref.root);
     if (at >= 0) out[at] = ref;
     else out.push(ref);
@@ -269,7 +273,12 @@ export interface Job {
    *  checkout it deployed, the commit its fetch reached, when the restart
    *  was fired and the `STARTED_AT` of the process that fired it. The
    *  process that starts after the restart reads it to finish the job. */
-  deploy?: { root: string; commit?: string; restartedAt?: string; leaving?: string };
+  deploy?: {
+    root: string;
+    commit?: string;
+    restartedAt?: string;
+    leaving?: string;
+  };
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The

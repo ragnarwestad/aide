@@ -2,16 +2,33 @@
 // banner on every tab, the Status tab's criteria checklist, and the
 // Reopen and Close controls.
 
-import { askButton, btn, buttonForm, dataAttrs, helpPopover, ICON_PDF, rowMessage, saveCancelActions } from "../../ui/components";
+import {
+  askButton,
+  btn,
+  buttonForm,
+  dataAttrs,
+  helpPopover,
+  ICON_PDF,
+  rowMessage,
+  saveCancelActions,
+} from "../../ui/components";
 import { SPINNER } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { acTestsLine } from "../../ui/ac-tests.ts";
 import { groupKey } from "../specs-list/data-model";
-import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-controls.ts";
+import {
+  checkColumns,
+  checkControls,
+  checkReadOnlyMark,
+} from "../../ui/check-controls.ts";
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import {
-  CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
+  CLOSE_ASK_ID,
+  CLOSE_SENTENCE,
+  REOPEN_ASK_ID,
+  closeAskDialog,
+  reopenAskDialog,
 } from "./ask-dialog.ts";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -72,10 +89,17 @@ export function drawnAcceptanceRows(view: SpecPageView): SpecCheckView[] {
 
 /** The head line: how far the section is. A Not verified row is settled but
  *  not checked, so it is counted beside the open ones and never as "all done". */
-function checksSummary(open: number, total: number, unverified: number, failed: number, lang: Language): string {
+function checksSummary(
+  open: number,
+  total: number,
+  unverified: number,
+  failed: number,
+  lang: Language,
+): string {
   const parts: string[] = [];
   if (open > 0) parts.push(`${open} of ${total} still open`);
-  if (unverified > 0) parts.push(t(lang, "checks.notVerifiedCount", { n: unverified }));
+  if (unverified > 0)
+    parts.push(t(lang, "checks.notVerifiedCount", { n: unverified }));
   if (failed > 0) parts.push(t(lang, "checks.failedCount", { n: failed }));
   return parts.length ? parts.join(", ") : "all done";
 }
@@ -136,25 +160,35 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // An archived spec is the exception for a row marked Not verified: a
   // check that was put off may still be completed, so it gets the tick box
   // alone and the form the box needs. A closed spec has none.
-  const archivedCompletes = !!view.archived && !view.closed && rows.some((r) => r.notVerified);
+  const archivedCompletes =
+    !!view.archived && !view.closed && rows.some((r) => r.notVerified);
   const canTick = (!view.archived || archivedCompletes) && !activeJob;
   // A Failed row is never a box: only Reopen takes it back.
   const tickable = (row: SpecCheckView): boolean =>
-    canTick && row.phase === phase && !row.failed && (!view.archived || !!row.notVerified);
+    canTick &&
+    row.phase === phase &&
+    !row.failed &&
+    (!view.archived || !!row.notVerified);
   // The archived form's note fields are numbered by the row's place among the
   // rows the form draws — the route reads each note by that number.
   const drawnLines = rows.filter(tickable).map((row) => row.line);
   // The row's verbatim line is the value of every box — see `checkControls`.
   const control = (row: SpecCheckView): string =>
     tickable(row)
-      ? checkControls(row, lang, view.archived ? { archivedIndex: drawnLines.indexOf(row.line) } : {})
+      ? checkControls(
+          row,
+          lang,
+          view.archived ? { archivedIndex: drawnLines.indexOf(row.line) } : {},
+        )
       : checkReadOnlyMark(row, lang);
   // Reopen from the row that failed: a button opening the action row's own
   // dialog, on an archived spec that is not closed — the dialog itself
   // cannot be drawn here, inside the checks' form, since the parser drops
   // a nested form. A live spec has its actions on its queue row.
   const reopen = (row: SpecCheckView): string =>
-    row.failed && view.archived && !view.closed ? askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) : "";
+    row.failed && view.archived && !view.closed
+      ? askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID })
+      : "";
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -170,7 +204,9 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` +
     // One heading over the boxes, under the caption of the section they belong to.
-    (g.phase === phase && drawnLines.length > 0 ? checkColumns(lang, !!view.archived) : "") +
+    (g.phase === phase && drawnLines.length > 0
+      ? checkColumns(lang, !!view.archived)
+      : "") +
     g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   // The head line and, when the boxes are tickable, Save/Cancel beside it
@@ -215,7 +251,10 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  Description tab, the same read-only note above this, the checks shown
  *  but not tickable. And nothing here is drawn for a live spec: its own
  *  row on the queue list is where its actions are. */
-export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
+export function reopenControl(
+  view: SpecPageView,
+  lang: Language = "en",
+): string {
   return (
     askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) +
     reopenAskDialog(view.project, view.specFolder, lang, REOPEN_ASK_ID)
@@ -254,7 +293,10 @@ export function pdfLink(action: string, unavailableReason?: string): string {
 
 /** The open spec's PDF, among its actions. */
 export function pdfControl(view: SpecPageView): string {
-  return pdfLink(`${specPagePath(view.project, view.specFolder)}/pdf`, view.pdfUnavailableReason);
+  return pdfLink(
+    `${specPagePath(view.project, view.specFolder)}/pdf`,
+    view.pdfUnavailableReason,
+  );
 }
 
 /** What a board is doing, when one was ever asked for: starting,
@@ -320,15 +362,22 @@ export function testServerStatus(view: SpecPageView): string {
  *  not right now" — `view.archived` hides it for an archived OR
  *  a closed spec alike, since the move does not apply once a spec has
  *  left the active list. */
-export function closeControl(view: SpecPageView, lang: Language = "en"): string {
+export function closeControl(
+  view: SpecPageView,
+  lang: Language = "en",
+): string {
   if (!view.closeAvailable || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
-  if (view.closeUnavailableReason) return btn({ label: "Close", type: "button", disabled: true });
+  if (view.closeUnavailableReason)
+    return btn({ label: "Close", type: "button", disabled: true });
   // Close has no fallback page behind it — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
-  return askButton({ label: "Close", dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
+  return (
+    askButton({ label: "Close", dialogId: CLOSE_ASK_ID }) +
+    closeAskDialog(view.project, view.specFolder, lang)
+  );
 }
 
 /** One "(?)" for the whole action row, replacing what used
@@ -352,8 +401,12 @@ export function actionsHelp(view: SpecPageView): string {
     sentences.push(CLOSE_SENTENCE);
   }
   if (view.closeAvailable && !view.archived && view.closeUnavailableReason) {
-    sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);
+    sentences.push(
+      `Close can't run right now because ${view.closeUnavailableReason}.`,
+    );
   }
-  sentences.push("Update pulls the specs repository and shows what it says now.");
+  sentences.push(
+    "Update pulls the specs repository and shows what it says now.",
+  );
   return helpPopover("What these buttons do", esc(sentences.join(" ")));
 }

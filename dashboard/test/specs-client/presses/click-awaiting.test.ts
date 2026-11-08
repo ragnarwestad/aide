@@ -23,7 +23,11 @@ describe("a spec's own › swaps that spec alone", () => {
   // names the folds as they were before it; pressing one must not shut
   // the row that was just opened.
   test("another link keeps the folds the address has, not the ones its href was drawn with", () => {
-    const h = harness(() => ({ ok: true }), "actionform", "?open=aide%2Fa&checks=aide%2Fb");
+    const h = harness(
+      () => ({ ok: true }),
+      "actionform",
+      "?open=aide%2Fa&checks=aide%2Fb",
+    );
     void h.clickHref("/?sort=cost&open=aide%2Fold");
     const q = new URLSearchParams(h.location.search);
     expect(q.get("open")).toBe("aide/a");
@@ -34,6 +38,8 @@ describe("a spec's own › swaps that spec alone", () => {
   test("a second › adds its spec to the ones the address already has open", () => {
     const h = harness(() => ({ ok: true }), "actionform", "?open=aide%2Fa");
     h.clickFold();
-    expect(new URLSearchParams(h.location.search).get("open")).toBe("aide/a,aide/127-one-ai");
+    expect(new URLSearchParams(h.location.search).get("open")).toBe(
+      "aide/a,aide/127-one-ai",
+    );
   });
 });

@@ -93,7 +93,7 @@ Claude Code has built-in support for LSP plugins that provide semantic code navi
 **Installed plugins:**
 
 | Plugin           | Language              |
-|------------------|-----------------------|
+| ---------------- | --------------------- |
 | `typescript-lsp` | TypeScript/JavaScript |
 | `kotlin-lsp`     | Kotlin                |
 | `jdtls-lsp`      | Java                  |
@@ -111,7 +111,7 @@ claude plugin install jdtls-lsp@claude-plugins-official
 ### Slash commands (skills in Claude Code)
 
 | Command                                | Description        |
-|----------------------------------------|--------------------|
+| -------------------------------------- | ------------------ |
 | `/aide-create "<title>" <description>` | Create a spec      |
 | `/aide-analyze <number>`               | Analyze codebase   |
 | `/aide-implement <number>`             | Implement with TDD |
@@ -119,7 +119,7 @@ claude plugin install jdtls-lsp@claude-plugins-official
 ### Terminal scripts
 
 | Script               | Description               |
-|----------------------|---------------------------|
+| -------------------- | ------------------------- |
 | `aide-generate-pdf`  | Generate PDF from a spec  |
 | `aide-generate-html` | Generate HTML from a spec |
 | `upgrade-ai-tools`   | Update the AI CLIs        |

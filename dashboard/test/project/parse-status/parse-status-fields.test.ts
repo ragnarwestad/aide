@@ -19,7 +19,10 @@ import {
 } from "../../../src/project/parse-status";
 
 const fixture = (name: string) =>
-  readFileSync(join(import.meta.dir, "..", "..", "fixtures", "status", name), "utf-8");
+  readFileSync(
+    join(import.meta.dir, "..", "..", "fixtures", "status", name),
+    "utf-8",
+  );
 
 describe("progress line variants", () => {
   const cases: [string, { percent: number; done: number; total: number }][] = [
@@ -41,7 +44,9 @@ describe("progress line variants", () => {
   });
 
   test("a file with no progress line at all yields unknown, no throw", () => {
-    expect(parseStatus("# Something - Status\n\nJust prose.\n").progress).toBeNull();
+    expect(
+      parseStatus("# Something - Status\n\nJust prose.\n").progress,
+    ).toBeNull();
   });
 });
 
@@ -82,13 +87,21 @@ describe("phase", () => {
   // out read as settled — and with no later symbol anywhere, the whole
   // file read as `done` and the Edit page offered nothing to tick.
   test("a phase whose only open row is written in words is still the current phase", () => {
-    expect(parseStatus(openPhase.replace("| c    | ⬜     |       |", "| c    | Waiting |       |")).phase).toBe(
-      "Phase 2: GREEN",
-    );
+    expect(
+      parseStatus(
+        openPhase.replace(
+          "| c    | ⬜     |       |",
+          "| c    | Waiting |       |",
+        ),
+      ).phase,
+    ).toBe("Phase 2: GREEN");
   });
 
   test("a word-written done row settles its phase exactly as ✅ does", () => {
-    const words = openPhase.replace("| c    | ⬜     |       |", "| c    | Completed |       |");
+    const words = openPhase.replace(
+      "| c    | ⬜     |       |",
+      "| c    | Completed |       |",
+    );
     expect(parseStatus(words).phase).toBe("done");
   });
 
@@ -142,7 +155,10 @@ describe("phase", () => {
   });
 
   test("Acceptance criteria becomes current once every earlier phase is done", () => {
-    const allEarlierDone = phaseThenAcceptance.replace("| d    | ⬜     |       |", "| d    | ✅     |       |");
+    const allEarlierDone = phaseThenAcceptance.replace(
+      "| d    | ⬜     |       |",
+      "| d    | ✅     |       |",
+    );
     expect(parseStatus(allEarlierDone).phase).toBe("Acceptance criteria");
   });
 
@@ -157,12 +173,19 @@ describe("phase", () => {
   });
 
   test("acceptancePhase is null once every Acceptance row is ticked", () => {
-    const allTicked = phaseThenAcceptance.replace("| REQ-1: does the thing | ⬜ | |", "| REQ-1: does the thing | ✅ | |");
+    const allTicked = phaseThenAcceptance.replace(
+      "| REQ-1: does the thing | ⬜ | |",
+      "| REQ-1: does the thing | ✅ | |",
+    );
     expect(parseStatus(allTicked).acceptancePhase).toBeNull();
   });
 
   test("acceptancePhase is null when the file has no Acceptance criteria section", () => {
-    expect(parseStatus("# Status\n\n## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| a | ⬜ | |\n").acceptancePhase).toBeNull();
+    expect(
+      parseStatus(
+        "# Status\n\n## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| a | ⬜ | |\n",
+      ).acceptancePhase,
+    ).toBeNull();
   });
 });
 
@@ -192,7 +215,9 @@ describe("the archive-held-back reason", () => {
     ].join("\n");
 
   test("the bulleted reason comes back without its bullet or the divider", () => {
-    const reason = archiveHeldBackReason(withSection("- the Slack webhook (Phase 4, still unchecked)"));
+    const reason = archiveHeldBackReason(
+      withSection("- the Slack webhook (Phase 4, still unchecked)"),
+    );
     expect(reason).toBe("the Slack webhook (Phase 4, still unchecked)");
   });
 
@@ -201,7 +226,9 @@ describe("the archive-held-back reason", () => {
   });
 
   test("an empty section is no reason at all, not an empty badge", () => {
-    expect(archiveHeldBackReason("# X\n\n## Archive held back\n\n## Phase 1\n")).toBeNull();
+    expect(
+      archiveHeldBackReason("# X\n\n## Archive held back\n\n## Phase 1\n"),
+    ).toBeNull();
   });
 
   test("the LATER of two declined runs is the current reason", () => {
@@ -209,7 +236,9 @@ describe("the archive-held-back reason", () => {
       withSection("- the Slack webhook (Phase 4, still unchecked)") +
       "\n" +
       withSection("- the manual browser check (Phase 4, still unchecked)");
-    expect(archiveHeldBackReason(twice)).toBe("the manual browser check (Phase 4, still unchecked)");
+    expect(archiveHeldBackReason(twice)).toBe(
+      "the manual browser check (Phase 4, still unchecked)",
+    );
   });
 
   test("only the first line of the section is the reason", () => {
@@ -222,7 +251,9 @@ describe("the archive-held-back reason", () => {
       "- and a second line nobody asked for",
       "",
     ].join("\n");
-    expect(archiveHeldBackReason(many)).toBe("the Slack webhook (Phase 4, still unchecked)");
+    expect(archiveHeldBackReason(many)).toBe(
+      "the Slack webhook (Phase 4, still unchecked)",
+    );
   });
 });
 
@@ -251,15 +282,23 @@ describe("acceptance criteria left unticked", () => {
     ].join("\n");
 
   test("any unticked row under Acceptance criteria is true", () => {
-    expect(acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ⬜ | |"))).toBe(true);
+    expect(
+      acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ⬜ | |")),
+    ).toBe(true);
   });
 
   test("every row ticked is false", () => {
-    expect(acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ✅ | |"))).toBe(false);
+    expect(
+      acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ✅ | |")),
+    ).toBe(false);
   });
 
   test("no Acceptance criteria section at all is false, not a crash", () => {
-    expect(acceptanceCriteriaUnticked("# X - Status\n\n## Phase 1\n\n| Task | Status | Notes |\n")).toBe(false);
+    expect(
+      acceptanceCriteriaUnticked(
+        "# X - Status\n\n## Phase 1\n\n| Task | Status | Notes |\n",
+      ),
+    ).toBe(false);
   });
 
   test("one ticked, one not, is still true — the row that matters is the open one", () => {
@@ -275,11 +314,18 @@ describe("acceptance criteria left unticked", () => {
 // rule collided in the first place.
 describe("archiveHeldBackApplies", () => {
   test("the acceptance-criteria note means nothing while implement is not done", () => {
-    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"])).toBe(false);
+    expect(
+      archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"]),
+    ).toBe(false);
   });
 
   test("the acceptance-criteria note applies once implement is done", () => {
-    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze", "implement"])).toBe(true);
+    expect(
+      archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, [
+        "analyze",
+        "implement",
+      ]),
+    ).toBe(true);
   });
 
   // The state the note exists for, and the one it used to be dropped in.
@@ -290,16 +336,31 @@ describe("archiveHeldBackApplies", () => {
   // about why archive was not moving.
   test("the note applies when only git proves implement ran, its work still on the branch", () => {
     expect(
-      archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["create", "analyze"], ["analyze", "implement"]),
+      archiveHeldBackApplies(
+        ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+        ["create", "analyze"],
+        ["analyze", "implement"],
+      ),
     ).toBe(true);
   });
 
   test("and still means nothing when neither list has implement", () => {
-    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"], ["analyze"])).toBe(false);
+    expect(
+      archiveHeldBackApplies(
+        ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+        ["analyze"],
+        ["analyze"],
+      ),
+    ).toBe(false);
   });
 
   test("every other reason applies regardless — it came out of an actual declined run", () => {
-    expect(archiveHeldBackApplies("the Slack webhook (Phase 4, still unchecked)", [])).toBe(true);
+    expect(
+      archiveHeldBackApplies(
+        "the Slack webhook (Phase 4, still unchecked)",
+        [],
+      ),
+    ).toBe(true);
   });
 });
 
@@ -369,10 +430,12 @@ describe("acceptanceRowsOf", () => {
   ].join("\n");
 
   test("returns the Acceptance rows and nothing from a Phase table", () => {
-    expect(acceptanceRowsOf(FILE).map((r) => [r.task, r.done, r.note])).toEqual([
-      ["AC-1: it folds", false, ""],
-      ["AC-2: it saves", true, "12 pass"],
-    ]);
+    expect(acceptanceRowsOf(FILE).map((r) => [r.task, r.done, r.note])).toEqual(
+      [
+        ["AC-1: it folds", false, ""],
+        ["AC-2: it saves", true, "12 pass"],
+      ],
+    );
   });
 
   test("keeps each row's verbatim line and the section's heading", () => {
@@ -382,7 +445,11 @@ describe("acceptanceRowsOf", () => {
   });
 
   test("a file with no Acceptance section has no rows", () => {
-    expect(acceptanceRowsOf("## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| x | ⬜ | |\n")).toEqual([]);
+    expect(
+      acceptanceRowsOf(
+        "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| x | ⬜ | |\n",
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -412,17 +479,23 @@ describe("Not verified is a done mark for every gate", () => {
   test("acceptanceStillOpen reads a Not verified row as settled", () => {
     const rows = acceptanceRowsOf(file([NV, DONE]));
     expect(acceptanceStillOpen(undefined, rows)).toBe(false);
-    expect(acceptanceStillOpen(undefined, acceptanceRowsOf(file([NV, OPEN])))).toBe(true);
+    expect(
+      acceptanceStillOpen(undefined, acceptanceRowsOf(file([NV, OPEN]))),
+    ).toBe(true);
   });
 
   test("parseStatus's phase and acceptancePhase count it done", () => {
     const settled = parseStatus(file([NV, DONE]));
     expect(settled.acceptancePhase).toBeNull();
     expect(settled.phase).toBe("done");
-    expect(parseStatus(file([NV, OPEN])).acceptancePhase).toBe("Acceptance criteria");
+    expect(parseStatus(file([NV, OPEN])).acceptancePhase).toBe(
+      "Acceptance criteria",
+    );
   });
 
   test("the row is flagged on acceptanceRowsOf, so the Specs list can count it", () => {
-    expect(acceptanceRowsOf(file([NV, DONE])).map((r) => r.notVerified === true)).toEqual([true, false]);
+    expect(
+      acceptanceRowsOf(file([NV, DONE])).map((r) => r.notVerified === true),
+    ).toEqual([true, false]);
   });
 });

@@ -23,7 +23,9 @@ import {
 const NOW = "2026-09-02T12:00:00Z";
 
 const subRow = (html: string, step: string): string =>
-  html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
+  html.match(
+    new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`),
+  )?.[0] ?? "";
 
 const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
   id,
@@ -60,12 +62,21 @@ describe("a phase's attempt count outlives the queue's memory", () => {
     const html = renderSpecsRows(
       [
         job("a1", {
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
+          results: [
+            {
+              step: "analyze",
+              ok: true,
+              costUsd: 1,
+              at: "2026-09-02T09:05:00Z",
+            },
+          ],
         }),
       ],
       {
         runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec", done: ["analyze"] }],
+        targets: [
+          { project: "aide", specFolder: "aa-spec", done: ["analyze"] },
+        ],
         filter: { open: "aide/aa-spec" },
       },
       Date.parse(NOW),
@@ -80,7 +91,9 @@ describe("a phase's attempt count outlives the queue's memory", () => {
     const refused = (id: string, at: string, reason: string) =>
       job(id, {
         steps: ["archive"],
-        results: [{ step: "archive", ok: true, costUsd: 0, at, terminalReason: reason }],
+        results: [
+          { step: "archive", ok: true, costUsd: 0, at, terminalReason: reason },
+        ],
       });
     const html = renderSpecsRows(
       [
@@ -88,12 +101,26 @@ describe("a phase's attempt count outlives the queue's memory", () => {
         refused("a2", "2026-09-02T10:05:00Z", "acceptance-criteria-unticked"),
         job("a3", {
           steps: ["archive"],
-          results: [{ step: "archive", ok: true, costUsd: 1, at: "2026-09-02T11:05:00Z", terminalReason: "completed" }],
+          results: [
+            {
+              step: "archive",
+              ok: true,
+              costUsd: 1,
+              at: "2026-09-02T11:05:00Z",
+              terminalReason: "completed",
+            },
+          ],
         }),
       ],
       {
         runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec", done: ["analyze", "implement", "archive"] }],
+        targets: [
+          {
+            project: "aide",
+            specFolder: "aa-spec",
+            done: ["analyze", "implement", "archive"],
+          },
+        ],
         filter: { open: "aide/aa-spec" },
       },
       Date.parse(NOW),
@@ -107,12 +134,26 @@ describe("a phase's attempt count outlives the queue's memory", () => {
         job("a1", {
           state: "failed",
           error: "boom",
-          results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
+          results: [
+            {
+              step: "analyze",
+              ok: false,
+              costUsd: 1,
+              at: "2026-09-02T09:05:00Z",
+            },
+          ],
         }),
         job("a2", {
           state: "failed",
           error: "boom again",
-          results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T10:05:00Z" }],
+          results: [
+            {
+              step: "analyze",
+              ok: false,
+              costUsd: 1,
+              at: "2026-09-02T10:05:00Z",
+            },
+          ],
         }),
         job("a3", { state: "running", startedAt: "2026-09-02T11:00:00Z" }),
       ],
@@ -147,19 +188,41 @@ describe("a phase's attempt count outlives the queue's memory", () => {
     afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
     test("shows 3 attempts, not 2, when the queue only remembers 2 of the 3 real attempts", () => {
-      const target: SpecTarget = { project: "aide", specFolder: "aa-spec", dir };
+      const target: SpecTarget = {
+        project: "aide",
+        specFolder: "aa-spec",
+        dir,
+      };
       const html = renderSpecsRows(
         [
           job("a1", {
             state: "failed",
             error: "boom",
-            results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
+            results: [
+              {
+                step: "analyze",
+                ok: false,
+                costUsd: 1,
+                at: "2026-09-02T09:05:00Z",
+              },
+            ],
           }),
           job("a2", {
-            results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-09-02T10:05:00Z" }],
+            results: [
+              {
+                step: "analyze",
+                ok: true,
+                costUsd: 1,
+                at: "2026-09-02T10:05:00Z",
+              },
+            ],
           }),
         ],
-        { runnerAvailable: true, targets: [target], filter: { open: "aide/aa-spec" } },
+        {
+          runnerAvailable: true,
+          targets: [target],
+          filter: { open: "aide/aa-spec" },
+        },
         Date.parse(NOW),
       );
       expect(subRow(html, "analyze")).toContain("3 attempts");

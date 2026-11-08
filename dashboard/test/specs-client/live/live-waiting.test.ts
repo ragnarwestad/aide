@@ -10,7 +10,8 @@ const fresh = () => {
   h.visibility("visible");
   return h;
 };
-const heard = (h: ReturnType<typeof fresh>) => h.dispatchedEvents.filter((e) => e.type === "aide:waiting");
+const heard = (h: ReturnType<typeof fresh>) =>
+  h.dispatchedEvents.filter((e) => e.type === "aide:waiting");
 
 describe("a changed event with a count becomes aide:waiting", () => {
   test("a number is announced with the number as detail", () => {
@@ -38,14 +39,18 @@ describe("a changed event with a count becomes aide:waiting", () => {
     let releasePress: () => void = () => {};
     const pressHeld = new Promise<void>((r) => (releasePress = r));
     const h = harness((url) =>
-      url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: pressHeld } : { ok: true, text: "<tr>fresh</tr>" },
+      url.includes("/cancel")
+        ? { ok: true, body: OK_ACTION, hold: pressHeld }
+        : { ok: true, text: "<tr>fresh</tr>" },
     );
     h.visibility("visible");
     const pressed = h.submit();
     await Promise.resolve();
     const redraws = h.requests.filter((r) => r.url.includes("rows=1")).length;
     h.tickWith('{"waiting":2}');
-    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(redraws);
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(
+      redraws,
+    );
     expect(heard(h)).toEqual([{ type: "aide:waiting", detail: 2 }]);
     releasePress();
     await pressed;

@@ -17,7 +17,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Glob } from "bun";
 
-const runner = readFileSync(join(import.meta.dir, "../../scripts/run-tests.sh"), "utf-8");
+const runner = readFileSync(
+  join(import.meta.dir, "../../scripts/run-tests.sh"),
+  "utf-8",
+);
 
 /** Every test file that imports playwright, and so starts a browser.
  *
@@ -28,10 +31,16 @@ const SELF = "test/design/browser-tests-have-their-own-pool.test.ts";
 function browserTests(): string[] {
   const found: string[] = [];
   for (const dir of ["src", "test"]) {
-    for (const file of new Glob("**/*.test.ts").scanSync(join(import.meta.dir, "../..", dir))) {
+    for (const file of new Glob("**/*.test.ts").scanSync(
+      join(import.meta.dir, "../..", dir),
+    )) {
       const path = join(dir, file);
       if (path === SELF) continue;
-      if (readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes('from "playwright"')) {
+      if (
+        readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(
+          'from "playwright"',
+        )
+      ) {
         found.push(path);
       }
     }
@@ -44,8 +53,11 @@ describe("the runner's browser pool", () => {
     const pattern = runner.match(/grep -q '([^']+)' "\$f"/)?.[1];
     expect(pattern).toBeDefined();
 
-    const missed = browserTests().filter((path) =>
-      !readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(pattern!),
+    const missed = browserTests().filter(
+      (path) =>
+        !readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(
+          pattern!,
+        ),
     );
     expect(missed).toEqual([]);
   });
@@ -53,7 +65,9 @@ describe("the runner's browser pool", () => {
   // `make test` leaves `test/e2e/` out and a landing runs it: a browser
   // file anywhere else would run in a step's own suite after all.
   test("every file that starts a browser lives under test/e2e", () => {
-    expect(browserTests().filter((path) => !path.startsWith("test/e2e/"))).toEqual([]);
+    expect(
+      browserTests().filter((path) => !path.startsWith("test/e2e/")),
+    ).toEqual([]);
   });
 
   test("there are browser tests to pool in the first place", () => {
@@ -63,7 +77,9 @@ describe("the runner's browser pool", () => {
   });
 
   test("the pool is capped", () => {
-    const browserWorkers = runner.match(/BROWSER_WORKERS=\$\{AIDE_TEST_BROWSER_WORKERS:-(\d+)\}/)?.[1];
+    const browserWorkers = runner.match(
+      /BROWSER_WORKERS=\$\{AIDE_TEST_BROWSER_WORKERS:-(\d+)\}/,
+    )?.[1];
 
     expect(Number(browserWorkers)).toBeGreaterThan(0);
   });
@@ -73,7 +89,9 @@ describe("the runner's browser pool", () => {
   // file naming its own number is a file the pool cannot help.
   test("no browser test sets a deadline of its own", () => {
     const offenders = browserTests().filter((path) =>
-      readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes("setDefaultTimeout("),
+      readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(
+        "setDefaultTimeout(",
+      ),
     );
     expect(offenders).toEqual([]);
   });
@@ -84,20 +102,30 @@ describe("the runner's browser pool", () => {
   // and 10 s is a navigation a loaded machine makes honestly.
   test("no browser test keeps a wait of its own around a browser call", () => {
     const offenders = browserTests().filter((path) =>
-      readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes("function withTimeout"),
+      readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(
+        "function withTimeout",
+      ),
     );
     expect(offenders).toEqual([]);
   });
 
   test("they share one deadline, and it is longer than a unit test's", () => {
     const limit = Number(runner.match(/^LIMIT=(\d+)$/m)?.[1]);
-    const shared = readFileSync(join(import.meta.dir, "../helpers/browser-deadline.ts"), "utf-8");
-    const deadline = Number(shared.match(/BROWSER_DEADLINE_MS = ([\d_]+)/)?.[1]?.replace(/_/g, ""));
+    const shared = readFileSync(
+      join(import.meta.dir, "../helpers/browser-deadline.ts"),
+      "utf-8",
+    );
+    const deadline = Number(
+      shared.match(/BROWSER_DEADLINE_MS = ([\d_]+)/)?.[1]?.replace(/_/g, ""),
+    );
 
     expect(deadline).toBeGreaterThan(limit);
     // And every one of them takes it from there.
-    const missing = browserTests().filter((path) =>
-      !readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes("browserDeadline()"),
+    const missing = browserTests().filter(
+      (path) =>
+        !readFileSync(join(import.meta.dir, "../..", path), "utf-8").includes(
+          "browserDeadline()",
+        ),
     );
     expect(missing).toEqual([]);
   });

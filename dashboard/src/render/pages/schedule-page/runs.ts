@@ -7,7 +7,13 @@ import { t, type Language } from "../../../i18n";
 import { durationLabel } from "../../ui/job-state";
 import { esc } from "../../ui/html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { queryHref, resolveSort, sortHeading, type SortColumns, type SortDir } from "./sort-head.ts";
+import {
+  queryHref,
+  resolveSort,
+  sortHeading,
+  type SortColumns,
+  type SortDir,
+} from "./sort-head.ts";
 import { schedulePagePath } from "./tabs.ts";
 
 // Newest start first; states A–Z; the longest run first.
@@ -32,9 +38,13 @@ export interface ScheduleRunsOptions {
 
 const startedAt = (j: Job): string => j.startedAt ?? j.createdAt;
 /** A run that has not finished counts as 0, as a missing date does on the /schedule list. */
-const durationMs = (j: Job): number => (j.finishedAt ? Date.parse(j.finishedAt) - Date.parse(startedAt(j)) : 0);
+const durationMs = (j: Job): number =>
+  j.finishedAt ? Date.parse(j.finishedAt) - Date.parse(startedAt(j)) : 0;
 
-export function sortRuns(runs: readonly Job[], f: { sort?: string; dir?: string }): Job[] {
+export function sortRuns(
+  runs: readonly Job[],
+  f: { sort?: string; dir?: string },
+): Job[] {
   const { sort, dir } = resolveSort(RUN_COLUMNS, f);
   const sign = dir === "asc" ? 1 : -1;
   const compare = (a: Job, b: Job): number =>
@@ -48,14 +58,19 @@ export function sortRuns(runs: readonly Job[], f: { sort?: string; dir?: string 
 
 /** The sort to carry in a run's address: nothing at all for the default,
  *  so a run's link in the default order is `scheduleRunPath` exactly. */
-function carriedSort(now: { sort: string; dir: SortDir }): { sort?: string; dir?: string } {
+function carriedSort(now: { sort: string; dir: SortDir }): {
+  sort?: string;
+  dir?: string;
+} {
   const firstDir = now.dir === RUN_COLUMNS.firstDir[now.sort];
   if (now.sort === RUN_COLUMNS.fallback && firstDir) return {};
   return { sort: now.sort, dir: firstDir ? undefined : now.dir };
 }
 
 function row(job: Job, href: string, shown: boolean): string {
-  const duration = job.finishedAt ? durationLabel(durationMs(job)) : `<span class="muted">–</span>`;
+  const duration = job.finishedAt
+    ? durationLabel(durationMs(job))
+    : `<span class="muted">–</span>`;
   return (
     // The whole row opens the run (`followScheduleRow`); the stamp is a
     // real link, so a modifier-click opens it in a new tab.
@@ -71,9 +86,12 @@ export function renderScheduleRuns(o: ScheduleRunsOptions): string {
   const page = schedulePagePath(o.project, o.name);
   const now = resolveSort(RUN_COLUMNS, o);
   const keep = carriedSort(now);
-  const runHref = (id: string): string => `${queryHref(page, { run: id, ...keep })}#report`;
-  const headHref = (sort: string, dir: string): string => `${queryHref(page, { run: o.shown, sort, dir })}#runs`;
-  const th = (key: string, label: string): string => sortHeading(RUN_COLUMNS, now, key, label, headHref);
+  const runHref = (id: string): string =>
+    `${queryHref(page, { run: id, ...keep })}#report`;
+  const headHref = (sort: string, dir: string): string =>
+    `${queryHref(page, { run: o.shown, sort, dir })}#runs`;
+  const th = (key: string, label: string): string =>
+    sortHeading(RUN_COLUMNS, now, key, label, headHref);
   return (
     `<section id="runs" class="reportpanel"><h2>${esc(t(o.lang, "report.runsHeading"))}</h2>` +
     `<div class="tablewrap"><table class="list"><thead><tr>` +
@@ -81,7 +99,9 @@ export function renderScheduleRuns(o: ScheduleRunsOptions): string {
     th("state", t(o.lang, "report.runsState")) +
     th("duration", t(o.lang, "report.runsDuration")) +
     `</tr></thead><tbody>` +
-    sortRuns(o.runs, now).map((j) => row(j, runHref(j.id), j.id === o.shown)).join("") +
+    sortRuns(o.runs, now)
+      .map((j) => row(j, runHref(j.id), j.id === o.shown))
+      .join("") +
     `</tbody></table></div></section>`
   );
 }

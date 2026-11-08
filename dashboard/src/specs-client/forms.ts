@@ -21,7 +21,9 @@ export async function submitAction(event: Event): Promise<void> {
   // A form that cancelled its own submit (an `onsubmit` that returned
   // false) is not ours to post.
   if (event.defaultPrevented) return;
-  const form = (event.target as Element | null)?.closest?.(ACTIONS) as HTMLFormElement | null;
+  const form = (event.target as Element | null)?.closest?.(
+    ACTIONS,
+  ) as HTMLFormElement | null;
   if (!form) return;
   event.preventDefault();
   await postForm(
@@ -55,7 +57,9 @@ export async function submitAction(event: Event): Promise<void> {
  *  to change. */
 export async function submitTestServerStop(event: Event): Promise<void> {
   if (event.defaultPrevented) return;
-  const form = (event.target as Element | null)?.closest?.(ACTIONS) as HTMLFormElement | null;
+  const form = (event.target as Element | null)?.closest?.(
+    ACTIONS,
+  ) as HTMLFormElement | null;
   if (!form) return;
   event.preventDefault();
   await postForm(
@@ -84,7 +88,11 @@ export function formNote(form: HTMLFormElement, text: string): void {
 /** A Settings save's answer, in the one of the form's two lines it
  *  belongs in: "Defaults saved" in the `notice` line, a refusal in the
  *  `refused` one — and the other emptied, so the page never says both. */
-export function settingsAnswer(form: HTMLFormElement, text: string, saved: boolean): void {
+export function settingsAnswer(
+  form: HTMLFormElement,
+  text: string,
+  saved: boolean,
+): void {
   writeLine(form.querySelector(".notice"), saved ? text : "");
   writeLine(form.querySelector(".refused"), saved ? "" : text);
 }
@@ -101,7 +109,9 @@ export function settingsAnswer(form: HTMLFormElement, text: string, saved: boole
 export function syncDependsOn(): void {
   const form = document.querySelector(NEW_SPEC_FORM);
   if (!form) return;
-  const select = form.querySelector("select[name=project]") as HTMLSelectElement | null;
+  const select = form.querySelector(
+    "select[name=project]",
+  ) as HTMLSelectElement | null;
   if (!select) return;
   for (const wrap of form.querySelectorAll("[data-project]")) {
     const el = wrap as HTMLElement;
@@ -121,14 +131,19 @@ export function syncDependsOn(): void {
 // made is a row on the Running tab, opened by its job, and following it
 // there is what pressing Create asked for. A refusal still answers in
 // place, where what was typed is still typed.
-export async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> {
+export async function submitCreate(
+  form: HTMLFormElement,
+  event: Event,
+): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   await postForm(
     form,
     async (body) => {
       const id = body?.job?.id;
-      await swapPage(id ? `/?created=${encodeURIComponent(id)}` : "/", { history: "push" });
+      await swapPage(id ? `/?created=${encodeURIComponent(id)}` : "/", {
+        history: "push",
+      });
     },
     (why) => formNote(form, why),
   );
@@ -144,10 +159,15 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 // `.refused` slot, like New spec's. Remove asks in a progress dialog: the
 // page is covered while the request is out, and a refusal asks again with
 // the reason in the dialog's own line.
-export async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
+export async function submitProjectChange(
+  form: HTMLFormElement,
+  event: Event,
+): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
-  const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  const dialog = form.closest(
+    "dialog[data-progress-dialog]",
+  ) as HTMLDialogElement | null;
   const hold = dialog ? coverWhile(dialog) : null;
   await postForm(
     form,
@@ -159,12 +179,17 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
       // Remove — the press that asks in a dialog — lands on the list it
       // was pressed on, in the reader's own view.
       if (!dialog && body?.project) {
-        await swapPage(`/projects/${encodeURIComponent(body.project)}?tab=config`, { history: "push" });
+        await swapPage(
+          `/projects/${encodeURIComponent(body.project)}?tab=config`,
+          { history: "push" },
+        );
         return;
       }
       const params = new URLSearchParams(location.search);
       const query = params.toString();
-      await swapPage(query ? `/projects?${query}` : "/projects", { history: "push" });
+      await swapPage(query ? `/projects?${query}` : "/projects", {
+        history: "push",
+      });
     },
     (why) => (hold ? hold.release(why) : formNote(form, why)),
   );
@@ -180,7 +205,10 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
 // `?edit=`, and lets the server draw that page as it always does on a
 // GET. A refusal stays exactly where every other form's does, in its
 // own `.refused` slot.
-export async function submitProjectSettings(form: HTMLFormElement, event: Event): Promise<void> {
+export async function submitProjectSettings(
+  form: HTMLFormElement,
+  event: Event,
+): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   await postForm(
@@ -191,7 +219,6 @@ export async function submitProjectSettings(form: HTMLFormElement, event: Event)
     (why) => formNote(form, why),
   );
 }
-
 
 /** A line break, with the space around it, folded to one space. The
  *  server's `oneLine` (`manifest-io.ts`) holds the same expression and
@@ -208,14 +235,16 @@ export function foldLineBreaks(text: string): string {
  *  put back here, per field (never the form: a form with no such field
  *  binds nothing, and `window` is touched only when one was found). */
 export function bindOneLineFields(form: HTMLFormElement): () => void {
-  const fields = Array.from(form.querySelectorAll("textarea[data-oneline]")) as HTMLTextAreaElement[];
+  const fields = Array.from(
+    form.querySelectorAll("textarea[data-oneline]"),
+  ) as HTMLTextAreaElement[];
   if (!fields.length) return () => {};
   const fits: (() => void)[] = [];
   for (const field of fields) {
     // From one row every time, which is what lets a field shrink again.
     const fit = () => {
       field.style.height = "auto";
-      field.style.height = `${field.scrollHeight + ((field.offsetHeight - field.clientHeight) || 0)}px`;
+      field.style.height = `${field.scrollHeight + (field.offsetHeight - field.clientHeight || 0)}px`;
     };
     field.addEventListener("keydown", ((event: KeyboardEvent) => {
       if (event.key !== "Enter") return;
@@ -226,13 +255,16 @@ export function bindOneLineFields(form: HTMLFormElement): () => void {
       if (event.repeat) return;
       // A browser skips implicit submission while Save is disabled;
       // `requestSubmit()` does not, so the same condition is read here.
-      const save = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      const save = form.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement | null;
       if (save?.disabled) return;
       form.requestSubmit();
     }) as EventListener);
     field.addEventListener("input", () => {
       if (/[\r\n]/.test(field.value)) {
-        const fromEnd = field.value.length - (field.selectionEnd ?? field.value.length);
+        const fromEnd =
+          field.value.length - (field.selectionEnd ?? field.value.length);
         field.value = foldLineBreaks(field.value);
         const caret = Math.max(0, field.value.length - fromEnd);
         field.setSelectionRange?.(caret, caret);

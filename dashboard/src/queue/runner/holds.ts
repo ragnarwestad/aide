@@ -9,7 +9,12 @@ import type { Job, QueueStore } from "../queue.ts";
  *  only when it changed: an unconditional update would rewrite the
  *  mirror every two seconds for a job that is doing nothing. `held`
  *  collects the ids this pass held. */
-export function holdJob(store: QueueStore, held: Set<string>, job: Job, reason: BoardMessage): void {
+export function holdJob(
+  store: QueueStore,
+  held: Set<string>,
+  job: Job,
+  reason: BoardMessage,
+): void {
   held.add(job.id);
   // Every caller reaches this with a job that IS queued right now,
   // so the reason it holds for is always the current one — whatever
@@ -17,8 +22,12 @@ export function holdJob(store: QueueStore, held: Set<string>, job: Job, reason: 
   // landing's own record lives in `landingError`,
   // which this never touches, not in `error`/`errorReason`).
   const current = job.error;
-  const same = !!current && typeof current === "object" && !Array.isArray(current) &&
-    current.key === reason.key && JSON.stringify(current.values) === JSON.stringify(reason.values);
+  const same =
+    !!current &&
+    typeof current === "object" &&
+    !Array.isArray(current) &&
+    current.key === reason.key &&
+    JSON.stringify(current.values) === JSON.stringify(reason.values);
   if (!same) store.update(job.id, { error: reason, errorReason: "held-back" });
 }
 

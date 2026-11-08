@@ -8,8 +8,16 @@ import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
-import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
-import { cancelDependsOn, cardAnswered, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
+import {
+  dependsOnFormId,
+  dependsOnLine,
+} from "../../../src/render/pages/specs-list/depends-on";
+import {
+  cancelDependsOn,
+  cardAnswered,
+  pickSetting,
+  resetCards,
+} from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 import { row as jobRow } from "../../render/pages/fixtures.ts";
@@ -17,11 +25,18 @@ import { row as jobRow } from "../../render/pages/fixtures.ts";
 const A = "81-first-spec";
 const B = "82-second-spec";
 const THIRD = "99-a-third-spec";
-const targets: SpecTarget[] = [A, B, THIRD].map((specFolder) => ({ project: "aide", specFolder }));
+const targets: SpecTarget[] = [A, B, THIRD].map((specFolder) => ({
+  project: "aide",
+  specFolder,
+}));
 const groups = groupBySpec([], targets);
 const lineOf = (folder: string): string =>
-  dependsOnLine(groups.find((g) => g.specFolder === folder)!, { targets });
-const formId = (folder: string): string => dependsOnFormId(groups.find((g) => g.specFolder === folder)!);
+  dependsOnLine(
+    groups.find((g) => g.specFolder === folder)!,
+    { targets },
+  );
+const formId = (folder: string): string =>
+  dependsOnFormId(groups.find((g) => g.specFolder === folder)!);
 const ROWS = `<table><tbody>${lineOf(A)}${lineOf(B)}</tbody></table>`;
 
 const windows: Window[] = [];
@@ -43,7 +58,10 @@ function list(): { rows: HTMLElement; redraw: (html?: string) => void } {
   globalThis.Event = win.Event as unknown as typeof Event;
   win.document.write(`<div id="jobrows">${ROWS}</div>`);
   const lift = new Bun.Transpiler({ loader: "ts" }).transformSync(
-    readFileSync(new URL("../../../src/render/ui/forms/depends-lift.ts", import.meta.url), "utf-8"),
+    readFileSync(
+      new URL("../../../src/render/ui/forms/depends-lift.ts", import.meta.url),
+      "utf-8",
+    ),
   );
   win.eval(lift);
   const rows = win.document.getElementById("jobrows") as unknown as HTMLElement;
@@ -56,15 +74,26 @@ function list(): { rows: HTMLElement; redraw: (html?: string) => void } {
   };
 }
 
-const form = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formId(folder)}`) as HTMLFormElement;
+const form = (rows: HTMLElement, folder: string) =>
+  rows.querySelector(`#${formId(folder)}`) as HTMLFormElement;
 const box = (rows: HTMLElement, folder: string, dependency: string) =>
-  form(rows, folder).querySelector(`input[name="dependsOn"][value="${dependency}"]`) as HTMLInputElement;
-const cancel = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formId(folder)}-cancel`) as HTMLButtonElement;
-const save = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formId(folder)}-save`) as HTMLButtonElement;
-const pickedBlock = (rows: HTMLElement, folder: string) => form(rows, folder).querySelector(".phases.picked") as HTMLElement;
+  form(rows, folder).querySelector(
+    `input[name="dependsOn"][value="${dependency}"]`,
+  ) as HTMLInputElement;
+const cancel = (rows: HTMLElement, folder: string) =>
+  rows.querySelector(`#${formId(folder)}-cancel`) as HTMLButtonElement;
+const save = (rows: HTMLElement, folder: string) =>
+  rows.querySelector(`#${formId(folder)}-save`) as HTMLButtonElement;
+const pickedBlock = (rows: HTMLElement, folder: string) =>
+  form(rows, folder).querySelector(".phases.picked") as HTMLElement;
 
 /** Tick a box the way a hand does: the change reaches the chip mover, then the page's own handler. */
-function tick(rows: HTMLElement, folder: string, dependency: string, on = true): void {
+function tick(
+  rows: HTMLElement,
+  folder: string,
+  dependency: string,
+  on = true,
+): void {
   const b = box(rows, folder, dependency);
   b.checked = on;
   b.dispatchEvent(new Event("change", { bubbles: true }));
@@ -112,7 +141,8 @@ describe("the Depends on picker's ticks", () => {
 
 describe("the settings under the picker", () => {
   const setting = (rows: HTMLElement, folder: string, name: string) =>
-    form(rows, folder).querySelector(`[name="${name}"]`) as HTMLInputElement & HTMLSelectElement;
+    form(rows, folder).querySelector(`[name="${name}"]`) as HTMLInputElement &
+      HTMLSelectElement;
 
   test("a changed box and a changed level outlive a redraw and keep Cancel offered", () => {
     const { rows, redraw } = list();
@@ -124,7 +154,9 @@ describe("the settings under the picker", () => {
     pickSetting(checks);
     expect(cancel(rows, A).disabled).toBe(false);
     redraw();
-    expect(setting(rows, A, "chooseApproach").checked).toBe(!approach.defaultChecked);
+    expect(setting(rows, A, "chooseApproach").checked).toBe(
+      !approach.defaultChecked,
+    );
     expect(setting(rows, A, "criteriaChecks").value).toBe("stop");
     expect(cancel(rows, A).disabled).toBe(false);
   });
@@ -153,11 +185,21 @@ describe("a redraw that locks the card", () => {
     { project: "aide", specFolder: THIRD },
   ];
   const rowsFor = (jobs: ReturnType<typeof jobRow>[]): string => {
-    const g = groupBySpec(jobs, withDependency).find((x) => x.specFolder === A)!;
+    const g = groupBySpec(jobs, withDependency).find(
+      (x) => x.specFolder === A,
+    )!;
     return `<table><tbody>${dependsOnLine(g, { targets: withDependency })}</tbody></table>`;
   };
   const idle = rowsFor([]);
-  const running = rowsFor([jobRow({ id: "j-run", specFolder: A, state: "running", steps: ["analyze"], stepIndex: 0 })]);
+  const running = rowsFor([
+    jobRow({
+      id: "j-run",
+      specFolder: A,
+      state: "running",
+      steps: ["analyze"],
+      stepIndex: 0,
+    }),
+  ]);
 
   test("shows the saved tick while the job runs, and brings the untick back when it ends", () => {
     const { rows, redraw } = list();
@@ -179,9 +221,11 @@ describe("a redraw that locks the card", () => {
 
 describe("the Depends on line's Save follows Cancel", () => {
   const setting = (rows: HTMLElement, name: string) =>
-    form(rows, A).querySelector(`[name="${name}"]`) as HTMLInputElement & HTMLSelectElement;
+    form(rows, A).querySelector(`[name="${name}"]`) as HTMLInputElement &
+      HTMLSelectElement;
   /** Save and Cancel read the same answer from the card. */
-  const together = (rows: HTMLElement): boolean => save(rows, A).disabled === cancel(rows, A).disabled;
+  const together = (rows: HTMLElement): boolean =>
+    save(rows, A).disabled === cancel(rows, A).disabled;
 
   test("is disabled as drawn, enabled by a tick and disabled again by unticking it (AC-1, AC-2)", () => {
     const { rows, redraw } = list();

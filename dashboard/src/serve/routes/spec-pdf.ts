@@ -13,20 +13,31 @@ import { scriptArgv } from "../../integrations/script-argv.ts";
 
 /** Homedir, sibling of `queueResultDir`'s own default — never inside a
  *  checkout, which is the exact bug this guards against. */
-export const DEFAULT_PDF_CACHE_DIR = join(homedir(), ".aide", "dashboard", "pdf-cache");
+export const DEFAULT_PDF_CACHE_DIR = join(
+  homedir(),
+  ".aide",
+  "dashboard",
+  "pdf-cache",
+);
 
 export async function handleSpecPdfRoute(
   ctx: RoutesContext,
   req: Request,
   path: string,
 ): Promise<Response | null> {
-  const match = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/pdf$/);
+  const match = path.match(
+    /^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/pdf$/,
+  );
   if (!match) return null;
-  if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+  if (req.method !== "GET")
+    return new Response("method not allowed", { status: 405 });
   const [, project, specFolder] = match;
   const found = ctx.specDir(project!, specFolder!);
   if (!found) return new Response("not found", { status: 404 });
-  if (!ctx.pdfToolAvailable) return new Response("md-to-pdf is not installed on this host", { status: 503 });
+  if (!ctx.pdfToolAvailable)
+    return new Response("md-to-pdf is not installed on this host", {
+      status: 503,
+    });
   // `aide_resolve_spec`'s `archive/` fallback only fires for a bare
   // number or an issue key — a full folder slug (the only shape this route
   // ever has) hits its "assume full folder ID" branch, which cannot find
@@ -52,7 +63,9 @@ export async function handleSpecPdfRoute(
     });
     const code = await proc.exited;
     if (code !== 0 || !existsSync(cachePath)) {
-      return new Response(await new Response(proc.stderr).text(), { status: 502 });
+      return new Response(await new Response(proc.stderr).text(), {
+        status: 502,
+      });
     }
   }
   return new Response(Bun.file(cachePath), {

@@ -41,6 +41,10 @@ test("the unit menu's stored choice is the one selected after a reload", async (
   // only a real browser runs the script.
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/) again");
   await page.locator(".menu.unit > summary").click();
-  expect(await page.locator('.menu.unit [data-unit-choice="tokens"]').isChecked()).toBe(true);
-  expect(await page.locator('.menu.unit [data-unit-choice="usd"]').isChecked()).toBe(false);
+  expect(
+    await page.locator('.menu.unit [data-unit-choice="tokens"]').isChecked(),
+  ).toBe(true);
+  expect(
+    await page.locator('.menu.unit [data-unit-choice="usd"]').isChecked(),
+  ).toBe(false);
 });

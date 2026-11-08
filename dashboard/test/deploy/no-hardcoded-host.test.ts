@@ -35,7 +35,13 @@ const GROUPS: Record<string, string[]> = {
 // The identifying values that were in the repo when this guard was
 // written. `mac mini` with a space catches the prose form; the IP is a
 // specific machine's Tailscale address.
-const FORBIDDEN = [/macmini/i, /mac ?mini/i, /macbook/i, /ragnarwestad/i, /100\.115\.106\.17/];
+const FORBIDDEN = [
+  /macmini/i,
+  /mac ?mini/i,
+  /macbook/i,
+  /ragnarwestad/i,
+  /100\.115\.106\.17/,
+];
 
 describe("no machine belonging to one operator is named in the repo", () => {
   for (const [group, files] of Object.entries(GROUPS)) {

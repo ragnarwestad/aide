@@ -13,8 +13,17 @@ function sentence(s: unknown): string {
 }
 
 import {
-  SPEC, BRANCH, AUTH, createOwnDirs, gitFor, repos, serverWith, resultDir,
-  settle, result, stepWithResult,
+  SPEC,
+  BRANCH,
+  AUTH,
+  createOwnDirs,
+  gitFor,
+  repos,
+  serverWith,
+  resultDir,
+  settle,
+  result,
+  stepWithResult,
 } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -71,7 +80,9 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     // The state is half the sentence — the other half is
     // the move. The row's own button already offers it; the message
     // has to say so.
-    expect(sentence(failed.error).toLowerCase()).toContain("press archive again");
+    expect(sentence(failed.error).toLowerCase()).toContain(
+      "press archive again",
+    );
   }, 20000);
 
   // The happy path is the one this whole change must not
@@ -87,10 +98,17 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       base,
       dir,
       "implement",
-      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+      {
+        branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
+      },
       (j) => j.state === "done",
     );
-    const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
+    const landed = await stepWithResult(
+      base,
+      dir,
+      "archive",
+      onlyTheSpecsRepo(paths),
+    );
 
     expect(landed.state).toBe("done");
     expect(landed.error).toBeFalsy();
@@ -106,7 +124,12 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     const git = gitFor({ openOn: [paths.project], lsRemoteCode: 128 });
     const { base } = serverWithHarness(dir, paths, git);
 
-    const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
+    const landed = await stepWithResult(
+      base,
+      dir,
+      "archive",
+      onlyTheSpecsRepo(paths),
+    );
 
     expect(landed.state).toBe("done");
     expect(landed.error).toBeFalsy();
@@ -121,7 +144,12 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     const git = gitFor({ openOn: [paths.project] });
     const { base } = serverWithHarness(dir, paths, git);
 
-    const landed = await stepWithResult(base, dir, "analyze", onlyTheSpecsRepo(paths));
+    const landed = await stepWithResult(
+      base,
+      dir,
+      "analyze",
+      onlyTheSpecsRepo(paths),
+    );
 
     // Archive's own unlanded-branch verdict (`errorReason: "unlanded"`)
     // is what this test is about, and it is untouched: analyze
@@ -151,14 +179,22 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "implement"] }),
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: SPEC,
+          steps: ["analyze", "implement"],
+        }),
       })
     ).json()) as { job: { id: string } };
     writeFileSync(
       join(resultDir(dir), `${made.job.id}.json`),
       JSON.stringify(result(onlyTheSpecsRepo(paths))),
     );
-    const after = await settle(base, made.job.id, (j) => !!j.landingError || j.state === "failed");
+    const after = await settle(
+      base,
+      made.job.id,
+      (j) => !!j.landingError || j.state === "failed",
+    );
 
     // Queued for implement or already running it, with nothing holding
     // it back — the analyze landing's refusal is a closed record, not a
@@ -183,7 +219,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       paths.archiveSpec();
       const git = gitFor({ openOn: branchStillOpen ? [paths.project] : [] });
       const { base } = serverWithHarness(dir, paths, git);
-      await fetch(`${base}/specs`, );
+      await fetch(`${base}/specs`);
       return { base, paths };
     }
 
@@ -191,7 +227,11 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["archive"] }),
+        body: JSON.stringify({
+          project: "aide",
+          specFolder: SPEC,
+          steps: ["archive"],
+        }),
       });
 
     test("while its branch is still on origin", async () => {
@@ -229,7 +269,9 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       const { base } = await archivedServer("aide-198-reopen-other-", false);
       const res = await enqueueReopen(base, ["implement"]);
       expect(res.status).toBeGreaterThan(399);
-      expect(String((await res.json() as { error?: string }).error)).toContain("archived");
+      expect(
+        String(((await res.json()) as { error?: string }).error),
+      ).toContain("archived");
     });
   });
 });

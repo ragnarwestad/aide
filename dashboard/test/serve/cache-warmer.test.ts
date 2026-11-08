@@ -20,14 +20,26 @@ import { queueHarness } from "../helpers/queue-server.ts";
 import { type GitCall } from "../helpers/fake-git.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
-import { refreshSpecCaches, rereadSpec, type ScheduleContext } from "../../src/serve/schedules";
+import {
+  refreshSpecCaches,
+  rereadSpec,
+  type ScheduleContext,
+} from "../../src/serve/schedules";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
-import type { GhRunner, PullRequestAnswer } from "../../src/integrations/pull-requests.ts";
-import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
-import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../src/git/workflow-history.ts";
 import type {
-  DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
+  GhRunner,
+  PullRequestAnswer,
+} from "../../src/integrations/pull-requests.ts";
+import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
+import type {
+  WorkflowHistoryChecker,
+  BranchFileStepsChecker,
+} from "../../src/git/workflow-history.ts";
+import type {
+  DescriptionFreshnessChecker,
+  SpecCreatedAtChecker,
+  SpecFileCommitChecker,
 } from "../../src/git/description-freshness.ts";
 import { WAITING_RUNNER } from "../helpers/waiting-runner.ts";
 
@@ -53,14 +65,20 @@ function recordingGit(opts: { hold?: (args: string[]) => Promise<void> } = {}) {
       if (args[0] === "ls-remote") {
         return {
           code: 0,
-          stdout: "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/81-queue-and-runner\n",
+          stdout:
+            "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/81-queue-and-runner\n",
         };
       }
-      if (line.startsWith("log --format=%aI")) return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+      if (line.startsWith("log --format=%aI"))
+        return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
       if (line.startsWith("log -1 --format=%H")) {
         return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
       }
-      if (line.startsWith("log --all")) return { code: 0, stdout: "Run /aide-analyze for 81-queue-and-runner (headless)\n" };
+      if (line.startsWith("log --all"))
+        return {
+          code: 0,
+          stdout: "Run /aide-analyze for 81-queue-and-runner (headless)\n",
+        };
       // A landing merges in a worktree of its own, so `worktree add` is
       // on the happy path of every merge — unanswered it fails, and the
       // landing refuses before it has done anything.
@@ -80,7 +98,8 @@ function recordingGit(opts: { hold?: (args: string[]) => Promise<void> } = {}) {
 const warmerCalls = (calls: GitCall[]) =>
   calls.filter((c) => c.args[0] === "log" || c.args[0] === "ls-remote");
 
-const lsRemotes = (calls: GitCall[]) => calls.filter((c) => c.args[0] === "ls-remote");
+const lsRemotes = (calls: GitCall[]) =>
+  calls.filter((c) => c.args[0] === "ls-remote");
 
 /** Wait until `check` holds, or give up — the same bounded-loop idiom
  *  `projects-route.test.ts` uses for the drift poll, never an open-
@@ -96,7 +115,11 @@ async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
 
 /** Wait until a count stops growing — one tick's worth of work is over.
  *  Bounded, like `until`. */
-async function settled(count: () => number, quietMs = 60, budgetMs = 2000): Promise<void> {
+async function settled(
+  count: () => number,
+  quietMs = 60,
+  budgetMs = 2000,
+): Promise<void> {
   const deadline = Date.now() + budgetMs;
   let last = -1;
   while (Date.now() < deadline) {
@@ -117,8 +140,12 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     // The workflow history, the created-at date, the description's
     // freshness and the four file stamps — every question the spec list
     // and the spec page ask.
-    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --all")));
-    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
+    await until(() =>
+      git.calls.some((c) => c.args.join(" ").startsWith("log --all")),
+    );
+    await until(() =>
+      git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")),
+    );
     await until(() =>
       git.calls.some((c) => c.args.join(" ").includes("-- 3-solution.md")),
     );
@@ -133,7 +160,11 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       archivedSpecs: { "77-old-thing": {} },
     });
     await until(() => lsRemotes(git.calls).length > 0);
-    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI")));
+    await until(() =>
+      git.calls.some((c) =>
+        c.args.join(" ").startsWith("log --follow --format=%aI"),
+      ),
+    );
     // The per-spec sweep walks `targets()`, which is the LIVE list. An
     // archived spec is asked only its OWN two questions — the archive
     // date (only where `4-status.md` carries no stamp) and its own
@@ -142,20 +173,30 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     // existed, forever, is a cost a plan review
     // rejected.
     const inArchive = git.calls.filter((c) => c.dir.includes("archive"));
-    expect(inArchive.some((c) => c.args.join(" ").startsWith("log --all"))).toBe(false);
+    expect(
+      inArchive.some((c) => c.args.join(" ").startsWith("log --all")),
+    ).toBe(false);
     // The LIVE staleness check's shape specifically — `lastCommitAt`'s
     // `log -1 ...` — not the rename-aware `--follow` lookup below, which
     // also names `1-description.md` now that the fix lands.
     expect(
       inArchive.some(
-        (c) => c.args.join(" ").startsWith("log -1 --format=") && c.args.join(" ").includes("-- 1-description.md"),
+        (c) =>
+          c.args.join(" ").startsWith("log -1 --format=") &&
+          c.args.join(" ").includes("-- 1-description.md"),
       ),
     ).toBe(false);
     // Not the LIVE creation-date lookup (a directory pathspec) — the
     // rename-aware one, which is a different call entirely.
-    expect(inArchive.some((c) => c.args.join(" ") === "log --format=%aI -- .")).toBe(false);
     expect(
-      inArchive.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI -- 1-description.md")),
+      inArchive.some((c) => c.args.join(" ") === "log --format=%aI -- ."),
+    ).toBe(false);
+    expect(
+      inArchive.some((c) =>
+        c.args
+          .join(" ")
+          .startsWith("log --follow --format=%aI -- 1-description.md"),
+      ),
     ).toBe(true);
   });
 
@@ -178,7 +219,10 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
         queueProjects: ["aide", "atlasaurus"],
       },
       alsoProjects: ["atlasaurus"],
-      archivedSpecs: { "77-old-thing": {}, "78-other": { project: "atlasaurus" } },
+      archivedSpecs: {
+        "77-old-thing": {},
+        "78-other": { project: "atlasaurus" },
+      },
     });
     // Both roots' calls are in the air at the same moment — which they
     // cannot be if each `await`s the one before it.
@@ -238,7 +282,11 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "77-old-thing", steps: ["archive"] }),
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: "77-old-thing",
+        steps: ["archive"],
+      }),
     });
     // Refused by name — the archived spec is not a folder any step but
     // `reopen` may be asked for while nothing says its branch is open.
@@ -266,16 +314,23 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       const landingGit: GitRunner = async (dir, args) => {
         const recorded = await git.run(dir, args);
         const a = args.join(" ");
-        if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+        if (a.startsWith("symbolic-ref"))
+          return { code: 0, stdout: "refs/remotes/origin/master\n" };
         if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-        if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+        if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+          return { code: 0, stdout: "origin/master\n" };
         if (a.startsWith("switch")) return { code: 0, stdout: "" };
         if (a.startsWith("fetch")) return { code: 0, stdout: "" };
         if (a.startsWith("pull")) return { code: 0, stdout: "" };
-        if (a.startsWith("remote get-url")) return { code: 0, stdout: "https://example.test/aide\n" };
+        if (a.startsWith("remote get-url"))
+          return { code: 0, stdout: "https://example.test/aide\n" };
         if (a.startsWith("push")) return { code: 0, stdout: "" };
         if (a.startsWith("branch -d")) return { code: 0, stdout: "" };
-        if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) return { code: 0, stdout: "" };
+        if (
+          a.startsWith("merge -q --ff-only") ||
+          a.startsWith("merge -q --no-edit")
+        )
+          return { code: 0, stdout: "" };
         if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
         return recorded;
       };
@@ -288,14 +343,24 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
           queueResultDir: jobs,
           // Landing, not the step, names a create's folder now — this
           // stands in for `aide-create-spec --assign-number`.
-          finalizeCreateSpec: async () => ({ ok: true, specFolder: "94-a-new-spec" }),
+          finalizeCreateSpec: async () => ({
+            ok: true,
+            specFolder: "94-a-new-spec",
+          }),
         },
       });
       const made = (await (
         await fetch(`${base}/api/queue/create`, {
           method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ project: "aide", title: "A new spec", description: "Do the thing" }),
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json",
+          },
+          body: JSON.stringify({
+            project: "aide",
+            title: "A new spec",
+            description: "Do the thing",
+          }),
         })
       ).json()) as { job: { id: string } };
       // The merge really does put the folder on disk, which is the
@@ -303,7 +368,10 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       // "a landed spec is an ordinary row" in queue-routes.test.ts).
       const specDir = join(dir, "root", "aide", "specs", "94-a-new-spec");
       mkdirSync(specDir, { recursive: true });
-      writeFileSync(join(specDir, "1-description.md"), "# A new spec - Description\n");
+      writeFileSync(
+        join(specDir, "1-description.md"),
+        "# A new spec - Description\n",
+      );
       writeFileSync(
         join(specDir, "4-status.md"),
         "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n",
@@ -318,12 +386,21 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
           terminalReason: "completed",
           branch: "aide/new-abc123de",
           specFolder: "94-a-new-spec",
-          branchUrls: [{ root: join(dir, "root", "aide"), url: "https://example.test/aide" }],
+          branchUrls: [
+            {
+              root: join(dir, "root", "aide"),
+              url: "https://example.test/aide",
+            },
+          ],
           repos: [],
         }),
       );
       const logAllForSpec = () =>
-        git.calls.filter((c) => c.args.join(" ").startsWith("log --all") && c.dir.includes("94-a-new-spec")).length;
+        git.calls.filter(
+          (c) =>
+            c.args.join(" ").startsWith("log --all") &&
+            c.dir.includes("94-a-new-spec"),
+        ).length;
       const warmed = await until(() => logAllForSpec() > 0, 5000);
       expect(warmed).toBe(true);
     } finally {
@@ -453,7 +530,10 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [],
       // Two projects, two roots, both watched by the same tick.
-      readScan: () => ({ archived: ["aide/77-old-thing", "atlasaurus/78-other"], dirs: new Map() }),
+      readScan: () => ({
+        archived: ["aide/77-old-thing", "atlasaurus/78-other"],
+        dirs: new Map(),
+      }),
       allowed: new Set(),
       ensureCheckout: async () => undefined,
       getWarming: () => warming,
@@ -495,7 +575,10 @@ describe("the code checkout's branches are asked for a live spec", () => {
     const run: GitRunner = async (dir, args) => {
       calls.push({ dir, args });
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: originHas.value ? `sha\trefs/heads/aide/${FOLDER}\n` : "" };
+        return {
+          code: 0,
+          stdout: originHas.value ? `sha\trefs/heads/aide/${FOLDER}\n` : "",
+        };
       }
       return { code: 1, stdout: "" };
     };
@@ -533,7 +616,9 @@ describe("the code checkout's branches are asked for a live spec", () => {
     originHas.value = true;
     await refreshSpecCaches(ctx);
     expect(lsRemotes(calls).map((c) => c.dir)).toContain(CODE);
-    expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
+    expect(
+      ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`),
+    ).toBe(true);
   });
 
   test("a step's end asks origin again, so a branch implement just pushed is there at once", async () => {
@@ -541,7 +626,9 @@ describe("the code checkout's branches are asked for a live spec", () => {
     await refreshSpecCaches(ctx); // the sweep found origin without the branch
     originHas.value = true;
     await rereadSpec(ctx, "", FOLDER, { askOrigin: true });
-    expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
+    expect(
+      ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`),
+    ).toBe(true);
   });
 
   test("a re-read without the option asks origin nothing", async () => {
@@ -564,8 +651,10 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
     const calls: GitCall[] = [];
     const run: GitRunner = async (dir, args) => {
       calls.push({ dir, args });
-      if (args[0] === "ls-remote") return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
-      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "ls-remote")
+        return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
+      if (args[0] === "symbolic-ref")
+        return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (args[0] === "merge-base") return { code: ancestor.code, stdout: "" };
       if (args[0] === "fetch") return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
@@ -586,7 +675,10 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
       readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [],
       // The second branch is gone from origin: nothing about it is asked.
-      readScan: () => ({ archived: ["aide/77-old-thing", "aide/78-gone"], dirs: new Map() }),
+      readScan: () => ({
+        archived: ["aide/77-old-thing", "aide/78-gone"],
+        dirs: new Map(),
+      }),
       allowed: new Set(),
       ensureCheckout: async () => undefined,
       getWarming: () => warming,
@@ -601,14 +693,22 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
         notifyCount += 1;
       },
     };
-    return { ctx, ancestor, calls, branchStatus, notifyCount: () => notifyCount };
+    return {
+      ctx,
+      ancestor,
+      calls,
+      branchStatus,
+      notifyCount: () => notifyCount,
+    };
   }
 
   test("for an archived spec whose branch is open, and not for one whose branch is gone", async () => {
     const { ctx, calls, branchStatus } = mergedCtx();
     expect(branchStatus.peekMerged(ROOT, OPEN)).toBeNull();
     await refreshSpecCaches(ctx);
-    const asked = calls.filter((c) => c.args[0] === "merge-base").map((c) => c.args[2]);
+    const asked = calls
+      .filter((c) => c.args[0] === "merge-base")
+      .map((c) => c.args[2]);
     expect(asked).toEqual([`refs/remotes/origin/${OPEN}`]);
     expect(branchStatus.peekMerged(ROOT, OPEN)).toBe(true);
     expect(branchStatus.peekMerged(ROOT, "aide/78-gone")).toBeNull();
@@ -636,12 +736,16 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
   // `project/folder`, which here reads the same as the branch name.
   const OPEN_KEY = "aide/77-old-thing";
   const GONE_KEY = "aide/78-gone";
-  const MERGED_REQUEST = JSON.stringify([{ state: "MERGED", headRefOid: "abc123" }]);
+  const MERGED_REQUEST = JSON.stringify([
+    { state: "MERGED", headRefOid: "abc123" },
+  ]);
 
   function sweepCtx(landing: "pr" | "merge") {
     const run: GitRunner = async (_dir, args) => {
-      if (args[0] === "ls-remote") return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
-      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/main\n" };
+      if (args[0] === "ls-remote")
+        return { code: 0, stdout: `sha\trefs/heads/${OPEN}\n` };
+      if (args[0] === "symbolic-ref")
+        return { code: 0, stdout: "refs/remotes/origin/main\n" };
       if (args[0] === "merge-base") return { code: 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -690,9 +794,14 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
   test("for a pr project's archived spec whose branch is on origin, and for no other", async () => {
     const { ctx, asked, pullRequests } = sweepCtx("pr");
     await refreshSpecCaches(ctx);
-    expect(asked.map((a) => a.args.slice(0, 4))).toEqual([["pr", "list", "--head", OPEN]]);
+    expect(asked.map((a) => a.args.slice(0, 4))).toEqual([
+      ["pr", "list", "--head", OPEN],
+    ]);
     expect(asked[0]?.dir).toBe(CODE);
-    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+    expect(pullRequests.get(OPEN_KEY)).toEqual({
+      merged: true,
+      headSha: "abc123",
+    });
     expect(pullRequests.has(GONE_KEY)).toBe(false);
   });
 
@@ -720,11 +829,17 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     gh.code = 1;
     gh.stdout = "";
     await refreshSpecCaches(ctx);
-    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+    expect(pullRequests.get(OPEN_KEY)).toEqual({
+      merged: true,
+      headSha: "abc123",
+    });
     gh.code = 0;
     gh.stdout = "oops";
     await refreshSpecCaches(ctx);
-    expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
+    expect(pullRequests.get(OPEN_KEY)).toEqual({
+      merged: true,
+      headSha: "abc123",
+    });
   });
 
   test("an answer about a branch origin no longer holds, or a spec no longer archived, is dropped", async () => {

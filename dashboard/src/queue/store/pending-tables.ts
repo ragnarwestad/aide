@@ -4,9 +4,17 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { parsePendingModels, parsePendingSteps, persistPendingModels } from "../persist.ts";
+import {
+  parsePendingModels,
+  parsePendingSteps,
+  persistPendingModels,
+} from "../persist.ts";
 
-function loadTable<T extends object>(path: string | undefined, parse: (raw: unknown) => T | null | undefined, into: T): void {
+function loadTable<T extends object>(
+  path: string | undefined,
+  parse: (raw: unknown) => T | null | undefined,
+  into: T,
+): void {
   if (!path || !existsSync(path)) return;
   try {
     const parsed = parse(JSON.parse(readFileSync(path, "utf-8")) as unknown);
@@ -16,19 +24,27 @@ function loadTable<T extends object>(path: string | undefined, parse: (raw: unkn
   }
 }
 
-export const loadPendingModels = (path: string | undefined, into: Record<string, Record<string, string>>): void =>
-  loadTable(path, parsePendingModels, into);
+export const loadPendingModels = (
+  path: string | undefined,
+  into: Record<string, Record<string, string>>,
+): void => loadTable(path, parsePendingModels, into);
 
-export const loadPendingSteps = (path: string | undefined, into: Record<string, string[]>): void =>
-  loadTable(path, parsePendingSteps, into);
+export const loadPendingSteps = (
+  path: string | undefined,
+  into: Record<string, string[]>,
+): void => loadTable(path, parsePendingSteps, into);
 
-export function savePendingTable(path: string | undefined, table: Record<string, unknown>): void {
+export function savePendingTable(
+  path: string | undefined,
+  table: Record<string, unknown>,
+): void {
   if (path) persistPendingModels(path, table);
 }
-
 
 /** Where the providers picked beside the pending models are kept: a file of
  *  its own beside `pending-models.json`, so nothing that hands the store
  *  its paths has to know about it. */
-export const pendingProvidersPath = (modelsPath: string | undefined): string | undefined =>
+export const pendingProvidersPath = (
+  modelsPath: string | undefined,
+): string | undefined =>
   modelsPath ? join(dirname(modelsPath), "pending-providers.json") : undefined;

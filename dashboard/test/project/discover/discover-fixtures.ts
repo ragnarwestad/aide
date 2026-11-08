@@ -26,7 +26,10 @@ export function useDiscoverRoot(): { root: string; externalSpecs: string } {
     const a = join(state.root, "proj-a");
     mkdirSync(join(a, ".aide"), { recursive: true });
     writeFileSync(join(a, ".aide", "project.yaml"), "name: proj-a\n");
-    writeFileSync(join(a, ".aide", "config"), `AIDE_SPECS_PATH=${state.externalSpecs}\n`);
+    writeFileSync(
+      join(a, ".aide", "config"),
+      `AIDE_SPECS_PATH=${state.externalSpecs}\n`,
+    );
     mkdirSync(join(state.externalSpecs, "01-first-thing"), { recursive: true });
     writeFileSync(
       join(state.externalSpecs, "01-first-thing", "1-description.md"),
@@ -36,7 +39,9 @@ export function useDiscoverRoot(): { root: string; externalSpecs: string } {
       join(state.externalSpecs, "01-first-thing", "4-status.md"),
       "# The first thing - Status\n\n**Total progress:** `50% (1 of 2 completed)`\n",
     );
-    mkdirSync(join(state.externalSpecs, "archive", "02-old-thing"), { recursive: true });
+    mkdirSync(join(state.externalSpecs, "archive", "02-old-thing"), {
+      recursive: true,
+    });
     writeFileSync(
       join(state.externalSpecs, "archive", "02-old-thing", "1-description.md"),
       "# The old thing - Description\n",
@@ -56,7 +61,10 @@ export function useDiscoverRoot(): { root: string; externalSpecs: string } {
     const c = join(state.root, "proj-c");
     mkdirSync(join(c, ".aide"), { recursive: true });
     writeFileSync(join(c, ".aide", "project.yaml"), "name: proj-c\n");
-    writeFileSync(join(c, ".aide", "config"), `AIDE_SPECS_PATH=${join(state.root, "nowhere")}\n`);
+    writeFileSync(
+      join(c, ".aide", "config"),
+      `AIDE_SPECS_PATH=${join(state.root, "nowhere")}\n`,
+    );
 
     // not a project: no manifest
     mkdirSync(join(state.root, "plain-dir"), { recursive: true });

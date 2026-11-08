@@ -19,7 +19,9 @@ let current: BoardInfo | undefined;
  *  merge/leave-if-set implementation would let an earlier test's board
  *  leak into a later, ordinary-server test. */
 export function setBoardInfo(specFolder: string | undefined): void {
-  current = specFolder ? { specFolder, branch: `aide/${specFolder}` } : undefined;
+  current = specFolder
+    ? { specFolder, branch: `aide/${specFolder}` }
+    : undefined;
 }
 
 export function getBoardInfo(): BoardInfo | undefined {

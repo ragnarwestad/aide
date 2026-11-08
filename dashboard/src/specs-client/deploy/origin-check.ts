@@ -12,12 +12,20 @@ export interface OriginCheckIo {
 function browserIo(section: HTMLElement): OriginCheckIo {
   return {
     check: async () => {
-      const res = await fetch(section.dataset.originCheck ?? "", { method: "POST", headers: { accept: "application/json" } });
-      const body = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+      const res = await fetch(section.dataset.originCheck ?? "", {
+        method: "POST",
+        headers: { accept: "application/json" },
+      });
+      const body = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+      } | null;
       return res.ok && body?.ok === true;
     },
     page: async () => {
-      const res = await fetch(location.href, { headers: { accept: "text/html" }, cache: "no-store" });
+      const res = await fetch(location.href, {
+        headers: { accept: "text/html" },
+        cache: "no-store",
+      });
       return res.ok ? await res.text() : null;
     },
   };
@@ -25,22 +33,38 @@ function browserIo(section: HTMLElement): OriginCheckIo {
 
 /** Asks, then redraws the section from the page the server draws now —
  *  unless the check failed, a form in it was submitted meanwhile, or a dialog is open. */
-export async function checkOrigin(section: HTMLElement, io: OriginCheckIo): Promise<void> {
+export async function checkOrigin(
+  section: HTMLElement,
+  io: OriginCheckIo,
+): Promise<void> {
   let pressed = false;
   section.addEventListener("submit", () => (pressed = true), true);
   if (!(await io.check().catch(() => false))) return;
   const html = await io.page().catch(() => null);
   const doc = section.ownerDocument;
-  if (!html || pressed || !section.isConnected || doc.querySelector("dialog[open]")) return;
-  const fresh = new doc.defaultView!.DOMParser().parseFromString(html, "text/html").querySelector("[data-origin-check]");
+  if (
+    !html ||
+    pressed ||
+    !section.isConnected ||
+    doc.querySelector("dialog[open]")
+  )
+    return;
+  const fresh = new doc.defaultView!.DOMParser()
+    .parseFromString(html, "text/html")
+    .querySelector("[data-origin-check]");
   if (!fresh) return;
   const node = doc.importNode(fresh, true);
   section.replaceWith(node);
 }
 
 /** The page's Deploy section, when it has one, checked once at load. */
-export function startOriginCheck(doc: Document, makeIo: (section: HTMLElement) => OriginCheckIo = browserIo): void {
-  const section = doc.querySelector("[data-origin-check]") as HTMLElement | null;
+export function startOriginCheck(
+  doc: Document,
+  makeIo: (section: HTMLElement) => OriginCheckIo = browserIo,
+): void {
+  const section = doc.querySelector(
+    "[data-origin-check]",
+  ) as HTMLElement | null;
   if (!section?.dataset?.originCheck) return; // every other page — and the stand-in documents the page-script tests use
   void checkOrigin(section, makeIo(section));
 }

@@ -9,7 +9,17 @@ import { parse } from "jsonc-parser";
 import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, post, openModelsTab, stubReads } from "./fixtures.ts";
+import {
+  AT,
+  CLAUDE_READING,
+  defaultsOf,
+  modelsProbe,
+  offeredChoices,
+  ownFiles,
+  post,
+  openModelsTab,
+  stubReads,
+} from "./fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-settings-models-");
 const ownDirs: string[] = [];
@@ -17,7 +27,8 @@ const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
   forgetChecks();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 const ADD = "/api/queue/settings/models/add";
@@ -28,7 +39,12 @@ const CHOICES: Record<string, ModelChoice> = {
   "gpt-6.1-sol": { tool: "codex" },
   "gpt-5.6-luna": { tool: "codex" },
 };
-const MODEL = { default: "Sonnet", analyze: "Opus", implement: "Opus", explore: "opus" };
+const MODEL = {
+  default: "Sonnet",
+  analyze: "Opus",
+  implement: "Opus",
+  explore: "opus",
+};
 const CONFIG = `{
   // the operator's own note
   "model": { "default": "Sonnet", "analyze": "Opus", "implement": "Opus", "explore": "opus" },
@@ -41,21 +57,46 @@ const CONFIG = `{
 `;
 
 const CODEX_READING = {
-  tool: "codex" as const, at: AT, offered: [{ model: "gpt-6.1-sol", name: "GPT-6.1-Sol" }, { model: "gpt-5.5", name: "GPT-5.5" }],
+  tool: "codex" as const,
+  at: AT,
+  offered: [
+    { model: "gpt-6.1-sol", name: "GPT-6.1-Sol" },
+    { model: "gpt-5.5", name: "GPT-5.5" },
+  ],
 };
-const OPENCODE_READING = { tool: "opencode" as const, at: AT, offered: [{ model: "opencode/gpt-5.5" }] };
+const OPENCODE_READING = {
+  tool: "opencode" as const,
+  at: AT,
+  offered: [{ model: "opencode/gpt-5.5" }],
+};
 
 /** A server on a config file of the test's own. */
-function serve(probe = modelsProbe(), choices = CHOICES, model: Record<string, string> = MODEL, config = CONFIG) {
+function serve(
+  probe = modelsProbe(),
+  choices = CHOICES,
+  model: Record<string, string> = MODEL,
+  config = CONFIG,
+) {
   const { file, modelIdsPath } = ownFiles(config, ownDirs);
-  const { base } = start({ ...stubReads, queueDefaults: defaultsOf(choices, model), toolProbe: probe, queueConfigFile: file, modelIdsPath });
+  const { base } = start({
+    ...stubReads,
+    queueDefaults: defaultsOf(choices, model),
+    toolProbe: probe,
+    queueConfigFile: file,
+    modelIdsPath,
+  });
   return { base, file, modelIdsPath, probe };
 }
 
 const choicesIn = (file: string): Record<string, ModelChoice> =>
-  (parse(readFileSync(file, "utf-8")) as { modelChoices: Record<string, ModelChoice> }).modelChoices;
+  (
+    parse(readFileSync(file, "utf-8")) as {
+      modelChoices: Record<string, ModelChoice>;
+    }
+  ).modelChoices;
 
-const errorOf = async (res: Response): Promise<string> => ((await res.json()) as { error: string }).error;
+const errorOf = async (res: Response): Promise<string> =>
+  ((await res.json()) as { error: string }).error;
 
 describe("adding a model the AI offers", () => {
   test("is written to the file and the live choices, keeping the rest", async () => {
@@ -65,7 +106,10 @@ describe("adding a model the AI offers", () => {
     const res = await post(base, ADD, { tool: "codex", model: "gpt-5.5" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, name: "gpt-5.5" });
-    expect(choicesIn(file)["gpt-5.5"]).toEqual({ tool: "codex", model: "gpt-5.5" });
+    expect(choicesIn(file)["gpt-5.5"]).toEqual({
+      tool: "codex",
+      model: "gpt-5.5",
+    });
     expect(readFileSync(file, "utf-8")).toContain("// the operator's own note");
     expect(choicesIn(file).Opus).toEqual({ model: "opus" });
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
@@ -74,11 +118,20 @@ describe("adding a model the AI offers", () => {
   test("a key another AI's choice holds gets the provider in front", async () => {
     forgetChecks();
     const choices = { ...CHOICES, "gpt-5.5": { tool: "codex" as const } };
-    const { base, file } = serve(modelsProbe({ opencode: OPENCODE_READING }), choices);
+    const { base, file } = serve(
+      modelsProbe({ opencode: OPENCODE_READING }),
+      choices,
+    );
     await openModelsTab(base, "OpenCode");
-    const res = await post(base, ADD, { tool: "opencode", model: "opencode/gpt-5.5" });
+    const res = await post(base, ADD, {
+      tool: "opencode",
+      model: "opencode/gpt-5.5",
+    });
     expect(await res.json()).toEqual({ ok: true, name: "opencode-gpt-5.5" });
-    expect(choicesIn(file)["opencode-gpt-5.5"]).toEqual({ tool: "opencode", model: "opencode/gpt-5.5" });
+    expect(choicesIn(file)["opencode-gpt-5.5"]).toEqual({
+      tool: "opencode",
+      model: "opencode/gpt-5.5",
+    });
     expect(choicesIn(file)["gpt-5.5"]).toBeUndefined();
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
   });
@@ -96,13 +149,18 @@ describe("adding a model the AI offers", () => {
   test("a model the last reading did not offer, or no reading at all, is refused, naming the Models tab (AC-11)", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
-    for (const body of [{ tool: "codex", model: "gpt-5.5" }, { tool: "claude", model: "haiku" }]) {
+    for (const body of [
+      { tool: "codex", model: "gpt-5.5" },
+      { tool: "claude", model: "haiku" },
+    ]) {
       const res = await post(base, ADD, body);
       expect(res.status).toBe(400);
       expect(await errorOf(res)).toContain("Models tab");
     }
     await openModelsTab(base, "Codex");
-    expect((await post(base, ADD, { tool: "codex", model: "gpt-9" })).status).toBe(400);
+    expect(
+      (await post(base, ADD, { tool: "codex", model: "gpt-9" })).status,
+    ).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
   });
 
@@ -110,7 +168,9 @@ describe("adding a model the AI offers", () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await openModelsTab(base, "Claude");
-    expect((await post(base, ADD, { tool: "claude", model: "OPUS" })).status).toBe(400);
+    expect(
+      (await post(base, ADD, { tool: "claude", model: "OPUS" })).status,
+    ).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
   });
 });
@@ -118,10 +178,15 @@ describe("adding a model the AI offers", () => {
 describe("a Claude model typed as its full id", () => {
   test("is refused like any model the last reading did not offer, asking no CLI", async () => {
     forgetChecks();
-    const { base, file, probe } = serve(modelsProbe({ claude: CLAUDE_READING }));
+    const { base, file, probe } = serve(
+      modelsProbe({ claude: CLAUDE_READING }),
+    );
     await openModelsTab(base, "Claude");
     const before = await offeredChoices(base);
-    const res = await post(base, ADD, { tool: "claude", model: "claude-opus-4-8" });
+    const res = await post(base, ADD, {
+      tool: "claude",
+      model: "claude-opus-4-8",
+    });
     expect(res.status).toBe(400);
     expect(await errorOf(res)).toContain("Models tab");
     expect(probe.modelReads.length).toBe(1);
@@ -138,20 +203,29 @@ describe("removing a model choice", () => {
     expect(await res.json()).toEqual({ ok: true, name: "gpt-5.6-luna" });
     expect(choicesIn(file)["gpt-5.6-luna"]).toBeUndefined();
     expect(readFileSync(file, "utf-8")).toContain("// the operator's own note");
-    expect(Object.keys(await offeredChoices(base))).not.toContain("gpt-5.6-luna");
+    expect(Object.keys(await offeredChoices(base))).not.toContain(
+      "gpt-5.6-luna",
+    );
   });
 
   test("clears the line about models no longer offered at once, with no new reading", async () => {
     forgetChecks();
-    const choices = { ...CHOICES, "opencode-gone": { tool: "opencode" as const, model: "opencode/gone" } };
+    const choices = {
+      ...CHOICES,
+      "opencode-gone": { tool: "opencode" as const, model: "opencode/gone" },
+    };
     const probe = modelsProbe({ opencode: OPENCODE_READING });
     const { base } = serve(probe, choices);
     await openModelsTab(base, "OpenCode");
     const reads = probe.modelReads.length;
-    const modelsLine = async () => (await (await fetch(`${base}/settings?tab=phases`)).text())
-      .includes("tool-fault");
+    const modelsLine = async () =>
+      (await (await fetch(`${base}/settings?tab=phases`)).text()).includes(
+        "tool-fault",
+      );
     expect(await modelsLine()).toBe(true);
-    expect((await post(base, REMOVE, { name: "opencode-gone" })).status).toBe(200);
+    expect((await post(base, REMOVE, { name: "opencode-gone" })).status).toBe(
+      200,
+    );
     expect(await modelsLine()).toBe(false);
     expect(probe.modelReads.length).toBe(reads);
   });
@@ -162,7 +236,8 @@ describe("removing a model choice", () => {
     const res = await post(base, REMOVE, { name: "Opus" });
     expect(res.status).toBe(400);
     const error = await errorOf(res);
-    for (const step of ["Analyze", "Implement", "Explore"]) expect(error).toContain(step);
+    for (const step of ["Analyze", "Implement", "Explore"])
+      expect(error).toContain(step);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
     expect(await offeredChoices(base)).toEqual(before);
   });

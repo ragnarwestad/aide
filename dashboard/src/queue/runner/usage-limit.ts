@@ -29,7 +29,8 @@ export type NameOf = (key: string) => string;
 
 type Wait = NonNullable<Job["usageLimitWait"]>;
 
-const ms = (iso: string | undefined): number => (iso === undefined ? Number.NaN : Date.parse(iso));
+const ms = (iso: string | undefined): number =>
+  iso === undefined ? Number.NaN : Date.parse(iso);
 const isoOf = (at: number): string => new Date(at).toISOString();
 
 /** The wait a step's outcome writes on its job: the reset time the tool
@@ -42,13 +43,21 @@ export function usageLimitWait(
   if (outcome.terminalReason !== "provider-limit") return {};
   const stop = ms(stoppedAt);
   const reset = ms(providerLimit(outcome.providerLimit)?.resetsAt);
-  if (reset > stop) return { usageLimitWait: { until: isoOf(reset), resetKnown: true } };
-  return { usageLimitWait: { until: isoOf(stop + USAGE_LIMIT_RETRY_MS), resetKnown: false } };
+  if (reset > stop)
+    return { usageLimitWait: { until: isoOf(reset), resetKnown: true } };
+  return {
+    usageLimitWait: {
+      until: isoOf(stop + USAGE_LIMIT_RETRY_MS),
+      resetKnown: false,
+    },
+  };
 }
 
 /** A stopped job the board will start again. */
 const isWaiting = (job: Job): boolean =>
-  job.state === "stopped" && job.stopReason === "provider-limit" && Number.isFinite(ms(job.usageLimitWait?.until));
+  job.state === "stopped" &&
+  job.stopReason === "provider-limit" &&
+  Number.isFinite(ms(job.usageLimitWait?.until));
 
 /** A job started again with no reset time to go on, whose step has not
  *  ended yet: no result exists at the index the probe recorded. */
@@ -62,15 +71,24 @@ const isProbeOut = (job: Job): boolean =>
  *  stopped steps were given at the probe no longer count. */
 const probeStoppedAgain = (job: Job): boolean =>
   job.usageLimitProbe !== undefined &&
-  job.results[job.usageLimitProbe.results]?.terminalReason === "provider-limit" &&
+  job.results[job.usageLimitProbe.results]?.terminalReason ===
+    "provider-limit" &&
   ms(job.finishedAt) >= ms(job.usageLimitProbe.at);
 
 /** The wait that decides when a provider's stopped steps start again: the
  *  latest of their waits. */
-function decidingWait(waiting: readonly Job[]): { until: number; known: boolean } {
+function decidingWait(waiting: readonly Job[]): {
+  until: number;
+  known: boolean;
+} {
   const again = waiting.filter(probeStoppedAgain);
-  const waits = (again.length > 0 ? again : waiting).map((w) => w.usageLimitWait!);
-  return { until: Math.max(...waits.map((w) => ms(w.until))), known: waits.every((w) => w.resetKnown) };
+  const waits = (again.length > 0 ? again : waiting).map(
+    (w) => w.usageLimitWait!,
+  );
+  return {
+    until: Math.max(...waits.map((w) => ms(w.until))),
+    known: waits.every((w) => w.resetKnown),
+  };
 }
 
 interface AiHold {
@@ -82,11 +100,15 @@ interface AiHold {
 
 /** Every provider that is held right now: while one of its steps waits for
  *  a reset, or while the one step sent ahead of the others is still running. */
-function heldAis(jobs: readonly Job[], providerOf: ProviderOf): Map<string, AiHold> {
+function heldAis(
+  jobs: readonly Job[],
+  providerOf: ProviderOf,
+): Map<string, AiHold> {
   const holds = new Map<string, AiHold>();
   const of = (key: string): AiHold => {
     let hold = holds.get(key);
-    if (!hold) holds.set(key, (hold = { waiting: [], since: Number.POSITIVE_INFINITY }));
+    if (!hold)
+      holds.set(key, (hold = { waiting: [], since: Number.POSITIVE_INFINITY }));
     return hold;
   };
   for (const job of jobs) {
@@ -118,17 +140,30 @@ export function usageLimitHolds(
   if (holds.size === 0) return held;
   for (const job of jobs) {
     if (job.state !== "queued" || job.landing) continue;
-    if ((BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "")) continue;
+    if (
+      (BOARD_STEPS as readonly string[]).includes(
+        job.steps[job.stepIndex] ?? "",
+      )
+    )
+      continue;
     const key = providerOf(job);
     const hold = holds.get(key);
     if (!hold || hold.probe?.id === job.id) continue;
     if (job.pressed && ms(job.createdAt) > hold.since) continue;
     if (hold.probe) {
-      held.set(job.id, { key: "runner.usageLimitHeldProbe", values: { provider: nameOf(key), at: hold.probe.usageLimitProbe!.at } });
+      held.set(job.id, {
+        key: "runner.usageLimitHeldProbe",
+        values: { provider: nameOf(key), at: hold.probe.usageLimitProbe!.at },
+      });
     } else {
       const deciding = decidingWait(hold.waiting);
-      const message = deciding.known ? "runner.usageLimitHeld" : "runner.usageLimitHeldNoReset";
-      held.set(job.id, { key: message, values: { provider: nameOf(key), at: isoOf(deciding.until) } });
+      const message = deciding.known
+        ? "runner.usageLimitHeld"
+        : "runner.usageLimitHeldNoReset";
+      held.set(job.id, {
+        key: message,
+        values: { provider: nameOf(key), at: isoOf(deciding.until) },
+      });
     }
   }
   return held;
@@ -152,7 +187,15 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
     error: undefined,
     errorDetail: undefined,
     errorReason: undefined,
-    ...(probeAt ? { usageLimitProbe: { results: job.results.length, at: probeAt, since: job.finishedAt ?? probeAt } } : {}),
+    ...(probeAt
+      ? {
+          usageLimitProbe: {
+            results: job.results.length,
+            at: probeAt,
+            since: job.finishedAt ?? probeAt,
+          },
+        }
+      : {}),
   });
 }
 
@@ -168,7 +211,11 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  - otherwise, at the AI's time, all are queued again when every reset
  *    time was known, and when one was not only the oldest is, as the
  *    probe, while the others wait an hour from now. */
-export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf, now: number): void {
+export function restartAfterUsageLimit(
+  store: QueueStore,
+  providerOf: ProviderOf,
+  now: number,
+): void {
   const jobs = store.list();
   const nowIso = isoOf(now);
   for (const [key, hold] of heldAis(jobs, providerOf)) {
@@ -179,7 +226,10 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
       const step = w.steps[w.stepIndex];
       const handled = jobs.some(
         (j) =>
-          j.id !== w.id && j.project === w.project && j.specFolder === w.specFolder && ms(j.createdAt) > stopped &&
+          j.id !== w.id &&
+          j.project === w.project &&
+          j.specFolder === w.specFolder &&
+          ms(j.createdAt) > stopped &&
           j.steps.includes(step!),
       );
       if (handled) store.update(w.id, { usageLimitWait: undefined });
@@ -192,10 +242,13 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
       (j) =>
         j.usageLimitProbe !== undefined &&
         j.results.length > j.usageLimitProbe.results &&
-        j.results[j.usageLimitProbe.results]?.terminalReason !== "provider-limit" &&
+        j.results[j.usageLimitProbe.results]?.terminalReason !==
+          "provider-limit" &&
         probedProvider(j, providerOf) === key,
     );
-    const released = waiting.filter((w) => probes.some((p) => ms(p.usageLimitProbe!.at) > ms(w.finishedAt)));
+    const released = waiting.filter((w) =>
+      probes.some((p) => ms(p.usageLimitProbe!.at) > ms(w.finishedAt)),
+    );
     if (released.length > 0) {
       for (const w of released) queueAgain(store, w);
       continue;
@@ -207,10 +260,17 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
       for (const w of waiting) queueAgain(store, w);
       continue;
     }
-    const [oldest, ...rest] = [...waiting].sort((a, b) => ms(a.createdAt) - ms(b.createdAt));
+    const [oldest, ...rest] = [...waiting].sort(
+      (a, b) => ms(a.createdAt) - ms(b.createdAt),
+    );
     queueAgain(store, oldest!, nowIso);
     for (const w of rest) {
-      store.update(w.id, { usageLimitWait: { until: isoOf(now + USAGE_LIMIT_RETRY_MS), resetKnown: false } });
+      store.update(w.id, {
+        usageLimitWait: {
+          until: isoOf(now + USAGE_LIMIT_RETRY_MS),
+          resetKnown: false,
+        },
+      });
     }
   }
 }

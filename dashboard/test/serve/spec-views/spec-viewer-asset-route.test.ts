@@ -26,14 +26,18 @@ describe("GET /spec-viewer.js", () => {
     const { base } = harness.start();
     const first = await fetch(`${base}/spec-viewer.js`);
     const etag = first.headers.get("etag")!;
-    const second = await fetch(`${base}/spec-viewer.js`, { headers: { "if-none-match": etag } });
+    const second = await fetch(`${base}/spec-viewer.js`, {
+      headers: { "if-none-match": etag },
+    });
     expect(second.status).toBe(304);
     expect(await second.text()).toBe("");
   });
 
   test("a stale If-None-Match gets the full body back, not a 304", async () => {
     const { base } = harness.start();
-    const res = await fetch(`${base}/spec-viewer.js`, { headers: { "if-none-match": '"not-a-real-etag"' } });
+    const res = await fetch(`${base}/spec-viewer.js`, {
+      headers: { "if-none-match": '"not-a-real-etag"' },
+    });
     expect(res.status).toBe(200);
     expect((await res.text()).length).toBeGreaterThan(1000);
   });

@@ -23,10 +23,13 @@ export const PAGE = `/specs/aide/${SPEC}`;
 export const FILE_SHA = "a3f9c21aaaaaaa";
 export const HEAD_SHA = "1111111bbbbbbb";
 
-export const DESCRIPTION = "# Queue and runner - Description\n\n## Description\n\nAs it was.\n";
-export const NEW_TEXT = "# Queue and runner - Description\n\n## Description\n\nAs it is now.\n";
+export const DESCRIPTION =
+  "# Queue and runner - Description\n\n## Description\n\nAs it was.\n";
+export const NEW_TEXT =
+  "# Queue and runner - Description\n\n## Description\n\nAs it is now.\n";
 
-export const descriptionPath = (dir: string, folder = SPEC) => specFilePath(dir, "1-description.md", folder);
+export const descriptionPath = (dir: string, folder = SPEC) =>
+  specFilePath(dir, "1-description.md", folder);
 
 // The same path Description's own `descriptionPath` names,
 // generalized to any of the four files — the three newly-editable tabs'
@@ -42,8 +45,14 @@ export const specFilePath = (dir: string, file: string, folder = SPEC) =>
 // `fillSpec` does.
 export const fillAnalysisAndSolution = (dir: string, folder = SPEC): void => {
   const spec = join(dir, "root", "aide", "specs", folder);
-  writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\nSeven files.\n");
-  writeFileSync(join(spec, "3-solution.md"), "# Q - Solution\n\nOne must-fix.\n");
+  writeFileSync(
+    join(spec, "2-analysis.md"),
+    "# Q - Analysis\n\nSeven files.\n",
+  );
+  writeFileSync(
+    join(spec, "3-solution.md"),
+    "# Q - Solution\n\nOne must-fix.\n",
+  );
 };
 
 // An archived spec is a record, and both halves of the edit
@@ -73,7 +82,10 @@ export function createSpecSaveHarness(prefix = "aide-spec-save-") {
 /** A specs checkout that is clean, on its default branch, reachable,
  *  and whose description last moved at `FILE_SHA`. Everything a save
  *  asks for succeeds unless a test overrides it. */
-export const savable = (root: string, extra: Record<string, { code: number; stdout?: string }> = {}): GitRunner => {
+export const savable = (
+  root: string,
+  extra: Record<string, { code: number; stdout?: string }> = {},
+): GitRunner => {
   const answers: Record<string, { code: number; stdout?: string }> = {
     "rev-parse --show-toplevel": { code: 0, stdout: `${root}\n` },
     // Something IS staged after the write: the ordinary case is a real
@@ -82,12 +94,18 @@ export const savable = (root: string, extra: Record<string, { code: number; stdo
     "diff --quiet HEAD": { code: 0 },
     "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
     "rev-parse HEAD": { code: 0, stdout: `${HEAD_SHA}\n` },
-    "symbolic-ref --quiet refs/remotes/origin/HEAD": { code: 0, stdout: "refs/remotes/origin/main\n" },
+    "symbolic-ref --quiet refs/remotes/origin/HEAD": {
+      code: 0,
+      stdout: "refs/remotes/origin/main\n",
+    },
     fetch: { code: 0 },
     "merge-base --is-ancestor": { code: 0 },
     "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": { code: 0 },
-    "log -1 --format=": { code: 0, stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n` },
+    "log -1 --format=": {
+      code: 0,
+      stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n`,
+    },
     add: { code: 0 },
     commit: { code: 0 },
     push: { code: 0 },
@@ -97,7 +115,8 @@ export const savable = (root: string, extra: Record<string, { code: number; stdo
   return async (_dir, args) => {
     const line = args.join(" ");
     for (const [prefix, answer] of Object.entries(answers)) {
-      if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      if (line.startsWith(prefix))
+        return { code: answer.code, stdout: answer.stdout ?? "" };
     }
     return { code: 1, stdout: "" };
   };
@@ -113,6 +132,15 @@ export const post = (base: string, body: Record<string, string>, path = SAVE) =>
 
 /** What an action route answers: every one of them answers JSON,
  *  whatever the request's Accept header says. */
-export type ActionAnswer = { ok?: boolean; error?: string; note?: string; changed?: boolean; spec?: string };
+export type ActionAnswer = {
+  ok?: boolean;
+  error?: string;
+  note?: string;
+  changed?: boolean;
+  spec?: string;
+};
 
-export const answer = async (res: Response) => ({ status: res.status, body: (await res.json()) as ActionAnswer });
+export const answer = async (res: Response) => ({
+  status: res.status,
+  body: (await res.json()) as ActionAnswer,
+});

@@ -15,7 +15,12 @@ afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
-const post = (base: string, path: string, body: unknown, headers: Record<string, string> = {}) =>
+const post = (
+  base: string,
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+) =>
   fetch(`${base}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
@@ -28,7 +33,13 @@ function served() {
   dirs.push(tmp);
   const subscriptionsPath = join(tmp, "push-subscriptions.json");
   const keyPath = join(tmp, "push-key.json");
-  const { base } = h.start({ extra: { pushSubscriptionsPath: subscriptionsPath, pushKeyPath: keyPath, pushFetch: seen.fetch } });
+  const { base } = h.start({
+    extra: {
+      pushSubscriptionsPath: subscriptionsPath,
+      pushKeyPath: keyPath,
+      pushFetch: seen.fetch,
+    },
+  });
   return { base, subscriptionsPath, keyPath, tmp };
 }
 
@@ -47,24 +58,40 @@ describe("POST /api/push/subscribe", () => {
     const body = await subscribeBody();
     await post(s.base, "/api/push/subscribe", body);
     await post(s.base, "/api/push/subscribe", { ...body, lang: "nb" });
-    const stored = JSON.parse(readFileSync(s.subscriptionsPath, "utf-8")) as { endpoint: string; lang: string }[];
-    expect(stored.filter((x) => x.endpoint === body.endpoint)).toEqual([expect.objectContaining({ lang: "nb" })]);
+    const stored = JSON.parse(readFileSync(s.subscriptionsPath, "utf-8")) as {
+      endpoint: string;
+      lang: string;
+    }[];
+    expect(stored.filter((x) => x.endpoint === body.endpoint)).toEqual([
+      expect.objectContaining({ lang: "nb" }),
+    ]);
   });
 
   test.each([
-    ["an endpoint that is not https", { endpoint: "http://fcm.googleapis.com/x" }],
-    ["an endpoint that is not a push service", { endpoint: "https://169.254.169.254/latest" }],
+    [
+      "an endpoint that is not https",
+      { endpoint: "http://fcm.googleapis.com/x" },
+    ],
+    [
+      "an endpoint that is not a push service",
+      { endpoint: "https://169.254.169.254/latest" },
+    ],
     ["keys of the wrong size", { keys: { p256dh: "AAAA", auth: "AAAA" } }],
   ])("%s is refused with 400 and stores nothing", async (_name, over) => {
     const s = served();
-    const res = await post(s.base, "/api/push/subscribe", { ...(await subscribeBody()), ...over });
+    const res = await post(s.base, "/api/push/subscribe", {
+      ...(await subscribeBody()),
+      ...over,
+    });
     expect(res.status).toBe(400);
     expect(existsSync(s.subscriptionsPath)).toBe(false);
   });
 
   test("a body that is not JSON is refused with 400", async () => {
     const s = served();
-    expect((await post(s.base, "/api/push/subscribe", "not json")).status).toBe(400);
+    expect((await post(s.base, "/api/push/subscribe", "not json")).status).toBe(
+      400,
+    );
   });
 
   test("a GET is not allowed", async () => {
@@ -74,7 +101,12 @@ describe("POST /api/push/subscribe", () => {
 
   test("a cross-site POST is refused by the guard, before the route", async () => {
     const s = served();
-    const res = await post(s.base, "/api/push/subscribe", await subscribeBody(), { origin: "https://evil.test" });
+    const res = await post(
+      s.base,
+      "/api/push/subscribe",
+      await subscribeBody(),
+      { origin: "https://evil.test" },
+    );
     expect(res.status).toBe(403);
     expect(existsSync(s.subscriptionsPath)).toBe(false);
   });
@@ -85,10 +117,17 @@ describe("POST /api/push/unsubscribe", () => {
     const s = served();
     const body = await subscribeBody();
     await post(s.base, "/api/push/subscribe", body);
-    const res = await post(s.base, "/api/push/unsubscribe", { endpoint: body.endpoint });
+    const res = await post(s.base, "/api/push/unsubscribe", {
+      endpoint: body.endpoint,
+    });
     expect(res.status).toBe(200);
-    expect(readFileSync(s.subscriptionsPath, "utf-8")).not.toContain(body.endpoint);
-    expect((await post(s.base, "/api/push/unsubscribe", { endpoint: body.endpoint })).status).toBe(200);
+    expect(readFileSync(s.subscriptionsPath, "utf-8")).not.toContain(
+      body.endpoint,
+    );
+    expect(
+      (await post(s.base, "/api/push/unsubscribe", { endpoint: body.endpoint }))
+        .status,
+    ).toBe(200);
   });
 
   test("a body with no endpoint is refused with 400", async () => {

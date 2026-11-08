@@ -16,7 +16,6 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
 const noWait = async (_ms: number): Promise<void> => {};
@@ -37,7 +36,8 @@ const ran = (calls: GitCall[], prefix: string): boolean =>
 // the only thing that tells them apart — git's own stderr — was thrown
 // away before anyone could read it.
 describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () => {
-  const LOCK = "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.";
+  const LOCK =
+    "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.";
 
   /** fakeGit answers the same way for every call to a prefix, so a
    *  "fails, then succeeds" case needs a runner that counts — the same
@@ -50,10 +50,13 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       calls.push({ dir, args });
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("merge -q --ff-only origin/")) {
         pulls++;
-        return pulls <= times ? { code: 1, stdout: "", stderr } : { code: 0, stdout: "" };
+        return pulls <= times
+          ? { code: 1, stdout: "", stderr }
+          : { code: 0, stdout: "" };
       }
       return { code: 0, stdout: "" };
     };
@@ -62,7 +65,13 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
 
   test("it is retried, and the checkout catches up once the lock clears", async () => {
     const git = catchUpFailing(1, LOCK);
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(git.catchUps()).toBe(2);
     expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
@@ -75,7 +84,13 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
   // entirely, and its catch-up settles.
   test("a lock that never clears leaves the landing successful, and stops retrying", async () => {
     const git = catchUpFailing(99, LOCK);
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
     expect(result.ok).toBe(true);
     // Bounded: a stuck lock costs a fraction of a second, not the
     // request. The count is the bound, stated once.
@@ -92,7 +107,13 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
   ]) {
     test(`a catch-up that lost another lock race is retried too: ${stderr.slice(0, 32)}…`, async () => {
       const git = catchUpFailing(1, stderr);
-      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+      const result = await mergeBranchIntoDefault(
+        git.run,
+        ROOT,
+        BRANCH,
+        "master",
+        noWait,
+      );
       expect(result.ok).toBe(true);
       expect(git.catchUps()).toBe(2);
     });
@@ -102,8 +123,17 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
   // behind — so this is said on the server's own log, not turned into a
   // refusal the reader has to act on.
   test("a catch-up that never succeeds does not refuse the landing", async () => {
-    const git = catchUpFailing(99, "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.");
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const git = catchUpFailing(
+      99,
+      "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.",
+    );
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
     expect(result.ok).toBe(true);
     expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
   });
@@ -115,16 +145,28 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       calls.push({ dir, args });
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("merge -q") && a.includes("refs/remotes/")) {
         merges++;
         return merges <= 2
-          ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
+          ? {
+              code: 1,
+              stdout: "",
+              stderr:
+                "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.",
+            }
           : { code: 0, stdout: "" };
       }
       return { code: 0, stdout: "" };
     };
-    const result = await mergeBranchIntoDefault(run, ROOT, BRANCH, "master", noWait);
+    const result = await mergeBranchIntoDefault(
+      run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
     expect(result.ok).toBe(true);
     expect(result.reason).toBeUndefined();
     expect(argv(calls).filter((a) => a === "merge --abort")).toHaveLength(1);
@@ -133,8 +175,16 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
   // Anything that is not a lock is not retried: one attempt, and the
   // landing goes on regardless — it has already pushed.
   test("a catch-up failing for any other reason is tried once", async () => {
-    const git = catchUpFailing(1, "fatal: Not possible to fast-forward, aborting.");
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const git = catchUpFailing(
+      1,
+      "fatal: Not possible to fast-forward, aborting.",
+    );
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(git.catchUps()).toBe(1);
   });
@@ -160,13 +210,24 @@ const OK_TABLE = {
 // step, never a reason to call a landed merge a failure.
 describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", () => {
   test("a fast-forward merge deletes the branch and stays ok", async () => {
-    const git = fakeGit({ ...OK_TABLE, "merge -q --ff-only": { code: 0 }, push: { code: 0 } });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(argv(git.calls)).toContain(`push -q origin --delete ${BRANCH}`);
     // Order matters: the base reaches origin first, so a deletion that
     // races anything never removes work that has not landed.
-    expect(argv(git.calls).indexOf("push -q origin HEAD:refs/heads/master")).toBeLessThan(
+    expect(
+      argv(git.calls).indexOf("push -q origin HEAD:refs/heads/master"),
+    ).toBeLessThan(
       argv(git.calls).indexOf(`push -q origin --delete ${BRANCH}`),
     );
   });
@@ -179,7 +240,12 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
       "merge -q --no-edit": { code: 0 },
       push: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(argv(git.calls)).toContain(`push -q origin --delete ${BRANCH}`);
   });
@@ -189,9 +255,14 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+        return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("push -q origin --delete")) {
-        return { code: 1, stdout: "", stderr: "remote: refusing to delete the current branch\n" };
+        return {
+          code: 1,
+          stdout: "",
+          stderr: "remote: refusing to delete the current branch\n",
+        };
       }
       return { code: 0, stdout: "" };
     };
@@ -201,7 +272,9 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     expect(sentence(result.branchDeleteError)).toContain(BRANCH);
     // git's own stderr rides in `detail`, never in the
     // sentence itself.
-    expect(sentence(result.branchDeleteError)).not.toContain("refusing to delete");
+    expect(sentence(result.branchDeleteError)).not.toContain(
+      "refusing to delete",
+    );
     expect(result.detail).toContain("refusing to delete");
   });
 
@@ -213,7 +286,12 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
       "merge -q --no-edit": { code: 1 },
       "merge --abort": { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(false);
     expect(ran(git.calls, "push")).toBe(false);
   });
@@ -236,15 +314,20 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too", () => {
       push: { code: 0 },
       "branch -d": { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(argv(git.calls)).toContain(`branch -d ${BRANCH}`);
     // After origin's, never before: the origin delete is the one that
     // can still fail, and a local ref removed ahead of it would be the
     // only copy lost.
-    expect(argv(git.calls).indexOf(`push -q origin --delete ${BRANCH}`)).toBeLessThan(
-      argv(git.calls).indexOf(`branch -d ${BRANCH}`),
-    );
+    expect(
+      argv(git.calls).indexOf(`push -q origin --delete ${BRANCH}`),
+    ).toBeLessThan(argv(git.calls).indexOf(`branch -d ${BRANCH}`));
   });
 
   test("a real merge deletes the local branch too", async () => {
@@ -256,7 +339,12 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too", () => {
       push: { code: 0 },
       "branch -d": { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(argv(git.calls)).toContain(`branch -d ${BRANCH}`);
   });
@@ -270,7 +358,12 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too", () => {
       push: { code: 0 },
       "branch -d": { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(sentence(result.branchDeleteError)).toContain(BRANCH);
     // "In both places, or in neither": origin still has it, so this
@@ -286,7 +379,12 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too", () => {
       push: { code: 0 },
       "branch -d": { code: 1, stderr: "error: branch not found\n" },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
   });
 });

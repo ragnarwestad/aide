@@ -3,7 +3,10 @@
 // before the page is drawn.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
-import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import {
+  browserDeadline,
+  withBrowser,
+} from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -13,9 +16,18 @@ let browser: Browser;
 let base: string;
 
 const failedJob = {
-  id: "f1", project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"], stepIndex: 0, state: "failed",
-  timeoutSec: { implement: 60 }, permissionMode: { implement: "acceptEdits" }, model: { implement: "sonnet" },
-  createdAt: "2026-09-01T10:00:00.000Z", results: [], spentUsd: 0,
+  id: "f1",
+  project: "aide",
+  specFolder: "81-queue-and-runner",
+  steps: ["implement"],
+  stepIndex: 0,
+  state: "failed",
+  timeoutSec: { implement: 60 },
+  permissionMode: { implement: "acceptEdits" },
+  model: { implement: "sonnet" },
+  createdAt: "2026-09-01T10:00:00.000Z",
+  results: [],
+  spentUsd: 0,
 };
 
 beforeAll(async () => {
@@ -35,11 +47,19 @@ describe("a page sets the app's icon count when it loads", () => {
       await page.addInitScript(() => {
         const calls: string[] = [];
         (window as unknown as { __badge: string[] }).__badge = calls;
-        Object.defineProperty(navigator, "setAppBadge", { value: (n: number) => (calls.push(`set ${n}`), Promise.resolve()) });
-        Object.defineProperty(navigator, "clearAppBadge", { value: () => (calls.push("clear"), Promise.resolve()) });
+        Object.defineProperty(navigator, "setAppBadge", {
+          value: (n: number) => (calls.push(`set ${n}`), Promise.resolve()),
+        });
+        Object.defineProperty(navigator, "clearAppBadge", {
+          value: () => (calls.push("clear"), Promise.resolve()),
+        });
       });
       await withBrowser(page.goto(`${base}/?live=0`), "page.goto(Running)");
-      expect(await page.evaluate(() => (window as unknown as { __badge: string[] }).__badge)).toEqual(["set 1"]);
+      expect(
+        await page.evaluate(
+          () => (window as unknown as { __badge: string[] }).__badge,
+        ),
+      ).toEqual(["set 1"]);
     } finally {
       await page.close();
     }

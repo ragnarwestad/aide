@@ -35,7 +35,9 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
 
 export const stopSentence = (reason: string, step?: string): Sentence => {
   const key = STOP_SENTENCES[reason];
-  return key ? { key, values: { button: step ? stepButton(step) : "its button" } } : reason;
+  return key
+    ? { key, values: { button: step ? stepButton(step) : "its button" } }
+    : reason;
 };
 
 /** What one phase reads as, in the three parts a row and a job page
@@ -62,7 +64,10 @@ export interface PhaseWord {
  *  half that is wrong in both cases. */
 const filesDisagreeSentence = (step: string | undefined): BoardMessage => ({
   key: "wordPhase.filesDisagree",
-  values: { phase: step ?? "this phase", button: step ? stepButton(step) : "its button" },
+  values: {
+    phase: step ?? "this phase",
+    button: step ? stepButton(step) : "its button",
+  },
 });
 
 /** The sentence for a last attempt that disagrees with the file:
@@ -77,7 +82,10 @@ const filesDisagreeSentence = (step: string | undefined): BoardMessage => ({
  *  is the clearest sign no shared convention exists. */
 const attemptQualifier = (attempt: QueueRowView, lang: Language): Sentence =>
   attempt.errorReason === "unlanded"
-    ? { key: "wordPhase.attemptQualifierUnlanded", values: { button: stepButton("archive") } }
+    ? {
+        key: "wordPhase.attemptQualifierUnlanded",
+        values: { button: stepButton("archive") },
+      }
     : t(lang, "list.lastRerun").replace("{state}", stateWord(attempt, lang));
 
 /** The one rule, applied by everything that words a phase.
@@ -140,7 +148,10 @@ function decidePhase(
   // qualifier that has something sharper to say: an attempt that ended
   // badly is the more useful sentence, and two sentences about one
   // phase is the row saying two things at once.
-  const filesDisagree = history.fileDisagrees && !history.settling ? filesDisagreeSentence(history.step) : undefined;
+  const filesDisagree =
+    history.fileDisagrees && !history.settling
+      ? filesDisagreeSentence(history.step)
+      : undefined;
   // A phase that is running says so, whatever happened the last time it
   // ran. The history's "done" is about a previous attempt; this one is
   // in flight, and a line reading "done · 2 attempts" over a spec the
@@ -189,21 +200,41 @@ function decidePhase(
   // the default branch, and "Done" beside the row's "stopped" said two
   // things at once. A re-run that was merely cancelled
   // is not this: the earlier run's work stands, and the line says done.
-  if (happened && attempt && !running && attempt.state !== "done" && landingRefused(attempt)) {
+  if (
+    happened &&
+    attempt &&
+    !running &&
+    attempt.state !== "done" &&
+    landingRefused(attempt)
+  ) {
     return {
       pip: "todo",
-      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
+      badge: {
+        variant: BADGE_VARIANT[attempt.state],
+        label: capitalizeFirst(stateWord(attempt, lang)),
+      },
       qualifier: attemptQualifier(attempt, lang),
     };
   }
   // This phase's own newest run ended failed: it speaks for the phase over
   // an earlier Done. Its OWN result is read, not the job's state, so a step
   // that succeeded and whose merge then failed is left to the branch above.
-  const ownResult = history.step ? attempt?.results?.find((r) => r.step === history.step) : undefined;
-  if (happened && attempt && !running && attempt.state === "failed" && ownResult?.ok === false) {
+  const ownResult = history.step
+    ? attempt?.results?.find((r) => r.step === history.step)
+    : undefined;
+  if (
+    happened &&
+    attempt &&
+    !running &&
+    attempt.state === "failed" &&
+    ownResult?.ok === false
+  ) {
     return {
       pip: "todo",
-      badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
+      badge: {
+        variant: BADGE_VARIANT[attempt.state],
+        label: capitalizeFirst(stateWord(attempt, lang)),
+      },
       qualifier: filesDisagree,
     };
   }
@@ -260,8 +291,15 @@ function decidePhase(
       // The word alone in the badge; the reason is the row's error line
       // (the State column says where a spec stands, errors go
       // in the error line).
-      badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
-      qualifier: { key: "message.lead", values: { lead: `${word}:` }, inner: stopSentence(history.stopped, history.step) },
+      badge: {
+        variant: failed ? BADGE_VARIANT.failed : "waiting",
+        label: capitalizeFirst(word),
+      },
+      qualifier: {
+        key: "message.lead",
+        values: { lead: `${word}:` },
+        inner: stopSentence(history.stopped, history.step),
+      },
     };
   }
   // The queue has no job for this phase, and the git-verified history
@@ -273,12 +311,19 @@ function decidePhase(
   // its own file says ran.
   if (!attempt) {
     if (history.fileResult === "completed") {
-      return { pip: "past", badge: { variant: "done", label: t(lang, "list.done") }, qualifier: filesDisagree };
+      return {
+        pip: "past",
+        badge: { variant: "done", label: t(lang, "list.done") },
+        qualifier: filesDisagree,
+      };
     }
     if (history.fileResult === "stopped") {
       return {
         pip: "todo",
-        badge: { variant: "waiting", label: capitalizeFirst(t(lang, "state.stopped")) },
+        badge: {
+          variant: "waiting",
+          label: capitalizeFirst(t(lang, "state.stopped")),
+        },
         qualifier: filesDisagree,
       };
     }
@@ -287,7 +332,10 @@ function decidePhase(
   // Ended since the files were last read: the run's own word, and no
   // sentence about files that have not caught up with it yet.
   if (attempt.state === "done" && history.settling) {
-    return { pip: "past", badge: { variant: "done", label: t(lang, "list.done") } };
+    return {
+      pip: "past",
+      badge: { variant: "done", label: t(lang, "list.done") },
+    };
   }
   if (attempt.state === "done") {
     return {
@@ -302,16 +350,26 @@ function decidePhase(
       // later step's, not a reason to colour this one. Amber only when
       // nothing reached the files at all, and the row's own message
       // says so (2026-09-11).
-      badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateWord(attempt, lang)) },
+      badge: {
+        variant: history.historyDone ? "done" : "waiting",
+        label: capitalizeFirst(stateWord(attempt, lang)),
+      },
       qualifier: {
-        key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
-        values: { button: history.step ? stepButton(history.step) : "its button" },
+        key: history.historyDone
+          ? "wordPhase.lastRunDisagreesUnlanded"
+          : "wordPhase.lastRunDisagreesUnwritten",
+        values: {
+          button: history.step ? stepButton(history.step) : "its button",
+        },
       },
     };
   }
   return {
     pip: running ? "now" : "todo",
-    badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
+    badge: {
+      variant: BADGE_VARIANT[attempt.state],
+      label: capitalizeFirst(stateWord(attempt, lang)),
+    },
   };
 }
 
@@ -324,6 +382,7 @@ export function wordPhase(...args: Parameters<typeof decidePhase>): PhaseWord {
   const word = decidePhase(...args);
   if (word.pip !== "todo" || !word.badge) return word;
   const variant = word.badge.variant;
-  if (variant === "waiting" || variant === "refused") return { ...word, pip: variant };
+  if (variant === "waiting" || variant === "refused")
+    return { ...word, pip: variant };
   return word;
 }

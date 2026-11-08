@@ -19,13 +19,18 @@ describe("Close POST refuses an empty reason", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ reason: "" }),
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("reason");
-    const jobs = (await (await fetch(`${base}/api/queue`)).json()) as { jobs: unknown[] };
+    const jobs = (await (await fetch(`${base}/api/queue`)).json()) as {
+      jobs: unknown[];
+    };
     expect(jobs.jobs).toHaveLength(0);
   });
 
@@ -33,7 +38,10 @@ describe("Close POST refuses an empty reason", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ reason: "   " }),
     });
     expect(res.status).toBe(400);
@@ -43,7 +51,10 @@ describe("Close POST refuses an empty reason", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
@@ -58,7 +69,9 @@ describe("Close POST refuses an empty reason", () => {
       body: "reason=",
     });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toBe("type a reason to close this spec");
+    expect(((await res.json()) as { error: string }).error).toBe(
+      "type a reason to close this spec",
+    );
   });
 });
 
@@ -67,7 +80,10 @@ describe("Close POST with a reason enqueues a close job", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ reason: "this idea does not hold" }),
     });
     expect(res.status).toBe(200);
@@ -85,13 +101,19 @@ describe("Close POST refuses while a job is in flight", () => {
     const { base } = start();
     const enqueue = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify(JOB),
     });
     expect(enqueue.status).toBe(200);
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ reason: "this idea does not hold" }),
     });
     expect(res.status).toBe(400);

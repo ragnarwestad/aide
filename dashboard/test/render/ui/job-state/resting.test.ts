@@ -5,9 +5,21 @@
 // rather than silently falling back to English prose in Norwegian mode.
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
-import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip } from "../../../../src/render/ui/job-state/resting.ts";
+import {
+  GERUND_EN,
+  GERUND_NB,
+  GERUND_ES,
+  GERUND_DE,
+  GERUND_FR,
+  specStateChip,
+} from "../../../../src/render/ui/job-state/resting.ts";
 import { specNotice } from "../../../../src/render/ui/job-state";
-import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "../../../../src/render/ui/components";
+import {
+  STEP_LABELS_NB,
+  STEP_LABELS_ES,
+  STEP_LABELS_DE,
+  STEP_LABELS_FR,
+} from "../../../../src/render/ui/components";
 import type { QueueRowView } from "../../../../src/render";
 
 describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR", () => {
@@ -29,10 +41,22 @@ describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR", () => {
 describe("STEP_LABELS_NB/STEP_LABELS_ES/STEP_LABELS_DE/STEP_LABELS_FR", () => {
   test("every WORKFLOW_STEPS member has a name in every language", () => {
     for (const step of WORKFLOW_STEPS) {
-      expect(STEP_LABELS_NB[step], `STEP_LABELS_NB is missing "${step}"`).toBeDefined();
-      expect(STEP_LABELS_ES[step], `STEP_LABELS_ES is missing "${step}"`).toBeDefined();
-      expect(STEP_LABELS_DE[step], `STEP_LABELS_DE is missing "${step}"`).toBeDefined();
-      expect(STEP_LABELS_FR[step], `STEP_LABELS_FR is missing "${step}"`).toBeDefined();
+      expect(
+        STEP_LABELS_NB[step],
+        `STEP_LABELS_NB is missing "${step}"`,
+      ).toBeDefined();
+      expect(
+        STEP_LABELS_ES[step],
+        `STEP_LABELS_ES is missing "${step}"`,
+      ).toBeDefined();
+      expect(
+        STEP_LABELS_DE[step],
+        `STEP_LABELS_DE is missing "${step}"`,
+      ).toBeDefined();
+      expect(
+        STEP_LABELS_FR[step],
+        `STEP_LABELS_FR is missing "${step}"`,
+      ).toBeDefined();
     }
   });
 });
@@ -65,7 +89,10 @@ describe("specStateChip() on a held-back queued row", () => {
         steps: ["implement"],
         stepIndex: 0,
         errorReason: "held-back",
-        error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
+        error: {
+          key: "runner.dependencyNotArchived",
+          values: { folder: "80-x" },
+        },
       }),
       "en",
     );
@@ -97,7 +124,10 @@ describe("specStateChip() on a held-back queued row", () => {
       steps: ["implement"],
       stepIndex: 0,
       errorReason: "held-back",
-      error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
+      error: {
+        key: "runner.dependencyNotArchived",
+        values: { folder: "80-x" },
+      },
     });
     const badgeHtml = specStateChip(heldRow, "en");
     const notice = specNotice(heldRow);
@@ -113,7 +143,12 @@ describe("specStateChip() on a held-back queued row", () => {
   // scoped to a queued job's own hold, never to a real stop.
   test("a job that actually stopped still reads 'Stopped'", () => {
     const html = specStateChip(
-      row({ state: "stopped", steps: ["implement"], stepIndex: 0, stopReason: "timeout" }),
+      row({
+        state: "stopped",
+        steps: ["implement"],
+        stepIndex: 0,
+        stopReason: "timeout",
+      }),
       "en",
     );
     expect(html).toContain(">Stopped<");
@@ -123,17 +158,26 @@ describe("specStateChip() on a held-back queued row", () => {
 // A deploy's fetch or its restart waits for a landing with the job still
 // running: it reads like every other held-back job, not "Deploying".
 describe("specStateChip() on a running row with a hold", () => {
-  const held = { errorReason: "held-back" as const, error: { key: "runner.landingPause" as const } };
+  const held = {
+    errorReason: "held-back" as const,
+    error: { key: "runner.landingPause" as const },
+  };
 
   test("a running job whose reason is a hold reads 'Held back', in the colour a held queued job gets", () => {
-    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0, ...held }), "en");
+    const html = specStateChip(
+      row({ state: "running", steps: ["deploy"], stepIndex: 0, ...held }),
+      "en",
+    );
     expect(html).toContain(">Held back<");
     expect(html).toContain("b-idle");
     expect(html).not.toContain("Deploying");
   });
 
   test("once the hold is gone it reads as running again", () => {
-    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
+    const html = specStateChip(
+      row({ state: "running", steps: ["deploy"], stepIndex: 0 }),
+      "en",
+    );
     expect(html).toContain("Deploying");
     expect(html).not.toContain("Held back");
   });

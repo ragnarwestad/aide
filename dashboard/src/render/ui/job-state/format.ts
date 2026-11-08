@@ -14,7 +14,10 @@ import type { QueueRowView } from "./types.ts";
 // Every state is a single catalogue key — added here rather than left
 // as `r.state`, which was the raw English enum value in
 // every language.
-const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, TranslationKey> = {
+const STATE_LABEL_KEYS: Record<
+  Exclude<QueueRowView["state"], "stopped">,
+  TranslationKey
+> = {
   queued: "state.queued",
   running: "state.running",
   done: "state.done",
@@ -29,7 +32,9 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
  *  row's message and the popover beside the chip, and is never written
  *  after the word. */
 export function stateWord(r: QueueRowView, lang: Language = "en"): string {
-  return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
+  return r.state === "stopped"
+    ? t(lang, "state.stopped")
+    : t(lang, STATE_LABEL_KEYS[r.state]);
 }
 
 // A wall of identical grey rows hides the one thing you came to see.
@@ -64,7 +69,8 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
   // Why it stopped is the popover's, not the badge's — and a stop with
   // no sentence of its own gets no popover at all.
-  const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
+  const detail =
+    r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }
 
@@ -75,10 +81,14 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
  *  the list's filter vocabulary. */
 export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running"];
 
-export const inFlight = (r: Pick<QueueRowView, "state" | "landing">): boolean => IN_FLIGHT.includes(r.state) || !!r.landing;
+export const inFlight = (r: Pick<QueueRowView, "state" | "landing">): boolean =>
+  IN_FLIGHT.includes(r.state) || !!r.landing;
 
 /** The step a job is on, or — once it has stopped — the last one it
  *  reached. */
-export function currentStep(r: { steps: readonly string[]; stepIndex: number }): string {
+export function currentStep(r: {
+  steps: readonly string[];
+  stepIndex: number;
+}): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }

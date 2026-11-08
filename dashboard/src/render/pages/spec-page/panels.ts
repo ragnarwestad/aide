@@ -8,7 +8,12 @@ import { fileStamp, specFilePanel, type SpecFileView } from "../job-page";
 import type { Language } from "../../../i18n";
 import { withoutAcceptanceSections } from "../../../project/parse-status";
 import { checklist, drawnAcceptanceRows } from "./overview.ts";
-import { activeJob, EDITABLE_SPEC_FILE, SPEC_LINES, STATUS_SPEC_FILE } from "./tabs.ts";
+import {
+  activeJob,
+  EDITABLE_SPEC_FILE,
+  SPEC_LINES,
+  STATUS_SPEC_FILE,
+} from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
 /** The read-only shape every document tab falls back to: archived, a
@@ -16,7 +21,10 @@ import type { SpecPageView } from "./types.ts";
  *  writable tab carries, so the client script renders it read-only
  *  rather than raw markup. */
 function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
-  return `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` + viewerPair(file.text ?? "");
+  return (
+    `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
+    viewerPair(file.text ?? "")
+  );
 }
 
 /** Read-only counterpart of editableDocumentForm's mount/textarea
@@ -35,7 +43,11 @@ export function viewerPair(text: string): string {
  *  plus the whole file), a section with only a sentence and a file with
  *  no section all show the file whole. */
 function statusPanel(
-  view: SpecPageView, file: SpecFileView, now: number, lang: Language, mark: string,
+  view: SpecPageView,
+  file: SpecFileView,
+  now: number,
+  lang: Language,
+  mark: string,
 ): string {
   const text = file.text ?? "";
   const drawn = drawnAcceptanceRows(view).length > 0;
@@ -105,7 +117,11 @@ function editableDocumentForm(
  *  (spec-edit.ts), but a control that only ever gets refused is not a
  *  control to draw. */
 export function documentPanel(
-  view: SpecPageView, label: string, now: number, lang: Language = "en", mark = "",
+  view: SpecPageView,
+  label: string,
+  now: number,
+  lang: Language = "en",
+  mark = "",
 ): string {
   const found = view.files.find((f) => f.label === label);
   const file = found ?? { label, text: null };
@@ -115,8 +131,10 @@ export function documentPanel(
   // what it did, so an edit here rewrites what happened. The one thing
   // in the file that is a person's to decide — the acceptance checks —
   // is drawn above it as a form that puts a check on and takes one back off.
-  if (label === STATUS_SPEC_FILE) return statusPanel(view, file, now, lang, mark);
-  if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
+  if (label === STATUS_SPEC_FILE)
+    return statusPanel(view, file, now, lang, mark);
+  if (view.archived || activeJob(view))
+    return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
   return editableDocumentForm(view, label, heading, file.text, lang);
 }
@@ -135,10 +153,21 @@ export function documentPanel(
  *  would have written, committed and pushed underneath a run. The
  *  refusal itself is on the route — hiding a control is never the guard
  *  — but a box that only ever gets refused is not a box to draw. */
-export function descriptionPanel(view: SpecPageView, now: number, lang: Language = "en", mark = ""): string {
+export function descriptionPanel(
+  view: SpecPageView,
+  now: number,
+  lang: Language = "en",
+  mark = "",
+): string {
   const file = view.files.find((f) => f.label === EDITABLE_SPEC_FILE);
-  if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
-  const heading =
-    `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
-  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "", lang);
+  if (view.archived || activeJob(view))
+    return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
+  const heading = `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
+  return editableDocumentForm(
+    view,
+    EDITABLE_SPEC_FILE,
+    heading,
+    file?.text ?? "",
+    lang,
+  );
 }

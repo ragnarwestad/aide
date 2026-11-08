@@ -25,7 +25,9 @@ import type { TestServer } from "../../../src/serve/test-servers/store.ts";
 // test happens to call.
 let killSpy: ReturnType<typeof spyOn>;
 beforeEach(() => {
-  killSpy = spyOn(process, "kill").mockImplementation((() => true) as typeof process.kill);
+  killSpy = spyOn(process, "kill").mockImplementation(
+    (() => true) as typeof process.kill,
+  );
 });
 afterEach(() => killSpy.mockRestore());
 
@@ -34,17 +36,29 @@ let spawnCalls: { cmd: string[]; logPath: string }[];
 let spawnResult: SpawnResult;
 let alive: Set<number>;
 
-function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
+function makeCtx(
+  overrides: Partial<TestServersContext> = {},
+): TestServersContext {
   return {
     store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
+      "/checkout/aide/dashboard/test/round/run",
+      "/checkout/aide",
+      "--branch",
+      branch,
+      "--port",
+      String(port),
+      "--keep",
     ],
     previewAvailable: () => true,
     gitRun: async (_dir, args) => {
-      if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/aide/spec-1\n", stderr: "" };
+      if (args[0] === "ls-remote")
+        return {
+          code: 0,
+          stdout: "abc123\trefs/heads/aide/spec-1\n",
+          stderr: "",
+        };
       return { code: 1, stdout: "", stderr: "" };
     },
     spawn: (cmd, logPath) => {
@@ -151,7 +165,11 @@ describe("startTestServer", () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
     const movedCtx = makeCtx({
-      gitRun: async () => ({ code: 0, stdout: "def456\trefs/heads/aide/spec-1\n", stderr: "" }),
+      gitRun: async () => ({
+        code: 0,
+        stdout: "def456\trefs/heads/aide/spec-1\n",
+        stderr: "",
+      }),
       store: ctx.store,
     });
     spawnResult = { pid: 5252 };
@@ -195,7 +213,9 @@ describe("startTestServer", () => {
   });
 
   test("a branch absent on origin refuses without spawning", async () => {
-    const ctx = makeCtx({ gitRun: async () => ({ code: 1, stdout: "", stderr: "" }) });
+    const ctx = makeCtx({
+      gitRun: async () => ({ code: 1, stdout: "", stderr: "" }),
+    });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(false);
     expect(spawnCalls).toHaveLength(0);
@@ -206,7 +226,11 @@ describe("startTestServer", () => {
   // three ports already reserved.
   test("a fourth start succeeds and takes the fourth pool port", async () => {
     const ctx = makeCtx({
-      reservedPorts: () => [TEST_SERVER_PORTS[0]!, TEST_SERVER_PORTS[1]!, TEST_SERVER_PORTS[2]!],
+      reservedPorts: () => [
+        TEST_SERVER_PORTS[0]!,
+        TEST_SERVER_PORTS[1]!,
+        TEST_SERVER_PORTS[2]!,
+      ],
       findFreePort: (reserved) => findFreePort(reserved, () => true),
     });
     const result = await startTestServer(ctx, "aide", "spec-1");
@@ -243,7 +267,9 @@ describe("startTestServer", () => {
     const result = await startTestServer(ctx, "aide", "spec-6");
     expect(result.ok).toBe(false);
     expect(!result.ok && result.error).toContain("6");
-    expect(!result.ok && result.error).toContain(String(TEST_SERVER_PORTS.length));
+    expect(!result.ok && result.error).toContain(
+      String(TEST_SERVER_PORTS.length),
+    );
     expect(spawnCalls).toHaveLength(0);
   });
 
@@ -256,7 +282,9 @@ describe("startTestServer", () => {
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(false);
     expect(!result.ok && result.error).toContain("0");
-    expect(!result.ok && result.error).toContain(String(TEST_SERVER_PORTS.length));
+    expect(!result.ok && result.error).toContain(
+      String(TEST_SERVER_PORTS.length),
+    );
     expect(spawnCalls).toHaveLength(0);
   });
 
@@ -294,11 +322,14 @@ describe("startTestServer with an explicit branch", () => {
   test("opts.branch is used instead of aide/<specFolder>, for both the spawn and the entry", async () => {
     const ctx = makeCtx({
       gitRun: async (_dir, args) => {
-        if (args[0] === "ls-remote") return { code: 0, stdout: "def456\trefs/heads/main\n", stderr: "" };
+        if (args[0] === "ls-remote")
+          return { code: 0, stdout: "def456\trefs/heads/main\n", stderr: "" };
         return { code: 1, stdout: "", stderr: "" };
       },
     });
-    const result = await startTestServer(ctx, "aide", MAIN_TEST_SERVER_KEY, { branch: "main" });
+    const result = await startTestServer(ctx, "aide", MAIN_TEST_SERVER_KEY, {
+      branch: "main",
+    });
     expect(result.ok).toBe(true);
     expect(spawnCalls[0]!.cmd).toEqual([
       "/checkout/aide/dashboard/test/round/run",
@@ -326,7 +357,8 @@ describe("restartMainTestServer", () => {
   test("nothing tracked yet behaves like a plain startTestServer", async () => {
     const ctx = makeCtx({
       gitRun: async (_dir, args) => {
-        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        if (args[0] === "ls-remote")
+          return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
         return { code: 1, stdout: "", stderr: "" };
       },
     });
@@ -345,7 +377,8 @@ describe("restartMainTestServer", () => {
   test("a second call stops the first board's process group and starts a fresh one", async () => {
     const ctx = makeCtx({
       gitRun: async (_dir, args) => {
-        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        if (args[0] === "ls-remote")
+          return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
         return { code: 1, stdout: "", stderr: "" };
       },
     });
@@ -359,7 +392,9 @@ describe("restartMainTestServer", () => {
     expect(second.ok).toBe(true);
     if (second.ok) {
       expect(second.entry.wrapperPid).toBe(5252);
-      expect(ctx.store.get("aide", MAIN_TEST_SERVER_KEY)?.wrapperPid).toBe(5252);
+      expect(ctx.store.get("aide", MAIN_TEST_SERVER_KEY)?.wrapperPid).toBe(
+        5252,
+      );
     }
   });
 
@@ -371,7 +406,8 @@ describe("restartMainTestServer", () => {
     const ctx = makeCtx({
       store,
       gitRun: async (_dir, args) => {
-        if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
+        if (args[0] === "ls-remote")
+          return { code: 0, stdout: "abc123\trefs/heads/main\n", stderr: "" };
         return { code: 1, stdout: "", stderr: "" };
       },
       reservedPorts: () => store.all().map((e) => e.port),
@@ -404,7 +440,10 @@ describe("refreshTestServerStatus", () => {
     const ctx = makeCtx();
     const started = await startTestServer(ctx, "aide", "spec-1");
     if (!started.ok) throw new Error("expected startTestServer to succeed");
-    writeFileSync(started.entry.logPath, "some early output\ncannot check out aide/spec-1: already checked out\n");
+    writeFileSync(
+      started.entry.logPath,
+      "some early output\ncannot check out aide/spec-1: already checked out\n",
+    );
     alive.clear();
     const refreshed = refreshTestServerStatus(ctx, "aide", "spec-1");
     expect(refreshed?.status).toBe("failed");
@@ -424,7 +463,10 @@ describe("refreshTestServerStatus", () => {
       "== queue the specs\nboard up: pid 4242, http://127.0.0.1:9000/?token=t — serving aide/spec-1 @ abc123\n",
     );
     const running = refreshTestServerStatus(ctx, "aide", "spec-1");
-    expect([running?.status, running?.url]).toEqual(["running", "http://127.0.0.1:9000/?token=t"]);
+    expect([running?.status, running?.url]).toEqual([
+      "running",
+      "http://127.0.0.1:9000/?token=t",
+    ]);
   });
 
   test("still starting while the process is alive and no 'left running' line has appeared yet", async () => {

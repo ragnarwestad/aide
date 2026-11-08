@@ -20,7 +20,10 @@ export interface PlistOptions {
 }
 
 function escape(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function string(value: string, indent: string): string {
@@ -72,17 +75,28 @@ export function parseArgs(argv: string[]): PlistOptions {
     if (a === "--label" && v) opts.label = argv[++i];
     else if (a === "--bun-path" && v) opts.bunPath = argv[++i];
     else if (a === "--script" && v) opts.script = argv[++i];
-    else if (a === "--working-directory" && v) opts.workingDirectory = argv[++i];
+    else if (a === "--working-directory" && v)
+      opts.workingDirectory = argv[++i];
     else if (a === "--log-path" && v) opts.logPath = argv[++i];
     else throw new Error(`unknown or incomplete argument: ${a}\n${USAGE}`);
   }
   const serveArgv = argv.slice(i);
   // No defaults: a missing value must be an error here, not a path
   // pointing at whoever's machine rendered the file.
-  for (const key of ["label", "bunPath", "script", "workingDirectory", "logPath"] as const) {
-    if (!opts[key]) throw new Error(`missing required option for ${key}\n${USAGE}`);
+  for (const key of [
+    "label",
+    "bunPath",
+    "script",
+    "workingDirectory",
+    "logPath",
+  ] as const) {
+    if (!opts[key])
+      throw new Error(`missing required option for ${key}\n${USAGE}`);
   }
-  if (serveArgv[0] !== "serve") throw new Error(`the serve argv after -- must start with 'serve'\n${USAGE}`);
+  if (serveArgv[0] !== "serve")
+    throw new Error(
+      `the serve argv after -- must start with 'serve'\n${USAGE}`,
+    );
   return { ...(opts as PlistOptions), serveArgv };
 }
 

@@ -5,7 +5,12 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
-import { failedCount, notVerifiedCount, parseStatus, type StatusInfo } from "../parse-status";
+import {
+  failedCount,
+  notVerifiedCount,
+  parseStatus,
+  type StatusInfo,
+} from "../parse-status";
 import { readSpecState } from "../parse-spec-state.ts";
 import { configSpecsPath } from "./config.ts";
 import { specCreateChoices, type CreateChoices } from "./create-choices.ts";
@@ -71,7 +76,8 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
     const dir = join(root, entry);
     if (!statSync(dir).isDirectory()) continue;
     const closed = archived && specClosed(dir);
-    const rows = archived && !closed ? (readSpecState(dir)?.acceptanceCriteria ?? []) : [];
+    const rows =
+      archived && !closed ? (readSpecState(dir)?.acceptanceCriteria ?? []) : [];
     const notVerified = notVerifiedCount(rows);
     const failed = failedCount(rows);
     out.push({
@@ -114,13 +120,19 @@ export type ManifestFallback = (project: string) => string | undefined;
  *  `dirOf` gives for a project — the dashboard's own checkout, for every
  *  caller that has `machineryProjectDir`; none for a caller that has no
  *  checkout to ask. */
-export const manifestInside = (dirOf?: (project: string) => string): ManifestFallback | undefined =>
+export const manifestInside = (
+  dirOf?: (project: string) => string,
+): ManifestFallback | undefined =>
   dirOf && ((project) => join(dirOf(project), ".aide", "project.yaml"));
 
 /** The manifest a project is read from: the fallback's file when it
  *  exists (the file a run reads), else the entry's own. `null` for a
  *  project with neither. */
-function manifestOf(dir: string, entry: string, fallback?: ManifestFallback): string | null {
+function manifestOf(
+  dir: string,
+  entry: string,
+  fallback?: ManifestFallback,
+): string | null {
   const derived = fallback?.(entry);
   if (derived && existsSync(derived)) return derived;
   const own = join(dir, ".aide", "project.yaml");
@@ -160,8 +172,6 @@ export function discoverProjects(
   return projects.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-
-
 /** Everything a page shows about a projects root: the manifest scan
  *  above, plus each project's parsed manifest and each spec's parsed
  *  status. The generator and the served `/projects` page both
@@ -183,7 +193,9 @@ export function buildProjectViews(
       const statusPath = join(s.dir, "4-status.md");
       return {
         ...s,
-        status: existsSync(statusPath) ? parseStatus(readFileSync(statusPath, "utf-8")) : null,
+        status: existsSync(statusPath)
+          ? parseStatus(readFileSync(statusPath, "utf-8"))
+          : null,
       };
     }),
   }));
@@ -209,7 +221,13 @@ export function gitignoreCandidates(dir: string): string[] {
     return readFileSync(file, "utf-8")
       .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#") && !line.startsWith("!") && !/[*?[\]]/.test(line))
+      .filter(
+        (line) =>
+          line &&
+          !line.startsWith("#") &&
+          !line.startsWith("!") &&
+          !/[*?[\]]/.test(line),
+      )
       .map((line) => line.replace(/\/+$/, ""))
       .filter((line) => line && !line.includes("/"));
   } catch {

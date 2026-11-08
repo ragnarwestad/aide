@@ -14,10 +14,15 @@ import { closeSync, openSync, readSync } from "node:fs";
  *  PATH does not hold, or a file that cannot be read. The line is split
  *  the way the kernel splits it: the interpreter, then at most one
  *  argument (`/usr/bin/env bash`). */
-export function scriptArgv(argv: string[], path: string | undefined = process.env.PATH): string[] {
+export function scriptArgv(
+  argv: string[],
+  path: string | undefined = process.env.PATH,
+): string[] {
   const [name, ...rest] = argv;
   if (!name) return argv;
-  const file = name.includes("/") ? name : Bun.which(name, { PATH: path ?? "" });
+  const file = name.includes("/")
+    ? name
+    : Bun.which(name, { PATH: path ?? "" });
   if (!file) return argv;
   let head = "";
   try {
@@ -35,6 +40,7 @@ export function scriptArgv(argv: string[], path: string | undefined = process.en
   const line = (head.slice(2).split("\n")[0] ?? "").trim();
   if (!line) return argv;
   const gap = line.search(/\s/);
-  const interpreter = gap < 0 ? [line] : [line.slice(0, gap), line.slice(gap).trim()];
+  const interpreter =
+    gap < 0 ? [line] : [line.slice(0, gap), line.slice(gap).trim()];
   return [...interpreter, file, ...rest];
 }

@@ -9,9 +9,11 @@ import { join } from "node:path";
 // `[ \t]*`, never `\s*`, for the same reason `depends-on.ts` gives: `\s`
 // matches a newline, and a trailing `\s*` would run an empty field
 // straight into the `---` on the next line.
-const ACCEPTANCE_LINE = /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*not required[ \t]*$/m;
+const ACCEPTANCE_LINE =
+  /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*not required[ \t]*$/m;
 // The same line with the break that ends it, for taking it out.
-const ACCEPTANCE_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*.*(\n|$)/m;
+const ACCEPTANCE_LINE_WITH_BREAK =
+  /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*.*(\n|$)/m;
 
 /** Whether this spec's own Tracking info says acceptance ticking is not
  *  required. Absence — like a spec written before this line
@@ -48,7 +50,10 @@ export function stripAcceptanceLine(text: string): string {
  *  `withDependsOnLine` uses — `null` when there is no such line to
  *  anchor on and `notRequired` is true; removing needs no anchor, so
  *  `false` is never `null`. */
-export function withAcceptanceLine(text: string, notRequired: boolean): string | null {
+export function withAcceptanceLine(
+  text: string,
+  notRequired: boolean,
+): string | null {
   const stripped = stripAcceptanceLine(text);
   if (!notRequired) return stripped;
   const created = stripped.match(/^[ \t]*-[ \t]*\*\*Created:\*\*.*$/m);

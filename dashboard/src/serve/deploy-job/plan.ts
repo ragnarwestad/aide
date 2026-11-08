@@ -10,10 +10,17 @@ import { stepKey } from "../../queue/parse-stream/step-marks.ts";
 import { STEP_LABEL } from "../../render/pages/projects-page/deploy-dialog.ts";
 
 /** The steps, in the order they run: the keys of `STEP_LABEL`. */
-export const DEPLOY_STEPS = ["fetch", "install", "restart", "wait", "check"] as const;
+export const DEPLOY_STEPS = [
+  "fetch",
+  "install",
+  "restart",
+  "wait",
+  "check",
+] as const;
 export type DeployStep = (typeof DEPLOY_STEPS)[number];
 
-const place = (step: DeployStep): string => `${DEPLOY_STEPS.indexOf(step) + 1} of ${DEPLOY_STEPS.length}`;
+const place = (step: DeployStep): string =>
+  `${DEPLOY_STEPS.indexOf(step) + 1} of ${DEPLOY_STEPS.length}`;
 
 /** How a step ends in the log. */
 export type DeployMark = "started" | "done" | "skipped" | `stopped: ${string}`;
@@ -24,4 +31,7 @@ export const deployMark = (step: DeployStep, ending: DeployMark): string =>
 
 /** The plan the Running page lists for a deploy: every step, waiting. */
 export const deployPlan = (lang: Language): PlannedStep[] =>
-  DEPLOY_STEPS.map((step) => ({ key: stepKey(place(step), ""), label: t(lang, STEP_LABEL[step]!) }));
+  DEPLOY_STEPS.map((step) => ({
+    key: stepKey(place(step), ""),
+    label: t(lang, STEP_LABEL[step]!),
+  }));

@@ -44,7 +44,7 @@ directly.
    **Every requirement under Solution has a criterion of its own** — a
    help text, a documentation page, a default — so the create step's AI
    has none to add.
-3. **Each part in a fenced code block** (```` ```markdown ````), one
+3. **Each part in a fenced code block** (` ```markdown `), one
    block per part — never as rendered text between `---` lines. The
    terminal renders markdown, and what the user copies is what it
    shows: `## Out of scope` arrives as a plain line, and backticks and

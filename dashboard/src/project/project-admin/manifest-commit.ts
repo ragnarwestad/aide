@@ -41,9 +41,13 @@ export async function commitManifestEdits(
   const before = existsSync(path) ? readFileSync(path, "utf-8") : "";
   let text = before;
   try {
-    for (const edit of edits) text = manifestWithScalar(text, edit.key, edit.value, MANIFEST_FILE);
+    for (const edit of edits)
+      text = manifestWithScalar(text, edit.key, edit.value, MANIFEST_FILE);
   } catch (err) {
-    return { ok: false, note: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      note: err instanceof Error ? err.message : String(err),
+    };
   }
   if (text === before) return { ok: true };
   const current = await lastCommitOf(git.run, codeRoot, MANIFEST_FILE);

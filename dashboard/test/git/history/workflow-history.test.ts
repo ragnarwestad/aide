@@ -28,7 +28,12 @@ const DIR = `/specs/aide/${FOLDER}`;
 
 const subject = (
   step: string,
-  opts: { headless?: boolean; stopped?: string; folder?: string; model?: string } = {},
+  opts: {
+    headless?: boolean;
+    stopped?: string;
+    folder?: string;
+    model?: string;
+  } = {},
 ) =>
   `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
   (opts.headless === false ? "" : " (headless)") +
@@ -45,12 +50,19 @@ const gitLogging = (...subjects: string[]) =>
 describe("readWorkflowSubjects", () => {
   // The 153 incident: the file can claim whatever it likes.
   test("a spec with no matching commits has had no steps", () => {
-    expect(readWorkflowSubjects([], FOLDER)).toEqual({ done: [], stopped: {}, superseded: [] });
+    expect(readWorkflowSubjects([], FOLDER)).toEqual({
+      done: [],
+      stopped: {},
+      superseded: [],
+    });
   });
 
   test("a commit for ANOTHER spec never counts, however close the name", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze", { folder: "15-something-else" }), subject("analyze", { folder: `${FOLDER}-two` })],
+      [
+        subject("analyze", { folder: "15-something-else" }),
+        subject("analyze", { folder: `${FOLDER}-two` }),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual([]);
@@ -117,16 +129,26 @@ describe("readWorkflowSubjects", () => {
   // matching altogether, and the step disappears from the history.
   test("a subject carrying a model suffix reads exactly as one without", () => {
     const withModel = readWorkflowSubjects(
-      [subject("implement", { model: "claude claude-sonnet-5" }), subject("analyze", { model: "codex gpt-5" })],
+      [
+        subject("implement", { model: "claude claude-sonnet-5" }),
+        subject("analyze", { model: "codex gpt-5" }),
+      ],
       FOLDER,
     );
-    expect(withModel).toEqual(readWorkflowSubjects([subject("implement"), subject("analyze")], FOLDER));
+    expect(withModel).toEqual(
+      readWorkflowSubjects([subject("implement"), subject("analyze")], FOLDER),
+    );
     expect(withModel.done).toEqual(["analyze", "implement"]);
   });
 
   test("a model suffix does not leak into the stop reason", () => {
     const history = readWorkflowSubjects(
-      [subject("implement", { model: "claude claude-sonnet-5", stopped: "timeout" })],
+      [
+        subject("implement", {
+          model: "claude claude-sonnet-5",
+          stopped: "timeout",
+        }),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual([]);
@@ -136,7 +158,10 @@ describe("readWorkflowSubjects", () => {
   // A step run at somebody's keyboard, committed by hand with the
   // same subject, counts exactly as a headless one does.
   test("an interactive commit without the headless marker counts", () => {
-    const history = readWorkflowSubjects([subject("analyze", { headless: false })], FOLDER);
+    const history = readWorkflowSubjects(
+      [subject("analyze", { headless: false })],
+      FOLDER,
+    );
     expect(history.done).toEqual(["analyze"]);
   });
 
@@ -172,7 +197,12 @@ describe("readWorkflowSubjects", () => {
 describe("readWorkflowSubjects after a new analysis", () => {
   test("a completed analyze above a completed implement leaves implement not done and not stopped", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze"), subject("implement"), subject("analyze"), subject("create")],
+      [
+        subject("analyze"),
+        subject("implement"),
+        subject("analyze"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create", "analyze"]);
@@ -181,14 +211,22 @@ describe("readWorkflowSubjects after a new analysis", () => {
   });
 
   test("an implement above the analyze is done as before", () => {
-    const history = readWorkflowSubjects([subject("implement"), subject("analyze"), subject("create")], FOLDER);
+    const history = readWorkflowSubjects(
+      [subject("implement"), subject("analyze"), subject("create")],
+      FOLDER,
+    );
     expect(history.done).toEqual(["create", "analyze", "implement"]);
     expect(history.superseded).toEqual([]);
   });
 
   test("an implement that ran after the analysis is done, and the one before it is not reported as skipped", () => {
     const history = readWorkflowSubjects(
-      [subject("implement"), subject("analyze"), subject("implement"), subject("create")],
+      [
+        subject("implement"),
+        subject("analyze"),
+        subject("implement"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create", "analyze", "implement"]);
@@ -197,7 +235,12 @@ describe("readWorkflowSubjects after a new analysis", () => {
 
   test("a stopped analyze above a completed analyze above an implement leaves implement not done", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("implement"), subject("create")],
+      [
+        subject("analyze", { stopped: "timeout" }),
+        subject("analyze"),
+        subject("implement"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create"]);
@@ -207,7 +250,12 @@ describe("readWorkflowSubjects after a new analysis", () => {
 
   test("a stopped analyze directly above an implement does not take it off", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze", { stopped: "timeout" }), subject("implement"), subject("analyze"), subject("create")],
+      [
+        subject("analyze", { stopped: "timeout" }),
+        subject("implement"),
+        subject("analyze"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create", "implement"]);
@@ -216,7 +264,12 @@ describe("readWorkflowSubjects after a new analysis", () => {
 
   test("a stopped implement below a completed analyze is neither done nor stopped", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze"), subject("implement", { stopped: "timeout" }), subject("analyze"), subject("create")],
+      [
+        subject("analyze"),
+        subject("implement", { stopped: "timeout" }),
+        subject("analyze"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create", "analyze"]);
@@ -226,7 +279,13 @@ describe("readWorkflowSubjects after a new analysis", () => {
 
   test("an archive below a completed analyze is not done", () => {
     const history = readWorkflowSubjects(
-      [subject("analyze"), subject("archive"), subject("implement"), subject("analyze"), subject("create")],
+      [
+        subject("analyze"),
+        subject("archive"),
+        subject("implement"),
+        subject("analyze"),
+        subject("create"),
+      ],
       FOLDER,
     );
     expect(history.done).toEqual(["create", "analyze"]);
@@ -234,7 +293,10 @@ describe("readWorkflowSubjects after a new analysis", () => {
   });
 
   test("an analysis that never had an implement before it skips nothing", () => {
-    const history = readWorkflowSubjects([subject("analyze"), subject("create")], FOLDER);
+    const history = readWorkflowSubjects(
+      [subject("analyze"), subject("create")],
+      FOLDER,
+    );
     expect(history.done).toEqual(["create", "analyze"]);
     expect(history.superseded).toEqual([]);
   });
@@ -246,7 +308,10 @@ describe("stepsFileDisagreesOn", () => {
   test("flags a step the file claims that git has no commit for", () => {
     expect(
       stepsFileDisagreesOn(
-        { proseSteps: ["create", "analyze", "implement"], stateSteps: undefined },
+        {
+          proseSteps: ["create", "analyze", "implement"],
+          stateSteps: undefined,
+        },
         { done: ["create", "analyze"], stopped: {} },
       ),
     ).toEqual(["implement"]);
@@ -276,11 +341,17 @@ describe("stepsFileDisagreesOn", () => {
   });
 
   test("still ignores create, in either direction", () => {
-    expect(stepsFileDisagreesOn({ proseSteps: ["create"], stateSteps: undefined }, { done: [], stopped: {} })).toEqual(
-      [],
-    );
     expect(
-      stepsFileDisagreesOn({ proseSteps: [], stateSteps: undefined }, { done: ["create"], stopped: {} }),
+      stepsFileDisagreesOn(
+        { proseSteps: ["create"], stateSteps: undefined },
+        { done: [], stopped: {} },
+      ),
+    ).toEqual([]);
+    expect(
+      stepsFileDisagreesOn(
+        { proseSteps: [], stateSteps: undefined },
+        { done: ["create"], stopped: {} },
+      ),
     ).toEqual([]);
   });
 
@@ -290,7 +361,10 @@ describe("stepsFileDisagreesOn", () => {
   test("a state file's own phase is never compared against git, once one exists", () => {
     expect(
       stepsFileDisagreesOn(
-        { proseSteps: ["create", "analyze"], stateSteps: ["create", "analyze"] },
+        {
+          proseSteps: ["create", "analyze"],
+          stateSteps: ["create", "analyze"],
+        },
         { done: ["create"], stopped: {} },
       ),
     ).toEqual([]);
@@ -303,7 +377,10 @@ describe("stepsFileDisagreesOn", () => {
   test("flags a phase the prose claims that the state file lacks, even though git has it", () => {
     expect(
       stepsFileDisagreesOn(
-        { proseSteps: ["create", "analyze", "implement"], stateSteps: ["create", "analyze"] },
+        {
+          proseSteps: ["create", "analyze", "implement"],
+          stateSteps: ["create", "analyze"],
+        },
         { done: ["create", "analyze", "implement"], stopped: {} },
       ),
     ).toEqual(["implement"]);
@@ -333,7 +410,9 @@ describe("workflowLogArgs", () => {
     // A commit is never listed before one made on top of it, whatever
     // their dates say: the rule compares the order of two steps' commits.
     expect(args).toContain("--date-order");
-    expect(args.some((a) => a === `--grep=Run /aide-` || a.includes(FOLDER))).toBe(true);
+    expect(
+      args.some((a) => a === `--grep=Run /aide-` || a.includes(FOLDER)),
+    ).toBe(true);
   });
 });
 
@@ -341,7 +420,10 @@ describe("WorkflowHistoryChecker", () => {
   test("asks git once per spec and answers from the cache after that", async () => {
     const git = gitLogging(subject("analyze"));
     let clock = 0;
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => clock });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => clock,
+    });
     expect((await checker.read(DIR, FOLDER)).done).toEqual(["analyze"]);
     expect((await checker.read(DIR, FOLDER)).done).toEqual(["analyze"]);
     expect(git.calls.length).toBe(1);
@@ -356,7 +438,11 @@ describe("WorkflowHistoryChecker", () => {
   test("a git that fails reports nothing rather than guessing", async () => {
     const git = fakeGit({ log: { code: 128, stdout: "" } });
     const checker = new WorkflowHistoryChecker({ run: git.run });
-    expect(await checker.read(DIR, FOLDER)).toEqual({ done: [], stopped: {}, superseded: [] });
+    expect(await checker.read(DIR, FOLDER)).toEqual({
+      done: [],
+      stopped: {},
+      superseded: [],
+    });
   });
 
   test("a runner that throws is not an exception the page has to catch", async () => {
@@ -365,7 +451,11 @@ describe("WorkflowHistoryChecker", () => {
         throw new Error("no such directory");
       },
     });
-    expect(await checker.read(DIR, FOLDER)).toEqual({ done: [], stopped: {}, superseded: [] });
+    expect(await checker.read(DIR, FOLDER)).toEqual({
+      done: [],
+      stopped: {},
+      superseded: [],
+    });
   });
 });
 
@@ -376,14 +466,23 @@ describe("WorkflowHistoryChecker", () => {
 describe("WorkflowHistoryChecker.peekHistory", () => {
   test("a spec nothing has ever asked about answers null, and spawns no git", () => {
     const git = gitLogging(subject("analyze"));
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
-    expect(checker.peekHistory(DIR, FOLDER)).toEqual({ history: null, checkedAt: null });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => 1000,
+    });
+    expect(checker.peekHistory(DIR, FOLDER)).toEqual({
+      history: null,
+      checkedAt: null,
+    });
     expect(git.calls.length).toBe(0);
   });
 
   test("after a read, it hands back that history and when it was taken", async () => {
     const git = gitLogging(subject("analyze"));
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => 1000,
+    });
     await checker.read(DIR, FOLDER);
     const before = git.calls.length;
     const { history, checkedAt } = checker.peekHistory(DIR, FOLDER);
@@ -396,7 +495,10 @@ describe("WorkflowHistoryChecker.peekHistory", () => {
   // answer ("nothing has run yet"); a null one is the absence of one.
   test("a real empty history is not the same as never having asked", async () => {
     const git = fakeGit({ log: { code: 128, stdout: "" } });
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 5000 });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => 5000,
+    });
     await checker.read(DIR, FOLDER);
     expect(checker.peekHistory(DIR, FOLDER)).toEqual({
       history: { done: [], stopped: {}, superseded: [] },
@@ -407,7 +509,10 @@ describe("WorkflowHistoryChecker.peekHistory", () => {
   test("past the TTL the same history stands, with its original timestamp", async () => {
     const git = gitLogging(subject("analyze"));
     let clock = 1000;
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => clock });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => clock,
+    });
     await checker.read(DIR, FOLDER);
     clock += 60_000;
     expect(checker.peekHistory(DIR, FOLDER).checkedAt).toBe(1000);
@@ -417,7 +522,10 @@ describe("WorkflowHistoryChecker.peekHistory", () => {
   // the peek's key too.
   test("a different reopen boundary is a different question", async () => {
     const git = gitLogging(subject("analyze"));
-    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
+    const checker = new WorkflowHistoryChecker({
+      run: git.run,
+      now: () => 1000,
+    });
     await checker.read(DIR, FOLDER);
     expect(checker.peekHistory(DIR, FOLDER, "abc1234").history).toBeNull();
   });

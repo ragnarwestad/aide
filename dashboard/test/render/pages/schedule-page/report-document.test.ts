@@ -21,7 +21,21 @@ describe("buildReportDocument", () => {
     expect(doc).toContain("Inside form");
     expect(doc).not.toContain("color:red");
     expect(doc).not.toContain("alert(1)");
-    for (const gone of ["<font", "bgcolor", "style=\"color", "onload", "onclick", "onerror", "<form", "<iframe", "<object", "<embed", "evil", "x.css", "http-equiv"]) {
+    for (const gone of [
+      "<font",
+      "bgcolor",
+      'style="color',
+      "onload",
+      "onclick",
+      "onerror",
+      "<form",
+      "<iframe",
+      "<object",
+      "<embed",
+      "evil",
+      "x.css",
+      "http-equiv",
+    ]) {
       expect(doc).not.toContain(gone);
     }
   });

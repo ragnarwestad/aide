@@ -23,10 +23,24 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/pa
 // job — and it is on the HEADER row, because folding takes the phase
 // lines out of the page entirely.
 describe("a spec's row runs its own phases", () => {
-  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
-    row({ id, specFolder: "94-row-runs-it", steps: [step], stepIndex: 0, state: "done", ...extra });
+  const job = (
+    id: string,
+    step: string,
+    extra: Partial<QueueRowView> = {},
+  ): QueueRowView =>
+    row({
+      id,
+      specFolder: "94-row-runs-it",
+      steps: [step],
+      stepIndex: 0,
+      state: "done",
+      ...extra,
+    });
 
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -63,10 +77,16 @@ describe("a spec's row runs its own phases", () => {
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
+    )?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+    line.match(
+      new RegExp(
+        `<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`,
+      ),
+    )?.[0] ?? "";
 
   // A phase that has run can be run again: its box is tickable, and it
   // starts unticked, so a press runs it only when the reader asks. The
@@ -92,7 +112,11 @@ describe("a spec's row runs its own phases", () => {
     const html = rows(
       [job("j1", "analyze")],
       [target("94-row-runs-it", { done: ["analyze"] })],
-      { pendingSteps: { "aide/94-row-runs-it": ["analyze", "implement", "archive"] } },
+      {
+        pendingSteps: {
+          "aide/94-row-runs-it": ["analyze", "implement", "archive"],
+        },
+      },
     );
     const line = runLine(html, "94-row-runs-it");
     expect(box(line, "analyze")).not.toContain("checked");
@@ -108,7 +132,10 @@ describe("a spec's row runs its own phases", () => {
   test("a spec nothing has run pre-ticks every phase", () => {
     const lines = [
       runLine(rows([], [target("94-never-run")]), "94-never-run"),
-      runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it"),
+      runLine(
+        rows([job("j1", "explore")], [target("94-row-runs-it")]),
+        "94-row-runs-it",
+      ),
     ];
     for (const line of lines) {
       expect(box(line, "analyze")).toContain('value="analyze" checked');
@@ -123,7 +150,10 @@ describe("a spec's row runs its own phases", () => {
     // `analyze` is done, so its box is not pre-ticked; the two phases
     // after it are — every phase that has not run, not the next one
     // only.
-    const line = runLine(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
+    const line = runLine(
+      rows([], [target("94-never-run", { done: ["analyze"] })]),
+      "94-never-run",
+    );
     expect(box(line, "analyze")).not.toContain("checked");
     expect(box(line, "implement")).toContain('value="implement" checked');
     expect(box(line, "archive")).toContain('value="archive" checked');
@@ -153,7 +183,12 @@ describe("a spec's row runs its own phases", () => {
   test("a later phase's box stays live while the job runs", () => {
     const line = runLine(
       rows(
-        [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
+        [
+          job("j1", "analyze", {
+            state: "running",
+            editableSteps: ["implement", "archive"],
+          }),
+        ],
         [target("94-row-runs-it")],
       ),
       "94-row-runs-it",
@@ -195,7 +230,10 @@ describe("a spec's row runs its own phases", () => {
   // the row goes back to what it looks like today.
   test("a job merely queued between two steps locks everything", () => {
     const line = runLine(
-      rows([job("j1", "analyze", { state: "queued" })], [target("94-row-runs-it")]),
+      rows(
+        [job("j1", "analyze", { state: "queued" })],
+        [target("94-row-runs-it")],
+      ),
       "94-row-runs-it",
     );
     for (const step of ["analyze", "implement", "archive"]) {
@@ -218,15 +256,20 @@ describe("a spec's row runs its own phases", () => {
   ];
   const CHOICES_225 = [
     { name: "sonnet" },
-    { name: "codex-fast",  tool: "codex" as const },
+    { name: "codex-fast", tool: "codex" as const },
   ];
   /** The two selects on one phase's line, as their opening tags: what
    *  a test about `disabled` and `data-post-to` is actually asking. */
   const pickers = (html: string, step: string) => {
     const line = subRow(html, step);
     return {
-      ai: line.match(new RegExp(`<select name="provider\\.${step}"[^>]*>`))?.[0] ?? "",
-      model: line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "",
+      ai:
+        line.match(
+          new RegExp(`<select name="provider\\.${step}"[^>]*>`),
+        )?.[0] ?? "",
+      model:
+        line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ??
+        "",
     };
   };
 
@@ -248,7 +291,10 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.model.includes("disabled")]).toEqual([step, false]);
       // The model select is the one that posts: a live pick goes to
       // the running job's own route the moment it is made.
-      expect([step, p.model.includes(`data-post-to="/api/queue/j1/model"`)]).toEqual([step, true]);
+      expect([
+        step,
+        p.model.includes(`data-post-to="/api/queue/j1/model"`),
+      ]).toEqual([step, true]);
       // The AI select posts nothing itself, live or not — it writes
       // the model select beside it, and that is what reaches the
       // server.
@@ -258,7 +304,12 @@ describe("a spec's row runs its own phases", () => {
 
   test("a phase the job does not have at all is pickable too", () => {
     const html = rows(
-      [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
+      [
+        job("j1", "analyze", {
+          state: "running",
+          editableSteps: ["implement", "archive"],
+        }),
+      ],
       [target("94-row-runs-it")],
       { modelChoices: CHOICES_225, providerChoices: PROVIDERS_225 },
     );
@@ -289,7 +340,10 @@ describe("a spec's row runs its own phases", () => {
       expect([step, p.model.includes("disabled")]).toEqual([step, true]);
       // The same sentence used to sit on both selects' own
       // `title`, four times over on a busy line.
-      expect([step, subRow(html, step).includes('title="Implement is running"')]).toEqual([step, false]);
+      expect([
+        step,
+        subRow(html, step).includes('title="Implement is running"'),
+      ]).toEqual([step, false]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
     }
     const ahead = pickers(html, "archive");
@@ -321,7 +375,10 @@ describe("a spec's row runs its own phases", () => {
    *  busy row still carries. */
   test("a busy phase posts nothing back, ticked or not", () => {
     const line = runLine(
-      rows([job("j1", "analyze", { state: "running" })], [target("94-row-runs-it")]),
+      rows(
+        [job("j1", "analyze", { state: "running" })],
+        [target("94-row-runs-it")],
+      ),
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
@@ -347,7 +404,11 @@ describe("a spec's row runs its own phases", () => {
     const line = runLine(
       rows(
         [job("j1", "archive")],
-        [target("94-row-runs-it", { done: ["analyze", "implement", "archive"] })],
+        [
+          target("94-row-runs-it", {
+            done: ["analyze", "implement", "archive"],
+          }),
+        ],
       ),
       "94-row-runs-it",
     );
@@ -384,7 +445,7 @@ describe("a spec's row runs its own phases", () => {
 describe("a phase whose box is locked has its AI and model locked too", () => {
   const TOOLS: SpecsPageOptions["modelChoices"] = [
     { name: "sonnet" },
-    { name: "gpt-5",  tool: "codex" },
+    { name: "gpt-5", tool: "codex" },
   ];
   const render = (done: string[]): string =>
     renderSpecsRows(
@@ -397,14 +458,27 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
           { key: "Claude", name: "Claude", tool: "claude" as const },
           { key: "Codex", name: "Codex", tool: "codex" as const },
         ],
-        filter: { open: openKeys([], [{ project: "aide", specFolder: "413-locked-pickers" }]) },
+        filter: {
+          open: openKeys(
+            [],
+            [{ project: "aide", specFolder: "413-locked-pickers" }],
+          ),
+        },
       },
       Date.parse("2026-09-09T12:00:00Z"),
     );
   const line = (html: string, step: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`),
+    )?.[0] ?? "";
   const select = (html: string, attr: string, step: string) =>
-    html.match(new RegExp(attr === "data-ai" ? `<select name="provider\\.${step}"[^>]*>` : `<select ${attr}="model\\.${step}"[^>]*>`))?.[0] ?? "";
+    html.match(
+      new RegExp(
+        attr === "data-ai"
+          ? `<select name="provider\\.${step}"[^>]*>`
+          : `<select ${attr}="model\\.${step}"[^>]*>`,
+      ),
+    )?.[0] ?? "";
 
   test("a phase this row has run keeps both picks, for the next run of it", () => {
     const analyze = line(render(["analyze"]), "analyze");
@@ -445,7 +519,13 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
 // with no control to reach it is the same as no rule.
 describe("a held-back spec's row offers the round again", () => {
   const job = (id: string, step: string): QueueRowView =>
-    row({ id, specFolder: "471-another-round", steps: [step], stepIndex: 0, state: "done" });
+    row({
+      id,
+      specFolder: "471-another-round",
+      steps: [step],
+      stepIndex: 0,
+      state: "done",
+    });
 
   const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -453,10 +533,19 @@ describe("a held-back spec's row offers the round again", () => {
     ...extra,
   });
 
-  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
+  const rows = (
+    list: QueueRowView[],
+    targets: SpecTarget[],
+    opts: Partial<SpecsPageOptions> = {},
+  ) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
       Date.parse("2026-09-16T12:00:00Z"),
     );
 
@@ -468,13 +557,22 @@ describe("a held-back spec's row offers the round again", () => {
       ),
     )?.[0] ?? "";
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+    line.match(
+      new RegExp(
+        `<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`,
+      ),
+    )?.[0] ?? "";
 
   const done = ["analyze", "implement"];
   const ran = [job("j1", "analyze"), job("j2", "implement")];
 
   test("analyze and implement can be ticked again while the archive is held back on checks", () => {
-    const html = rows(ran, [target({ done, archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })]);
+    const html = rows(ran, [
+      target({
+        done,
+        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+      }),
+    ]);
     const line = runLine(html, "471-another-round");
     for (const step of done) {
       expect(box(line, step)).toContain(`value="${step}"`);
@@ -493,15 +591,20 @@ describe("a held-back spec's row offers the round again", () => {
       steps: ["archive"],
       stepIndex: 0,
       state: "done",
-      results: [{
-        step: "archive",
-        ok: true,
-        costUsd: 0,
-        at: "2026-09-16T08:41:00Z",
-        terminalReason: "acceptance-criteria-unticked",
-      }],
+      results: [
+        {
+          step: "archive",
+          ok: true,
+          costUsd: 0,
+          at: "2026-09-16T08:41:00Z",
+          terminalReason: "acceptance-criteria-unticked",
+        },
+      ],
     });
-    const html = rows([...ran, archiveRefused], [target({ done: [...done, "archive"] })]);
+    const html = rows(
+      [...ran, archiveRefused],
+      [target({ done: [...done, "archive"] })],
+    );
     const line = runLine(html, "471-another-round");
     for (const step of done) expect(box(line, step)).not.toContain("disabled");
   });
@@ -513,8 +616,17 @@ describe("a held-back spec's row offers the round again", () => {
   test("the round is offered unticked, and archive stays the one ticked", () => {
     const html = rows(
       ran,
-      [target({ done, archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
-      { pendingSteps: { "aide/471-another-round": ["analyze", "implement", "archive"] } },
+      [
+        target({
+          done,
+          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+        }),
+      ],
+      {
+        pendingSteps: {
+          "aide/471-another-round": ["analyze", "implement", "archive"],
+        },
+      },
     );
     const line = runLine(html, "471-another-round");
     for (const step of done) {

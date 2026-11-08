@@ -18,8 +18,17 @@
 
   document.addEventListener("click", (event: Event) => {
     const e = event as MouseEvent;
-    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    const link = (e.target as Element | null)?.closest?.("a[data-pdf]") as HTMLAnchorElement | null;
+    if (
+      e.defaultPrevented ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.button !== 0
+    )
+      return;
+    const link = (e.target as Element | null)?.closest?.(
+      "a[data-pdf]",
+    ) as HTMLAnchorElement | null;
     if (!link || link.classList.contains("busy")) return;
     link.classList.add("busy");
     link.insertAdjacentHTML("afterbegin", SPINNER);

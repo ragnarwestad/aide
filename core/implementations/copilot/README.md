@@ -62,6 +62,7 @@ cd core/implementations/copilot
 ## What the CLI does
 
 The Copilot CLI is the autonomous half of Copilot, and the only half aide uses:
+
 - ✅ Analyzes the whole codebase for context
 - ✅ Plans and carries out multi-step solutions
 - ✅ Runs commands and tests
@@ -157,7 +158,7 @@ Copilot CLI reads the skills `install.sh` puts in `~/.agents/skills/`, so slash
 commands work **natively** — no setup beyond `install.sh`:
 
 | Command           | Function           |
-|-------------------|--------------------|
+| ----------------- | ------------------ |
 | `/aide-create`    | Create a spec      |
 | `/aide-analyze`   | Analyze codebase   |
 | `/aide-implement` | Implement with TDD |
@@ -236,6 +237,7 @@ Follow the project's coding standard for all code.
 ### TDD workflow
 
 The Copilot CLI follows the TDD cycle from aide's own rules:
+
 - Writes tests first (RED)
 - Implements until tests pass (GREEN)
 - Verifies the full suite, types, lint and build (VERIFY)
@@ -248,11 +250,13 @@ The Copilot CLI follows the TDD cycle from aide's own rules:
 ### 1. Be explicit about context
 
 ❌ **Bad:**
+
 ```text
 Analyze PROJ-7890
 ```
 
 ✅ **Good:**
+
 ```text
 Analyze PROJ-7890 following core/skills/workflows/SKILL.md.
 First read 1-description.md, then search the codebase,
@@ -388,7 +392,7 @@ copilot -p '/aide-create "A test spec" Just checking that the flow works.'
 ### Flag reference
 
 | Flag                     | Description                           |
-|--------------------------|---------------------------------------|
+| ------------------------ | ------------------------------------- |
 | `-p "prompt"`            | Headless/programmatic mode            |
 | `--allow-all-tools`      | Allow all tools without confirmation  |
 | `--allow-tool 'tool'`    | Allow a specific tool                 |
@@ -403,7 +407,7 @@ copilot -p '/aide-create "A test spec" Just checking that the flow works.'
 ### Slash commands in the CLI
 
 | Command                      | Description                                              |
-|------------------------------|----------------------------------------------------------|
+| ---------------------------- | -------------------------------------------------------- |
 | `/model`                     | Switch model mid-session                                 |
 | `/diff`                      | View all changes in the session with syntax highlighting |
 | `/plugin install owner/repo` | Install plugins from GitHub                              |

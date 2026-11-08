@@ -38,7 +38,13 @@ export interface ActionResult {
   /** The project a project route answered for (`answerProjectChange`). */
   project?: string;
   /** The job a queue request started, for a caller that waits for it. */
-  job?: { id?: string; project?: string; specFolder?: string; steps?: string[]; stepIndex?: number };
+  job?: {
+    id?: string;
+    project?: string;
+    specFolder?: string;
+    steps?: string[];
+    stepIndex?: number;
+  };
   /** Where a saved schedule entry goes next: the page it was opened from. */
   location?: string;
   /** What a press that went through says about itself ("saved
@@ -53,24 +59,40 @@ export interface ActionResult {
  *  routes answer per step, the queue routes answer once. Written as a
  *  Problem line and, when the answer has a fix, a Solution line, labelled
  *  in the words the page carries (`data-problem`, `data-solution`). */
-export function refusalText(body: ActionResult | null, action?: string, status?: number): string {
+export function refusalText(
+  body: ActionResult | null,
+  action?: string,
+  status?: number,
+): string {
   const steps = (body?.results ?? []).filter((r) => r.error);
   const perStep = steps.map((r) => r.error).join("; ");
-  const problem = perStep || body?.error || (action && status !== undefined
-    ? `${action} failed with HTTP ${status}`
-    : "the request failed");
-  const solution = perStep ? steps.find((r) => r.solution)?.solution : body?.solution;
-  const dataset = typeof document === "undefined" ? undefined : document.body?.dataset;
-  const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+  const problem =
+    perStep ||
+    body?.error ||
+    (action && status !== undefined
+      ? `${action} failed with HTTP ${status}`
+      : "the request failed");
+  const solution = perStep
+    ? steps.find((r) => r.solution)?.solution
+    : body?.solution;
+  const dataset =
+    typeof document === "undefined" ? undefined : document.body?.dataset;
+  const capital = (text: string): string =>
+    text.charAt(0).toUpperCase() + text.slice(1);
   const first = `${dataset?.problem ?? "Problem"}: ${capital(problem)}`;
-  return solution ? `${first}\n${dataset?.solution ?? "Solution"}: ${capital(solution)}` : first;
+  return solution
+    ? `${first}\n${dataset?.solution ?? "Solution"}: ${capital(solution)}`
+    : first;
 }
 
 /** Writes `text` into a message line `messageSlot()` drew: into its
  *  words, so the icon the server drew stays, first letter capitalised as
  *  the server writes it. An empty text empties the line, which then
  *  draws nothing. */
-export function writeLine(line: Element | null | undefined, text: string): void {
+export function writeLine(
+  line: Element | null | undefined,
+  text: string,
+): void {
   if (!line) return;
   const words = line.querySelector?.("span") ?? line;
   words.textContent = text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
@@ -90,7 +112,11 @@ export const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
 export const namesForm = (id: string): Element[] =>
   id ? Array.from(document.querySelectorAll(`[form="${attrValue(id)}"]`)) : [];
 
-export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+export type Control =
+  | HTMLButtonElement
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement;
 
 /** What a person can press, tick, pick or type in. Hidden fields are no one's to press. */
 const PRESSABLE = "button, select, textarea, input:not([type=hidden])";
@@ -106,7 +132,9 @@ const PRESSABLE = "button, select, textarea, input:not([type=hidden])";
  *  so a second press could land on the spec while the first is half-way. */
 export function rowControls(form: HTMLFormElement): Control[] {
   const scope = specRowsOf(form) ?? [form];
-  const inScope = scope.flatMap((el) => Array.from(el.querySelectorAll(PRESSABLE)));
+  const inScope = scope.flatMap((el) =>
+    Array.from(el.querySelectorAll(PRESSABLE)),
+  );
   return [...new Set([...inScope, ...namesForm(form.id)])] as Control[];
 }
 
@@ -129,7 +157,9 @@ export async function postForm(
   // one outside its tags that names it.
   const own = Array.from(form.querySelectorAll("button"));
   const primary =
-    own[0] ?? (namesForm(form.id).find((el) => el.tagName === "BUTTON") as HTMLButtonElement | undefined);
+    own[0] ??
+    (namesForm(form.id).find((el) => el.tagName === "BUTTON") as
+      HTMLButtonElement | undefined);
   const label = primary?.textContent ?? "";
   const titleBefore = primary?.title ?? "";
   // A form on a spec's row, or the New-spec form above the table: the
@@ -196,7 +226,10 @@ export async function postForm(
     pressed();
     const res = await fetch(url.toString(), {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/x-www-form-urlencoded",
+      },
       body,
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
@@ -204,7 +237,10 @@ export async function postForm(
       await onOk(answer);
       return;
     }
-    await onRefused(refusalText(answer, label || "the action", res.status), answer?.spec);
+    await onRefused(
+      refusalText(answer, label || "the action", res.status),
+      answer?.spec,
+    );
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
     // the always-correct answer, because it asks the server again. With
@@ -236,9 +272,13 @@ export async function postForm(
 
 /** Moves a `switchControl()` button: its position, the word beside it and
  *  whether it can be pressed, from one call so the three cannot disagree. */
-export function setSwitch(el: HTMLElement, s: { checked: boolean; disabled: boolean }): void {
+export function setSwitch(
+  el: HTMLElement,
+  s: { checked: boolean; disabled: boolean },
+): void {
   el.setAttribute("aria-checked", String(s.checked));
   (el as HTMLButtonElement).disabled = s.disabled;
   const word = el.querySelector(".switchword");
-  if (word) word.textContent = (s.checked ? el.dataset.on : el.dataset.off) ?? "";
+  if (word)
+    word.textContent = (s.checked ? el.dataset.on : el.dataset.off) ?? "";
 }

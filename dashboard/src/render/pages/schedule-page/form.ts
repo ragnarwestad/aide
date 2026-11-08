@@ -5,18 +5,44 @@
 // `data-cron-next` hook below — a debounced fetch against
 // `GET /api/queue/schedule/cron-next` patches this element's text as
 // the field changes.
-import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../queue/schedule.ts";
-import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
+import {
+  nextFireTime,
+  scheduleNotifyOf,
+  type ScheduleNotify,
+} from "../../../queue/schedule.ts";
+import {
+  btn,
+  btnLink,
+  field,
+  messageSlot,
+  rowMessage,
+} from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
+import {
+  defaultModelForTool,
+  modelOptions,
+  offeredProviders,
+  resolveChosenModel,
+  resolveProvider,
+  type SpecsPageOptions,
+} from "../specs-list";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
+  entry?: {
+    name: string;
+    cron: string;
+    prompt: string;
+    model?: string;
+    provider?: string;
+    notify?: ScheduleNotify;
+    chrome?: boolean;
+    sandbox?: false;
+  };
   action: string;
   /** Every allowed project: draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -74,12 +100,19 @@ export const SCHEDULE_FORM_ID = "schedule-form";
 function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
-  const configured = opts.defaultModels?.schedule ?? opts.defaultModels?.default;
+  const configured =
+    opts.defaultModels?.schedule ?? opts.defaultModels?.default;
   const chosen = resolveChosenModel(models, configured, opts.entry?.model);
   const providers = opts.providerChoices ?? [];
   const resting = resolveProvider(
-    { modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders },
-    "schedule", chosen, [opts.entry?.provider],
+    {
+      modelChoices: models,
+      providerChoices: providers,
+      defaultProviders: opts.defaultProviders,
+    },
+    "schedule",
+    chosen,
+    [opts.entry?.provider],
   );
   // Drawn only where there is more than one provider to choose between.
   const aiSelect =
@@ -107,7 +140,9 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
     (aiSelect ? field(t(lang, "schedule.ai"), aiSelect) : "") +
     field(
       t(lang, "schedule.model"),
-      `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`,
+      `<select name="model" form="${SCHEDULE_FORM_ID}">` +
+        modelOptions(models, chosen) +
+        `</select>`,
     ) +
     `</span>`
   );
@@ -126,9 +161,10 @@ export const NOTIFY_WORDS = [
  *  choice is read as. */
 function notifyField(opts: ScheduleFormOptions, lang: Language): string {
   const chosen = scheduleNotifyOf(opts.entry ?? {});
-  const options = NOTIFY_WORDS
-    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
-    .join("");
+  const options = NOTIFY_WORDS.map(
+    ([value, key]) =>
+      `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`,
+  ).join("");
   return `<div class="schedulenotify">${field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`)}</div>`;
 }
 
@@ -142,9 +178,10 @@ export const BROWSER_WORDS = [
  *  starting on None, so the browser is something an entry asks for. */
 function browserField(opts: ScheduleFormOptions, lang: Language): string {
   const chosen = opts.entry?.chrome ? "yes" : "no";
-  const options = BROWSER_WORDS
-    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
-    .join("");
+  const options = BROWSER_WORDS.map(
+    ([value, key]) =>
+      `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`,
+  ).join("");
   return `<div class="schedulebrowser">${field(t(lang, "schedule.browser"), `<select name="chrome">${options}</select>`)}</div>`;
 }
 
@@ -159,40 +196,59 @@ export const SANDBOX_WORDS = [
  *  asks for. */
 function sandboxField(opts: ScheduleFormOptions, lang: Language): string {
   const chosen = opts.entry?.sandbox === false ? "off" : "on";
-  const options = SANDBOX_WORDS
-    .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
-    .join("");
+  const options = SANDBOX_WORDS.map(
+    ([value, key]) =>
+      `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`,
+  ).join("");
   return `<div class="schedulesandbox">${field(t(lang, "schedule.sandbox"), `<select name="sandbox">${options}</select>`)}</div>`;
 }
 
 export const CRON_NEXT_HOOK = "cron-next";
 
-export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "en"): string {
+export function renderScheduleForm(
+  opts: ScheduleFormOptions,
+  lang: Language = "en",
+): string {
   const e = opts.entry;
   const initialNext = e?.cron ? nextFireTime(e.cron, new Date()) : null;
   const models = modelFields(opts, lang);
   return (
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
     `data-cron-preview-url="/api/queue/schedule/cron-next">` +
-    (opts.fixedProject ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">` : "") +
-    (opts.back ? `<input type="hidden" name="back" value="${esc(opts.back)}">` : "") +
+    (opts.fixedProject
+      ? `<input type="hidden" name="project" value="${esc(opts.fixedProject)}">`
+      : "") +
+    (opts.back
+      ? `<input type="hidden" name="back" value="${esc(opts.back)}">`
+      : "") +
     messageSlot("refused", "failed") +
     rowMessage("info", t(lang, "schedule.reportOnly"), { tag: "p" }) +
     `<div class="frow">` +
     (opts.projects
       ? field(
           t(lang, "schedule.project"),
-          `<select name="project">` + opts.projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") + `</select>`,
+          `<select name="project">` +
+            opts.projects
+              .map((p) => `<option value="${esc(p)}">${esc(p)}</option>`)
+              .join("") +
+            `</select>`,
         )
       : "") +
-    field(t(lang, "schedule.colName"), `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
+    field(
+      t(lang, "schedule.colName"),
+      `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`,
+    ) +
     `</div>` +
     `<div class="frow">` +
     field(
       t(lang, "schedule.cron"),
       `<input type="text" name="cron" required class="cron-input" value="${esc(e?.cron ?? "")}">` +
         `<span class="muted" data-${CRON_NEXT_HOOK} data-template="${esc(t(lang, "schedule.nextRunAt", { at: "{at}" }))}">` +
-        (initialNext ? esc(t(lang, "schedule.nextRunAt", { at: initialNext.toISOString() })) : "") +
+        (initialNext
+          ? esc(
+              t(lang, "schedule.nextRunAt", { at: initialNext.toISOString() }),
+            )
+          : "") +
         `</span>`,
     ) +
     field(
@@ -213,7 +269,13 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `<div class="factions">${btn({ id: opts.entryName ? "scheduleform-save" : undefined, label: t(lang, opts.entryName ? "list.checksSave" : "form.create"), variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,
     // and `data-discard-changes` lets it past the leave question.
-    (opts.cancelHref ? btnLink({ href: opts.cancelHref, label: t(lang, "dialog.cancel"), data: { "discard-changes": "" } }) : "") +
+    (opts.cancelHref
+      ? btnLink({
+          href: opts.cancelHref,
+          label: t(lang, "dialog.cancel"),
+          data: { "discard-changes": "" },
+        })
+      : "") +
     `</div>` +
     `</form>`
   );

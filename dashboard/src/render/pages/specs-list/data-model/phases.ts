@@ -5,14 +5,22 @@
 
 import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { archiveHeldBackApplies } from "../../../../project/parse-status";
-import { currentStep, inFlight, sidesSpent, type QueueRowView, type StepResultView } from "../../../ui/job-state";
+import {
+  currentStep,
+  inFlight,
+  sidesSpent,
+  type QueueRowView,
+  type StepResultView,
+} from "../../../ui/job-state";
 import { landingStep } from "../../../ui/job-state/resting.ts";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
 
 /** Every step this job has anything to say about: the ones it finished,
  *  plus the one it is on. */
 function stepsTouched(r: QueueRowView): string[] {
-  const finished = (r.results ?? []).map((x) => x.step).filter((s): s is string => !!s);
+  const finished = (r.results ?? [])
+    .map((x) => x.step)
+    .filter((s): s is string => !!s);
   return [...new Set([...finished, currentStep(r)])];
 }
 
@@ -30,14 +38,26 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
     // is this one step's — the one whose branch was being merged
     // (2026-09-11). Read as done, the line said "done" over a job that
     // said "failed", and the pip beside it took the wrong colour.
-    const landingFell = res.ok && currentStep(r) === step && (r.state === "failed" || r.state === "stopped");
+    const landingFell =
+      res.ok &&
+      currentStep(r) === step &&
+      (r.state === "failed" || r.state === "stopped");
     return {
       ...r,
-      state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
+      state: landingFell
+        ? r.state
+        : res.ok
+          ? "done"
+          : r.state === "done"
+            ? "failed"
+            : r.state,
       // The step's figures are the total over its session and its review and
       // verification; this line is the session's own.
       spentUsd: Math.max(0, res.costUsd - sidesSpent(res).usd),
-      spentTokens: res.tokens === undefined ? undefined : Math.max(0, res.tokens - sidesSpent(res).tokens),
+      spentTokens:
+        res.tokens === undefined
+          ? undefined
+          : Math.max(0, res.tokens - sidesSpent(res).tokens),
       // THIS step's model, not the row's: the row speaks for the running
       // or last step, and spread whole it named the last step's model on
       // every line of a multi-step job (2026-09-15).
@@ -56,27 +76,39 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   // Not yet run, while an EARLIER step of the same job is landing: a
   // chained job has already moved its `stepIndex` on to this step when
   // the one before it starts merging. The landing is that step's.
-  if (r.landing && landingStep(r) !== step) return { ...r, landing: undefined, modelId: undefined };
+  if (r.landing && landingStep(r) !== step)
+    return { ...r, landing: undefined, modelId: undefined };
   // What the finished steps did not account for. A job's `spentUsd` is
   // the sum over its steps, so the step in flight owns the remainder.
   const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
   // The same remainder in tokens — but only where there is one to take.
   // A job with no token figure has no remainder either, and subtracting
   // from nothing would invent a zero.
-  const countedTokens = (r.results ?? []).reduce((sum, x) => sum + (x.tokens ?? 0), 0);
+  const countedTokens = (r.results ?? []).reduce(
+    (sum, x) => sum + (x.tokens ?? 0),
+    0,
+  );
   return {
     ...r,
     modelId: undefined,
     spentUsd: Math.max(0, r.spentUsd - counted),
-    spentTokens: r.spentTokens === undefined ? undefined : Math.max(0, r.spentTokens - countedTokens),
+    spentTokens:
+      r.spentTokens === undefined
+        ? undefined
+        : Math.max(0, r.spentTokens - countedTokens),
   };
 }
 
 /** What the review and the verification of the runs the queue holds for a
  *  step spent, summed: the part of a phase file's figure that is not the
  *  step's own session. */
-export function attemptsSidesSpent(attempts: QueueRowView[], step: string): { usd: number; tokens: number } {
-  const results = attempts.map((a) => (a.results ?? []).find((x) => x.step === step)).filter((x): x is StepResultView => !!x);
+export function attemptsSidesSpent(
+  attempts: QueueRowView[],
+  step: string,
+): { usd: number; tokens: number } {
+  const results = attempts
+    .map((a) => (a.results ?? []).find((x) => x.step === step))
+    .filter((x): x is StepResultView => !!x);
   return {
     usd: results.reduce((sum, x) => sum + sidesSpent(x).usd, 0),
     tokens: results.reduce((sum, x) => sum + sidesSpent(x).tokens, 0),
@@ -111,7 +143,11 @@ interface PhaseDuration {
   since: string;
 }
 
-export function phaseDuration(r: QueueRowView, step: string, now: number): PhaseDuration | null {
+export function phaseDuration(
+  r: QueueRowView,
+  step: string,
+  now: number,
+): PhaseDuration | null {
   const results = r.results ?? [];
   const boundary = (i: number): string | undefined =>
     (i > 0 ? results[i - 1]!.at : undefined) ?? r.startedAt;
@@ -151,7 +187,10 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   // `stepStartedAt` is unset for it for the same reason it is unset for
   // any other queued hold — the step has not been spawned, and owes no
   // duration either way.
-  const start = r.state === "running" ? (r.stepStartedAt ?? boundary(results.length)) : r.stepStartedAt;
+  const start =
+    r.state === "running"
+      ? (r.stepStartedAt ?? boundary(results.length))
+      : r.stepStartedAt;
   if (!start) return null;
   const ms = now - Date.parse(start);
   return Number.isNaN(ms) ? null : { ms, live: true, since: start };
@@ -178,7 +217,7 @@ interface SpecTotal {
    *  plus the live phase's own elapsed time, with the exact same
    *  `[data-elapsed]` rewrite a phase line already carries. */
   since?: string;
-  }
+}
 
 function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
   let settled = 0;
@@ -216,7 +255,10 @@ function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
  *  own lines anyway, and calling `computeSpecTotalDurationMs` there too
  *  would rebuild `specPhases` — and re-read every not-yet-attempted
  *  phase's file — a second time for the same answer. */
-export function totalDurationOf(phases: Phase[], now: number): SpecTotal | undefined {
+export function totalDurationOf(
+  phases: Phase[],
+  now: number,
+): SpecTotal | undefined {
   return totalDuration(phases, now);
 }
 
@@ -252,12 +294,16 @@ export function computeSpecTotalDurationMs(
  *  `attempts.length === 0`, which would blank a locked row's real,
  *  file-recorded cost the moment a job happens to still be remembered
  *  for that phase. */
-export function attemptsPerStep(jobs: QueueRowView[]): Record<string, QueueRowView[]> {
+export function attemptsPerStep(
+  jobs: QueueRowView[],
+): Record<string, QueueRowView[]> {
   const recent = [...jobs].sort((a, b) => activityMs(b) - activityMs(a));
   const steps = new Set(jobs.flatMap(stepsTouched));
   const result: Record<string, QueueRowView[]> = {};
   for (const step of steps) {
-    result[step] = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
+    result[step] = recent
+      .map((r) => attemptFor(r, step))
+      .filter((a): a is QueueRowView => a !== null);
   }
   return result;
 }
@@ -269,7 +315,9 @@ export function attemptsPerStep(jobs: QueueRowView[]): Record<string, QueueRowVi
 function specPhases(all: QueueRowView[], dir?: string): Phase[] {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   return PHASE_LINES.map((step) => {
-    const attempts = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
+    const attempts = recent
+      .map((r) => attemptFor(r, step))
+      .filter((a): a is QueueRowView => a !== null);
     // No queue job ever ran this phase: the only other place its
     // duration/cost could be is the file the interactive counterpart
     // stamped itself into (written by --stamp-outcome, read by the
@@ -305,9 +353,19 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
  *  reasons count as held back at all — and which are noise until
  *  implement is done — is `archiveHeldBackApplies`'s rule, owned next
  *  to the note it is about, not re-derived here. */
-const heldBackFor = (step: string, t: SpecTarget | undefined): { heldBack?: { reason: string } } => {
+const heldBackFor = (
+  step: string,
+  t: SpecTarget | undefined,
+): { heldBack?: { reason: string } } => {
   if (step !== "archive" || !t?.archiveHeldBack) return {};
-  if (!archiveHeldBackApplies(t.archiveHeldBack.reason, t.done ?? [], t.historyDone ?? [])) return {};
+  if (
+    !archiveHeldBackApplies(
+      t.archiveHeldBack.reason,
+      t.done ?? [],
+      t.historyDone ?? [],
+    )
+  )
+    return {};
   return { heldBack: t.archiveHeldBack };
 };
 
@@ -323,7 +381,14 @@ const historyFor = (
   step: string,
   t: SpecTarget | undefined,
   latest?: QueueRowView,
-): { history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean; settling?: boolean } } => ({
+): {
+  history: {
+    stopped?: string;
+    fileDisagrees?: boolean;
+    historyDone?: boolean;
+    settling?: boolean;
+  };
+} => ({
   history: {
     stopped: t?.stopped?.[step],
     fileDisagrees: t?.fileDisagrees?.includes(step),
@@ -336,7 +401,11 @@ const historyFor = (
  *  last read? Then they have not seen it yet, and whatever they say
  *  about it is the picture from before it ran. Unknown on either side
  *  answers no: a row with no read time keeps saying what the files say. */
-function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRowView | undefined): boolean {
+function endedSinceRead(
+  step: string,
+  t: SpecTarget | undefined,
+  latest: QueueRowView | undefined,
+): boolean {
   const endedAt = latest?.results?.find((x) => x.step === step)?.at;
   if (!endedAt || !t?.sourcesCheckedAt) return false;
   return Date.parse(endedAt) >= Date.parse(t.sourcesCheckedAt);
@@ -348,7 +417,10 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
  *  now because a third caller — the spec page's own Overview tab —
  *  needs the identical join, and writing it a third time is the exact
  *  hand-copied-list shape `development.md` already names six of. */
-export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
+export function phasesFor(
+  all: QueueRowView[],
+  target: SpecTarget | undefined,
+): Phase[] {
   const round = roundUnderWayIn(all);
   const analyzedAtMs = lastAnalyzeEndedMs(all);
   return specPhases(all, target?.dir).map((phase) => {
@@ -357,8 +429,10 @@ export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): 
       ...heldBackFor(phase.step, target),
       ...historyFor(phase.step, target, phase.attempts[0]),
     };
-    if (round && comesAfterRoundStart(phase.step, round)) return phaseInRound(joined, round);
-    if (phase.step === "archive" && refusalAnswered(joined, target)) return { step: phase.step, attempts: [], history: {} };
+    if (round && comesAfterRoundStart(phase.step, round))
+      return phaseInRound(joined, round);
+    if (phase.step === "archive" && refusalAnswered(joined, target))
+      return { step: phase.step, attempts: [], history: {} };
     return supersededByAnalysis(joined, target, analyzedAtMs);
   });
 }
@@ -366,7 +440,9 @@ export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): 
 /** When the newest analyze the queue remembers finishing ended, epoch ms. */
 function lastAnalyzeEndedMs(all: QueueRowView[]): number | undefined {
   const ends = all.flatMap((r) =>
-    (r.results ?? []).filter((x) => x.step === "analyze" && x.ok && x.at).map((x) => Date.parse(x.at!)),
+    (r.results ?? [])
+      .filter((x) => x.step === "analyze" && x.ok && x.at)
+      .map((x) => Date.parse(x.at!)),
   );
   return ends.length ? Math.max(...ends) : undefined;
 }
@@ -379,21 +455,42 @@ function lastAnalyzeEndedMs(all: QueueRowView[]): number | undefined {
  *  or ended after the analysis (the new round's own, which keeps every
  *  attempt). With no analysis the queue remembers, an attempt cannot be
  *  shown to precede one and is kept. */
-function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, analyzedAtMs: number | undefined): Phase {
-  if (!target?.superseded?.includes(phase.step) || target.done?.includes(phase.step)) return phase;
+function supersededByAnalysis(
+  phase: Phase,
+  target: SpecTarget | undefined,
+  analyzedAtMs: number | undefined,
+): Phase {
+  if (
+    !target?.superseded?.includes(phase.step) ||
+    target.done?.includes(phase.step)
+  )
+    return phase;
   const newer = (a: QueueRowView): boolean => {
     const endedAt = a.results?.find((r) => r.step === phase.step)?.at;
-    return inFlight(a) || analyzedAtMs === undefined || !endedAt || Date.parse(endedAt) > analyzedAtMs;
+    return (
+      inFlight(a) ||
+      analyzedAtMs === undefined ||
+      !endedAt ||
+      Date.parse(endedAt) > analyzedAtMs
+    );
   };
   if (phase.attempts.some(newer)) return phase;
-  return { step: phase.step, attempts: [], history: phase.history, ...(phase.heldBack ? { heldBack: phase.heldBack } : {}) };
+  return {
+    step: phase.step,
+    attempts: [],
+    history: phase.history,
+    ...(phase.heldBack ? { heldBack: phase.heldBack } : {}),
+  };
 }
 
 /** Archive's last attempt only refused over open criteria, and every
  *  criterion has been ticked since. A refusal moves nothing, so what the
  *  line has to say is that archive has not run — not that a run
  *  "reported done" with nothing to show for it. */
-function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean {
+function refusalAnswered(
+  phase: Phase,
+  target: SpecTarget | undefined,
+): boolean {
   if (target?.acceptanceOpen !== false) return false;
   const latest = phase.attempts[0]?.results?.find((r) => r.step === "archive");
   return latest?.terminalReason === "acceptance-criteria-unticked";
@@ -401,7 +498,9 @@ function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean 
 
 /** The job in flight that is another round of work on this spec, if
  *  there is one. */
-export const roundUnderWayIn = (all: QueueRowView[]): QueueRowView | undefined => all.find(roundInFlight);
+export const roundUnderWayIn = (
+  all: QueueRowView[],
+): QueueRowView | undefined => all.find(roundInFlight);
 
 /** The steps the spec's own files say are done, less every one a round
  *  under way has made history of and not yet run again itself. The file
@@ -410,8 +509,16 @@ export const roundUnderWayIn = (all: QueueRowView[]): QueueRowView | undefined =
  *  and a row reading that as done ticked and locked the very step the
  *  round exists to run again. A step the round has finished is this
  *  round's own, and done. */
-export function doneOutsideRound(done: string[], round: QueueRowView | undefined): string[] {
-  return round ? done.filter((step) => !comesAfterRoundStart(step, round) || roundFinished(step, round)) : done;
+export function doneOutsideRound(
+  done: string[],
+  round: QueueRowView | undefined,
+): string[] {
+  return round
+    ? done.filter(
+        (step) =>
+          !comesAfterRoundStart(step, round) || roundFinished(step, round),
+      )
+    : done;
 }
 
 const roundFinished = (step: string, round: QueueRowView): boolean =>
@@ -431,7 +538,8 @@ function comesAfterRoundStart(step: string, round: QueueRowView): boolean {
 /** A job in flight with Analyze or Implement still ahead of it: another
  *  round of work on the spec. */
 const roundInFlight = (r: QueueRowView): boolean =>
-  inFlight(r) && r.steps.slice(r.stepIndex).some((s) => s === "analyze" || s === "implement");
+  inFlight(r) &&
+  r.steps.slice(r.stepIndex).some((s) => s === "analyze" || s === "implement");
 
 /** A later phase's line while a round is under way. Until the round
  *  itself reaches that phase, every answer the line has — the hold, the

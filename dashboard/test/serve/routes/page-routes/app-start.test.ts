@@ -35,7 +35,10 @@ const job = (o: Record<string, unknown>) => ({
 });
 
 /** One Active spec by default; `queueProjects: []` is a board with none. */
-const board = (jobs: Record<string, unknown>[] = [], extra: Record<string, unknown> = {}) =>
+const board = (
+  jobs: Record<string, unknown>[] = [],
+  extra: Record<string, unknown> = {},
+) =>
   harness.start({
     extra: { queueProjects: ["aide"], ...extra },
     ...(jobs.length ? { queueMirror: JSON.stringify(jobs) } : {}),
@@ -43,11 +46,18 @@ const board = (jobs: Record<string, unknown>[] = [], extra: Record<string, unkno
 
 /** The address the served manifest launches the app on. */
 const startUrl = async (base: string): Promise<string> =>
-  ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { start_url: string }).start_url;
+  (
+    (await (await fetch(`${base}/manifest.webmanifest`)).json()) as {
+      start_url: string;
+    }
+  ).start_url;
 
 /** Where a launch is sent: the status and `location` of the answer, not followed. */
 const launch = async (base: string, headers: Record<string, string> = {}) => {
-  const res = await fetch(`${base}${await startUrl(base)}`, { redirect: "manual", headers });
+  const res = await fetch(`${base}${await startUrl(base)}`, {
+    redirect: "manual",
+    headers,
+  });
   return { status: res.status, location: res.headers.get("location") };
 };
 
@@ -58,7 +68,10 @@ describe("the installed app's start address sends it to the tab or the list", ()
   });
 
   test("a job row alone counts as a row: a Close running opens the Running tab", async () => {
-    const { base } = board([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })], { queueProjects: [] });
+    const { base } = board(
+      [job({ id: "close", specFolder: "82-no-job", steps: ["close"] })],
+      { queueProjects: [] },
+    );
     expect(await launch(base)).toEqual({ status: 302, location: "/" });
   });
 
@@ -76,19 +89,27 @@ describe("the installed app's start address sends it to the tab or the list", ()
   test("a saved view that hides every row opens the Specs list (AC-1)", async () => {
     const { base } = board();
     const cookie = await savedView(base, "/?q=nothing-matches");
-    expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/specs" });
+    expect(await launch(base, { cookie })).toEqual({
+      status: 302,
+      location: "/specs",
+    });
   });
 
   test("a saved view that leaves a row opens the Running tab (AC-2)", async () => {
     const { base } = board();
     const cookie = await savedView(base, "/?q=queue-and-runner");
-    expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/" });
+    expect(await launch(base, { cookie })).toEqual({
+      status: 302,
+      location: "/",
+    });
   });
 
   test("a browser tab's first page names the Specs list when the saved view hides every row (AC-1)", async () => {
     const { base } = board();
     const cookie = await savedView(base, "/?q=nothing-matches");
-    const hiding = await (await fetch(`${base}/`, { headers: { cookie } })).text();
+    const hiding = await (
+      await fetch(`${base}/`, { headers: { cookie } })
+    ).text();
     expect(hiding).toContain('<meta name="aide-start" content="/specs">');
     const leaving = await (await fetch(`${base}/?q=queue-and-runner`)).text();
     expect(leaving).not.toContain('<meta name="aide-start"');
@@ -101,7 +122,10 @@ describe("the installed app's start address sends it to the tab or the list", ()
 
   test("a failed create's message is not a row: the app opens the Specs list", async () => {
     const record: FailedCreate = {
-      id: "cr", project: "aide", title: "A spec that never was", description: "text",
+      id: "cr",
+      project: "aide",
+      title: "A spec that never was",
+      description: "text",
       reason: { key: "runner.serverRestarted", values: { button: "Create" } },
       failedAt: "2026-10-08T10:05:00.000Z",
     };
@@ -109,7 +133,12 @@ describe("the installed app's start address sends it to the tab or the list", ()
     tmp.push(dir);
     const failedCreatesPath = join(dir, "failed-creates.json");
     writeFileSync(failedCreatesPath, JSON.stringify([record]));
-    const failed = job({ id: "cr", state: "failed", specFolder: "new-0a1b2c3d", steps: ["create"] });
+    const failed = job({
+      id: "cr",
+      state: "failed",
+      specFolder: "new-0a1b2c3d",
+      steps: ["create"],
+    });
     const { base } = board([failed], { queueProjects: [], failedCreatesPath });
     expect(await launch(base)).toEqual({ status: 302, location: "/specs" });
   });

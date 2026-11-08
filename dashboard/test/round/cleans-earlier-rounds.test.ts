@@ -3,7 +3,13 @@
 // directory. The next round now removes every earlier round's directory
 // that no process names any more, and leaves everything else alone.
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,7 +17,9 @@ const SCRIPT = join(import.meta.dir, "clean-earlier-rounds.sh");
 const AIDE_CHECKOUT = join(import.meta.dir, "..", "..", "..");
 
 let tmp = "";
-afterEach(() => { if (tmp) rmSync(tmp, { recursive: true, force: true }); });
+afterEach(() => {
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+});
 
 /** A directory shaped the way `run` leaves one behind. */
 function roundDir(name: string): string {
@@ -23,7 +31,14 @@ function roundDir(name: string): string {
 }
 
 function clean(): void {
-  const r = Bun.spawnSync(["bash", "-c", `source "${SCRIPT}" && clean_earlier_rounds "$1" "$2"`, "_", tmp, AIDE_CHECKOUT]);
+  const r = Bun.spawnSync([
+    "bash",
+    "-c",
+    `source "${SCRIPT}" && clean_earlier_rounds "$1" "$2"`,
+    "_",
+    tmp,
+    AIDE_CHECKOUT,
+  ]);
   expect(r.exitCode).toBe(0);
 }
 
@@ -40,7 +55,14 @@ describe("a round removes what earlier rounds left behind", () => {
     const live = roundDir("tmp.live456");
     // Stands in for `serve.ts --root <dir>/root`: a process that names
     // the directory on its command line.
-    const server = Bun.spawn(["bash", "-c", "sleep 30; :", "serve", "--root", `${live}/root`]);
+    const server = Bun.spawn([
+      "bash",
+      "-c",
+      "sleep 30; :",
+      "serve",
+      "--root",
+      `${live}/root`,
+    ]);
     try {
       clean();
       expect(existsSync(live)).toBe(true);

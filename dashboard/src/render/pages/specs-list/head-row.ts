@@ -10,7 +10,12 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model";
+import {
+  ARCHIVED_STATE,
+  CLOSED_STATE,
+  isArchivedRow,
+  type SpecGroup,
+} from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -39,7 +44,10 @@ function specSummary(g: SpecGroup): string {
   // after, never anything between. Two specs on the same day both read
   // "0% done", one with 21 task rows behind it and one with 4. What is
   // left is what neither the pips nor the badge carries.
-  if (g.dependsOn.length) bits.push(`Depends on: ${g.dependsOn.map((d) => esc(specReference(g.project, d))).join(", ")}`);
+  if (g.dependsOn.length)
+    bits.push(
+      `Depends on: ${g.dependsOn.map((d) => esc(specReference(g.project, d))).join(", ")}`,
+    );
   return bits.join(" · ");
 }
 
@@ -63,7 +71,13 @@ export function specHeadRow(
   // Four answers, not three: a spec that has never run, one with a job in
   // flight, one whose last job is over, and an archived one. Written as
   // `data-run`, a marker no stylesheet styles.
-  const runState = locked ? "archived" : !g.lead ? "new" : inFlight(g.lead) ? "live" : "past";
+  const runState = locked
+    ? "archived"
+    : !g.lead
+      ? "new"
+      : inFlight(g.lead)
+        ? "live"
+        : "past";
   // The spec name is the way IN, and it opens the SPEC —
   // all four of its files as they stand — rather than whichever job
   // happened to run last. Which means EVERY spec has somewhere to point:
@@ -103,7 +117,11 @@ export function specHeadRow(
   // the folder name standing on its own: it already carries the number,
   // and prefixing it again read "81-81-queue-and-runner".
   const number = g.named ? g.specFolder.split("-")[0] : "";
-  const specName = g.title ? (number ? `${number}-${g.title}` : g.title) : g.specFolder;
+  const specName = g.title
+    ? number
+      ? `${number}-${g.title}`
+      : g.title
+    : g.specFolder;
   // The project is a link to its page and the rest a link to the spec:
   // two anchors side by side inside the label's flex row, the colon in
   // the spec's, with no whitespace between them so the two touch.
@@ -112,24 +130,25 @@ export function specHeadRow(
   // list (which sets openSpec) draws the title as text: its › opens the
   // spec in place, so there is nowhere else for the title to lead.
   const titleHref = `${specPagePath(g.project, g.specFolder)}#${rowAnchorId(g)}`;
-  const spec = g.named && opts.openSpec
-    ? `<span class="label">${project}<span class="specpart" title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      `<span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`
-    : g.named
-    ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(titleHref)}" ` +
-      // The tooltip is the IDENTIFIER — project and folder — which is
-      // what a reader copies into a command or another page.
-      `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      // The name in a span of its own beside the colon (2026-09-10):
-      // the label is a flex row, so a name that wraps hangs under
-      // itself — every line starting where the number does — rather
-      // than running back under the project on its second line.
-      `<span class="muted">:</span><span class="specname">${esc(specName)}</span></a></span>`
-    // No `title` attribute here: the whole name is already on the line,
-    // and a tooltip repeating it would put the spec's title on the page
-    // twice. There is no spec page to
-    // open yet, so only the project is a link.
-    : `<span class="label">${project}<span class="specpart"><span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`;
+  const spec =
+    g.named && opts.openSpec
+      ? `<span class="label">${project}<span class="specpart" title="${esc(g.project)}:${esc(g.specFolder)}">` +
+        `<span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`
+      : g.named
+        ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(titleHref)}" ` +
+          // The tooltip is the IDENTIFIER — project and folder — which is
+          // what a reader copies into a command or another page.
+          `title="${esc(g.project)}:${esc(g.specFolder)}">` +
+          // The name in a span of its own beside the colon (2026-09-10):
+          // the label is a flex row, so a name that wraps hangs under
+          // itself — every line starting where the number does — rather
+          // than running back under the project on its second line.
+          `<span class="muted">:</span><span class="specname">${esc(specName)}</span></a></span>`
+        : // No `title` attribute here: the whole name is already on the line,
+          // and a tooltip repeating it would put the spec's title on the page
+          // twice. There is no spec page to
+          // open yet, so only the project is a link.
+          `<span class="label">${project}<span class="specpart"><span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`;
   // A pull request open for this row's branch is a fact about the work,
   // not a second state the spec is IN: it is true for the whole window
   // from implement opening one to the branch finally landing, so it says
@@ -216,9 +235,11 @@ export function specHeadRow(
     // list, when the spec was created, which is what its Created sort
     // orders by; on the Running tab, the pips, which say how far a spec
     // that is being run has come.
-    `<td colspan="2">${opts.openSpec
-      ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
-      : `<span class="pipslot">${phasePips(g.phases, g.done)}</span>`}</td>` +
+    `<td colspan="2">${
+      opts.openSpec
+        ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
+        : `<span class="pipslot">${phasePips(g.phases, g.done)}</span>`
+    }</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next. No sentence
     // under it says what to press: the control names the
@@ -268,9 +289,13 @@ export function headStateBadge(g: SpecGroup, lang: Language): string {
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   return locked
-    ? badge("done", capitalizeFirst(g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE))
+    ? badge(
+        "done",
+        capitalizeFirst(
+          g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE,
+        ),
+      )
     : g.lead
       ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
       : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
 }
-

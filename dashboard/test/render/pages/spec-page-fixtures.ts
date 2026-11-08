@@ -23,14 +23,22 @@
 // move while a step runs, because a page that reloads on a timer wipes
 // a half-typed textarea and a half-ticked list.
 
-import { renderSpecDetail, type JobDetailView, type SpecPageView } from "../../../src/render";
+import {
+  renderSpecDetail,
+  type JobDetailView,
+  type SpecPageView,
+} from "../../../src/render";
 import type { Language } from "../../../src/i18n";
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
 export const GENERATED = "2026-08-21T10:05:00Z";
 export const NOW = Date.parse("2026-08-21T10:05:00Z");
 
-export const file = (name: string, text: string | null, extra: Partial<SpecPageView["files"][number]> = {}) => ({
+export const file = (
+  name: string,
+  text: string | null,
+  extra: Partial<SpecPageView["files"][number]> = {},
+) => ({
   label: name,
   text,
   sha: "a3f9c21deadbeef",
@@ -43,15 +51,20 @@ export const view = (extra: Partial<SpecPageView> = {}): SpecPageView => ({
   specFolder: "150-one-page-shows-the-whole-spec",
   title: "One page shows the whole spec",
   files: [
-    file("1-description.md", "## Description\n\nThe dashboard never shows a spec.\n"),
+    file(
+      "1-description.md",
+      "## Description\n\nThe dashboard never shows a spec.\n",
+    ),
     file("2-analysis.md", "## Findings\n\n`discover.ts` has specTitle().\n"),
     file("3-solution.md", "## Recommended solution\n\nApproach 1.\n"),
     file("4-status.md", "## Phase 1: RED\n\n| Task | Status |\n"),
   ],
-  updateAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/update",
+  updateAction:
+    "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/update",
   saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
   tickAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick",
-  trackingAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tracking",
+  trackingAction:
+    "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tracking",
   ...extra,
 });
 

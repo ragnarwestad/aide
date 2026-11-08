@@ -19,10 +19,24 @@ afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
-const job = (id: string, state: string, extra: Record<string, unknown> = {}) => ({
-  id, project: "aide", specFolder: SPEC, steps: ["implement"], stepIndex: 0, state,
-  timeoutSec: { implement: 60 }, permissionMode: { implement: "acceptEdits" }, model: { implement: "sonnet" },
-  createdAt: "2026-09-01T10:00:00.000Z", results: [], spentUsd: 0, ...extra,
+const job = (
+  id: string,
+  state: string,
+  extra: Record<string, unknown> = {},
+) => ({
+  id,
+  project: "aide",
+  specFolder: SPEC,
+  steps: ["implement"],
+  stepIndex: 0,
+  state,
+  timeoutSec: { implement: 60 },
+  permissionMode: { implement: "acceptEdits" },
+  model: { implement: "sonnet" },
+  createdAt: "2026-09-01T10:00:00.000Z",
+  results: [],
+  spentUsd: 0,
+  ...extra,
 });
 
 async function boot(jobs: object[]) {
@@ -33,7 +47,10 @@ async function boot(jobs: object[]) {
   writeFileSync(join(root, "aide", ".aide", "project.yaml"), "name: aide\n");
   for (const folder of [SPEC, "82-another-spec"]) {
     mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
-    writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), "# x\n");
+    writeFileSync(
+      join(root, "aide", "specs", folder, "1-description.md"),
+      "# x\n",
+    );
   }
   writeFileSync(join(dir, "queue.json"), JSON.stringify(jobs));
   // The device subscribed under an earlier run: its subscription and the
@@ -41,21 +58,43 @@ async function boot(jobs: object[]) {
   const keyPath = join(dir, "push-key.json");
   const subscriptionsPath = join(dir, "push-subscriptions.json");
   const keys = await loadOrCreateKeys(keyPath);
-  const device = { ...(await deviceKeys()), endpoint: "https://fcm.googleapis.com/fcm/send/boot-device" };
+  const device = {
+    ...(await deviceKeys()),
+    endpoint: "https://fcm.googleapis.com/fcm/send/boot-device",
+  };
   writeSubscriptions(subscriptionsPath, [
-    { endpoint: device.endpoint, p256dh: device.p256dh, auth: device.auth, lang: "en", origin: "https://board.test", key: keys.publicKey },
+    {
+      endpoint: device.endpoint,
+      p256dh: device.p256dh,
+      auth: device.auth,
+      lang: "en",
+      origin: "https://board.test",
+      key: keys.publicKey,
+    },
   ]);
   const sent = fakeFetch();
   const runner = join(dir, "runner");
   writeFileSync(runner, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   const server = createServer({
-    port: 0, mirrorPath: join(dir, "runs.json"), queueMirrorPath: join(dir, "queue.json"),
-    projectRoot: root, queueProjectRoot: root, queueProjects: ["aide"], dashboardCheckoutRoot: join(dir, "owned"),
-    queueRunnerBin: runner, queueResultDir: join(dir, "results"), queueDefaults: DEFAULTS,
-    specCachePollMs: 0, driftPollMs: 0, scheduleCheckMs: 0,
-    restart: { registered: async () => false, fire: () => {} }, landingGate: async () => ({ ok: true }),
+    port: 0,
+    mirrorPath: join(dir, "runs.json"),
+    queueMirrorPath: join(dir, "queue.json"),
+    projectRoot: root,
+    queueProjectRoot: root,
+    queueProjects: ["aide"],
+    dashboardCheckoutRoot: join(dir, "owned"),
+    queueRunnerBin: runner,
+    queueResultDir: join(dir, "results"),
+    queueDefaults: DEFAULTS,
+    specCachePollMs: 0,
+    driftPollMs: 0,
+    scheduleCheckMs: 0,
+    restart: { registered: async () => false, fire: () => {} },
+    landingGate: async () => ({ ok: true }),
     testServersPortProbe: () => true,
-    pushSubscriptionsPath: subscriptionsPath, pushKeyPath: keyPath, pushFetch: sent.fetch,
+    pushSubscriptionsPath: subscriptionsPath,
+    pushKeyPath: keyPath,
+    pushFetch: sent.fetch,
   });
   servers.push(server);
   return { ...sent, device };
@@ -64,8 +103,13 @@ async function boot(jobs: object[]) {
 describe("a restart sends one push for the job it cut off, and none for the finished ones", () => {
   test("finished jobs stay quiet; a job left running with no process is interrupted and announced once", async () => {
     const sent = await boot([
-      job("f1", "failed"), job("s1", "stopped", { stopReason: "timeout" }), job("d1", "done"),
-      job("r1", "running", { pid: 2_000_000_000, startedAt: "2026-09-01T10:00:00.000Z" }),
+      job("f1", "failed"),
+      job("s1", "stopped", { stopReason: "timeout" }),
+      job("d1", "done"),
+      job("r1", "running", {
+        pid: 2_000_000_000,
+        startedAt: "2026-09-01T10:00:00.000Z",
+      }),
     ]);
     await Bun.sleep(300);
     expect(sent.calls).toHaveLength(1);
@@ -82,7 +126,11 @@ describe("a push carries how many specs wait, counted from the real queue", () =
   test("a spec already failed plus the one the push is about makes 2", async () => {
     const sent = await boot([
       job("f1", "failed"),
-      job("r1", "running", { specFolder: "82-another-spec", pid: 2_000_000_000, startedAt: "2026-09-01T10:00:00.000Z" }),
+      job("r1", "running", {
+        specFolder: "82-another-spec",
+        pid: 2_000_000_000,
+        startedAt: "2026-09-01T10:00:00.000Z",
+      }),
     ]);
     await Bun.sleep(300);
     expect(sent.calls).toHaveLength(1);

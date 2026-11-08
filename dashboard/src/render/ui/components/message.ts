@@ -87,18 +87,33 @@ export function rowMessageParts(
   // What a part unfolds (`after`) goes INSIDE its own box, under the
   // words: the message grows to hold it, rather than the unfolded list
   // hanging below a box it belongs to (2026-09-25).
-  const box = (v: MessageVariant, body: string, lead = "", hook = o.hook, after = ""): string =>
+  const box = (
+    v: MessageVariant,
+    body: string,
+    lead = "",
+    hook = o.hook,
+    after = "",
+  ): string =>
     `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span>${after}</${tag}>`;
   // `end` is trusted markup drawn inside the last box, after its words: a
   // "(?)" with more detail about the message reads as part of it there.
   const end = o.end ?? "";
-  if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "), "", o.hook, end);
+  if (!parts.some((p) => p.own))
+    return box(variant, parts.map(link).join(" · "), "", o.hook, end);
   // A part that asks for a line of its own is its own box; the parts
   // between two of them still join with " · " into one, as they always did.
   const boxes: string[] = [];
   let joined: MessagePart[] = [];
   const flush = (): void => {
-    if (joined.length) boxes.push(box(joined[0]!.variant ?? variant, joined.map(link).join(" · "), "", boxes.length ? undefined : o.hook));
+    if (joined.length)
+      boxes.push(
+        box(
+          joined[0]!.variant ?? variant,
+          joined.map(link).join(" · "),
+          "",
+          boxes.length ? undefined : o.hook,
+        ),
+      );
     joined = [];
   };
   for (const p of parts) {
@@ -107,11 +122,23 @@ export function rowMessageParts(
       continue;
     }
     flush();
-    boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook, p.after ?? ""));
+    boxes.push(
+      box(
+        p.variant ?? variant,
+        link(p),
+        p.lead,
+        boxes.length ? undefined : o.hook,
+        p.after ?? "",
+      ),
+    );
   }
   flush();
   const last = boxes.length - 1;
-  if (end) boxes[last] = boxes[last]!.replace(new RegExp(`</${tag}>$`), `${end}</${tag}>`);
+  if (end)
+    boxes[last] = boxes[last]!.replace(
+      new RegExp(`</${tag}>$`),
+      `${end}</${tag}>`,
+    );
   return `<div class="msgstack">${boxes.join("")}</div>`;
 }
 
@@ -121,6 +148,10 @@ export function rowMessageParts(
  *  no words takes no room and shows nothing (`row-message.css`), but
  *  stays where a screen reader hears it fill. `id` names it for a form
  *  elsewhere on the page that writes into it (`data-line`). */
-export const messageSlot = (hook: string, variant: MessageVariant = "failed", o: { id?: string } = {}): string =>
+export const messageSlot = (
+  hook: string,
+  variant: MessageVariant = "failed",
+  o: { id?: string } = {},
+): string =>
   `<p${o.id ? ` id="${esc(o.id)}"` : ""} class="${hook} rowmsg ${variant}" aria-live="polite">` +
   `${MESSAGE_ICON[variant]}<span></span></p>`;

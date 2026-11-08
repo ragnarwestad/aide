@@ -7,16 +7,29 @@
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
-export const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+export const JOB = {
+  project: "aide",
+  specFolder: "81-queue-and-runner",
+  steps: ["analyze"],
+};
 
-export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultStatus?: string) {
+export function setupQueueRoutesHarness(
+  prefix = "aide-queue-routes-",
+  defaultStatus?: string,
+) {
   const harness = queueHarness(prefix, defaultStatus);
   const start = (
     extra: Partial<ServerOptions> = {},
     alsoProjects: string[] = [],
     alsoSpecs: string[] = [],
     status?: string,
-  ) => harness.start({ extra, alsoProjects, alsoSpecs, ...(status ? { status } : {}) });
+  ) =>
+    harness.start({
+      extra,
+      alsoProjects,
+      alsoSpecs,
+      ...(status ? { status } : {}),
+    });
   return { harness, start };
 }
 
@@ -24,14 +37,20 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultSt
  *  collapsed row leaves in the page. Its Run control moved onto the
  *  caption line the fold opens (2026-09-08). */
 export const specHead = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
+  html.match(
+    new RegExp(
+      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`,
+    ),
+  )?.[0] ?? "";
 
 /** The row's message panel: the full-width row under the
  *  head, where every long message a row has to say is written — and
  *  that includes the queue's refusal of a press, which
  *  used to be squeezed into the name cell above. */
 export const specPanel = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  html.match(
+    new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`),
+  )?.[0] ?? "";
 
 /** Everything an OPEN row draws: its header line and the phase lines
  *  under it. The row's controls are split across the
@@ -51,13 +70,18 @@ export const specControls = (html: string, folder: string): string =>
  *  beside it carries no second mark, so it is never said twice. */
 export const phaseDone = (group: string, step: string): boolean =>
   (
-    group.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
+    group.match(
+      new RegExp(
+        `<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`,
+      ),
+    )?.[0] ?? ""
   ).includes('class="badge b-done"');
 
 /** A row is COLLAPSED unless the view names it, and the
  *  run control comes with opening it. A test about that control asks
  *  for the row open — the same query string the fold link builds. */
-export const openQuery = (...keys: string[]): string => `open=${encodeURIComponent(keys.join(","))}`;
+export const openQuery = (...keys: string[]): string =>
+  `open=${encodeURIComponent(keys.join(","))}`;
 export const OPEN_81 = openQuery("aide/81-queue-and-runner");
 
 /** The Running tab, asked again until `ok` holds.
@@ -102,7 +126,9 @@ export const listUntil = async (
     html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     if (ok(html)) return html;
     if (Date.now() > deadline) {
-      throw new Error(`the Running tab never reached ${what} within ${budgetMs}ms`);
+      throw new Error(
+        `the Running tab never reached ${what} within ${budgetMs}ms`,
+      );
     }
     await new Promise((r) => setTimeout(r, 25));
   }
@@ -115,6 +141,7 @@ export const dated = (html: string): boolean =>
   !specControls(html, "81-queue-and-runner").includes('data-col="started">–');
 
 /** The commonest of those predicates: this phase's own line says done. */
-export const rowSaysDone = (step: string, folder = "81-queue-and-runner") => (html: string): boolean =>
-  phaseDone(specControls(html, folder), step);
-
+export const rowSaysDone =
+  (step: string, folder = "81-queue-and-runner") =>
+  (html: string): boolean =>
+    phaseDone(specControls(html, folder), step);

@@ -9,7 +9,11 @@
 
 import { existsSync, mkdirSync, readFileSync, appendFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
-import { manifestTracked, seedSettingsFile, writeAtomically } from "../project/project-admin/settings-state.ts";
+import {
+  manifestTracked,
+  seedSettingsFile,
+  writeAtomically,
+} from "../project/project-admin/settings-state.ts";
 import type { GitRunner } from "./branch-status.ts";
 
 const IGNORE_LINE = "/.aide/project.yaml";
@@ -19,7 +23,10 @@ const IGNORE_LINE = "/.aide/project.yaml";
  *  Before any fast-forward, never after: git refuses to overwrite an
  *  untracked file with a tracked one, but overwrites an ignored one — so
  *  the day the team commits a manifest, the pull goes through. Idempotent. */
-export async function excludeDerivedManifest(run: GitRunner, code: string): Promise<void> {
+export async function excludeDerivedManifest(
+  run: GitRunner,
+  code: string,
+): Promise<void> {
   const res = await run(code, ["rev-parse", "--git-path", "info/exclude"]);
   if (res.code !== 0) return;
   const named = res.stdout.trim();
@@ -29,7 +36,10 @@ export async function excludeDerivedManifest(run: GitRunner, code: string): Prom
     const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
     if (text.split("\n").includes(IGNORE_LINE)) return;
     mkdirSync(dirname(file), { recursive: true });
-    appendFileSync(file, `${text && !text.endsWith("\n") ? "\n" : ""}${IGNORE_LINE}\n`);
+    appendFileSync(
+      file,
+      `${text && !text.endsWith("\n") ? "\n" : ""}${IGNORE_LINE}\n`,
+    );
   } catch {
     /* a clone that cannot be written to is reported by the readiness check */
   }
@@ -48,10 +58,14 @@ export async function carryManifest(
   if (tracked !== false) return;
   const manifest = join(where.code, ".aide", "project.yaml");
   try {
-    seedSettingsFile(where.settingsFile, [join(where.personDir, ".aide", "project.yaml"), manifest]);
+    seedSettingsFile(where.settingsFile, [
+      join(where.personDir, ".aide", "project.yaml"),
+      manifest,
+    ]);
     if (!existsSync(where.settingsFile)) return;
     const wanted = readFileSync(where.settingsFile, "utf-8");
-    if (existsSync(manifest) && readFileSync(manifest, "utf-8") === wanted) return;
+    if (existsSync(manifest) && readFileSync(manifest, "utf-8") === wanted)
+      return;
     writeAtomically(manifest, wanted);
   } catch {
     /* the readiness check says what is missing */

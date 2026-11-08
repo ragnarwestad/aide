@@ -56,8 +56,15 @@
       },
       {
         "name": "the recorder failed",
-        "written": { "kind": "recorder-failed", "exitCode": 2, "error": "the test recorder did not write a readable result (exit code 2)" },
-        "read": { "kind": "recorder-failed", "error": "the test recorder did not write a readable result (exit code 2)" }
+        "written": {
+          "kind": "recorder-failed",
+          "exitCode": 2,
+          "error": "the test recorder did not write a readable result (exit code 2)"
+        },
+        "read": {
+          "kind": "recorder-failed",
+          "error": "the test recorder did not write a readable result (exit code 2)"
+        }
       },
       {
         "name": "a port in use, held by another spec's server",
@@ -67,7 +74,13 @@
           "url": "http://localhost:8806/health/ready",
           "line": "Error: http://localhost:8806/health/ready is already used",
           "command": "pnpm test",
-          "holder": { "pid": 4242, "command": "node", "cwd": "/h/.aide/dashboard/worktrees/skjera/58-sign-up/code", "project": "skjera", "spec": "58-sign-up" }
+          "holder": {
+            "pid": 4242,
+            "command": "node",
+            "cwd": "/h/.aide/dashboard/worktrees/skjera/58-sign-up/code",
+            "project": "skjera",
+            "spec": "58-sign-up"
+          }
         },
         "read": {
           "kind": "port-in-use",
@@ -79,13 +92,31 @@
       },
       {
         "name": "the server did not answer in time",
-        "written": { "kind": "server-timeout", "ms": 60000, "line": "Error: Timed out waiting 60000ms from config.webServer.", "command": "pnpm test:e2e" },
-        "read": { "kind": "server-timeout", "ms": 60000, "line": "Error: Timed out waiting 60000ms from config.webServer.", "command": "pnpm test:e2e" }
+        "written": {
+          "kind": "server-timeout",
+          "ms": 60000,
+          "line": "Error: Timed out waiting 60000ms from config.webServer.",
+          "command": "pnpm test:e2e"
+        },
+        "read": {
+          "kind": "server-timeout",
+          "ms": 60000,
+          "line": "Error: Timed out waiting 60000ms from config.webServer.",
+          "command": "pnpm test:e2e"
+        }
       },
       {
         "name": "the server exited",
-        "written": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" },
-        "read": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" }
+        "written": {
+          "kind": "server-exited",
+          "line": "Error: Process from config.webServer was not able to start. Exit code: 1",
+          "command": "pnpm test:e2e"
+        },
+        "read": {
+          "kind": "server-exited",
+          "line": "Error: Process from config.webServer was not able to start. Exit code: 1",
+          "command": "pnpm test:e2e"
+        }
       }
     ],
     "timeLimit": [
@@ -108,12 +139,21 @@
       },
       {
         "name": "not logged in",
-        "written": { "kind": "login", "message": "Not logged in, please run /login" },
-        "read": { "kind": "login", "message": "Not logged in, please run /login" }
+        "written": {
+          "kind": "login",
+          "message": "Not logged in, please run /login"
+        },
+        "read": {
+          "kind": "login",
+          "message": "Not logged in, please run /login"
+        }
       },
       {
         "name": "the provider refused the account",
-        "written": { "kind": "forbidden", "message": "API Error: 403 forbidden" },
+        "written": {
+          "kind": "forbidden",
+          "message": "API Error: 403 forbidden"
+        },
         "read": { "kind": "forbidden", "message": "API Error: 403 forbidden" }
       },
       {
@@ -123,8 +163,14 @@
       },
       {
         "name": "the provider's own side failed",
-        "written": { "kind": "provider", "message": "API Error: 500 internal server error" },
-        "read": { "kind": "provider", "message": "API Error: 500 internal server error" }
+        "written": {
+          "kind": "provider",
+          "message": "API Error: 500 internal server error"
+        },
+        "read": {
+          "kind": "provider",
+          "message": "API Error: 500 internal server error"
+        }
       },
       {
         "name": "the tool said nothing",
@@ -135,7 +181,14 @@
     "scopeAnalyze": [
       {
         "name": "the project repo changed",
-        "written": { "project": { "committed": ["src/a.ts"], "uncommitted": ["new-code.txt"] }, "phaseRows": false, "workflowSteps": false },
+        "written": {
+          "project": {
+            "committed": ["src/a.ts"],
+            "uncommitted": ["new-code.txt"]
+          },
+          "phaseRows": false,
+          "workflowSteps": false
+        },
         "read": "project code (committed: src/a.ts; uncommitted: new-code.txt)"
       },
       {
@@ -148,52 +201,118 @@
       {
         "name": "a review that ran on Claude, with its figures and its bytes of the transcript",
         "written": {
-          "outcome": "completed", "tool": "claude", "durationSec": 41, "costUsd": 0.05,
-          "tokens": { "input": 30, "output": 700, "cacheRead": 4000, "cacheCreation": 200, "total": 4930 },
+          "outcome": "completed",
+          "tool": "claude",
+          "durationSec": 41,
+          "costUsd": 0.05,
+          "tokens": {
+            "input": 30,
+            "output": 700,
+            "cacheRead": 4000,
+            "cacheCreation": 200,
+            "total": 4930
+          },
           "transcript": { "from": 18234, "to": 24410 }
         },
         "read": {
-          "outcome": "completed", "tool": "claude", "durationSec": 41, "costUsd": 0.05,
-          "tokens": { "input": 30, "output": 700, "cacheRead": 4000, "cacheCreation": 200, "total": 4930 },
+          "outcome": "completed",
+          "tool": "claude",
+          "durationSec": 41,
+          "costUsd": 0.05,
+          "tokens": {
+            "input": 30,
+            "output": 700,
+            "cacheRead": 4000,
+            "cacheCreation": 200,
+            "total": 4930
+          },
           "transcript": { "from": 18234, "to": 24410 }
         }
       },
       {
         "name": "a review on a tool with no dollar figure has tokens and no cost",
         "written": {
-          "outcome": "completed", "tool": "codex", "durationSec": 22,
-          "tokens": { "input": 310, "output": 812, "cacheRead": 3900, "cacheCreation": 0, "total": 5022 },
+          "outcome": "completed",
+          "tool": "codex",
+          "durationSec": 22,
+          "tokens": {
+            "input": 310,
+            "output": 812,
+            "cacheRead": 3900,
+            "cacheCreation": 0,
+            "total": 5022
+          },
           "transcript": { "from": 24410, "to": 27980 }
         },
         "read": {
-          "outcome": "completed", "tool": "codex", "durationSec": 22,
-          "tokens": { "input": 310, "output": 812, "cacheRead": 3900, "cacheCreation": 0, "total": 5022 },
+          "outcome": "completed",
+          "tool": "codex",
+          "durationSec": 22,
+          "tokens": {
+            "input": 310,
+            "output": 812,
+            "cacheRead": 3900,
+            "cacheCreation": 0,
+            "total": 5022
+          },
           "transcript": { "from": 24410, "to": 27980 }
         }
       },
       {
         "name": "a review that did not complete keeps the way it ended",
-        "written": { "outcome": "cli-error", "tool": "claude", "durationSec": 3, "transcript": { "from": 100, "to": 160 } },
-        "read": { "outcome": "cli-error", "tool": "claude", "durationSec": 3, "transcript": { "from": 100, "to": 160 } }
+        "written": {
+          "outcome": "cli-error",
+          "tool": "claude",
+          "durationSec": 3,
+          "transcript": { "from": 100, "to": 160 }
+        },
+        "read": {
+          "outcome": "cli-error",
+          "tool": "claude",
+          "durationSec": 3,
+          "transcript": { "from": 100, "to": 160 }
+        }
       }
     ],
     "verify": [
       {
         "name": "a verification that ran on Claude, with its figures and its bytes of the transcript",
         "written": {
-          "outcome": "completed", "tool": "claude", "durationSec": 18, "costUsd": 0.08,
-          "tokens": { "input": 12, "output": 400, "cacheRead": 2500, "cacheCreation": 90, "total": 3002 },
+          "outcome": "completed",
+          "tool": "claude",
+          "durationSec": 18,
+          "costUsd": 0.08,
+          "tokens": {
+            "input": 12,
+            "output": 400,
+            "cacheRead": 2500,
+            "cacheCreation": 90,
+            "total": 3002
+          },
           "transcript": { "from": 24410, "to": 26200 }
         },
         "read": {
-          "outcome": "completed", "tool": "claude", "durationSec": 18, "costUsd": 0.08,
-          "tokens": { "input": 12, "output": 400, "cacheRead": 2500, "cacheCreation": 90, "total": 3002 },
+          "outcome": "completed",
+          "tool": "claude",
+          "durationSec": 18,
+          "costUsd": 0.08,
+          "tokens": {
+            "input": 12,
+            "output": 400,
+            "cacheRead": 2500,
+            "cacheCreation": 90,
+            "total": 3002
+          },
           "transcript": { "from": 24410, "to": 26200 }
         }
       },
       {
         "name": "a verification that did not complete keeps the way it ended",
-        "written": { "outcome": "timeout", "tool": "codex", "durationSec": 600 },
+        "written": {
+          "outcome": "timeout",
+          "tool": "codex",
+          "durationSec": 600
+        },
         "read": { "outcome": "timeout", "tool": "codex", "durationSec": 600 }
       }
     ]

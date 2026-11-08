@@ -12,9 +12,22 @@ type Bytes = Uint8Array<ArrayBuffer>;
 
 const enc = new TextEncoder();
 
-async function hkdf(salt: Bytes, ikm: Bytes, info: Bytes, bytes: number): Promise<Bytes> {
-  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info }, key, bytes * 8));
+async function hkdf(
+  salt: Bytes,
+  ikm: Bytes,
+  info: Bytes,
+  bytes: number,
+): Promise<Bytes> {
+  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, [
+    "deriveBits",
+  ]);
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: "HKDF", hash: "SHA-256", salt, info },
+      key,
+      bytes * 8,
+    ),
+  );
 }
 
 const concat = (...parts: Bytes[]): Bytes => {
@@ -47,24 +60,70 @@ export async function encrypt(
   device: DeviceKeys,
   opts: { ephemeral?: Ephemeral; salt?: Bytes } = {},
 ): Promise<Bytes> {
-  if (payload.length > MAX_PAYLOAD) throw new Error(`push payload of ${payload.length} bytes does not fit one record`);
+  if (payload.length > MAX_PAYLOAD)
+    throw new Error(
+      `push payload of ${payload.length} bytes does not fit one record`,
+    );
   let ephemeral = opts.ephemeral;
   if (!ephemeral) {
-    const pair = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
-    ephemeral = { publicRaw: new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey)), privateKey: pair.privateKey };
+    const pair = (await crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
+    )) as CryptoKeyPair;
+    ephemeral = {
+      publicRaw: new Uint8Array(
+        await crypto.subtle.exportKey("raw", pair.publicKey),
+      ),
+      privateKey: pair.privateKey,
+    };
   }
   const salt = opts.salt ?? crypto.getRandomValues(new Uint8Array(16));
 
-  const theirs = await crypto.subtle.importKey("raw", device.p256dh, { name: "ECDH", namedCurve: "P-256" }, false, []);
-  const secret = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: theirs }, ephemeral.privateKey, 256));
-  const keyInfo = concat(enc.encode("WebPush: info\0"), device.p256dh, ephemeral.publicRaw);
+  const theirs = await crypto.subtle.importKey(
+    "raw",
+    device.p256dh,
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    [],
+  );
+  const secret = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: "ECDH", public: theirs },
+      ephemeral.privateKey,
+      256,
+    ),
+  );
+  const keyInfo = concat(
+    enc.encode("WebPush: info\0"),
+    device.p256dh,
+    ephemeral.publicRaw,
+  );
   const ikm = await hkdf(device.auth, secret, keyInfo, 32);
-  const cek = await hkdf(salt, ikm, enc.encode("Content-Encoding: aes128gcm\0"), 16);
-  const nonce = await hkdf(salt, ikm, enc.encode("Content-Encoding: nonce\0"), 12);
+  const cek = await hkdf(
+    salt,
+    ikm,
+    enc.encode("Content-Encoding: aes128gcm\0"),
+    16,
+  );
+  const nonce = await hkdf(
+    salt,
+    ikm,
+    enc.encode("Content-Encoding: nonce\0"),
+    12,
+  );
 
-  const key = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["encrypt"]);
+  const key = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, [
+    "encrypt",
+  ]);
   // 0x02 marks the last (here the only) record.
-  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, concat(payload, new Uint8Array([2]))));
+  const sealed = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: nonce },
+      key,
+      concat(payload, new Uint8Array([2])),
+    ),
+  );
 
   const header = new Uint8Array(21);
   header.set(salt, 0);

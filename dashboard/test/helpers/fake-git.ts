@@ -45,7 +45,11 @@ export function fakeGit(answers: Record<string, Answer | Answer[]>) {
         // `stderr` only where a table says so: the one code path that
         // reads it (branch-merge's index.lock retry) must behave for an
         // absent field exactly as it did before the field existed.
-        return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+        return {
+          code: answer.code,
+          stdout: answer.stdout ?? "",
+          stderr: answer.stderr,
+        };
       }
     }
     return { code: 1, stdout: "" };
@@ -144,10 +148,13 @@ export function flippingGit(
       const open = schedule[Math.min(n, schedule.length - 1)];
       return {
         code: 0,
-        stdout: open ? `a3f9c21deadbeef0000000000000000000000000\trefs/heads/${branch}\n` : "",
+        stdout: open
+          ? `a3f9c21deadbeef0000000000000000000000000\trefs/heads/${branch}\n`
+          : "",
       };
     }
-    if (line.startsWith("log --format=%aI")) return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+    if (line.startsWith("log --format=%aI"))
+      return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
     if (line.startsWith("log -1 --format=%H")) {
       return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
     }
@@ -156,7 +163,10 @@ export function flippingGit(
     // query for the same spec, which is a further call this fake would
     // then have to answer too (and a further tick of `hold`, if held).
     if (line.startsWith("log --all")) {
-      return { code: 0, stdout: "Run /aide-analyze for 81-queue-and-runner (headless)\n" };
+      return {
+        code: 0,
+        stdout: "Run /aide-analyze for 81-queue-and-runner (headless)\n",
+      };
     }
     return { code: 1, stdout: "" };
   };

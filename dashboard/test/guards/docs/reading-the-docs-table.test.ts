@@ -13,7 +13,9 @@ function tableRows(): string[] {
   if (start < 0) throw new Error("no 'Reading the documentation' section");
   const rest = text.slice(start + 1);
   const end = rest.search(/\n(---|## )/);
-  return (end < 0 ? rest : rest.slice(0, end)).split("\n").filter((l) => l.startsWith("|"));
+  return (end < 0 ? rest : rest.slice(0, end))
+    .split("\n")
+    .filter((l) => l.startsWith("|"));
 }
 
 function pagesIn(folder: string): string[] {
@@ -24,7 +26,11 @@ function pagesIn(folder: string): string[] {
 
 test("the table names every page in dashboard/docs/ and docs/, and no other (AC-8)", () => {
   const named = tableRows()
-    .flatMap((row) => [...row.matchAll(/`((?:dashboard\/docs|docs)\/[^`/]+\.md)`/g)].map((m) => m[1]!))
+    .flatMap((row) =>
+      [...row.matchAll(/`((?:dashboard\/docs|docs)\/[^`/]+\.md)`/g)].map(
+        (m) => m[1]!,
+      ),
+    )
     .sort();
   const onDisk = [...pagesIn("dashboard/docs"), ...pagesIn("docs")].sort();
   expect(named).toEqual(onDisk);

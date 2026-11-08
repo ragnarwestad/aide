@@ -8,7 +8,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor, stepDoneHandler } from "../../src/serve/runner-setup.ts";
+import {
+  acceptanceNotRequiredForAnalyze,
+  forgetSpecCachesFor,
+  stepDoneHandler,
+} from "../../src/serve/runner-setup.ts";
 import type { Job } from "../../src/queue/queue.ts";
 
 const job = (over: Partial<Job> = {}): Job =>
@@ -30,7 +34,8 @@ describe("acceptanceNotRequiredForAnalyze", () => {
       );
       const ctx = {
         specDir: (_project: string, folder: string) => folder,
-        peekMachinerySpecDir: (_project: string, found: string) => join(root, found),
+        peekMachinerySpecDir: (_project: string, found: string) =>
+          join(root, found),
       };
       expect(acceptanceNotRequiredForAnalyze(ctx, job())).toBe(true);
     } finally {
@@ -43,10 +48,14 @@ describe("acceptanceNotRequiredForAnalyze", () => {
     try {
       const dir = join(root, "81-queue-and-runner");
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "1-description.md"), "# X\n\n## Tracking info\n\n- **Created:** `2026-08-19`\n");
+      writeFileSync(
+        join(dir, "1-description.md"),
+        "# X\n\n## Tracking info\n\n- **Created:** `2026-08-19`\n",
+      );
       const ctx = {
         specDir: (_project: string, folder: string) => folder,
-        peekMachinerySpecDir: (_project: string, found: string) => join(root, found),
+        peekMachinerySpecDir: (_project: string, found: string) =>
+          join(root, found),
       };
       expect(acceptanceNotRequiredForAnalyze(ctx, job())).toBe(false);
     } finally {
@@ -68,11 +77,15 @@ describe("forgetSpecCachesFor", () => {
     const forgotten: [string, string][] = [];
     const ctx = {
       specDir: (_project: string, folder: string) => folder,
-      peekMachinerySpecDir: (_project: string, found: string) => `/machinery/${found}`,
-      forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
+      peekMachinerySpecDir: (_project: string, found: string) =>
+        `/machinery/${found}`,
+      forgetSpecCaches: (dir: string, folder: string) =>
+        void forgotten.push([dir, folder]),
     };
     forgetSpecCachesFor(ctx, job());
-    expect(forgotten).toEqual([["/machinery/81-queue-and-runner", "81-queue-and-runner"]]);
+    expect(forgotten).toEqual([
+      ["/machinery/81-queue-and-runner", "81-queue-and-runner"],
+    ]);
   });
 
   test("a spec no scan knows forgets nothing", () => {
@@ -80,7 +93,8 @@ describe("forgetSpecCachesFor", () => {
     const ctx = {
       specDir: () => undefined,
       peekMachinerySpecDir: (_p: string, found: string) => found,
-      forgetSpecCaches: (dir: string, folder: string) => void forgotten.push([dir, folder]),
+      forgetSpecCaches: (dir: string, folder: string) =>
+        void forgotten.push([dir, folder]),
     };
     forgetSpecCachesFor(ctx, job());
     expect(forgotten).toEqual([]);
@@ -96,7 +110,8 @@ describe("stepDoneHandler", () => {
     const calls: string[] = [];
     const ctx = {
       specDir: (_project: string, folder: string) => folder,
-      peekMachinerySpecDir: (_project: string, found: string) => `/machinery/${found}`,
+      peekMachinerySpecDir: (_project: string, found: string) =>
+        `/machinery/${found}`,
       machineryProjectDir: () => "/machinery",
       forgetSpecCaches: (dir: string) => void calls.push(`forget ${dir}`),
       rereadSpecCaches: (dir: string) => void calls.push(`reread ${dir}`),
@@ -114,46 +129,91 @@ describe("stepDoneHandler", () => {
       },
       store: { forgetPendingSteps: () => {} },
     };
-    return { calls, handle: stepDoneHandler(ctx as unknown as Parameters<typeof stepDoneHandler>[0]) };
+    return {
+      calls,
+      handle: stepDoneHandler(
+        ctx as unknown as Parameters<typeof stepDoneHandler>[0],
+      ),
+    };
   };
 
   test("an implement that finished is read again at once", () => {
     const { calls, handle } = harness();
-    expect(handle(job() as never, "implement", { ok: true, terminalReason: "completed" })).toBeUndefined();
-    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "reread /machinery/81-queue-and-runner"]);
+    expect(
+      handle(job() as never, "implement", {
+        ok: true,
+        terminalReason: "completed",
+      }),
+    ).toBeUndefined();
+    expect(calls).toEqual([
+      "forget /machinery/81-queue-and-runner",
+      "reread /machinery/81-queue-and-runner",
+    ]);
   });
 
   test("a step that failed is read again too", () => {
     const { calls, handle } = harness();
-    handle(job() as never, "analyze", { ok: false, terminalReason: "cli-error" });
+    handle(job() as never, "analyze", {
+      ok: false,
+      terminalReason: "cli-error",
+    });
     expect(calls).toContain("reread /machinery/81-queue-and-runner");
   });
 
   test("an analyze that lands leaves the reading to its landing", () => {
     const { calls, handle } = harness();
-    expect(handle(job() as never, "analyze", { ok: true, terminalReason: "completed" })).toBeInstanceOf(Promise);
+    expect(
+      handle(job() as never, "analyze", {
+        ok: true,
+        terminalReason: "completed",
+      }),
+    ).toBeInstanceOf(Promise);
     expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land"]);
   });
 
-  const branchUrls = [{ root: "/specs", branch: "aide/81-queue-and-runner", url: "https://example.com/specs" }];
+  const branchUrls = [
+    {
+      root: "/specs",
+      branch: "aide/81-queue-and-runner",
+      url: "https://example.com/specs",
+    },
+  ];
   for (const terminalReason of ["timeout", "provider-limit", "cli-error"]) {
     test(`an archive ending ${terminalReason} starts no landing`, () => {
       const { calls, handle } = harness();
-      expect(handle(job(), "archive", { ok: false, terminalReason, branchUrls })).toBeUndefined();
-      expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "reread /machinery/81-queue-and-runner"]);
+      expect(
+        handle(job(), "archive", { ok: false, terminalReason, branchUrls }),
+      ).toBeUndefined();
+      expect(calls).toEqual([
+        "forget /machinery/81-queue-and-runner",
+        "reread /machinery/81-queue-and-runner",
+      ]);
     });
   }
 
   test("a stopped analyze still lands its specs branch", async () => {
     const { calls, handle } = harness();
-    await handle(job(), "analyze", { ok: false, terminalReason: "timeout", branchUrls });
-    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land stopped"]);
+    await handle(job(), "analyze", {
+      ok: false,
+      terminalReason: "timeout",
+      branchUrls,
+    });
+    expect(calls).toEqual([
+      "forget /machinery/81-queue-and-runner",
+      "land stopped",
+    ]);
   });
 
   test("a completed archive uses the archive landing", async () => {
     const { calls, handle } = harness();
-    await handle(job(), "archive", { ok: true, terminalReason: "completed", branchUrls });
-    expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land archive"]);
+    await handle(job(), "archive", {
+      ok: true,
+      terminalReason: "completed",
+      branchUrls,
+    });
+    expect(calls).toEqual([
+      "forget /machinery/81-queue-and-runner",
+      "land archive",
+    ]);
   });
-
 });

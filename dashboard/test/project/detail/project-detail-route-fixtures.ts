@@ -33,16 +33,26 @@ export const ownDirs: string[] = [];
  *  and one spec) and gets the `.aide/config` it was given — `null` for
  *  a project with no config file at all, which is the state a checkout
  *  on a second machine is in. */
-export function projectsRoot(projects: Record<string, string | null>, files: string[] = []): string {
+export function projectsRoot(
+  projects: Record<string, string | null>,
+  files: string[] = [],
+): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-detail-root-"));
   ownDirs.push(dir);
   for (const [name, config] of Object.entries(projects)) {
     const project = join(dir, name);
     mkdirSync(join(project, ".aide"), { recursive: true });
-    writeFileSync(join(project, ".aide", "project.yaml"), `name: ${name}\ndescription: the ${name} project\n`);
+    writeFileSync(
+      join(project, ".aide", "project.yaml"),
+      `name: ${name}\ndescription: the ${name} project\n`,
+    );
     mkdirSync(join(project, "specs", "01-first"), { recursive: true });
-    writeFileSync(join(project, "specs", "01-first", "1-description.md"), "# First - Description\n");
-    if (config !== null) writeFileSync(join(project, ".aide", "config"), config);
+    writeFileSync(
+      join(project, "specs", "01-first", "1-description.md"),
+      "# First - Description\n",
+    );
+    if (config !== null)
+      writeFileSync(join(project, ".aide", "config"), config);
     for (const f of files) writeFileSync(join(project, f), "");
   }
   return dir;
@@ -56,9 +66,16 @@ export function setTestCmd(root: string, name: string, cmd: string): void {
 
 /** Give `name` under `root` its worktree links, in its manifest — the
  *  only file they are read from. */
-export function setWorktreeLinks(root: string, name: string, links: string): void {
+export function setWorktreeLinks(
+  root: string,
+  name: string,
+  links: string,
+): void {
   const file = join(root, name, ".aide", "project.yaml");
-  writeFileSync(file, `${readFileSync(file, "utf-8")}worktreeLinks: ${links}\n`);
+  writeFileSync(
+    file,
+    `${readFileSync(file, "utf-8")}worktreeLinks: ${links}\n`,
+  );
 }
 
 /** A queue config file this suite owns, holding `aide`'s scheduled jobs. */
@@ -90,7 +107,12 @@ export const stranded = (root: string, name: string) =>
     "show-ref": { code: 1 },
   });
 
-export function serve(root: string, git: { run: GitRunner }, driftPollMs?: number, queueConfigFile?: string): string {
+export function serve(
+  root: string,
+  git: { run: GitRunner },
+  driftPollMs?: number,
+  queueConfigFile?: string,
+): string {
   return harness.start({
     extra: {
       projectRoot: root,

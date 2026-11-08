@@ -2,10 +2,24 @@
 // closure, and the `Landing` description `landBranch` is driven by.
 
 import type { Sentence } from "../../i18n/message.ts";
-import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
-import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
+import type {
+  QueueStore,
+  BranchRef,
+  Job,
+  WorkflowStep,
+} from "../../queue/queue.ts";
+import type {
+  BranchStatusChecker,
+  GitRunner,
+} from "../../git/branch-status.ts";
+import type {
+  WorkflowHistoryChecker,
+  BranchFileStepsChecker,
+} from "../../git/workflow-history.ts";
+import type {
+  SpecCreatedAtChecker,
+  DescriptionFreshnessChecker,
+} from "../../git/description-freshness.ts";
 import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { CodeLanding } from "../../project/discover";
 import type { QueueRowView } from "../../render";
@@ -28,7 +42,11 @@ export interface LandContext {
   mergeLock: ReturnType<typeof createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
-  warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
+  warmSpec: (t: {
+    dir?: string;
+    specFolder: string;
+    reopenedAfter?: string;
+  }) => Promise<void>;
   machinerySpecsRoot: (project: string) => string | undefined;
   specsRoot: (dir: string) => Promise<string>;
   jobRow: (job: Job) => Promise<QueueRowView>;
@@ -40,7 +58,11 @@ export interface LandContext {
    *  stale copy — what `withFreshness` prefers over `t.fileSteps` when
    *  it has a real answer. */
   branchFileSteps: BranchFileStepsChecker;
-  rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
+  rootsStillHolding: (
+    project: string,
+    branch: string,
+    fresh: boolean,
+  ) => Promise<string[]>;
   invalidateScan: () => void;
   queueInstallTimeoutMs: number | undefined;
   /** What restarts the dashboard server once a code-root install has
@@ -61,7 +83,16 @@ export interface LandContext {
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
+  landingGate?: (
+    root: string,
+    job: Job,
+    branch: string,
+  ) => Promise<{
+    ok: boolean;
+    error?: Sentence;
+    detail?: string;
+    retriedAfter?: string;
+  }>;
   /** Landing's own finalize step for a `create` job: renames
    *  the folder off its literal provisional key to its real `NN-slug`
    *  inside the merge worktree, under the specs repo's own merge lock.
@@ -74,7 +105,10 @@ export interface LandContext {
     repoRoot: string,
     specsRootAbs: string,
     provisionalFolder: string,
-  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
+  ) => Promise<
+    | { ok: true; specFolder: string }
+    | { ok: false; error: Sentence; detail?: string }
+  >;
   /** The `git -c` arguments that make a merge in `work` merge the
    *  translation files the manifest in `root` names, key by key; empty
    *  when it names none. Absent means git's own merge (tests). */

@@ -17,7 +17,9 @@ import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 
-const testFiles = [...new Glob("**/*.test.ts").scanSync({ cwd: ROOT, absolute: true })];
+const testFiles = [
+  ...new Glob("**/*.test.ts").scanSync({ cwd: ROOT, absolute: true }),
+];
 
 /** A shell loop that waits for a file. Written by a test as a template
  *  literal, so the file path arrives as `${...}` and only the shape
@@ -36,7 +38,10 @@ describe("a stand-in a test writes cannot outlive the test", () => {
       for (const match of source.matchAll(WAITS_FOR_A_FILE)) {
         // The whole loop condition, up to the `; do`: a bounded one
         // carries a second test beside the file test.
-        const line = source.slice(match.index, source.indexOf("; do", match.index));
+        const line = source.slice(
+          match.index,
+          source.indexOf("; do", match.index),
+        );
         if (!/-lt |-le |-gt |timeout/.test(line)) {
           unbounded.push(`${file.slice(ROOT.length + 1)}: ${line}`);
         }

@@ -5,7 +5,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import {
+  JOB,
+  specControls,
+  OPEN_81,
+  setupQueueRoutesHarness,
+} from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
@@ -19,7 +24,10 @@ afterEach(() => harness.cleanup());
 // it stands at that instant rather than against whatever the page
 // believed when the box was ticked.
 describe("POST /api/queue/:id/steps", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const JSON_HEADERS = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
   /** One job in the mirror, RUNNING the step at `stepIndex`, served by
    *  a second server started on that mirror. No runner is configured,
@@ -39,7 +47,10 @@ describe("POST /api/queue/:id/steps", () => {
       })
     ).json()) as { job: { id: string } };
     const mirror = join(first.dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     const job = jobs.find((j) => j.id === made.job.id)!;
     job.state = "running";
     job.stepIndex = stepIndex;
@@ -52,17 +63,28 @@ describe("POST /api/queue/:id/steps", () => {
     return { base: second.base, id: made.job.id };
   }
 
-  const edit = (base: string, id: string, step: string, checked: boolean, body?: BodyInit) =>
+  const edit = (
+    base: string,
+    id: string,
+    step: string,
+    checked: boolean,
+    body?: BodyInit,
+  ) =>
     fetch(`${base}/api/queue/${id}/steps`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
+        ? {
+            "content-type": "application/x-www-form-urlencoded",
+            accept: "application/json",
+          }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, checked }),
     });
 
   const stepsOf = async (base: string, id: string): Promise<string[]> => {
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })).json()) as {
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })
+    ).json()) as {
       jobs: { id: string; steps: string[] }[];
     };
     return listed.jobs.find((j) => j.id === id)!.steps;
@@ -72,11 +94,18 @@ describe("POST /api/queue/:id/steps", () => {
     const { base, id } = await running(["analyze"]);
     const res = await edit(base, id, "archive", true);
     expect(res.status).toBe(200);
-    const answer = (await res.json()) as { ok: boolean; job: { steps: string[] } };
+    const answer = (await res.json()) as {
+      ok: boolean;
+      job: { steps: string[] };
+    };
     expect(answer.ok).toBe(true);
     expect(answer.job.steps).toEqual(["analyze", "archive"]);
     expect((await edit(base, id, "implement", true)).status).toBe(200);
-    expect(await stepsOf(base, id)).toEqual(["analyze", "implement", "archive"]);
+    expect(await stepsOf(base, id)).toEqual([
+      "analyze",
+      "implement",
+      "archive",
+    ]);
   });
 
   test("a not-yet-started step is removed", async () => {
@@ -87,10 +116,22 @@ describe("POST /api/queue/:id/steps", () => {
 
   test("the form encoding the page posts is understood too", async () => {
     const { base, id } = await running(["analyze"]);
-    const res = await edit(base, id, "", false, new URLSearchParams({ step: "archive", checked: "1" }));
+    const res = await edit(
+      base,
+      id,
+      "",
+      false,
+      new URLSearchParams({ step: "archive", checked: "1" }),
+    );
     expect(res.status).toBe(200);
     expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
-    const off = await edit(base, id, "", false, new URLSearchParams({ step: "archive", checked: "0" }));
+    const off = await edit(
+      base,
+      id,
+      "",
+      false,
+      new URLSearchParams({ step: "archive", checked: "0" }),
+    );
     expect(off.status).toBe(200);
     expect(await stepsOf(base, id)).toEqual(["analyze"]);
   });
@@ -99,15 +140,22 @@ describe("POST /api/queue/:id/steps", () => {
     const { base, id } = await running(["analyze", "implement", "archive"], 2);
     const res = await edit(base, id, "archive", false);
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("archive");
-    expect(await stepsOf(base, id)).toEqual(["analyze", "implement", "archive"]);
+    expect(((await res.json()) as { error: string }).error).toContain(
+      "archive",
+    );
+    expect(await stepsOf(base, id)).toEqual([
+      "analyze",
+      "implement",
+      "archive",
+    ]);
   });
 
   test("an unknown job is a 404, and GET is not a way in", async () => {
     const { base, id } = await running(["analyze"]);
     expect((await edit(base, "nope", "archive", true)).status).toBe(404);
     expect(
-      (await fetch(`${base}/api/queue/${id}/steps`, { headers: JSON_HEADERS })).status,
+      (await fetch(`${base}/api/queue/${id}/steps`, { headers: JSON_HEADERS }))
+        .status,
     ).toBe(405);
   });
 
@@ -117,14 +165,14 @@ describe("POST /api/queue/:id/steps", () => {
   // which is what `runner.test.ts` pins from the other side.
   test("a gated step is accepted even though the spec's dependency has not landed", async () => {
     const { base, id } = await running(["analyze"], 0, {
-      description: "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n",
+      description:
+        "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n",
       alsoSpecs: ["80-dependency"],
     });
     const res = await edit(base, id, "archive", true);
     expect(res.status).toBe(200);
     expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
   });
-
 });
 // --- A phase still ahead takes a model too --------------------------
 
@@ -134,12 +182,15 @@ describe("POST /api/queue/:id/steps", () => {
 // branch on which fields it was handed, and `checked`'s absence would
 // have to mean something other than `false`.
 describe("POST /api/queue/:id/model", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const JSON_HEADERS = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { }, fable: {  } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
   /** One job in the mirror, RUNNING the step at `stepIndex`, served by
@@ -160,28 +211,49 @@ describe("POST /api/queue/:id/model", () => {
       })
     ).json()) as { job: { id: string } };
     const mirror = join(first.dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
+      string,
+      unknown
+    >[];
     const job = jobs.find((j) => j.id === made.job.id)!;
     job.state = "running";
     job.stepIndex = stepIndex;
     writeFileSync(mirror, JSON.stringify(jobs));
     const second = harness.start({
-      extra: { queueMirrorPath: mirror, queueDefaults: DEFAULTS, pendingModelsPath },
+      extra: {
+        queueMirrorPath: mirror,
+        queueDefaults: DEFAULTS,
+        pendingModelsPath,
+      },
     });
     return { base: second.base, id: made.job.id };
   }
 
-  const pick = (base: string, id: string, step: string, model: string, body?: BodyInit) =>
+  const pick = (
+    base: string,
+    id: string,
+    step: string,
+    model: string,
+    body?: BodyInit,
+  ) =>
     fetch(`${base}/api/queue/${id}/model`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
+        ? {
+            "content-type": "application/x-www-form-urlencoded",
+            accept: "application/json",
+          }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, model }),
     });
 
-  const modelOf = async (base: string, id: string): Promise<Record<string, string>> => {
-    const listed = (await (await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })).json()) as {
+  const modelOf = async (
+    base: string,
+    id: string,
+  ): Promise<Record<string, string>> => {
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })
+    ).json()) as {
       jobs: { id: string; model: Record<string, string> }[];
     };
     return listed.jobs.find((j) => j.id === id)!.model;
@@ -191,7 +263,10 @@ describe("POST /api/queue/:id/model", () => {
     const { base, id } = await running(["analyze", "implement"]);
     const res = await pick(base, id, "implement", "fable");
     expect(res.status).toBe(200);
-    const answer = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
+    const answer = (await res.json()) as {
+      ok: boolean;
+      job: { model: Record<string, string> };
+    };
     expect(answer.ok).toBe(true);
     expect(answer.job.model.implement).toBe("fable");
     expect((await modelOf(base, id)).implement).toBe("fable");
@@ -201,23 +276,44 @@ describe("POST /api/queue/:id/model", () => {
   // still to come. Kept on this job alone, it was gone the moment the
   // job ended, and the next run of that step went back to the default.
   test("a pick for a step outside the job is kept for the spec as well", async () => {
-    const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
+    const pendingPath = join(
+      mkdtempSync(join(tmpdir(), "aide-pending-")),
+      "pending-models.json",
+    );
     const { base, id } = await running(["analyze"], 0, pendingPath);
     expect((await pick(base, id, "archive", "fable")).status).toBe(200);
-    const kept = JSON.parse(readFileSync(pendingPath, "utf-8")) as Record<string, Record<string, string>>;
-    expect(Object.values(kept).some((steps) => steps.archive === "fable")).toBe(true);
+    const kept = JSON.parse(readFileSync(pendingPath, "utf-8")) as Record<
+      string,
+      Record<string, string>
+    >;
+    expect(Object.values(kept).some((steps) => steps.archive === "fable")).toBe(
+      true,
+    );
   });
 
   test("a pick for a step the job will run stays the job's alone", async () => {
-    const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
-    const { base, id } = await running(["analyze", "implement"], 0, pendingPath);
+    const pendingPath = join(
+      mkdtempSync(join(tmpdir(), "aide-pending-")),
+      "pending-models.json",
+    );
+    const { base, id } = await running(
+      ["analyze", "implement"],
+      0,
+      pendingPath,
+    );
     expect((await pick(base, id, "implement", "fable")).status).toBe(200);
     expect(existsSync(pendingPath)).toBe(false);
   });
 
   test("the form encoding the page posts is understood too", async () => {
     const { base, id } = await running(["analyze", "implement"]);
-    const res = await pick(base, id, "", "", new URLSearchParams({ step: "implement", model: "fable" }));
+    const res = await pick(
+      base,
+      id,
+      "",
+      "",
+      new URLSearchParams({ step: "implement", model: "fable" }),
+    );
     expect(res.status).toBe(200);
     expect((await modelOf(base, id)).implement).toBe("fable");
   });
@@ -226,16 +322,20 @@ describe("POST /api/queue/:id/model", () => {
     const { base, id } = await running(["analyze", "implement"], 1);
     const res = await pick(base, id, "implement", "fable");
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("implement");
+    expect(((await res.json()) as { error: string }).error).toContain(
+      "implement",
+    );
     expect((await modelOf(base, id)).implement).toBe("opus");
   });
 
   test("an unknown job is a 404, and GET is not a way in", async () => {
     const { base, id } = await running(["analyze"]);
     expect((await pick(base, "nope", "archive", "fable")).status).toBe(404);
-    expect((await fetch(`${base}/api/queue/${id}/model`, { headers: JSON_HEADERS })).status).toBe(405);
+    expect(
+      (await fetch(`${base}/api/queue/${id}/model`, { headers: JSON_HEADERS }))
+        .status,
+    ).toBe(405);
   });
-
 });
 
 // --- A model picked for a phase survives leaving the page ----------
@@ -244,26 +344,45 @@ describe("POST /api/queue/:id/model", () => {
 // the spec-scoped sibling of `POST /api/queue/:id/model` above, recording
 // a pick before any run exists for it to ride along on.
 describe("POST /api/queue/specs/:project/:folder/model", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const JSON_HEADERS = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
-    modelChoices: { sonnet: { }, fable: {  } },
+    modelChoices: { sonnet: {}, fable: {} },
   };
 
-  const pick = (base: string, project: string, folder: string, step: string, model: string, body?: BodyInit) =>
+  const pick = (
+    base: string,
+    project: string,
+    folder: string,
+    step: string,
+    model: string,
+    body?: BodyInit,
+  ) =>
     fetch(`${base}/api/queue/specs/${project}/${folder}/model`, {
       method: "POST",
       headers: body
-        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
+        ? {
+            "content-type": "application/x-www-form-urlencoded",
+            accept: "application/json",
+          }
         : JSON_HEADERS,
       body: body ?? JSON.stringify({ step, model }),
     });
 
   test("records a pick for a phase that has no job yet", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
-    const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
+    const res = await pick(
+      base,
+      "aide",
+      "81-queue-and-runner",
+      "analyze",
+      "fable",
+    );
     expect(res.status).toBe(200);
     const answer = (await res.json()) as { ok: boolean };
     expect(answer.ok).toBe(true);
@@ -272,7 +391,12 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
   test("the form encoding the page posts is understood too", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(
-      base, "aide", "81-queue-and-runner", "", "", new URLSearchParams({ step: "analyze", model: "fable" }),
+      base,
+      "aide",
+      "81-queue-and-runner",
+      "",
+      "",
+      new URLSearchParams({ step: "analyze", model: "fable" }),
     );
     expect(res.status).toBe(200);
   });
@@ -280,11 +404,10 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
   test("the pick is reflected back on the very next render", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`)).text();
     const group = specControls(html, "81-queue-and-runner");
-    const select = group.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    const select =
+      group.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
     expect(select).toMatch(/<option value="fable"[^>]*selected/);
   });
 
@@ -292,9 +415,16 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const response = await pick(base, "aide", "nope", "analyze", "fable");
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "the board does not know aide/nope", spec: "aide/nope" });
+    expect(await response.json()).toEqual({
+      error: "the board does not know aide/nope",
+      spec: "aide/nope",
+    });
     expect(
-      (await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, { headers: JSON_HEADERS })).status,
+      (
+        await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, {
+          headers: JSON_HEADERS,
+        })
+      ).status,
     ).toBe(405);
   });
 
@@ -305,7 +435,9 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
     });
     const res = await pick(base, "aide", "82-archived", "analyze", "fable");
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("archived");
+    expect(((await res.json()) as { error: string }).error).toContain(
+      "archived",
+    );
   });
 });
 
@@ -317,7 +449,10 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
 
 // The provider picked beside the model for a phase that has no job yet.
 describe("POST /api/queue/specs/:project/:folder/model with a provider", () => {
-  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const JSON_HEADERS = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
@@ -330,23 +465,41 @@ describe("POST /api/queue/specs/:project/:folder/model with a provider", () => {
   };
   const pick = (base: string, body: object) =>
     fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, {
-      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ step: "implement", ...body }),
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ step: "implement", ...body }),
     });
 
   test("the provider is kept beside the model, in a file of its own (AC-9)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-pending-"));
-    const { base } = harness.start({ extra: { queueDefaults: DEFAULTS, pendingModelsPath: join(dir, "pending-models.json") } });
-    expect((await pick(base, { model: "gpt-6", provider: "Codex" })).status).toBe(200);
-    const kept = JSON.parse(readFileSync(join(dir, "pending-providers.json"), "utf-8")) as Record<string, Record<string, string>>;
+    const { base } = harness.start({
+      extra: {
+        queueDefaults: DEFAULTS,
+        pendingModelsPath: join(dir, "pending-models.json"),
+      },
+    });
+    expect(
+      (await pick(base, { model: "gpt-6", provider: "Codex" })).status,
+    ).toBe(200);
+    const kept = JSON.parse(
+      readFileSync(join(dir, "pending-providers.json"), "utf-8"),
+    ) as Record<string, Record<string, string>>;
     expect(Object.values(kept)).toEqual([{ implement: "Codex" }]);
   });
 
   test("a provider that cannot run the model is refused, and nothing is kept (AC-9)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-pending-"));
-    const { base } = harness.start({ extra: { queueDefaults: DEFAULTS, pendingModelsPath: join(dir, "pending-models.json") } });
+    const { base } = harness.start({
+      extra: {
+        queueDefaults: DEFAULTS,
+        pendingModelsPath: join(dir, "pending-models.json"),
+      },
+    });
     const res = await pick(base, { model: "gpt-6", provider: "Claude" });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("gpt-6 is a Codex model and Claude is a Claude Code provider");
+    expect(((await res.json()) as { error: string }).error).toContain(
+      "gpt-6 is a Codex model and Claude is a Claude Code provider",
+    );
     expect(existsSync(join(dir, "pending-providers.json"))).toBe(false);
   });
 });

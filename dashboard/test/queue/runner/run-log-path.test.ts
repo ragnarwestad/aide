@@ -6,18 +6,29 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { openRunLog, runLogPath, screenshotsDir } from "../../../src/queue/runner/run-log-path.ts";
+import {
+  openRunLog,
+  runLogPath,
+  screenshotsDir,
+} from "../../../src/queue/runner/run-log-path.ts";
 
 describe("runLogPath", () => {
   test("is the run log beside the transcript, and two steps of one job give two paths", () => {
-    expect(runLogPath("/jobs/job-1.implement.stream.jsonl")).toBe("/jobs/job-1.implement.run.log");
-    expect(runLogPath("/jobs/job-1.analyze.stream.jsonl")).not.toBe(runLogPath("/jobs/job-1.implement.stream.jsonl"));
+    expect(runLogPath("/jobs/job-1.implement.stream.jsonl")).toBe(
+      "/jobs/job-1.implement.run.log",
+    );
+    expect(runLogPath("/jobs/job-1.analyze.stream.jsonl")).not.toBe(
+      runLogPath("/jobs/job-1.implement.stream.jsonl"),
+    );
   });
 });
 
 describe("openRunLog", () => {
   test("empties a file that already held text before the spawn writes into it", async () => {
-    const stream = join(mkdtempSync(join(tmpdir(), "run-log-")), "job-1.implement.stream.jsonl");
+    const stream = join(
+      mkdtempSync(join(tmpdir(), "run-log-")),
+      "job-1.implement.stream.jsonl",
+    );
     writeFileSync(runLogPath(stream), "an earlier attempt, and a long one\n");
     const file = openRunLog(stream);
     expect(readFileSync(runLogPath(stream), "utf-8")).toBe("");
@@ -28,12 +39,22 @@ describe("openRunLog", () => {
 
 describe("screenshotsDir", () => {
   test("is the folder beside the transcript, and two steps of one job give two folders", () => {
-    expect(screenshotsDir("/jobs/job-1.implement.stream.jsonl")).toBe("/jobs/job-1.implement.screenshots");
-    expect(screenshotsDir("/jobs/job-1.analyze.stream.jsonl")).not.toBe(screenshotsDir("/jobs/job-1.implement.stream.jsonl"));
+    expect(screenshotsDir("/jobs/job-1.implement.stream.jsonl")).toBe(
+      "/jobs/job-1.implement.screenshots",
+    );
+    expect(screenshotsDir("/jobs/job-1.analyze.stream.jsonl")).not.toBe(
+      screenshotsDir("/jobs/job-1.implement.stream.jsonl"),
+    );
   });
 
   test("names the folder the runner keeps: the bash side derives the same suffix from the stream file", () => {
-    const bash = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec/turn/screenshots.sh"), "utf-8");
-    expect(bash).toContain('${stream_file%.stream.jsonl}.screenshots');
+    const bash = readFileSync(
+      join(
+        import.meta.dir,
+        "../../../../core/scripts/lib/run-spec/turn/screenshots.sh",
+      ),
+      "utf-8",
+    );
+    expect(bash).toContain("${stream_file%.stream.jsonl}.screenshots");
   });
 });

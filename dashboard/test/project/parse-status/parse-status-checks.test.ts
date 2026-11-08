@@ -24,9 +24,16 @@ import {
 
 describe("parseStatusChecks", () => {
   const phase = (heading: string, rows: string[]): string =>
-    [`## ${heading}`, "", "### Tasks", "", "| Task | Status | Notes |", "|------|--------|-------|", ...rows, ""].join(
-      "\n",
-    );
+    [
+      `## ${heading}`,
+      "",
+      "### Tasks",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      ...rows,
+      "",
+    ].join("\n");
 
   // Modelled on a real status file: two phases, real prose in Notes,
   // one row still open at the bottom.
@@ -75,16 +82,26 @@ describe("parseStatusChecks", () => {
 
   test("each row carries its own line back, verbatim — that is the guard the tick posts", () => {
     const open = parseStatusChecks(REAL).find((c) => !c.done)!;
-    expect(open.line).toBe("| Manual check at 375px in a real browser | ⬜ | **still outstanding** — see below |");
+    expect(open.line).toBe(
+      "| Manual check at 375px in a real browser | ⬜ | **still outstanding** — see below |",
+    );
     expect(REAL.split("\n")).toContain(open.line);
   });
 
   test("the Notation legend is not a phase, so its rows are not checks", () => {
-    expect(parseStatusChecks(REAL).some((c) => c.task === "Symbol" || c.task === "⬜")).toBe(false);
+    expect(
+      parseStatusChecks(REAL).some(
+        (c) => c.task === "Symbol" || c.task === "⬜",
+      ),
+    ).toBe(false);
   });
 
   test("the table's own header and separator rows are not checks", () => {
-    expect(parseStatusChecks(REAL).some((c) => c.task === "Task" || c.task.startsWith("---"))).toBe(false);
+    expect(
+      parseStatusChecks(REAL).some(
+        (c) => c.task === "Task" || c.task.startsWith("---"),
+      ),
+    ).toBe(false);
   });
 
   test("a not-yet-implemented spec's placeholder rows still parse — they are what a fresh spec has", () => {
@@ -111,16 +128,26 @@ describe("parseStatusChecks", () => {
   // it. The old shape guard rejected anything over four characters, so
   // the row was not merely read as open — it never reached this list.
   test("an open row written in words is a check, exactly as a symbol one is", () => {
-    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | Waiting | |"]));
+    const checks = parseStatusChecks(
+      phase("Phase 1: RED", ["| a task | Waiting | |"]),
+    );
     expect(checks).toEqual([
-      { phase: "Phase 1: RED", line: "| a task | Waiting | |", task: "a task", done: false, note: "" },
+      {
+        phase: "Phase 1: RED",
+        line: "| a task | Waiting | |",
+        task: "a task",
+        done: false,
+        note: "",
+      },
     ]);
   });
 
   // `Completed` is not an invented synonym: it is the word the file's
   // own Notation table already gives for ✅.
   test("`Completed`, written out, is done", () => {
-    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | Completed | |"]));
+    const checks = parseStatusChecks(
+      phase("Phase 1: RED", ["| a task | Completed | |"]),
+    );
     expect(checks).toHaveLength(1);
     expect(checks[0]!.done).toBe(true);
   });
@@ -128,7 +155,9 @@ describe("parseStatusChecks", () => {
   // A step wrote the symbol AND the word into the same cell.
   // Neither form alone, the combination — and it must still count as done.
   test("`✅ Completed`, symbol and word combined, is done", () => {
-    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | ✅ Completed | |"]));
+    const checks = parseStatusChecks(
+      phase("Phase 1: RED", ["| a task | ✅ Completed | |"]),
+    );
     expect(checks).toHaveLength(1);
     expect(checks[0]!.done).toBe(true);
   });
@@ -136,8 +165,10 @@ describe("parseStatusChecks", () => {
   // The word "completed" appearing as part of unrelated free text must
   // not be mistaken for the combined mark above — only the anchored,
   // whole-cell pattern counts as done.
-  test("unrelated text containing the word \"completed\" stays open", () => {
-    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | not completed | |"]));
+  test('unrelated text containing the word "completed" stays open', () => {
+    const checks = parseStatusChecks(
+      phase("Phase 1: RED", ["| a task | not completed | |"]),
+    );
     expect(checks).toHaveLength(1);
     expect(checks[0]!.done).toBe(false);
   });
@@ -155,11 +186,15 @@ describe("parseStatusChecks", () => {
   });
 
   test("a file with no Phase or Fase heading has no checks at all", () => {
-    expect(parseStatusChecks("# X - Status\n\n## Summary\n\n| a | ⬜ | |\n")).toEqual([]);
+    expect(
+      parseStatusChecks("# X - Status\n\n## Summary\n\n| a | ⬜ | |\n"),
+    ).toEqual([]);
   });
 
   test("Norwegian `## Fase` sections count the same as `## Phase`", () => {
-    expect(parseStatusChecks(phase("Fase 1: RED", ["| Skriv testen | ⬜ | |"]))).toHaveLength(1);
+    expect(
+      parseStatusChecks(phase("Fase 1: RED", ["| Skriv testen | ⬜ | |"])),
+    ).toHaveLength(1);
   });
 
   // `## Checklist` sections count the same as `## Phase`/`##
@@ -175,7 +210,15 @@ describe("parseStatusChecks", () => {
       "",
     ].join("\n");
     const checks = parseStatusChecks(checklist);
-    expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false, note: "" }]);
+    expect(checks).toEqual([
+      {
+        phase: "Checklist",
+        line: "| a task | ⬜ | |",
+        task: "a task",
+        done: false,
+        note: "",
+      },
+    ]);
   });
 
   // `## Acceptance criteria` sections count the same as `##
@@ -191,7 +234,13 @@ describe("parseStatusChecks", () => {
     ].join("\n");
     const checks = parseStatusChecks(acceptance);
     expect(checks).toEqual([
-      { phase: "Acceptance criteria", line: "| REQ-1: does the thing | ⬜ | |", task: "REQ-1: does the thing", done: false, note: "" },
+      {
+        phase: "Acceptance criteria",
+        line: "| REQ-1: does the thing | ⬜ | |",
+        task: "REQ-1: does the thing",
+        done: false,
+        note: "",
+      },
     ]);
   });
 });
@@ -222,7 +271,9 @@ describe("tickStatusLine", () => {
     const before = FILE.split("\n");
     const after = out.split("\n");
     expect(after).toHaveLength(before.length);
-    const changed = after.map((l, i) => [i, l] as const).filter(([i, l]) => l !== before[i]);
+    const changed = after
+      .map((l, i) => [i, l] as const)
+      .filter(([i, l]) => l !== before[i]);
     expect(changed).toEqual([[6, "| Run the tests | ✅ | |"]]);
   });
 
@@ -233,12 +284,18 @@ describe("tickStatusLine", () => {
   });
 
   test("a row already ✅ is refused", () => {
-    expect(tickStatusLine(FILE, "Phase 1: RED", "| Look at it | ✅ | |")).toBeNull();
+    expect(
+      tickStatusLine(FILE, "Phase 1: RED", "| Look at it | ✅ | |"),
+    ).toBeNull();
   });
 
   test("a line not present verbatim is refused — this is the row-level guard", () => {
-    expect(tickStatusLine(FILE, "Phase 1: RED", "| Run the tests |⬜| |")).toBeNull();
-    expect(tickStatusLine(FILE, "Phase 1: RED", "| Run the other tests | ⬜ | |")).toBeNull();
+    expect(
+      tickStatusLine(FILE, "Phase 1: RED", "| Run the tests |⬜| |"),
+    ).toBeNull();
+    expect(
+      tickStatusLine(FILE, "Phase 1: RED", "| Run the other tests | ⬜ | |"),
+    ).toBeNull();
   });
 
   test("a phase heading the file does not have is refused", () => {
@@ -246,12 +303,17 @@ describe("tickStatusLine", () => {
   });
 
   test("a line outside the named phase's own section is refused", () => {
-    expect(tickStatusLine(FILE, "Phase 1: RED", "| Task | Status | Notes |")).toBeNull();
+    expect(
+      tickStatusLine(FILE, "Phase 1: RED", "| Task | Status | Notes |"),
+    ).toBeNull();
   });
 
   test("the cell's padding survives — one character changes, not the table's shape", () => {
-    const padded = "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| A |   ⬜   | note |\n";
-    expect(tickStatusLine(padded, "Phase 1: RED", "| A |   ⬜   | note |")).toContain("| A |   ✅   | note |");
+    const padded =
+      "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| A |   ⬜   | note |\n";
+    expect(
+      tickStatusLine(padded, "Phase 1: RED", "| A |   ⬜   | note |"),
+    ).toContain("| A |   ✅   | note |");
   });
 
   // --- A row a step spelled out in words --------------------------
@@ -272,13 +334,19 @@ describe("tickStatusLine", () => {
   // page writes the mark the Notation table promises, never the word it
   // found.
   test("ticking a word-written row writes the canonical ✅", () => {
-    const out = tickStatusLine(WORDS, "Phase 1: RED", "| Run the tests | Waiting | |")!;
+    const out = tickStatusLine(
+      WORDS,
+      "Phase 1: RED",
+      "| Run the tests | Waiting | |",
+    )!;
     expect(out).not.toBeNull();
     expect(out.split("\n")[6]).toBe("| Run the tests | ✅ | |");
   });
 
   test("a row already done in words is refused a second tick", () => {
-    expect(tickStatusLine(WORDS, "Phase 1: RED", "| Look at it | Completed | |")).toBeNull();
+    expect(
+      tickStatusLine(WORDS, "Phase 1: RED", "| Look at it | Completed | |"),
+    ).toBeNull();
   });
 
   // An Acceptance-criteria row ticks through the same route as
@@ -295,7 +363,11 @@ describe("tickStatusLine", () => {
       "| REQ-1: does the thing | ⬜ | |",
       "",
     ].join("\n");
-    const out = tickStatusLine(file, "Acceptance criteria", "| REQ-1: does the thing | ⬜ | |")!;
+    const out = tickStatusLine(
+      file,
+      "Acceptance criteria",
+      "| REQ-1: does the thing | ⬜ | |",
+    )!;
     expect(out).not.toBeNull();
     expect(out.split("\n")[6]).toBe("| REQ-1: does the thing | ✅ | |");
   });
@@ -308,10 +380,18 @@ describe("tickStatusLine", () => {
 // was parsed and thrown away, so the Checks tab could never show it.
 describe("the Notes cell (a caveat, and every other row's)", () => {
   const acceptance = (rows: string[]): string =>
-    ["## Acceptance criteria", "", "| Task | Status | Notes |", "|------|--------|-------|", ...rows, ""].join("\n");
+    [
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      ...rows,
+      "",
+    ].join("\n");
 
   test("a row's note is carried, verbatim", () => {
-    const line = "| REQ-3: the figure follows the same rule | ✅ | Delivered for the no-retry case only |";
+    const line =
+      "| REQ-3: the figure follows the same rule | ✅ | Delivered for the no-retry case only |";
     const checks = parseStatusChecks(acceptance([line]));
     expect(checks).toEqual([
       {
@@ -325,13 +405,24 @@ describe("the Notes cell (a caveat, and every other row's)", () => {
   });
 
   test("an empty Notes cell is an empty note, not a missing one", () => {
-    const checks = parseStatusChecks(acceptance(["| REQ-1: does the thing | ⬜ | |"]));
+    const checks = parseStatusChecks(
+      acceptance(["| REQ-1: does the thing | ⬜ | |"]),
+    );
     expect(checks[0]!.note).toBe("");
   });
 
   test("a note on a Phase row is carried too — the same table shape reads the same way", () => {
     const line = "| Write the test | ✅ | One commit, both files included |";
-    const checks = parseStatusChecks(["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", line, ""].join("\n"));
+    const checks = parseStatusChecks(
+      [
+        "## Phase 1: RED",
+        "",
+        "| Task | Status | Notes |",
+        "|---|---|---|",
+        line,
+        "",
+      ].join("\n"),
+    );
     expect(checks[0]!.note).toBe("One commit, both files included");
   });
 });
@@ -343,10 +434,21 @@ describe("the Notes cell (a caveat, and every other row's)", () => {
 // nobody had judged. The difference has to be answerable.
 describe("acceptanceSectionUnreadable", () => {
   const section = (header: string, rows: string[]): string =>
-    ["# X - Status", "", "## Acceptance criteria", "", header, "|---|---|---|", ...rows, ""].join("\n");
+    [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      header,
+      "|---|---|---|",
+      ...rows,
+      "",
+    ].join("\n");
 
   test("the rule's own table reads, so it is not unreadable", () => {
-    const text = section("| Task | Status | Notes |", ["| REQ-1: does the thing | ⬜ | |"]);
+    const text = section("| Task | Status | Notes |", [
+      "| REQ-1: does the thing | ⬜ | |",
+    ]);
     expect(parseStatusChecks(text)).toHaveLength(1);
     expect(acceptanceSectionUnreadable(text)).toBe(false);
   });
@@ -360,22 +462,55 @@ describe("acceptanceSectionUnreadable", () => {
   });
 
   test("a file with no Acceptance section at all is not unreadable — it simply has none", () => {
-    expect(acceptanceSectionUnreadable("# X - Status\n\n## Phase 1: RED\n")).toBe(false);
+    expect(
+      acceptanceSectionUnreadable("# X - Status\n\n## Phase 1: RED\n"),
+    ).toBe(false);
   });
 
   test("an Acceptance section with a sentence instead of a table reads as nothing", () => {
-    const text = "# X - Status\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n";
+    const text =
+      "# X - Status\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n";
     expect(acceptanceSectionUnreadable(text)).toBe(true);
   });
 });
 
 describe("withoutAcceptanceSections", () => {
-  const acc = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| AC-1: a | ⬜ | |", ""];
+  const acc = [
+    "## Acceptance criteria",
+    "",
+    "| Task | Status | Notes |",
+    "|---|---|---|",
+    "| AC-1: a | ⬜ | |",
+    "",
+  ];
 
   test("cuts the section in the middle and keeps every other line in order", () => {
-    const text = ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", ...acc, "## Notation", "", "- x", ""].join("\n");
+    const text = [
+      "# X - Status",
+      "",
+      "## Phase 1: RED",
+      "",
+      "| a | ⬜ | |",
+      "",
+      ...acc,
+      "## Notation",
+      "",
+      "- x",
+      "",
+    ].join("\n");
     expect(withoutAcceptanceSections(text)).toBe(
-      ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", "## Notation", "", "- x", ""].join("\n"),
+      [
+        "# X - Status",
+        "",
+        "## Phase 1: RED",
+        "",
+        "| a | ⬜ | |",
+        "",
+        "## Notation",
+        "",
+        "- x",
+        "",
+      ].join("\n"),
     );
   });
 
@@ -389,7 +524,9 @@ describe("withoutAcceptanceSections", () => {
 
   test("cuts two sections", () => {
     const text = [...acc, "## Notation", "", ...acc].join("\n");
-    expect(withoutAcceptanceSections(text)).toBe(["## Notation", ""].join("\n"));
+    expect(withoutAcceptanceSections(text)).toBe(
+      ["## Notation", ""].join("\n"),
+    );
   });
 
   test("a file with no Acceptance section is returned unchanged", () => {
@@ -408,7 +545,16 @@ describe("withoutAcceptanceSections", () => {
 describe("the Not verified mark", () => {
   const ROW = (mark: string) => `| AC-1: it deploys | ${mark} | a note |`;
   const file = (mark: string) =>
-    ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", ROW(mark), ""].join("\n");
+    [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|---|---|---|",
+      ROW(mark),
+      "",
+    ].join("\n");
   const PHASE = "Acceptance criteria";
 
   test("a Not verified row reads as done and flagged, in any case", () => {
@@ -420,11 +566,19 @@ describe("the Not verified mark", () => {
   });
 
   test("a done or open row carries no flag at all", () => {
-    for (const mark of ["✅", "⬜"]) expect("notVerified" in parseStatusChecks(file(mark))[0]!).toBe(false);
+    for (const mark of ["✅", "⬜"])
+      expect("notVerified" in parseStatusChecks(file(mark))[0]!).toBe(false);
   });
 
   test("notVerifiedCount counts flagged rows and nothing else", () => {
-    expect(notVerifiedCount([{ notVerified: true }, {}, { notVerified: false }, { notVerified: true }])).toBe(2);
+    expect(
+      notVerifiedCount([
+        { notVerified: true },
+        {},
+        { notVerified: false },
+        { notVerified: true },
+      ]),
+    ).toBe(2);
     expect(notVerifiedCount([])).toBe(0);
   });
 
@@ -445,15 +599,31 @@ describe("the Not verified mark", () => {
       test(`${from} -> ${to}`, () => {
         const out = move(from, to);
         if (from === to) return expect(out).toBeNull();
-        expect(out).toBe(file(MARK[from]).replace(ROW(MARK[from]), ROW(MARK[to])));
+        expect(out).toBe(
+          file(MARK[from]).replace(ROW(MARK[from]), ROW(MARK[to])),
+        );
       });
     }
   }
 
   test("only the moved row's cell changes; its neighbour keeps its padding", () => {
-    const text = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ⬜ | |", "| b  | ⬜   | |"].join("\n");
-    const out = markNotVerifiedStatusLine(text, "Acceptance criteria", "| a | ⬜ | |")!;
-    expect(out.split("\n").slice(-2)).toEqual(["| a | Not verified | |", "| b  | ⬜   | |"]);
+    const text = [
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|---|---|---|",
+      "| a | ⬜ | |",
+      "| b  | ⬜   | |",
+    ].join("\n");
+    const out = markNotVerifiedStatusLine(
+      text,
+      "Acceptance criteria",
+      "| a | ⬜ | |",
+    )!;
+    expect(out.split("\n").slice(-2)).toEqual([
+      "| a | Not verified | |",
+      "| b  | ⬜   | |",
+    ]);
   });
 });
 
@@ -461,7 +631,16 @@ describe("the Not verified mark", () => {
 
 describe("the Failed mark", () => {
   const file = (mark: string, note = "a note") =>
-    ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", `| AC-1: it deploys | ${mark} | ${note} |`, ""].join("\n");
+    [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|---|---|---|",
+      `| AC-1: it deploys | ${mark} | ${note} |`,
+      "",
+    ].join("\n");
   const PHASE = "Acceptance criteria";
 
   test("a Failed row reads as open and flagged, with or without its symbol", () => {
@@ -480,43 +659,73 @@ describe("the Failed mark", () => {
   });
 
   test("a Failed row in a Phase table carries no flag", () => {
-    const text = ["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ❌ Failed | |", ""].join("\n");
+    const text = [
+      "## Phase 1: RED",
+      "",
+      "| Task | Status | Notes |",
+      "|---|---|---|",
+      "| a | ❌ Failed | |",
+      "",
+    ].join("\n");
     const [row] = parseStatusChecks(text);
     expect(row!.done).toBe(false);
     expect("failed" in row!).toBe(false);
   });
 
   test("failedCount counts flagged rows and nothing else", () => {
-    expect(failedCount([{ failed: true }, {}, { failed: false }, { failed: true }])).toBe(2);
+    expect(
+      failedCount([{ failed: true }, {}, { failed: false }, { failed: true }]),
+    ).toBe(2);
   });
 
   test("markFailedStatusLine writes the mark and a Failed: note, the rest of the file untouched", () => {
     const from = file("Not verified", "Not tested: needs the deploy");
-    const line = "| AC-1: it deploys | Not verified | Not tested: needs the deploy |";
+    const line =
+      "| AC-1: it deploys | Not verified | Not tested: needs the deploy |";
     const out = markFailedStatusLine(from, PHASE, line, "the log shows no row");
-    expect(out).toBe(from.replace(line, "| AC-1: it deploys | ❌ Failed | Failed: the log shows no row |"));
+    expect(out).toBe(
+      from.replace(
+        line,
+        "| AC-1: it deploys | ❌ Failed | Failed: the log shows no row |",
+      ),
+    );
   });
 
   test("the note is cleaned: pipes, newlines, $& and an empty Notes cell", () => {
     const line = "| AC-1: it deploys | Not verified | |";
     const from = file("Not verified", "").replace("|  |", "| |");
     const out = markFailedStatusLine(from, PHASE, line, "  a | b\nc $& d 🙂 ")!;
-    expect(out).toContain("| AC-1: it deploys | ❌ Failed | Failed: a / b c $& d 🙂 |");
+    expect(out).toContain(
+      "| AC-1: it deploys | ❌ Failed | Failed: a / b c $& d 🙂 |",
+    );
   });
 
   test("an empty note is refused, and so is a row that is not there or already Failed", () => {
     const line = "| AC-1: it deploys | Not verified | a note |";
-    expect(markFailedStatusLine(file("Not verified"), PHASE, line, "  ")).toBeNull();
-    expect(markFailedStatusLine(file("Not verified"), PHASE, "| nope | Not verified | |", "x")).toBeNull();
+    expect(
+      markFailedStatusLine(file("Not verified"), PHASE, line, "  "),
+    ).toBeNull();
+    expect(
+      markFailedStatusLine(
+        file("Not verified"),
+        PHASE,
+        "| nope | Not verified | |",
+        "x",
+      ),
+    ).toBeNull();
     const failed = "| AC-1: it deploys | ❌ Failed | a note |";
-    expect(markFailedStatusLine(file("❌ Failed"), PHASE, failed, "x")).toBeNull();
+    expect(
+      markFailedStatusLine(file("❌ Failed"), PHASE, failed, "x"),
+    ).toBeNull();
   });
 
   test("a Failed row is never moved by the tick, untick or Not verified movers", () => {
     const line = "| AC-1: it deploys | ❌ Failed | a note |";
     expect(untickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
     expect(tickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
-    expect(markNotVerifiedStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
+    expect(
+      markNotVerifiedStatusLine(file("❌ Failed"), PHASE, line),
+    ).toBeNull();
   });
 });
 

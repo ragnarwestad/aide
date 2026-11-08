@@ -12,20 +12,27 @@ import type { QueueRowView } from "../../../ui/job-state";
 import type { SpecGroup } from "../data-model";
 
 /** Where an approach's lead is on the spec page's Solution tab. */
-export const approachHref = (project: string, folder: string, letter: string): string =>
+export const approachHref = (
+  project: string,
+  folder: string,
+  letter: string,
+): string =>
   `${specTabPath(project, folder, "solution")}#approach-${letter.toLowerCase()}`;
 
 /** The form's id, which its radios name with `form=` too, so a pick is
  *  remembered per spec across a redraw. */
-export const approachFormId = (g: Pick<SpecGroup, "project" | "specFolder">): string =>
-  `approach-${g.project}-${g.specFolder}`;
+export const approachFormId = (
+  g: Pick<SpecGroup, "project" | "specFolder">,
+): string => `approach-${g.project}-${g.specFolder}`;
 
 /** A step of the spec is running or landing: the one state the choice
  *  waits out. A job merely queued — the one held for this very choice —
  *  is not it. */
 export const stepRunsOrLands = (g: SpecGroup, steps?: string[]): boolean =>
   g.phases.some(
-    (p) => (!steps || steps.includes(p.step)) && p.attempts.some((a) => a.state === "running" || !!a.landing),
+    (p) =>
+      (!steps || steps.includes(p.step)) &&
+      p.attempts.some((a) => a.state === "running" || !!a.landing),
   );
 
 /** The lead job is the one the runner holds for this choice. */
@@ -46,8 +53,10 @@ const heldForChoice = (lead: QueueRowView | undefined): boolean => {
  *  choice or no Implement has completed since — an Implement that has run
  *  without a choice ended the question. */
 export function approachChoiceShown(g: SpecGroup): boolean {
-  if (!g.approachChoice?.length || stepRunsOrLands(g, ["analyze", "implement"])) return false;
-  const implementDone = g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
+  if (!g.approachChoice?.length || stepRunsOrLands(g, ["analyze", "implement"]))
+    return false;
+  const implementDone =
+    g.phases.find((p) => p.step === "implement")?.history.historyDone === true;
   return heldForChoice(g.lead) || !implementDone;
 }
 
@@ -89,7 +98,9 @@ export function approachPanel(g: SpecGroup, lang: Language): string {
           form: id,
           href: item.href,
         }) +
-        (item.recommended ? ` <span class="muted">${esc(t(lang, "list.approachRecommended"))}</span>` : "") +
+        (item.recommended
+          ? ` <span class="muted">${esc(t(lang, "list.approachRecommended"))}</span>`
+          : "") +
         `</li>`,
     )
     .join("");

@@ -16,12 +16,23 @@ import { type RoutesContext } from "../routes";
  *  describes for `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "readDeployFailure" | "readBranchPreview" | "selfStopExit"
+  | "readScan"
+  | "invalidateScan"
+  | "notifyQueueChanged"
+  | "forgetBranchFileSteps"
+  | "readServing"
+  | "readPendingRestart"
+  | "readDeployFailure"
+  | "readBranchPreview"
+  | "selfStopExit"
 > & {
   branchFileSteps: BranchFileStepsChecker;
 };
 
-export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): RoutesContext {
+export function setupQueueContext(
+  state: ServerState,
+  inputs: QueueContextInputs,
+): RoutesContext {
   return {
     opts: inputs.opts,
     nav: inputs.nav,
@@ -35,7 +46,8 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     notifyQueueChanged: () => {
       for (const c of [...inputs.watchers]) inputs.writeTo(c, CHANGED_EVENT);
     },
-    forgetBranchFileSteps: (dir, specFolder) => inputs.branchFileSteps.forget(dir, specFolder),
+    forgetBranchFileSteps: (dir, specFolder) =>
+      inputs.branchFileSteps.forget(dir, specFolder),
     rereadSpec: inputs.rereadSpec,
     rereadProject: inputs.rereadProject,
     targets: inputs.targets,
@@ -66,10 +78,14 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     archivedSpecRows: inputs.archivedSpecRows,
     specPageView: inputs.specPageView,
     jobDetailView: inputs.jobDetailView,
-    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
+    readServing: () => ({
+      sha: state.servingSha,
+      repoRoot: state.servingRepoRoot,
+    }),
     readPendingRestart: () => state.pendingRestart,
     readDeployFailure: (project) => state.deployFailures.get(project),
-    readBranchPreview: (project, specFolder) => state.branchPreviews.get(`${project}/${specFolder}`),
+    readBranchPreview: (project, specFolder) =>
+      state.branchPreviews.get(`${project}/${specFolder}`),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,
     pdfToolAvailable: inputs.pdfToolAvailable,

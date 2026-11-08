@@ -1,7 +1,15 @@
 // Split out of runner.test.ts by theme.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import {
+  spawns,
+  store,
+  enqueue,
+  makeRunner,
+  okResult,
+  resetHarness,
+  cleanupHarness,
+} from "./runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -13,7 +21,9 @@ afterEach(cleanupHarness);
 describe("the session id is known before the step starts", () => {
   test("tick() hands the spawner a session id and a stream file, and stores both on the job", () => {
     const job = enqueue();
-    const runner = makeRunner({ newSessionId: () => "11111111-2222-4333-8444-555555555555" });
+    const runner = makeRunner({
+      newSessionId: () => "11111111-2222-4333-8444-555555555555",
+    });
     runner.tick();
 
     expect(spawns[0]!.sessionId).toBe("11111111-2222-4333-8444-555555555555");
@@ -71,7 +81,9 @@ describe("the session id is known before the step starts", () => {
     });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)!.results[0]!.sessionId).toBe("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
+    expect(store.get(job.id)!.results[0]!.sessionId).toBe(
+      "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    );
   });
 
   test("an interrupted step clears the live id too", () => {
@@ -88,7 +100,10 @@ describe("what the page needs from a step", () => {
   test("the branch link from the result is kept on the job", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(1), branchUrl: "https://example.test/compare" }),
+      readResult: () => ({
+        ...okResult(1),
+        branchUrl: "https://example.test/compare",
+      }),
     });
     runner.tick();
     runner.poll();
@@ -106,7 +121,10 @@ describe("what the page needs from a step", () => {
         branchUrl: "https://example.test/aide/compare",
         branchUrls: [
           { root: "/repos/aide", url: "https://example.test/aide/compare" },
-          { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+          {
+            root: "/repos/aide-specs",
+            url: "https://example.test/aide-specs/compare",
+          },
         ],
       }),
     });
@@ -114,7 +132,10 @@ describe("what the page needs from a step", () => {
     runner.poll();
     expect(store.get(job.id)?.branchUrls).toEqual([
       { root: "/repos/aide", url: "https://example.test/aide/compare" },
-      { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+      {
+        root: "/repos/aide-specs",
+        url: "https://example.test/aide-specs/compare",
+      },
     ]);
   });
 
@@ -132,12 +153,17 @@ describe("what the page needs from a step", () => {
               ...okResult(1),
               branchUrls: [
                 { root: "/repos/aide", url: "https://example.test/aide/old" },
-                { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+                {
+                  root: "/repos/aide-specs",
+                  url: "https://example.test/aide-specs/compare",
+                },
               ],
             }
           : {
               ...okResult(1),
-              branchUrls: [{ root: "/repos/aide", url: "https://example.test/aide/new" }],
+              branchUrls: [
+                { root: "/repos/aide", url: "https://example.test/aide/new" },
+              ],
             };
       },
     });
@@ -149,7 +175,10 @@ describe("what the page needs from a step", () => {
       // The root both steps touched carries the LATEST url…
       { root: "/repos/aide", url: "https://example.test/aide/new" },
       // …and the one only the first step touched is still there.
-      { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+      {
+        root: "/repos/aide-specs",
+        url: "https://example.test/aide-specs/compare",
+      },
     ]);
   });
 
@@ -160,7 +189,12 @@ describe("what the page needs from a step", () => {
       readResult: () => {
         call += 1;
         return call === 1
-          ? { ...okResult(1), branchUrls: [{ root: "/repos/aide", url: "https://example.test/aide" }] }
+          ? {
+              ...okResult(1),
+              branchUrls: [
+                { root: "/repos/aide", url: "https://example.test/aide" },
+              ],
+            }
           : okResult(1);
       },
     });
@@ -182,7 +216,15 @@ describe("what the page needs from a step", () => {
     const runner = makeRunner({
       readResult: () => ({
         ...okResult(1),
-        repos: [{ root: "/repos/aide", worktree: "/tmp/wt", headBefore: "abc111", headAfter: "abc222", changedFiles: 3 }],
+        repos: [
+          {
+            root: "/repos/aide",
+            worktree: "/tmp/wt",
+            headBefore: "abc111",
+            headAfter: "abc222",
+            changedFiles: 3,
+          },
+        ],
       }),
     });
     runner.tick();
@@ -195,7 +237,10 @@ describe("what the page needs from a step", () => {
   test("a malformed repos entry is dropped rather than half-carried", () => {
     const job = enqueue();
     const runner = makeRunner({
-      readResult: () => ({ ...okResult(1), repos: [{ root: "/repos/aide", headBefore: 123 }] }),
+      readResult: () => ({
+        ...okResult(1),
+        repos: [{ root: "/repos/aide", headBefore: 123 }],
+      }),
     });
     runner.tick();
     runner.poll();
@@ -250,16 +295,27 @@ describe("each step keeps its own transcript", () => {
   // attempt's transcript.
   test("a later attempt of the same step is handed a file of its own (AC-2)", () => {
     const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "provider-limit" }) });
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(1),
+        ok: false,
+        terminalReason: "provider-limit",
+      }),
+    });
     runner.tick();
     runner.poll();
     const first = store.get(job.id)!;
     expect(first.state).toBe("stopped");
-    store.transition(job.id, "limit-reset", { stopReason: undefined, finishedAt: undefined });
+    store.transition(job.id, "limit-reset", {
+      stopReason: undefined,
+      finishedAt: undefined,
+    });
     runner.tick();
     expect(spawns).toHaveLength(2);
     expect(spawns[1]!.streamFile).not.toBe(spawns[0]!.streamFile);
     expect(spawns[1]!.streamFile).toContain("implement");
-    expect(store.get(job.id)?.results[0]?.streamFile).toBe(spawns[0]!.streamFile);
+    expect(store.get(job.id)?.results[0]?.streamFile).toBe(
+      spawns[0]!.streamFile,
+    );
   });
 });

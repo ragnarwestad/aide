@@ -5,7 +5,12 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { specArchivedDate, specCloseReason, specClosed, specClosedDate } from "../../../src/project/discover";
+import {
+  specArchivedDate,
+  specCloseReason,
+  specClosed,
+  specClosedDate,
+} from "../../../src/project/discover";
 
 const dirs: string[] = [];
 function specWith(status: string): string {
@@ -14,9 +19,12 @@ function specWith(status: string): string {
   writeFileSync(join(dir, "4-status.md"), status);
   return dir;
 }
-afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+afterAll(() =>
+  dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+);
 
-const BOUNDARY = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)";
+const BOUNDARY =
+  "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)";
 const CLOSED = "- **Closed:** 2026-09-10 — not needed";
 
 describe("the order rule for stamps", () => {
@@ -35,7 +43,9 @@ describe("the order rule for stamps", () => {
   });
 
   test("a new Closed stamp after the boundary counts", () => {
-    const dir = specWith(`${CLOSED}\n${BOUNDARY}\n- **Closed:** 2026-09-25 — again\n`);
+    const dir = specWith(
+      `${CLOSED}\n${BOUNDARY}\n- **Closed:** 2026-09-25 — again\n`,
+    );
     expect(specClosed(dir)).toBe(true);
     expect(specClosedDate(dir)).toBe("2026-09-25");
   });
@@ -43,11 +53,15 @@ describe("the order rule for stamps", () => {
   test("an Archived stamp followed by a Round boundary is history, and a later one counts", () => {
     const kept = specWith(`- **Archived:** 2026-09-10\n${BOUNDARY}\n`);
     expect(specArchivedDate(kept)).toBeNull();
-    const again = specWith(`- **Archived:** 2026-09-10\n${BOUNDARY}\n- **Archived:** 2026-09-22\n`);
+    const again = specWith(
+      `- **Archived:** 2026-09-10\n${BOUNDARY}\n- **Archived:** 2026-09-22\n`,
+    );
     expect(specArchivedDate(again)).toBe("2026-09-22");
   });
 
   test("an Archived stamp alone keeps its date", () => {
-    expect(specArchivedDate(specWith("- **Archived:** 2026-09-10\n"))).toBe("2026-09-10");
+    expect(specArchivedDate(specWith("- **Archived:** 2026-09-10\n"))).toBe(
+      "2026-09-10",
+    );
   });
 });

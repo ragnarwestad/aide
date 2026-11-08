@@ -7,7 +7,7 @@
 - [Where Aide sits in spec-driven development](#where-aide-sits-in-spec-driven-development)
 - [The aide-* skills](#the-aide--skills)
 - [Install & Configuration](#install--configuration)
-    - [Per-project configuration](#per-project-configuration)
+  - [Per-project configuration](#per-project-configuration)
 - [The workflow, step by step](#the-workflow-step-by-step)
 - [The Aide dashboard](#the-aide-dashboard)
 - [Resources](#resources)
@@ -16,7 +16,6 @@
 
 Spec-driven development for Claude Code, Codex, OpenCode and GitHub Copilot: every change starts as a spec, and a
 dashboard runs it through analysis, implementation and archiving.
-
 
 ## What Aide is
 
@@ -108,10 +107,10 @@ every row is ticked:
 ## Acceptance criteria
 
 | Task                                                              | Status | Notes |
-|-------------------------------------------------------------------|--------|-------|
-| AC-1: For a spec held back on unticked acceptance criteria, [...] | ✅      |       |
-| AC-2: For a spec held back on unticked acceptance criteria, [...] | ✅      |       |
-| AC-3: The row's decision of whether the project can run [...]     | ✅      |       |
+| ----------------------------------------------------------------- | ------ | ----- |
+| AC-1: For a spec held back on unticked acceptance criteria, [...] | ✅     |       |
+| AC-2: For a spec held back on unticked acceptance criteria, [...] | ✅     |       |
+| AC-3: The row's decision of whether the project can run [...]     | ✅     |       |
 ```
 
 ---
@@ -146,9 +145,9 @@ the code, and what each one leaves behind in a repository.
 ## The aide-\* skills
 
 Once Aide is installed, a skill is a slash command you type in your AI CLI — Claude Code, Codex, OpenCode or
-Copilot. It takes the spec's number: `/aide-analyze 55`. 
+Copilot. It takes the spec's number: `/aide-analyze 55`.
 
-Or, the dashboard runs the four workflow skills for you instead of you typing them, one after the other 
+Or, the dashboard runs the four workflow skills for you instead of you typing them, one after the other
 — see [The workflow, step by step](#the-workflow-step-by-step) and [The Aide dashboard](#the-aide-dashboard).
 
 The four basic workflow skills, in the order a spec moves through them:

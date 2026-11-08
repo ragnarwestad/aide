@@ -24,13 +24,21 @@ const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
 describe("specNotice's held-back branch reads errorReason, not a text prefix", () => {
   test("errorReason 'held-back' renders waiting even when the text does not start with 'held back:'", () => {
     const notice = specNotice(
-      lead({ error: "waiting on another archive to land", errorReason: "held-back" as QueueRowView["errorReason"] }),
+      lead({
+        error: "waiting on another archive to land",
+        errorReason: "held-back" as QueueRowView["errorReason"],
+      }),
     );
     expect(notice?.variant).toBe("waiting");
   });
 
   test("text starting with 'held back:' but a different errorReason renders failed", () => {
-    const notice = specNotice(lead({ error: "held back: not analyzed yet — run /aide-analyze first", errorReason: "conflict" }));
+    const notice = specNotice(
+      lead({
+        error: "held back: not analyzed yet — run /aide-analyze first",
+        errorReason: "conflict",
+      }),
+    );
     expect(notice?.variant).toBe("failed");
   });
 
@@ -39,7 +47,10 @@ describe("specNotice's held-back branch reads errorReason, not a text prefix", (
   // answer is to run implement again. Amber, not red.
   test("errorReason 'tests-red' renders waiting", () => {
     const notice = specNotice(
-      lead({ error: "the project's tests are red on the merge — nothing was pushed.", errorReason: "tests-red" }),
+      lead({
+        error: "the project's tests are red on the merge — nothing was pushed.",
+        errorReason: "tests-red",
+      }),
     );
     expect(notice?.variant).toBe("waiting");
   });
@@ -51,12 +62,16 @@ describe("specNotice's held-back branch reads errorReason, not a text prefix", (
 // person and keep the triangle.
 describe("specNotice's held-back branch tells self-resolving reasons from ones a person must act on", () => {
   test("a held-back key that resolves on its own renders info", () => {
-    const notice = specNotice(lead({ error: { key: "runner.landingPause" }, errorReason: "held-back" }));
+    const notice = specNotice(
+      lead({ error: { key: "runner.landingPause" }, errorReason: "held-back" }),
+    );
     expect(notice?.variant).toBe("info");
   });
 
   test("a held-back key that waits on a person renders waiting", () => {
-    const notice = specNotice(lead({ error: { key: "runner.notAnalyzed" }, errorReason: "held-back" }));
+    const notice = specNotice(
+      lead({ error: { key: "runner.notAnalyzed" }, errorReason: "held-back" }),
+    );
     expect(notice?.variant).toBe("waiting");
   });
 });
@@ -68,11 +83,21 @@ describe("specNotice's held-back branch tells self-resolving reasons from ones a
 describe("specNotice's readyToArchive case", () => {
   test("readyToArchive alone renders the ready-to-archive sentence", () => {
     const notice = specNotice(undefined, undefined, undefined, [], "en", true);
-    expect(notice).toEqual({ variant: "waiting", text: "All checks ticked — press Archive to merge it" });
+    expect(notice).toEqual({
+      variant: "waiting",
+      text: "All checks ticked — press Archive to merge it",
+    });
   });
 
   test("a held-back reason still wins over readyToArchive", () => {
-    const notice = specNotice(undefined, "the Slack webhook", undefined, [], "en", true);
+    const notice = specNotice(
+      undefined,
+      "the Slack webhook",
+      undefined,
+      [],
+      "en",
+      true,
+    );
     expect(notice?.text).toContain("held back");
     expect(notice?.text).not.toContain("All checks ticked");
   });
@@ -90,7 +115,9 @@ describe("specNotice for an analyze stopped on its acceptance criteria", () => {
         error: {
           key: "runner.criteriaStopped",
           values: { button: "Analyze" },
-          inner: [{ key: "runner.criteriaNotEars", values: { ids: "AC-2, AC-4" } }],
+          inner: [
+            { key: "runner.criteriaNotEars", values: { ids: "AC-2, AC-4" } },
+          ],
         },
       }),
     );
@@ -104,9 +131,15 @@ describe("specNotice for an analyze stopped on its acceptance criteria", () => {
 // the sentence the runner worded.
 describe("specNotice for an analyze stopped on files another open spec changes", () => {
   test("renders the job's sentence as a waiting message", () => {
-    const sentence = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
+    const sentence =
+      "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
     const notice = specNotice(
-      lead({ steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: sentence }),
+      lead({
+        steps: ["analyze"],
+        state: "stopped",
+        stopReason: "shared-files",
+        error: sentence,
+      }),
     );
     expect(notice?.variant).toBe("waiting");
     expect(notice?.text).toContain("603-b");
@@ -118,39 +151,72 @@ describe("specNotice for an analyze stopped on files another open spec changes",
 // step again or picks another model: amber, like the badge.
 describe("specNotice for a step stopped because the model is at capacity", () => {
   test("renders the job's sentence as a waiting message, not failed", () => {
-    const sentence = "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
+    const sentence =
+      "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
     const notice = specNotice(
-      lead({ steps: ["analyze"], state: "stopped", stopReason: "model-at-capacity", error: sentence }),
+      lead({
+        steps: ["analyze"],
+        state: "stopped",
+        stopReason: "model-at-capacity",
+        error: sentence,
+      }),
     );
     expect(notice?.variant).toBe("waiting");
     expect(notice?.text).toContain("sonnet");
   });
 });
 
-
 describe("informational holds", () => {
   test.each([...HELD_BACK_INFO_KEYS])("%s has no error labels", (key) => {
-    const notice = specNotice(lead({ steps: ["analyze"], errorReason: "held-back",
-      error: { key, values: { dependency: "aide:726" } } }));
+    const notice = specNotice(
+      lead({
+        steps: ["analyze"],
+        errorReason: "held-back",
+        error: { key, values: { dependency: "aide:726" } },
+      }),
+    );
     expect(notice?.variant).toBe("info");
     expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
   });
 });
 
 test("automatic dependency changes remain informational beside the dependency hold", () => {
-  const notice = specNotice(lead({ steps: ["analyze"], errorReason: "held-back",
-    error: { key: "runner.dependencyNotArchived", values: { dependency: "aide:726" } },
-    dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: "aide:726 — needs its result contract" } },
-  }));
-  expect(notice?.parts?.find((part) => part.text.includes("needs its result contract")))
-    .toMatchObject({ variant: "info" });
+  const notice = specNotice(
+    lead({
+      steps: ["analyze"],
+      errorReason: "held-back",
+      error: {
+        key: "runner.dependencyNotArchived",
+        values: { dependency: "aide:726" },
+      },
+      dependencyNotice: {
+        key: "runner.dependenciesAdded",
+        values: { dependencies: "aide:726 — needs its result contract" },
+      },
+    }),
+  );
+  expect(
+    notice?.parts?.find((part) =>
+      part.text.includes("needs its result contract"),
+    ),
+  ).toMatchObject({ variant: "info" });
   expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
 });
 
 test("a cycle explanation is not hidden by the older shared-file notice", async () => {
-  const { sharedFilesSentence } = await import("../../../../src/render/ui/job-state/notice.ts");
-  const text = sharedFilesSentence(lead({ state: "stopped", stopReason: "shared-files",
-    error: { key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:1" } },
-  }), "shared-files", () => [{ folder: "2-b", label: "2 B", files: ["x.ts"] }]);
+  const { sharedFilesSentence } =
+    await import("../../../../src/render/ui/job-state/notice.ts");
+  const text = sharedFilesSentence(
+    lead({
+      state: "stopped",
+      stopReason: "shared-files",
+      error: {
+        key: "runner.dependencyCycle",
+        values: { chain: "aide:1 → aide:2 → aide:1" },
+      },
+    }),
+    "shared-files",
+    () => [{ folder: "2-b", label: "2 B", files: ["x.ts"] }],
+  );
   expect(text).toContain("aide:1 → aide:2 → aide:1");
 });

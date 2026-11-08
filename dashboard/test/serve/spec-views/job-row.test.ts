@@ -9,14 +9,27 @@ import { jobRow } from "../../../src/serve/job-row.ts";
 const resolve = (project: string) =>
   project === "aide" ? { specFolders: ["a", "b", "c", "d"] } : null;
 
-function makeStore(providers?: Record<string, { name: string; tool: "claude" | "codex" | "opencode" }>): QueueStore {
+function makeStore(
+  providers?: Record<
+    string,
+    { name: string; tool: "claude" | "codex" | "opencode" }
+  >,
+): QueueStore {
   return new QueueStore({
     mirrorPath: undefined,
     defaults: {
       timeoutSec: { default: 1200 },
-      permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
+      permissionMode: {
+        implement: "bypassPermissions",
+        default: "acceptEdits",
+      },
       model: { implement: "opus", default: "sonnet" },
-      ...(providers ? { providers, modelChoices: { opus: {}, sonnet: {}, codex: { tool: "codex" } } } : {}),
+      ...(providers
+        ? {
+            providers,
+            modelChoices: { opus: {}, sonnet: {}, codex: { tool: "codex" } },
+          }
+        : {}),
     },
     resolve,
   });
@@ -26,10 +39,23 @@ describe("jobRow()'s queuePosition", () => {
   test("matches queuePriorityOrder()'s own order for a mix of quick and slow queued jobs", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
-    const analyze = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze"] });
-    const implement = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
-    const archive = store.enqueue({ project: "aide", specFolder: "c", steps: ["archive"] });
-    if (!analyze.ok || !implement.ok || !archive.ok) throw new Error("enqueue failed");
+    const analyze = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["analyze"],
+    });
+    const implement = store.enqueue({
+      project: "aide",
+      specFolder: "b",
+      steps: ["implement"],
+    });
+    const archive = store.enqueue({
+      project: "aide",
+      specFolder: "c",
+      steps: ["archive"],
+    });
+    if (!analyze.ok || !implement.ok || !archive.ok)
+      throw new Error("enqueue failed");
 
     const ctx = { queue: store, store: runStore };
     const rows = await Promise.all(
@@ -41,7 +67,9 @@ describe("jobRow()'s queuePosition", () => {
     );
 
     for (const row of rows) {
-      const job = [analyze.job, implement.job, archive.job].find((j) => j.id === row.id)!;
+      const job = [analyze.job, implement.job, archive.job].find(
+        (j) => j.id === row.id,
+      )!;
       const expectedN = expectedOrder.findIndex((j) => j.id === job.id) + 1;
       expect(row.queuePosition?.n).toBe(expectedN);
       expect(row.queuePosition?.total).toBe(expectedOrder.length);
@@ -51,7 +79,6 @@ describe("jobRow()'s queuePosition", () => {
     const archiveRow = rows.find((r) => r.id === archive.job.id)!;
     expect(archiveRow.queuePosition?.n).toBe(1);
   });
-
 });
 
 // A job the runner has held back (`errorReason: "held-back"`)
@@ -61,10 +88,21 @@ describe("jobRow()'s queuePosition excludes held-back jobs", () => {
   test("a held-back job gets no queuePosition, and the genuinely-queued job's total excludes it", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
-    const held = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
-    const waiting = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+    const held = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["implement"],
+    });
+    const waiting = store.enqueue({
+      project: "aide",
+      specFolder: "b",
+      steps: ["implement"],
+    });
     if (!held.ok || !waiting.ok) throw new Error("enqueue failed");
-    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
+    store.update(held.job.id, {
+      error: "held back: depends on 80-x",
+      errorReason: "held-back",
+    });
 
     const ctx = { queue: store, store: runStore };
     const heldJob = store.get(held.job.id)!;
@@ -80,10 +118,21 @@ describe("jobRow()'s queuePosition excludes held-back jobs", () => {
   test("same, with the held-back job sorting AFTER the genuinely-queued one", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
-    const waiting = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
-    const held = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+    const waiting = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["archive"],
+    });
+    const held = store.enqueue({
+      project: "aide",
+      specFolder: "b",
+      steps: ["implement"],
+    });
     if (!waiting.ok || !held.ok) throw new Error("enqueue failed");
-    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
+    store.update(held.job.id, {
+      error: "held back: depends on 80-x",
+      errorReason: "held-back",
+    });
 
     const ctx = { queue: store, store: runStore };
     const heldJob = store.get(held.job.id)!;
@@ -106,14 +155,22 @@ describe("jobRow() carries the per-step start stamps through", () => {
   test("Job.stepStartedAt and StepResult.startedAt survive the hop into QueueRowView/StepResultView", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
-    const enq = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+    const enq = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["analyze", "implement"],
+    });
     if (!enq.ok) throw new Error("enqueue failed");
     store.update(enq.job.id, {
       stepStartedAt: "2026-08-16T12:00:00Z",
       results: [
         {
-          step: "analyze", ok: true, costUsd: 1, costMeasured: true,
-          terminalReason: "completed", at: "2026-08-16T09:10:00Z",
+          step: "analyze",
+          ok: true,
+          costUsd: 1,
+          costMeasured: true,
+          terminalReason: "completed",
+          at: "2026-08-16T09:10:00Z",
           startedAt: "2026-08-16T09:00:00Z",
         },
       ],
@@ -131,12 +188,28 @@ describe("jobRow() carries the per-step start stamps through", () => {
 describe("jobRow()'s step results", () => {
   test("carry why no pull request was opened", async () => {
     const store = makeStore();
-    const queued = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
+    const queued = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["archive"],
+    });
     if (!queued.ok) throw new Error("enqueue failed");
     store.update(queued.job.id, {
-      results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", prError: "gh auth login required" }],
+      results: [
+        {
+          step: "archive",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          prError: "gh auth login required",
+        },
+      ],
     });
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(queued.job.id)!);
+    const row = await jobRow(
+      { queue: store, store: new AideRunStore() },
+      store.get(queued.job.id)!,
+    );
     expect(row.results?.[0]?.prError).toBe("gh auth login required");
   });
 });
@@ -146,19 +219,54 @@ describe("jobRow()'s step results", () => {
 describe("jobRow()'s side sessions", () => {
   test("a stored review and verification reach the row, with their tokens as a total (AC-1, AC-2)", async () => {
     const store = makeStore();
-    const queued = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
-    if (!queued.ok) throw new Error("enqueue failed");
-    const tokens = { input: 30, output: 700, cacheRead: 4000, cacheCreation: 200, total: 4930 };
-    store.update(queued.job.id, {
-      results: [{
-        step: "implement", ok: true, costUsd: 0.35, costMeasured: true, terminalReason: "completed",
-        review: { outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens, transcript: { from: 1, to: 9 } },
-        verify: { outcome: "timeout", tool: "codex" },
-      }],
+    const queued = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["implement"],
     });
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(queued.job.id)!);
-    expect(row.results?.[0]?.review).toEqual({ outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens: 4930 });
-    expect(row.results?.[0]?.verify).toEqual({ outcome: "timeout", tool: "codex" });
+    if (!queued.ok) throw new Error("enqueue failed");
+    const tokens = {
+      input: 30,
+      output: 700,
+      cacheRead: 4000,
+      cacheCreation: 200,
+      total: 4930,
+    };
+    store.update(queued.job.id, {
+      results: [
+        {
+          step: "implement",
+          ok: true,
+          costUsd: 0.35,
+          costMeasured: true,
+          terminalReason: "completed",
+          review: {
+            outcome: "completed",
+            tool: "claude",
+            durationSec: 41,
+            costUsd: 0.05,
+            tokens,
+            transcript: { from: 1, to: 9 },
+          },
+          verify: { outcome: "timeout", tool: "codex" },
+        },
+      ],
+    });
+    const row = await jobRow(
+      { queue: store, store: new AideRunStore() },
+      store.get(queued.job.id)!,
+    );
+    expect(row.results?.[0]?.review).toEqual({
+      outcome: "completed",
+      tool: "claude",
+      durationSec: 41,
+      costUsd: 0.05,
+      tokens: 4930,
+    });
+    expect(row.results?.[0]?.verify).toEqual({
+      outcome: "timeout",
+      tool: "codex",
+    });
   });
 });
 
@@ -166,24 +274,53 @@ describe("jobRow()'s side sessions", () => {
 // surface as data: its name as it is now, and each result's as it was then.
 describe("jobRow()'s provider", () => {
   test("the row names the current step's provider by its present name, and each result its own (AC-10)", async () => {
-    const store = makeStore({ capra: { name: "Claude-Capra", tool: "claude" }, codex: { name: "Codex", tool: "codex" } });
-    const made = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+    const store = makeStore({
+      capra: { name: "Claude-Capra", tool: "claude" },
+      codex: { name: "Codex", tool: "codex" },
+    });
+    const made = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["analyze", "implement"],
+    });
     if (!made.ok) throw new Error("enqueue failed");
     store.update(made.job.id, {
       provider: { analyze: "codex", implement: "capra" },
-      results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", provider: { key: "codex", name: "Old-Codex" } }],
+      results: [
+        {
+          step: "analyze",
+          ok: true,
+          costUsd: 0,
+          costMeasured: true,
+          terminalReason: "completed",
+          provider: { key: "codex", name: "Old-Codex" },
+        },
+      ],
       stepIndex: 1,
     });
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(made.job.id)!);
+    const row = await jobRow(
+      { queue: store, store: new AideRunStore() },
+      store.get(made.job.id)!,
+    );
     expect(row.provider).toBe("Claude-Capra");
-    expect(row.results?.[0]?.provider).toEqual({ key: "codex", name: "Old-Codex" });
+    expect(row.results?.[0]?.provider).toEqual({
+      key: "codex",
+      name: "Old-Codex",
+    });
   });
 
   test("a store with no provider names none, and neither does a deploy (AC-10)", async () => {
     const store = makeStore();
-    const made = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
+    const made = store.enqueue({
+      project: "aide",
+      specFolder: "a",
+      steps: ["implement"],
+    });
     if (!made.ok) throw new Error("enqueue failed");
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(made.job.id)!);
+    const row = await jobRow(
+      { queue: store, store: new AideRunStore() },
+      store.get(made.job.id)!,
+    );
     expect(row.provider).toBeUndefined();
   });
 });

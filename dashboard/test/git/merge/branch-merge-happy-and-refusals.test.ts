@@ -29,7 +29,6 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
 
@@ -61,9 +60,16 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
-    expect(argv(git.calls)).toContain(`merge -q --ff-only refs/remotes/origin/${BRANCH}`);
+    expect(argv(git.calls)).toContain(
+      `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
+    );
     // The real merge is the FALLBACK. Running it anyway would make a
     // merge commit nobody asked for on every clean case.
     expect(ran(git.calls, "merge -q --no-edit")).toBe(false);
@@ -82,9 +88,16 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
-    expect(argv(git.calls)).toContain(`merge -q --no-edit refs/remotes/origin/${BRANCH}`);
+    expect(argv(git.calls)).toContain(
+      `merge -q --no-edit refs/remotes/origin/${BRANCH}`,
+    );
     expect(ran(git.calls, "merge --abort")).toBe(false);
   });
 
@@ -95,15 +108,35 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       pull: { code: 0 },
       "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 1 },
-      "-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit": { code: 0 },
+      "-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit": {
+        code: 0,
+      },
       push: { code: 0 },
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const hooks = { mergeArgs: async () => ["-c", "core.attributesFile=/a", "-c", "merge.x.driver=y"] };
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, undefined, hooks);
+    const hooks = {
+      mergeArgs: async () => [
+        "-c",
+        "core.attributesFile=/a",
+        "-c",
+        "merge.x.driver=y",
+      ],
+    };
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+      undefined,
+      undefined,
+      hooks,
+    );
     expect(result.ok).toBe(true);
-    expect(argv(git.calls)).toContain(`-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit refs/remotes/origin/${BRANCH}`);
+    expect(argv(git.calls)).toContain(
+      `-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit refs/remotes/origin/${BRANCH}`,
+    );
   });
 
   // The dashboard host is not the machine `aide-run-spec` ran on, so a
@@ -123,7 +156,9 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(argv(git.calls)).toContain(`fetch --quiet origin master ${BRANCH}`);
-    expect(argv(git.calls).some((a) => a === `merge -q --ff-only ${BRANCH}`)).toBe(false);
+    expect(
+      argv(git.calls).some((a) => a === `merge -q --ff-only ${BRANCH}`),
+    ).toBe(false);
   });
 
   // Whoever left work uncommitted in this checkout owns that
@@ -144,7 +179,12 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
     // The question is not asked at all — a status nobody acts on is a
@@ -162,7 +202,12 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(ran(git.calls, "pull")).toBe(false);
   });
@@ -181,7 +226,12 @@ describe("mergeBranchIntoDefault: the refusals", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
     expect(sentence(result.error)).toContain("conflict");
@@ -208,10 +258,17 @@ describe("mergeBranchIntoDefault: the refusals", () => {
       "rev-list origin/master..master": { code: 0, stdout: "abc1234\n" },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
-    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(
+      false,
+    );
     // Refused BEFORE the worktree: nothing to clean up, and no cost.
     expect(ran(git.calls, "worktree add")).toBe(false);
   });
@@ -226,7 +283,12 @@ describe("mergeBranchIntoDefault: the refusals", () => {
       push: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(true);
     expect(ran(git.calls, "worktree add")).toBe(true);
   });
@@ -235,15 +297,25 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     // `worktree add` FIRST: the fake takes the first prefix that
     // matches, and `CLEAN_MASTER`'s own `worktree` would answer for it.
     const git = fakeGit({
-      "worktree add": { code: 1, stderr: "fatal: '/repos/aide.landing' already exists" },
+      "worktree add": {
+        code: 1,
+        stderr: "fatal: '/repos/aide.landing' already exists",
+      },
       ...CLEAN_MASTER,
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+    );
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain("master");
     expect(result.detail).toContain("already exists");
-    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(false);
+    expect(ran(git.calls, "merge -q --ff-only refs/remotes/origin/")).toBe(
+      false,
+    );
   });
 
   test("a git that throws is a refusal, not a crash", async () => {
@@ -276,7 +348,13 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain("Merged locally");
     expect(sentence(result.error)).toContain(ROOT);
@@ -292,7 +370,10 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
 // every refusal this function can produce names both, and this walks
 // each one rather than pinning any single wording.
 describe("every refusal names the repo AND the branch", () => {
-  const paths: Record<string, Record<string, { code: number; stdout?: string }>> = {
+  const paths: Record<
+    string,
+    Record<string, { code: number; stdout?: string }>
+  > = {
     "the branch is gone from origin": { "ls-remote": { code: 2, stdout: "" } },
     "the checkout cannot switch to the base": { switch: { code: 1 } },
     "the base will not fast-forward": {
@@ -325,7 +406,13 @@ describe("every refusal names the repo AND the branch", () => {
   for (const [what, overrides] of Object.entries(paths)) {
     test(`when ${what}`, async () => {
       const git = fakeGit({ ...CLEAN_MASTER, ...overrides });
-      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+      const result = await mergeBranchIntoDefault(
+        git.run,
+        ROOT,
+        BRANCH,
+        "master",
+        noWait,
+      );
       expect(result.ok).toBe(false);
       expect(sentence(result.error)).toContain(ROOT);
       expect(sentence(result.error)).toContain(BRANCH);

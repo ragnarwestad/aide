@@ -7,9 +7,17 @@ import { attemptsPerStep } from "../../../../../src/render/pages/specs-list/data
 import { wordPhase } from "../../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../../src/render";
 
-const ok = (step: string) => ({ step, ok: true, costUsd: 0, at: "2026-09-11T10:00:00Z" });
+const ok = (step: string) => ({
+  step,
+  ok: true,
+  costUsd: 0,
+  at: "2026-09-11T10:00:00Z",
+});
 
-function job(state: QueueRowView["state"], errorReason?: QueueRowView["errorReason"]): QueueRowView {
+function job(
+  state: QueueRowView["state"],
+  errorReason?: QueueRowView["errorReason"],
+): QueueRowView {
   return {
     id: "j1",
     project: "aide-test",
@@ -18,7 +26,9 @@ function job(state: QueueRowView["state"], errorReason?: QueueRowView["errorReas
     stepIndex: 2,
     state,
     errorReason,
-    error: errorReason ? { key: "landing.mergeConflict", values: {} } : undefined,
+    error: errorReason
+      ? { key: "landing.mergeConflict", values: {} }
+      : undefined,
     createdAt: "2026-09-11T09:00:00Z",
     spentUsd: 0,
     results: [ok("analyze"), ok("implement"), ok("archive")],
@@ -31,7 +41,9 @@ describe("a landing that fell is the landed step's own failure", () => {
     expect(per.archive![0]!.state).toBe("failed");
     expect(per.implement![0]!.state).toBe("done");
     const archive = wordPhase(false, undefined, per.archive![0], {});
-    expect([archive.pip, archive.badge?.variant, archive.badge?.label]).toEqual(["refused", "refused", "Failed"]);
+    expect([archive.pip, archive.badge?.variant, archive.badge?.label]).toEqual(
+      ["refused", "refused", "Failed"],
+    );
     const implement = wordPhase(true, undefined, per.implement![0], {});
     expect([implement.pip, implement.badge?.variant]).toEqual(["past", "done"]);
   });
@@ -40,7 +52,10 @@ describe("a landing that fell is the landed step's own failure", () => {
     const per = attemptsPerStep([job("stopped", "tests-red")]);
     expect(per.archive![0]!.state).toBe("stopped");
     const archive = wordPhase(false, undefined, per.archive![0], {});
-    expect([archive.pip, archive.badge?.variant]).toEqual(["waiting", "waiting"]);
+    expect([archive.pip, archive.badge?.variant]).toEqual([
+      "waiting",
+      "waiting",
+    ]);
   });
 
   test("a job that landed reads done on every line", () => {

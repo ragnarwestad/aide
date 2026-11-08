@@ -4,7 +4,15 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import { JOB, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
+import {
+  JOB,
+  specControls,
+  phaseDone,
+  OPEN_81,
+  listUntil,
+  rowSaysDone,
+  setupQueueRoutesHarness,
+} from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -23,13 +31,20 @@ afterEach(() => harness.cleanup());
 // row then offered review-plan, and review-plan ran three times against
 // an empty template.
 describe("the steps a spec has had say so themselves", () => {
-  const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
+  const specDir = (dir: string) =>
+    join(dir, "root", "aide", "specs", "81-queue-and-runner");
 
   test("the recorded list is what the row marks done, and implement is next", async () => {
     const { base, dir } = start();
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    writeFileSync(
+      join(specDir(dir), "4-status.md"),
+      statusSaying(["create", "analyze"]),
+    );
     ran(dir, ["create", "analyze"]);
-    const line = specControls(await listUntil(base, rowSaysDone("analyze")), "81-queue-and-runner");
+    const line = specControls(
+      await listUntil(base, rowSaysDone("analyze")),
+      "81-queue-and-runner",
+    );
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
@@ -41,7 +56,10 @@ describe("the steps a spec has had say so themselves", () => {
   test("a spec with no status file at all has had nothing, and does not throw", async () => {
     const { base, dir } = start();
     rmSync(join(specDir(dir), "4-status.md"));
-    const line = specControls(await listUntil(base, rowSaysDone("create")), "81-queue-and-runner");
+    const line = specControls(
+      await listUntil(base, rowSaysDone("create")),
+      "81-queue-and-runner",
+    );
     // The folder is on disk, so `create` happened — whatever
     // git records. The steps this test is the guard for are the other
     // four, which stay correctly not done.
@@ -59,7 +77,10 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     // still to do.
     writeFileSync(
       join(spec, "4-status.md"),
-      statusSaying(["create", "analyze"], "- **Total progress:** `95% (21 of 22 completed)`\n"),
+      statusSaying(
+        ["create", "analyze"],
+        "- **Total progress:** `95% (21 of 22 completed)`\n",
+      ),
     );
     ran(dir, ["create", "analyze"]);
 
@@ -68,19 +89,32 @@ describe("the spec's own history says what has happened, not the queue's", () =>
 
     // Record a completed implement in the queue's own history, exactly
     // as a finished step does.
-    const headers = { "content-type": "application/json", accept: "application/json" };
+    const headers = {
+      "content-type": "application/json",
+      accept: "application/json",
+    };
     const made = (await (
       await fetch(`${base}/api/queue`, {
-        method: "POST", headers, body: JSON.stringify({ ...JOB, steps: ["implement"] }),
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...JOB, steps: ["implement"] }),
       })
     ).json()) as { job: { id: string } };
-    const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
+    const mirror = JSON.parse(
+      readFileSync(join(dir, "queue.json"), "utf-8"),
+    ) as Record<string, unknown>[];
     // Finished, not still queued: a spec with a job in
     // flight pre-ticks nothing at all — every box on the row is locked.
     mirror[0].state = "done";
     mirror[0].results = [
-      { step: "implement", ok: true, costUsd: 12.34, costMeasured: true,
-        terminalReason: "completed", at: "2026-08-16T18:00:00Z" },
+      {
+        step: "implement",
+        ok: true,
+        costUsd: 12.34,
+        costMeasured: true,
+        terminalReason: "completed",
+        at: "2026-08-16T18:00:00Z",
+      },
     ];
     writeFileSync(join(dir, "queue.json"), JSON.stringify(mirror));
     expect(made.job.id).toBeTruthy();
@@ -100,7 +134,9 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     expect(html).toContain(">Implement</button>");
     // And the phase line says the same: a step the queue ran is not a
     // step the spec has HAD.
-    expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(false);
+    expect(
+      phaseDone(specControls(html, "81-queue-and-runner"), "implement"),
+    ).toBe(false);
   });
 
   test("the same step IS done once the runner has committed it", async () => {
@@ -116,7 +152,9 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     ran(dir, ["create", "analyze", "implement"]);
 
     const html = await listUntil(base, rowSaysDone("implement"));
-    expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
+    expect(
+      phaseDone(specControls(html, "81-queue-and-runner"), "implement"),
+    ).toBe(true);
     expect(html).toMatch(/value="archive" checked/);
     // The button is named for the phase a press would run —
     // the bare word "Run" went with the again-variant that preceded it.
@@ -127,11 +165,17 @@ describe("the spec's own history says what has happened, not the queue's", () =>
   // An archived spec is a row, on the chips that ask for one, and never
   // on the view of the active ones.
   test("a spec whose folder has been archived is off the Active view, and on the Archived one", async () => {
-    const { base } = harness.start({ archivedSpecs: { "80-already-archived": {} } });
-    const active = await (await fetch(`${base}/specs?state=not-archived&${OPEN_81}`)).text();
+    const { base } = harness.start({
+      archivedSpecs: { "80-already-archived": {} },
+    });
+    const active = await (
+      await fetch(`${base}/specs?state=not-archived&${OPEN_81}`)
+    ).text();
     expect(active).toContain("81-queue-and-runner");
     expect(active).not.toContain("80-already-archived");
-    const archivedView = await (await fetch(`${base}/specs?state=archived`)).text();
+    const archivedView = await (
+      await fetch(`${base}/specs?state=archived`)
+    ).text();
     expect(archivedView).toContain("80-already-archived");
   });
 });

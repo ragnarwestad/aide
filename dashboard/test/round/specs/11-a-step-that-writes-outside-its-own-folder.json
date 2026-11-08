@@ -1,10 +1,6 @@
 {
   "title": "A step that writes outside its own folder",
-  "steps": [
-    "analyze",
-    "implement",
-    "archive"
-  ],
+  "steps": ["analyze", "implement", "archive"],
   "expected": "not-archived",
   "expect": {
     "state": "failed",

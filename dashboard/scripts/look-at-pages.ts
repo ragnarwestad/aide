@@ -20,11 +20,21 @@
 // When it cannot serve or screenshot, it writes one sentence saying why to
 // `<out>/not-taken.txt` and exits 1.
 
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Browser } from "playwright";
-import { queueHarness, type StartOptions } from "../test/helpers/queue-server.ts";
+import {
+  queueHarness,
+  type StartOptions,
+} from "../test/helpers/queue-server.ts";
 
 /** The widths a page is taken at, with the height of the window. */
 const VIEWPORTS = [
@@ -62,7 +72,12 @@ export async function serveScene(scene: Scene): Promise<ServedScene> {
   }
   const started = harness.start({
     ...data,
-    queueMirror: queueMirror === undefined ? undefined : typeof queueMirror === "string" ? queueMirror : JSON.stringify(queueMirror),
+    queueMirror:
+      queueMirror === undefined
+        ? undefined
+        : typeof queueMirror === "string"
+          ? queueMirror
+          : JSON.stringify(queueMirror),
     extra,
   });
   return {
@@ -75,7 +90,8 @@ export async function serveScene(scene: Scene): Promise<ServedScene> {
 }
 
 /** `/jobs/run1` gives `jobs-run1`; the root gives `home`. */
-const slugOf = (path: string): string => path.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "home";
+const slugOf = (path: string): string =>
+  path.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "home";
 
 const writeNotTaken = (out: string, why: string): void => {
   mkdirSync(out, { recursive: true });
@@ -86,13 +102,19 @@ const writeNotTaken = (out: string, why: string): void => {
 function clearEarlierRound(out: string): void {
   mkdirSync(out, { recursive: true });
   for (const name of readdirSync(out)) {
-    if (name.endsWith(".png") || name === "not-taken.txt") rmSync(join(out, name), { force: true });
+    if (name.endsWith(".png") || name === "not-taken.txt")
+      rmSync(join(out, name), { force: true });
   }
 }
 
 /** Every path at every width into `out`, as `<NN>-<slug>-<width>.png`, replacing what an earlier round left.
  *  True when every picture was taken; otherwise the reason is in `<out>/not-taken.txt`. */
-export async function lookAtPages(o: { scene: Scene; out: string; paths: string[]; browser?: Browser }): Promise<boolean> {
+export async function lookAtPages(o: {
+  scene: Scene;
+  out: string;
+  paths: string[];
+  browser?: Browser;
+}): Promise<boolean> {
   clearEarlierRound(o.out);
   let served: ServedScene | undefined;
   let launched: Browser | undefined;
@@ -108,12 +130,19 @@ export async function lookAtPages(o: { scene: Scene; out: string; paths: string[
         const context = await browser.newContext({ viewport });
         try {
           const page = await context.newPage();
-          const response = await page.goto(`${served.base}${path}`, { waitUntil: "load" });
+          const response = await page.goto(`${served.base}${path}`, {
+            waitUntil: "load",
+          });
           if (!response || response.status() >= 400) {
-            throw new Error(`the page ${path} answered ${response ? response.status() : "nothing"}`);
+            throw new Error(
+              `the page ${path} answered ${response ? response.status() : "nothing"}`,
+            );
           }
           const nn = String(i + 1).padStart(2, "0");
-          await page.screenshot({ path: join(o.out, `${nn}-${slugOf(path)}-${viewport.width}.png`), fullPage: true });
+          await page.screenshot({
+            path: join(o.out, `${nn}-${slugOf(path)}-${viewport.width}.png`),
+            fullPage: true,
+          });
         } finally {
           await context.close();
         }
@@ -121,7 +150,10 @@ export async function lookAtPages(o: { scene: Scene; out: string; paths: string[
     }
     return true;
   } catch (e) {
-    writeNotTaken(o.out, `${e instanceof Error ? e.message : String(e)}`.split("\n")[0]!);
+    writeNotTaken(
+      o.out,
+      `${e instanceof Error ? e.message : String(e)}`.split("\n")[0]!,
+    );
     return false;
   } finally {
     await launched?.close();
@@ -130,8 +162,14 @@ export async function lookAtPages(o: { scene: Scene; out: string; paths: string[
 }
 
 /** `--scene <file>`, `--out <dir>`, then the paths. */
-function parseArgs(argv: string[]): { scene?: string; out?: string; paths: string[] } {
-  const parsed: { scene?: string; out?: string; paths: string[] } = { paths: [] };
+function parseArgs(argv: string[]): {
+  scene?: string;
+  out?: string;
+  paths: string[];
+} {
+  const parsed: { scene?: string; out?: string; paths: string[] } = {
+    paths: [],
+  };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--scene") parsed.scene = argv[++i];
     else if (argv[i] === "--out") parsed.out = argv[++i];
@@ -143,7 +181,9 @@ function parseArgs(argv: string[]): { scene?: string; out?: string; paths: strin
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   if (!args.out || args.paths.length === 0) {
-    console.error("usage: bun dashboard/scripts/look-at-pages.ts [--scene <scene.json>] --out <dir> <path>...");
+    console.error(
+      "usage: bun dashboard/scripts/look-at-pages.ts [--scene <scene.json>] --out <dir> <path>...",
+    );
     return 2;
   }
   let scene: Scene = {};
@@ -152,11 +192,16 @@ async function main(): Promise<number> {
       scene = JSON.parse(readFileSync(args.scene, "utf-8")) as Scene;
     } catch (e) {
       clearEarlierRound(args.out);
-      writeNotTaken(args.out, `the scene ${args.scene} could not be read: ${e instanceof Error ? e.message : String(e)}`);
+      writeNotTaken(
+        args.out,
+        `the scene ${args.scene} could not be read: ${e instanceof Error ? e.message : String(e)}`,
+      );
       return 1;
     }
   }
-  return (await lookAtPages({ scene, out: args.out, paths: args.paths })) ? 0 : 1;
+  return (await lookAtPages({ scene, out: args.out, paths: args.paths }))
+    ? 0
+    : 1;
 }
 
 if (import.meta.main) process.exit(await main());

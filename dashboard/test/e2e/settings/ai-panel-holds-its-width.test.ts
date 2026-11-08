@@ -4,7 +4,10 @@
 // measured in Chromium.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
-import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import {
+  browserDeadline,
+  withBrowser,
+} from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { forgetChecks } from "../../../src/render/ui/tool-checks.ts";
 
@@ -24,17 +27,34 @@ beforeAll(async () => {
   base = harness.start({
     extra: {
       queueDefaults: {
-        timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" },
         providers: { Claude: { name: "Claude", tool: "claude" } },
       },
-      providerProbe: async (key: string) => ({ key, at: "2026-11-05T09:00:00.000Z", installed: true }),
-      usageProbe: async () => ({ tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [] }),
+      providerProbe: async (key: string) => ({
+        key,
+        at: "2026-11-05T09:00:00.000Z",
+        installed: true,
+      }),
+      usageProbe: async () => ({
+        tool: "claude" as const,
+        at: "2026-11-05T09:00:00.000Z",
+        windows: [],
+      }),
       toolProbe: {
         check: async () => ({
-          tool: "claude" as const, at: new Date().toISOString(),
-          found: false, error: SENTENCE, extra: [],
+          tool: "claude" as const,
+          at: new Date().toISOString(),
+          found: false,
+          error: SENTENCE,
+          extra: [],
         }),
-        models: async () => ({ tool: "claude" as const, at: new Date().toISOString(), offered: [] }),
+        models: async () => ({
+          tool: "claude" as const,
+          at: new Date().toISOString(),
+          offered: [],
+        }),
       },
     },
   }).base;
@@ -55,10 +75,14 @@ interface Layout {
 
 async function measure(p: Page): Promise<Layout> {
   return p.evaluate(() => {
-    const r = document.querySelector("section.toolpanel[data-tool]")!.getBoundingClientRect();
+    const r = document
+      .querySelector("section.toolpanel[data-tool]")!
+      .getBoundingClientRect();
     return {
       panel: { left: r.left, right: r.right, width: r.width },
-      tabLefts: [...document.querySelectorAll("nav[data-aitabs] a")].map((a) => a.getBoundingClientRect().left),
+      tabLefts: [...document.querySelectorAll("nav[data-aitabs] a")].map(
+        (a) => a.getBoundingClientRect().left,
+      ),
       pageWidth: document.documentElement.scrollWidth,
       windowWidth: window.innerWidth,
     };
@@ -85,22 +109,32 @@ test("the panel and its tabs hold still across the two tabs", async () => {
   const models = await open("models");
   const installation = await clickTab("Installation", "installation");
   expect(await page.getByText(SENTENCE).count()).toBeGreaterThan(0);
-  expect(Math.abs(installation.panel.left - models.panel.left)).toBeLessThan(0.5);
-  expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(0.5);
-  installation.tabLefts.forEach((left, i) => expect(Math.abs(left - models.tabLefts[i]!)).toBeLessThan(3));
+  expect(Math.abs(installation.panel.left - models.panel.left)).toBeLessThan(
+    0.5,
+  );
+  expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(
+    0.5,
+  );
+  installation.tabLefts.forEach((left, i) =>
+    expect(Math.abs(left - models.tabLefts[i]!)).toBeLessThan(3),
+  );
 });
 
 test("Installation's long error stays inside the page, which stays inside the window", async () => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const models = await open("models");
   const installation = await open("installation");
-  expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(0.5);
+  expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(
+    0.5,
+  );
   expect(installation.pageWidth).toBeLessThanOrEqual(installation.windowWidth);
 });
 
 test("on a phone the panel stays inside the window on Installation", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
   const installation = await open("installation");
-  expect(installation.panel.right).toBeLessThanOrEqual(installation.windowWidth);
+  expect(installation.panel.right).toBeLessThanOrEqual(
+    installation.windowWidth,
+  );
   expect(installation.pageWidth).toBeLessThanOrEqual(installation.windowWidth);
 });

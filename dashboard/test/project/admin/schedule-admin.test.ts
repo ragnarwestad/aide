@@ -4,7 +4,13 @@
 // file and does nothing in git. Unit level; the routes suite proves the
 // same rules over HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -29,9 +35,18 @@ function setup(entries: Partial<ScheduleEntry>[] = []) {
   mkdirSync(join(dir, "docs"));
   const file = join(dir, "queue-config.json");
   if (entries.length) {
-    writeFileSync(file, JSON.stringify({
-      schedules: { [PROJECT]: entries.map((e) => ({ cron: "0 3 * * *", prompt: "docs-nightly.md", ...e })) },
-    }));
+    writeFileSync(
+      file,
+      JSON.stringify({
+        schedules: {
+          [PROJECT]: entries.map((e) => ({
+            cron: "0 3 * * *",
+            prompt: "docs-nightly.md",
+            ...e,
+          })),
+        },
+      }),
+    );
   }
   const store = createScheduleStore(file);
   return { dir, file, store, stored: () => store.list(PROJECT) };
@@ -44,7 +59,11 @@ afterEach(() => {
 // `since` is `new Date().toISOString()` at call time, so no test can
 // hard-code it — only bracket it between a `before`/`after` taken around
 // the call.
-function expectFreshSince(since: string | undefined, before: number, after: number): void {
+function expectFreshSince(
+  since: string | undefined,
+  before: number,
+  after: number,
+): void {
   expect(since).toBeDefined();
   const parsed = Date.parse(since!);
   expect(parsed).toBeGreaterThanOrEqual(before);
@@ -52,18 +71,25 @@ function expectFreshSince(since: string | undefined, before: number, after: numb
 }
 
 const req = (over: Record<string, string> = {}) => ({
-  name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", ...over,
+  name: "nightly",
+  cron: "0 3 * * *",
+  prompt: "docs-nightly.md",
+  ...over,
 });
 
 describe("scheduleEntryError", () => {
   test("a duplicate name is refused", () => {
     const { dir, stored } = setup([{ name: "nightly" }]);
-    expect(scheduleEntryError(dir, req({ cron: "0 4 * * *" }), stored())).toContain("nightly");
+    expect(
+      scheduleEntryError(dir, req({ cron: "0 4 * * *" }), stored()),
+    ).toContain("nightly");
   });
 
   test("a missing prompt path is refused, naming the missing path", () => {
     const { dir } = setup();
-    expect(scheduleEntryError(dir, req({ prompt: "does-not-exist.md" }), [])).toContain("does-not-exist.md");
+    expect(
+      scheduleEntryError(dir, req({ prompt: "does-not-exist.md" }), []),
+    ).toContain("does-not-exist.md");
   });
 
   test("a prompt path naming a directory is refused, naming the path (AC-1)", () => {
@@ -75,12 +101,16 @@ describe("scheduleEntryError", () => {
 
   test("a prompt path escaping the project root is refused", () => {
     const { dir } = setup();
-    expect(scheduleEntryError(dir, req({ prompt: "../outside.md" }), [])).toBeTruthy();
+    expect(
+      scheduleEntryError(dir, req({ prompt: "../outside.md" }), []),
+    ).toBeTruthy();
   });
 
   test("an unparseable cron is refused", () => {
     const { dir } = setup();
-    expect(scheduleEntryError(dir, req({ cron: "not-a-cron" }), [])).toBeTruthy();
+    expect(
+      scheduleEntryError(dir, req({ cron: "not-a-cron" }), []),
+    ).toBeTruthy();
   });
 
   test("a valid request has no error", () => {
@@ -90,7 +120,9 @@ describe("scheduleEntryError", () => {
 
   test("editing an entry under its own unchanged name is not a collision", () => {
     const { dir, stored } = setup([{ name: "nightly" }]);
-    expect(scheduleEntryError(dir, req({ cron: "0 4 * * *" }), stored(), "nightly")).toBeNull();
+    expect(
+      scheduleEntryError(dir, req({ cron: "0 4 * * *" }), stored(), "nightly"),
+    ).toBeNull();
   });
 });
 
@@ -115,37 +147,82 @@ describe("createScheduleEntry", () => {
 
   test("the picked model is stored on the entry", () => {
     const { dir, store, stored } = setup();
-    createScheduleEntry(store, PROJECT, dir, req({ model: "Sonnet" }), ["Sonnet", "Opus"]);
+    createScheduleEntry(store, PROJECT, dir, req({ model: "Sonnet" }), [
+      "Sonnet",
+      "Opus",
+    ]);
     expect(stored()[0]!.model).toBe("Sonnet");
   });
 
   test("the picked provider is stored on the entry, and one the dashboard does not offer is refused (AC-9)", () => {
     const { dir, store, stored } = setup();
-    expect(createScheduleEntry(store, PROJECT, dir, req({ provider: "Codex" }), undefined, ["Claude", "Codex"])).toEqual({ ok: true });
+    expect(
+      createScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        req({ provider: "Codex" }),
+        undefined,
+        ["Claude", "Codex"],
+      ),
+    ).toEqual({ ok: true });
     expect(stored()[0]!.provider).toBe("Codex");
-    const refused = createScheduleEntry(store, PROJECT, dir, req({ name: "other", provider: "Gone" }), undefined, ["Claude", "Codex"]);
+    const refused = createScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      req({ name: "other", provider: "Gone" }),
+      undefined,
+      ["Claude", "Codex"],
+    );
     expect(refused.ok).toBe(false);
     expect(stored().map((e) => e.name)).toEqual(["nightly"]);
   });
 
   test("an edit that posts no provider keeps the entry's own", () => {
-    const { dir, store, stored } = setup([{ name: "nightly", provider: "Capra" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ cron: "0 4 * * *" }))).toEqual({ ok: true });
+    const { dir, store, stored } = setup([
+      { name: "nightly", provider: "Capra" },
+    ]);
+    expect(
+      updateScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        "nightly",
+        req({ cron: "0 4 * * *" }),
+      ),
+    ).toEqual({ ok: true });
     expect(stored()[0]!.provider).toBe("Capra");
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ provider: "Codex" }))).toEqual({ ok: true });
+    expect(
+      updateScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        "nightly",
+        req({ provider: "Codex" }),
+      ),
+    ).toEqual({ ok: true });
     expect(stored()[0]!.provider).toBe("Codex");
   });
 
   test("a model the dashboard does not offer is refused and nothing is written", () => {
     const { dir, file, store } = setup();
-    const result = createScheduleEntry(store, PROJECT, dir, req({ model: "Haiku" }), ["Sonnet"]);
+    const result = createScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      req({ model: "Haiku" }),
+      ["Sonnet"],
+    );
     expect(result.ok).toBe(false);
     expect(() => readFileSync(file, "utf-8")).toThrow();
   });
 
   test("no model at all is accepted — the configuration decides", () => {
     const { dir, store, stored } = setup();
-    expect(createScheduleEntry(store, PROJECT, dir, req(), ["Sonnet"]).ok).toBe(true);
+    expect(createScheduleEntry(store, PROJECT, dir, req(), ["Sonnet"]).ok).toBe(
+      true,
+    );
     expect(stored()[0]!.model).toBeUndefined();
   });
 
@@ -159,7 +236,12 @@ describe("createScheduleEntry", () => {
 
   test("a server with no config file refuses", () => {
     const { dir } = setup();
-    const result = createScheduleEntry(createScheduleStore(undefined), PROJECT, dir, req());
+    const result = createScheduleEntry(
+      createScheduleStore(undefined),
+      PROJECT,
+      dir,
+      req(),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain("--queue-config");
   });
@@ -167,30 +249,74 @@ describe("createScheduleEntry", () => {
 
 describe("updateScheduleEntry (including a rename)", () => {
   test("editing the model replaces the entry's own pick and keeps everything else", () => {
-    const { dir, store, stored } = setup([{ name: "nightly", model: "Sonnet", enabled: false }, { name: "other" }]);
+    const { dir, store, stored } = setup([
+      { name: "nightly", model: "Sonnet", enabled: false },
+      { name: "other" },
+    ]);
     const before = Date.now();
-    const result = updateScheduleEntry(store, PROJECT, dir, "nightly", req({ model: "Opus" }), ["Sonnet", "Opus"]);
+    const result = updateScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      "nightly",
+      req({ model: "Opus" }),
+      ["Sonnet", "Opus"],
+    );
     expect(result.ok).toBe(true);
-    expect(stored()[0]).toMatchObject({ name: "nightly", model: "Opus", enabled: false });
+    expect(stored()[0]).toMatchObject({
+      name: "nightly",
+      model: "Opus",
+      enabled: false,
+    });
     expectFreshSince(stored()[0]!.since, before, Date.now());
     expect(stored()[1]!.name).toBe("other");
   });
 
   test("a model the dashboard does not offer is refused", () => {
     const { dir, store } = setup([{ name: "nightly", model: "Sonnet" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ model: "Haiku" }), ["Sonnet"]).ok).toBe(false);
+    expect(
+      updateScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        "nightly",
+        req({ model: "Haiku" }),
+        ["Sonnet"],
+      ).ok,
+    ).toBe(false);
   });
 
   test("editing cron leaves the name and every other entry untouched", () => {
-    const { dir, store, stored } = setup([{ name: "nightly" }, { name: "weekly", cron: "0 4 * * 0" }]);
-    updateScheduleEntry(store, PROJECT, dir, "nightly", req({ cron: "0 5 * * *" }));
-    expect(stored().map((e) => [e.name, e.cron])).toEqual([["nightly", "0 5 * * *"], ["weekly", "0 4 * * 0"]]);
+    const { dir, store, stored } = setup([
+      { name: "nightly" },
+      { name: "weekly", cron: "0 4 * * 0" },
+    ]);
+    updateScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      "nightly",
+      req({ cron: "0 5 * * *" }),
+    );
+    expect(stored().map((e) => [e.name, e.cron])).toEqual([
+      ["nightly", "0 5 * * *"],
+      ["weekly", "0 4 * * 0"],
+    ]);
   });
 
   test("renaming an entry is accepted and the entry keeps its position, with a fresh since", () => {
-    const { dir, store, stored } = setup([{ name: "nightly", since: "2020-01-01T00:00:00.000Z" }, { name: "weekly" }]);
+    const { dir, store, stored } = setup([
+      { name: "nightly", since: "2020-01-01T00:00:00.000Z" },
+      { name: "weekly" },
+    ]);
     const before = Date.now();
-    const result = updateScheduleEntry(store, PROJECT, dir, "nightly", req({ name: "renamed" }));
+    const result = updateScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      "nightly",
+      req({ name: "renamed" }),
+    );
     expect(result.ok).toBe(true);
     expect(stored().map((e) => e.name)).toEqual(["renamed", "weekly"]);
     expectFreshSince(stored()[0]!.since, before, Date.now());
@@ -198,7 +324,15 @@ describe("updateScheduleEntry (including a rename)", () => {
 
   test("renaming to a name already used by ANOTHER entry is refused", () => {
     const { dir, store } = setup([{ name: "nightly" }, { name: "weekly" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ name: "weekly" })).ok).toBe(false);
+    expect(
+      updateScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        "nightly",
+        req({ name: "weekly" }),
+      ).ok,
+    ).toBe(false);
   });
 
   test("editing a nonexistent entry is refused", () => {
@@ -219,14 +353,18 @@ describe("setScheduleEnabled", () => {
   });
 
   test("resuming a paused entry stamps a fresh since, so a fire missed while paused is not run at once", () => {
-    const { store, stored } = setup([{ name: "nightly", enabled: false, since: "2020-01-01T00:00:00.000Z" }]);
+    const { store, stored } = setup([
+      { name: "nightly", enabled: false, since: "2020-01-01T00:00:00.000Z" },
+    ]);
     const before = Date.now();
     expect(setScheduleEnabled(store, PROJECT, "nightly", true).ok).toBe(true);
     expectFreshSince(stored()[0]!.since, before, Date.now());
   });
 
   test("pausing an entry leaves its since as it was", () => {
-    const { store, stored } = setup([{ name: "nightly", since: "2020-01-01T00:00:00.000Z" }]);
+    const { store, stored } = setup([
+      { name: "nightly", since: "2020-01-01T00:00:00.000Z" },
+    ]);
     expect(setScheduleEnabled(store, PROJECT, "nightly", false).ok).toBe(true);
     expect(stored()[0]!.since).toBe("2020-01-01T00:00:00.000Z");
   });
@@ -254,7 +392,9 @@ describe("deleteScheduleEntry", () => {
   test("deleting the only entry removes the project's key entirely", () => {
     const { store, file } = setup([{ name: "nightly" }]);
     deleteScheduleEntry(store, PROJECT, "nightly");
-    expect(JSON.parse(readFileSync(file, "utf-8")).schedules).not.toHaveProperty(PROJECT);
+    expect(
+      JSON.parse(readFileSync(file, "utf-8")).schedules,
+    ).not.toHaveProperty(PROJECT);
   });
 
   test("deleting an unknown name is refused and writes nothing", () => {
@@ -268,19 +408,39 @@ describe("deleteScheduleEntry", () => {
 describe("a model name that differs from a listed one only in case", () => {
   test("create stores the listed spelling", () => {
     const { dir, store, stored } = setup();
-    expect(createScheduleEntry(store, PROJECT, dir, req({ model: "sonnet" }), ["Sonnet", "Opus"]).ok).toBe(true);
+    expect(
+      createScheduleEntry(store, PROJECT, dir, req({ model: "sonnet" }), [
+        "Sonnet",
+        "Opus",
+      ]).ok,
+    ).toBe(true);
     expect(stored()[0]!.model).toBe("Sonnet");
   });
 
   test("edit stores the listed spelling", () => {
     const { dir, store, stored } = setup([{ name: "nightly" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ model: "sonnet" }), ["Sonnet", "Opus"]).ok).toBe(true);
+    expect(
+      updateScheduleEntry(
+        store,
+        PROJECT,
+        dir,
+        "nightly",
+        req({ model: "sonnet" }),
+        ["Sonnet", "Opus"],
+      ).ok,
+    ).toBe(true);
     expect(stored()[0]!.model).toBe("Sonnet");
   });
 
   test("several case-only matches are refused, naming both", () => {
     const { dir, store } = setup();
-    const result = createScheduleEntry(store, PROJECT, dir, req({ model: "sonnet" }), ["Sonnet", "SONNET"]);
+    const result = createScheduleEntry(
+      store,
+      PROJECT,
+      dir,
+      req({ model: "sonnet" }),
+      ["Sonnet", "SONNET"],
+    );
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("Sonnet");
@@ -291,7 +451,12 @@ describe("a model name that differs from a listed one only in case", () => {
 describe("an entry's notification choice", () => {
   test("a create stores the posted choice, and none when none is posted", () => {
     const a = setup();
-    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), notify: "always" }).ok).toBe(true);
+    expect(
+      createScheduleEntry(a.store, PROJECT, a.dir, {
+        ...req(),
+        notify: "always",
+      }).ok,
+    ).toBe(true);
     expect(a.stored()[0]!.notify).toBe("always");
     const b = setup();
     expect(createScheduleEntry(b.store, PROJECT, b.dir, req()).ok).toBe(true);
@@ -300,26 +465,54 @@ describe("an entry's notification choice", () => {
 
   test("a value that is none of the three is refused and nothing is written", () => {
     const { dir, store, stored } = setup();
-    const result = createScheduleEntry(store, PROJECT, dir, { ...req(), notify: "sometimes" });
+    const result = createScheduleEntry(store, PROJECT, dir, {
+      ...req(),
+      notify: "sometimes",
+    });
     expect(result.ok).toBe(false);
     expect(stored()).toHaveLength(0);
-    expect(scheduleEntryError(dir, { ...req(), notify: "sometimes" }, [])).toContain("sometimes");
-    expect(scheduleEntryError(dir, { ...req(), notify: "never" }, [])).toBeNull();
+    expect(
+      scheduleEntryError(dir, { ...req(), notify: "sometimes" }, []),
+    ).toContain("sometimes");
+    expect(
+      scheduleEntryError(dir, { ...req(), notify: "never" }, []),
+    ).toBeNull();
   });
 
   test("an edit replaces the choice, and keeps the current one when none is posted or it is empty", () => {
-    const { dir, store, stored } = setup([{ name: "nightly", notify: "never" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "always" }).ok).toBe(true);
+    const { dir, store, stored } = setup([
+      { name: "nightly", notify: "never" },
+    ]);
+    expect(
+      updateScheduleEntry(store, PROJECT, dir, "nightly", {
+        ...req(),
+        notify: "always",
+      }).ok,
+    ).toBe(true);
     expect(stored()[0]!.notify).toBe("always");
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(
+      true,
+    );
     expect(stored()[0]!.notify).toBe("always");
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "" }).ok).toBe(true);
+    expect(
+      updateScheduleEntry(store, PROJECT, dir, "nightly", {
+        ...req(),
+        notify: "",
+      }).ok,
+    ).toBe(true);
     expect(stored()[0]!.notify).toBe("always");
   });
 
   test("an edit that posts a bad choice is refused and the entry is untouched", () => {
-    const { dir, store, stored } = setup([{ name: "nightly", notify: "never" }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), notify: "bogus" }).ok).toBe(false);
+    const { dir, store, stored } = setup([
+      { name: "nightly", notify: "never" },
+    ]);
+    expect(
+      updateScheduleEntry(store, PROJECT, dir, "nightly", {
+        ...req(),
+        notify: "bogus",
+      }).ok,
+    ).toBe(false);
     expect(stored()[0]!.notify).toBe("never");
   });
 });
@@ -327,26 +520,41 @@ describe("an entry's notification choice", () => {
 describe("an entry's browser choice", () => {
   test("a create asks for Chrome only when yes is posted", () => {
     const a = setup();
-    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), chrome: "yes" }).ok).toBe(true);
+    expect(
+      createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), chrome: "yes" })
+        .ok,
+    ).toBe(true);
     expect(a.stored()[0]!.chrome).toBe(true);
     for (const chrome of [undefined, "no"]) {
       const b = setup();
-      expect(createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), chrome }).ok).toBe(true);
+      expect(
+        createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), chrome }).ok,
+      ).toBe(true);
       expect(b.stored()[0]!.chrome).toBeUndefined();
     }
   });
 
   test("a value other than yes or no is refused and nothing is written", () => {
     const { dir, store, stored } = setup();
-    expect(createScheduleEntry(store, PROJECT, dir, { ...req(), chrome: "maybe" }).ok).toBe(false);
+    expect(
+      createScheduleEntry(store, PROJECT, dir, { ...req(), chrome: "maybe" })
+        .ok,
+    ).toBe(false);
     expect(stored()).toHaveLength(0);
   });
 
   test("an edit that posts no clears it, and one that posts nothing keeps it", () => {
     const { dir, store, stored } = setup([{ name: "nightly", chrome: true }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(
+      true,
+    );
     expect(stored()[0]!.chrome).toBe(true);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), chrome: "no" }).ok).toBe(true);
+    expect(
+      updateScheduleEntry(store, PROJECT, dir, "nightly", {
+        ...req(),
+        chrome: "no",
+      }).ok,
+    ).toBe(true);
     expect(stored()[0]!.chrome).toBeUndefined();
   });
 });
@@ -354,26 +562,40 @@ describe("an entry's browser choice", () => {
 describe("an entry's sandbox choice", () => {
   test("a create runs without the sandbox only when off is posted", () => {
     const a = setup();
-    expect(createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), sandbox: "off" }).ok).toBe(true);
+    expect(
+      createScheduleEntry(a.store, PROJECT, a.dir, { ...req(), sandbox: "off" })
+        .ok,
+    ).toBe(true);
     expect(a.stored()[0]!.sandbox).toBe(false);
     for (const sandbox of [undefined, "on"]) {
       const b = setup();
-      expect(createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), sandbox }).ok).toBe(true);
+      expect(
+        createScheduleEntry(b.store, PROJECT, b.dir, { ...req(), sandbox }).ok,
+      ).toBe(true);
       expect(b.stored()[0]!.sandbox).toBeUndefined();
     }
   });
 
   test("a value other than on or off is refused and nothing is written", () => {
     const { dir, store, stored } = setup();
-    expect(createScheduleEntry(store, PROJECT, dir, { ...req(), sandbox: "no" }).ok).toBe(false);
+    expect(
+      createScheduleEntry(store, PROJECT, dir, { ...req(), sandbox: "no" }).ok,
+    ).toBe(false);
     expect(stored()).toHaveLength(0);
   });
 
   test("an edit that posts on turns it back on, and one that posts nothing keeps it", () => {
     const { dir, store, stored } = setup([{ name: "nightly", sandbox: false }]);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(true);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req()).ok).toBe(
+      true,
+    );
     expect(stored()[0]!.sandbox).toBe(false);
-    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", { ...req(), sandbox: "on" }).ok).toBe(true);
+    expect(
+      updateScheduleEntry(store, PROJECT, dir, "nightly", {
+        ...req(),
+        sandbox: "on",
+      }).ok,
+    ).toBe(true);
     expect(stored()[0]!.sandbox).toBeUndefined();
   });
 });

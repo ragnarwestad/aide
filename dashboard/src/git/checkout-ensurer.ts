@@ -38,12 +38,23 @@ import type { DashboardCheckout } from "./dashboard-checkout.ts";
  *  back. */
 export class CheckoutEnsurer {
   /** The run going on right now, per project. */
-  private readonly running = new Map<string, Promise<DashboardCheckout | undefined>>();
+  private readonly running = new Map<
+    string,
+    Promise<DashboardCheckout | undefined>
+  >();
   /** The follow-up run promised to the `fresh` callers that arrived
    *  while `running` was busy — one per project, shared by all of them. */
-  private readonly queued = new Map<string, Promise<DashboardCheckout | undefined>>();
+  private readonly queued = new Map<
+    string,
+    Promise<DashboardCheckout | undefined>
+  >();
 
-  constructor(private readonly ensure: (project: string, mayClone: boolean) => Promise<DashboardCheckout | undefined>) {}
+  constructor(
+    private readonly ensure: (
+      project: string,
+      mayClone: boolean,
+    ) => Promise<DashboardCheckout | undefined>,
+  ) {}
 
   /** Any answer that eventually arrives is good enough. */
   get(project: string): Promise<DashboardCheckout | undefined> {
@@ -77,7 +88,10 @@ export class CheckoutEnsurer {
     });
   }
 
-  private start(project: string, mayClone = false): Promise<DashboardCheckout | undefined> {
+  private start(
+    project: string,
+    mayClone = false,
+  ): Promise<DashboardCheckout | undefined> {
     const started = this.ensure(project, mayClone).finally(() => {
       if (this.running.get(project) === started) this.running.delete(project);
     });

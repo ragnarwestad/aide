@@ -28,17 +28,31 @@
    list's figure columns (Cost, Time); the board line follows at 40rem,
    below. Each step hides the trigger and reveals the menu's own flat copy of that one control. */
 @media (max-width: 59.5rem) {
-  .menu.unit { display: none; }
-  .menu .morerows.unit { display: flex; }
-  .menupanel > .menusep { display: block; }
+  .menu.unit {
+    display: none;
+  }
+  .menu .morerows.unit {
+    display: flex;
+  }
+  .menupanel > .menusep {
+    display: block;
+  }
 }
 @media (max-width: 53rem) {
-  .menu.lang { display: none; }
-  .menu .morerows.lang { display: flex; }
+  .menu.lang {
+    display: none;
+  }
+  .menu .morerows.lang {
+    display: flex;
+  }
 }
 @media (max-width: 46.5rem) {
-  .menu.theme { display: none; }
-  .menu .morerows.theme { display: flex; }
+  .menu.theme {
+    display: none;
+  }
+  .menu .morerows.theme {
+    display: flex;
+  }
 }
 
 @media (max-width: 40rem) {
@@ -100,16 +114,44 @@
      cell's own left padding, so only the rest is reserved — and with it
      every phase name starts at one x, whether its own line draws a
      control or not. */
-  table.list { --fold-w: 16px; }
-  table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * (24px + var(--sp-1))); }
-  table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
-    --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
-      - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
-  html[lang="en"] table.list { --phase-w: 4.5rem; }
-  header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
-  body > nav { padding: 0 var(--sp-4) var(--sp-2); }
-  main { padding: var(--sp-4); }
-  body > p.rowmsg { width: calc(100% - 2 * var(--sp-4)); }
+  table.list {
+    --fold-w: 16px;
+  }
+  table.list tr.subrow .phasecell > .fold {
+    margin-left: calc(-1 * (24px + var(--sp-1)));
+  }
+  table.list {
+    --phase-w: 5.75rem;
+    --aimodel-w: 16.5rem;
+    --tick-w: 31px;
+    --time-w: 3.25rem;
+    --state-w: min(
+      5.25rem,
+      max(
+        2.5rem,
+        calc(
+          100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) -
+            var(--phase-w) - var(--aimodel-w) - var(--tick-w) - 4 *
+            var(--sp-2) - var(--time-w)
+        )
+      )
+    );
+  }
+  html[lang="en"] table.list {
+    --phase-w: 4.5rem;
+  }
+  header {
+    padding: var(--sp-3) var(--sp-4) var(--sp-2);
+  }
+  body > nav {
+    padding: 0 var(--sp-4) var(--sp-2);
+  }
+  main {
+    padding: var(--sp-4);
+  }
+  body > p.rowmsg {
+    width: calc(100% - 2 * var(--sp-4));
+  }
 
   /* Cost is not what a phone is for on a PHASE line: the reader is
      checking whether a run finished and pressing Run or Cancel, and the
@@ -119,7 +161,9 @@
      mobile-spec-row). Time does not fold away beside it:
      the room the compact model button gives back goes to it, on
      the same line as the phase's state, instead. */
-  table.list tr.subrow [data-col="cost"] { display: none; }
+  table.list tr.subrow [data-col="cost"] {
+    display: none;
+  }
   /* `display: block`, or list.css's own 46.5rem breakpoint
      (`table.speclist td[data-col="started"] { display: none; }`) wins —
      this selector is more specific, but neither of the other
@@ -128,9 +172,16 @@
   /* A fixed, left-aligned box: the desktop rule centres Time
      (list.css), and a centred text in a fixed box moves its left edge
      whenever it changes. */
-  table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 var(--time-w);
-    width: var(--time-w); box-sizing: border-box; text-align: left; padding-left: 0; padding-right: 0; }
-
+  table.list tr.subrow [data-col="started"] {
+    display: block;
+    white-space: nowrap;
+    flex: 0 0 var(--time-w);
+    width: var(--time-w);
+    box-sizing: border-box;
+    text-align: left;
+    padding-left: 0;
+    padding-right: 0;
+  }
 
   /* The spec LIST leaves table layout entirely at this width — found
      with a 500px iframe walk (2026-08-24): a flex tr inside a table
@@ -160,9 +211,15 @@
   table.list:has(> colgroup > col[data-col="setting-name"]),
   table.list:has(> colgroup > col[data-col="setting-name"]) > tbody,
   table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr,
-  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr > td { display: block; }
-  table.list:has(> colgroup > col[data-col="setting-name"]) { width: auto; }
-  table.list:has(> colgroup > col[data-col="setting-name"]) > thead { display: none; }
+  table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr > td {
+    display: block;
+  }
+  table.list:has(> colgroup > col[data-col="setting-name"]) {
+    width: auto;
+  }
+  table.list:has(> colgroup > col[data-col="setting-name"]) > thead {
+    display: none;
+  }
   table.list:has(> colgroup > col[data-col="setting-name"]) > tbody > tr > td {
     border-bottom: 0;
     padding: var(--sp-1) var(--sp-3);
@@ -176,17 +233,30 @@
   /* A checkout's path, under a project page's readiness line, is one
      word as far as the browser knows; unbroken, it widened the page
      past a 360px screen. */
-  .tabpanel p { overflow-wrap: anywhere; }
+  .tabpanel p {
+    overflow-wrap: anywhere;
+  }
 
-  table.speclist, table.speclist tbody { display: block; }
-  table.speclist { width: auto; }
+  table.speclist,
+  table.speclist tbody {
+    display: block;
+  }
+  table.speclist {
+    width: auto;
+  }
   /* The head's second line is not one of these: it lays itself out as a
      flex line below, and blocking its cells put the time and the cost
      back on the phone, one line each, after the rules
      below had hidden them. */
-  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) { display: block; }
-  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) > td { display: block; }
-  .tabbar .tab { min-width: 0; }
+  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) {
+    display: block;
+  }
+  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) > td {
+    display: block;
+  }
+  .tabbar .tab {
+    min-width: 0;
+  }
 
   /* The desktop chain (page.css's body/main rules, list.css's
      #jobrows/.tablewrap rules) is kept at this width too: the header,
@@ -194,5 +264,7 @@
      them, as they do held sideways and on a desktop. The scrollbar's
      lane is not: a phone's scrollbar shows only while scrolling, and
      the rows need the width. */
-  #jobrows .tablewrap { padding-inline: 0; }
+  #jobrows .tablewrap {
+    padding-inline: 0;
+  }
 }

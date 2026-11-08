@@ -17,12 +17,25 @@ import { resolve, sep, join } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
-import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
-  discoverProjects, manifestInside, type CodeLanding, type SpecRef,
+  dashboardSpecDir,
+  type DashboardCheckout,
+} from "../git/dashboard-checkout.ts";
+import {
+  discoverProjects,
+  manifestInside,
+  type CodeLanding,
+  type SpecRef,
 } from "../project/discover";
 import {
-  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
+  acceptanceRowsOf,
+  acceptanceStillOpen,
+  ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+  archiveHeldBackReason,
+  failedCount,
+  notVerifiedCount,
+  parseStatus,
+  reopenedRound,
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
@@ -93,7 +106,11 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
   const dirs = new Map<string, string>();
   const specsRoots = new Map<string, string>();
   if (ctx.projectRoot) {
-    for (const p of discoverProjects(ctx.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))) {
+    for (const p of discoverProjects(
+      ctx.projectRoot,
+      ctx.ownedSpecsRoot,
+      manifestInside(ctx.machineryProjectDir),
+    )) {
       if (!ctx.allowed.has(p.name)) continue;
       specsRoots.set(p.name, p.specsRoot);
       for (const s of p.specs) {
@@ -138,13 +155,20 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // the disk copy stays unticked until archive lands. Reading disk
         // alone said "archive held back" over a spec whose every row was
         // ticked.
-        const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
-        const acceptanceOpen = acceptanceStillOpen(branchAnswer?.acceptanceOpen, state?.acceptanceCriteria);
-        const acceptanceRows = branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? [];
+        const branchAnswer = ctx
+          .readBranchFileSteps?.()
+          ?.peekFileSteps(s.dir, s.folder).steps;
+        const acceptanceOpen = acceptanceStillOpen(
+          branchAnswer?.acceptanceOpen,
+          state?.acceptanceCriteria,
+        );
+        const acceptanceRows =
+          branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? [];
         const notVerified = notVerifiedCount(acceptanceRows) || undefined;
         const failed = failedCount(acceptanceRows) || undefined;
         const heldBack = statusText
-          ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
+          ? (archiveHeldBackReason(statusText) ??
+            (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;
         found.push({
           project: p.name,
@@ -159,12 +183,17 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // `acceptanceOpen`: the branch answer's, else the checkout's.
           // Carried while a row is open, and while one waits for a check
           // or failed: the list unfolds them under that count too.
-          acceptance: acceptanceOpen || notVerified || failed
-            ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), branchAnswer?.acCoverage ?? readAcCoverage(s.dir))
-            : undefined,
+          acceptance:
+            acceptanceOpen || notVerified || failed
+              ? withAcCoverage(
+                  branchAnswer?.acceptance ?? acceptanceRowsOf(statusText),
+                  branchAnswer?.acCoverage ?? readAcCoverage(s.dir),
+                )
+              : undefined,
           // The approaches waiting for the person who asked to choose,
           // off the branch's plan first, as the rows above.
-          approachChoice: specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined,
+          approachChoice:
+            specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.
@@ -178,7 +207,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // written onto the open branch, not the checkout. Each entry
           // by the folder it resolves to, as the Running tab's picker
           // ticks by folder; one nothing matches stays as written.
-          dependsOn: (branchAnswer?.dependsOn ?? s.dependsOn).map((id) => resolveDependencyFolder(p, id)?.folder ?? id),
+          dependsOn: (branchAnswer?.dependsOn ?? s.dependsOn).map(
+            (id) => resolveDependencyFolder(p, id)?.folder ?? id,
+          ),
           // The four settings it was created with, for its open row on the
           // Running tab: the branch's first, as Depends on above, since a
           // save is written there.
@@ -214,7 +245,11 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // a git-history comparison of a state-file spec compares two
           // records that can legitimately disagree for reasons that
           // mean nothing.
-          fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases, readAt: now },
+          fileSteps: {
+            proseSteps: parseStatus(statusText).workflowSteps,
+            stateSteps: state?.completedPhases,
+            readAt: now,
+          },
           // Where this spec's history starts, when it has been
           // reopened. Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.
@@ -230,7 +265,14 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
       }
     }
   }
-  ctx.writeScan({ at: now, targets: found, archived: gone, dirs, refs, specsRoots });
+  ctx.writeScan({
+    at: now,
+    targets: found,
+    archived: gone,
+    dirs,
+    refs,
+    specsRoots,
+  });
   return found;
 }
 
@@ -238,10 +280,14 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
  *  both; the dependency gate asks only the LAST one, the
  *  specs root, since "archived" is a fact about one folder in one
  *  repository. */
-export function specRoots(ctx: Pick<SpecLookupContext, "machineryProjectDir" | "machinerySpecsRoot">, project: string): string[] {
+export function specRoots(
+  ctx: Pick<SpecLookupContext, "machineryProjectDir" | "machinerySpecsRoot">,
+  project: string,
+): string[] {
   const code = ctx.machineryProjectDir(project);
   const specs = ctx.machinerySpecsRoot(project);
-  const both = specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
+  const both =
+    specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
   // Only roots that are THERE. A project with no specs root configured
   // resolves to `<project>/specs`, and two projects on this host have
   // never had one — asking git about a directory that does not exist
@@ -277,7 +323,10 @@ function inCodeRepo(codeRoot: string, root: string): boolean {
 /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
  *  spec. The archived keys come off the scan the page already keeps,
  *  and the intersection is done in memory. */
-export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOpen: string[] } {
+export function peekUnlanded(ctx: SpecLookupContext): {
+  unlanded: string[];
+  prOpen: string[];
+} {
   ctx.targets();
   const keys = ctx.readScan()?.archived ?? [];
   if (keys.length === 0) return { unlanded: [], prOpen: [] };
@@ -304,7 +353,8 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
       // makes it contribute nothing — the same way an unanswerable
       // one already did. That is what keeps this failing closed
       // without any new logic to get wrong.
-      for (const branch of ctx.branchStatus.peekOpenSpecBranches(root).open ?? []) {
+      for (const branch of ctx.branchStatus.peekOpenSpecBranches(root).open ??
+        []) {
         open.add(branch);
         if (!inCodeRepo(codeRoot, root)) elsewhere.add(branch);
       }
@@ -323,12 +373,19 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
  *  project that reviews its code and a root in the code repository. A
  *  specs root of its own is merged at archive, so git alone answers. */
 export function mergedPullRequest(
-  ctx: Pick<SpecLookupContext, "machineryProjectDir" | "codeLanding" | "pullRequests">,
+  ctx: Pick<
+    SpecLookupContext,
+    "machineryProjectDir" | "codeLanding" | "pullRequests"
+  >,
   project: string,
   folder: string,
   root: string,
 ): PullRequestAnswer | undefined {
-  if (ctx.codeLanding(project) !== "pr" || !inCodeRepo(ctx.machineryProjectDir(project), root)) return undefined;
+  if (
+    ctx.codeLanding(project) !== "pr" ||
+    !inCodeRepo(ctx.machineryProjectDir(project), root)
+  )
+    return undefined;
   const answer = ctx.pullRequests?.get(`${project}/${folder}`);
   return answer?.merged ? answer : undefined;
 }
@@ -339,12 +396,22 @@ export function mergedPullRequest(
  *  landed" as before. Peeks only, like `peekUnlanded`. A squash merge
  *  leaves the branch outside the default branch for good, so a project
  *  that reviews its code also counts a merged pull request. */
-export function peekMergedOnOrigin(ctx: SpecLookupContext, project: string, folder: string): boolean {
+export function peekMergedOnOrigin(
+  ctx: SpecLookupContext,
+  project: string,
+  folder: string,
+): boolean {
   const branch = specBranch(folder);
-  const holding = specRoots(ctx, project).filter((r) => ctx.branchStatus.peekOpenSpecBranches(r).open?.has(branch));
+  const holding = specRoots(ctx, project).filter((r) =>
+    ctx.branchStatus.peekOpenSpecBranches(r).open?.has(branch),
+  );
   return (
     holding.length > 0 &&
-    holding.every((r) => ctx.branchStatus.peekMerged(r, branch) === true || !!mergedPullRequest(ctx, project, folder, r))
+    holding.every(
+      (r) =>
+        ctx.branchStatus.peekMerged(r, branch) === true ||
+        !!mergedPullRequest(ctx, project, folder, r),
+    )
   );
 }
 
@@ -372,7 +439,11 @@ export function peekUnlandedCheckedAt(ctx: SpecLookupContext): number | null {
  *  projects root again — but what it returns is only WHERE the files
  *  are; the files themselves are read fresh on every request, which
  *  is the whole point of the Update button. */
-export function specDir(ctx: SpecLookupContext, project: string, specFolder: string): string | undefined {
+export function specDir(
+  ctx: SpecLookupContext,
+  project: string,
+  specFolder: string,
+): string | undefined {
   ctx.targets();
   return ctx.readScan()?.dirs.get(`${project}/${specFolder}`);
 }
@@ -380,7 +451,11 @@ export function specDir(ctx: SpecLookupContext, project: string, specFolder: str
 /** What that spec IS — its title, and whether it has been archived
  *  Through the same 5-second scan `specDir` goes through,
  *  and unlike `targets()` it answers for an archived spec too. */
-export function specRef(ctx: SpecLookupContext, project: string, specFolder: string): SpecRef | undefined {
+export function specRef(
+  ctx: SpecLookupContext,
+  project: string,
+  specFolder: string,
+): SpecRef | undefined {
   ctx.targets();
   return ctx.readScan()?.refs.get(`${project}/${specFolder}`);
 }
@@ -402,7 +477,10 @@ export function specRef(ctx: SpecLookupContext, project: string, specFolder: str
  *  what decides which lock to take. A directory git will not answer
  *  for keys on itself, which is what the routes did before and is no
  *  worse — the save's own first question refuses it by name. */
-export async function specsRoot(ctx: SpecLookupContext, dir: string): Promise<string> {
+export async function specsRoot(
+  ctx: SpecLookupContext,
+  dir: string,
+): Promise<string> {
   const top = await ctx.gitRun(dir, ["rev-parse", "--show-toplevel"]);
   return top.code === 0 && top.stdout.trim() ? top.stdout.trim() : dir;
 }
@@ -420,17 +498,24 @@ export async function specsRoot(ctx: SpecLookupContext, dir: string): Promise<st
  *  Falls back to the person's folder when there is no such clone —
  *  see `ensureCheckout`: a project the dashboard cannot clone keeps
  *  working exactly as it did before this spec. */
-export async function machinerySpecDir(ctx: SpecLookupContext, project: string, dir: string): Promise<string> {
+export async function machinerySpecDir(
+  ctx: SpecLookupContext,
+  project: string,
+  dir: string,
+): Promise<string> {
   // The cached answer where there is one: this runs on every spec
   // page, every edit form and every save, and `ensureDashboardCheckout`
   // spawns git twice to work out where a project's specs are. Boot,
   // the runner's tick and the Settings route all re-ensure, so a
   // specs root that moves still reaches this map.
-  const checkout = ctx.resolvedCheckouts.get(project) ?? (await ctx.ensureCheckout(project));
+  const checkout =
+    ctx.resolvedCheckouts.get(project) ?? (await ctx.ensureCheckout(project));
   if (!checkout) return dir;
   ctx.targets();
   const personSpecs = ctx.readScan()?.specsRoots.get(project);
-  const translated = personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null;
+  const translated = personSpecs
+    ? dashboardSpecDir(checkout, personSpecs, dir)
+    : null;
   return translated ?? dir;
 }
 
@@ -457,7 +542,11 @@ export async function machinerySpecDir(ctx: SpecLookupContext, project: string, 
  *  through, or Save's compare-stamp check refuses as "changed since
  *  you opened it" the first time anyone edits a spec shortly after a
  *  restart. */
-export function peekMachinerySpecDir(ctx: SpecLookupContext, project: string, dir: string): string {
+export function peekMachinerySpecDir(
+  ctx: SpecLookupContext,
+  project: string,
+  dir: string,
+): string {
   const checkout = ctx.resolvedCheckouts.get(project);
   if (!checkout) {
     // Started, not waited on — so a page opened before the boot-time
@@ -467,5 +556,7 @@ export function peekMachinerySpecDir(ctx: SpecLookupContext, project: string, di
   }
   ctx.targets();
   const personSpecs = ctx.readScan()?.specsRoots.get(project);
-  return (personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null) ?? dir;
+  return (
+    (personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null) ?? dir
+  );
 }

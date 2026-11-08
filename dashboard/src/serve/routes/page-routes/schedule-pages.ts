@@ -6,17 +6,37 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { providerPickerOptions } from "../../providers/options.ts";
-import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
+import {
+  DEFAULT_SCHEDULE_OUTPUT_ROOT,
+  readScheduleRunReport,
+  scheduleTrackingKey,
+} from "../../../queue/schedule.ts";
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
-  NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
-  renderScheduleDetailPage, renderSchedulePage, renderSchedulePromptPage, resolveBackHref,
+  NEW_SCHEDULE_DEFAULTS,
+  SCHEDULE_ROUTE,
+  buildReportDocument,
+  projectPagePath,
+  renderProposalsPanel,
+  renderReportPanel,
+  renderScheduleDetailPage,
+  renderSchedulePage,
+  renderSchedulePromptPage,
+  resolveBackHref,
 } from "../../../render";
-import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import {
+  SPEC_VIEWER_ASSET_PATH,
+  languageChoice,
+  modelChoiceOptions,
+  specsClientScript,
+} from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
-import { projectScheduleTab, scheduleNewPageResponse } from "./schedule-edit-page.ts";
+import {
+  projectScheduleTab,
+  scheduleNewPageResponse,
+} from "./schedule-edit-page.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -25,7 +45,8 @@ export async function schedulePages(
   path: string,
 ): Promise<Response | null> {
   if (path.startsWith("/schedule-output/")) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     return serveStatic(
       ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
       path.slice("/schedule-output".length),
@@ -33,7 +54,8 @@ export async function schedulePages(
   }
 
   if (path === SCHEDULE_ROUTE) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     // Every allowed project's entries, flattened together —
     // no per-project filter, mirroring how the Specs list's own
     // `listed` array is every allowed project's jobs at once.
@@ -55,21 +77,24 @@ export async function schedulePages(
       filter: {
         q: url.searchParams.get("q") ?? undefined,
         sort: url.searchParams.get("sort") ?? undefined,
-        dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
+        dir:
+          (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
       },
       modelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie)
+      headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   // New: the project rides as a query, since a second path segment would
   // read as an entry's name. An entry is changed on its Settings tab.
   if (path === "/schedule/new") {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     // A project off the allowlist still gets the page, as its Schedule
     // tab still gets New: the create route refuses it, with the reason.
     const project = url.searchParams.get("project") ?? "";
@@ -77,7 +102,12 @@ export async function schedulePages(
     return scheduleNewPageResponse(ctx, req, url, {
       project,
       values: NEW_SCHEDULE_DEFAULTS,
-      back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+      back: resolveBackHref(
+        req.headers.get("referer"),
+        url.origin,
+        projectScheduleTab(project),
+        url.pathname,
+      ),
     });
   }
 
@@ -86,10 +116,12 @@ export async function schedulePages(
   // project, and any other address matches nothing.
   const promptPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/prompt$/);
   if (promptPage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(promptPage[1]!);
     const name = decodeURIComponent(promptPage[2]!);
-    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    if (!ctx.allowed.has(project))
+      return new Response("not found", { status: 404 });
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     if (!entry) return new Response("not found", { status: 404 });
     // The directory a run of this entry is handed, at its default branch as the
@@ -100,7 +132,11 @@ export async function schedulePages(
     // `cat-file blob` answers only for a file: a directory, which `git show`
     // prints as a listing, reads as not there.
     const shown = base
-      ? await ctx.gitRun(dir, ["cat-file", "blob", `refs/remotes/origin/${base}:${entry.prompt}`])
+      ? await ctx.gitRun(dir, [
+          "cat-file",
+          "blob",
+          `refs/remotes/origin/${base}:${entry.prompt}`,
+        ])
       : null;
     const langResult = languageChoice(url, req);
     const html = renderSchedulePromptPage(ctx.nav(), new Date().toISOString(), {
@@ -112,24 +148,30 @@ export async function schedulePages(
       currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie)
+      headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
   if (scheduleDetailPage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET")
+      return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(scheduleDetailPage[1]!);
     const name = decodeURIComponent(scheduleDetailPage[2]!);
-    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    if (!ctx.allowed.has(project))
+      return new Response("not found", { status: 404 });
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     if (!entry) return new Response("not found", { status: 404 });
     const key = scheduleTrackingKey(name);
     const jobs = ctx.queue
       .list()
       .filter((j) => j.project === project && j.specFolder === key)
-      .sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt));
-    const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
+      .sort((a, b) =>
+        (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt),
+      );
+    const outputRoot =
+      ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
     const langResult = languageChoice(url, req);
     // `?run=` is only ever compared with this entry's own job ids, never
     // joined into a path. A report shows only for a run picked from the
@@ -163,21 +205,34 @@ export async function schedulePages(
       runs: jobs,
       shownRun: shown?.id,
       // Only ever compared with the list's column names.
-      runSort: { sort: url.searchParams.get("sort") ?? undefined, dir: url.searchParams.get("dir") ?? undefined },
+      runSort: {
+        sort: url.searchParams.get("sort") ?? undefined,
+        dir: url.searchParams.get("dir") ?? undefined,
+      },
       // An entry that has never run says so here, where the list would be.
       reportPanel: shown
         ? renderReportPanel({ lang: langResult.lang, run }) +
-          renderProposalsPanel({ lang: langResult.lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id) })
+          renderProposalsPanel({
+            lang: langResult.lang,
+            project,
+            record: readProposalsRecord(outputRoot, project, key, shown.id),
+          })
         : jobs.length === 0
           ? renderReportPanel({ lang: langResult.lang })
           : "",
       script: await specsClientScript(),
-      backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
+      backHref: resolveBackHref(
+        req.headers.get("referer"),
+        url.origin,
+        projectScheduleTab(project),
+        url.pathname,
+      ),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie)
+      headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 

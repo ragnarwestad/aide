@@ -10,7 +10,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { addProject } from "../../../src/project/project-admin";
-import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
+import {
+  configValue,
+  resolveWorktreeLinks,
+} from "../../../src/project/discover";
 import { cloningGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
@@ -23,7 +26,6 @@ const root = (): string => {
 afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
-
 
 // --- Whether a run can actually start there -------------------------
 //
@@ -52,14 +54,21 @@ describe("writing .aide/config", () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "links");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "links",
-      gitUrl: "git@example.com:me/links.git",
-      codeLanding: "merge",
-      worktreeLinks: ".venv dashboard/node_modules",
-    }, base);
+    const result = await addProject(
+      cloningGit().run,
+      projectsRoot,
+      {
+        name: "links",
+        gitUrl: "git@example.com:me/links.git",
+        codeLanding: "merge",
+        worktreeLinks: ".venv dashboard/node_modules",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir, dashboardSettingsFile(base, "links")).links).toBe(".venv dashboard/node_modules");
+    expect(
+      resolveWorktreeLinks(dir, dashboardSettingsFile(base, "links")).links,
+    ).toBe(".venv dashboard/node_modules");
   });
 
   test("both fields at once, over a config that already has comments and other keys", async () => {
@@ -67,14 +76,20 @@ describe("writing .aide/config", () => {
     const base = root();
     const dir = join(projectsRoot, "both");
     const result = await addProject(
-      cloningGit({}, { ".aide/config": "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\n" }).run,
+      cloningGit(
+        {},
+        {
+          ".aide/config":
+            "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\n",
+        },
+      ).run,
       projectsRoot,
       {
-      name: "both",
-      gitUrl: "git@example.com:me/both.git",
-      codeLanding: "merge",
-      specsPath: "/repos/aide-specs/both",
-      worktreeLinks: ".venv",
+        name: "both",
+        gitUrl: "git@example.com:me/both.git",
+        codeLanding: "merge",
+        specsPath: "/repos/aide-specs/both",
+        worktreeLinks: ".venv",
       },
       base,
     );
@@ -112,12 +127,16 @@ describe("writing .aide/config", () => {
   test("a worktree-links value naming a build output is refused before it is written", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "buildrefused");
-    const result = await addProject(cloningGit({}, { "build/": "" }).run, projectsRoot, {
-      name: "buildrefused",
-      gitUrl: "git@example.com:me/buildrefused.git",
-      codeLanding: "merge",
-      worktreeLinks: "build",
-    });
+    const result = await addProject(
+      cloningGit({}, { "build/": "" }).run,
+      projectsRoot,
+      {
+        name: "buildrefused",
+        gitUrl: "git@example.com:me/buildrefused.git",
+        codeLanding: "merge",
+        worktreeLinks: "build",
+      },
+    );
     expect(result.ok).toBe(false);
     const step = result.steps.find((s) => s.step === "worktreeLinks")!;
     expect(step.ok).toBe(false);

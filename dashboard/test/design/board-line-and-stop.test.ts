@@ -14,10 +14,13 @@ import { AT } from "./row-fixtures.ts";
 
 /** The whole form that posts to `action`, or "" when there is none. */
 const formPosting = (html: string, action: string): string =>
-  html.match(new RegExp(`<form\\b[^>]*\\saction="${action}"[^>]*>[\\s\\S]*?</form>`))?.[0] ?? "";
+  html.match(
+    new RegExp(`<form\\b[^>]*\\saction="${action}"[^>]*>[\\s\\S]*?</form>`),
+  )?.[0] ?? "";
 
 /** The hooks on that form's class, which the page script selects on. */
-const hooksOf = (form: string): string[] => form.match(/^<form\b[^>]*\sclass="([^"]*)"/)?.[1]?.split(" ") ?? [];
+const hooksOf = (form: string): string[] =>
+  form.match(/^<form\b[^>]*\sclass="([^"]*)"/)?.[1]?.split(" ") ?? [];
 
 // --- the board line and its Stop control --------------------------
 //
@@ -28,7 +31,11 @@ const hooksOf = (form: string): string[] => form.match(/^<form\b[^>]*\sclass="([
 // is meant to carry it with no page excluded.
 
 describe("the board line and its Stop control", () => {
-  const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
+  const project: ProjectView = {
+    name: "aide",
+    manifest: { ok: true, data: { name: "aide" } },
+    specs: [],
+  };
   const entries = navEntries();
   const machine = process.env.AIDE_DASH_HOST ?? hostname();
 
@@ -45,7 +52,9 @@ describe("the board line and its Stop control", () => {
   // (2026-09-10): a "<spec> : <branch>" line spelt the same long name
   // twice, since the branch is always aide/<folder>.
   test("a test board's header reads '<machine> - Test - <number>', with folder and branch on hover", () => {
-    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    setBoardInfo(
+      "424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra",
+    );
     for (const html of render()) {
       expect(html).toContain(`${machine} - Test - 424<`);
       expect(html).toContain(
@@ -57,7 +66,9 @@ describe("the board line and its Stop control", () => {
   });
 
   test("a test board's header carries a Stop form beside the line", () => {
-    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    setBoardInfo(
+      "424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra",
+    );
     for (const html of render()) {
       const stop = formPosting(html, "/api/self-stop");
       expect(stop).toContain('method="post"');
@@ -80,7 +91,9 @@ describe("the board line and its Stop control", () => {
       expect(hooksOf(run).sort()).toEqual(["actionform", "reloadform"]);
     }
     // Started from a spec's branch: a preview of that spec, never re-run.
-    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    setBoardInfo(
+      "424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra",
+    );
     for (const html of render()) {
       expect(html).toContain('action="/api/self-stop"');
       expect(html).not.toContain('action="/api/self-run"');
@@ -95,7 +108,9 @@ describe("the board line and its Stop control", () => {
   // prior test's board across `createServer()`/render calls in the same
   // `bun test` process.
   test("no leakage: an ordinary render right after a test-board one shows no Stop form", () => {
-    setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
+    setBoardInfo(
+      "424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra",
+    );
     render();
     setBoardInfo(undefined);
     for (const html of render()) {

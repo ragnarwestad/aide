@@ -29,7 +29,8 @@ function stubBin(dir: string, script: string): string {
 
 /** A JSON line, written via a quoted heredoc so bash's own quoting
  *  rules never have to be threaded through a JS template literal. */
-const printLine = (json: unknown): string => `cat <<'EOF'\n${JSON.stringify(json)}\nEOF`;
+const printLine = (json: unknown): string =>
+  `cat <<'EOF'\n${JSON.stringify(json)}\nEOF`;
 
 describe("runAideWriteSpec", () => {
   // launchd's PATH has no ~/.local/bin. With no AIDE_WRITE_SPEC_BIN set,
@@ -66,13 +67,17 @@ describe("runAideWriteSpec", () => {
     process.env.AIDE_WRITE_SPEC_BIN = stubBin(
       dir,
       `cat > /dev/null\n${printLine({
-        ok: true, exitCode: 0, terminalReason: "written",
+        ok: true,
+        exitCode: 0,
+        terminalReason: "written",
         stateJson: JSON.stringify({ completedPhases: ["create"] }),
       })}`,
     );
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
     expect(result.ok).toBe(true);
-    expect(JSON.parse(result.stateJson!)).toEqual({ completedPhases: ["create"] });
+    expect(JSON.parse(result.stateJson!)).toEqual({
+      completedPhases: ["create"],
+    });
   });
 
   test("passes the content through on stdin", async () => {
@@ -91,7 +96,10 @@ describe("runAideWriteSpec", () => {
     process.env.AIDE_WRITE_SPEC_BIN = stubBin(
       dir,
       `cat > /dev/null\n${printLine({
-        ok: false, exitCode: 2, terminalReason: "refused", error: "spec file not found",
+        ok: false,
+        exitCode: 2,
+        terminalReason: "refused",
+        error: "spec file not found",
       })}\nexit 2`,
     );
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
@@ -108,7 +116,10 @@ describe("runAideWriteSpec", () => {
 
   test("returns ok:false when the output is not a JSON line", async () => {
     const dir = own("aide-run-write-spec-garbage-");
-    process.env.AIDE_WRITE_SPEC_BIN = stubBin(dir, `cat > /dev/null\nprintf 'not json\\n'`);
+    process.env.AIDE_WRITE_SPEC_BIN = stubBin(
+      dir,
+      `cat > /dev/null\nprintf 'not json\\n'`,
+    );
     const result = await runAideWriteSpec("42-x", "4-status.md", "content\n");
     expect(result.ok).toBe(false);
   });

@@ -19,8 +19,10 @@ const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
  *  server validates the same way on both routes and a second copy of
  *  the rule would eventually disagree with this one. */
 export function projectNameError(name: unknown): string | null {
-  if (typeof name !== "string" || name.trim() === "") return "a project name is required";
-  if (name.includes("..")) return `"${name}" is not a usable project name: it would leave the projects root`;
+  if (typeof name !== "string" || name.trim() === "")
+    return "a project name is required";
+  if (name.includes(".."))
+    return `"${name}" is not a usable project name: it would leave the projects root`;
   if (!NAME_RE.test(name)) {
     return (
       `"${name}" is not a usable project name: letters, digits, dot, dash and ` +
@@ -29,7 +31,6 @@ export function projectNameError(name: unknown): string | null {
   }
   return null;
 }
-
 
 /** The manifest the Add flow writes when a checkout has none: `name`
  *  and `description`, which is the smallest manifest that renders
@@ -71,7 +72,11 @@ export function minimalManifest(name: string, description?: string): string {
  *  before — invalid YAML, written silently — and nothing in this
  *  codebase writes that shape, so it is a file somebody hand-edited and
  *  a guess is the wrong answer to it. */
-export function upsertManifestScalar(file: string, key: string, value: string): void {
+export function upsertManifestScalar(
+  file: string,
+  key: string,
+  value: string,
+): void {
   const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
   const next = manifestWithScalar(text, key, value, file);
   if (next === text) return; // nothing to clear, and nothing to write
@@ -84,17 +89,33 @@ export function upsertManifestScalar(file: string, key: string, value: string): 
  *  `saveSpecFile`). `label` names the file in the one refusal. One
  *  top-level scalar, or one key inside a top-level block, written
  *  `block.key`. */
-export function manifestWithScalar(text: string, key: string, value: string, label: string): string {
+export function manifestWithScalar(
+  text: string,
+  key: string,
+  value: string,
+  label: string,
+): string {
   const dot = key.indexOf(".");
-  if (dot !== -1) return manifestWithBlockKey(text, key.slice(0, dot), key.slice(dot + 1), value, label);
+  if (dot !== -1)
+    return manifestWithBlockKey(
+      text,
+      key.slice(0, dot),
+      key.slice(dot + 1),
+      value,
+      label,
+    );
   const lines = text.split("\n");
   // A trailing newline splits into a final empty element; it is put back
   // by the join, so the file's shape survives a no-op.
-  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
+  const trailing =
+    lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
   const quoted = QUOTED_KEYS.has(key);
   // Written in mapping context, so a value a plain line would not read back
   // is quoted, and `lineWidth: 0` keeps a long one on the one line.
-  const line = quoted && value ? stringify({ [key]: value }, { lineWidth: 0 }).trimEnd() : `${key}: ${value}`;
+  const line =
+    quoted && value
+      ? stringify({ [key]: value }, { lineWidth: 0 }).trimEnd()
+      : `${key}: ${value}`;
   const at = lines.findIndex((l) => l.startsWith(`${key}:`));
   if (at !== -1) {
     const next = lines[at + 1];
@@ -116,7 +137,9 @@ export function manifestWithScalar(text: string, key: string, value: string, lab
   } else {
     return text; // nothing to clear, and nothing to write
   }
-  return lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
+  return (
+    lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "")
+  );
 }
 
 /** The keys written the way YAML needs, quoted where a plain line would not
@@ -144,7 +167,8 @@ function continuationLines(lines: string[], at: number): number {
 
 const isBlank = (line: string): boolean => line.trim() === "";
 const isComment = (line: string): boolean => line.trimStart().startsWith("#");
-const isIndented = (line: string): boolean => line.startsWith(" ") || line.startsWith("\t");
+const isIndented = (line: string): boolean =>
+  line.startsWith(" ") || line.startsWith("\t");
 const indentOf = (line: string): string => line.match(/^[ \t]*/)![0];
 
 /** Set (or, with an empty value, remove) the line `<child>: <value>` inside
@@ -159,11 +183,21 @@ const indentOf = (line: string): string => line.match(/^[ \t]*/)![0];
  *  Refuses, rather than guesses at, every shape where one line is not the
  *  whole of the thing: a header with a value on it, a list under it, and a
  *  child whose value runs over deeper lines. */
-function manifestWithBlockKey(text: string, block: string, child: string, value: string, label: string): string {
+function manifestWithBlockKey(
+  text: string,
+  block: string,
+  child: string,
+  value: string,
+  label: string,
+): string {
   const lines = text.split("\n");
-  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
-  const finish = (): string => lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
-  const notABlock = new Error(`${block} in ${label} is not a block of keys — edit it by hand`);
+  const trailing =
+    lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
+  const finish = (): string =>
+    lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : "");
+  const notABlock = new Error(
+    `${block} in ${label} is not a block of keys — edit it by hand`,
+  );
 
   const header = lines.findIndex((line) => line.startsWith(`${block}:`));
   if (header === -1) {
@@ -176,19 +210,34 @@ function manifestWithBlockKey(text: string, block: string, child: string, value:
   if (after !== "" && !after.startsWith("#")) throw notABlock;
 
   let end = header + 1;
-  while (end < lines.length && (isBlank(lines[end]!) || isComment(lines[end]!) || isIndented(lines[end]!))) end++;
-  const first = lines.slice(header + 1).find((line) => !isBlank(line) && !isComment(line));
+  while (
+    end < lines.length &&
+    (isBlank(lines[end]!) || isComment(lines[end]!) || isIndented(lines[end]!))
+  )
+    end++;
+  const first = lines
+    .slice(header + 1)
+    .find((line) => !isBlank(line) && !isComment(line));
   if (first !== undefined && /^\s*-(\s|$)/.test(first)) throw notABlock;
 
   const inside = lines.slice(header + 1, end);
-  const indent = indentOf(inside.find((line) => isIndented(line) && !isComment(line)) ?? "  ") || "  ";
-  const at = inside.findIndex((line) => line.startsWith(`${indent}${child}:`) && /^(\s|$)/.test(line.slice(indent.length + child.length + 1)));
+  const indent =
+    indentOf(
+      inside.find((line) => isIndented(line) && !isComment(line)) ?? "  ",
+    ) || "  ";
+  const at = inside.findIndex(
+    (line) =>
+      line.startsWith(`${indent}${child}:`) &&
+      /^(\s|$)/.test(line.slice(indent.length + child.length + 1)),
+  );
   if (at !== -1) {
     const own = header + 1 + at;
     for (const line of lines.slice(own + 1, end)) {
       if (isBlank(line) || isComment(line)) continue;
       if (indentOf(line).length <= indent.length) break;
-      throw new Error(`${block}.${child} in ${label} runs over several lines, and this writes a single line — edit it by hand`);
+      throw new Error(
+        `${block}.${child} in ${label} runs over several lines, and this writes a single line — edit it by hand`,
+      );
     }
     if (value) lines[own] = `${indent}${child}: ${value}`;
     else lines.splice(own, 1);
@@ -196,7 +245,8 @@ function manifestWithBlockKey(text: string, block: string, child: string, value:
   }
   if (!value) return text; // nothing to clear, and nothing to write
   let last = header;
-  for (let i = header + 1; i < end; i++) if (isIndented(lines[i]!) && !isBlank(lines[i]!)) last = i;
+  for (let i = header + 1; i < end; i++)
+    if (isIndented(lines[i]!) && !isBlank(lines[i]!)) last = i;
   lines.splice(last + 1, 0, `${indent}${child}: ${value}`);
   return finish();
 }
@@ -228,7 +278,10 @@ export function oneLine(value: string): string {
  *  specs root and the worktree links land in the same file, and a
  *  second copy of this rule would eventually preserve a comment the
  *  first one dropped. */
-export function writeAideConfig(projectDir: string, values: Record<string, string>): void {
+export function writeAideConfig(
+  projectDir: string,
+  values: Record<string, string>,
+): void {
   const dir = join(projectDir, ".aide");
   const file = join(dir, "config");
   const keys = Object.keys(values);
@@ -253,7 +306,12 @@ export function writeAideConfig(projectDir: string, values: Record<string, strin
  *  (WORKTREE_LINK_DENYLIST, a bash string) with no shared source
  *  between them, and
  *  test_the_two_copies_of_the_worktree_link_denylist_agree pins the two. */
-export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as const;
+export const WORKTREE_LINK_DENYLIST = [
+  "build",
+  "target",
+  "dist",
+  ".gradle",
+] as const;
 
 /** Why this worktree-links value cannot be used, or `null`.
  *
@@ -269,7 +327,10 @@ export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as 
  *  as an instruction to go and edit it. Defaults to the manifest's,
  *  which is where every worktree-links value is read from now.
  *  */
-export function worktreeLinksError(value: string, key = "worktreeLinks"): string | null {
+export function worktreeLinksError(
+  value: string,
+  key = "worktreeLinks",
+): string | null {
   for (const entry of value.split(/\s+/).filter(Boolean)) {
     if (entry.startsWith("/")) {
       return `${key} must name repo-relative paths: ${entry}`;
@@ -281,7 +342,11 @@ export function worktreeLinksError(value: string, key = "worktreeLinks"): string
     // same answer as a top-level one — and asked before existence, since
     // a denied directory usually does exist: anyone who has run the
     // build locally has one.
-    if ((WORKTREE_LINK_DENYLIST as readonly string[]).includes(entry.split("/").pop()!)) {
+    if (
+      (WORKTREE_LINK_DENYLIST as readonly string[]).includes(
+        entry.split("/").pop()!,
+      )
+    ) {
       return (
         `${key} names a build output, not a dependency cache: ${entry} — ` +
         `such a directory is generated per worktree and wants no link at all`

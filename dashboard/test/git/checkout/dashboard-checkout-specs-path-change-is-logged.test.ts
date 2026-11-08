@@ -17,7 +17,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import {
+  dashboardCheckoutRoot,
+  ensureDashboardCheckout,
+} from "../../../src/git/dashboard-checkout.ts";
 import { configValue } from "../../../src/project/discover";
 
 const run = createGitRunner();
@@ -33,8 +36,13 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
 }
 
 /** A project cloned from its own origin, with a specs repository of its
@@ -63,7 +71,9 @@ function world(specsPath: (specsRepo: string) => string) {
   git(specsSeed, "add", "-A");
   git(specsSeed, "commit", "-qm", "first");
   const specsOrigin = join(where, "specs-origin.git");
-  Bun.spawnSync({ cmd: ["git", "clone", "-q", "--bare", specsSeed, specsOrigin] });
+  Bun.spawnSync({
+    cmd: ["git", "clone", "-q", "--bare", specsSeed, specsOrigin],
+  });
 
   const base = join(where, "owned");
   const code = dashboardCheckoutRoot(base, "demo");
@@ -71,7 +81,10 @@ function world(specsPath: (specsRepo: string) => string) {
   const specsRepo = join(base, "demo", "specs");
   Bun.spawnSync({ cmd: ["git", "clone", "-q", specsOrigin, specsRepo] });
   mkdirSync(join(code, ".aide"), { recursive: true });
-  writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specsPath(specsRepo)}\n`);
+  writeFileSync(
+    join(code, ".aide", "config"),
+    `AIDE_SPECS_PATH=${specsPath(specsRepo)}\n`,
+  );
   return { base, code, specsRepo };
 }
 
@@ -84,12 +97,18 @@ describe("a changed specs path in the dashboard's own checkout", () => {
     const wasError = console.error;
     console.error = (...args: unknown[]) => void said.push(args.join(" "));
     try {
-      await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: w.code });
+      await ensureDashboardCheckout(run, {
+        base: w.base,
+        project: "demo",
+        personDir: w.code,
+      });
     } finally {
       console.error = wasError;
     }
 
-    const line = said.find((s) => s.includes("names the specs repository's own root"));
+    const line = said.find((s) =>
+      s.includes("names the specs repository's own root"),
+    );
     expect(line).toBeDefined();
     expect(line).toContain(w.specsRepo);
     // Said, not corrected: the value is still the one the config had.
@@ -104,8 +123,18 @@ describe("a changed specs path in the dashboard's own checkout", () => {
     // some earlier state of the machine, which is what the line is for.
     const w = world((specsRepo) => join(specsRepo, "demo", "archive"));
     const person = join(w.base, "..", "person");
-    Bun.spawnSync({ cmd: ["git", "clone", "-q", w.specsRepo, join(w.base, "..", "person-specs")] });
-    Bun.spawnSync({ cmd: ["git", "clone", "-q", join(w.code, ".git"), person] });
+    Bun.spawnSync({
+      cmd: [
+        "git",
+        "clone",
+        "-q",
+        w.specsRepo,
+        join(w.base, "..", "person-specs"),
+      ],
+    });
+    Bun.spawnSync({
+      cmd: ["git", "clone", "-q", join(w.code, ".git"), person],
+    });
     mkdirSync(join(person, ".aide"), { recursive: true });
     writeFileSync(
       join(person, ".aide", "config"),
@@ -115,7 +144,11 @@ describe("a changed specs path in the dashboard's own checkout", () => {
     const wasError = console.error;
     console.error = (...args: unknown[]) => void said.push(args.join(" "));
     try {
-      await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: person });
+      await ensureDashboardCheckout(run, {
+        base: w.base,
+        project: "demo",
+        personDir: person,
+      });
     } finally {
       console.error = wasError;
     }
@@ -132,7 +165,11 @@ describe("a changed specs path in the dashboard's own checkout", () => {
     const wasError = console.error;
     console.error = (...args: unknown[]) => void said.push(args.join(" "));
     try {
-      await ensureDashboardCheckout(run, { base: w.base, project: "demo", personDir: w.code });
+      await ensureDashboardCheckout(run, {
+        base: w.base,
+        project: "demo",
+        personDir: w.code,
+      });
     } finally {
       console.error = wasError;
     }

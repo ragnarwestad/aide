@@ -22,12 +22,19 @@
 // `aide/<spec-folder>` for as long as the spec takes.
 
 import type { GitRunner } from "./branch-status.ts";
-import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
+import {
+  DEFAULT_TTL_MS,
+  type BranchFileStepsChecker,
+  type FileStepsAnswer,
+} from "./branch-file-steps.ts";
 import { leavesStepUndone } from "../format/stop-reason.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 
 export { BranchFileStepsChecker } from "./branch-file-steps.ts";
-export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-steps.ts";
+export type {
+  BranchFileStepsOptions,
+  FileStepsAnswer,
+} from "./branch-file-steps.ts";
 
 /** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
@@ -51,12 +58,15 @@ export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
  *
  *  `core/scripts/aide-run-spec` reads the same value from
  *  `workflow-steps.json`'s `workflowArcRetired`. */
-export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workflowArcRetired;
+export const HISTORY_STEPS_RETIRED: readonly string[] =
+  workflowStepsData.workflowArcRetired;
 
 /** The steps after `analyze` in the arc: a completed analyze cancels the
  *  ones before it. `core/scripts/lib/run-spec/record/records.sh` spells the same
  *  two out (`implement|archive`), so a change to the arc touches both. */
-const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.indexOf("analyze") + 1);
+const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(
+  HISTORY_STEPS.indexOf("analyze") + 1,
+);
 
 // --- the commit-subject grammar ---------------------------------------------
 //
@@ -97,7 +107,8 @@ const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.index
 //   subject with more after it — is not a step. The match is the whole
 //   subject or nothing.
 
-const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const subjectPattern = (specFolder: string): RegExp =>
   new RegExp(
@@ -126,7 +137,10 @@ const EMPTY: WorkflowHistory = { done: [], stopped: {}, superseded: [] };
  *  a FIXED string naming this spec, the way `lastAnalyzeCommit` narrows
  *  its own: cheap on a long history, and the grammar above decides the
  *  rest. */
-export function workflowLogArgs(specFolder: string, boundarySha?: string): string[] {
+export function workflowLogArgs(
+  specFolder: string,
+  boundarySha?: string,
+): string[] {
   return [
     "log",
     "--all",
@@ -161,7 +175,10 @@ export function workflowLogArgs(specFolder: string, boundarySha?: string): strin
  *  Separated from the git call so the rule can be tested without one:
  *  what is under test here is the grammar and which commit wins, never
  *  whether git works. */
-export function readWorkflowSubjects(subjects: string[], specFolder: string): WorkflowHistory {
+export function readWorkflowSubjects(
+  subjects: string[],
+  specFolder: string,
+): WorkflowHistory {
   const pattern = subjectPattern(specFolder);
   // `git log` prints newest first, and the first sighting of a step is
   // therefore the one that speaks for it — every later line for the
@@ -173,7 +190,8 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
     const m = line.trim().match(pattern);
     if (!m) continue;
     const step = m[1]!;
-    if (!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) continue;
+    if (!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step))
+      continue;
     // m[2] is the model, which nothing on this side reads; m[3] is the
     // stop reason. Newest first: everything below a completed analyze is
     // older than it.
@@ -186,12 +204,15 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
     seen.set(step, m[3] ?? null);
   }
   const stopped: Record<string, string> = {};
-  for (const [step, reason] of seen) if (reason !== null) stopped[step] = reason;
+  for (const [step, reason] of seen)
+    if (reason !== null) stopped[step] = reason;
   // Current arc order first, then retired steps: a retired step is not
   // woven back into its old position in the arc, only kept from
   // vanishing — the same order `aide-run-spec`'s bash twin produces.
   return {
-    done: [...HISTORY_STEPS, ...HISTORY_STEPS_RETIRED].filter((step) => seen.get(step) === null),
+    done: [...HISTORY_STEPS, ...HISTORY_STEPS_RETIRED].filter(
+      (step) => seen.get(step) === null,
+    ),
     stopped,
     superseded: AFTER_ANALYZE.filter((step) => cancelled.has(step)),
   };
@@ -210,7 +231,10 @@ export class WorkflowHistoryChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; history: WorkflowHistory; stale?: boolean }>();
+  private readonly cache = new Map<
+    string,
+    { at: number; history: WorkflowHistory; stale?: boolean }
+  >();
 
   constructor(opts: WorkflowHistoryOptions) {
     this.run = opts.run;
@@ -223,7 +247,11 @@ export class WorkflowHistoryChecker {
    *  to have run", which reads on the page as a spec still ahead of its
    *  workflow. That is visible and is fixed by running the step; a
    *  guess in the other direction is neither. */
-  async read(dir: string, specFolder: string, boundarySha?: string): Promise<WorkflowHistory> {
+  async read(
+    dir: string,
+    specFolder: string,
+    boundarySha?: string,
+  ): Promise<WorkflowHistory> {
     // JSON rather than a separator character, for the reason
     // branch-status.ts gives: a NUL here makes git treat the source
     // file as binary, and every future diff of it pays for that.
@@ -241,7 +269,8 @@ export class WorkflowHistoryChecker {
     let history = EMPTY;
     try {
       const out = await this.run(dir, workflowLogArgs(specFolder, boundarySha));
-      if (out.code === 0) history = readWorkflowSubjects(out.stdout.split("\n"), specFolder);
+      if (out.code === 0)
+        history = readWorkflowSubjects(out.stdout.split("\n"), specFolder);
     } catch {
       history = EMPTY;
     }
@@ -271,16 +300,25 @@ export class WorkflowHistoryChecker {
   forget(dir: string, specFolder: string): void {
     for (const [key, hit] of this.cache) {
       const parsed = JSON.parse(key) as [string, string, string | null];
-      if (parsed[0] === dir && parsed[1] === specFolder) this.cache.set(key, { ...hit, stale: true });
+      if (parsed[0] === dir && parsed[1] === specFolder)
+        this.cache.set(key, { ...hit, stale: true });
     }
   }
 
-  peekHistory(dir: string, specFolder: string, boundarySha?: string): {
+  peekHistory(
+    dir: string,
+    specFolder: string,
+    boundarySha?: string,
+  ): {
     history: WorkflowHistory | null;
     checkedAt: number | null;
   } {
-    const hit = this.cache.get(JSON.stringify([dir, specFolder, boundarySha ?? null]));
-    return hit ? { history: hit.history, checkedAt: hit.at } : { history: null, checkedAt: null };
+    const hit = this.cache.get(
+      JSON.stringify([dir, specFolder, boundarySha ?? null]),
+    );
+    return hit
+      ? { history: hit.history, checkedAt: hit.at }
+      : { history: null, checkedAt: null };
   }
 }
 
@@ -319,7 +357,10 @@ export class WorkflowHistoryChecker {
  *  spec; once one exists, the one thing still worth
  *  a qualifier is the prose claiming a phase the state file does not
  *  have. */
-export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: Omit<WorkflowHistory, "superseded">): string[] {
+export function stepsFileDisagreesOn(
+  fileSteps: FileStepsAnswer,
+  history: Omit<WorkflowHistory, "superseded">,
+): string[] {
   // `create` is left out of the comparison because the queue
   // takes it as done for every spec whose folder exists, whatever git
   // holds, so comparing it against a status file would report a
@@ -330,7 +371,9 @@ export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: Omit<W
     const known = new Set(fileSteps.stateSteps);
     return relevant.filter((step) => claimed.has(step) && !known.has(step));
   }
-  return relevant.filter((step) => claimed.has(step) !== history.done.includes(step));
+  return relevant.filter(
+    (step) => claimed.has(step) !== history.done.includes(step),
+  );
 }
 
 export interface ResolvedWorkflowState {
@@ -368,21 +411,32 @@ export function resolveWorkflowState(
   reopenedAfter: string | undefined,
   diskFileSteps: FileStepsAnswer | undefined,
 ): ResolvedWorkflowState | null {
-  const { history: h, checkedAt } = history.peekHistory(dir, specFolder, reopenedAfter);
+  const { history: h, checkedAt } = history.peekHistory(
+    dir,
+    specFolder,
+    reopenedAfter,
+  );
   if (h === null || checkedAt === null) return null;
   const branchPeek = branchFileSteps.peekFileSteps(dir, specFolder);
   const branchSteps = branchPeek.steps;
-  const answer: FileStepsAnswer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
+  const answer: FileStepsAnswer = branchSteps ??
+    diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
   // Only the disk answer carries `readAt`: the disk scan counts when it is the file source.
-  const reads = [checkedAt, branchPeek.checkedAt, answer.readAt].filter((at): at is number => at != null);
+  const reads = [checkedAt, branchPeek.checkedAt, answer.readAt].filter(
+    (at): at is number => at != null,
+  );
   // The state file is what a gate reads, so it is what the pips
   // and the done list read too, once one exists — git's own
   // `history.done` only when there is no state file for this spec yet.
   const doneSource = answer.stateSteps ?? h.done;
-  const named = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
+  const named = doneSource.includes("create")
+    ? doneSource
+    : ["create", ...doneSource];
   // The state file keeps naming what an earlier run finished; the newest
   // run says how the step stands now.
-  const done = named.filter((step) => step === "create" || !leavesStepUndone(h.stopped[step]));
+  const done = named.filter(
+    (step) => step === "create" || !leavesStepUndone(h.stopped[step]),
+  );
   return {
     done,
     stopped: h.stopped,

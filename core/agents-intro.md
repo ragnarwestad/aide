@@ -1,6 +1,7 @@
 # Aide — Shared instructions
 
 Instructions for AI-assisted development focused on:
+
 - Specs with a 4-file documentation structure
 - Test-Driven Development (TDD: RED → GREEN → VERIFY)
 - Automated codebase analysis with file:line references

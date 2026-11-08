@@ -55,11 +55,11 @@ and returns findings with `file:line`, never edits.
 The project's own limits win when it states them (its CLAUDE.md,
 AGENTS.md or a code-health test). Otherwise use these:
 
-| Limit                                              | Default |
-|----------------------------------------------------|---------|
-| Lines in a source file                             | 500     |
-| Lines in a test file                               | 800     |
-| Source or test files directly inside one folder    | 15      |
+| Limit                                           | Default |
+| ----------------------------------------------- | ------- |
+| Lines in a source file                          | 500     |
+| Lines in a test file                            | 800     |
+| Source or test files directly inside one folder | 15      |
 
 Markdown is left out. A language's established layout wins where it
 meets these limits (a flat folder of commands on PATH, Python packages).

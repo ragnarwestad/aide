@@ -1,7 +1,15 @@
 /* --- field ----------------------------------------------------------- */
 
-.field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
-.field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
+.field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.field > span {
+  font-size: var(--fs-s);
+  color: var(--muted);
+  font-weight: 500;
+}
 /* The two selects on a phase line are named here alongside the fields
    because neither one is inside a field: modelPicker renders into a
    span.row and aiPicker straight into the AI column's own cell
@@ -15,12 +23,21 @@
    arrow, same disabled look. The one thing that differs is the face
    the text is set in, further down, and that is about what they HOLD
    — a model name is a value, an AI is a thing's name. */
-.field input:not([type="checkbox"]), .field select, .field textarea,
-select[name^="model."], select[data-ai], select[data-lang-select] {
-  height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
-  border: 1px solid var(--line); background: var(--surface);
+.field input:not([type="checkbox"]),
+.field select,
+.field textarea,
+select[name^="model."],
+select[data-ai],
+select[data-lang-select] {
+  height: 28px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-s);
+  border: 1px solid var(--line);
+  background: var(--surface);
   box-shadow: 0 1px 2px color-mix(in oklab, var(--text) 5%, transparent);
-  color: var(--text); font: var(--fs-m)/1 var(--sans); }
+  color: var(--text);
+  font: var(--fs-m)/1 var(--sans);
+}
 /* Without appearance: none the browser goes on drawing its own control
    on top of ours — its chevron, its inner edge, and a height that is
    advisory rather than binding. -webkit-appearance is spelled out
@@ -29,13 +46,18 @@ select[name^="model."], select[data-ai], select[data-lang-select] {
    claude-sonnet-4-6, instead of over the end of it. The background is
    set piece by piece: the shorthand would drop the var(--surface)
    ground the rule above gives it. */
-.field select, select[name^="model."], select[data-ai], select[data-lang-select] {
-  appearance: none; -webkit-appearance: none;
+.field select,
+select[name^="model."],
+select[data-ai],
+select[data-lang-select] {
+  appearance: none;
+  -webkit-appearance: none;
   padding-right: 26px;
   background-image: var(--chevron);
   background-repeat: no-repeat;
   background-position: right 7px center;
-  background-size: 12px; }
+  background-size: 12px;
+}
 /* A disabled field had no look of its own at all, so a model picker
    disabled for the length of a run still read as pressable and the
    reason for it was only findable by hovering. The button keeps its own
@@ -43,12 +65,21 @@ select[name^="model."], select[data-ai], select[data-lang-select] {
    select a blanket opacity dims the border into invisibility.
    background-color rather than the shorthand, for the same reason as
    above. */
-.field input:not([type="checkbox"]):disabled, .field select:disabled, .field textarea:disabled,
-select[name^="model."]:disabled, select[data-ai]:disabled {
-  background-color: var(--surface-2); color: var(--muted);
-  border-color: var(--line); cursor: default; }
-.field select:disabled, select[name^="model."]:disabled, select[data-ai]:disabled {
-  background-image: none; }
+.field input:not([type="checkbox"]):disabled,
+.field select:disabled,
+.field textarea:disabled,
+select[name^="model."]:disabled,
+select[data-ai]:disabled {
+  background-color: var(--surface-2);
+  color: var(--muted);
+  border-color: var(--line);
+  cursor: default;
+}
+.field select:disabled,
+select[name^="model."]:disabled,
+select[data-ai]:disabled {
+  background-image: none;
+}
 /* A model name is a value, like a spec id, a duration or a branch name,
    and its version digits are what a reader is actually comparing. The
    project and checkout pickers name a thing rather than a value and
@@ -61,13 +92,24 @@ select[name^="model."]:disabled, select[data-ai]:disabled {
    the sentence above already carves out for the project and checkout
    pickers. */
 select[name^="model."] {
-  font-family: var(--mono), monospace; font-size: var(--fs-s); }
+  font-family: var(--mono), monospace;
+  font-size: var(--fs-s);
+}
 /* border-box, or width:100% means "100% plus padding and border" and
    the box sticks 18px out of its own field — which is exactly the gap
    to whatever stands beside it (seen against Create, 2026-08-19). */
-.field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
-  min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
-.pageform textarea { overflow-x: auto; }
+.field textarea {
+  height: auto;
+  padding: var(--sp-2);
+  line-height: var(--lh);
+  min-height: 84px;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pageform textarea {
+  overflow-x: auto;
+}
 /* The banner's own tracking form, under its own class rather
    than `.specform` itself — the Checks tab's tick form already carries
    that class, and a second form sharing it on the same page would be
@@ -79,7 +121,10 @@ select[name^="model."] {
    edge to edge here. No top margin: this pair rides on the "Depends on"
    label line, and the fallback pair below the switch sits in a `.field`
    row that already spaces it. */
-.dependsform .factions { display: flex; gap: var(--sp-2); }
+.dependsform .factions {
+  display: flex;
+  gap: var(--sp-2);
+}
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart. Project+Name share
    a `.frow`, Cron+Prompt share another (`schedule-page/form.ts`) — a
@@ -96,18 +141,52 @@ select[name^="model."] {
    to one column, covering this form's two embeddings — the New page
    and an entry's Settings tab — without two different markups. Save and
    Cancel on the Settings tab are spaced as `.dependsform`'s pair is. */
-.scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
-.scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); display: flex; gap: var(--sp-2); }
-.scheduleform .rowmsg { grid-column: 1 / -1; }
-.scheduleform .schedulenotify, .scheduleform .schedulebrowser, .scheduleform .schedulesandbox { grid-column: 1 / -1; }
-.cron-input { font-family: var(--mono), monospace; }
-.field.wide { flex-basis: 100%; max-width: 48rem; }
+.scheduleform {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: var(--sp-3) var(--sp-4);
+  align-items: start;
+  max-width: 100%;
+}
+.scheduleform .factions {
+  grid-column: 1 / -1;
+  margin-top: var(--sp-1);
+  display: flex;
+  gap: var(--sp-2);
+}
+.scheduleform .rowmsg {
+  grid-column: 1 / -1;
+}
+.scheduleform .schedulenotify,
+.scheduleform .schedulebrowser,
+.scheduleform .schedulesandbox {
+  grid-column: 1 / -1;
+}
+.cron-input {
+  font-family: var(--mono), monospace;
+}
+.field.wide {
+  flex-basis: 100%;
+  max-width: 48rem;
+}
 /* The two columns of the New-spec page's side-by-side
    Depends-on field. min-width: 0 lets a column's own chips
    wrap and the column shrink below its content's width. */
-.field.depends-pair { flex-direction: row; gap: var(--sp-3); align-items: flex-start; }
-.depends-col { display: inline-flex; flex-direction: column; gap: var(--sp-1); flex: 1 1 0; min-width: 0; }
-.field input[name="title"] { min-width: 18rem; }
+.field.depends-pair {
+  flex-direction: row;
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+.depends-col {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  flex: 1 1 0;
+  min-width: 0;
+}
+.field input[name="title"] {
+  min-width: 18rem;
+}
 /* The editor mount point: hidden until its client script
    sets data-mounted on it, so the fallback — the raw textarea beside
    it, already styled by the .field textarea rule above — is the
@@ -124,57 +203,113 @@ select[name^="model."] {
    The library's own elements are not named here: their styling comes with
    the editor's script, and the mount around them is
    enough to tell them the width. */
-.frow, .field, .spec-editor-mount { min-width: 0; max-width: 100%; }
-.spec-editor-mount { display: none; }
-.spec-editor-mount[data-mounted] { display: block; }
-.spec-editor-mount[data-mounted] + .spec-editor-raw { display: none; }
-
+.frow,
+.field,
+.spec-editor-mount {
+  min-width: 0;
+  max-width: 100%;
+}
+.spec-editor-mount {
+  display: none;
+}
+.spec-editor-mount[data-mounted] {
+  display: block;
+}
+.spec-editor-mount[data-mounted] + .spec-editor-raw {
+  display: none;
+}
 
 /* A field whose label line carries its own "(?)": the mark sits at the
    far end of that line, so the explanation is beside the name of the
    thing it explains rather than in a paragraph under the control. */
-.field .fieldhead { display: flex; align-items: center; justify-content: space-between;
-  gap: var(--sp-2); width: 100%; }
+.field .fieldhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  width: 100%;
+}
 /* Everything after the label's own words — the "(?)", and a form's
    Save/Cancel when the field is its only control — kept as ONE end of
    the line, so `space-between` above puts the label at one edge and
    this group at the other rather than spreading three items apart. */
-.fieldhead > .fieldend { display: flex; align-items: center; gap: var(--sp-2); }
+.fieldhead > .fieldend {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
 
 /* The Running tab's Depends on picker: an empty picked box or an empty pick
    list takes no room, and comes back the moment a chip is moved into it,
    and "none" beside the label goes the moment the picked box has a chip —
    which is why both are the stylesheet's to decide, not the server's. */
-.dependsform .phases:empty { display: none; }
+.dependsform .phases:empty {
+  display: none;
+}
 /* The picker spans the row, so Save and Cancel stand at its far right: the
    form a block rather than the inline-block a form in a cell is. */
-table.list tr.subrow[data-depends-line] form.dependsform { display: block; }
+table.list tr.subrow[data-depends-line] form.dependsform {
+  display: block;
+}
 /* One card round the picker, the settings and their Save and Cancel, with
    the list's own border and corners, so the pair reads as theirs alone. */
-table.list tr.subrow[data-depends-line] form.dependsform { border: 1px solid var(--line);
-  border-radius: var(--r); padding: var(--sp-3); }
-.dependsform > .field { display: flex; max-width: none; }
+table.list tr.subrow[data-depends-line] form.dependsform {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: var(--sp-3);
+}
+.dependsform > .field {
+  display: flex;
+  max-width: none;
+}
 /* Its pick list as tall as its chips, up to the cap every pick list has,
    so a handful of specs leaves no empty box under them. */
-.dependsform .phases:not(.picked) { height: auto; }
+.dependsform .phases:not(.picked) {
+  height: auto;
+}
 /* Air between the phase lines' AI and model and the Depends on line. */
-table.list tr.subrow[data-depends-line] > td { padding-top: var(--sp-4); }
+table.list tr.subrow[data-depends-line] > td {
+  padding-top: var(--sp-4);
+}
 /* Its four settings two by two, each column as wide as its widest field, so
    the two rows line up. */
-.dependsform .options-group { display: grid; grid-template-columns: max-content max-content;
-  gap: var(--sp-2) var(--sp-5); align-items: center; margin-top: var(--sp-4); }
-.phases.picked:not(:empty) + [data-none] { display: none; }
+.dependsform .options-group {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: var(--sp-2) var(--sp-5);
+  align-items: center;
+  margin-top: var(--sp-4);
+}
+.phases.picked:not(:empty) + [data-none] {
+  display: none;
+}
 
 /* The count under a bounded text field, and the line of its own after a paste
    or a drop was cut down to the bound. Both are drawn by the script
    (specs-client/limits), so a page with script off shows neither. The line
    draws nothing while it is empty. */
-[data-limit], [data-limit-note] { display: block; font-size: var(--fs-s); color: var(--muted);
-  text-align: right; }
-[data-limit="near"] { color: var(--warn); }
-[data-limit-note]:not(:empty) { color: var(--warn); }
-[data-limit-note]:empty { display: none; }
+[data-limit],
+[data-limit-note] {
+  display: block;
+  font-size: var(--fs-s);
+  color: var(--muted);
+  text-align: right;
+}
+[data-limit="near"] {
+  color: var(--warn);
+}
+[data-limit-note]:not(:empty) {
+  color: var(--warn);
+}
+[data-limit-note]:empty {
+  display: none;
+}
 /* A field counted and never cut (data-bound) past its bound: the count, the
    line and the field's border all say so, not colour on the count alone. */
-[data-limit="over"], [data-limit-note][data-over]:not(:empty) { color: var(--danger); }
-.field textarea[aria-invalid="true"] { border-color: var(--danger); }
+[data-limit="over"],
+[data-limit-note][data-over]:not(:empty) {
+  color: var(--danger);
+}
+.field textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}

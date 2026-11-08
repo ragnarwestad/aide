@@ -23,9 +23,17 @@ function makeTestServersCtx(store: TestServerStore): TestServersContext {
   return {
     store,
     aideCheckout: () => "/checkout/aide",
-    startCommand: (_p: string, { branch, port }: { branch: string; port: number }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
+    startCommand: (
+      _p: string,
+      { branch, port }: { branch: string; port: number },
+    ) => [
+      "/checkout/aide/dashboard/test/round/run",
+      "/checkout/aide",
+      "--branch",
+      branch,
+      "--port",
+      String(port),
+      "--keep",
     ],
     previewAvailable: () => true,
     gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
@@ -56,7 +64,10 @@ function storeWithTestServer(): TestServerStore {
   return store;
 }
 
-async function archive(store: TestServerStore, over: Record<string, Answer> = {}) {
+async function archive(
+  store: TestServerStore,
+  over: Record<string, Answer> = {},
+) {
   const { ctx } = landCtx(landingGit(over).run, {
     testServers: makeTestServersCtx(store),
     queue: {
@@ -69,17 +80,21 @@ async function archive(store: TestServerStore, over: Record<string, Answer> = {}
   });
   await landArchivedSpec(
     ctx as unknown as Parameters<typeof landArchivedSpec>[0],
-    { project: "aide", specFolder: "150-spec" } as Parameters<typeof landArchivedSpec>[1],
+    { project: "aide", specFolder: "150-spec" } as Parameters<
+      typeof landArchivedSpec
+    >[1],
     { branch: BRANCH },
   );
 }
 
 beforeEach(() => {
   killed = [];
-  killSpy = spyOn(process, "kill").mockImplementation((pid: number, signal?: string) => {
-    killed.push({ pid, signal: signal ?? "" });
-    return true;
-  });
+  killSpy = spyOn(process, "kill").mockImplementation(
+    (pid: number, signal?: string) => {
+      killed.push({ pid, signal: signal ?? "" });
+      return true;
+    },
+  );
 });
 
 afterEach(() => {
@@ -99,7 +114,10 @@ describe("landArchivedSpec's onLanded", () => {
   // to serve.
   test("leaves the board alone when the merge never went through", async () => {
     const store = storeWithTestServer();
-    await archive(store, { "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } });
+    await archive(store, {
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 1 },
+    });
     expect(killed).toHaveLength(0);
     expect(store.get("aide", "150-spec")).toBeDefined();
   });

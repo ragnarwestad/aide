@@ -18,13 +18,19 @@ export const nb: Record<TranslationKey, string> = {
   "shell.tabSpecs": "Spesifikasjoner",
   "shell.tabProjects": "Prosjekter",
   "shell.tabSchedule": "Kjøring",
-  "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
-  "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
+  "shell.restartWaiting":
+    "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
+  "shell.installWarning":
+    "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
   "shell.toolFault": "{tool}: {problems} — åpne Installasjon-fanen på {where}",
-  "shell.toolFaultWhere": "siden til en provider, under Providere-fanen i Settings",
-  "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
-  "shell.modelsGoneWhere": "siden til en provider, under Providere-fanen i Settings",
-  "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
+  "shell.toolFaultWhere":
+    "siden til en provider, under Providere-fanen i Settings",
+  "shell.modelsGone":
+    "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
+  "shell.modelsGoneWhere":
+    "siden til en provider, under Providere-fanen i Settings",
+  "shell.checkoutFault":
+    "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
   "deploy.stepInstall": "Installer",
@@ -36,10 +42,12 @@ export const nb: Record<TranslationKey, string> = {
   "dialog.stepDone": "ferdig",
   "dialog.stepFailed": "feilet",
   "deploy.askTitle": "Deploy {project}?",
-  "deploy.askSentence": "Henter fra origin, installerer og starter tjenesten på nytt, og sjekker så at nyeste commit kjører. Det går som en jobb du følger under Kjører.",
+  "deploy.askSentence":
+    "Henter fra origin, installerer og starter tjenesten på nytt, og sjekker så at nyeste commit kjører. Det går som en jobb du følger under Kjører.",
   "shell.overlayLoading": "laster…",
   "shell.loadingPage": "Laster …",
-  "shell.pageFailed": "Noe gikk galt mens siden ble bygget. Last siden på nytt; feiler det fortsatt, se i dashboardets logg på verten som kjører det.",
+  "shell.pageFailed":
+    "Noe gikk galt mens siden ble bygget. Last siden på nytt; feiler det fortsatt, se i dashboardets logg på verten som kjører det.",
   "shell.leaveAppTitle": "Forlat sida?",
   "shell.leaveAppBody": "Endringene du gjorde blir kanskje ikke lagret.",
   "dialog.ok": "OK",
@@ -50,7 +58,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.runTestRound": "Kjør",
   "shell.delay": "Forsinkelse: {value}",
   "shell.delayOff": "Av",
-  "shell.delayTitle": "Hvor lenge testmodellen venter før hvert steg; trykk for neste valg",
+  "shell.delayTitle":
+    "Hvor lenge testmodellen venter før hvert steg; trykk for neste valg",
   "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",
@@ -85,7 +94,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.foldHide": "skjul",
   "list.foldTitle": "{action} faser og kontroller for {folder}",
   "list.specFoldTitle": "{action} specen {folder}",
-  "list.specLoadFailed": "spesifikasjonen kunne ikke lastes — last inn siden på nytt for å prøve igjen",
+  "list.specLoadFailed":
+    "spesifikasjonen kunne ikke lastes — last inn siden på nytt for å prøve igjen",
   "list.checksFoldTitle": "{action} akseptansekriteriene for {folder}",
   "list.checksSave": "Lagre",
   "list.checksSaving": "lagrer…",
@@ -102,18 +112,21 @@ export const nb: Record<TranslationKey, string> = {
   "checks.failNote": "Hva holdt ikke?",
   "checks.failedCount": "{n} feilet",
   "list.checksOpenTab": "Åpne Status-fanen",
-  "list.shortAnalysis": "kort analyse: ingen plan og ingen gjennomgang av planen",
+  "list.shortAnalysis":
+    "kort analyse: ingen plan og ingen gjennomgang av planen",
   "list.sentBack": "sendt tilbake til en full analyse: {why}",
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",
   "list.phaseNoMessages": "Ingenting er fanget opp fra dette steget ennå.",
   "list.phaseModel": "Modell: {model}",
-  "list.descriptionChangedSince": "Beskrivelsen er endret siden forrige analyse.",
+  "list.descriptionChangedSince":
+    "Beskrivelsen er endret siden forrige analyse.",
   "list.phaseOpenLog": "Åpne loggen for dette steget",
   "list.cancel": "Avbryt",
   "list.cancelling": "avbryter…",
   "list.cancelConfirmTitle": "Avbryt {step}?",
-  "list.cancelConfirmBody": "Dette stopper det med en gang — det kan kjøres på nytt fra samme spec.",
+  "list.cancelConfirmBody":
+    "Dette stopper det med en gang — det kan kjøres på nytt fra samme spec.",
   "jobs.nothingRunning": "Ingenting kjører.",
   "jobs.colTitle": "Tittel",
   "jobs.noRowMatchesFilter": "Ingenting på denne fanen passer med filteret.",
@@ -124,7 +137,8 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.confirmBody": "Dette stopper jobben med en gang.",
   "jobs.endedFailed": "Jobben feilet — loggen viser hvorfor.",
   "jobs.endedStopped": "Jobben stoppet før den var ferdig — loggen viser hvor.",
-  "jobs.endedInterrupted": "Jobben ble avbrutt før den var ferdig — loggen viser hvor langt den kom.",
+  "jobs.endedInterrupted":
+    "Jobben ble avbrutt før den var ferdig — loggen viser hvor langt den kom.",
   "jobs.linkSpec": "Spec",
   "list.reopen": "Gjenåpne",
   "list.reopening": "gjenåpner…",
@@ -133,18 +147,22 @@ export const nb: Record<TranslationKey, string> = {
   "list.noPullRequest": "ingen pull-forespørsel",
   "list.landingFailed": "merge feilet",
   "list.testsRed": "testene er røde",
-  "list.waitingOnReview": "koden venter på en pull-forespørsel — åpne den for å se over",
+  "list.waitingOnReview":
+    "koden venter på en pull-forespørsel — åpne den for å se over",
   "list.testServer": "testserver",
-  "list.testServerStartLink": "Klikk på lenken for å starte en testserver som kjører denne branchen",
+  "list.testServerStartLink":
+    "Klikk på lenken for å starte en testserver som kjører denne branchen",
   "list.branchPreview": "forhåndsvisning",
-  "list.branchPreviewLink": "Klikk på lenken for å åpne denne branchen der verten har bygd den",
+  "list.branchPreviewLink":
+    "Klikk på lenken for å åpne denne branchen der verten har bygd den",
   "list.pushError":
     "Et stegs push nådde ikke origin. — Hent grenen i det lokale repoet på serveren, " +
     "og push den på nytt fra en terminal.",
   "list.prError":
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
-  "list.landedAfterRetry": "Merget etter et nytt forsøk: testene var røde første gang og grønne andre gang.",
+  "list.landedAfterRetry":
+    "Merget etter et nytt forsøk: testene var røde første gang og grønne andre gang.",
   "checks.coveredBy": "Tester: {names}",
   "checks.noTestNames": "Ingen test nevner {id}.",
   "list.branchLeftBehind":
@@ -159,7 +177,8 @@ export const nb: Record<TranslationKey, string> = {
     "koden ligger på en gren, og det ble ikke opprettet noen pull-forespørsel for den. — " +
     "Opprett en for hånd, i det lokale repoet på serveren.",
   "list.archiveHeldBack": "{step} holdt tilbake: {reason}",
-  "list.readyToArchive": "Alle sjekkene er krysset av — trykk {button} for å merge den",
+  "list.readyToArchive":
+    "Alle sjekkene er krysset av — trykk {button} for å merge den",
   "list.noSpecMatchesFilter": "Ingen spec matcher dette filteret.",
   "list.noSpecAtAll": "Ingen specer å vise.",
   "list.noRunner":
@@ -217,10 +236,12 @@ export const nb: Record<TranslationKey, string> = {
   "job.logAiPlain": "AI",
   "job.logSubagent": "Underagent: {name}",
   "job.subagentAsked": "Fikk beskjed om: {text}",
-  "job.subagentAskedTask": "Fikk oppgaven {name}. Codex lagrer selve oppgaveteksten kryptert.",
+  "job.subagentAskedTask":
+    "Fikk oppgaven {name}. Codex lagrer selve oppgaveteksten kryptert.",
   "job.subagentAnswered": "Svarte: {text}",
   "job.subagentNoAnswer": "Har ikke svart ennå.",
-  "job.subagentUnread": "Underagentens arbeid kunne ikke leses: sesjonsfilen ({thread}) ble ikke funnet eller kunne ikke leses. Codex lagrer en sesjonsfil under sessions/ i CODEX_HOME, eller i ~/.codex, på datamaskinen som viser tavla.",
+  "job.subagentUnread":
+    "Underagentens arbeid kunne ikke leses: sesjonsfilen ({thread}) ble ikke funnet eller kunne ikke leses. Codex lagrer en sesjonsfil under sessions/ i CODEX_HOME, eller i ~/.codex, på datamaskinen som viser tavla.",
   "job.noErrors": "Loggen har ingen feillinjer.",
   "job.screenshots": "Skjermbilder",
   "job.noChangedFiles": "Ingen filer ble endret i dette steget.",
@@ -231,10 +252,13 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.nextRun": "Neste kjøring",
   "schedule.promptFile": "Promptfil",
   "schedule.promptOfJob": "Promptfil for den planlagte jobben {job}",
-  "schedule.promptUnreadable": "promptfilen {file} kan ikke leses fra standardgrenen i tavlens egen utsjekk av {project} — commit den til den grenen, eller endre stien på Innstillinger-fanen.",
+  "schedule.promptUnreadable":
+    "promptfilen {file} kan ikke leses fra standardgrenen i tavlens egen utsjekk av {project} — commit den til den grenen, eller endre stien på Innstillinger-fanen.",
   "schedule.model": "Modell",
-  "schedule.modelNotOffered": "modellen {model} er ikke en av dem køen tilbyr — den tilbyr {choices}. Velg en av dem på oppføringens side; til da blir kjøringene avvist.",
-  "schedule.modelNoneOffered": "modellen {model} er ikke en av dem køen tilbyr — den tilbyr ingen modeller. Velg en annen på oppføringens side når køens oppsett har en; til da blir kjøringene avvist.",
+  "schedule.modelNotOffered":
+    "modellen {model} er ikke en av dem køen tilbyr — den tilbyr {choices}. Velg en av dem på oppføringens side; til da blir kjøringene avvist.",
+  "schedule.modelNoneOffered":
+    "modellen {model} er ikke en av dem køen tilbyr — den tilbyr ingen modeller. Velg en annen på oppføringens side når køens oppsett har en; til da blir kjøringene avvist.",
   "schedule.ai": "AI",
   "schedule.notify": "Varsle",
   "schedule.notifyNever": "Aldri",
@@ -246,7 +270,8 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.sandbox": "Sandkasse",
   "schedule.sandboxOn": "På",
   "schedule.sandboxOff": "Av, så en nettleser kan starte",
-  "schedule.reportOnly": "En planlagt jobb kan committe til prosjektet og specene sine — de samme repoene et spec-steg når. Når jobben er ferdig, merger dashbordet arbeidet.",
+  "schedule.reportOnly":
+    "En planlagt jobb kan committe til prosjektet og specene sine — de samme repoene et spec-steg når. Når jobben er ferdig, merger dashbordet arbeidet.",
   "schedule.enabled": "Aktivert",
   "schedule.yes": "ja",
   "schedule.no": "nei",
@@ -262,15 +287,19 @@ export const nb: Record<TranslationKey, string> = {
   "proposals.skipped": "Hoppet over",
   "proposals.noTitle": "(uten tittel)",
   "proposals.existsActive": "en spec med denne tittelen finnes: {spec} (aktiv)",
-  "proposals.existsArchived": "en spec med denne tittelen finnes: {spec} (arkivert)",
-  "proposals.existsClosed": "en spec med denne tittelen finnes: {spec} (lukket)",
+  "proposals.existsArchived":
+    "en spec med denne tittelen finnes: {spec} (arkivert)",
+  "proposals.existsClosed":
+    "en spec med denne tittelen finnes: {spec} (lukket)",
   "proposals.queued": "en Create-jobb for denne tittelen finnes allerede",
-  "proposals.invalidNotObject": "oppføringen er ikke et objekt med tittel og beskrivelse",
+  "proposals.invalidNotObject":
+    "oppføringen er ikke et objekt med tittel og beskrivelse",
   "proposals.invalidTitleMissing": "den har ingen tittel",
   "proposals.invalidTitleLines": "tittelen går over mer enn én linje",
   "proposals.invalidTitleLong": "tittelen er lengre enn {max} tegn",
   "proposals.invalidDescriptionMissing": "den har ingen beskrivelse",
-  "proposals.invalidDescriptionLong": "beskrivelsen er lengre enn de {max} tegnene som er plass til ved siden av kilden",
+  "proposals.invalidDescriptionLong":
+    "beskrivelsen er lengre enn de {max} tegnene som er plass til ved siden av kilden",
   "proposals.refused": "køen avviste den; årsaken står i serverloggen",
   "schedule.newJob": "Ny jobb",
   "schedule.new": "Ny",
@@ -327,32 +356,42 @@ export const nb: Record<TranslationKey, string> = {
   "settings.providers.add": "Legg til",
   "settings.providers.adding": "legger til…",
   "settings.providers.chooseTool": "Hvilket verktøy gjelder provideren?",
-  "settings.providers.notInstalled": "{tool} er ikke installert der tavla kjører",
-  "settings.providers.loginUnread": "Innloggingen kunne ikke leses — åpne siden på nytt for å lese den én gang til.",
+  "settings.providers.notInstalled":
+    "{tool} er ikke installert der tavla kjører",
+  "settings.providers.loginUnread":
+    "Innloggingen kunne ikke leses — åpne siden på nytt for å lese den én gang til.",
   "settings.providers.login": "Innlogging",
   "settings.providers.state.in": "Innlogget",
   "settings.providers.state.out": "Ikke innlogget",
   "settings.providers.state.unread": "Ikke lest",
   "settings.providers.state.notInstalled": "Ikke installert",
   "settings.providers.removeTitle": "Fjerne {name}?",
-  "settings.providers.removeSentence": "Provideren slettes fra dashbordet. Mappen og innloggingen blir værende som de er.",
-  "settings.models.readAtWith": "Modeller lest {at}, med mappene til {provider}",
+  "settings.providers.removeSentence":
+    "Provideren slettes fra dashbordet. Mappen og innloggingen blir værende som de er.",
+  "settings.models.readAtWith":
+    "Modeller lest {at}, med mappene til {provider}",
   "settings.providers.loginEnds": "Innloggingen utløper {at}",
-  "settings.providers.shadowHelp": "En shadow home har sin egen innlogging og deler øktene og innstillingene til CODEX_HOME. Start fra en tom mappe og logg inn der.",
+  "settings.providers.shadowHelp":
+    "En shadow home har sin egen innlogging og deler øktene og innstillingene til CODEX_HOME. Start fra en tom mappe og logg inn der.",
   "settings.providers.heading": "Providere",
   "settings.providers.addProvider": "Legg til provider",
   "settings.providers.checked": "Sjekket {when}",
   "settings.providers.recheck": "Sjekk igjen",
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Visningsnavn",
-  "settings.providers.displayNameHelp": "Det dashbordet viser for denne provideren.",
+  "settings.providers.displayNameHelp":
+    "Det dashbordet viser for denne provideren.",
   "settings.providers.runtime": "Kjøring",
   "settings.providers.binary": "Programsti",
-  "settings.providers.binaryHelp": "Stien til {tool}-programmet denne provideren kjører. La den stå tom for å bruke den på PATH.",
-  "settings.providers.configDirHelp": "Konfigurasjonsmappen til Claude Code for denne innloggingen. La den stå tom for å bruke ~/.claude.",
-  "settings.providers.codexHomeHelp": "Codex sin hjemme- og konfigurasjonsmappe. La den stå tom for å bruke ~/.codex.",
+  "settings.providers.binaryHelp":
+    "Stien til {tool}-programmet denne provideren kjører. La den stå tom for å bruke den på PATH.",
+  "settings.providers.configDirHelp":
+    "Konfigurasjonsmappen til Claude Code for denne innloggingen. La den stå tom for å bruke ~/.claude.",
+  "settings.providers.codexHomeHelp":
+    "Codex sin hjemme- og konfigurasjonsmappe. La den stå tom for å bruke ~/.codex.",
   "settings.providers.autoCompact": "Komprimer automatisk etter",
-  "settings.providers.autoCompactHelp": "Komprimer etter 100 000 til 1 000 000 token. La den stå tom for å bruke standarden til Claude Code.",
+  "settings.providers.autoCompactHelp":
+    "Komprimer etter 100 000 til 1 000 000 token. La den stå tom for å bruke standarden til Claude Code.",
   "settings.providers.switchLabel": "Bruk {name}",
   "settings.providers.on": "På",
   "settings.providers.off": "Av",
@@ -360,13 +399,16 @@ export const nb: Record<TranslationKey, string> = {
   "settings.providers.stepIdentity": "Identitet",
   "settings.providers.stepConfig": "Oppsett",
   "settings.providers.id": "ID",
-  "settings.providers.idHelp": "Det boardet lagrer provideren under. Bokstaver, sifre, «-» eller «_». Den kan ikke endres etterpå.",
+  "settings.providers.idHelp":
+    "Det boardet lagrer provideren under. Bokstaver, sifre, «-» eller «_». Den kan ikke endres etterpå.",
   "settings.providers.loginCommand": "Logg inn",
-  "settings.providers.loginCommandHelp": "Kjør dette på maskinen boardet kjører på for å logge provideren inn. Status viser når den er logget inn.",
+  "settings.providers.loginCommandHelp":
+    "Kjør dette på maskinen boardet kjører på for å logge provideren inn. Status viser når den er logget inn.",
   "settings.providers.next": "Neste",
   "settings.providers.card.claude": "Kodeagenten fra Anthropic.",
   "settings.providers.card.codex": "Kodeagenten fra OpenAI.",
-  "settings.providers.card.opencode": "En åpen kildekode-agent som kjører modellene til andre leverandører.",
+  "settings.providers.card.opencode":
+    "En åpen kildekode-agent som kjører modellene til andre leverandører.",
   "job.provider": "Provider",
   "notice.providerRuns": "{step} kjører på {who}",
   "notice.providerRan": "{step} kjørte på {who}",
@@ -377,7 +419,8 @@ export const nb: Record<TranslationKey, string> = {
   "settings.models.allSupported": "Hver modell den tilbyr kan allerede velges.",
   "settings.models.noneGone": "Hver modell som kan velges, tilbys fortsatt.",
   "settings.process.concurrency": "Steg som kan kjøre samtidig",
-  "settings.process.cores": "Denne maskinen har {cores} kjerner. Et lagret tall brukes fra neste steg køen starter; et steg som allerede kjører, stoppes aldri på grunn av det.",
+  "settings.process.cores":
+    "Denne maskinen har {cores} kjerner. Et lagret tall brukes fra neste steg køen starter; et steg som allerede kjører, stoppes aldri på grunn av det.",
   "nav.back": "Tilbake",
   "tab.steps": "Logger",
   "tab.phases": "Modeller per fase",
@@ -391,16 +434,22 @@ export const nb: Record<TranslationKey, string> = {
   "tab.settings": "Innstillinger",
   "settings.help.page.title": "Hva denne siden stiller inn",
   "settings.help.page.lead": "Hva denne siden stiller inn.",
-  "settings.help.page.body": "Hvert steg køen kan kjøre har en rad her, og raden sier hva steget kjører på og hvor lenge det kan ta. Ingenting her starter noe; det er det en kjøring bruker når ingen har valgt noe annet for den ene spesifikasjonen.",
+  "settings.help.page.body":
+    "Hvert steg køen kan kjøre har en rad her, og raden sier hva steget kjører på og hvor lenge det kan ta. Ingenting her starter noe; det er det en kjøring bruker når ingen har valgt noe annet for den ene spesifikasjonen.",
   "settings.help.onSpec.lead": "På en spesifikasjon.",
-  "settings.help.onSpec.body": "Opprett skriver mappen til spesifikasjonen. Analyser finner ut hvordan den skal gjøres. Implementer skriver koden og testene. Arkiver fletter grenen og flytter mappen til arkivet. Lukk avslutter en spesifikasjon der ideen ikke holdt, uten å flette koden. Gjenåpne henter en arkivert spesifikasjon tilbake.",
+  "settings.help.onSpec.body":
+    "Opprett skriver mappen til spesifikasjonen. Analyser finner ut hvordan den skal gjøres. Implementer skriver koden og testene. Arkiver fletter grenen og flytter mappen til arkivet. Lukk avslutter en spesifikasjon der ideen ikke holdt, uten å flette koden. Gjenåpne henter en arkivert spesifikasjon tilbake.",
   "settings.help.offSpec.lead": "Ikke på en spesifikasjon.",
-  "settings.help.offSpec.body": "Kjøring kjører en jobb fra en promptfil og nevner ingen spesifikasjon i det hele tatt.",
-  "settings.help.default": "En rad ingenting er lagret for, viser hva steget kjører på: Claude Code på Opus, med mindre konfigurasjonsfilen på tjeneren nevner en annen standard.",
+  "settings.help.offSpec.body":
+    "Kjøring kjører en jobb fra en promptfil og nevner ingen spesifikasjon i det hele tatt.",
+  "settings.help.default":
+    "En rad ingenting er lagret for, viser hva steget kjører på: Claude Code på Opus, med mindre konfigurasjonsfilen på tjeneren nevner en annen standard.",
   "settings.help.aiModel.lead": "AI og modell.",
-  "settings.help.aiModel.body": "AI er hvilken kommandolinje som kjører steget; modellen er hvilken modell den får. Når du velger en AI, fylles den AI-ens egen modell inn, og de to hører alltid sammen. Bare AI-er med en modell satt opp på denne tjeneren kan velges.",
+  "settings.help.aiModel.body":
+    "AI er hvilken kommandolinje som kjører steget; modellen er hvilken modell den får. Når du velger en AI, fylles den AI-ens egen modell inn, og de to hører alltid sammen. Bare AI-er med en modell satt opp på denne tjeneren kan velges.",
   "settings.help.timeout.lead": "Tidsgrense.",
-  "settings.help.timeout.body": "Hvor lenge steget kan kjøre før det stoppes, i minutter. Det er den eneste grensen for et steg som løper løpsk, så et steg som med rette tar lengre tid trenger et større tall her, ikke et nytt forsøk.",
+  "settings.help.timeout.body":
+    "Hvor lenge steget kan kjøre før det stoppes, i minutter. Det er den eneste grensen for et steg som løper løpsk, så et steg som med rette tar lengre tid trenger et større tall her, ikke et nytt forsøk.",
   "settings.row.timeoutAria": "Tidsgrense i minutter for {step}",
   "settings.side.review": "Gjennomgå",
   "settings.side.verify": "Bekreft",
@@ -411,13 +460,16 @@ export const nb: Record<TranslationKey, string> = {
   "settings.col.phase": "Fase",
   "settings.col.timeout": "Tidsgrense (min)",
   "settings.noModels": "Ingen modellvalg er satt opp på denne tjeneren.",
-  "settings.notifications.when": "Når en spesifikasjon trenger deg — et steg feilet eller stoppet, testene ble røde da den ble flettet inn i main, eller arkiveringen holdes tilbake av akseptkriterier som ikke er krysset av — får denne enheten et varsel. Trykker du på det, åpnes spesifikasjonen.",
-  "settings.notifications.device": "Dette er en innstilling bare for denne enheten. På en iPhone eller iPad virker den i den installerte appen, fra iOS 16.4.",
+  "settings.notifications.when":
+    "Når en spesifikasjon trenger deg — et steg feilet eller stoppet, testene ble røde da den ble flettet inn i main, eller arkiveringen holdes tilbake av akseptkriterier som ikke er krysset av — får denne enheten et varsel. Trykker du på det, åpnes spesifikasjonen.",
+  "settings.notifications.device":
+    "Dette er en innstilling bare for denne enheten. På en iPhone eller iPad virker den i den installerte appen, fra iOS 16.4.",
   "settings.notifications.toggle": "Varsler for denne enheten",
   "settings.notifications.on": "På",
   "settings.notifications.off": "Av",
   "settings.notifications.checking": "Sjekker denne enheten…",
-  "settings.notifications.job": "En planlagt jobb varsler etter eget valg — aldri, bare når kjøringen ikke gikk bra, eller hver kjøring. Det settes i jobbens skjema, på Kjøring-fanen til prosjektet.",
+  "settings.notifications.job":
+    "En planlagt jobb varsler etter eget valg — aldri, bare når kjøringen ikke gikk bra, eller hver kjøring. Det settes i jobbens skjema, på Kjøring-fanen til prosjektet.",
   "settings.usage.readAt": "Forbruk lest {at}",
   "settings.usage.unread": "Forbruket er ikke lest ennå.",
   "settings.usage.failed": "Forbruket kunne ikke leses: {reason}",
@@ -433,9 +485,12 @@ export const nb: Record<TranslationKey, string> = {
   "settings.install.holds.skills": "Skills",
   "settings.install.holds.scripts": "Skript",
   "settings.install.holds.hooks": "Hooks",
-  "settings.install.cliMissing": "Kommandolinjen til {tool} finnes ikke på denne maskinen.",
-  "settings.install.missing": "Finnes ikke på denne maskinen: {places}. Trykk Deploy, som kjører installasjonsskriptene.",
-  "settings.install.behind": "De installerte filene ligger bak repoet. Trykk Deploy, som kjører installasjonsskriptene.",
+  "settings.install.cliMissing":
+    "Kommandolinjen til {tool} finnes ikke på denne maskinen.",
+  "settings.install.missing":
+    "Finnes ikke på denne maskinen: {places}. Trykk Deploy, som kjører installasjonsskriptene.",
+  "settings.install.behind":
+    "De installerte filene ligger bak repoet. Trykk Deploy, som kjører installasjonsskriptene.",
   "settings.install.fail": "FEIL",
   "form.create": "Opprett",
   "form.creating": "oppretter…",
@@ -453,12 +508,14 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.deleting": "sletter…",
   "schedule.deleteAria": "Slett {name}",
   "schedule.deleteTitle": "Slette {project}:{name}?",
-  "schedule.deleteSentence": "Oppføringen fjernes og slutter å kjøre. Kjøringshistorikken blir liggende i køen.",
+  "schedule.deleteSentence":
+    "Oppføringen fjernes og slutter å kjøre. Kjøringshistorikken blir liggende i køen.",
   "schedule.project": "Prosjekt",
   "schedule.promptPath": "Sti til promptfilen",
   "schedule.nextRunAt": "Neste kjøring: {at}",
   "newSpec.pageTitle": "Ny spesifikasjon",
-  "newSpec.noProject": "Ingen prosjekt på denne maskinen kan ha en spesifikasjon opprettet i seg ennå. Legg til ett på Prosjekter-siden først.",
+  "newSpec.noProject":
+    "Ingen prosjekt på denne maskinen kan ha en spesifikasjon opprettet i seg ennå. Legg til ett på Prosjekter-siden først.",
   "newSpec.project": "Prosjekt",
   "newSpec.chooseProject": "Velg et prosjekt…",
   "newSpec.title": "Tittel",
@@ -467,15 +524,22 @@ export const nb: Record<TranslationKey, string> = {
   "newSpec.descriptionPlaceholder": "problemet, og hva du vil ha i stedet",
   "newSpec.dependsOnLine": "Avhenger av:",
   "newSpec.none": "ingen",
-  "newSpec.archivedTitle": "arkivert — den kan fjernes her, men ikke legges til igjen",
+  "newSpec.archivedTitle":
+    "arkivert — den kan fjernes her, men ikke legges til igjen",
   "newSpec.dependsHelpTitle": "hva en avhengighet gjør",
-  "newSpec.dependsHelp": "En avhengighet gjelder fra spesifikasjonens neste steg som holdes igjen (implementer, løs, arkiver) — aldri for et steg som allerede kjører.",
-  "newSpec.createLockedAria": "Opprett — kjører alltid, og er ikke et steg du kan droppe",
+  "newSpec.dependsHelp":
+    "En avhengighet gjelder fra spesifikasjonens neste steg som holdes igjen (implementer, løs, arkiver) — aldri for et steg som allerede kjører.",
+  "newSpec.createLockedAria":
+    "Opprett — kjører alltid, og er ikke et steg du kan droppe",
   "newSpec.optionHelpTitle": "hva dette gjør",
-  "newSpec.help.acceptance": "Analyser skriver en tabell med akseptkriterier, og arkivering venter til hver rad er krysset av. Er den ikke avkrysset, merkes hvert akseptkriterium som Ikke verifisert. Arkivering kan gå videre, og du kan verifisere hver rad senere.",
-  "newSpec.help.formulate": "Avkrysset kjører opprett en kort AI-økt som skriver et akseptkriterium for hvert krav i denne beskrivelsen som mangler et, og beholder kriteriene du skrev selv ord for ord; ikke avkrysset skriver opprett spesifikasjonen direkte fra det som står her — ingen AI-økt, ferdig på sekunder.",
-  "newSpec.help.approach": "Avkrysset merker analyser hver framgangsmåte den vurderte som et reelt alternativ eller som forkastet. Finner den to eller flere reelle alternativer, venter Implementer, og spesifikasjonens rad lister dem med det anbefalte valgt: lagre det for å gå videre, eller velg et annet for at analyser skal planlegge det i stedet. Ikke avkrysset velger analyser framgangsmåten og Implementer bygger den.",
-  "newSpec.help.checks": "Hvor strengt analyser sjekker akseptkriteriene til denne spesifikasjonen — at hvert er skrevet som et testbart krav, har et scenario, ikke motsier noe annet og kan bygges. Av: ingen sjekker. Advar: planvurderingen lister det den finner, og analyser fullføres. Stopp: analyser stopper til kriteriene er rettet. Velges her, og endres ikke etter at spesifikasjonen er opprettet.",
+  "newSpec.help.acceptance":
+    "Analyser skriver en tabell med akseptkriterier, og arkivering venter til hver rad er krysset av. Er den ikke avkrysset, merkes hvert akseptkriterium som Ikke verifisert. Arkivering kan gå videre, og du kan verifisere hver rad senere.",
+  "newSpec.help.formulate":
+    "Avkrysset kjører opprett en kort AI-økt som skriver et akseptkriterium for hvert krav i denne beskrivelsen som mangler et, og beholder kriteriene du skrev selv ord for ord; ikke avkrysset skriver opprett spesifikasjonen direkte fra det som står her — ingen AI-økt, ferdig på sekunder.",
+  "newSpec.help.approach":
+    "Avkrysset merker analyser hver framgangsmåte den vurderte som et reelt alternativ eller som forkastet. Finner den to eller flere reelle alternativer, venter Implementer, og spesifikasjonens rad lister dem med det anbefalte valgt: lagre det for å gå videre, eller velg et annet for at analyser skal planlegge det i stedet. Ikke avkrysset velger analyser framgangsmåten og Implementer bygger den.",
+  "newSpec.help.checks":
+    "Hvor strengt analyser sjekker akseptkriteriene til denne spesifikasjonen — at hvert er skrevet som et testbart krav, har et scenario, ikke motsier noe annet og kan bygges. Av: ingen sjekker. Advar: planvurderingen lister det den finner, og analyser fullføres. Stopp: analyser stopper til kriteriene er rettet. Velges her, og endres ikke etter at spesifikasjonen er opprettet.",
   "time.justNow": "akkurat nå",
   "time.minutesAgo": "{n} min siden",
   "time.hoursAgo": "{n} t siden",
@@ -489,76 +553,109 @@ export const nb: Record<TranslationKey, string> = {
   "setting.label.description": "Beskrivelse",
   "setting.label.codeLanding": "Kodelanding",
   "setting.label.previewFrom": "Prøv en gren",
-  "setting.purpose.AIDE_SPECS_PATH": "Hvor spesifikasjonene til dette prosjektet ligger — egen specs/ når den ikke er satt",
-  "setting.purpose.worktreeLinks": "Ignorerte stier arbeidstreet til en kjøring trenger, som git ikke tar med",
+  "setting.purpose.AIDE_SPECS_PATH":
+    "Hvor spesifikasjonene til dette prosjektet ligger — egen specs/ når den ikke er satt",
+  "setting.purpose.worktreeLinks":
+    "Ignorerte stier arbeidstreet til en kjøring trenger, som git ikke tar med",
   "setting.purpose.AIDE_TEST_CMD": "Prosjektets egen testkommando",
-  "setting.purpose.acPrefix": "Settes foran id-en til et kriterium i navnet på en test; {spec} er nummeret til spesifikasjonen, så F{spec} gir en test navnet (F02 AC-2)",
-  "setting.purpose.AIDE_INSTALL_CMD": "Hva det betyr å installere dette prosjektet på denne maskinen, kjørt etter at koden er flettet inn",
-  "setting.purpose.previewCmd": "Hvordan dette prosjektet startes slik at grenen til en spesifikasjon kan ses på, med tjeneren på $PORT",
-  "setting.purpose.description": "Én linje som sier hva prosjektet er, vist i prosjektlisten",
-  "setting.purpose.codeLanding": "Hva som skjer med koden når en spesifikasjon arkiveres",
-  "setting.purpose.previewFrom": "Hvordan grenen til en spesifikasjon kan prøves før den flettes inn",
+  "setting.purpose.acPrefix":
+    "Settes foran id-en til et kriterium i navnet på en test; {spec} er nummeret til spesifikasjonen, så F{spec} gir en test navnet (F02 AC-2)",
+  "setting.purpose.AIDE_INSTALL_CMD":
+    "Hva det betyr å installere dette prosjektet på denne maskinen, kjørt etter at koden er flettet inn",
+  "setting.purpose.previewCmd":
+    "Hvordan dette prosjektet startes slik at grenen til en spesifikasjon kan ses på, med tjeneren på $PORT",
+  "setting.purpose.description":
+    "Én linje som sier hva prosjektet er, vist i prosjektlisten",
+  "setting.purpose.codeLanding":
+    "Hva som skjer med koden når en spesifikasjon arkiveres",
+  "setting.purpose.previewFrom":
+    "Hvordan grenen til en spesifikasjon kan prøves før den flettes inn",
   "setting.col.value": "Verdi",
   "setting.col.comment": "Kommentar",
   "setting.dashboardFile": "dashbordets settings.yaml",
   "setting.noTests": "Ingen tester kjøres når en spesifikasjon lander",
-  "setting.suggested": "Foreslått fra {source}, den vanlige standarden for {toolchain}: {command} — trykk Endre for å sette den",
+  "setting.suggested":
+    "Foreslått fra {source}, den vanlige standarden for {toolchain}: {command} — trykk Endre for å sette den",
   "setting.landing.merge": "Flett inn i {branch}",
   "setting.landing.mainBranch": "hovedgrenen til prosjektet",
   "setting.landing.pr": "Opprett en pull request",
   "setting.preview.none": "Ikke før den er flettet inn",
   "setting.preview.command": "En testtjener på denne maskinen",
   "setting.preview.cloudflare": "En forhåndsvisning på Cloudflare Pages",
-  "setting.ph.worktreeLinks": "ignorerte stier en kjøring må lenke inn: node_modules .venv",
+  "setting.ph.worktreeLinks":
+    "ignorerte stier en kjøring må lenke inn: node_modules .venv",
   "setting.suggestedLinks": "Foreslått fra .gitignore i utsjekken: {list}",
   "setting.ph.specsPath": "egen specs/ når den er tom",
   "setting.ph.description": "én linje: hva prosjektet er",
   "setting.ph.acPrefix": "F{spec} gir en test navnet (F02 AC-2)",
-  "project.add.info": "Spesifikasjonsmappen og installasjonskommandoen havner i .aide/config til prosjektet på denne maskinen. De andre innstillingene havner i dashbordets egen innstillingsfil. For et repo som allerede sporer .aide/project.yaml, committes de til den filen i stedet.",
+  "project.add.info":
+    "Spesifikasjonsmappen og installasjonskommandoen havner i .aide/config til prosjektet på denne maskinen. De andre innstillingene havner i dashbordets egen innstillingsfil. For et repo som allerede sporer .aide/project.yaml, committes de til den filen i stedet.",
   "project.add.title": "Legg til prosjekt",
   "project.add.namePh": "mappen kloningen lager under prosjektmappen",
   "project.add.gitUrl": "Git-adresse",
   "project.add.gitUrlPh": "klones under prosjektmappen",
   "project.add.specsPathPh": "valgfritt — ellers egen specs/",
   "project.add.chooseLanding": "Velg hvordan koden lander…",
-  "project.add.worktreeLinksPh": "valgfritt — ignorerte stier en kjøring må lenke inn: node_modules .venv",
+  "project.add.worktreeLinksPh":
+    "valgfritt — ignorerte stier en kjøring må lenke inn: node_modules .venv",
   "project.add.testCmdPh": "valgfritt — prosjektets egen testkommando",
-  "project.add.installCmdPh": "valgfritt — kjøres etter at koden er flettet inn",
+  "project.add.installCmdPh":
+    "valgfritt — kjøres etter at koden er flettet inn",
   "project.add.previewCmdPh": "valgfritt — tjener på $PORT",
   "project.add.acPrefixPh": "valgfritt — F{spec} gir en test navnet (F02 AC-2)",
   "project.removeTitle": "Fjerne {name}?",
-  "project.removeSentence": "Når {name} fjernes, tas det av tillatelseslisten og av dette dashbordet. Utsjekken og spesifikasjonene blir liggende urørt på disken. Dette kan ikke angres.",
+  "project.removeSentence":
+    "Når {name} fjernes, tas det av tillatelseslisten og av dette dashbordet. Utsjekken og spesifikasjonene blir liggende urørt på disken. Dette kan ikke angres.",
   "project.cannotRunTitle": "kan ikke kjøre ennå — se prosjektets side",
   "project.cannotRunAria": "kan ikke kjøre ennå",
   "project.deployButton": "Deploy",
-  "project.noDeploy": "Det finnes ikke nok opplysninger om hvordan dette prosjektet rulles ut til å tilby Deploy.",
-  "project.notChecked": "Om denne utsjekken ligger bak origin er ikke sjekket ennå.",
-  "project.notCheckedWith": "Om denne utsjekken ligger bak origin er ikke sjekket ennå; {phrase}.",
+  "project.noDeploy":
+    "Det finnes ikke nok opplysninger om hvordan dette prosjektet rulles ut til å tilby Deploy.",
+  "project.notChecked":
+    "Om denne utsjekken ligger bak origin er ikke sjekket ennå.",
+  "project.notCheckedWith":
+    "Om denne utsjekken ligger bak origin er ikke sjekket ennå; {phrase}.",
   "project.matchesOrigin": "Denne utsjekken stemmer med origin.",
   "project.driftOne": "{n} commit bak origin, sjekket {when}",
   "project.driftMany": "{n} commits bak origin, sjekket {when}",
-  "project.servingCurrent": "Kjører commit {sha} — stemmer med denne utsjekken.",
-  "project.servingStale": "Kjører commit {sha}, men denne utsjekken står nå på commit {head} — tjenesten som kjører har ikke fått med seg den siste flettingen.",
-  "project.noInstallCmd": "Ingen installasjonskommando er satt opp for dette prosjektet, så avviket fra origin spores ikke her.",
-  "project.servedNewest": "tjenesten kjører allerede den nyeste endringen, «{subject}»",
-  "project.servedBehindOne": "tjenesten ligger {n} commit bak denne utsjekken — den nyeste endringen er «{subject}»",
-  "project.servedBehindMany": "tjenesten ligger {n} commits bak denne utsjekken — den nyeste endringen er «{subject}»",
+  "project.servingCurrent":
+    "Kjører commit {sha} — stemmer med denne utsjekken.",
+  "project.servingStale":
+    "Kjører commit {sha}, men denne utsjekken står nå på commit {head} — tjenesten som kjører har ikke fått med seg den siste flettingen.",
+  "project.noInstallCmd":
+    "Ingen installasjonskommando er satt opp for dette prosjektet, så avviket fra origin spores ikke her.",
+  "project.servedNewest":
+    "tjenesten kjører allerede den nyeste endringen, «{subject}»",
+  "project.servedBehindOne":
+    "tjenesten ligger {n} commit bak denne utsjekken — den nyeste endringen er «{subject}»",
+  "project.servedBehindMany":
+    "tjenesten ligger {n} commits bak denne utsjekken — den nyeste endringen er «{subject}»",
   "project.behindOne": "{prefix} — Deploy henter den og installerer.",
-  "project.behindOneRestart": "{prefix} — Deploy henter den, installerer og starter tjenesten på nytt.",
+  "project.behindOneRestart":
+    "{prefix} — Deploy henter den, installerer og starter tjenesten på nytt.",
   "project.behindMany": "{prefix} — Deploy henter dem og installerer.",
-  "project.behindManyRestart": "{prefix} — Deploy henter dem, installerer og starter tjenesten på nytt.",
-  "project.stale": "Denne utsjekken stemmer med origin, men tjenesten kjører fortsatt commit {sha}; Deploy starter den på nytt på commit {head}.",
-  "project.servingMatches": "Denne utsjekken stemmer med origin, og tjenesten kjører commit {sha}.",
+  "project.behindManyRestart":
+    "{prefix} — Deploy henter dem, installerer og starter tjenesten på nytt.",
+  "project.stale":
+    "Denne utsjekken stemmer med origin, men tjenesten kjører fortsatt commit {sha}; Deploy starter den på nytt på commit {head}.",
+  "project.servingMatches":
+    "Denne utsjekken stemmer med origin, og tjenesten kjører commit {sha}.",
   "project.originUnchecked": "Origin er ikke sjekket ennå.",
-  "project.pressAgain": "Å trykke igjen gjentar bare hentingen og installasjonen — det starter ikke tjenesten på nytt tidligere.",
-  "project.deployUnderWay": "En utrulling er allerede {state} — følg den i Kjører-fanen.",
-  "project.readinessOk": "Ingenting stopper en kjøring: denne utsjekken er klar til å kjøre.",
+  "project.pressAgain":
+    "Å trykke igjen gjentar bare hentingen og installasjonen — det starter ikke tjenesten på nytt tidligere.",
+  "project.deployUnderWay":
+    "En utrulling er allerede {state} — følg den i Kjører-fanen.",
+  "project.readinessOk":
+    "Ingenting stopper en kjøring: denne utsjekken er klar til å kjøre.",
   "project.cannotStart": "en kjøring kan ikke starte her ennå: {reasons}",
-  "project.noConfigFile": "Det finnes ingen .aide/config i denne utsjekken, så ingenting under er satt opp på denne maskinen.",
+  "project.noConfigFile":
+    "Det finnes ingen .aide/config i denne utsjekken, så ingenting under er satt opp på denne maskinen.",
   "settings.notifications.msgOn": "Varsler er slått på for denne enheten.",
   "settings.notifications.msgOff": "Varsler er slått av for denne enheten.",
-  "settings.notifications.msgBlocked": "Varsler er blokkert for dette nettstedet. Tillat dem i innstillingene til selve enheten, og åpne så denne fanen på nytt.",
-  "settings.notifications.msgUnsupported": "Varsler krever den installerte appen på denne enheten — legg dashbordet til på Hjem-skjermen og åpne det derfra.",
+  "settings.notifications.msgBlocked":
+    "Varsler er blokkert for dette nettstedet. Tillat dem i innstillingene til selve enheten, og åpne så denne fanen på nytt.",
+  "settings.notifications.msgUnsupported":
+    "Varsler krever den installerte appen på denne enheten — legg dashbordet til på Hjem-skjermen og åpne det derfra.",
   "settings.notifications.msgFailed": "Varsler kunne ikke slås på. Prøv igjen.",
   "message.problem": "Problem",
   "message.solution": "Løsning",

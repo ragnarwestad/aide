@@ -4,7 +4,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readScheduleRunReport, scheduleRunOutputDir } from "../../src/queue/schedule.ts";
+import {
+  readScheduleRunReport,
+  scheduleRunOutputDir,
+} from "../../src/queue/schedule.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -22,34 +25,67 @@ function rootWith(runId: string, file: string | null): string {
 
 describe("scheduleRunOutputDir", () => {
   test("is <root>/<project>/<key>/runs/<jobId>, and differs per run", () => {
-    expect(scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j1")).toBe("/r/aide/schedule-nightly/runs/j1");
-    expect(scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j2")).not.toBe(
-      scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j1"),
+    expect(scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j1")).toBe(
+      "/r/aide/schedule-nightly/runs/j1",
     );
+    expect(
+      scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j2"),
+    ).not.toBe(scheduleRunOutputDir("/r", "aide", "schedule-nightly", "j1"));
   });
 });
 
 describe("readScheduleRunReport", () => {
   test("returns the text of a real report", () => {
     const root = rootWith("j1", "<h1>Findings</h1><p>All green</p>");
-    expect(readScheduleRunReport(root, "aide", "schedule-nightly", "j1")).toContain("All green");
+    expect(
+      readScheduleRunReport(root, "aide", "schedule-nightly", "j1"),
+    ).toContain("All green");
   });
 
   test("a report that is only an image is a report", () => {
     const root = rootWith("j1", '<img src="chart.png">');
-    expect(readScheduleRunReport(root, "aide", "schedule-nightly", "j1")).not.toBeNull();
+    expect(
+      readScheduleRunReport(root, "aide", "schedule-nightly", "j1"),
+    ).not.toBeNull();
   });
 
   test("a missing directory, a missing file, an empty file, whitespace and empty tags are no report", () => {
-    expect(readScheduleRunReport("/nonexistent-root", "aide", "schedule-nightly", "j1")).toBeNull();
-    expect(readScheduleRunReport(rootWith("j1", null), "aide", "schedule-nightly", "j1")).toBeNull();
-    for (const blank of ["", "  \n\t ", "<html><body><div></div><p> </p></body></html>"]) {
-      expect(readScheduleRunReport(rootWith("j1", blank), "aide", "schedule-nightly", "j1")).toBeNull();
+    expect(
+      readScheduleRunReport(
+        "/nonexistent-root",
+        "aide",
+        "schedule-nightly",
+        "j1",
+      ),
+    ).toBeNull();
+    expect(
+      readScheduleRunReport(
+        rootWith("j1", null),
+        "aide",
+        "schedule-nightly",
+        "j1",
+      ),
+    ).toBeNull();
+    for (const blank of [
+      "",
+      "  \n\t ",
+      "<html><body><div></div><p> </p></body></html>",
+    ]) {
+      expect(
+        readScheduleRunReport(
+          rootWith("j1", blank),
+          "aide",
+          "schedule-nightly",
+          "j1",
+        ),
+      ).toBeNull();
     }
   });
 
   test("another run's report is never read for this run", () => {
     const root = rootWith("j1", "<p>run one</p>");
-    expect(readScheduleRunReport(root, "aide", "schedule-nightly", "j2")).toBeNull();
+    expect(
+      readScheduleRunReport(root, "aide", "schedule-nightly", "j2"),
+    ).toBeNull();
   });
 });

@@ -11,8 +11,12 @@ export const CODEX_MODELS_ARGS = ["debug", "models"];
 
 /** The models Codex lists, or why its answer could not be read. An answer
  *  without a `models` array of the known shape is never read as none. */
-export function parseCodexModels(stdout: string): OfferedModel[] | { error: string } {
-  const unknown = { error: "codex debug models answered in a shape this does not know." };
+export function parseCodexModels(
+  stdout: string,
+): OfferedModel[] | { error: string } {
+  const unknown = {
+    error: "codex debug models answered in a shape this does not know.",
+  };
   const text = stripAnsi(stdout);
   const start = text.indexOf("{");
   if (start === -1) return unknown;
@@ -27,9 +31,20 @@ export function parseCodexModels(stdout: string): OfferedModel[] | { error: stri
   const offered: OfferedModel[] = [];
   for (const entry of models) {
     const m = entry as Record<string, unknown> | null;
-    if (!m || typeof m.slug !== "string" || !m.slug || typeof m.visibility !== "string") return unknown;
+    if (
+      !m ||
+      typeof m.slug !== "string" ||
+      !m.slug ||
+      typeof m.visibility !== "string"
+    )
+      return unknown;
     if (m.visibility === "hide") continue;
-    offered.push({ model: m.slug, ...(typeof m.display_name === "string" && m.display_name ? { name: m.display_name } : {}) });
+    offered.push({
+      model: m.slug,
+      ...(typeof m.display_name === "string" && m.display_name
+        ? { name: m.display_name }
+        : {}),
+    });
   }
   return offered;
 }
@@ -39,9 +54,25 @@ export async function readCodexModels(
   bin: string,
   base: Pick<ToolModels, "tool" | "at">,
 ): Promise<ToolModels> {
-  const result = await run([bin, ...CODEX_MODELS_ARGS], process.cwd(), CHECK_TIMEOUT_MS);
-  if (result.timedOut) return { ...base, offered: [], error: "codex debug models did not finish in time." };
-  if (result.code !== 0) return { ...base, offered: [], error: "codex debug models could not be run." };
+  const result = await run(
+    [bin, ...CODEX_MODELS_ARGS],
+    process.cwd(),
+    CHECK_TIMEOUT_MS,
+  );
+  if (result.timedOut)
+    return {
+      ...base,
+      offered: [],
+      error: "codex debug models did not finish in time.",
+    };
+  if (result.code !== 0)
+    return {
+      ...base,
+      offered: [],
+      error: "codex debug models could not be run.",
+    };
   const parsed = parseCodexModels(result.stdout);
-  return "error" in parsed ? { ...base, offered: [], error: parsed.error } : { ...base, offered: parsed };
+  return "error" in parsed
+    ? { ...base, offered: [], error: parsed.error }
+    : { ...base, offered: parsed };
 }

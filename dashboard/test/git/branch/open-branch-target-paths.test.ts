@@ -43,7 +43,13 @@ describe("resolveOpenBranchTarget's paths are inside the repository", () => {
   test("a dir that reaches the root through a symlink still subtracts to a repo path", async () => {
     const { root, linkedDir } = repoBehindALink();
 
-    const target = await resolveOpenBranchTarget(ctxFor(root), linkedDir, FOLDER, "4-status.md", false);
+    const target = await resolveOpenBranchTarget(
+      ctxFor(root),
+      linkedDir,
+      FOLDER,
+      "4-status.md",
+      false,
+    );
 
     expect(target).not.toBeNull();
     expect(target!.relPath).toBe(`${FOLDER}/4-status.md`);
@@ -51,11 +57,19 @@ describe("resolveOpenBranchTarget's paths are inside the repository", () => {
   });
 
   test("the plain case, where nothing is linked, is unchanged", async () => {
-    const base = realpathSync(mkdtempSync(join(tmpdir(), "aide-branch-target-plain-")));
+    const base = realpathSync(
+      mkdtempSync(join(tmpdir(), "aide-branch-target-plain-")),
+    );
     const root = join(base, "specs");
     mkdirSync(join(root, FOLDER), { recursive: true });
 
-    const target = await resolveOpenBranchTarget(ctxFor(root), join(root, FOLDER), FOLDER, "4-status.md", false);
+    const target = await resolveOpenBranchTarget(
+      ctxFor(root),
+      join(root, FOLDER),
+      FOLDER,
+      "4-status.md",
+      false,
+    );
 
     expect(target!.relPath).toBe(`${FOLDER}/4-status.md`);
     expect(target!.archivedRelPath).toBe(`archive/${FOLDER}/4-status.md`);

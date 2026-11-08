@@ -17,7 +17,9 @@ const OPTS = {
 /** The <string> values under a given <key>, in document order. */
 function strings(xml: string, key: string): string[] {
   const after = xml.split(`<key>${key}</key>`)[1] ?? "";
-  const block = after.startsWith("\n  <array>") ? after.split("</array>")[0]! : after.split("\n")[1]!;
+  const block = after.startsWith("\n  <array>")
+    ? after.split("</array>")[0]!
+    : after.split("\n")[1]!;
   return [...block.matchAll(/<string>([^<]*)<\/string>/g)].map((m) => m[1]!);
 }
 
@@ -25,7 +27,12 @@ describe("rendering a launchd job for whichever host the operator picked", () =>
   test("every value in the XML came from the options", () => {
     const xml = renderPlist(OPTS);
     expect(strings(xml, "Label")).toEqual([OPTS.label]);
-    expect(strings(xml, "ProgramArguments")).toEqual([OPTS.bunPath, "run", OPTS.script, ...OPTS.serveArgv]);
+    expect(strings(xml, "ProgramArguments")).toEqual([
+      OPTS.bunPath,
+      "run",
+      OPTS.script,
+      ...OPTS.serveArgv,
+    ]);
     expect(strings(xml, "WorkingDirectory")).toEqual([OPTS.workingDirectory]);
     expect(strings(xml, "StandardOutPath")).toEqual([OPTS.logPath]);
     expect(strings(xml, "StandardErrorPath")).toEqual([OPTS.logPath]);
@@ -37,8 +44,16 @@ describe("rendering a launchd job for whichever host the operator picked", () =>
     expect(xml.toLowerCase()).not.toContain("macmini");
     expect(xml.toLowerCase()).not.toContain("ragnarwestad");
     // The only paths present are the ones handed in.
-    for (const path of [...xml.matchAll(/<string>(\/[^<]*)<\/string>/g)].map((m) => m[1]!)) {
-      expect([OPTS.bunPath, OPTS.script, OPTS.workingDirectory, OPTS.logPath, "/srv/site"]).toContain(path);
+    for (const path of [...xml.matchAll(/<string>(\/[^<]*)<\/string>/g)].map(
+      (m) => m[1]!,
+    )) {
+      expect([
+        OPTS.bunPath,
+        OPTS.script,
+        OPTS.workingDirectory,
+        OPTS.logPath,
+        "/srv/site",
+      ]).toContain(path);
     }
   });
 
@@ -49,7 +64,10 @@ describe("rendering a launchd job for whichever host the operator picked", () =>
   });
 
   test("a value carrying XML syntax is escaped, not pasted", () => {
-    const xml = renderPlist({ ...OPTS, serveArgv: ["serve", "--site", "/srv/a&b<c>"] });
+    const xml = renderPlist({
+      ...OPTS,
+      serveArgv: ["serve", "--site", "/srv/a&b<c>"],
+    });
     expect(xml).toContain("<string>/srv/a&amp;b&lt;c&gt;</string>");
   });
 });

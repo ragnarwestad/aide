@@ -28,7 +28,11 @@ function grewLog(old: Element, next: Element): boolean {
 /** The rows of a part's one table, swapped by position; the table head, with
  *  the tab's help popover, is never touched. `unaccounted` when the part has
  *  no body to compare. Otherwise whether a row had to wait for the selection. */
-function swapRows(mine: Element, next: Element, held: Held): "unaccounted" | boolean {
+function swapRows(
+  mine: Element,
+  next: Element,
+  held: Held,
+): "unaccounted" | boolean {
   const body = mine.querySelector("tbody");
   const nextBody = next.querySelector("tbody");
   if (!body || !nextBody) return "unaccounted";
@@ -42,7 +46,10 @@ function swapRows(mine: Element, next: Element, held: Held): "unaccounted" | boo
       if (row.outerHTML === fresh.outerHTML) continue;
       if (grewLog(row, fresh)) {
         const log = row.querySelector(LOG)!;
-        log.insertAdjacentHTML("beforeend", fresh.querySelector(LOG)!.innerHTML.slice(log.innerHTML.length));
+        log.insertAdjacentHTML(
+          "beforeend",
+          fresh.querySelector(LOG)!.innerHTML.slice(log.innerHTML.length),
+        );
       } else if (held(row)) waiting = true;
       else row.replaceWith(fresh.cloneNode(true));
     } else if (fresh) body.append(fresh.cloneNode(true));
@@ -56,13 +63,20 @@ function swapRows(mine: Element, next: Element, held: Held): "unaccounted" | boo
 
 /** Swap every `[data-follow-part]` of `answer` into `doc`. Returns whether
  *  anything had to wait for a selection to go. */
-export function swapParts(doc: Document, answer: ParentNode, held: Held): boolean {
+export function swapParts(
+  doc: Document,
+  answer: ParentNode,
+  held: Held,
+): boolean {
   let waiting = false;
   for (const next of answer.querySelectorAll("[data-follow-part]")) {
     const name = next.getAttribute("data-follow-part");
     const mine = doc.querySelector(`[data-follow-part="${name}"]`);
     if (!mine || mine.innerHTML === next.innerHTML) continue;
-    if (mine.querySelectorAll("table").length === 1 && next.querySelectorAll("table").length === 1) {
+    if (
+      mine.querySelectorAll("table").length === 1 &&
+      next.querySelectorAll("table").length === 1
+    ) {
       const done = swapRows(mine, next, held);
       if (done !== "unaccounted") {
         if (done) waiting = true;
@@ -70,7 +84,10 @@ export function swapParts(doc: Document, answer: ParentNode, held: Held): boolea
       }
     }
     if (held(mine)) waiting = true;
-    else mine.replaceChildren(...[...next.childNodes].map((n) => n.cloneNode(true)));
+    else
+      mine.replaceChildren(
+        ...[...next.childNodes].map((n) => n.cloneNode(true)),
+      );
   }
   return waiting;
 }

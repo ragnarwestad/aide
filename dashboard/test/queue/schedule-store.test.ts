@@ -1,9 +1,22 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createScheduleStore, parseScheduleEntries } from "../../src/queue/schedule-store.ts";
-import { scheduleNotifyOf, type ScheduleEntry } from "../../src/queue/schedule.ts";
+import {
+  createScheduleStore,
+  parseScheduleEntries,
+} from "../../src/queue/schedule-store.ts";
+import {
+  scheduleNotifyOf,
+  type ScheduleEntry,
+} from "../../src/queue/schedule.ts";
 
 let dir: string;
 let file: string;
@@ -20,12 +33,20 @@ afterEach(() => {
 });
 
 const entry = (over: Partial<ScheduleEntry> = {}): ScheduleEntry => ({
-  name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true, ...over,
+  name: "nightly",
+  cron: "0 3 * * *",
+  prompt: "docs/nightly.md",
+  enabled: true,
+  ...over,
 });
 
 describe("parseScheduleEntries", () => {
   test("a valid entry parses, enabled defaulting true", () => {
-    expect(parseScheduleEntries([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" }])).toEqual([entry()]);
+    expect(
+      parseScheduleEntries([
+        { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+      ]),
+    ).toEqual([entry()]);
   });
 
   test("a bad entry is dropped and the others kept", () => {
@@ -41,30 +62,63 @@ describe("parseScheduleEntries", () => {
 
   test("a prompt that escapes the project root drops the entry", () => {
     for (const prompt of ["../../etc/passwd", "/etc/passwd", "a/../../b"]) {
-      expect(parseScheduleEntries([{ name: "n", cron: "0 3 * * *", prompt }])).toEqual([]);
+      expect(
+        parseScheduleEntries([{ name: "n", cron: "0 3 * * *", prompt }]),
+      ).toEqual([]);
     }
-    expect(parseScheduleEntries([{ name: "n", cron: "0 3 * * *", prompt: "docs/../docs/n.md" }])).toHaveLength(1);
+    expect(
+      parseScheduleEntries([
+        { name: "n", cron: "0 3 * * *", prompt: "docs/../docs/n.md" },
+      ]),
+    ).toHaveLength(1);
   });
 
   test("a prompt typed with repeated slashes or . and .. parts reads as one normalised path (AC-2)", () => {
-    for (const prompt of ["docs//nightly.md", "./docs/nightly.md", "docs/../docs/nightly.md"]) {
-      expect(parseScheduleEntries([{ name: "nightly", cron: "0 3 * * *", prompt }])).toEqual([entry()]);
+    for (const prompt of [
+      "docs//nightly.md",
+      "./docs/nightly.md",
+      "docs/../docs/nightly.md",
+    ]) {
+      expect(
+        parseScheduleEntries([{ name: "nightly", cron: "0 3 * * *", prompt }]),
+      ).toEqual([entry()]);
     }
   });
 
   test("only the literal false disables", () => {
     const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
-    expect(parseScheduleEntries([{ ...base, enabled: false }])[0]!.enabled).toBe(false);
-    expect(parseScheduleEntries([{ ...base, enabled: "no" }])[0]!.enabled).toBe(true);
+    expect(
+      parseScheduleEntries([{ ...base, enabled: false }])[0]!.enabled,
+    ).toBe(false);
+    expect(parseScheduleEntries([{ ...base, enabled: "no" }])[0]!.enabled).toBe(
+      true,
+    );
   });
 
   test("an unusable model or since drops the field, never the entry", () => {
     const [e] = parseScheduleEntries([
-      { name: "n", cron: "0 3 * * *", prompt: "p.md", model: "not a model", since: "not a date" },
+      {
+        name: "n",
+        cron: "0 3 * * *",
+        prompt: "p.md",
+        model: "not a model",
+        since: "not a date",
+      },
     ]);
-    expect(e).toEqual({ name: "n", cron: "0 3 * * *", prompt: "p.md", enabled: true });
+    expect(e).toEqual({
+      name: "n",
+      cron: "0 3 * * *",
+      prompt: "p.md",
+      enabled: true,
+    });
     const [f] = parseScheduleEntries([
-      { name: "n", cron: "0 3 * * *", prompt: "p.md", model: "Sonnet", since: "2026-09-14T16:42:00.000Z" },
+      {
+        name: "n",
+        cron: "0 3 * * *",
+        prompt: "p.md",
+        model: "Sonnet",
+        since: "2026-09-14T16:42:00.000Z",
+      },
     ]);
     expect(f!.model).toBe("Sonnet");
     expect(f!.since).toBe("2026-09-14T16:42:00.000Z");
@@ -78,12 +132,15 @@ describe("parseScheduleEntries", () => {
 
 describe("list", () => {
   test("lists one project's entries and no other's", () => {
-    writeFileSync(file, JSON.stringify({
-      schedules: {
-        aide: [{ name: "a", cron: "0 3 * * *", prompt: "a.md" }],
-        paceup: [{ name: "p", cron: "0 3 * * *", prompt: "p.md" }],
-      },
-    }));
+    writeFileSync(
+      file,
+      JSON.stringify({
+        schedules: {
+          aide: [{ name: "a", cron: "0 3 * * *", prompt: "a.md" }],
+          paceup: [{ name: "p", cron: "0 3 * * *", prompt: "p.md" }],
+        },
+      }),
+    );
     const store = createScheduleStore(file);
     expect(store.list("aide").map((e) => e.name)).toEqual(["a"]);
     expect(store.list("paceup").map((e) => e.name)).toEqual(["p"]);
@@ -99,12 +156,18 @@ describe("list", () => {
   });
 
   test("a trailing comma and comments are accepted", () => {
-    writeFileSync(file, `{ // hand-written\n "schedules": { "aide": [ { "name": "a", "cron": "0 3 * * *", "prompt": "a.md", }, ], },\n}`);
+    writeFileSync(
+      file,
+      `{ // hand-written\n "schedules": { "aide": [ { "name": "a", "cron": "0 3 * * *", "prompt": "a.md", }, ], },\n}`,
+    );
     expect(createScheduleStore(file).list("aide")).toHaveLength(1);
   });
 
   test("a malformed value under schedules is an empty list", () => {
-    writeFileSync(file, JSON.stringify({ schedules: { aide: "nightly", paceup: { name: "x" } } }));
+    writeFileSync(
+      file,
+      JSON.stringify({ schedules: { aide: "nightly", paceup: { name: "x" } } }),
+    );
     const store = createScheduleStore(file);
     expect(store.list("aide")).toEqual([]);
     expect(store.list("paceup")).toEqual([]);
@@ -122,7 +185,12 @@ describe("list", () => {
   test("a hand edit takes effect on the next call", () => {
     const store = createScheduleStore(file);
     expect(store.list("aide")).toEqual([]);
-    writeFileSync(file, JSON.stringify({ schedules: { aide: [{ name: "a", cron: "0 3 * * *", prompt: "a.md" }] } }));
+    writeFileSync(
+      file,
+      JSON.stringify({
+        schedules: { aide: [{ name: "a", cron: "0 3 * * *", prompt: "a.md" }] },
+      }),
+    );
     expect(store.list("aide")).toHaveLength(1);
   });
 });
@@ -131,18 +199,36 @@ describe("save", () => {
   test("creates the file and its directory, and the entry reads back", () => {
     const nested = join(dir, "deep", "queue-config.json");
     const store = createScheduleStore(nested);
-    expect(store.save("aide", [entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" })])).toBeNull();
-    expect(JSON.parse(readFileSync(nested, "utf-8")).schedules.aide[0]).toEqual({
-      name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", model: "Sonnet", since: "2026-09-17T20:54:52.809Z",
-    });
-    expect(store.list("aide")).toEqual([entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" })]);
+    expect(
+      store.save("aide", [
+        entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" }),
+      ]),
+    ).toBeNull();
+    expect(JSON.parse(readFileSync(nested, "utf-8")).schedules.aide[0]).toEqual(
+      {
+        name: "nightly",
+        cron: "0 3 * * *",
+        prompt: "docs/nightly.md",
+        model: "Sonnet",
+        since: "2026-09-17T20:54:52.809Z",
+      },
+    );
+    expect(store.list("aide")).toEqual([
+      entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" }),
+    ]);
   });
 
   test("a prompt typed with repeated slashes or . and .. parts is written normalised (AC-2)", () => {
     const store = createScheduleStore(file);
-    for (const prompt of ["docs//nightly.md", "./docs/nightly.md", "docs/../docs/nightly.md"]) {
+    for (const prompt of [
+      "docs//nightly.md",
+      "./docs/nightly.md",
+      "docs/../docs/nightly.md",
+    ]) {
       expect(store.save("aide", [entry({ prompt })])).toBeNull();
-      expect(JSON.parse(readFileSync(file, "utf-8")).schedules.aide[0].prompt).toBe("docs/nightly.md");
+      expect(
+        JSON.parse(readFileSync(file, "utf-8")).schedules.aide[0].prompt,
+      ).toBe("docs/nightly.md");
     }
   });
 
@@ -157,7 +243,9 @@ describe("save", () => {
   test("an empty or whitespace-only file starts from {}", () => {
     writeFileSync(file, "  \n");
     expect(createScheduleStore(file).save("aide", [entry()])).toBeNull();
-    expect(JSON.parse(readFileSync(file, "utf-8")).schedules.aide).toHaveLength(1);
+    expect(JSON.parse(readFileSync(file, "utf-8")).schedules.aide).toHaveLength(
+      1,
+    );
   });
 
   test("comments and other keys survive a save", () => {
@@ -166,7 +254,9 @@ describe("save", () => {
     expect(createScheduleStore(file).save("aide", [entry()])).toBeNull();
     const after = readFileSync(file, "utf-8");
     expect(after).toContain("// who may be queued");
-    expect(JSON.parse(after.replace(/\/\/.*$/m, "")).projects).toEqual(["aide"]);
+    expect(JSON.parse(after.replace(/\/\/.*$/m, "")).projects).toEqual([
+      "aide",
+    ]);
     expect(after).toContain(`"implement": 100`);
   });
 
@@ -194,7 +284,9 @@ describe("save", () => {
   });
 
   test("refuses with no file path", () => {
-    expect(createScheduleStore(undefined).save("aide", [entry()])).toContain("--queue-config");
+    expect(createScheduleStore(undefined).save("aide", [entry()])).toContain(
+      "--queue-config",
+    );
   });
 
   test("leaves no temporary file behind", () => {
@@ -209,7 +301,9 @@ describe("an entry's notification choice", () => {
 
   test("each of the three values is read back", () => {
     for (const notify of ["never", "failure", "always"] as const) {
-      expect(parseScheduleEntries([{ ...base, notify }])[0]!.notify).toBe(notify);
+      expect(parseScheduleEntries([{ ...base, notify }])[0]!.notify).toBe(
+        notify,
+      );
     }
   });
 
@@ -224,7 +318,12 @@ describe("an entry's notification choice", () => {
 
   test("a saved choice is written to the file and only when present", () => {
     const store = createScheduleStore(file);
-    expect(store.save("aide", [entry({ notify: "always" }), entry({ name: "plain" })])).toBeNull();
+    expect(
+      store.save("aide", [
+        entry({ notify: "always" }),
+        entry({ name: "plain" }),
+      ]),
+    ).toBeNull();
     const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
     expect(written[0].notify).toBe("always");
     expect("notify" in written[1]).toBe(false);
@@ -236,7 +335,9 @@ describe("an entry's browser choice", () => {
   const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
 
   test("only the literal true asks for Chrome; anything else reads as none", () => {
-    expect(parseScheduleEntries([{ ...base, chrome: true }])[0]!.chrome).toBe(true);
+    expect(parseScheduleEntries([{ ...base, chrome: true }])[0]!.chrome).toBe(
+      true,
+    );
     for (const chrome of [undefined, false, "true", "yes", 1, null]) {
       const [kept] = parseScheduleEntries([{ ...base, chrome }]);
       expect(kept).toBeDefined();
@@ -246,7 +347,9 @@ describe("an entry's browser choice", () => {
 
   test("a saved choice is written to the file only when it asks for Chrome", () => {
     const store = createScheduleStore(file);
-    expect(store.save("aide", [entry({ chrome: true }), entry({ name: "plain" })])).toBeNull();
+    expect(
+      store.save("aide", [entry({ chrome: true }), entry({ name: "plain" })]),
+    ).toBeNull();
     const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
     expect(written[0].chrome).toBe(true);
     expect("chrome" in written[1]).toBe(false);
@@ -258,7 +361,9 @@ describe("an entry's sandbox choice", () => {
   const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
 
   test("only the literal false turns the sandbox off; anything else keeps it", () => {
-    expect(parseScheduleEntries([{ ...base, sandbox: false }])[0]!.sandbox).toBe(false);
+    expect(
+      parseScheduleEntries([{ ...base, sandbox: false }])[0]!.sandbox,
+    ).toBe(false);
     for (const sandbox of [undefined, true, "false", "off", 0, null]) {
       const [kept] = parseScheduleEntries([{ ...base, sandbox }]);
       expect(kept).toBeDefined();
@@ -268,7 +373,9 @@ describe("an entry's sandbox choice", () => {
 
   test("a saved choice is written to the file only when it turns the sandbox off", () => {
     const store = createScheduleStore(file);
-    expect(store.save("aide", [entry({ sandbox: false }), entry({ name: "plain" })])).toBeNull();
+    expect(
+      store.save("aide", [entry({ sandbox: false }), entry({ name: "plain" })]),
+    ).toBeNull();
     const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;
     expect(written[0].sandbox).toBe(false);
     expect("sandbox" in written[1]).toBe(false);

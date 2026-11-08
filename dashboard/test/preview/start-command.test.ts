@@ -6,7 +6,10 @@ import { describe, expect, test, afterEach } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { startCommandFor, testServerOffered } from "../../src/serve/setup/test-servers.ts";
+import {
+  startCommandFor,
+  testServerOffered,
+} from "../../src/serve/setup/test-servers.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -28,12 +31,20 @@ describe("what starts a board for a project", () => {
     const dir = root();
     mkdirSync(join(dir, "dashboard", "test", "round"), { recursive: true });
     mkdirSync(join(dir, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(dir, "dashboard", "test", "round", "run"), "#!/bin/bash\n");
+    writeFileSync(
+      join(dir, "dashboard", "test", "round", "run"),
+      "#!/bin/bash\n",
+    );
     writeFileSync(join(dir, "dashboard", "src", "serve", "serve.ts"), "");
 
     expect(startCommandFor(dir, "aide/1-x", 8801)).toEqual([
       join(dir, "dashboard", "test", "round", "run"),
-      dir, "--branch", "aide/1-x", "--port", "8801", "--keep",
+      dir,
+      "--branch",
+      "aide/1-x",
+      "--port",
+      "8801",
+      "--keep",
     ]);
   });
 
@@ -43,7 +54,13 @@ describe("what starts a board for a project", () => {
 
     expect(startCommandFor(dir, "aide/02-x", 8802)).toEqual([
       join(homedir(), ".local", "bin", "aide-preview"),
-      dir, "--branch", "aide/02-x", "--port", "8802", "--cmd", "pnpm dev --port $PORT",
+      dir,
+      "--branch",
+      "aide/02-x",
+      "--port",
+      "8802",
+      "--cmd",
+      "pnpm dev --port $PORT",
     ]);
   });
 
@@ -59,7 +76,10 @@ describe("whether a test server is offered for a project", () => {
   const roundScript = (dir: string): void => {
     mkdirSync(join(dir, "dashboard", "test", "round"), { recursive: true });
     mkdirSync(join(dir, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(dir, "dashboard", "test", "round", "run"), "#!/bin/bash\n");
+    writeFileSync(
+      join(dir, "dashboard", "test", "round", "run"),
+      "#!/bin/bash\n",
+    );
     writeFileSync(join(dir, "dashboard", "src", "serve", "serve.ts"), "");
   };
 
@@ -68,7 +88,10 @@ describe("whether a test server is offered for a project", () => {
     manifest(withRound, "name: a\ndeployment:\n  previewFrom: command\n");
     roundScript(withRound);
     const withCmd = root();
-    manifest(withCmd, "name: a\npreviewCmd: pnpm dev --port $PORT\ndeployment:\n  previewFrom: command\n");
+    manifest(
+      withCmd,
+      "name: a\npreviewCmd: pnpm dev --port $PORT\ndeployment:\n  previewFrom: command\n",
+    );
 
     expect(testServerOffered(withRound)).toBe(true);
     expect(testServerOffered(withCmd)).toBe(true);
@@ -82,9 +105,16 @@ describe("whether a test server is offered for a project", () => {
   });
 
   test("none, no setting and cloudflare-pages are not offered, though a previewCmd could start a board", () => {
-    for (const deployment of ["deployment:\n  previewFrom: none\n", "", "deployment:\n  previewFrom: cloudflare-pages\n"]) {
+    for (const deployment of [
+      "deployment:\n  previewFrom: none\n",
+      "",
+      "deployment:\n  previewFrom: cloudflare-pages\n",
+    ]) {
       const dir = root();
-      manifest(dir, `name: a\npreviewCmd: pnpm dev --port $PORT\n${deployment}`);
+      manifest(
+        dir,
+        `name: a\npreviewCmd: pnpm dev --port $PORT\n${deployment}`,
+      );
       expect(testServerOffered(dir)).toBe(false);
     }
   });

@@ -100,8 +100,7 @@ becomes a folder of its own. These rules hold for the whole repository —
 TypeScript, bash, Python and CSS alike; Markdown is left out of the limits,
 since a page is as long as what it says.
 
-1. **A source file stays at or under 500 lines, a test file at or under
-   800.**
+1. **A source file stays at or under 500 lines, a test file at or under 800.**
 2. **A folder holds at most 15 source or test files directly inside it.**
    One that would go past 15 is split into subfolders named for what their
    files are about — `test/e2e/specs-list/`, `test/serve/schedule/`.

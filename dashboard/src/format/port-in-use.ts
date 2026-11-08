@@ -3,7 +3,8 @@
 // core/scripts/lib/run-spec/turn/test-start.sh reads a test run's log the
 // same way, and core/tests/fixtures/port-in-use.json pins both.
 
-const PLAYWRIGHT = /(https?:\/\/[^ ]+) is already used, make sure that nothing is running on the port\/url/;
+const PLAYWRIGHT =
+  /(https?:\/\/[^ ]+) is already used, make sure that nothing is running on the port\/url/;
 const BIND = /EADDRINUSE|bind: address already in use/;
 /** A log where tests ran and failed: a port line in it is something a test printed. */
 const TESTS_RAN = /^\(fail\)|^FAILED|^ERROR|[0-9]+ failed/m;

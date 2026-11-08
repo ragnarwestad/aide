@@ -10,7 +10,14 @@
 // that the dashboard's checkout keeps up with what was pushed to origin.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -34,14 +41,23 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
 /** A bare origin with one commit, and a clone of it standing in for the
  *  checkout a person edits. `files` is what the repository contains. */
-function repoWithClone(where: string, name: string, files: Record<string, string>): { origin: string; clone: string } {
+function repoWithClone(
+  where: string,
+  name: string,
+  files: Record<string, string>,
+): { origin: string; clone: string } {
   const seed = join(where, `${name}-seed`);
   mkdirSync(seed, { recursive: true });
   for (const [path, text] of Object.entries(files)) {
@@ -69,7 +85,12 @@ describe("ensureDashboardCheckout", () => {
     });
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(result.checkout!.specsRepo).toBe(result.checkout!.code);
     expect(result.checkout!.specs).toBe(join(result.checkout!.code, "specs"));
@@ -84,23 +105,41 @@ describe("ensureDashboardCheckout", () => {
   test("a separate specs repository gets a checkout of its own, and the config names it", async () => {
     const where = tmp("aide-checkout-");
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
-    const specs = repoWithClone(where, "aide-specs", { "aide/01-first/1-description.md": "# First\n" });
+    const specs = repoWithClone(where, "aide-specs", {
+      "aide/01-first/1-description.md": "# First\n",
+    });
     const personSpecsRoot = join(specs.clone, "aide");
     mkdirSync(join(clone, ".aide"), { recursive: true });
-    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${personSpecsRoot}\n`);
+    writeFileSync(
+      join(clone, ".aide", "config"),
+      `AIDE_SPECS_PATH=${personSpecsRoot}\n`,
+    );
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(result.ok).toBe(true);
     expect(result.checkout!.specsRepo).toBe(dashboardSpecsRepo(base, "aide"));
-    expect(result.checkout!.specs).toBe(join(dashboardSpecsRepo(base, "aide"), "aide"));
-    expect(existsSync(join(result.checkout!.specs, "01-first", "1-description.md"))).toBe(true);
+    expect(result.checkout!.specs).toBe(
+      join(dashboardSpecsRepo(base, "aide"), "aide"),
+    );
+    expect(
+      existsSync(join(result.checkout!.specs, "01-first", "1-description.md")),
+    ).toBe(true);
     // The one that matters: `aide-run-spec` reads this key out of the
     // checkout it was pointed at, and a copied config would send it
     // straight back into the person's specs.
-    expect(configValue(result.checkout!.code, "AIDE_SPECS_PATH")).toBe(result.checkout!.specs);
-    expect(configValue(result.checkout!.code, "AIDE_SPECS_PATH")).not.toBe(personSpecsRoot);
+    expect(configValue(result.checkout!.code, "AIDE_SPECS_PATH")).toBe(
+      result.checkout!.specs,
+    );
+    expect(configValue(result.checkout!.code, "AIDE_SPECS_PATH")).not.toBe(
+      personSpecsRoot,
+    );
   });
 
   // The one setting the dashboard actually writes has to
@@ -108,18 +147,40 @@ describe("ensureDashboardCheckout", () => {
   test("a changed AIDE_SPECS_PATH reaches the dashboard's own config on the next call", async () => {
     const where = tmp("aide-checkout-");
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
-    const first = repoWithClone(where, "specs-one", { "aide/01-first/1-description.md": "# First\n" });
-    const second = repoWithClone(where, "specs-two", { "aide/01-first/1-description.md": "# First\n" });
+    const first = repoWithClone(where, "specs-one", {
+      "aide/01-first/1-description.md": "# First\n",
+    });
+    const second = repoWithClone(where, "specs-two", {
+      "aide/01-first/1-description.md": "# First\n",
+    });
     mkdirSync(join(clone, ".aide"), { recursive: true });
-    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${join(first.clone, "aide")}\n`);
+    writeFileSync(
+      join(clone, ".aide", "config"),
+      `AIDE_SPECS_PATH=${join(first.clone, "aide")}\n`,
+    );
     const base = join(where, "owned");
 
-    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
-    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${join(second.clone, "aide")}\n`);
-    const after = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
+    writeFileSync(
+      join(clone, ".aide", "config"),
+      `AIDE_SPECS_PATH=${join(second.clone, "aide")}\n`,
+    );
+    const after = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(after.ok).toBe(true);
-    expect(configValue(after.checkout!.code, "AIDE_SPECS_PATH")).toBe(after.checkout!.specs);
+    expect(configValue(after.checkout!.code, "AIDE_SPECS_PATH")).toBe(
+      after.checkout!.specs,
+    );
   });
 
   // A run's worktree carries TRACKED files only, so `worktreeLinks`
@@ -139,11 +200,18 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(clone, ".venv", "marker"), "person\n");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(existsSync(join(result.checkout!.code, ".venv"))).toBe(true);
     expect(existsSync(join(result.checkout!.code, "node_modules"))).toBe(true);
-    expect(readFileSync(join(result.checkout!.code, ".venv", "marker"), "utf-8")).toBe("person\n");
+    expect(
+      readFileSync(join(result.checkout!.code, ".venv", "marker"), "utf-8"),
+    ).toBe("person\n");
   });
 
   // The one thing that cannot be worked around: with no origin there is
@@ -157,7 +225,12 @@ describe("ensureDashboardCheckout", () => {
     git(lonely, "init", "-q", "-b", "main");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: lonely, mayClone: true });
+    const result = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: lonely,
+      mayClone: true,
+    });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain("origin");
@@ -172,10 +245,17 @@ describe("ensureDashboardCheckout", () => {
     const before = git(clone, "status", "--porcelain=v1", "--branch");
     const base = join(where, "owned");
 
-    await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
 
     expect(git(clone, "status", "--porcelain=v1", "--branch")).toBe(before);
-    expect(readFileSync(join(clone, "README.md"), "utf-8")).toBe("# edited by a person\n");
+    expect(readFileSync(join(clone, "README.md"), "utf-8")).toBe(
+      "# edited by a person\n",
+    );
   });
 });
 
@@ -187,10 +267,17 @@ describe("ensureDashboardCheckout", () => {
 describe("the dashboard's checkout keeps up with origin", () => {
   test("a commit pushed after the clone is there on the next call", async () => {
     const where = tmp("aide-checkout-");
-    const { origin, clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const { origin, clone } = repoWithClone(where, "aide", {
+      "README.md": "# aide\n",
+    });
     const base = join(where, "owned");
 
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const first = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
     expect(first.ok).toBe(true);
     const owned = first.checkout!.code;
     expect(existsSync(join(owned, "later.md"))).toBe(false);
@@ -198,17 +285,32 @@ describe("the dashboard's checkout keeps up with origin", () => {
     // Somebody else pushes — the person's own checkout, in real life.
     writeFileSync(join(clone, "later.md"), "written after the clone\n");
     git(clone, "add", "-A");
-    git(clone, "-c", "user.name=T", "-c", "user.email=t@e.x", "commit", "-qm", "later");
+    git(
+      clone,
+      "-c",
+      "user.name=T",
+      "-c",
+      "user.email=t@e.x",
+      "commit",
+      "-qm",
+      "later",
+    );
     git(clone, "push", "-q", "origin", "main");
     expect(origin.length).toBeGreaterThan(0);
 
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const second = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
     expect(second.ok).toBe(true);
     expect(second.cloned).toBe(false);
-    expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
+    expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe(
+      "written after the clone\n",
+    );
   });
 });
-
 
 // The checkout's `.aide/config` used to be the person's file copied in
 // first and its `AIDE_SPECS_PATH` rewritten after the specs repo's
@@ -219,11 +321,16 @@ describe("the dashboard's checkout keeps up with origin", () => {
 describe("the checkout's config never names the person's specs path", () => {
   test("a reader polling .aide/config throughout ensureDashboardCheckout sees only the dashboard's path", async () => {
     const where = tmp("aide-checkout-atomic-");
-    const specsRepo = repoWithClone(where, "aide-specs", { "aide/01-first/1-description.md": "# First\n" });
+    const specsRepo = repoWithClone(where, "aide-specs", {
+      "aide/01-first/1-description.md": "# First\n",
+    });
     const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
     const personSpecs = join(specsRepo.clone, "aide");
     mkdirSync(join(clone, ".aide"), { recursive: true });
-    writeFileSync(join(clone, ".aide", "config"), `AIDE_INSTALL_CMD=true\nAIDE_SPECS_PATH=${personSpecs}\n`);
+    writeFileSync(
+      join(clone, ".aide", "config"),
+      `AIDE_INSTALL_CMD=true\nAIDE_SPECS_PATH=${personSpecs}\n`,
+    );
     const base = join(where, "owned");
     const code = dashboardCheckoutRoot(base, "aide");
 
@@ -238,8 +345,18 @@ describe("the checkout's config never names the person's specs path", () => {
     })();
     // Twice: the first call clones, the second brings up to date — the
     // window existed on both paths.
-    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
-    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    const first = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
+    const second = await ensureDashboardCheckout(run, {
+      base,
+      project: "aide",
+      personDir: clone,
+      mayClone: true,
+    });
     stop = true;
     await poll;
 
@@ -248,6 +365,9 @@ describe("the checkout's config never names the person's specs path", () => {
     expect(seen.has(personSpecs)).toBe(false);
     expect(configValue(code, "AIDE_SPECS_PATH")).toBe(second.checkout!.specs);
     expect(configValue(code, "AIDE_INSTALL_CMD")).toBe("true");
-    expect(existsSync(join(code, ".aide")) && readFileSync(join(code, ".aide", "config"), "utf-8")).not.toContain(personSpecs);
+    expect(
+      existsSync(join(code, ".aide")) &&
+        readFileSync(join(code, ".aide", "config"), "utf-8"),
+    ).not.toContain(personSpecs);
   });
 });

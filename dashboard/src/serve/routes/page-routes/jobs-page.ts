@@ -10,7 +10,11 @@ import {
   renderJobsRows,
   renderJobsSpecRows,
 } from "../../../render";
-import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
+import {
+  jobsViewChoice,
+  languageChoice,
+  specsClientScript,
+} from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
 
@@ -36,7 +40,8 @@ export async function jobsPage(
   path: string,
 ): Promise<Response | null> {
   if (path !== "/" && path !== APP_START_ROUTE) return null;
-  if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+  if (req.method !== "GET")
+    return new Response("method not allowed", { status: 405 });
 
   const langResult = languageChoice(url, req);
   // The tab's own view, from the address or its own cookie.
@@ -44,12 +49,15 @@ export async function jobsPage(
   const jobs = ctx.queue.list();
   // The scheduled jobs and the Close, Reopen and deploy jobs, by the rules they follow.
   const shown = jobsShown(jobs, {
-    scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
+    scheduleEntryExists: (project, name) =>
+      ctx.scheduleStore.list(project).some((e) => e.name === name),
   });
   // The jobs a spec's row is drawn from, as the Specs list draws it.
   const specJobs = listedSpecJobs(ctx, jobs);
   const built = new Map(
-    (await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
+    (
+      await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))
+    ).map((r) => [r.id, r]),
   );
   const rowOptions = specRowOptions(ctx, url, langResult.lang);
   const view = {
@@ -61,7 +69,11 @@ export async function jobsPage(
       filter: {
         ...rowOptions.filter,
         ...choice.view,
-        open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs),
+        open: openWithCreated(
+          rowOptions.filter?.open,
+          url.searchParams.get("created"),
+          jobs,
+        ),
       },
       // The archived rows the list's Active entry shows: those whose branch has not merged.
       archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY),
@@ -78,7 +90,10 @@ export async function jobsPage(
   // row, and to the Specs list, bare, when it leaves none, so the list opens
   // with the state filter and sort its cookies keep.
   if (path === APP_START_ROUTE) {
-    return new Response(null, { status: 302, headers: { location: jobsTabHasRows(view) ? "/" : "/specs" } });
+    return new Response(null, {
+      status: 302,
+      headers: { location: jobsTabHasRows(view) ? "/" : "/specs" },
+    });
   }
 
   const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
@@ -88,7 +103,13 @@ export async function jobsPage(
   // one spec a fold opened or shut.
   if (url.searchParams.get("rows")) {
     const only = url.searchParams.get("only");
-    return new Response(only ? renderJobsSpecRows(view, only) : renderJobsRows(view), { headers });
+    return new Response(
+      only ? renderJobsSpecRows(view, only) : renderJobsRows(view),
+      { headers },
+    );
   }
-  return new Response(renderJobsPage(view, new Date().toISOString(), ctx.nav()), { headers });
+  return new Response(
+    renderJobsPage(view, new Date().toISOString(), ctx.nav()),
+    { headers },
+  );
 }

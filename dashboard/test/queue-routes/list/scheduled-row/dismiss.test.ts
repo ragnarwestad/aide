@@ -17,7 +17,10 @@ afterEach(() => {
   while (tmp.length) rmSync(tmp.pop()!, { recursive: true, force: true });
 });
 
-const headers = { "content-type": "application/json", accept: "application/json" };
+const headers = {
+  "content-type": "application/json",
+  accept: "application/json",
+};
 
 const job = (o: Record<string, unknown>) => ({
   id: "j1",
@@ -29,7 +32,17 @@ const job = (o: Record<string, unknown>) => ({
   timeoutSec: {},
   permissionMode: {},
   model: {},
-  results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
+  results: [
+    {
+      step: "schedule",
+      ok: false,
+      exitCode: 1,
+      costUsd: 0.1,
+      costMeasured: true,
+      terminalReason: "error",
+      repos: [],
+    },
+  ],
   createdAt: "2026-10-08T10:00:00Z",
   startedAt: "2026-10-08T10:01:00Z",
   finishedAt: "2026-10-08T10:05:00Z",
@@ -41,18 +54,42 @@ function scheduleConfig(): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-dismiss-schedule-"));
   tmp.push(dir);
   const file = join(dir, "queue-config.json");
-  writeFileSync(file, JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/n.md", enabled: false }] } }));
+  writeFileSync(
+    file,
+    JSON.stringify({
+      schedules: {
+        aide: [
+          {
+            name: "nightly",
+            cron: "0 3 * * *",
+            prompt: "docs/n.md",
+            enabled: false,
+          },
+        ],
+      },
+    }),
+  );
   return file;
 }
 
 const board = (jobs: Record<string, unknown>[]) =>
-  harness.start({ extra: { queueProjects: ["aide"], queueConfigFile: scheduleConfig() }, queueMirror: JSON.stringify(jobs) });
+  harness.start({
+    extra: { queueProjects: ["aide"], queueConfigFile: scheduleConfig() },
+    queueMirror: JSON.stringify(jobs),
+  });
 
-const dismiss = (base: string, id: string, method = "POST") => fetch(`${base}/api/queue/${id}/dismiss`, { method, headers });
-const rows = async (base: string): Promise<string> => await (await fetch(`${base}/?rows=1`)).text();
-const hasRow = (html: string): boolean => html.includes('id="spec-aide/schedule-nightly"');
+const dismiss = (base: string, id: string, method = "POST") =>
+  fetch(`${base}/api/queue/${id}/dismiss`, { method, headers });
+const rows = async (base: string): Promise<string> =>
+  await (await fetch(`${base}/?rows=1`)).text();
+const hasRow = (html: string): boolean =>
+  html.includes('id="spec-aide/schedule-nightly"');
 const stored = async (base: string, id: string) =>
-  ((await (await fetch(`${base}/api/queue/${id}`, { headers })).json()) as { job: Record<string, unknown> }).job;
+  (
+    (await (await fetch(`${base}/api/queue/${id}`, { headers })).json()) as {
+      job: Record<string, unknown>;
+    }
+  ).job;
 
 describe("dismissing a failed scheduled job", () => {
   test("keeps the job, its results and its page, and takes the row off the tab (AC-2, AC-3)", async () => {
@@ -88,7 +125,9 @@ describe("dismissing a failed scheduled job", () => {
 
 describe("the dismiss route refuses what the row does not offer it for", () => {
   test("a failed spec job is refused with 409 and left unchanged (AC-4)", async () => {
-    const { base } = board([job({ id: "sp", specFolder: "81-queue", steps: ["analyze"] })]);
+    const { base } = board([
+      job({ id: "sp", specFolder: "81-queue", steps: ["analyze"] }),
+    ]);
     const res = await dismiss(base, "sp");
     expect(res.status).toBe(409);
     const body = (await res.json()) as { error: string; spec: string };

@@ -125,7 +125,10 @@ export interface AddProjectRequest {
 
 /** The one-refusal-step answer every add/settings-change route that
  *  fails before it has done anything else uses. */
-export const fail = (step: ProjectStepName, error: string): ProjectAdminResult => ({
+export const fail = (
+  step: ProjectStepName,
+  error: string,
+): ProjectAdminResult => ({
   ok: false,
   steps: [{ step, ok: false, error }],
 });

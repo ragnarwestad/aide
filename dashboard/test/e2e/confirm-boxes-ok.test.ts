@@ -24,17 +24,38 @@ function board(): string {
     join(scratch, "queue.json"),
     JSON.stringify([
       {
-        id: "run1", project: "aide", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "running",
-        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-18T03:00:00Z", startedAt: "2026-09-18T03:00:00Z",
+        id: "run1",
+        project: "aide",
+        specFolder: FOLDER,
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "running",
+        timeoutSec: {},
+        permissionMode: {},
+        model: {},
+        createdAt: "2026-09-18T03:00:00Z",
+        startedAt: "2026-09-18T03:00:00Z",
       },
     ]),
   );
   const queueConfigFile = join(scratch, "queue-config.json");
   writeFileSync(
     queueConfigFile,
-    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
+    JSON.stringify({
+      schedules: {
+        aide: [
+          {
+            name: "nightly-report",
+            cron: "0 3 * * *",
+            prompt: "docs/nightly.md",
+          },
+        ],
+      },
+    }),
   );
-  return harness.start({ extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile } }).base;
+  return harness.start({
+    extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
+  }).base;
 }
 
 beforeAll(async () => {
@@ -48,7 +69,12 @@ afterAll(async () => {
 
 /** Presses the button naming `id`, then OK in its dialog; answers every
  *  queue POST with `fulfil` when given, and hands back every POST's path. */
-async function pressOk(page: Page, url: string, id: string, fulfil?: unknown): Promise<string[]> {
+async function pressOk(
+  page: Page,
+  url: string,
+  id: string,
+  fulfil?: unknown,
+): Promise<string[]> {
   const posts: string[] = [];
   page.on("request", (r) => {
     if (r.method() === "POST") posts.push(new URL(r.url()).pathname);
@@ -56,7 +82,10 @@ async function pressOk(page: Page, url: string, id: string, fulfil?: unknown): P
   if (fulfil) {
     await page.route(
       (u) => u.pathname.startsWith("/api/queue"),
-      (route) => (route.request().method() === "POST" ? route.fulfill({ json: fulfil }) : route.continue()),
+      (route) =>
+        route.request().method() === "POST"
+          ? route.fulfill({ json: fulfil })
+          : route.continue(),
     );
   }
   await page.goto(url);
@@ -71,7 +100,12 @@ describe("OK posts once, to the old route", () => {
   test("Cancel on a list row", async () => {
     const base = board();
     const page = await browser.newPage();
-    const posts = await pressOk(page, `${base}/?live=0&open=aide%2F${FOLDER}`, "cancelask-run1", { ok: true });
+    const posts = await pressOk(
+      page,
+      `${base}/?live=0&open=aide%2F${FOLDER}`,
+      "cancelask-run1",
+      { ok: true },
+    );
     await page.waitForTimeout(500);
     expect(posts).toEqual(["/api/queue/run1/cancel"]);
     await page.close();
@@ -80,7 +114,11 @@ describe("OK posts once, to the old route", () => {
   test("Delete on a schedule row", async () => {
     const base = board();
     const page = await browser.newPage();
-    const posts = await pressOk(page, `${base}/projects/aide?tab=schedule&live=0`, "deleteask-aide/nightly-report");
+    const posts = await pressOk(
+      page,
+      `${base}/projects/aide?tab=schedule&live=0`,
+      "deleteask-aide/nightly-report",
+    );
     await page.waitForLoadState("load");
     await page.waitForTimeout(300);
     expect(posts).toEqual(["/api/queue/schedule/aide/nightly-report/delete"]);
@@ -101,7 +139,9 @@ describe("OK posts once, to the old route", () => {
     expect(new URL(page.url()).pathname).toBe("/projects");
     await box.getByRole("button", { name: "OK" }).click();
     // The list is drawn again, and aide's row is gone.
-    await page.getByRole("button", { name: "Remove aide" }).waitFor({ state: "detached" });
+    await page
+      .getByRole("button", { name: "Remove aide" })
+      .waitFor({ state: "detached" });
     expect(posts).toEqual(["/api/queue/projects/aide/remove"]);
     await page.close();
   });

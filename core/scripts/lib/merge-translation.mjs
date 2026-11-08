@@ -33,7 +33,8 @@ import { pathToFileURL } from "node:url";
 export function readMembers(text) {
   try {
     const parsed = JSON.parse(text);
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
+      return null;
   } catch {
     return null;
   }
@@ -89,7 +90,11 @@ export function readMembers(text) {
     const key = JSON.parse(keyText);
     if (keys.has(key)) return null;
     keys.add(key);
-    members.push({ key, raw, value: JSON.parse(raw.slice(keyText.length).replace(/^\s*:/, "")) });
+    members.push({
+      key,
+      raw,
+      value: JSON.parse(raw.slice(keyText.length).replace(/^\s*:/, "")),
+    });
   }
   // gaps[0] is what stands between `{` and the first key; every later gap
   // is the separator before a member, comma included. They must all be the
@@ -97,13 +102,21 @@ export function readMembers(text) {
   const lead = gaps[0] ?? "";
   const between = gaps[1];
   if (gaps.slice(2).some((g) => g !== between)) return null;
-  const layout = { head: text.slice(0, open + 1) + lead, between, tail: text.slice(close) };
+  const layout = {
+    head: text.slice(0, open + 1) + lead,
+    between,
+    tail: text.slice(close),
+  };
   if (members.length > 0 && write(members, layout) !== text) return null;
   return { members, layout };
 }
 
 function write(members, layout) {
-  return layout.head + members.map((m) => m.raw).join(layout.between ?? "") + layout.tail;
+  return (
+    layout.head +
+    members.map((m) => m.raw).join(layout.between ?? "") +
+    layout.tail
+  );
 }
 
 /** Equal as JSON values, whatever the order of an object's keys. */
@@ -115,7 +128,10 @@ function same(a, b) {
 function canonical(v) {
   if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
   if (v !== null && typeof v === "object") {
-    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}`;
+    return `{${Object.keys(v)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(v);
 }
@@ -152,16 +168,24 @@ export function mergeTranslation(baseText, oursText, theirsText) {
   if (layout.between === undefined) {
     // Ours has one member or none, so it shows no separator: borrow
     // theirs' or base's, which share the file's style.
-    layout = { ...layout, between: theirs.layout.between ?? base.layout?.between };
+    layout = {
+      ...layout,
+      between: theirs.layout.between ?? base.layout?.between,
+    };
     if (merged.length > 1 && layout.between === undefined) return null;
   }
   return write(merged, layout);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
+) {
   const [basePath, oursPath, theirsPath] = process.argv.slice(2);
   if (!basePath || !oursPath || !theirsPath) {
-    process.stderr.write("usage: merge-translation.mjs <base> <ours> <theirs>\n");
+    process.stderr.write(
+      "usage: merge-translation.mjs <base> <ours> <theirs>\n",
+    );
     process.exit(2);
   }
   const merged = mergeTranslation(

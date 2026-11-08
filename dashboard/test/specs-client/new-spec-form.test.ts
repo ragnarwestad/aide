@@ -4,29 +4,42 @@
 
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderAddProjectPage, renderNewSpecPage, renderProjectPage, type ProjectView } from "../../src/render";
+import {
+  renderAddProjectPage,
+  renderNewSpecPage,
+  renderProjectPage,
+  type ProjectView,
+} from "../../src/render";
 import { descriptionPanel } from "../../src/render/pages/spec-page/panels.ts";
 import { NEW_SPEC_FORM } from "../../src/specs-client/state.ts";
 import { NOW, view } from "../render/pages/spec-page-fixtures.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 const GENERATED = "2026-09-20T00:00:00Z";
-const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
+const project: ProjectView = {
+  name: "aide",
+  manifest: { ok: false, error: "no manifest" },
+  specs: [],
+};
 
 /** The action of every form on the page `NEW_SPEC_FORM` matches. */
 async function matched(html: string): Promise<string[]> {
   const win = new Window();
   win.document.write(html);
-  const actions = [...win.document.querySelectorAll(NEW_SPEC_FORM)].map((f) => f.getAttribute("action") ?? "");
+  const actions = [...win.document.querySelectorAll(NEW_SPEC_FORM)].map(
+    (f) => f.getAttribute("action") ?? "",
+  );
   await win.happyDOM.close();
   return actions;
 }
 
 describe("which forms the New-spec handler binds", () => {
   test("the New-spec form matches", async () => {
-    expect(await matched(renderNewSpecPage(NAV, GENERATED, { createProjects: ["aide"] }))).toEqual([
-      "/api/queue/create",
-    ]);
+    expect(
+      await matched(
+        renderNewSpecPage(NAV, GENERATED, { createProjects: ["aide"] }),
+      ),
+    ).toEqual(["/api/queue/create"]);
   });
 
   test("the Add project form does not", async () => {
@@ -34,11 +47,18 @@ describe("which forms the New-spec handler binds", () => {
   });
 
   test("the project settings form, open for editing, does not", async () => {
-    const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, GENERATED, NAV, {
-      worktreeLinkCandidates: [],
-      editingGroup: "manifest",
-      tab: "config",
-    });
+    const html = renderProjectPage(
+      project,
+      { hasConfigFile: false, rows: [] },
+      null,
+      GENERATED,
+      NAV,
+      {
+        worktreeLinkCandidates: [],
+        editingGroup: "manifest",
+        tab: "config",
+      },
+    );
     expect(html).toContain("/settings");
     expect(await matched(html)).toEqual([]);
   });

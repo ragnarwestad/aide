@@ -4,11 +4,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { headerNotices } from "../../../../src/render/ui/header-notices.ts";
 import { setDeployFaultNotice } from "../../../../src/render/ui/faults/deploy-fault.ts";
-import { createServerState, setDeployFault } from "../../../../src/serve/state.ts";
+import {
+  createServerState,
+  setDeployFault,
+} from "../../../../src/serve/state.ts";
 
 afterEach(() => setDeployFaultNotice(null));
 
-const FAULT = { key: "landing.deployServiceOlder", values: { served: "abc1234", head: "9999999" } } as const;
+const FAULT = {
+  key: "landing.deployServiceOlder",
+  values: { served: "abc1234", head: "9999999" },
+} as const;
 
 describe("headerNotices: the deploy fault", () => {
   test("the server's own writer feeds it, clears it, and a fresh state starts without it", () => {

@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  rmSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "../../../src/serve/serve.ts";
 import {
-  createServer,
-} from "../../../src/serve/serve.ts";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+  createGitRunner,
+  type GitRunner,
+} from "../../../src/git/branch-status.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
@@ -19,7 +26,8 @@ const { git, realProject, recording } = checkoutSafetyHelpers(ownDirs);
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // The dashboard works in checkouts of its own.
@@ -47,7 +55,7 @@ describe("the dashboard works in checkouts of its own", () => {
 
   /** A page's HTML, through the token like a reader's browser. */
   const page = async (base: string, path: string): Promise<string> =>
-    await (await fetch(`${base}${path}`, )).text();
+    await (await fetch(`${base}${path}`)).text();
 
   /** Fetch a page until it says what is expected, and hand back the
    *  last thing it said either way.
@@ -75,7 +83,11 @@ describe("the dashboard works in checkouts of its own", () => {
 
   /** Wait until the recorded git calls stop arriving, so a count taken
    *  afterwards is the REQUEST's own and not a tick's tail. */
-  async function quiet(calls: unknown[], stillMs = 300, budgetMs = 20000): Promise<void> {
+  async function quiet(
+    calls: unknown[],
+    stillMs = 300,
+    budgetMs = 20000,
+  ): Promise<void> {
     const deadline = Date.now() + budgetMs;
     let seen = -1;
     let since = Date.now();
@@ -96,12 +108,20 @@ describe("the dashboard works in checkouts of its own", () => {
     const scratch = mkdtempSync(join(tmpdir(), "aide-218-push-"));
     ownDirs.push(scratch);
     const clone = join(scratch, "aide");
-    Bun.spawnSync({ cmd: ["git", "clone", "-q", join(projectsRoot, "..", "aide.git"), clone] });
+    Bun.spawnSync({
+      cmd: ["git", "clone", "-q", join(projectsRoot, "..", "aide.git"), clone],
+    });
     git(clone, "config", "user.name", "Somebody Else");
     git(clone, "config", "user.email", "else@example.com");
     mkdirSync(join(clone, "specs", folder), { recursive: true });
-    writeFileSync(join(clone, "specs", folder, "1-description.md"), `# ${folder} - Description\n\nPushed.\n`);
-    writeFileSync(join(clone, "specs", folder, "4-status.md"), statusSaying(["create"]));
+    writeFileSync(
+      join(clone, "specs", folder, "1-description.md"),
+      `# ${folder} - Description\n\nPushed.\n`,
+    );
+    writeFileSync(
+      join(clone, "specs", folder, "4-status.md"),
+      statusSaying(["create"]),
+    );
     git(clone, "add", "-A");
     git(clone, "commit", "-qm", `add ${folder}`);
     git(clone, "push", "-q", "origin", "main");
@@ -111,8 +131,14 @@ describe("the dashboard works in checkouts of its own", () => {
    *  list used to offer and every step used to refuse. */
   function commitSpecUnpushed(person: string, folder: string): void {
     mkdirSync(join(person, "specs", folder), { recursive: true });
-    writeFileSync(join(person, "specs", folder, "1-description.md"), `# ${folder} - Description\n\nMine only.\n`);
-    writeFileSync(join(person, "specs", folder, "4-status.md"), statusSaying(["create"]));
+    writeFileSync(
+      join(person, "specs", folder, "1-description.md"),
+      `# ${folder} - Description\n\nMine only.\n`,
+    );
+    writeFileSync(
+      join(person, "specs", folder, "4-status.md"),
+      statusSaying(["create"]),
+    );
     git(person, "add", "-A");
     git(person, "commit", "-qm", `add ${folder}`);
   }
@@ -131,12 +157,21 @@ describe("the dashboard works in checkouts of its own", () => {
 
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      driftPollMs: 0,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
-      const html = await untilPage(base, "/specs", (h) => !h.includes("990-only-in-my-checkout"));
+      const html = await untilPage(
+        base,
+        "/specs",
+        (h) => !h.includes("990-only-in-my-checkout"),
+      );
       expect(html).not.toContain("990-only-in-my-checkout");
       expect(html).toContain("81-queue-and-runner");
     } finally {
@@ -158,12 +193,19 @@ describe("the dashboard works in checkouts of its own", () => {
 
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      driftPollMs: 0,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
-      const html = await untilPage(base, "/projects", (h) => h.includes("1 active · 0 archived"));
+      const html = await untilPage(base, "/projects", (h) =>
+        h.includes("1 active · 0 archived"),
+      );
       expect(html).toContain("1 active · 0 archived");
       expect(html).not.toContain("991-only-in-my-checkout");
     } finally {
@@ -175,19 +217,29 @@ describe("the dashboard works in checkouts of its own", () => {
   // working exactly as it did before the own checkout existed — the same fallback
   // `machinerySpecDir` and `peekMachinerySpecDir` already take.
   test("a project with no checkout of its own is listed from the person's, as before", async () => {
-    const { projectsRoot, person, site, owned } = realProject({ ownClone: false });
+    const { projectsRoot, person, site, owned } = realProject({
+      ownClone: false,
+    });
     commitSpecUnpushed(person, "992-only-in-my-checkout");
     // The one question the clone rests on, refused: there is nothing to
     // clone from, so no checkout of the dashboard's own is ever
     // resolved. Nothing else is touched.
     const real = createGitRunner();
     const noOrigin: GitRunner = async (dir, args, timeoutMs) =>
-      args.join(" ") === "remote get-url origin" ? { code: 1, stdout: "" } : await real(dir, args, timeoutMs);
+      args.join(" ") === "remote get-url origin"
+        ? { code: 1, stdout: "" }
+        : await real(dir, args, timeoutMs);
 
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, gitRun: noOrigin,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      driftPollMs: 0,
+      gitRun: noOrigin,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
@@ -218,21 +270,36 @@ describe("the dashboard works in checkouts of its own", () => {
 
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 250,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      driftPollMs: 0,
+      specCachePollMs: 250,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
       // The boot-time ensure has settled and the page is answering.
-      expect(await untilPage(base, "/specs", (h) => h.includes("81-queue-and-runner"))).toContain(
-        "81-queue-and-runner",
-      );
+      expect(
+        await untilPage(base, "/specs", (h) =>
+          h.includes("81-queue-and-runner"),
+        ),
+      ).toContain("81-queue-and-runner");
       // Somebody else pushes. The person's own checkout never hears
       // about it, so the person's list cannot be where this comes from.
       pushSpecToOrigin(projectsRoot, "993-pushed-by-somebody-else");
-      expect(existsSync(join(person, "specs", "993-pushed-by-somebody-else"))).toBe(false);
+      expect(
+        existsSync(join(person, "specs", "993-pushed-by-somebody-else")),
+      ).toBe(false);
 
-      const html = await untilPage(base, "/specs", (h) => h.includes("993-pushed-by-somebody-else"), 25000);
+      const html = await untilPage(
+        base,
+        "/specs",
+        (h) => h.includes("993-pushed-by-somebody-else"),
+        25000,
+      );
       expect(html).toContain("993-pushed-by-somebody-else");
     } finally {
       server.stop();
@@ -259,14 +326,23 @@ describe("the dashboard works in checkouts of its own", () => {
     // request's.
     const server = createServer({
       port: 0,
-      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000, gitRun: recorded.run,
+      mirrorPath: join(site, "runs.json"),
+      queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot,
+      queueProjectRoot: projectsRoot,
+      queueProjects: ["aide"],
+      dashboardCheckoutRoot: owned,
+      driftPollMs: 0,
+      specCachePollMs: 100_000,
+      gitRun: recorded.run,
     });
     const base = `http://127.0.0.1:${server.port}`;
     try {
-      expect(await untilPage(base, "/specs", (h) => h.includes("994-pushed-by-somebody-else"))).toContain(
-        "994-pushed-by-somebody-else",
-      );
+      expect(
+        await untilPage(base, "/specs", (h) =>
+          h.includes("994-pushed-by-somebody-else"),
+        ),
+      ).toContain("994-pushed-by-somebody-else");
       await quiet(recorded.calls);
       const before = recorded.calls.length;
       const html = await page(base, "/specs");
@@ -280,23 +356,38 @@ describe("the dashboard works in checkouts of its own", () => {
   // A session on another machine pushes and tells the board by this
   // route, so the list shows the push without waiting for the sweep.
   describe("POST /api/queue/projects/<project>/fetch-specs", () => {
-    const post = (base: string, path: string) => fetch(`${base}${path}`, { method: "POST" });
+    const post = (base: string, path: string) =>
+      fetch(`${base}${path}`, { method: "POST" });
 
     /** A booted board on a real project whose sweep will not come round
      *  again within the test, so whatever the list shows after the
      *  request came from the request. */
     async function board(gitRun?: GitRunner) {
       const { projectsRoot, person, site, owned } = realProject();
-      const made = await ensureDashboardCheckout(createGitRunner(), { base: owned, project: "aide", personDir: person });
+      const made = await ensureDashboardCheckout(createGitRunner(), {
+        base: owned,
+        project: "aide",
+        personDir: person,
+      });
       expect(made.ok).toBe(true);
       const server = createServer({
         port: 0,
-        mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
-        projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000,
+        mirrorPath: join(site, "runs.json"),
+        queueMirrorPath: join(site, "queue.json"),
+        projectRoot: projectsRoot,
+        queueProjectRoot: projectsRoot,
+        queueProjects: ["aide"],
+        dashboardCheckoutRoot: owned,
+        driftPollMs: 0,
+        specCachePollMs: 100_000,
         ...(gitRun ? { gitRun } : {}),
       });
       const base = `http://127.0.0.1:${server.port}`;
-      expect(await untilPage(base, "/specs", (h) => h.includes("81-queue-and-runner"))).toContain("81-queue-and-runner");
+      expect(
+        await untilPage(base, "/specs", (h) =>
+          h.includes("81-queue-and-runner"),
+        ),
+      ).toContain("81-queue-and-runner");
       return { projectsRoot, owned, server, base };
     }
 
@@ -304,14 +395,22 @@ describe("the dashboard works in checkouts of its own", () => {
       const { projectsRoot, owned, server, base } = await board();
       try {
         pushSpecToOrigin(projectsRoot, "995-pushed-by-somebody-else");
-        expect(await page(base, "/specs")).not.toContain("995-pushed-by-somebody-else");
+        expect(await page(base, "/specs")).not.toContain(
+          "995-pushed-by-somebody-else",
+        );
 
         const answer = await post(base, "/api/queue/projects/aide/fetch-specs");
 
         expect(answer.status).toBe(200);
         expect(await answer.json()).toEqual({ ok: true });
-        expect(existsSync(join(owned, "aide", "code", "specs", "995-pushed-by-somebody-else"))).toBe(true);
-        expect(await page(base, "/specs")).toContain("995-pushed-by-somebody-else");
+        expect(
+          existsSync(
+            join(owned, "aide", "code", "specs", "995-pushed-by-somebody-else"),
+          ),
+        ).toBe(true);
+        expect(await page(base, "/specs")).toContain(
+          "995-pushed-by-somebody-else",
+        );
       } finally {
         server.stop();
       }
@@ -324,7 +423,10 @@ describe("the dashboard works in checkouts of its own", () => {
         await quiet(recorded.calls);
         const before = recorded.calls.length;
 
-        const unknown = await post(base, "/api/queue/projects/nope/fetch-specs");
+        const unknown = await post(
+          base,
+          "/api/queue/projects/nope/fetch-specs",
+        );
         const get = await fetch(`${base}/api/queue/projects/aide/fetch-specs`);
 
         expect(unknown.status).toBe(404);
@@ -341,11 +443,16 @@ describe("the dashboard works in checkouts of its own", () => {
       const { server, base } = await board(recorded.run);
       try {
         await quiet(recorded.calls);
-        const histories = () => recorded.calls.filter((c) => c.args[0] === "log" && c.args.includes("--all")).length;
+        const histories = () =>
+          recorded.calls.filter(
+            (c) => c.args[0] === "log" && c.args.includes("--all"),
+          ).length;
         const before = histories();
         expect(before).toBeGreaterThan(0);
 
-        expect((await post(base, "/api/queue/projects/aide/fetch-specs")).status).toBe(200);
+        expect(
+          (await post(base, "/api/queue/projects/aide/fetch-specs")).status,
+        ).toBe(200);
 
         expect(histories()).toBeGreaterThan(before);
       } finally {

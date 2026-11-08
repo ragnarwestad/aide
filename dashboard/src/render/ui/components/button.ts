@@ -51,7 +51,9 @@ export interface BtnOptions {
 }
 
 export function btn(o: BtnOptions): string {
-  const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
+  const cls = ["btn", o.variant || "", o.small ? "small" : ""]
+    .filter(Boolean)
+    .join(" ");
   const attrs =
     (o.id ? `id="${esc(o.id)}" ` : "") +
     `type="${o.type ?? "submit"}" class="${cls}"` +
@@ -121,7 +123,10 @@ export function buttonForm(o: {
     dataAttrs(o.data) +
     (o.target ? ` target="${o.target}"` : "");
   const hidden = Object.entries(o.hidden ?? {})
-    .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
+    .map(
+      ([name, value]) =>
+        `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`,
+    )
     .join("");
   const button =
     "cross" in o.button
@@ -145,7 +150,9 @@ export function btnLink(o: {
   hook?: string;
   data?: Record<string, string>;
 }): string {
-  const cls = ["btn", o.variant || "", o.small ? "small" : "", o.hook ?? ""].filter(Boolean).join(" ");
+  const cls = ["btn", o.variant || "", o.small ? "small" : "", o.hook ?? ""]
+    .filter(Boolean)
+    .join(" ");
   return `<a class="${cls}" href="${esc(o.href)}"${dataAttrs(o.data)}>${esc(o.label)}</a>`;
 }
 
@@ -163,12 +170,25 @@ export function btnLink(o: {
  *  deletes the spec's code branch without merging it — so it carries
  *  `danger` the way every other irreversible control does. */
 export function saveCancelActions(
-  prefix = "specform", o: { variant?: BtnVariant; saveDisabled?: boolean } = {}, lang: Language = "en",
+  prefix = "specform",
+  o: { variant?: BtnVariant; saveDisabled?: boolean } = {},
+  lang: Language = "en",
 ): string {
   return (
     `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: t(lang, "list.checksSave"), variant: o.variant ?? "primary", pending: t(lang, "list.checksSaving"), disabled: o.saveDisabled }) +
-    btn({ id: `${prefix}-cancel`, label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
+    btn({
+      id: `${prefix}-save`,
+      label: t(lang, "list.checksSave"),
+      variant: o.variant ?? "primary",
+      pending: t(lang, "list.checksSaving"),
+      disabled: o.saveDisabled,
+    }) +
+    btn({
+      id: `${prefix}-cancel`,
+      label: t(lang, "dialog.cancel"),
+      type: "button",
+      disabled: true,
+    }) +
     `</span>`
   );
 }

@@ -17,7 +17,11 @@ import { row } from "../../fixtures.ts";
 
 // The row's own message panel, where the row's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
+  html.match(
+    new RegExp(
+      `<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`,
+    ),
+  )?.[0] ?? "";
 
 // The create exception ends where the archive begins: a create job keeps
 // its group on the page while its spec has not landed, but once the
@@ -36,10 +40,21 @@ describe("an archived spec's create job is not a row", () => {
     createdAt: "2026-08-19T10:00:00Z",
   });
   test("visible while unlanded, gone once archived", () => {
-    const opts = { runnerAvailable: true, targets: [{ project: "aide", specFolder: "90-other" }] };
-    const before = renderSpecsRows([createJob("111-x")], opts, Date.parse("2026-08-19T12:00:00Z"));
+    const opts = {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "90-other" }],
+    };
+    const before = renderSpecsRows(
+      [createJob("111-x")],
+      opts,
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
     expect(before).toContain('data-folder="111-x"');
-    const after = renderSpecsRows([createJob("111-x")], { ...opts, archived: ["aide/111-x"] }, Date.parse("2026-08-19T12:00:00Z"));
+    const after = renderSpecsRows(
+      [createJob("111-x")],
+      { ...opts, archived: ["aide/111-x"] },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
     expect(after).not.toContain('data-folder="111-x"');
   });
 });
@@ -95,7 +110,9 @@ describe("an archived spec's non-create job is not a row either", () => {
   test("the same spec unarchived keeps its row, contradiction and all", () => {
     const html = opened("129-x", []);
     expect(html).toContain('data-folder="129-x"');
-    expect(html).toContain("ast run reported done, but nothing reached the files\nSolution: Press its button again");
+    expect(html).toContain(
+      "ast run reported done, but nothing reached the files\nSolution: Press its button again",
+    );
   });
 });
 
@@ -154,7 +171,9 @@ describe("an archived spec whose branch is still on origin", () => {
   test("keeps its row, and the notice line says the branch is still open", () => {
     const html = listed(true);
     expect(html).toContain('data-folder="191-x"');
-    expect(noticeCellHtml(html, "191-x")).toContain("Its branch is still on origin — re-run archive");
+    expect(noticeCellHtml(html, "191-x")).toContain(
+      "Its branch is still on origin — re-run archive",
+    );
   });
 
   test("and the one whose branch is gone gets the row without the mark", () => {
@@ -201,13 +220,20 @@ describe("archived specs on the spec list", () => {
     ...over,
   });
 
-  const live = (specFolder: string): SpecTarget => ({ project: "aide", specFolder });
+  const live = (specFolder: string): SpecTarget => ({
+    project: "aide",
+    specFolder,
+  });
 
   const rows = (opts: Partial<SpecsPageOptions> = {}): string =>
     renderSpecsRows([], { runnerAvailable: true, targets: [], ...opts });
 
   const folders = (html: string): string[] =>
-    [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)(?:#[^"]*)?"/g)].map((m) => m[1]!);
+    [
+      ...html.matchAll(
+        /href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)(?:#[^"]*)?"/g,
+      ),
+    ].map((m) => m[1]!);
 
   // All is the default now, and first in the panel with it — a spec that
   // reaches the archive stays on the list the reader is already looking
@@ -216,12 +242,17 @@ describe("archived specs on the spec list", () => {
     const html = rows({ archivedSpecs: [archivedSpec("50-archived")] });
     // Nothing is passed as the filter at all: this is the fallback every
     // reader with a bare `/` gets.
-    expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
+    expect(html).toMatch(
+      /aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/,
+    );
     expect(html.indexOf(">All")).toBeLessThan(html.indexOf(">Active"));
   });
 
   test("the default chip keeps an archived row on the list beside a live one", () => {
-    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], targets: [live("60-live")] });
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      targets: [live("60-live")],
+    });
     expect(folders(html).sort()).toEqual(["50-archived", "60-live"]);
   });
 
@@ -271,7 +302,10 @@ describe("archived specs on the spec list", () => {
   });
 
   test("an archived row draws no control the server would refuse", () => {
-    const shut = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: { state: "archived" } });
+    const shut = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      filter: { state: "archived" },
+    });
     expect(shut).not.toContain("<select");
     expect(shut).not.toContain('type="checkbox"');
     expect(shut).not.toContain('class="rowrun"');
@@ -289,7 +323,9 @@ describe("archived specs on the spec list", () => {
 
   const openFilter = { state: "archived", open: "aide/50-archived" };
   const dialogById = (html: string, id: string): string =>
-    html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`),
+    )?.[0] ?? "";
   /** What both of the list's Reopen dialogs carry: the post the page
    *  script sends, and goes on to the Running page from. */
   const expectListParts = (dialog: string): void => {
@@ -299,20 +335,48 @@ describe("archived specs on the spec list", () => {
   };
 
   test("an open archived row's Reopen names a dialog over the list", () => {
-    const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
-    const id = open.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
+    const open = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      filter: openFilter,
+    });
+    const id = open.match(
+      /<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/,
+    )?.[1];
     expect(id).toBeDefined();
     expectListParts(dialogById(open, id!));
   });
 
   test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form", () => {
-    const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
-    const waiting = { phase: "Acceptance criteria", task: "AC-2", line: "| AC-2 | Not verified | |", note: "", done: true, notVerified: true };
+    const failed = {
+      phase: "Acceptance criteria",
+      task: "AC-1",
+      line: "| AC-1 | ❌ Failed | |",
+      note: "",
+      done: false,
+      failed: true,
+    };
+    const waiting = {
+      phase: "Acceptance criteria",
+      task: "AC-2",
+      line: "| AC-2 | Not verified | |",
+      note: "",
+      done: true,
+      notVerified: true,
+    };
     const html = rows({
-      archivedSpecs: [archivedSpec("50-archived", { failed: 1, notVerified: 1, acceptance: [failed, waiting] })],
+      archivedSpecs: [
+        archivedSpec("50-archived", {
+          failed: 1,
+          notVerified: 1,
+          acceptance: [failed, waiting],
+        }),
+      ],
       filter: { state: "archived", checks: "aide/50-archived" },
     });
-    const panel = html.match(/<form\b[^>]*class="[^"]*\browchecks\b[\s\S]*?<\/form>/)?.[0] ?? "";
+    const panel =
+      html.match(
+        /<form\b[^>]*class="[^"]*\browchecks\b[\s\S]*?<\/form>/,
+      )?.[0] ?? "";
     const id = panel.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1];
     expect(id).toBeDefined();
     expect(panel).not.toContain("<dialog");
@@ -336,19 +400,28 @@ describe("archived specs on the spec list", () => {
     const open = rows({
       archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
       filter: { state: "archived", open: "aide/50-archived" },
-      modelChoices: [{ name: "claude opus", tool: "claude" }, { name: "codex gpt-6.1-sol", tool: "codex" }],
+      modelChoices: [
+        { name: "claude opus", tool: "claude" },
+        { name: "codex gpt-6.1-sol", tool: "codex" },
+      ],
     });
-    const form = open.match(/<form\b[^>]*\sid="rowrun-aide\/50-archived"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
+    const form =
+      open.match(
+        /<form\b[^>]*\sid="rowrun-aide\/50-archived"[^>]*>[\s\S]*?<\/form>/,
+      )?.[0] ?? "";
     expect(form).toContain('action="/api/queue"');
     expect(form).toContain('name="steps" value="archive"');
     expect(form).toContain(">Archive</button>");
     expect(form).not.toContain("<select");
     // The Archive line's own selects, named after that form and open to a pick.
-    const archiveModel = open.match(/<select name="model\.archive"[^>]*>/)?.[0] ?? "";
+    const archiveModel =
+      open.match(/<select name="model\.archive"[^>]*>/)?.[0] ?? "";
     expect(archiveModel).toContain('form="rowrun-aide/50-archived"');
     expect(archiveModel).not.toContain("disabled");
     // Every other line stays a record.
-    expect(open.match(/<select name="model\.implement"[^>]*>/)?.[0]).toContain("disabled");
+    expect(open.match(/<select name="model\.implement"[^>]*>/)?.[0]).toContain(
+      "disabled",
+    );
     expect(open).not.toContain(">Reopen</button>");
   });
 
@@ -356,10 +429,15 @@ describe("archived specs on the spec list", () => {
   // said Archived, offered Archive and asked for a re-run while it ran.
   test("whose archive is running reads as running, offers Cancel and asks for no re-run", () => {
     const running = row({
-      id: "j-659", specFolder: "50-archived", steps: ["archive"], stepIndex: 0, state: "running",
+      id: "j-659",
+      specFolder: "50-archived",
+      steps: ["archive"],
+      stepIndex: 0,
+      state: "running",
     });
     const open = renderSpecsRows([running], {
-      runnerAvailable: true, targets: [],
+      runnerAvailable: true,
+      targets: [],
       archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
       filter: { state: "archived", open: "aide/50-archived" },
     });
@@ -371,7 +449,12 @@ describe("archived specs on the spec list", () => {
 
   test("whose branch is open for review keeps Reopen", () => {
     const open = rows({
-      archivedSpecs: [archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" })],
+      archivedSpecs: [
+        archivedSpec("50-archived", {
+          prOpen: true,
+          prUrl: "https://github.test/aide/pull/9",
+        }),
+      ],
       filter: { state: "archived", open: "aide/50-archived" },
     });
     expect(open).toContain(">Reopen</button>");
@@ -386,7 +469,10 @@ describe("archived specs on the spec list", () => {
   test("and carries the pull-request mark when its branch is open for review", () => {
     const html = rows({
       archivedSpecs: [
-        archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" }),
+        archivedSpec("50-archived", {
+          prOpen: true,
+          prUrl: "https://github.test/aide/pull/9",
+        }),
       ],
       filter: { state: "archived" },
     });
@@ -410,10 +496,16 @@ describe("archived specs on the spec list", () => {
 
   test("the search reads folder, title and description, across both kinds", () => {
     const both = {
-      archivedSpecs: [archivedSpec("50-archived", { title: "Wolverine", description: "gone" })],
+      archivedSpecs: [
+        archivedSpec("50-archived", {
+          title: "Wolverine",
+          description: "gone",
+        }),
+      ],
       targets: [live("60-live")],
     };
-    const seen = (q: string) => folders(rows({ ...both, filter: { state: "all", q } }));
+    const seen = (q: string) =>
+      folders(rows({ ...both, filter: { state: "all", q } }));
     expect(seen("wolverine")).toEqual(["50-archived"]);
     expect(seen("60-live")).toEqual(["60-live"]);
     expect(seen("gone")).toEqual(["50-archived"]);
@@ -430,7 +522,10 @@ describe("archived specs on the spec list", () => {
     // `groupBySpec` drops job rows by) and the ROWS only when the filter
     // shows them — so a chip that would show archived rows counts the
     // keys rather than reading "0" off a set nobody built.
-    const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
+    const html = rows({
+      targets: [live("60-live")],
+      archived: ["aide/50-archived", "aide/40-archived"],
+    });
     expect(html).toMatch(/>Archived \(2\)</);
     expect(html).toMatch(/>All \(3\)</);
     expect(html).toMatch(/>Active \(1\)</);
@@ -466,12 +561,26 @@ describe("a cancelled create is not a row on a project with only archived specs"
     createdAt: "2026-09-15T08:11:00Z",
   };
   test("with the project's specs listed as archived", () => {
-    const html = renderSpecsRows([cancelledCreate], { runnerAvailable: true, targets: [], archived: ["aide/466-x"] }, Date.parse("2026-09-15T10:00:00Z"));
+    const html = renderSpecsRows(
+      [cancelledCreate],
+      { runnerAvailable: true, targets: [], archived: ["aide/466-x"] },
+      Date.parse("2026-09-15T10:00:00Z"),
+    );
     expect(html).not.toContain('data-folder="new-8638781b"');
   });
   test("with the project's specs given as archived views", () => {
-    const archivedSpec: ArchivedSpecView = { project: "aide", folder: "466-x", done: ["create"], models: {}, phaseOutcomes: {} };
-    const html = renderSpecsRows([cancelledCreate], { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec] }, Date.parse("2026-09-15T10:00:00Z"));
+    const archivedSpec: ArchivedSpecView = {
+      project: "aide",
+      folder: "466-x",
+      done: ["create"],
+      models: {},
+      phaseOutcomes: {},
+    };
+    const html = renderSpecsRows(
+      [cancelledCreate],
+      { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec] },
+      Date.parse("2026-09-15T10:00:00Z"),
+    );
     expect(html).not.toContain('data-folder="new-8638781b"');
   });
 });
@@ -501,7 +610,9 @@ describe("an archived spec's row does not warn about an earlier cancelled re-run
     createdAt: "2026-09-16T10:00:00Z",
   };
 
-  const archivedSpec = (over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+  const archivedSpec = (
+    over: Partial<ArchivedSpecView> = {},
+  ): ArchivedSpecView => ({
     project: "aide",
     folder: "480-locked",
     done: BUILT,
@@ -513,7 +624,12 @@ describe("an archived spec's row does not warn about an earlier cancelled re-run
   test("an archived row shows no last-re-run qualifier", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
-      { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec()], filter: { state: "archived" } },
+      {
+        runnerAvailable: true,
+        targets: [],
+        archivedSpecs: [archivedSpec()],
+        filter: { state: "archived" },
+      },
       Date.parse("2026-09-17T12:00:00Z"),
     );
     expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
@@ -522,7 +638,12 @@ describe("an archived spec's row does not warn about an earlier cancelled re-run
   test("a closed row shows the same absence", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
-      { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec({ closed: true })], filter: { state: "all" } },
+      {
+        runnerAvailable: true,
+        targets: [],
+        archivedSpecs: [archivedSpec({ closed: true })],
+        filter: { state: "all" },
+      },
       Date.parse("2026-09-17T12:00:00Z"),
     );
     expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
@@ -531,7 +652,10 @@ describe("an archived spec's row does not warn about an earlier cancelled re-run
   test("the identical shape on an active row still shows the qualifier", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
-      { runnerAvailable: true, targets: [{ project: "aide", specFolder: "480-locked", done: BUILT }] },
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "480-locked", done: BUILT }],
+      },
       Date.parse("2026-09-17T12:00:00Z"),
     );
     expect(noticeCellHtml(html, "480-locked")).toContain("last re-run");
@@ -552,29 +676,56 @@ describe("an archived spec whose merged branch is still on origin", () => {
     ...over,
   });
   const listed = (s: ArchivedSpecView, state: string): string =>
-    renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state } }, NOW);
+    renderSpecsRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets: [],
+        archivedSpecs: [s],
+        filter: { state },
+      },
+      NOW,
+    );
   const DELETE_ACTION = 'action="/api/queue/specs/aide/570-x/delete-branch"';
 
   test("is archived, and the Active and Failed chips cut it", () => {
     const left = spec({ branchLeftBehind: true });
-    expect(groupBySpec([], [], undefined, [left], NOW)[0]?.state).toBe(ARCHIVED_STATE);
+    expect(groupBySpec([], [], undefined, [left], NOW)[0]?.state).toBe(
+      ARCHIVED_STATE,
+    );
     expect(listed(left, "not-archived")).not.toContain('data-folder="570-x"');
     expect(listed(left, "failed")).not.toContain('data-folder="570-x"');
     expect(listed(left, "archived")).toContain('data-folder="570-x"');
   });
 
   test("its note says the branch is still on origin, on a line of its own, and offers Delete branch", () => {
-    expect(archivedRowNotices(spec({ branchLeftBehind: true }), NOW, "en")).toEqual([
-      { variant: "waiting", text: t("en", "list.branchStillOnOrigin"), own: true, kind: "branch-left-behind" },
+    expect(
+      archivedRowNotices(spec({ branchLeftBehind: true }), NOW, "en"),
+    ).toEqual([
+      {
+        variant: "waiting",
+        text: t("en", "list.branchStillOnOrigin"),
+        own: true,
+        kind: "branch-left-behind",
+      },
     ]);
-    expect(noticeCellHtml(listed(spec({ branchLeftBehind: true }), "archived"), "570-x")).toContain(DELETE_ACTION);
+    expect(
+      noticeCellHtml(
+        listed(spec({ branchLeftBehind: true }), "archived"),
+        "570-x",
+      ),
+    ).toContain(DELETE_ACTION);
   });
 
   test("a branch that never merged keeps the re-run-archive note, and no Delete branch", () => {
     const open = spec({ notLanded: true, notLandedCheckedAt: NOW });
-    expect(groupBySpec([], [], undefined, [open], NOW)[0]?.state).toBe(ARCHIVED_OPEN_STATE);
+    expect(groupBySpec([], [], undefined, [open], NOW)[0]?.state).toBe(
+      ARCHIVED_OPEN_STATE,
+    );
     const html = listed(open, "not-archived");
-    expect(noticeCellHtml(html, "570-x")).toContain("Its branch is still on origin — re-run archive");
+    expect(noticeCellHtml(html, "570-x")).toContain(
+      "Its branch is still on origin — re-run archive",
+    );
     expect(html).not.toContain(DELETE_ACTION);
   });
 
@@ -582,9 +733,14 @@ describe("an archived spec whose merged branch is still on origin", () => {
     const closed = spec({
       closed: true,
       notLanded: true,
-      branchDeleteError: { key: "landing.branchDeleteFailed", values: {} } as never,
+      branchDeleteError: {
+        key: "landing.branchDeleteFailed",
+        values: {},
+      } as never,
     });
-    expect(archivedRowNotices(closed, NOW, "en")).toEqual([{ variant: "failed", text: t("en", "list.branchLeftBehind") }]);
+    expect(archivedRowNotices(closed, NOW, "en")).toEqual([
+      { variant: "failed", text: t("en", "list.branchLeftBehind") },
+    ]);
     expect(listed(closed, "all")).not.toContain(DELETE_ACTION);
   });
 });
@@ -598,13 +754,29 @@ describe("an archived spec whose analysis was short", () => {
     folder: "650-x",
     done: ["create", "analyze", "implement", "archive"],
     models: {},
-    phaseOutcomes: { analyze: { result: "completed", ...(analysis ? { analysis } : {}) } },
+    phaseOutcomes: {
+      analyze: { result: "completed", ...(analysis ? { analysis } : {}) },
+    },
   });
   const noticed = (s: ArchivedSpecView): string =>
-    noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "650-x");
+    noticeCellHtml(
+      renderSpecsRows(
+        [],
+        {
+          runnerAvailable: true,
+          targets: [],
+          archivedSpecs: [s],
+          filter: { state: "archived" },
+        },
+        NOW,
+      ),
+      "650-x",
+    );
 
   test("the row carries the short-analysis line, and a full or unmarked one does not", () => {
-    expect(noticed(spec("short"))).toContain("Short analysis: no plan and no plan review");
+    expect(noticed(spec("short"))).toContain(
+      "Short analysis: no plan and no plan review",
+    );
     expect(noticed(spec("full"))).not.toContain("Short analysis");
     expect(noticed(spec(undefined))).not.toContain("Short analysis");
   });
@@ -619,14 +791,32 @@ describe("an archived spec that was sent back to a full analysis", () => {
     folder: "651-x",
     done: ["create", "analyze", "implement", "archive"],
     models: {},
-    phaseOutcomes: { create: { result: "completed", ...(sentBack ? { sentBack } : {}) } },
+    phaseOutcomes: {
+      create: { result: "completed", ...(sentBack ? { sentBack } : {}) },
+    },
   });
   const noticed = (s: ArchivedSpecView): string =>
-    noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "651-x");
+    noticeCellHtml(
+      renderSpecsRows(
+        [],
+        {
+          runnerAvailable: true,
+          targets: [],
+          archivedSpecs: [s],
+          filter: { state: "archived" },
+        },
+        NOW,
+      ),
+      "651-x",
+    );
 
   test("the row carries the sent-back line with the sentence, and an unmarked one does not", () => {
-    expect(noticed(spec("it needs nine files"))).toContain("Sent back to a full analysis: it needs nine files");
-    expect(noticed(spec(undefined))).not.toContain("Sent back to a full analysis");
+    expect(noticed(spec("it needs nine files"))).toContain(
+      "Sent back to a full analysis: it needs nine files",
+    );
+    expect(noticed(spec(undefined))).not.toContain(
+      "Sent back to a full analysis",
+    );
   });
 
   test("the sentence is HTML-escaped, since the session wrote it", () => {
@@ -641,17 +831,35 @@ describe("an archived spec that was sent back to a full analysis", () => {
 describe("an archived spec's Implement line, when the queue still holds the run", () => {
   const NOW = Date.parse("2026-10-19T12:00:00Z");
   const run: QueueRowView = {
-    id: "r1", project: "aide", specFolder: "651-x", steps: ["implement"], stepIndex: 0, state: "done",
-    spentUsd: 0.35, spentTokens: 24160, timeoutSec: 1200, createdAt: "2026-10-18T10:00:00Z",
-    results: [{
-      step: "implement", ok: true, costUsd: 0.35, tokens: 24160,
-      review: { outcome: "completed", costUsd: 0.05, tokens: 4930 },
-      verify: { outcome: "completed", tokens: 9562 },
-    }],
+    id: "r1",
+    project: "aide",
+    specFolder: "651-x",
+    steps: ["implement"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0.35,
+    spentTokens: 24160,
+    timeoutSec: 1200,
+    createdAt: "2026-10-18T10:00:00Z",
+    results: [
+      {
+        step: "implement",
+        ok: true,
+        costUsd: 0.35,
+        tokens: 24160,
+        review: { outcome: "completed", costUsd: 0.05, tokens: 4930 },
+        verify: { outcome: "completed", tokens: 9562 },
+      },
+    ],
   };
   const spec: ArchivedSpecView = {
-    project: "aide", folder: "651-x", done: ["create", "analyze", "implement", "archive"], models: {},
-    phaseOutcomes: { implement: { result: "completed", cost: 0.35, tokens: 24160 } },
+    project: "aide",
+    folder: "651-x",
+    done: ["create", "analyze", "implement", "archive"],
+    models: {},
+    phaseOutcomes: {
+      implement: { result: "completed", cost: 0.35, tokens: 24160 },
+    },
   };
 
   test("shows the implement session's own cost and tokens (AC-4)", () => {

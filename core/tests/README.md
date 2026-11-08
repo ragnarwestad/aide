@@ -4,33 +4,33 @@
 
 - [Overview](#overview)
 - [Running tests](#running-tests)
-    - [All tests](#all-tests)
-    - [Specific test categories](#specific-test-categories)
-    - [Specific test file](#specific-test-file)
+  - [All tests](#all-tests)
+  - [Specific test categories](#specific-test-categories)
+  - [Specific test file](#specific-test-file)
 - [Test structure](#test-structure)
 - [Fixtures](#fixtures)
-    - [`clean_env`](#clean_env)
-    - [`workspace_root`](#workspace_root)
-    - [`e2e_workspace`](#e2e_workspace)
+  - [`clean_env`](#clean_env)
+  - [`workspace_root`](#workspace_root)
+  - [`e2e_workspace`](#e2e_workspace)
 - [Adding new tests](#adding-new-tests)
-    - [1. Analyze existing code](#1-analyze-existing-code)
-    - [2. Write a test that verifies behavior](#2-write-a-test-that-verifies-behavior)
-    - [3. Run the test](#3-run-the-test)
-    - [4. Verify coverage](#4-verify-coverage)
+  - [1. Analyze existing code](#1-analyze-existing-code)
+  - [2. Write a test that verifies behavior](#2-write-a-test-that-verifies-behavior)
+  - [3. Run the test](#3-run-the-test)
+  - [4. Verify coverage](#4-verify-coverage)
 - [Best practices](#best-practices)
-    - [Mock external dependencies](#mock-external-dependencies)
-    - [Use temporary directories](#use-temporary-directories)
-    - [Isolate environment variables](#isolate-environment-variables)
-    - [Test both success and error cases](#test-both-success-and-error-cases)
+  - [Mock external dependencies](#mock-external-dependencies)
+  - [Use temporary directories](#use-temporary-directories)
+  - [Isolate environment variables](#isolate-environment-variables)
+  - [Test both success and error cases](#test-both-success-and-error-cases)
 - [Troubleshooting](#troubleshooting)
-    - [Tests fail with "ModuleNotFoundError"](#tests-fail-with-modulenotfounderror)
-    - [Coverage report is missing files](#coverage-report-is-missing-files)
-    - [Tests hang (watch mode)](#tests-hang-watch-mode)
+  - [Tests fail with "ModuleNotFoundError"](#tests-fail-with-modulenotfounderror)
+  - [Coverage report is missing files](#coverage-report-is-missing-files)
+  - [Tests hang (watch mode)](#tests-hang-watch-mode)
 - [E2E Tests with CLI Headless Mode](#e2e-tests-with-cli-headless-mode)
-    - [Running E2E tests](#running-e2e-tests)
-    - [Headless mode per CLI](#headless-mode-per-cli)
-    - [Verifying results](#verifying-results)
-    - [Important notes about E2E tests](#important-notes-about-e2e-tests)
+  - [Running E2E tests](#running-e2e-tests)
+  - [Headless mode per CLI](#headless-mode-per-cli)
+  - [Verifying results](#verifying-results)
+  - [Important notes about E2E tests](#important-notes-about-e2e-tests)
 - [CI/CD](#cicd)
 - [Goals](#goals)
 - [Resources](#resources)
@@ -121,7 +121,7 @@ pytest -m copilot -v           # Copilot-specific
 **Available markers** (defined in `pytest.ini`):
 
 | Marker            | Description                                               |
-|-------------------|-----------------------------------------------------------|
+| ----------------- | --------------------------------------------------------- |
 | `unit`            | Unit tests (fast, no external dependencies)               |
 | `integration`     | Integration tests (require a full workspace)              |
 | `validation`      | Validation of output quality                              |
@@ -356,7 +356,7 @@ pytest -m "e2e and codex"
 ### Headless mode per CLI
 
 | CLI         | Headless flag      | Status   | Example                                                 |
-|-------------|--------------------|----------|---------------------------------------------------------|
+| ----------- | ------------------ | -------- | ------------------------------------------------------- |
 | Claude Code | `-p`               | ✅ Works | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
 | Copilot     | `-p`               | ✅ Works | `copilot -p "prompt" --allow-all-tools`                 |
 | Codex       | `exec --full-auto` | ✅ Works | `codex exec --full-auto --skip-git-repo-check "prompt"` |

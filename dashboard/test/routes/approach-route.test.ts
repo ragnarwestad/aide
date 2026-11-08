@@ -5,7 +5,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, savable, specFilePath } from "../spec-page/spec-save-fixtures.ts";
+import {
+  SPEC,
+  savable,
+  specFilePath,
+} from "../spec-page/spec-save-fixtures.ts";
 import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-approach-route-");
@@ -32,35 +36,78 @@ const SOLUTION =
 
 type MirrorJob = Record<string, unknown>;
 const heldJob = (over: MirrorJob = {}): MirrorJob => ({
-  id: "held", project: "aide", specFolder: SPEC, steps: ["analyze", "implement", "archive"], stepIndex: 1,
-  state: "queued", model: { analyze: "sonnet", implement: "fable", archive: "sonnet" }, timeoutSec: {},
-  permissionMode: {}, effort: {}, createdAt: "2026-10-03T08:00:00.000Z", spentUsd: 0, results: [],
-  error: { key: "runner.approachChoice" }, errorReason: "held-back",
+  id: "held",
+  project: "aide",
+  specFolder: SPEC,
+  steps: ["analyze", "implement", "archive"],
+  stepIndex: 1,
+  state: "queued",
+  model: { analyze: "sonnet", implement: "fable", archive: "sonnet" },
+  timeoutSec: {},
+  permissionMode: {},
+  effort: {},
+  createdAt: "2026-10-03T08:00:00.000Z",
+  spentUsd: 0,
+  results: [],
+  error: { key: "runner.approachChoice" },
+  errorReason: "held-back",
   ...over,
 });
 
-function startWith(opts: { jobs?: MirrorJob[]; optedIn?: boolean; solution?: string; gitRun?: GitRunner } = {}) {
+function startWith(
+  opts: {
+    jobs?: MirrorJob[];
+    optedIn?: boolean;
+    solution?: string;
+    gitRun?: GitRunner;
+  } = {},
+) {
   const started = harness.start({
     description: description(opts.optedIn),
     status: statusSaying(["create", "analyze"]),
-    extra: { gitRun: opts.gitRun ?? savable("/host"), queueDefaults: DEFAULTS } as never,
+    extra: {
+      gitRun: opts.gitRun ?? savable("/host"),
+      queueDefaults: DEFAULTS,
+    } as never,
     ...(opts.jobs ? { queueMirror: JSON.stringify(opts.jobs) } : {}),
   });
-  writeFileSync(specFilePath(started.dir, "3-solution.md"), opts.solution ?? SOLUTION);
+  writeFileSync(
+    specFilePath(started.dir, "3-solution.md"),
+    opts.solution ?? SOLUTION,
+  );
   return started;
 }
 
 const save = (base: string, approach: string) =>
   fetch(`${base}${ROUTE}`, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      accept: "application/json",
+    },
     body: new URLSearchParams({ approach }).toString(),
   });
 
-const jobs = async (base: string): Promise<{ id: string; state: string; steps: string[]; model: Record<string, string> }[]> =>
-  (await (await fetch(`${base}/api/queue`, { headers: { accept: "application/json" } })).json()).jobs;
+const jobs = async (
+  base: string,
+): Promise<
+  {
+    id: string;
+    state: string;
+    steps: string[];
+    model: Record<string, string>;
+  }[]
+> =>
+  (
+    await (
+      await fetch(`${base}/api/queue`, {
+        headers: { accept: "application/json" },
+      })
+    ).json()
+  ).jobs;
 
-const solutionOf = (dir: string): string => readFileSync(specFilePath(dir, "3-solution.md"), "utf-8");
+const solutionOf = (dir: string): string =>
+  readFileSync(specFilePath(dir, "3-solution.md"), "utf-8");
 
 describe("saving the recommended approach", () => {
   test("records it as the chosen approach under Approaches and leaves the held job to carry on", async () => {
@@ -68,7 +115,9 @@ describe("saving the recommended approach", () => {
     const res = await save(base, "A");
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
-    expect(solutionOf(dir)).toContain("## Approaches\n\n**Chosen approach:** Approach A\n\n**Approach A:");
+    expect(solutionOf(dir)).toContain(
+      "## Approaches\n\n**Chosen approach:** Approach A\n\n**Approach A:",
+    );
     const after = await jobs(base);
     expect(after.map((j) => [j.id, j.state])).toEqual([["held", "queued"]]);
   });
@@ -85,7 +134,11 @@ describe("saving another approach", () => {
     const fresh = after.find((j) => j.id !== "held");
     expect(fresh?.state).toBe("queued");
     expect(fresh?.steps).toEqual(["analyze", "implement", "archive"]);
-    expect(fresh?.model).toMatchObject({ analyze: "sonnet", implement: "fable", archive: "sonnet" });
+    expect(fresh?.model).toMatchObject({
+      analyze: "sonnet",
+      implement: "fable",
+      archive: "sonnet",
+    });
   });
 
   test("with no held job, queues analyze alone", async () => {
@@ -102,11 +155,16 @@ describe("a save that is refused writes, cancels and queues nothing", () => {
     const res = await save(base, "C");
     expect(res.status).toBe(409);
     expect(solutionOf(dir)).toBe(SOLUTION);
-    expect((await jobs(base)).map((j) => [j.id, j.state])).toEqual([["held", "queued"]]);
+    expect((await jobs(base)).map((j) => [j.id, j.state])).toEqual([
+      ["held", "queued"],
+    ]);
   });
 
   test("no choice is pending any more", async () => {
-    const chosen = SOLUTION.replace("## Approaches\n\n", "## Approaches\n\n**Chosen approach:** Approach A\n\n");
+    const chosen = SOLUTION.replace(
+      "## Approaches\n\n",
+      "## Approaches\n\n**Chosen approach:** Approach A\n\n",
+    );
     const { base, dir } = startWith({ solution: chosen });
     expect((await save(base, "B")).status).toBe(409);
     expect(solutionOf(dir)).toBe(chosen);
@@ -121,9 +179,21 @@ describe("a save that is refused writes, cancels and queues nothing", () => {
   });
 
   test("a step of the spec is running", async () => {
-    const { base, dir } = startWith({ jobs: [heldJob({ id: "run", state: "running", stepIndex: 0, error: undefined, errorReason: undefined })] });
+    const { base, dir } = startWith({
+      jobs: [
+        heldJob({
+          id: "run",
+          state: "running",
+          stepIndex: 0,
+          error: undefined,
+          errorReason: undefined,
+        }),
+      ],
+    });
     expect((await save(base, "B")).status).toBe(409);
     expect(solutionOf(dir)).toBe(SOLUTION);
-    expect((await jobs(base)).map((j) => [j.id, j.state])).toEqual([["run", "running"]]);
+    expect((await jobs(base)).map((j) => [j.id, j.state])).toEqual([
+      ["run", "running"],
+    ]);
   });
 });

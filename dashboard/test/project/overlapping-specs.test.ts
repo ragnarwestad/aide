@@ -6,7 +6,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openOverlappingSpecs, overlappingSpecsIn } from "../../src/project/overlapping-specs.ts";
+import {
+  openOverlappingSpecs,
+  overlappingSpecsIn,
+} from "../../src/project/overlapping-specs.ts";
 import type { SpecRef } from "../../src/project/discover";
 
 const SCRIPT = join(import.meta.dir, "../../../core/scripts/aide-spec-overlap");
@@ -26,7 +29,8 @@ const scratch = (): string => {
 function specWith(analysis: string | undefined): string {
   const dir = join(scratch(), "81-mine");
   mkdirSync(dir, { recursive: true });
-  if (analysis !== undefined) writeFileSync(join(dir, "2-analysis.md"), analysis);
+  if (analysis !== undefined)
+    writeFileSync(join(dir, "2-analysis.md"), analysis);
   return dir;
 }
 
@@ -51,7 +55,16 @@ const RECORD = [
 ].join("\n");
 
 const ref = (over: Partial<SpecRef>): SpecRef =>
-  ({ folder: "x", dir: "/x", archived: false, closed: false, title: null, description: null, dependsOn: [], ...over }) as SpecRef;
+  ({
+    folder: "x",
+    dir: "/x",
+    archived: false,
+    closed: false,
+    title: null,
+    description: null,
+    dependsOn: [],
+    ...over,
+  }) as SpecRef;
 
 const REFS: Record<string, SpecRef> = {
   "82-other": ref({ title: "The other thing" }),
@@ -61,12 +74,23 @@ const REFS: Record<string, SpecRef> = {
 
 describe("openOverlappingSpecs", () => {
   test("keeps only the specs that are still open: archived, closed and missing ones are left out", () => {
-    const open = openOverlappingSpecs(specWith(RECORD), (folder) => REFS[folder]);
-    expect(open).toEqual([{ folder: "82-other", label: "82 The other thing", files: ["src/a.ts", "src/b.ts"] }]);
+    const open = openOverlappingSpecs(
+      specWith(RECORD),
+      (folder) => REFS[folder],
+    );
+    expect(open).toEqual([
+      {
+        folder: "82-other",
+        label: "82 The other thing",
+        files: ["src/a.ts", "src/b.ts"],
+      },
+    ]);
   });
 
   test("a spec with no title is named by its whole folder", () => {
-    const open = openOverlappingSpecs(specWith(RECORD), (folder) => (folder === "82-other" ? ref({}) : undefined));
+    const open = openOverlappingSpecs(specWith(RECORD), (folder) =>
+      folder === "82-other" ? ref({}) : undefined,
+    );
     expect(open?.[0]?.label).toBe("82-other");
   });
 
@@ -77,8 +101,17 @@ describe("openOverlappingSpecs", () => {
 
   test("no folder, no file and no subsection answer undefined", () => {
     expect(openOverlappingSpecs(undefined, () => undefined)).toBeUndefined();
-    expect(openOverlappingSpecs(specWith(undefined), () => undefined)).toBeUndefined();
-    expect(openOverlappingSpecs(specWith("# Analysis\n\n## Round 1\n\n### Files to change\n\n- `a.ts`\n"), () => undefined)).toBeUndefined();
+    expect(
+      openOverlappingSpecs(specWith(undefined), () => undefined),
+    ).toBeUndefined();
+    expect(
+      openOverlappingSpecs(
+        specWith(
+          "# Analysis\n\n## Round 1\n\n### Files to change\n\n- `a.ts`\n",
+        ),
+        () => undefined,
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -98,7 +131,9 @@ describe("overlappingSpecsIn", () => {
       "- `82-other` — `./a.ts:12`, `b.ts:3-9`",
       "",
     ].join("\n");
-    expect(overlappingSpecsIn(text)).toEqual([{ spec: "82-other", files: ["a.ts", "b.ts"] }]);
+    expect(overlappingSpecsIn(text)).toEqual([
+      { spec: "82-other", files: ["a.ts", "b.ts"] },
+    ]);
   });
 
   test("is what `aide-spec-overlap` answers as `warned` for the same file", () => {
@@ -136,7 +171,9 @@ describe("overlappingSpecsIn", () => {
       stderr: "pipe",
     });
     expect(ran.exitCode).toBe(0);
-    const said = JSON.parse(ran.stdout.toString()) as { warned: { spec: string; files: string[] }[] };
+    const said = JSON.parse(ran.stdout.toString()) as {
+      warned: { spec: string; files: string[] }[];
+    };
     expect(said.warned.length).toBe(2);
     expect(overlappingSpecsIn(text)).toEqual(said.warned);
   });

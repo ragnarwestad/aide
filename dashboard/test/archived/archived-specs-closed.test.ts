@@ -6,7 +6,13 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ARCHIVED, LIVE, described, harness, order, specsList, start,
+  ARCHIVED,
+  LIVE,
+  described,
+  harness,
+  order,
+  specsList,
+  start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -21,7 +27,10 @@ const closedStamp = (date: string, reason: string) =>
 const WITH_CLOSED = {
   ...ARCHIVED,
   [CLOSED_FOLDER]: {
-    description: described("The idea does not hold", "It seemed promising, then it did not."),
+    description: described(
+      "The idea does not hold",
+      "It seemed promising, then it did not.",
+    ),
     status: closedStamp("2026-09-05", CLOSED_REASON),
   },
 };
@@ -32,7 +41,10 @@ const MENTIONS_FOLDER = "71-a-spec-about-closing";
 const WITH_A_MENTION = {
   ...ARCHIVED,
   [MENTIONS_FOLDER]: {
-    description: described("A spec about closing", "It builds the Close button."),
+    description: described(
+      "A spec about closing",
+      "It builds the Close button.",
+    ),
     status:
       `# Status\n\n| Task | Status | Notes |\n|---|---|---|\n` +
       `| write the stamp | ✅ | writes \`**Closed:** <date> — <reason>\` into 4-status.md |\n\n` +
@@ -43,8 +55,12 @@ const WITH_A_MENTION = {
 describe("a status file that merely mentions the stamp", () => {
   test("is archived, not closed: listed under Archived, absent under Closed", async () => {
     const base = start({}, WITH_A_MENTION).base;
-    expect(order(await specsList(base, "?state=archived"))).toContain(MENTIONS_FOLDER);
-    expect(order(await specsList(base, "?state=closed"))).not.toContain(MENTIONS_FOLDER);
+    expect(order(await specsList(base, "?state=archived"))).toContain(
+      MENTIONS_FOLDER,
+    );
+    expect(order(await specsList(base, "?state=closed"))).not.toContain(
+      MENTIONS_FOLDER,
+    );
   });
 });
 
@@ -56,14 +72,21 @@ describe("a closed spec's own row", () => {
   });
 
   test("never appears under the Archived chip", async () => {
-    const html = await specsList(start({}, WITH_CLOSED).base, "?state=archived");
+    const html = await specsList(
+      start({}, WITH_CLOSED).base,
+      "?state=archived",
+    );
     expect(order(html)).not.toContain(CLOSED_FOLDER);
     // The other, genuinely archived specs are unaffected.
-    for (const folder of Object.keys(ARCHIVED)) expect(order(html)).toContain(folder);
+    for (const folder of Object.keys(ARCHIVED))
+      expect(order(html)).toContain(folder);
   });
 
   test("never appears under the Active chip either", async () => {
-    const html = await specsList(start({}, WITH_CLOSED).base, "?state=not-archived");
+    const html = await specsList(
+      start({}, WITH_CLOSED).base,
+      "?state=not-archived",
+    );
     expect(html).toContain(LIVE);
     expect(html).not.toContain(CLOSED_FOLDER);
   });
@@ -76,7 +99,10 @@ describe("a closed spec's own row", () => {
   });
 
   test("its row reads 'closed', never 'archived'", async () => {
-    const html = await specsList(start({}, WITH_CLOSED).base, `?open=aide/${CLOSED_FOLDER}`);
+    const html = await specsList(
+      start({}, WITH_CLOSED).base,
+      `?open=aide/${CLOSED_FOLDER}`,
+    );
     const row = html.slice(
       html.indexOf(`data-folder="${CLOSED_FOLDER}"`),
       html.indexOf(`data-folder="${CLOSED_FOLDER}"`) + 2000,

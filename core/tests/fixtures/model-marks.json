@@ -12,32 +12,20 @@
     {
       "name": "bare",
       "text": "--- Step 1 of 9: Read the description — started",
-      "recorded": [
-        "--- Step 1 of 9: Read the description — started"
-      ],
-      "shown": [
-        "--- Step 1 of 9: Read the description — started"
-      ]
+      "recorded": ["--- Step 1 of 9: Read the description — started"],
+      "shown": ["--- Step 1 of 9: Read the description — started"]
     },
     {
       "name": "in backticks",
       "text": "`--- Step 1 of 9: Read the description — started`",
-      "recorded": [
-        "--- Step 1 of 9: Read the description — started"
-      ],
-      "shown": [
-        "--- Step 1 of 9: Read the description — started"
-      ]
+      "recorded": ["--- Step 1 of 9: Read the description — started"],
+      "shown": ["--- Step 1 of 9: Read the description — started"]
     },
     {
       "name": "in bold",
       "text": "**--- Step 1 of 9: Read the description — done**",
-      "recorded": [
-        "--- Step 1 of 9: Read the description — done"
-      ],
-      "shown": [
-        "--- Step 1 of 9: Read the description — done"
-      ]
+      "recorded": ["--- Step 1 of 9: Read the description — done"],
+      "shown": ["--- Step 1 of 9: Read the description — done"]
     },
     {
       "name": "two marks with prose between",
@@ -64,12 +52,8 @@
     {
       "name": "a skipped with its reason",
       "text": "--- Step 5 of 9: Update — skipped: nothing to update",
-      "recorded": [
-        "--- Step 5 of 9: Update — skipped: nothing to update"
-      ],
-      "shown": [
-        "--- Step 5 of 9: Update — skipped: nothing to update"
-      ]
+      "recorded": ["--- Step 5 of 9: Update — skipped: nothing to update"],
+      "shown": ["--- Step 5 of 9: Update — skipped: nothing to update"]
     },
     {
       "name": "a mention of a step",
@@ -91,9 +75,7 @@
       "name": "the older form",
       "text": "analyze · Step 1 of 9: Read the description — done",
       "recorded": [],
-      "shown": [
-        "analyze · Step 1 of 9: Read the description — done"
-      ]
+      "shown": ["analyze · Step 1 of 9: Read the description — done"]
     }
   ]
 }

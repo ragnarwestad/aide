@@ -8,7 +8,9 @@ const FOLDER = "150-one-page-shows-the-whole-spec";
 
 /** The dialog with this id, whole. */
 const dialogById = (html: string, id: string): string =>
-  html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
+  html.match(
+    new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`),
+  )?.[0] ?? "";
 
 // --- Reopening a spec is one action -------------------------------
 //
@@ -29,13 +31,19 @@ describe("the Reopen control", () => {
     const id = html.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1] ?? "";
     const dialog = dialogById(html, id);
     expect(dialog).toContain("data-progress-dialog");
-    const form = dialog.match(/<form id="([^"]+)" method="post" action="\/api\/queue"[^>]*>[\s\S]*?<\/form>/);
+    const form = dialog.match(
+      /<form id="([^"]+)" method="post" action="\/api\/queue"[^>]*>[\s\S]*?<\/form>/,
+    );
     expect(form).not.toBeNull();
     expect(form![0]).toContain('name="project" value="aide"');
     expect(form![0]).toContain(`name="specFolder" value="${FOLDER}"`);
     expect(form![0]).toContain('name="steps" value="reopen"');
     expect(form![0]).toContain("data-progress");
-    expect(dialog).toMatch(new RegExp(`<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`));
+    expect(dialog).toMatch(
+      new RegExp(
+        `<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`,
+      ),
+    );
   });
 
   test("a Failed criterion's Reopen opens the action row's dialog", () => {
@@ -46,11 +54,19 @@ describe("the Reopen control", () => {
       done: false,
       failed: true,
     };
-    const html = archived({ checks: { rows: [failed], phase: "Acceptance criteria" } }, "status");
-    const checks = html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
-    const id = checks.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
+    const html = archived(
+      { checks: { rows: [failed], phase: "Acceptance criteria" } },
+      "status",
+    );
+    const checks =
+      html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
+    const id = checks.match(
+      /<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/,
+    )?.[1];
     expect(id).toBeDefined();
-    expect(dialogById(html, id!)).toContain(`name="specFolder" value="${FOLDER}"`);
+    expect(dialogById(html, id!)).toContain(
+      `name="specFolder" value="${FOLDER}"`,
+    );
     expect(checks).not.toContain("<dialog");
   });
 

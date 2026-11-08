@@ -24,16 +24,16 @@ import { row, openKeys } from "../../fixtures.ts";
 // host a "(?)", so the tooltip it used to carry is not an explanation
 // this dashboard can move behind one.
 describe("each phase line picks its own model", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  const target = (
+    specFolder: string,
+    extra: Partial<SpecTarget> = {},
+  ): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
 
-  const CHOICES = [
-    { name: "sonnet" },
-    { name: "fable" },
-  ];
+  const CHOICES = [{ name: "sonnet" }, { name: "fable" }];
 
   const rows = (
     list: QueueRowView[],
@@ -55,7 +55,9 @@ describe("each phase line picks its own model", () => {
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
+    )?.[0] ?? "";
   /** The caption line: a subrow with no phase of its own, above them
    *  all. Marked by a data attribute rather than a class — it needs no
    *  rule of its own, and the render vocabulary is a closed set
@@ -65,8 +67,12 @@ describe("each phase line picks its own model", () => {
   // names only, pre-filled with what the configuration would give the
   // step when the phase has not run yet.
   test("the options are the real names, pre-filled with the configured model", () => {
-    const line = subRow(rows([], [target("123-picks")], { defaultModels: { default: "sonnet" } }), "analyze");
-    const modelSelect = line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
+    const line = subRow(
+      rows([], [target("123-picks")], { defaultModels: { default: "sonnet" } }),
+      "analyze",
+    );
+    const modelSelect =
+      line.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
     // The effort select DOES carry an empty "unset" option,
     // beside this one — scoped here so that addition does not read as
     // this select's own name-only promise breaking.
@@ -77,7 +83,9 @@ describe("each phase line picks its own model", () => {
 
   test("a per-step configured model beats the catch-all default", () => {
     const line = subRow(
-      rows([], [target("123-picks")], { defaultModels: { analyze: "fable", default: "sonnet" } }),
+      rows([], [target("123-picks")], {
+        defaultModels: { analyze: "fable", default: "sonnet" },
+      }),
       "analyze",
     );
     expect(line).toMatch(/<option value="fable"[^>]*selected/);
@@ -87,7 +95,16 @@ describe("each phase line picks its own model", () => {
   // the select's pre-filled value IS the answer.
   test("a phase that has run pre-fills its select with the model it ran on", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" })],
+      [
+        row({
+          id: "j1",
+          specFolder: "123-picks",
+          steps: ["analyze"],
+          stepIndex: 0,
+          state: "done",
+          model: "fable",
+        }),
+      ],
       [target("123-picks", { done: ["analyze"] })],
     );
     const line = subRow(html, "analyze");
@@ -101,10 +118,20 @@ describe("each phase line picks its own model", () => {
 
   test("a busy spec's phase pickers lock exactly as the shared one did", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "running" })],
+      [
+        row({
+          id: "j1",
+          specFolder: "123-picks",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "running",
+        }),
+      ],
       [target("123-picks")],
     );
-    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    const select = subRow(html, "analyze").match(
+      /<select name="model\.analyze"[^>]*>/,
+    )![0];
     expect(select).toContain("disabled");
     // The reason is not this select's own `title`.
     expect(select).not.toContain('title="Implement is running"');
@@ -112,10 +139,20 @@ describe("each phase line picks its own model", () => {
 
   test("a settled spec's phase pickers are live again", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "done" })],
+      [
+        row({
+          id: "j1",
+          specFolder: "123-picks",
+          steps: ["implement"],
+          stepIndex: 0,
+          state: "done",
+        }),
+      ],
       [target("123-picks")],
     );
-    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    const select = subRow(html, "analyze").match(
+      /<select name="model\.analyze"[^>]*>/,
+    )![0];
     expect(select).not.toContain("disabled");
   });
 
@@ -153,20 +190,26 @@ describe("each phase line picks its own model", () => {
   // rather than the default the job has already been told not to use.
   test("a phase the running job can still take shows the job's own pick", () => {
     const html = rows(
-      [row({
-        id: "j1",
-        specFolder: "123-picks",
-        steps: ["analyze"],
-        stepIndex: 0,
-        state: "running",
-        editableSteps: ["implement", "archive"],
-        stepModels: { analyze: "sonnet", archive: "fable" },
-      })],
+      [
+        row({
+          id: "j1",
+          specFolder: "123-picks",
+          steps: ["analyze"],
+          stepIndex: 0,
+          state: "running",
+          editableSteps: ["implement", "archive"],
+          stepModels: { analyze: "sonnet", archive: "fable" },
+        }),
+      ],
       [target("123-picks")],
       { defaultModels: { default: "sonnet" } },
     );
-    expect(subRow(html, "archive")).toMatch(/<option value="fable"[^>]*selected/);
-    expect(subRow(html, "implement")).toMatch(/<option value="sonnet"[^>]*selected/);
+    expect(subRow(html, "archive")).toMatch(
+      /<option value="fable"[^>]*selected/,
+    );
+    expect(subRow(html, "implement")).toMatch(
+      /<option value="sonnet"[^>]*selected/,
+    );
   });
 
   // Once a phase has actually run, what it ran on wins over any
@@ -174,7 +217,16 @@ describe("each phase line picks its own model", () => {
   // about what is to come.
   test("a phase that has since run shows what it ran on, not the earlier pending pick", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" })],
+      [
+        row({
+          id: "j1",
+          specFolder: "123-picks",
+          steps: ["analyze"],
+          stepIndex: 0,
+          state: "done",
+          model: "sonnet",
+        }),
+      ],
       [target("123-picks", { done: ["analyze"] })],
       { pendingModels: { "aide/123-picks": { analyze: "fable" } } },
     );

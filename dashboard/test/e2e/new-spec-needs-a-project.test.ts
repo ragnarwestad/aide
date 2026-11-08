@@ -17,7 +17,10 @@ let base: string;
  *  browser moves after the press has landed before it is read. */
 function settle(p: Page): Promise<void> {
   return p.evaluate(
-    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
   );
 }
 
@@ -32,7 +35,9 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-async function pressCreate(fill: { title: boolean }): Promise<{ requests: number; focused: string | null }> {
+async function pressCreate(fill: {
+  title: boolean;
+}): Promise<{ requests: number; focused: string | null }> {
   await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
   let requests = 0;
   const count = (r: { url(): string }) => {
@@ -42,11 +47,17 @@ async function pressCreate(fill: { title: boolean }): Promise<{ requests: number
   try {
     if (fill.title) {
       await page.locator('#new-spec-form input[name="title"]').fill("A title");
-      await page.locator('#new-spec-form textarea[name="description"]').fill("A description");
+      await page
+        .locator('#new-spec-form textarea[name="description"]')
+        .fill("A description");
     }
     await page.getByRole("button", { name: "Create", exact: true }).click();
     await settle(page);
-    const focused = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute("name") ?? null);
+    const focused = await page.evaluate(
+      () =>
+        (document.activeElement as HTMLElement | null)?.getAttribute("name") ??
+        null,
+    );
     return { requests, focused };
   } finally {
     page.off("request", count);
@@ -57,7 +68,9 @@ test("Create with no project chosen focuses the project field and sends nothing"
   const { requests, focused } = await pressCreate({ title: true });
   expect(focused).toBe("project");
   expect(requests).toBe(0);
-  const message = await page.locator('#new-spec-form select[name="project"]').evaluate((el) => (el as HTMLSelectElement).validationMessage);
+  const message = await page
+    .locator('#new-spec-form select[name="project"]')
+    .evaluate((el) => (el as HTMLSelectElement).validationMessage);
   expect(message).not.toBe("");
 });
 

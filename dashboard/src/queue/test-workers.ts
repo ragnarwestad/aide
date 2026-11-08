@@ -7,7 +7,12 @@ import type { Job } from "./types.ts";
 
 export type BusyJob = Pick<Job, "state" | "landing">;
 
-export function testWorkerShare(cores: number, jobs: readonly BusyJob[]): number {
-  const busy = jobs.filter((j) => j.state === "running" || j.landing === true).length;
+export function testWorkerShare(
+  cores: number,
+  jobs: readonly BusyJob[],
+): number {
+  const busy = jobs.filter(
+    (j) => j.state === "running" || j.landing === true,
+  ).length;
   return Math.max(1, Math.floor(cores / Math.max(1, busy)));
 }

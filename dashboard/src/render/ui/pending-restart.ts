@@ -8,7 +8,10 @@ let startedAt: string | null = null;
 
 /** `drawnBy` is when this process started: the page watches for another
  *  process to answer, which is the restart it is waiting for. */
-export function setPendingRestartNotice(waiting: string[], drawnBy: string | null = null): void {
+export function setPendingRestartNotice(
+  waiting: string[],
+  drawnBy: string | null = null,
+): void {
   jobs = [...waiting];
   startedAt = drawnBy;
 }

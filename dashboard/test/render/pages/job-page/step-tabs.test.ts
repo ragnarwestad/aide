@@ -2,7 +2,12 @@
 // files and Errors, and Log for anything else.
 
 import { describe, expect, test } from "bun:test";
-import { drawnParts, logPartLines, logPartWriter, resolveStepTab } from "../../../../src/render/pages/job-page/step-tabs.ts";
+import {
+  drawnParts,
+  logPartLines,
+  logPartWriter,
+  resolveStepTab,
+} from "../../../../src/render/pages/job-page/step-tabs.ts";
 import type { LogPart, SubagentPart } from "../../../../src/queue/parse-stream";
 import { S } from "../../../helpers/codex-fixtures.ts";
 
@@ -10,7 +15,13 @@ describe("resolveStepTab", () => {
   test("a named tab is kept, and no address or an unknown one is Log", () => {
     expect(resolveStepTab("files")).toBe("files");
     expect(resolveStepTab("errors")).toBe("errors");
-    for (const steptab of [undefined, "", "everything", "commands", "nonsense"]) {
+    for (const steptab of [
+      undefined,
+      "",
+      "everything",
+      "commands",
+      "nonsense",
+    ]) {
       expect(resolveStepTab(steptab)).toBe("log");
     }
   });
@@ -27,12 +38,21 @@ describe("a subagent's part as drawn", () => {
   };
 
   test("it is named by its task, and draws what it was asked, its lines and its answer", () => {
-    expect(logPartWriter(part, undefined, "en")).toBe("Subagent: Feasibility review");
-    expect(logPartLines(part, "en")).toEqual(["Asked: Read &lt;the&gt; plan", "reading", "Answered: Two &lt;must&gt;-fix"]);
+    expect(logPartWriter(part, undefined, "en")).toBe(
+      "Subagent: Feasibility review",
+    );
+    expect(logPartLines(part, "en")).toEqual([
+      "Asked: Read &lt;the&gt; plan",
+      "reading",
+      "Answered: Two &lt;must&gt;-fix",
+    ]);
   });
 
   test("with nothing asked it names its task, and with no answer it says so, escaping the name once", () => {
-    const drawn = logPartLines({ ...part, name: "fea<sible", asked: undefined, answer: undefined }, "en");
+    const drawn = logPartLines(
+      { ...part, name: "fea<sible", asked: undefined, answer: undefined },
+      "en",
+    );
 
     expect(drawn).toHaveLength(3);
     expect(drawn[0]).toContain("fea&lt;sible");
@@ -48,7 +68,19 @@ describe("a subagent's part as drawn", () => {
   });
 
   test("a part whose work could not be read is drawn as the one sentence naming its thread and where Codex keeps it", () => {
-    const drawn = drawnParts([{ by: "ai", lines: [] }, { by: "subagent", name: "feasibility", lines: [], unread: { thread: S } }], undefined, "en");
+    const drawn = drawnParts(
+      [
+        { by: "ai", lines: [] },
+        {
+          by: "subagent",
+          name: "feasibility",
+          lines: [],
+          unread: { thread: S },
+        },
+      ],
+      undefined,
+      "en",
+    );
 
     expect(drawn).toHaveLength(1);
     expect(drawn[0]!.writer).toBe("Subagent: feasibility");
@@ -59,9 +91,25 @@ describe("a subagent's part as drawn", () => {
   });
 
   test("a part with no line to draw is left out, and one asked but with no lines yet is drawn", () => {
-    const waiting: SubagentPart = { by: "subagent", name: "scope", asked: "Review it", lines: [] };
+    const waiting: SubagentPart = {
+      by: "subagent",
+      name: "scope",
+      asked: "Review it",
+      lines: [],
+    };
 
-    expect(drawnParts([{ by: "ai", lines: [] }, { by: "aide", lines: [] }], undefined, "en")).toEqual([]);
-    expect(drawnParts([waiting], undefined, "en").map((d) => d.writer)).toEqual(["Subagent: scope"]);
+    expect(
+      drawnParts(
+        [
+          { by: "ai", lines: [] },
+          { by: "aide", lines: [] },
+        ],
+        undefined,
+        "en",
+      ),
+    ).toEqual([]);
+    expect(drawnParts([waiting], undefined, "en").map((d) => d.writer)).toEqual(
+      ["Subagent: scope"],
+    );
   });
 });

@@ -11,7 +11,11 @@ const pipOf = (jobs: QueueRowView[], step: string, done: string[]) => {
   return phasePipKind(phase, done);
 };
 
-const held = (step: string, key: MessageKey, extra: Partial<QueueRowView> = {}): QueueRowView =>
+const held = (
+  step: string,
+  key: MessageKey,
+  extra: Partial<QueueRowView> = {},
+): QueueRowView =>
   row({
     id: `held-${step}`,
     specFolder: "05-spec",
@@ -50,11 +54,21 @@ describe("the pip of a phase on the Running tab", () => {
 
   test("an archive held back because another archive runs draws the plain pip", () => {
     const jobs = [held("archive", "runner.archiveRunning")];
-    expect(pipOf(jobs, "archive", ["create", "analyze", "implement"])).toBe("todo");
+    expect(pipOf(jobs, "archive", ["create", "analyze", "implement"])).toBe(
+      "todo",
+    );
   });
 
   test("a phase whose job is running draws the running pip", () => {
-    const jobs = [row({ id: "live", specFolder: "05-spec", steps: ["analyze"], stepIndex: 0, state: "running" })];
+    const jobs = [
+      row({
+        id: "live",
+        specFolder: "05-spec",
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "running",
+      }),
+    ];
     expect(pipOf(jobs, "analyze", ["create"])).toBe("now");
   });
 
@@ -81,7 +95,14 @@ describe("the pip of a phase on the Running tab", () => {
         stepIndex: 0,
         state: "running",
         landing: true,
-        results: [{ step: "analyze", ok: true, costUsd: 0, terminalReason: "completed" }],
+        results: [
+          {
+            step: "analyze",
+            ok: true,
+            costUsd: 0,
+            terminalReason: "completed",
+          },
+        ],
       }),
     ];
     expect(pipOf(jobs, "analyze", ["create"])).toBe("now");

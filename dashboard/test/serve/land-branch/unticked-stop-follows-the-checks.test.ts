@@ -7,26 +7,40 @@
 // run stopped, never whether that still holds.
 
 import { describe, expect, test } from "bun:test";
-import { withFreshness, type LandContext } from "../../../src/serve/land-branch";
+import {
+  withFreshness,
+  type LandContext,
+} from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
 
 const FOLDER = "02-selvregistrering-med-provetid";
 
-function withHistory(stopped: Record<string, string>, target: Partial<SpecTarget>): SpecTarget {
+function withHistory(
+  stopped: Record<string, string>,
+  target: Partial<SpecTarget>,
+): SpecTarget {
   const ctx = {
     workflowHistory: {
-      peekHistory: () => ({ history: { done: ["create", "analyze", "implement"], stopped }, checkedAt: 1 }),
+      peekHistory: () => ({
+        history: { done: ["create", "analyze", "implement"], stopped },
+        checkedAt: 1,
+      }),
     },
     specCreatedAt: { peekCreatedAt: () => ({ createdAt: null }) },
     freshness: { peekStale: () => ({ stale: false }) },
-    branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
+    branchFileSteps: {
+      peekFileSteps: () => ({ steps: null, checkedAt: null }),
+    },
   } as unknown as LandContext;
   const list: SpecTarget[] = [
     {
       project: "paceup",
       specFolder: FOLDER,
       dir: "/some/dir",
-      fileSteps: { proseSteps: ["create", "analyze", "implement"], stateSteps: undefined },
+      fileSteps: {
+        proseSteps: ["create", "analyze", "implement"],
+        stateSteps: undefined,
+      },
       ...target,
     },
   ];
@@ -35,22 +49,34 @@ function withHistory(stopped: Record<string, string>, target: Partial<SpecTarget
 
 describe("archive's unticked-criteria stop answers to the Checks tab", () => {
   test("every criterion ticked since: the old stop is not drawn", () => {
-    const t = withHistory({ archive: "acceptance-criteria-unticked" }, { acceptanceOpen: false });
+    const t = withHistory(
+      { archive: "acceptance-criteria-unticked" },
+      { acceptanceOpen: false },
+    );
     expect(t.stopped?.archive).toBeUndefined();
   });
 
   test("a criterion still open: the stop stands", () => {
-    const t = withHistory({ archive: "acceptance-criteria-unticked" }, { acceptanceOpen: true });
+    const t = withHistory(
+      { archive: "acceptance-criteria-unticked" },
+      { acceptanceOpen: true },
+    );
     expect(t.stopped?.archive).toBe("acceptance-criteria-unticked");
   });
 
   test("a stop for any other reason is left alone", () => {
-    const t = withHistory({ archive: "conflict-open" }, { acceptanceOpen: false });
+    const t = withHistory(
+      { archive: "conflict-open" },
+      { acceptanceOpen: false },
+    );
     expect(t.stopped?.archive).toBe("conflict-open");
   });
 
   test("another step's stop is left alone", () => {
-    const t = withHistory({ implement: "tests-red" }, { acceptanceOpen: false });
+    const t = withHistory(
+      { implement: "tests-red" },
+      { acceptanceOpen: false },
+    );
     expect(t.stopped?.implement).toBe("tests-red");
   });
 });
@@ -61,10 +87,14 @@ describe("archive's unticked-criteria stop answers to the Checks tab", () => {
 describe("a spec the schedule has not reached yet", () => {
   test("keeps the target the disk scan made, unchanged", () => {
     const ctx = {
-      workflowHistory: { peekHistory: () => ({ history: null, checkedAt: null }) },
+      workflowHistory: {
+        peekHistory: () => ({ history: null, checkedAt: null }),
+      },
       specCreatedAt: { peekCreatedAt: () => ({ createdAt: null }) },
       freshness: { peekStale: () => ({ stale: true }) },
-      branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
+      branchFileSteps: {
+        peekFileSteps: () => ({ steps: null, checkedAt: null }),
+      },
     } as unknown as LandContext;
     const target = {
       project: "skjera",

@@ -26,7 +26,11 @@ test("a file nobody writes is reported by name, not as an empty answer", async (
     // an empty file the whole way ends in the CALLER's own sentence
     // rather than in "", so it asks for a short ceiling of its own.
     writeFileSync(join(dir, "empty.txt"), "");
-    const error = await fileOnceWritten(join(dir, "empty.txt"), "the runner was never invoked", 4).then(
+    const error = await fileOnceWritten(
+      join(dir, "empty.txt"),
+      "the runner was never invoked",
+      4,
+    ).then(
       () => null,
       (e: unknown) => e,
     );

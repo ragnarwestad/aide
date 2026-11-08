@@ -11,7 +11,11 @@ import { stepLabel, type MessageVariant } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { waitsForPerson } from "../../../queue/steps.ts";
-import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
+import {
+  heldBackResolvesOnItsOwn,
+  inFlight,
+  type QueueRowView,
+} from "../../ui/job-state";
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
 
@@ -31,11 +35,22 @@ export interface JobLike {
   results?: readonly { terminalReason?: string }[];
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = { specFolder: string; steps: readonly string[]; stepIndex: number };
+type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & {
+  steps: readonly string[];
+};
+type TitleRow = {
+  specFolder: string;
+  steps: readonly string[];
+  stepIndex: number;
+};
 
-export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
-  job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
+export const isScheduleJob = (job: {
+  steps: readonly string[];
+  specFolder: string;
+}): boolean =>
+  job.steps.length === 1 &&
+  job.steps[0] === "schedule" &&
+  job.specFolder.startsWith("schedule-");
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */
@@ -47,7 +62,8 @@ const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
 const sameJob = (job: JobLike): string => `${job.project}\0${job.specFolder}`;
 
 /** 0 running or landing, 1 queued, 2 waiting for the user. */
-const group = (job: JobLike): 0 | 1 | 2 => (job.state === "running" || job.landing ? 0 : job.state === "queued" ? 1 : 2);
+const group = (job: JobLike): 0 | 1 | 2 =>
+  job.state === "running" || job.landing ? 0 : job.state === "queued" ? 1 : 2;
 
 /** Where a row stands: its band (0 running or landing, 1 queued, 2 the rest)
  *  and when it last changed, in milliseconds. */
@@ -58,8 +74,17 @@ export interface TabPlace {
 
 /** The newest of a job's own stamps: made, started, finished. Not
  *  `activityMs`, which leaves out the finish and picks a spec's lead job. */
-const lastStamp = (j: { createdAt: string; startedAt?: string; finishedAt?: string }): number =>
-  Math.max(0, ...[j.createdAt, j.startedAt, j.finishedAt].map((s) => Date.parse(s ?? "")).filter(Number.isFinite));
+const lastStamp = (j: {
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}): number =>
+  Math.max(
+    0,
+    ...[j.createdAt, j.startedAt, j.finishedAt]
+      .map((s) => Date.parse(s ?? ""))
+      .filter(Number.isFinite),
+  );
 
 /** A dismissal holds for the ending it was pressed on: a job the board queues
  *  again after a usage limit and that ends again has a newer stamp. */
@@ -75,16 +100,22 @@ export const jobPlace = (job: JobLike): TabPlace => ({
  *  its change is its lead job's newest stamp, or, with no job of its round,
  *  the day it was made. A spec git has not dated yet, with no job, was made
  *  moments ago: it is the newest, as the list's `sortGroups` treats it. */
-export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): TabPlace => ({
+export const specPlace = (
+  g: Pick<SpecGroup, "state" | "lead" | "createdAt">,
+): TabPlace => ({
   band: g.state === "running" ? 0 : g.state === "queued" ? 1 : 2,
   changedAt:
     !g.lead && !g.createdAt
       ? Number.MAX_SAFE_INTEGER
-      : Math.max(g.lead ? lastStamp(g.lead) : 0, Date.parse(g.createdAt ?? "") || 0),
+      : Math.max(
+          g.lead ? lastStamp(g.lead) : 0,
+          Date.parse(g.createdAt ?? "") || 0,
+        ),
 });
 
 /** Running or landing first, then queued, then the rest; the newest change first in each. */
-export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
+export const byTabPlace = (a: TabPlace, b: TabPlace): number =>
+  a.band - b.band || b.changedAt - a.changedAt;
 
 /** The jobs that are rows of their own: the scheduled jobs, the Close and
  *  Reopen jobs and the board's own deploys, in flight, or waiting for a person and not yet dealt with. A
@@ -101,14 +132,19 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   const newest = new Map<string, number>();
   // A cancelled run is a person ending it, not a run that succeeded, so it
   // does not deal with an earlier job's failure.
-  for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
+  for (const job of jobs.filter((j) => j.state !== "cancelled"))
+    newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
     const schedule = isScheduleJob(job);
     if (!schedule && !closeOrReopenStep(job) && !deployStep(job)) return false;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
-    return !schedule || (!dismissed(job) && o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder)));
+    return (
+      !schedule ||
+      (!dismissed(job) &&
+        o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder)))
+    );
   });
 }
 
@@ -117,25 +153,39 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
  *  twice while it moves. A failed one stands for nothing, and its spec's row
  *  stays beside it. */
 export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
-  return new Set(shown.filter((j) => closeOrReopenStep(j) && inFlight(j)).map((j) => `${j.project}/${j.specFolder}`));
+  return new Set(
+    shown
+      .filter((j) => closeOrReopenStep(j) && inFlight(j))
+      .map((j) => `${j.project}/${j.specFolder}`),
+  );
 }
 
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
  *  the deploy and the project it deploys. */
-export function jobTitle(row: TitleRow & { project?: string }, lang: Language = "en"): string {
-  if (deployStep(row)) return `${stepLabel("deploy", lang)} ${row.project ?? ""}`.trim();
+export function jobTitle(
+  row: TitleRow & { project?: string },
+  lang: Language = "en",
+): string {
+  if (deployStep(row))
+    return `${stepLabel("deploy", lang)} ${row.project ?? ""}`.trim();
   const step = closeOrReopenStep(row);
-  return step ? `${stepLabel(step, lang)} ${row.specFolder}` : scheduleNameOf(row.specFolder);
+  return step
+    ? `${stepLabel(step, lang)} ${row.specFolder}`
+    : scheduleNameOf(row.specFolder);
 }
 
 /** The row's key, in the tab's `open`: a scheduled job's tracking key, or for a
  *  Close, Reopen or deploy its spec's (the deploy's `deploy`) and its step's, so
  *  it never folds with the spec's own row and the page hears the job's log grow
  *  while the row is open. */
-export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
+export function jobKey(
+  row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">,
+): string {
   const step = closeOrReopenStep(row) ?? deployStep(row);
-  return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
+  return step
+    ? phaseKey(row.project, row.specFolder, step)
+    : `${row.project}/${row.specFolder}`;
 }
 
 /** The key the event stream listens on for a scheduled job's row key in
@@ -144,7 +194,8 @@ export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "
 export function scheduleStreamKey(key: string): string | undefined {
   const slash = key.indexOf("/");
   const folder = key.slice(slash + 1);
-  if (slash <= 0 || key.includes(":") || !folder.startsWith("schedule-")) return undefined;
+  if (slash <= 0 || key.includes(":") || !folder.startsWith("schedule-"))
+    return undefined;
   return phaseKey(key.slice(0, slash), folder, "schedule");
 }
 
@@ -164,8 +215,21 @@ export interface JobMessage {
 
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
-type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
-  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider">> & {
+type MessageRow = Pick<
+  QueueRowView,
+  "id" | "state" | "error" | "errorReason" | "stepIndex"
+> &
+  Partial<
+    Pick<
+      QueueRowView,
+      | "stopReason"
+      | "usageLimitWait"
+      | "results"
+      | "stepModels"
+      | "model"
+      | "provider"
+    >
+  > & {
     steps: readonly string[];
   };
 
@@ -180,17 +244,28 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
 function ranOnSentence(row: MessageRow, lang: Language): string | undefined {
   const result = [...(row.results ?? [])].reverse().find((r) => r.provider);
   if (!result?.provider) return undefined;
-  return t(lang, "notice.providerRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: result.provider.name });
+  return t(lang, "notice.providerRan", {
+    step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang),
+    who: result.provider.name,
+  });
 }
 
-export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
+export function jobMessage(
+  row: MessageRow,
+  lang: Language,
+): JobMessage | undefined {
   const ended = ENDED[row.state];
   if (ended) {
     // A usage-limit stop is told in its own sentence, which names the
     // provider the stop was on.
-    const limitText = row.state === "stopped" ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) : undefined;
-    const own = limitText ?? (renderSentence(lang, row.error) || t(lang, ended));
-    const ranOn = limitText === undefined ? ranOnSentence(row, lang) : undefined;
+    const limitText =
+      row.state === "stopped"
+        ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now())
+        : undefined;
+    const own =
+      limitText ?? (renderSentence(lang, row.error) || t(lang, ended));
+    const ranOn =
+      limitText === undefined ? ranOnSentence(row, lang) : undefined;
     return {
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
@@ -200,14 +275,22 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
   }
   if (deployStep(row) && row.errorReason === "held-back") {
     const text = renderSentence(lang, row.error);
-    if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
+    if (text)
+      return {
+        variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting",
+        text,
+      };
   }
   // A job names the provider its step runs on while it runs.
   if (row.provider && row.state !== "done" && row.state !== "cancelled") {
-    const step = row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
+    const step =
+      row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
     return {
       variant: "info",
-      text: t(lang, "notice.providerRuns", { step: stepLabel(step, lang), who: row.provider }),
+      text: t(lang, "notice.providerRuns", {
+        step: stepLabel(step, lang),
+        who: row.provider,
+      }),
     };
   }
   // A finished job says which provider its step ran on.

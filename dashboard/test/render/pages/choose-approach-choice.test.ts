@@ -14,13 +14,19 @@ afterEach(async () => {
 function newSpecForm(): HTMLFormElement {
   const win = new Window();
   windows.push(win);
-  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }));
-  return win.document.getElementById("new-spec-form") as unknown as HTMLFormElement;
+  win.document.write(
+    renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }),
+  );
+  return win.document.getElementById(
+    "new-spec-form",
+  ) as unknown as HTMLFormElement;
 }
 
 /** What the form posts under `chooseApproach`. */
 function posted(form: HTMLFormElement): FormDataEntryValue | null {
-  const FormDataCtor = (form.ownerDocument.defaultView as unknown as { FormData: typeof FormData }).FormData;
+  const FormDataCtor = (
+    form.ownerDocument.defaultView as unknown as { FormData: typeof FormData }
+  ).FormData;
   return new FormDataCtor(form).get("chooseApproach");
 }
 
@@ -33,7 +39,11 @@ describe("the Let me choose the approach box", () => {
 
   test("ticked, the form posts 1", () => {
     const form = newSpecForm();
-    (form.ownerDocument.querySelector('[name="chooseApproach"]') as HTMLInputElement).checked = true;
+    (
+      form.ownerDocument.querySelector(
+        '[name="chooseApproach"]',
+      ) as HTMLInputElement
+    ).checked = true;
     expect(posted(form)).toBe("1");
   });
 });

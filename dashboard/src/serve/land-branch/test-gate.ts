@@ -9,7 +9,17 @@
 // one change. Here it runs exactly once per landing, on exactly what
 // main is about to become.
 
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { availableParallelism, homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
@@ -19,7 +29,11 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
-import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
+import {
+  recordedFailures,
+  variedBetween,
+  type FailingTests,
+} from "../../format/failing-tests.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { Sentence } from "../../i18n/message.ts";
 
@@ -41,11 +55,20 @@ import type { Sentence } from "../../i18n/message.ts";
  *  The tail is kept as the fallback: a run that died before any test
  *  reported still has to say something, and its last words are all
  *  there are. */
-export function failingLines(stdout: string, stderr: string, budget = 600): string {
+export function failingLines(
+  stdout: string,
+  stderr: string,
+  budget = 600,
+): string {
   // The recorder's own JSON answer is not something the tests said.
-  const lines = `${stdout}\n${stderr}`.split("\n").filter((l) => !/^\{"ok":/.test(l.trim()));
+  const lines = `${stdout}\n${stderr}`
+    .split("\n")
+    .filter((l) => !/^\{"ok":/.test(l.trim()));
   const named = lines.filter(
-    (l) => /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)|^(FAILED|ERROR) \S+::/.test(l.trim()) || /^\s*\d+ fail\b/.test(l),
+    (l) =>
+      /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)|^(FAILED|ERROR) \S+::/.test(
+        l.trim(),
+      ) || /^\s*\d+ fail\b/.test(l),
   );
   // Once each: the dashboard's runner prints a failing test as it fails
   // and again in the red worker's full output.
@@ -63,7 +86,11 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
 /** The failing tests a run named, as one list for a sentence: at most
  *  eight, and "…" when there were more. */
 function namedTests(result: Pick<FailingTests, "tests" | "errors">): string {
-  const shown = result.tests.slice(0, 8).map((test, index) => result.errors[index] ? `${test} — ${result.errors[index]}` : test);
+  const shown = result.tests
+    .slice(0, 8)
+    .map((test, index) =>
+      result.errors[index] ? `${test} — ${result.errors[index]}` : test,
+    );
   return shown.join("; ") + (result.tests.length > 8 ? "; …" : "");
 }
 
@@ -109,12 +136,30 @@ export async function runProjectSuiteBeforePush(
  *  them for a run, and `.aide/config` copied so the test command
  *  resolves. Falls back to the live checkout when a worktree cannot be
  *  made, saying so in the log. */
-async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: string; remove: () => Promise<void> }> {
+async function checkoutForGate(
+  root: string,
+  ref = "HEAD",
+): Promise<{ dir: string; remove: () => Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), "aide-landing-gate-tree-"));
-  const added = await runScript(["git", ...NO_GIT_HOOKS, "worktree", "add", "--detach", "--quiet", dir, ref], root, 60_000);
+  const added = await runScript(
+    [
+      "git",
+      ...NO_GIT_HOOKS,
+      "worktree",
+      "add",
+      "--detach",
+      "--quiet",
+      dir,
+      ref,
+    ],
+    root,
+    60_000,
+  );
   if (added.code !== 0) {
     rmSync(dir, { recursive: true, force: true });
-    console.error(`queue: the landing's test run could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
+    console.error(
+      `queue: the landing's test run could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`,
+    );
     return { dir: root, remove: async () => {} };
   }
   // Where the gitignored directories actually live. `root` is a
@@ -124,7 +169,10 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
   // "No such file or directory". `.aide/config` is gitignored in this
   // repo for the same reason and is read the same way.
   const owner = await mainCheckoutOf(root);
-  const config = [join(root, ".aide", "config"), join(owner, ".aide", "config")].find((p) => existsSync(p));
+  const config = [
+    join(root, ".aide", "config"),
+    join(owner, ".aide", "config"),
+  ].find((p) => existsSync(p));
   if (config) {
     mkdirSync(join(dir, ".aide"), { recursive: true });
     copyFileSync(config, join(dir, ".aide", "config"));
@@ -137,16 +185,34 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
   // the tree or git unable to say → leave it alone; untracked with a
   // source → copy it. The links are read from the tree afterwards, so
   // the ones the copy names are made too.
-  const manifestSource = [join(root, ".aide", "project.yaml"), join(owner, ".aide", "project.yaml")].find((p) => existsSync(p));
+  const manifestSource = [
+    join(root, ".aide", "project.yaml"),
+    join(owner, ".aide", "project.yaml"),
+  ].find((p) => existsSync(p));
   if (manifestSource) {
-    const tracked = await runScript(["git", ...NO_GIT_HOOKS, "ls-files", "--error-unmatch", "--", ".aide/project.yaml"], dir, 30_000);
+    const tracked = await runScript(
+      [
+        "git",
+        ...NO_GIT_HOOKS,
+        "ls-files",
+        "--error-unmatch",
+        "--",
+        ".aide/project.yaml",
+      ],
+      dir,
+      30_000,
+    );
     if (tracked.code === 1) {
       mkdirSync(join(dir, ".aide"), { recursive: true });
       copyFileSync(manifestSource, join(dir, ".aide", "project.yaml"));
     }
   }
-  for (const entry of resolveWorktreeLinks(dir).links.split(/[\s,]+/).filter(Boolean)) {
-    const source = [join(root, entry), join(owner, entry)].find((p) => existsSync(p));
+  for (const entry of resolveWorktreeLinks(dir)
+    .links.split(/[\s,]+/)
+    .filter(Boolean)) {
+    const source = [join(root, entry), join(owner, entry)].find((p) =>
+      existsSync(p),
+    );
     const target = join(dir, entry);
     if (!source || existsSync(target)) continue;
     try {
@@ -160,7 +226,11 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
   return {
     dir,
     remove: async () => {
-      await runScript(["git", ...NO_GIT_HOOKS, "worktree", "remove", "--force", dir], root, 60_000);
+      await runScript(
+        ["git", ...NO_GIT_HOOKS, "worktree", "remove", "--force", dir],
+        root,
+        60_000,
+      );
       rmSync(dir, { recursive: true, force: true });
     },
   };
@@ -169,10 +239,35 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
 /** The default branch as origin has it, or the local one where there is
  *  no origin: main without the spec being landed. */
 async function defaultBranchRef(root: string): Promise<string | null> {
-  const head = await runScript(["git", ...NO_GIT_HOOKS, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], root, 30_000);
-  const candidates = [head.stdout.trim(), "refs/remotes/origin/main", "refs/remotes/origin/master", "refs/heads/main", "refs/heads/master"];
+  const head = await runScript(
+    [
+      "git",
+      ...NO_GIT_HOOKS,
+      "symbolic-ref",
+      "--quiet",
+      "refs/remotes/origin/HEAD",
+    ],
+    root,
+    30_000,
+  );
+  const candidates = [
+    head.stdout.trim(),
+    "refs/remotes/origin/main",
+    "refs/remotes/origin/master",
+    "refs/heads/main",
+    "refs/heads/master",
+  ];
   for (const ref of candidates.filter(Boolean)) {
-    if ((await runScript(["git", ...NO_GIT_HOOKS, "show-ref", "--verify", "--quiet", ref], root, 30_000)).code === 0) return ref;
+    if (
+      (
+        await runScript(
+          ["git", ...NO_GIT_HOOKS, "show-ref", "--verify", "--quiet", ref],
+          root,
+          30_000,
+        )
+      ).code === 0
+    )
+      return ref;
   }
   return null;
 }
@@ -191,12 +286,30 @@ async function resultOnDefaultBranch(
   jobs: GateOpts["jobs"],
 ): Promise<DefaultBranchResult> {
   const ref = await defaultBranchRef(liveRoot);
-  if (!ref) return { status: "not-checked", reason: "the default branch was not found" };
+  if (!ref)
+    return {
+      status: "not-checked",
+      reason: "the default branch was not found",
+    };
   const tree = await checkoutForGate(liveRoot, ref);
-  if (tree.dir === liveRoot) return { status: "not-checked", reason: "the default branch could not be checked out" };
+  if (tree.dir === liveRoot)
+    return {
+      status: "not-checked",
+      reason: "the default branch could not be checked out",
+    };
   try {
-    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers(jobs));
-    if (out.timedOut) return { status: "not-checked", reason: "the tests on the default branch did not finish" };
+    const out = await runScript(
+      [recorder, "--project-dir", tree.dir, ...argTail],
+      tree.dir,
+      LANDING_GATE_TIMEOUT_MS,
+      undefined,
+      testWorkers(jobs),
+    );
+    if (out.timedOut)
+      return {
+        status: "not-checked",
+        reason: "the tests on the default branch did not finish",
+      };
     if (out.code === 0) return { status: "green" };
     return { status: "red", failures: recordedFailures(out.stdout) };
   } finally {
@@ -205,20 +318,37 @@ async function resultOnDefaultBranch(
 }
 
 /** A timed-out merge names the last test heading the captured output saw. */
-export function timeoutVerdict(output: string, minutes: number, button: string): GateVerdict {
-  const test = output.split("\n").map((line) => line.trim()).flatMap((line) => {
-    if (/^--- .+/.test(line)) return [line.replace(/^--- /, "")];
-    const heading = line.match(/^(.+\.(?:test|spec)\.[cm]?[jt]sx?):$/);
-    return heading?.[1] ? [heading[1]] : [];
-  }).at(-1) ?? "the last test shown in the log";
-  return { ok: false, error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
+export function timeoutVerdict(
+  output: string,
+  minutes: number,
+  button: string,
+): GateVerdict {
+  const test =
+    output
+      .split("\n")
+      .map((line) => line.trim())
+      .flatMap((line) => {
+        if (/^--- .+/.test(line)) return [line.replace(/^--- /, "")];
+        const heading = line.match(/^(.+\.(?:test|spec)\.[cm]?[jt]sx?):$/);
+        return heading?.[1] ? [heading[1]] : [];
+      })
+      .at(-1) ?? "the last test shown in the log";
+  return {
+    ok: false,
+    error: { key: "landing.testsTimedOut", values: { minutes, test, button } },
+    detail: failingLines(output, ""),
+  };
 }
 
 /** The host's cores divided among the steps and landings running as this
  *  run starts (`testWorkerShare`). `jobs` is read at each call; a caller
  *  that passes none counts this landing alone. */
 function testWorkers(jobs: GateOpts["jobs"]): Record<string, string> {
-  return { AIDE_TEST_WORKERS: String(testWorkerShare(availableParallelism(), jobs?.() ?? [])) };
+  return {
+    AIDE_TEST_WORKERS: String(
+      testWorkerShare(availableParallelism(), jobs?.() ?? []),
+    ),
+  };
 }
 
 /** A line in the landed step's own run log, stamped the way `aide-run-spec`
@@ -237,10 +367,15 @@ export function stepLogLine(job: GatedJob, text: string, error = false): void {
   const now = new Date();
   const startedAt = job.streamFile ? job.stepStartedAt : last?.startedAt;
   const began = startedAt ? Date.parse(startedAt) : NaN;
-  const seconds = Number.isNaN(began) ? 0 : Math.max(0, Math.round((now.getTime() - began) / 1000));
+  const seconds = Number.isNaN(began)
+    ? 0
+    : Math.max(0, Math.round((now.getTime() - began) / 1000));
   const clock = now.toTimeString().slice(0, 8);
   try {
-    appendFileSync(runLogPath(streamFile), `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}\n`);
+    appendFileSync(
+      runLogPath(streamFile),
+      `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}\n`,
+    );
   } catch {
     // Nothing to do: the gate log keeps the run either way.
   }
@@ -263,7 +398,8 @@ function followProgress(job: GatedJob, file: string): { stop: () => void } {
       return;
     }
     const complete = lines.slice(0, -1); // the last is empty, or a line still being written
-    for (const line of complete.slice(seen)) if (line.trim()) stepLogLine(job, `tests: ${line}`);
+    for (const line of complete.slice(seen))
+      if (line.trim()) stepLogLine(job, `tests: ${line}`);
     seen = Math.max(seen, complete.length);
   };
   const timer = setInterval(drain, 2000);
@@ -282,7 +418,10 @@ function keepStepOutput(job: GatedJob, output: string): void {
   const streamFile = stepStreamFile(job);
   if (!streamFile) return;
   try {
-    appendFileSync(`${streamFile.replace(/\.stream\.jsonl$/, "")}.tests.log`, output);
+    appendFileSync(
+      `${streamFile.replace(/\.stream\.jsonl$/, "")}.tests.log`,
+      output,
+    );
   } catch {
     // The shared gate log keeps it either way.
   }
@@ -293,7 +432,11 @@ function keepStepOutput(job: GatedJob, output: string): void {
  *  own `.git`; for the main checkout it answers `.git` itself, and the
  *  answer is `root` unchanged. */
 async function mainCheckoutOf(root: string): Promise<string> {
-  const common = await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", "--git-common-dir"], root, 30_000);
+  const common = await runScript(
+    ["git", ...NO_GIT_HOOKS, "rev-parse", "--git-common-dir"],
+    root,
+    30_000,
+  );
   const out = common.stdout.trim();
   if (common.code !== 0 || !out) return root;
   const abs = isAbsolute(out) ? out : join(root, out);
@@ -308,12 +451,27 @@ async function runSuiteIn(
   opts: GateOpts,
 ): Promise<GateVerdict> {
   // Beside the runner first, never PATH alone: see `scriptFor`.
-  const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
-  const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
+  const resolver = scriptFor("aide-resolve-test-cmd", {
+    beside: opts.scriptDir,
+    override: process.env.AIDE_RESOLVE_TEST_CMD_BIN,
+  });
+  const recorder = scriptFor("aide-record-test-run", {
+    beside: opts.scriptDir,
+    override: process.env.AIDE_RECORD_TEST_RUN_BIN,
+  });
   // Against the default branch, so a Markdown-only change is tested by
   // the documentation check alone, as the step's own run was.
   const base = await defaultBranchRef(root);
-  const resolved = await runScript([resolver, "--project-dir", root, ...(base ? ["--changed-from", base] : [])], root, 60_000);
+  const resolved = await runScript(
+    [
+      resolver,
+      "--project-dir",
+      root,
+      ...(base ? ["--changed-from", base] : []),
+    ],
+    root,
+    60_000,
+  );
   let commands: string[] = [];
   try {
     const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
@@ -337,14 +495,25 @@ async function runSuiteIn(
     // says there is no test command.
     return { ok: true };
   }
-  const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
+  const log =
+    process.env.AIDE_TEST_GATE_LOG ??
+    join(
+      process.env.HOME || homedir(),
+      "Library",
+      "Logs",
+      "aide-dashboard",
+      "test-gate.log",
+    );
   // The step this landing merges may already have seen these commands
   // green on this very tree (seen-green.ts) — main has not moved since
   // its own run. Said in the same log a run would have written to, so a
   // landing that ran nothing still leaves its answer where people look.
   const seen = await alreadySeenGreen(root, liveRoot, job, commands, opts);
   if (seen) {
-    stepLogLine(job, "the landing did not run the project's tests: the step already saw them green on this tree");
+    stepLogLine(
+      job,
+      "the landing did not run the project's tests: the step already saw them green on this tree",
+    );
     try {
       mkdirSync(join(log, ".."), { recursive: true });
       appendFileSync(
@@ -360,25 +529,45 @@ async function runSuiteIn(
   const scratch = mkdtempSync(join(tmpdir(), "aide-landing-gate-"));
   try {
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
-    const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
+    const argv = [
+      recorder,
+      "--project-dir",
+      root,
+      "--specs-root",
+      scratch,
+      "--folder",
+      job.specFolder,
+    ];
     for (const c of commands) argv.push("--cmd", c);
     const runOnce = async (label: string) => {
       const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
       writeFileSync(progress, "");
       const follow = followProgress(job, progress);
-      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers(opts.jobs)).finally(follow.stop);
+      const out = await runScript(
+        [...argv, "--progress-file", progress],
+        root,
+        LANDING_GATE_TIMEOUT_MS,
+        job.id,
+        testWorkers(opts.jobs),
+      ).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
       try {
         mkdirSync(join(log, ".."), { recursive: true });
-        appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot}${label} ---\n${out.stdout}${out.stderr}\n`);
+        appendFileSync(
+          log,
+          `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot}${label} ---\n${out.stdout}${out.stderr}\n`,
+        );
       } catch {
         // A log that cannot be written must not turn a green suite red.
       }
       return out;
     };
-    stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
+    stepLogLine(
+      job,
+      `the landing runs the project's tests on the merge (${commands.length} command(s))`,
+    );
     const button = stepButton("archive");
     let gate = await runOnce("");
     const firstResult = recordedFailures(gate.stdout);
@@ -388,7 +577,11 @@ async function runSuiteIn(
     // landing for as long again.
     if (gate.code !== 0 && !gate.timedOut) {
       const first = failingLines(gate.stdout, gate.stderr);
-      stepLogLine(job, "the landing's tests are red — running them once more", true);
+      stepLogLine(
+        job,
+        "the landing's tests are red — running them once more",
+        true,
+      );
       gate = await runOnce(" (retry)");
       if (gate.code === 0) {
         stepLogLine(job, "the landing's tests are green on the second run");
@@ -398,12 +591,25 @@ async function runSuiteIn(
     }
     const minutes = Math.round(LANDING_GATE_TIMEOUT_MS / 60_000);
     if (gate.timedOut) {
-      stepLogLine(job, `the landing's tests did not finish within ${minutes} minutes`, true);
+      stepLogLine(
+        job,
+        `the landing's tests did not finish within ${minutes} minutes`,
+        true,
+      );
       return timeoutVerdict(`${gate.stdout}\n${gate.stderr}`, minutes, button);
     }
-    if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
+    if (gate.code !== 0)
+      stepLogLine(
+        job,
+        "the landing runs the same tests on main alone, without this spec",
+      );
     if (gate.code !== 0) {
-      const main = await resultOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs);
+      const main = await resultOnDefaultBranch(
+        liveRoot,
+        recorder,
+        argv.slice(3),
+        opts.jobs,
+      );
       // One sentence on the row: the tests that failed when the output
       // named them, and what the two runs on the merge say about them —
       // the same tests twice is the merge's doing; different ones point at
@@ -416,51 +622,137 @@ async function runSuiteIn(
       const lastTests = lastResult.tests;
       const detail = failingLines(gate.stdout, gate.stderr);
       if (main.status === "not-checked") {
-        stepLogLine(job, `the tests on main were not checked: ${main.reason}`, true);
-        return { ok: false, error: { key: "landing.testsMainNotChecked", values: { reason: main.reason, branch, button } }, detail };
-      }
-      if (main.status === "red") {
-        if (!main.failures.tests.length) {
-          stepLogLine(job, "the tests are red on main, but its output named no failing test", true);
-          return { ok: false, error: { key: "landing.testsRedOnMainUnnamed", values: { branch, button } }, detail };
-        }
-        const onMain = new Set(main.failures.tests);
-        const mergeOnly = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => !onMain.has(test));
-        if (!mergeOnly.length) {
-          stepLogLine(job, "the same tests are red on main as well", true);
-          return { ok: false, error: { key: "landing.testsRedOnMainToo", values: { branch, button } }, detail };
-        }
+        stepLogLine(
+          job,
+          `the tests on main were not checked: ${main.reason}`,
+          true,
+        );
         return {
           ok: false,
-          error: { key: "landing.testsRedOnMergeToo", values: { tests: namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }), branch, button } },
+          error: {
+            key: "landing.testsMainNotChecked",
+            values: { reason: main.reason, branch, button },
+          },
           detail,
         };
       }
-      stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
-      if (!firstTests.length) return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
+      if (main.status === "red") {
+        if (!main.failures.tests.length) {
+          stepLogLine(
+            job,
+            "the tests are red on main, but its output named no failing test",
+            true,
+          );
+          return {
+            ok: false,
+            error: {
+              key: "landing.testsRedOnMainUnnamed",
+              values: { branch, button },
+            },
+            detail,
+          };
+        }
+        const onMain = new Set(main.failures.tests);
+        const mergeOnly = lastTests
+          .map((test, index) => ({
+            test,
+            error: lastResult.errors[index] ?? "",
+          }))
+          .filter(({ test }) => !onMain.has(test));
+        if (!mergeOnly.length) {
+          stepLogLine(job, "the same tests are red on main as well", true);
+          return {
+            ok: false,
+            error: {
+              key: "landing.testsRedOnMainToo",
+              values: { branch, button },
+            },
+            detail,
+          };
+        }
+        return {
+          ok: false,
+          error: {
+            key: "landing.testsRedOnMergeToo",
+            values: {
+              tests: namedTests({
+                tests: mergeOnly.map(({ test }) => test),
+                errors: mergeOnly.map(({ error }) => error),
+              }),
+              branch,
+              button,
+            },
+          },
+          detail,
+        };
+      }
+      stepLogLine(
+        job,
+        "the tests are green on main alone — the failure is this merge's",
+        true,
+      );
+      if (!firstTests.length)
+        return {
+          ok: false,
+          error: {
+            key: "landing.testsRedOnMergeUnnamed",
+            values: { branch, button },
+          },
+          detail,
+        };
       const firstSet = new Set(firstTests);
-      const repeated = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
+      const repeated = lastTests
+        .map((test, index) => ({ test, error: lastResult.errors[index] ?? "" }))
+        .filter(({ test }) => firstSet.has(test));
       if (repeated.length) {
         return {
           ok: false,
-          error: { key: "landing.testsRedOnMerge", values: { tests: namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }), branch, button } },
+          error: {
+            key: "landing.testsRedOnMerge",
+            values: {
+              tests: namedTests({
+                tests: repeated.map(({ test }) => test),
+                errors: repeated.map(({ error }) => error),
+              }),
+              branch,
+              button,
+            },
+          },
           detail,
         };
       }
       if (lastTests.length && variedBetween(firstTests, lastTests)) {
         const combined = new Map<string, string>();
-        firstTests.forEach((test, index) => combined.set(test, firstResult.errors[index] ?? ""));
-        lastTests.forEach((test, index) => combined.set(test, lastResult.errors[index] ?? ""));
+        firstTests.forEach((test, index) =>
+          combined.set(test, firstResult.errors[index] ?? ""),
+        );
+        lastTests.forEach((test, index) =>
+          combined.set(test, lastResult.errors[index] ?? ""),
+        );
         return {
           ok: false,
           error: {
             key: "landing.testsRedOnMergeVaried",
-            values: { tests: namedTests({ tests: [...combined.keys()], errors: [...combined.values()] }), branch, button },
+            values: {
+              tests: namedTests({
+                tests: [...combined.keys()],
+                errors: [...combined.values()],
+              }),
+              branch,
+              button,
+            },
           },
           detail,
         };
       }
-      return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
+      return {
+        ok: false,
+        error: {
+          key: "landing.testsRedOnMergeUnnamed",
+          values: { branch, button },
+        },
+        detail,
+      };
     }
     stepLogLine(job, "the landing's tests are green");
     return { ok: true };

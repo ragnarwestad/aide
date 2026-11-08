@@ -3,8 +3,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, SAME_DAY, STAMPED, TWO_TOOLS, UNSTAMPED, blockFor, harness, opened, order, rowFor,
-  specsList, start,
+  ARCHIVED_VIEW,
+  SAME_DAY,
+  STAMPED,
+  TWO_TOOLS,
+  UNSTAMPED,
+  blockFor,
+  harness,
+  opened,
+  order,
+  rowFor,
+  specsList,
+  start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -13,7 +23,10 @@ afterEach(() => harness.cleanup());
 
 describe("an archived spec's row", () => {
   test("draws no model select, no tick box and no Run", async () => {
-    const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
+    const html = await specsList(
+      start({ queueDefaults: TWO_TOOLS }).base,
+      ARCHIVED_VIEW,
+    );
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain("<select");
     expect(row).not.toContain('type="checkbox"');
@@ -26,9 +39,15 @@ describe("an archived spec's row", () => {
   // `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
   test("offers no Analyze, Implement or Archive button — Reopen and nothing else", async () => {
-    const shut = blockFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const shut = blockFor(
+      await specsList(start().base, ARCHIVED_VIEW),
+      STAMPED,
+    );
     expect(shut).not.toContain("<button");
-    const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
+    const open = blockFor(
+      await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`),
+      STAMPED,
+    );
     for (const label of ["Analyze", "Implement", "Archive"]) {
       expect(open).not.toContain(`>${label}</button>`);
     }
@@ -66,7 +85,9 @@ describe("an archived spec's row", () => {
     const { base } = start({ gitRun });
     const dated = [STAMPED, SAME_DAY, UNSTAMPED];
     const listed = async (dir: string) =>
-      order(await specsList(base, `${ARCHIVED_VIEW}&sort=created&dir=${dir}`)).filter((f) => dated.includes(f));
+      order(
+        await specsList(base, `${ARCHIVED_VIEW}&sort=created&dir=${dir}`),
+      ).filter((f) => dated.includes(f));
     expect(await listed("desc")).toEqual([UNSTAMPED, SAME_DAY, STAMPED]);
     expect(await listed("asc")).toEqual([STAMPED, SAME_DAY, UNSTAMPED]);
   });

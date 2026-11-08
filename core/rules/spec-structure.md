@@ -150,7 +150,7 @@ A short analysis has the template's four phase tables with one row each,
 and no `## Plan review` section.
 
 - **The runner writes these lines; never edit them:** `Workflow steps
-  completed:`, `Total progress:`, and each phase's `Repo`/`Model`/
+completed:`, `Total progress:`, and each phase's `Repo`/`Model`/
   `Result`/`Time spent`/`Cost` record in that phase's own file
 - **No skill ever ticks a row under `## Acceptance criteria`**, and none
   writes `Not verified` or `Failed`: those are the user's judgment. The
@@ -163,7 +163,7 @@ and no `## Plan review` section.
 ## Separation of content
 
 | Content                                                        | Location         |
-|----------------------------------------------------------------|------------------|
+| -------------------------------------------------------------- | ---------------- |
 | Problem description                                            | 1-description.md |
 | Acceptance criteria — source (AC-n, optional)                  | 1-description.md |
 | Out of scope — what the change must not do or touch (optional) | 1-description.md |

@@ -8,7 +8,11 @@
 // has.
 
 import { realPathOrAbsolute as real } from "../../git/real-path.ts";
-import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
+import {
+  RESTART_DEFER_TIMEOUT_MS,
+  RESTART_POLL_MS,
+  type createRootLock,
+} from "../serve-helpers";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -19,7 +23,8 @@ export interface RestartHook {
   fire(): void;
 }
 
-const LABEL = (): string => process.env.AIDE_DASH_LABEL ?? "com.aide-dashboard.serve";
+const LABEL = (): string =>
+  process.env.AIDE_DASH_LABEL ?? "com.aide-dashboard.serve";
 
 export function createLaunchdRestart(): RestartHook {
   return {
@@ -27,11 +32,17 @@ export function createLaunchdRestart(): RestartHook {
       // No launchd (Linux): nothing restarts the dashboard, and a landed
       // change runs only once someone starts it again.
       if (!Bun.which("launchctl", { PATH: process.env.PATH ?? "" })) {
-        console.error("queue: this machine has no launchd, so the dashboard is not restarted — restart it by hand to run the landed code");
+        console.error(
+          "queue: this machine has no launchd, so the dashboard is not restarted — restart it by hand to run the landed code",
+        );
         return false;
       }
       const proc = Bun.spawn({
-        cmd: ["launchctl", "print", `gui/${process.getuid?.() ?? 0}/${LABEL()}`],
+        cmd: [
+          "launchctl",
+          "print",
+          `gui/${process.getuid?.() ?? 0}/${LABEL()}`,
+        ],
         stdout: "ignore",
         stderr: "ignore",
       });
@@ -80,7 +91,10 @@ export function reloadScript(label: string): string {
 /** Whether a landed code root is the checkout this dashboard runs from.
  *  Compared as real paths: the serving host reaches its checkout through
  *  a symlinked home more often than not. */
-export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): boolean {
+export function isDashboardRoot(
+  ctx: { dashboardRoot?: string },
+  root: string,
+): boolean {
   if (!ctx.dashboardRoot) return false;
   return real(ctx.dashboardRoot) === real(root);
 }
@@ -96,13 +110,24 @@ export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): 
  *  merge lock yet counts too: the job reads done a moment before. */
 export function landingJobNames(
   queue:
-    | { list(): { id: string; landing?: boolean; project?: string; specFolder?: string }[] }
+    | {
+        list(): {
+          id: string;
+          landing?: boolean;
+          project?: string;
+          specFolder?: string;
+        }[];
+      }
     | undefined,
   exceptJobId?: string,
 ): string[] {
   return (queue?.list() ?? [])
     .filter((j) => !!j.landing && j.id !== exceptJobId)
-    .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
+    .map((j) =>
+      j.project && j.specFolder
+        ? `${j.project}:${j.specFolder}`
+        : j.id.slice(0, 8),
+    );
 }
 
 /** Answers whether the restart fired: false when nothing is registered to
@@ -128,13 +153,19 @@ export async function restartAfterLanding(ctx: {
   }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
   const running = (): string[] => landingJobNames(ctx.queue, ctx.exceptJobId);
-  const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
+  const deadline =
+    Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
   let waiting = running();
   if (waiting.length > 0) {
-    console.error(`queue: a code change landed; the restart waits for landings: ${waiting.join(", ")}`);
+    console.error(
+      `queue: a code change landed; the restart waits for landings: ${waiting.join(", ")}`,
+    );
     ctx.onJobsWaitChange?.(waiting);
   }
-  while ((waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) {
+  while (
+    (waiting.length > 0 || ctx.mergeLock.size > 0) &&
+    Date.now() < deadline
+  ) {
     await new Promise((r) => setTimeout(r, pollMs));
     waiting = running();
     ctx.onJobsWaitChange?.(waiting);
@@ -154,7 +185,9 @@ export async function restartAfterLanding(ctx: {
   // stopped firing and one that never needed to look identical. Logged
   // unconditionally once `registered()` is true — the laptop/test case
   // above already returned before this line.
-  console.error("queue: restarting the dashboard to pick up a landed code change");
+  console.error(
+    "queue: restarting the dashboard to pick up a landed code change",
+  );
   ctx.onJobsWaitChange?.([]);
   ctx.beforeFire?.();
   ctx.restart.fire();

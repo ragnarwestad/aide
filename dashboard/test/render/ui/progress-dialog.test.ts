@@ -3,17 +3,25 @@
 // marked for the page script, and names the word the loading cover shows
 // after OK. Marks the script depends on, not layout or wording.
 import { describe, expect, test } from "bun:test";
-import { renderProjectPage, renderProjectsPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
+import {
+  renderProjectPage,
+  renderProjectsPage,
+  renderSpecsRows,
+  type ProjectPageOptions,
+  type ProjectView,
+} from "../../../src/render";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 import { reopenControl } from "../../../src/render/pages/spec-page/overview.ts";
 import { view } from "../pages/spec-page-fixtures.ts";
 
 /** The first dialog whose opening tag carries `mark`, whole, or "". */
 const dialogWith = (html: string, mark: string): string =>
-  html.match(new RegExp(`<dialog[^>]*${mark}[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
+  html.match(new RegExp(`<dialog[^>]*${mark}[^>]*>[\\s\\S]*?</dialog>`))?.[0] ??
+  "";
 
 /** The word the loading cover shows once OK is pressed. */
-const coverWord = (box: string): string => box.match(/data-cover-note="([^"]*)"/)?.[1] ?? "";
+const coverWord = (box: string): string =>
+  box.match(/data-cover-note="([^"]*)"/)?.[1] ?? "";
 
 const expectProgress = (box: string): void => {
   expect(box).not.toBe("");
@@ -21,17 +29,30 @@ const expectProgress = (box: string): void => {
   expect(coverWord(box)).not.toBe("");
 };
 
-const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
+const project: ProjectView = {
+  name: "aide",
+  manifest: { ok: false, error: "no manifest" },
+  specs: [],
+};
 const projectPage = (opts: Partial<ProjectPageOptions>): string =>
-  renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
-    worktreeLinkCandidates: [],
-    editingGroup: null,
-    ...opts,
-  });
+  renderProjectPage(
+    project,
+    { hasConfigFile: false, rows: [] },
+    null,
+    "2026-09-20T00:00:00Z",
+    [],
+    {
+      worktreeLinkCandidates: [],
+      editingGroup: null,
+      ...opts,
+    },
+  );
 
 describe("every running step is drawn by the progress dialog", () => {
   test("Close's dialog is a progress dialog", () => {
-    expectProgress(dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`));
+    expectProgress(
+      dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`),
+    );
   });
 
   test("Reopen's dialog on the spec page is a progress dialog", () => {
@@ -62,9 +83,14 @@ describe("every running step is drawn by the progress dialog", () => {
   });
 
   test("Remove's dialog on a project's row of the list is a progress dialog", () => {
-    const html = renderProjectsPage([project], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
-      removable: () => true,
-    });
+    const html = renderProjectsPage(
+      [project],
+      "2026-09-20T00:00:00Z",
+      [{ label: "Projects", path: "/projects" }],
+      {
+        removable: () => true,
+      },
+    );
     expectProgress(dialogWith(html, `id="removeask-aide"`));
   });
 

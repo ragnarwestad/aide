@@ -1,6 +1,14 @@
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -34,9 +42,12 @@ describe("a project name has to be safe before anything is touched", () => {
     },
   );
 
-  test.each([["aide"], ["aide-dashboard"], ["Atlasaurus"], ["a.b_c-1"]])("%p is accepted", (name) => {
-    expect(projectNameError(name)).toBeNull();
-  });
+  test.each([["aide"], ["aide-dashboard"], ["Atlasaurus"], ["a.b_c-1"]])(
+    "%p is accepted",
+    (name) => {
+      expect(projectNameError(name)).toBeNull();
+    },
+  );
 
   test("an unsafe name reaches neither git nor the filesystem", async () => {
     const projectsRoot = root();
@@ -67,14 +78,23 @@ describe("adding a project by cloning it", () => {
     const projectsRoot = root();
     const base = root();
     const git = cloningGit();
-    const result = await addProject(git.run, projectsRoot, {
-      name: "newproj",
-      gitUrl: "https://example.com/newproj.git",
-      codeLanding: "merge",
-      description: "What it is for",
-    }, base);
+    const result = await addProject(
+      git.run,
+      projectsRoot,
+      {
+        name: "newproj",
+        gitUrl: "https://example.com/newproj.git",
+        codeLanding: "merge",
+        description: "What it is for",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
-    expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
+    expect(result.steps.map((s) => s.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+    ]);
     expect(result.steps.every((s) => s.ok)).toBe(true);
     // `cwd` is the projects root, not the destination: the destination
     // does not exist yet, which is what makes this call different from
@@ -84,15 +104,26 @@ describe("adding a project by cloning it", () => {
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
       {
         dir: projectsRoot,
-        args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "newproj"],
+        args: [
+          "-c",
+          "credential.helper=",
+          "clone",
+          "https://example.com/newproj.git",
+          "newproj",
+        ],
       },
     ]);
     // Nothing of Aide's is written into the clone.
-    expect(existsSync(join(projectsRoot, "newproj", ".aide", "project.yaml"))).toBe(false);
+    expect(
+      existsSync(join(projectsRoot, "newproj", ".aide", "project.yaml")),
+    ).toBe(false);
     const manifest = dashboardSettingsFile(base, "newproj");
     expect(existsSync(manifest)).toBe(true);
     const parsed = parseManifest(readFileSync(manifest, "utf-8"));
-    expect(parsed).toEqual({ ok: true, data: { name: "newproj", description: "What it is for" } });
+    expect(parsed).toEqual({
+      ok: true,
+      data: { name: "newproj", description: "What it is for" },
+    });
   });
 
   test("a name already taken under the projects root is refused before the clone", async () => {
@@ -113,7 +144,12 @@ describe("adding a project by cloning it", () => {
 
   test("a clone that fails is reported with what git said, and nothing else runs", async () => {
     const projectsRoot = root();
-    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: "repository not found" } });
+    const git = fakeGit({
+      "-c credential.helper= clone": {
+        code: 128,
+        stderr: "repository not found",
+      },
+    });
     const result = await addProject(git.run, projectsRoot, {
       name: "nope",
       gitUrl: "https://example.com/nope.git",
@@ -140,22 +176,35 @@ describe("adding a project on a host whose projects root holds links", () => {
   test("clones into the dashboard's own checkout and links the projects root to it", async () => {
     const { base, projectsRoot } = layout();
     const git = cloningGit();
-    const result = await addProject(git.run, projectsRoot, {
-      name: "newproj",
-      gitUrl: "https://example.com/newproj.git",
-      codeLanding: "merge",
-    }, base);
+    const result = await addProject(
+      git.run,
+      projectsRoot,
+      {
+        name: "newproj",
+        gitUrl: "https://example.com/newproj.git",
+        codeLanding: "merge",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
       {
         dir: join(base, "newproj"),
-        args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "code"],
+        args: [
+          "-c",
+          "credential.helper=",
+          "clone",
+          "https://example.com/newproj.git",
+          "code",
+        ],
       },
     ]);
     const link = join(projectsRoot, "newproj");
     expect(lstatSync(link).isSymbolicLink()).toBe(true);
     expect(readlinkSync(link)).toBe(join(base, "newproj", "code"));
-    expect(existsSync(join(base, "newproj", "code", ".aide", "project.yaml"))).toBe(false);
+    expect(
+      existsSync(join(base, "newproj", "code", ".aide", "project.yaml")),
+    ).toBe(false);
     expect(existsSync(dashboardSettingsFile(base, "newproj"))).toBe(true);
   });
 
@@ -163,25 +212,37 @@ describe("adding a project on a host whose projects root holds links", () => {
     const { base, projectsRoot } = layout();
     mkdirSync(join(base, "aide", "code", ".git"), { recursive: true });
     const git = cloningGit();
-    const result = await addProject(git.run, projectsRoot, {
-      name: "aide",
-      gitUrl: "https://example.com/aide.git",
-      codeLanding: "merge",
-    }, base);
+    const result = await addProject(
+      git.run,
+      projectsRoot,
+      {
+        name: "aide",
+        gitUrl: "https://example.com/aide.git",
+        codeLanding: "merge",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([]);
-    expect(readlinkSync(join(projectsRoot, "aide"))).toBe(join(base, "aide", "code"));
+    expect(readlinkSync(join(projectsRoot, "aide"))).toBe(
+      join(base, "aide", "code"),
+    );
   });
 
   test("any other projects root keeps the clone itself", async () => {
     const { base } = layout();
     const projectsRoot = root();
     const git = cloningGit();
-    const result = await addProject(git.run, projectsRoot, {
-      name: "newproj",
-      gitUrl: "https://example.com/newproj.git",
-      codeLanding: "merge",
-    }, base);
+    const result = await addProject(
+      git.run,
+      projectsRoot,
+      {
+        name: "newproj",
+        gitUrl: "https://example.com/newproj.git",
+        codeLanding: "merge",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
     expect(lstatSync(join(projectsRoot, "newproj")).isDirectory()).toBe(true);
     expect(existsSync(join(base, "newproj", "code"))).toBe(false);
@@ -212,11 +273,17 @@ describe("a clone that cannot authenticate", () => {
       codeLanding: "merge",
     });
     const clone = git.calls.find((c) => c.args.includes("clone"))!;
-    expect(clone.args.slice(0, 3)).toEqual(["-c", "credential.helper=", "clone"]);
+    expect(clone.args.slice(0, 3)).toEqual([
+      "-c",
+      "credential.helper=",
+      "clone",
+    ]);
   });
 
   test("names the credentials problem and suggests the SSH address", async () => {
-    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
+    const git = fakeGit({
+      "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED },
+    });
     const result = await addProject(git.run, root(), {
       name: "private",
       gitUrl: "https://example.com/owner/private.git",
@@ -231,7 +298,9 @@ describe("a clone that cannot authenticate", () => {
   // The address is derived, not echoed — an HTTPS one
   // without the suffix still gets an SSH one with it.
   test("an address with no .git suffix still gets one in the suggestion", async () => {
-    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
+    const git = fakeGit({
+      "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED },
+    });
     const result = await addProject(git.run, root(), {
       name: "private",
       gitUrl: "https://example.com/owner/private",
@@ -246,7 +315,12 @@ describe("a clone that cannot authenticate", () => {
   // The classifier reads git's stderr, so an over-matching one would
   // fold "no such repository" into a message about credentials.
   test("an unrelated failure keeps today's plain message", async () => {
-    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: "repository not found" } });
+    const git = fakeGit({
+      "-c credential.helper= clone": {
+        code: 128,
+        stderr: "repository not found",
+      },
+    });
     const result = await addProject(git.run, root(), {
       name: "nope",
       gitUrl: "https://example.com/nope.git",
@@ -264,13 +338,22 @@ describe("a clone that cannot authenticate", () => {
     const projectsRoot = root();
     const base = root();
     const git = cloningGit();
-    const result = await addProject(git.run, projectsRoot, {
-      name: "bykey",
-      gitUrl: "git@example.com:owner/bykey.git",
-      codeLanding: "merge",
-    }, base);
+    const result = await addProject(
+      git.run,
+      projectsRoot,
+      {
+        name: "bykey",
+        gitUrl: "git@example.com:owner/bykey.git",
+        codeLanding: "merge",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
-    expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
+    expect(result.steps.map((s) => s.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+    ]);
     expect(existsSync(dashboardSettingsFile(base, "bykey"))).toBe(true);
   });
 });
@@ -280,9 +363,13 @@ describe("adding a checkout that is already on the host", () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "already");
     const manifest = join(dir, ".aide", "project.yaml");
-    const git = cloningGit({}, {
-      ".aide/project.yaml": "name: already\ndescription: written by hand\nstack:\n  api: Go\n",
-    });
+    const git = cloningGit(
+      {},
+      {
+        ".aide/project.yaml":
+          "name: already\ndescription: written by hand\nstack:\n  api: Go\n",
+      },
+    );
     const result = await addProject(git.run, projectsRoot, {
       name: "already",
       gitUrl: "git@example.com:me/already.git",
@@ -303,12 +390,17 @@ describe("adding a checkout that is already on the host", () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "bare");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "bare",
-      gitUrl: "git@example.com:me/bare.git",
-      codeLanding: "merge",
-      description: "A checkout that predates its manifest",
-    }, base);
+    const result = await addProject(
+      cloningGit().run,
+      projectsRoot,
+      {
+        name: "bare",
+        gitUrl: "git@example.com:me/bare.git",
+        codeLanding: "merge",
+        description: "A checkout that predates its manifest",
+      },
+      base,
+    );
     expect(result.ok).toBe(true);
     const manifest = result.steps.find((s) => s.step === "manifest")!;
     expect(manifest.ok).toBe(true);
@@ -317,32 +409,39 @@ describe("adding a checkout that is already on the host", () => {
     // The temp directory's own name starts with `aide-`, so the path is taken out first.
     expect(manifest.note!.replace(settingsFile, "")).not.toMatch(/\/aide-/);
     expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
-    expect(parseManifest(readFileSync(dashboardSettingsFile(base, "bare"), "utf-8"))).toEqual({
+    expect(
+      parseManifest(readFileSync(dashboardSettingsFile(base, "bare"), "utf-8")),
+    ).toEqual({
       ok: true,
-      data: { name: "bare", description: "A checkout that predates its manifest" },
+      data: {
+        name: "bare",
+        description: "A checkout that predates its manifest",
+      },
     });
   });
-
-
-
-
-
 
   test.each([
     ["absent", undefined],
     ["empty", ""],
     ["only spaces", "   "],
-  ])("an Add with Code landing %s is refused before anything is cloned", async (_label, codeLanding) => {
-    const git = cloningGit();
-    const projectsRoot = root();
-    const req = { name: "nochoice", gitUrl: "https://example.com/nochoice.git", codeLanding };
-    const result = await addProject(git.run, projectsRoot, req);
-    expect(result.ok).toBe(false);
-    expect(result.steps.map((s) => s.step)).toEqual(["codeLanding"]);
-    expect(result.steps[0]!.error).toMatch(/^choose/);
-    expect(git.calls).toEqual([]);
-    expect(existsSync(join(projectsRoot, "nochoice"))).toBe(false);
-  });
+  ])(
+    "an Add with Code landing %s is refused before anything is cloned",
+    async (_label, codeLanding) => {
+      const git = cloningGit();
+      const projectsRoot = root();
+      const req = {
+        name: "nochoice",
+        gitUrl: "https://example.com/nochoice.git",
+        codeLanding,
+      };
+      const result = await addProject(git.run, projectsRoot, req);
+      expect(result.ok).toBe(false);
+      expect(result.steps.map((s) => s.step)).toEqual(["codeLanding"]);
+      expect(result.steps[0]!.error).toMatch(/^choose/);
+      expect(git.calls).toEqual([]);
+      expect(existsSync(join(projectsRoot, "nochoice"))).toBe(false);
+    },
+  );
 
   // 2026-09-21: a git address is the only way in. A project used to be
   // addable by naming a directory already on the host, which left the
@@ -351,7 +450,9 @@ describe("adding a checkout that is already on the host", () => {
   // the person's — and a delete in `ensureDashboardCheckout` that was
   // right about one of them removed woodstack.
   test("a name with no git address is refused, because there is nothing to clone", async () => {
-    const result = await addProject(fakeGit({}).run, root(), { name: "urlless" });
+    const result = await addProject(fakeGit({}).run, root(), {
+      name: "urlless",
+    });
     expect(result.ok).toBe(false);
     const step = result.steps[0]!;
     expect(step.step).toBe("name");
@@ -359,7 +460,10 @@ describe("adding a checkout that is already on the host", () => {
   });
 
   test("nothing picked and nothing typed is still refused for saying neither", async () => {
-    const result = await addProject(fakeGit({}).run, root(), { name: "", gitUrl: "" });
+    const result = await addProject(fakeGit({}).run, root(), {
+      name: "",
+      gitUrl: "",
+    });
     expect(result.ok).toBe(false);
     expect(result.steps[0]!.step).toBe("name");
   });
@@ -376,25 +480,36 @@ describe("where the project's specs live", () => {
       specsPath: "/repos/aide-specs/withspecs",
     });
     expect(result.ok).toBe(true);
-    expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest", "specsConfig"]);
+    expect(result.steps.map((s) => s.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+      "specsConfig",
+    ]);
     // Read back through the dashboard's OWN reader, not by string match:
     // the two would otherwise be free to disagree about the format.
-    expect(configValue(join(projectsRoot, "withspecs"), "AIDE_SPECS_PATH")).toBe(
-      "/repos/aide-specs/withspecs",
-    );
+    expect(
+      configValue(join(projectsRoot, "withspecs"), "AIDE_SPECS_PATH"),
+    ).toBe("/repos/aide-specs/withspecs");
   });
 
   test("an existing .aide/config keeps its other keys", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "hasconfig");
     const result = await addProject(
-      cloningGit({}, { ".aide/config": "# personal\nAIDE_INSTALL_CMD=./install.sh\nAIDE_SPECS_PATH=/old/place\n" }).run,
+      cloningGit(
+        {},
+        {
+          ".aide/config":
+            "# personal\nAIDE_INSTALL_CMD=./install.sh\nAIDE_SPECS_PATH=/old/place\n",
+        },
+      ).run,
       projectsRoot,
       {
-      name: "hasconfig",
-      gitUrl: "git@example.com:me/hasconfig.git",
-      codeLanding: "merge",
-      specsPath: "/new/place",
+        name: "hasconfig",
+        gitUrl: "git@example.com:me/hasconfig.git",
+        codeLanding: "merge",
+        specsPath: "/new/place",
       },
     );
     expect(result.ok).toBe(true);
@@ -425,7 +540,9 @@ describe("where the project's specs live", () => {
     expect(existsSync(join(specs, "archive"))).toBe(true);
     // And the readiness taken right afterwards reads it as there —
     // which is the whole point: no hand `mkdir` between Add and Run.
-    const specsRoot = result.readiness!.checks.find((c) => c.check === "specsRoot")!;
+    const specsRoot = result.readiness!.checks.find(
+      (c) => c.check === "specsRoot",
+    )!;
     expect(specsRoot.ok).toBe(true);
     expect(specsRoot.blocking).toBe(false);
   });
@@ -474,7 +591,9 @@ describe("removing a project touches the allowlist and nothing else", () => {
     const allowed = new Set(["aide"]);
     const result = removeProject(allowed, { name: "never-added" });
     expect(result.ok).toBe(false);
-    expect(result.steps.find((s) => s.step === "allowlist")!.error).toContain("never-added");
+    expect(result.steps.find((s) => s.step === "allowlist")!.error).toContain(
+      "never-added",
+    );
     expect([...allowed]).toEqual(["aide"]);
   });
 });

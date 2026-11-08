@@ -13,10 +13,11 @@ const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
-  modelChoices: { sonnet: { }, fable: { } },
+  modelChoices: { sonnet: {}, fable: {} },
 };
 
-const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null);
+const resolve = (project: string) =>
+  project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null;
 
 let dir: string;
 
@@ -29,38 +30,86 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 describe("QueueStore.setPendingModel()", () => {
   test("records and clears Review and Verify choices across a restart (AC-9, AC-11)", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
-    const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, codex: { tool: "codex" as const } } };
+    const defaults = {
+      ...DEFAULTS,
+      modelChoices: {
+        ...DEFAULTS.modelChoices,
+        codex: { tool: "codex" as const },
+      },
+    };
     const first = new QueueStore({ defaults, resolve, pendingModelsPath });
-    expect(first.setPendingModel("aide", "81-queue-and-runner", "review", "codex").ok).toBe(true);
-    expect(first.setPendingModel("aide", "81-queue-and-runner", "verify", "codex").ok).toBe(true);
-    expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ review: "codex", verify: "codex" });
-    expect(first.setPendingModel("aide", "81-queue-and-runner", "review", "").ok).toBe(true);
-    expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ verify: "codex" });
+    expect(
+      first.setPendingModel("aide", "81-queue-and-runner", "review", "codex")
+        .ok,
+    ).toBe(true);
+    expect(
+      first.setPendingModel("aide", "81-queue-and-runner", "verify", "codex")
+        .ok,
+    ).toBe(true);
+    expect(
+      new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels[
+        "aide/81-queue-and-runner"
+      ],
+    ).toEqual({ review: "codex", verify: "codex" });
+    expect(
+      first.setPendingModel("aide", "81-queue-and-runner", "review", "").ok,
+    ).toBe(true);
+    expect(
+      new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels[
+        "aide/81-queue-and-runner"
+      ],
+    ).toEqual({ verify: "codex" });
   });
 
   test("records a Review choice on another tool (AC-2)", () => {
-    const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, pickle: { tool: "opencode" as const } } };
-    const result = new QueueStore({ defaults, resolve }).setPendingModel("aide", "81-queue-and-runner", "review", "pickle");
+    const defaults = {
+      ...DEFAULTS,
+      modelChoices: {
+        ...DEFAULTS.modelChoices,
+        pickle: { tool: "opencode" as const },
+      },
+    };
+    const result = new QueueStore({ defaults, resolve }).setPendingModel(
+      "aide",
+      "81-queue-and-runner",
+      "review",
+      "pickle",
+    );
     expect(result).toEqual({ ok: true });
   });
 
   test("records a valid pick", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
+    const result = store.setPendingModel(
+      "aide",
+      "81-queue-and-runner",
+      "analyze",
+      "fable",
+    );
     expect(result.ok).toBe(true);
-    expect(store.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe("fable");
+    expect(store.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe(
+      "fable",
+    );
   });
 
   test("a second pick for another step is added beside the first, not over it", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
     store.setPendingModel("aide", "81-queue-and-runner", "implement", "sonnet");
-    expect(store.pendingModels["aide/81-queue-and-runner"]).toEqual({ analyze: "fable", implement: "sonnet" });
+    expect(store.pendingModels["aide/81-queue-and-runner"]).toEqual({
+      analyze: "fable",
+      implement: "sonnet",
+    });
   });
 
   test("refuses an unknown step, by name", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.setPendingModel("aide", "81-queue-and-runner", "nope", "fable");
+    const result = store.setPendingModel(
+      "aide",
+      "81-queue-and-runner",
+      "nope",
+      "fable",
+    );
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("nope");
@@ -68,7 +117,12 @@ describe("QueueStore.setPendingModel()", () => {
 
   test("refuses a model the server does not offer", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
-    const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "haiku");
+    const result = store.setPendingModel(
+      "aide",
+      "81-queue-and-runner",
+      "analyze",
+      "haiku",
+    );
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("haiku");
@@ -77,16 +131,30 @@ describe("QueueStore.setPendingModel()", () => {
 
   test("persists across a fresh QueueStore instance pointed at the same file", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
-    const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    const first = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
     first.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
 
-    const second = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
-    expect(second.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe("fable");
+    const second = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
+    expect(second.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe(
+      "fable",
+    );
   });
 
   test("written tmp-then-renamed, like every other file this store writes", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
     store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
     const raw = JSON.parse(readFileSync(pendingModelsPath, "utf-8")) as unknown;
     expect(raw).toEqual({ "aide/81-queue-and-runner": { analyze: "fable" } });
@@ -95,7 +163,11 @@ describe("QueueStore.setPendingModel()", () => {
   test("a malformed file on disk is dropped, not crashed on", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
     writeFileSync(pendingModelsPath, "not json");
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
     expect(store.pendingModels).toEqual({});
   });
 });
@@ -109,7 +181,11 @@ describe("QueueStore.enqueueCreate() seeds pendingModels", () => {
   const allow = (project: string) => project === "brandnew";
 
   test("a model posted for a phase not in steps is banked under the job's provisional folder", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      allowCreateProject: allow,
+    });
     const result = store.enqueueCreate({
       project: "brandnew",
       title: "A new spec",
@@ -118,11 +194,17 @@ describe("QueueStore.enqueueCreate() seeds pendingModels", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(store.pendingModels[`${result.job.project}/${result.job.specFolder}`]).toEqual({ implement: "fable" });
+    expect(
+      store.pendingModels[`${result.job.project}/${result.job.specFolder}`],
+    ).toEqual({ implement: "fable" });
   });
 
   test("a model posted for a step this job DOES run is not banked as pending", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      allowCreateProject: allow,
+    });
     const result = store.enqueueCreate({
       project: "brandnew",
       title: "A new spec",
@@ -131,15 +213,27 @@ describe("QueueStore.enqueueCreate() seeds pendingModels", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(store.pendingModels[`${result.job.project}/${result.job.specFolder}`]).toBeUndefined();
+    expect(
+      store.pendingModels[`${result.job.project}/${result.job.specFolder}`],
+    ).toBeUndefined();
   });
 
   test("no model posted at all records nothing", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
-    const result = store.enqueueCreate({ project: "brandnew", title: "A new spec", description: "Do the thing" });
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      allowCreateProject: allow,
+    });
+    const result = store.enqueueCreate({
+      project: "brandnew",
+      title: "A new spec",
+      description: "Do the thing",
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(store.pendingModels[`${result.job.project}/${result.job.specFolder}`]).toBeUndefined();
+    expect(
+      store.pendingModels[`${result.job.project}/${result.job.specFolder}`],
+    ).toBeUndefined();
   });
 });
 
@@ -153,7 +247,9 @@ describe("QueueStore.renamePendingModel()", () => {
     store.setPendingModel("aide", "new-abcd1234", "implement", "fable");
     store.renamePendingModel("aide", "new-abcd1234", "94-a-new-spec");
     expect(store.pendingModels["aide/new-abcd1234"]).toBeUndefined();
-    expect(store.pendingModels["aide/94-a-new-spec"]).toEqual({ implement: "fable" });
+    expect(store.pendingModels["aide/94-a-new-spec"]).toEqual({
+      implement: "fable",
+    });
   });
 
   test("a no-op when nothing is recorded under the provisional key", () => {
@@ -164,19 +260,37 @@ describe("QueueStore.renamePendingModel()", () => {
 
   test("persists across a fresh QueueStore instance pointed at the same file", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
-    const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    const first = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
     first.setPendingModel("aide", "new-abcd1234", "implement", "fable");
     first.renamePendingModel("aide", "new-abcd1234", "94-a-new-spec");
 
-    const second = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
-    expect(second.pendingModels["aide/94-a-new-spec"]).toEqual({ implement: "fable" });
+    const second = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      pendingModelsPath,
+    });
+    expect(second.pendingModels["aide/94-a-new-spec"]).toEqual({
+      implement: "fable",
+    });
   });
 });
 
 describe("QueueStore.setPendingModel() with a differently-cased name", () => {
   test("stores the listed spelling", () => {
-    const store = new QueueStore({ defaults: { ...DEFAULTS, modelChoices: { Sonnet: {} } }, resolve });
-    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "sonnet").ok).toBe(true);
-    expect(store.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe("Sonnet");
+    const store = new QueueStore({
+      defaults: { ...DEFAULTS, modelChoices: { Sonnet: {} } },
+      resolve,
+    });
+    expect(
+      store.setPendingModel("aide", "81-queue-and-runner", "analyze", "sonnet")
+        .ok,
+    ).toBe(true);
+    expect(store.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe(
+      "Sonnet",
+    );
   });
 });

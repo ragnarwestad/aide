@@ -6,20 +6,52 @@
 // guards.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, TICK, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
-  PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick, save,
-  recording, messageOf, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW, answer,
+  SPEC,
+  TICK,
+  FILE_SHA,
+  DESCRIPTION,
+  NEW_TEXT,
+  createSpecSaveHarness,
+  ARCHIVED,
+  ARCHIVED_TEXT,
+  savable,
+} from "./spec-save-fixtures.ts";
+import {
+  PHASE,
+  OPEN_ROW,
+  DONE_ROW,
+  STATUS,
+  ticked,
+  statusPath,
+  startWithChecks as start,
+  tick,
+  save,
+  recording,
+  messageOf,
+  branchAwareGitRunner,
+  NV_ROW,
+  NV_STATUS,
+  marked,
+  SECOND_OPEN_ROW,
+  answer,
 } from "./spec-checks-fixtures.ts";
 import { afterTick } from "../../src/serve/routes/spec-edit/checks.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
-const startWithChecks = (gitRun: GitRunner, status = STATUS) => start(harness, gitRun, status);
+const startWithChecks = (gitRun: GitRunner, status = STATUS) =>
+  start(harness, gitRun, status);
 
 describe("the checks on the Overview tab", () => {
   describe("the commit message", () => {
@@ -27,14 +59,18 @@ describe("the checks on the Overview tab", () => {
       const git = recording();
       const { base } = startWithChecks(git.run);
       await tick(base, { ticks: [OPEN_ROW] });
-      expect(messageOf(git.calls)).toBe(`Tick a check in 4-status.md for ${SPEC} by hand from the dashboard`);
+      expect(messageOf(git.calls)).toBe(
+        `Tick a check in 4-status.md for ${SPEC} by hand from the dashboard`,
+      );
     });
 
     test("a description edit still reads exactly as it did", async () => {
       const git = recording();
       const { base } = startWithChecks(git.run);
       await save(base, { text: NEW_TEXT });
-      expect(messageOf(git.calls)).toBe(`Edit 1-description.md for ${SPEC} from the dashboard`);
+      expect(messageOf(git.calls)).toBe(
+        `Edit 1-description.md for ${SPEC} from the dashboard`,
+      );
     });
   });
 
@@ -42,7 +78,9 @@ describe("the checks on the Overview tab", () => {
 
   test("a 4-status.md that moved under the reader refuses the tick", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" }),
+    );
     expect(status).toBe(409);
     expect(body.error).toContain("changed since");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -52,9 +90,13 @@ describe("the checks on the Overview tab", () => {
   // reader sat on the page while a step rewrote the table around it.
   test("a tick naming a row that no longer reads as it did is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, {
-      ticks: ["| Manual check at 375px in a real browser | ⬜ | as it once was |"],
-    }));
+    const { status, body } = await answer(
+      await tick(base, {
+        ticks: [
+          "| Manual check at 375px in a real browser | ⬜ | as it once was |",
+        ],
+      }),
+    );
     expect(status).toBe(409);
     expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -64,7 +106,9 @@ describe("the checks on the Overview tab", () => {
   // it included — never applied silently while one of them is dropped.
   test("one bad row refuses every box in the same press", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW, "| No such row | ⬜ | |"] }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [OPEN_ROW, "| No such row | ⬜ | |"] }),
+    );
     expect(status).toBe(409);
     expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -76,7 +120,9 @@ describe("the checks on the Overview tab", () => {
   // and clears another is one ordinary press.
   test("a row left exactly as it was commits nothing, and is not an error", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [DONE_ROW] }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [DONE_ROW] }),
+    );
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.changed).toBe(false);
@@ -87,7 +133,9 @@ describe("the checks on the Overview tab", () => {
   // comes back off here, not by editing the markdown table by hand.
   test("a done row the reader left CLEAR goes back to ⬜, and is committed", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [], rows: [DONE_ROW] }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [], rows: [DONE_ROW] }),
+    );
     expect(status).toBe(200);
     expect(body.changed).toBe(true);
     const after = readFileSync(statusPath(dir), "utf-8");
@@ -101,7 +149,9 @@ describe("the checks on the Overview tab", () => {
   // new one on the reader's behalf.
   test("a row the press did not carry is left exactly as it was", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], rows: [OPEN_ROW] }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [OPEN_ROW], rows: [OPEN_ROW] }),
+    );
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toContain(DONE_ROW);
@@ -109,7 +159,9 @@ describe("the checks on the Overview tab", () => {
 
   test("a phase the file does not have is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await tick(base, { ticks: [OPEN_ROW], phase: "Phase 9: NOTHING" }));
+    const { status, body } = await answer(
+      await tick(base, { ticks: [OPEN_ROW], phase: "Phase 9: NOTHING" }),
+    );
     expect(status).toBe(409);
     expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -119,12 +171,17 @@ describe("the checks on the Overview tab", () => {
   // that never came from this form.
   test("ticks with no phase named are refused rather than guessed at", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await fetch(`${base}${TICK}`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      redirect: "manual",
-      body: new URLSearchParams([["statusBaseSha", FILE_SHA], ["tick", OPEN_ROW]]).toString(),
-    }));
+    const { status, body } = await answer(
+      await fetch(`${base}${TICK}`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        redirect: "manual",
+        body: new URLSearchParams([
+          ["statusBaseSha", FILE_SHA],
+          ["tick", OPEN_ROW],
+        ]).toString(),
+      }),
+    );
     expect(status).toBe(409);
     expect(body.error).toBeTruthy();
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -136,22 +193,31 @@ describe("the checks on the Overview tab", () => {
     const { base, dir } = harness.start({
       description: DESCRIPTION,
       status: STATUS,
-      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
+      archivedSpecs: {
+        [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS },
+      },
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      redirect: "manual",
-      body: new URLSearchParams([
-        ["checksPhase", PHASE],
-        ["statusBaseSha", FILE_SHA],
-        ["tick", OPEN_ROW],
-      ]).toString(),
-    }));
+    const { status, body } = await answer(
+      await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        redirect: "manual",
+        body: new URLSearchParams([
+          ["checksPhase", PHASE],
+          ["statusBaseSha", FILE_SHA],
+          ["tick", OPEN_ROW],
+        ]).toString(),
+      }),
+    );
     expect(status).toBe(409);
     expect(body.error).toContain("archived");
-    expect(readFileSync(join(dir, "root", "aide", "specs", "archive", ARCHIVED, "4-status.md"), "utf-8")).toBe(STATUS);
+    expect(
+      readFileSync(
+        join(dir, "root", "aide", "specs", "archive", ARCHIVED, "4-status.md"),
+        "utf-8",
+      ),
+    ).toBe(STATUS);
   });
 });
 
@@ -163,12 +229,18 @@ describe("the checks on the Overview tab", () => {
 describe("4-status.md cannot be saved as a document", () => {
   test("a Save of it is refused, and the file is untouched", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const { status, body } = await answer(await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      redirect: "manual",
-      body: new URLSearchParams([["file", "4-status.md"], ["text", "# rewritten\n"], ["baseSha", FILE_SHA]]).toString(),
-    }));
+    const { status, body } = await answer(
+      await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/save`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        redirect: "manual",
+        body: new URLSearchParams([
+          ["file", "4-status.md"],
+          ["text", "# rewritten\n"],
+          ["baseSha", FILE_SHA],
+        ]).toString(),
+      }),
+    );
     expect(status).toBe(400);
     expect(body.error).toContain("Status tab");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
@@ -190,7 +262,8 @@ describe("after a tick is saved", () => {
     const reread = new Promise<void>((r) => (release = r));
     const done = afterTick(
       {
-        forgetBranchFileSteps: (dir, folder) => void order.push(`forget ${dir} ${folder}`),
+        forgetBranchFileSteps: (dir, folder) =>
+          void order.push(`forget ${dir} ${folder}`),
         rereadSpec: async (dir, folder) => {
           order.push(`reread ${dir} ${folder}`);
           await reread;
@@ -203,7 +276,10 @@ describe("after a tick is saved", () => {
     );
     await Bun.sleep(5);
     // Not back to the reader yet: the read is still going.
-    expect(order).toEqual(["forget /specs/aide/481-x 481-x", "reread /specs/aide/481-x 481-x"]);
+    expect(order).toEqual([
+      "forget /specs/aide/481-x 481-x",
+      "reread /specs/aide/481-x 481-x",
+    ]);
     release();
     await done;
     expect(order).toEqual([
@@ -245,7 +321,10 @@ describe("the tick route and the Not verified mark", () => {
     expect(body.error).toBeTruthy();
     return body;
   };
-  const stateOf = (dir: string) => JSON.parse(readFileSync(join(dirname(statusPath(dir)), "4-status.json"), "utf-8"));
+  const stateOf = (dir: string) =>
+    JSON.parse(
+      readFileSync(join(dirname(statusPath(dir)), "4-status.json"), "utf-8"),
+    );
   const NV_FILE = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
   const asNv = (row: string) => marked(row);
 
@@ -253,11 +332,22 @@ describe("the tick route and the Not verified mark", () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
     await ok(await tick(base, { unverified: [OPEN_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, asNv(OPEN_ROW)));
-    const row = stateOf(dir).acceptanceCriteria.find((r: { task: string }) => r.task.startsWith("Manual check"));
-    expect(row).toEqual({ task: "Manual check at 375px in a real browser", done: true, notVerified: true });
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      STATUS.replace(OPEN_ROW, asNv(OPEN_ROW)),
+    );
+    const row = stateOf(dir).acceptanceCriteria.find((r: { task: string }) =>
+      r.task.startsWith("Manual check"),
+    );
+    expect(row).toEqual({
+      task: "Manual check at 375px in a real browser",
+      done: true,
+      notVerified: true,
+    });
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
-    const added = git.calls.filter((c) => c[0] === "add").map((c) => c.join(" ")).join(" ");
+    const added = git.calls
+      .filter((c) => c[0] === "add")
+      .map((c) => c.join(" "))
+      .join(" ");
     expect(added).toContain("4-status.md");
     expect(added).toContain("4-status.json");
   });
@@ -265,52 +355,72 @@ describe("the tick route and the Not verified mark", () => {
   test("both boxes on a done row make it Not verified", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
     await ok(await tick(base, { ticks: [DONE_ROW], unverified: [DONE_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(DONE_ROW, asNv(DONE_ROW)));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      STATUS.replace(DONE_ROW, asNv(DONE_ROW)),
+    );
   });
 
   test("both boxes on an open row make it done", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
     await ok(await tick(base, { ticks: [OPEN_ROW], unverified: [OPEN_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)),
+    );
   });
 
   test("both boxes on a Not verified row make it done", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { ticks: [NV_ROW], unverified: [NV_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")),
+    );
   });
 
   test("the tick box alone on a Not verified row makes it done, not skipped as already made", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { ticks: [NV_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")),
+    );
   });
 
   test("no box on a Not verified row sends it back to open", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { rows: [NV_ROW] }));
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "⬜")));
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "⬜")),
+    );
   });
 
   test("a Not verified row left as it was commits nothing", async () => {
     const git = recording();
     const { base } = startWithChecks(git.run, NV_FILE);
-    expect((await ok(await tick(base, { unverified: [NV_ROW] }))).changed).toBe(false);
+    expect((await ok(await tick(base, { unverified: [NV_ROW] }))).changed).toBe(
+      false,
+    );
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
 
   test("ticking the last Not verified row leaves no notVerified row in the state", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
     await ok(await tick(base, { ticks: [DONE_ROW, NV_ROW] }));
-    const rows: { done: boolean; notVerified?: boolean }[] = stateOf(dir).acceptanceCriteria;
+    const rows: { done: boolean; notVerified?: boolean }[] =
+      stateOf(dir).acceptanceCriteria;
     expect(rows.every((r) => r.done && !("notVerified" in r))).toBe(true);
   });
 
   test("an installed aide-write-spec that derives no flag refuses, and nothing is committed", async () => {
     const scratch = mkdtempSync(join(tmpdir(), "old-write-spec-"));
     const stub = join(scratch, "old-write-spec");
-    const state = JSON.stringify({ completedPhases: [], acceptanceCriteria: [{ task: "x", done: true }], phaseCounts: {} });
-    writeFileSync(stub, `#!/bin/bash\ncat > /dev/null\nprintf '%s\\n' '${JSON.stringify({ ok: true, stateJson: state })}'\n`);
+    const state = JSON.stringify({
+      completedPhases: [],
+      acceptanceCriteria: [{ task: "x", done: true }],
+      phaseCounts: {},
+    });
+    writeFileSync(
+      stub,
+      `#!/bin/bash\ncat > /dev/null\nprintf '%s\\n' '${JSON.stringify({ ok: true, stateJson: state })}'\n`,
+    );
     chmodSync(stub, 0o755);
     const before = process.env.AIDE_WRITE_SPEC_BIN;
     process.env.AIDE_WRITE_SPEC_BIN = stub;
@@ -331,7 +441,10 @@ describe("the tick route and the Not verified mark", () => {
 
   describe("an archived spec", () => {
     const ARCHIVED_STATUS = NV_STATUS;
-    const start = (status = ARCHIVED_STATUS, git: GitRunner = savable("/host")) =>
+    const start = (
+      status = ARCHIVED_STATUS,
+      git: GitRunner = savable("/host"),
+    ) =>
       harness.start({
         description: DESCRIPTION,
         status: STATUS,
@@ -340,30 +453,44 @@ describe("the tick route and the Not verified mark", () => {
       });
     const tickArchived = (base: string, over: Parameters<typeof tick>[1]) =>
       tick(base, { ...over, path: `/api/queue/specs/aide/${ARCHIVED}/tick` });
-    const fileOf = (dir: string, name = "4-status.md") => join(dir, "root", "aide", "specs", "archive", ARCHIVED, name);
+    const fileOf = (dir: string, name = "4-status.md") =>
+      join(dir, "root", "aide", "specs", "archive", ARCHIVED, name);
 
     test("the Not verified row can be completed, and 4-status.md and 4-status.json are committed", async () => {
       const git = recording();
       const { base, dir } = start(ARCHIVED_STATUS, git.run);
       await ok(await tickArchived(base, { ticks: [NV_ROW] }));
-      expect(readFileSync(fileOf(dir), "utf-8")).toBe(ARCHIVED_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
-      const rows: { notVerified?: boolean }[] = JSON.parse(readFileSync(fileOf(dir, "4-status.json"), "utf-8")).acceptanceCriteria;
+      expect(readFileSync(fileOf(dir), "utf-8")).toBe(
+        ARCHIVED_STATUS.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")),
+      );
+      const rows: { notVerified?: boolean }[] = JSON.parse(
+        readFileSync(fileOf(dir, "4-status.json"), "utf-8"),
+      ).acceptanceCriteria;
       expect(rows.some((r) => r.notVerified)).toBe(false);
       expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
     });
 
     test("it writes to the specs repository's default branch even when a branch of that name is open", async () => {
-      const open = branchAwareGitRunner({ folder: ARCHIVED, branchText: ARCHIVED_STATUS });
+      const open = branchAwareGitRunner({
+        folder: ARCHIVED,
+        branchText: ARCHIVED_STATUS,
+      });
       const { base, dir } = start(ARCHIVED_STATUS, open.run);
       await ok(await tickArchived(base, { ticks: [NV_ROW] }));
-      expect(readFileSync(fileOf(dir), "utf-8")).toContain(NV_ROW.replace("Not verified", "✅"));
+      expect(readFileSync(fileOf(dir), "utf-8")).toContain(
+        NV_ROW.replace("Not verified", "✅"),
+      );
       expect(open.calls.some((c) => c.args[0] === "commit-tree")).toBe(false);
     });
 
     test("un-ticking the done row or marking another is refused; leaving the Not verified row alone changes nothing", async () => {
       const tries: Parameters<typeof tick>[1][] = [
         { rows: [DONE_ROW, NV_ROW], ticks: [NV_ROW] },
-        { ticks: [DONE_ROW], unverified: [DONE_ROW, NV_ROW] , rows: [DONE_ROW, NV_ROW] },
+        {
+          ticks: [DONE_ROW],
+          unverified: [DONE_ROW, NV_ROW],
+          rows: [DONE_ROW, NV_ROW],
+        },
       ];
       for (const over of tries) {
         const git = recording();

@@ -5,7 +5,10 @@
 
 import { describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { readStatusFromFetchedBranch, refreshedRef } from "../../../src/git/branch-file.ts";
+import {
+  readStatusFromFetchedBranch,
+  refreshedRef,
+} from "../../../src/git/branch-file.ts";
 
 const REL_PATH = "aide/specs/541-x/4-status.md";
 
@@ -17,7 +20,8 @@ function held(refKnown: boolean, fetchCode = 0) {
   const fetches: string[] = [];
   const run: GitRunner = async (_dir, args) => {
     const line = args.join(" ");
-    if (line.startsWith("rev-parse --verify")) return { code: refKnown ? 0 : 1, stdout: "" };
+    if (line.startsWith("rev-parse --verify"))
+      return { code: refKnown ? 0 : 1, stdout: "" };
     if (line.startsWith("fetch")) {
       fetches.push(line);
       await gate;
@@ -33,7 +37,12 @@ function held(refKnown: boolean, fetchCode = 0) {
 describe("readStatusFromFetchedBranch", () => {
   test("answers from the last fetch while a new one is still out", async () => {
     const g = held(true);
-    const read = await readStatusFromFetchedBranch(g.run, "/r1", "aide/541-x", REL_PATH);
+    const read = await readStatusFromFetchedBranch(
+      g.run,
+      "/r1",
+      "aide/541-x",
+      REL_PATH,
+    );
     expect(read).toEqual({ text: "# Status\n", sha: "abc123" });
     expect(g.fetches).toHaveLength(1);
     g.release();
@@ -42,14 +51,24 @@ describe("readStatusFromFetchedBranch", () => {
   test("two reads while a fetch is out start one fetch between them", async () => {
     const g = held(true);
     await readStatusFromFetchedBranch(g.run, "/r2", "aide/541-x", REL_PATH);
-    await readStatusFromFetchedBranch(g.run, "/r2", "aide/541-x", "aide/specs/archive/541-x/4-status.md");
+    await readStatusFromFetchedBranch(
+      g.run,
+      "/r2",
+      "aide/541-x",
+      "aide/specs/archive/541-x/4-status.md",
+    );
     expect(g.fetches).toHaveLength(1);
     g.release();
   });
 
   test("a branch never fetched here waits for the fetch, and reads nothing when it fails", async () => {
     const g = held(false, 1);
-    const reading = readStatusFromFetchedBranch(g.run, "/r3", "aide/541-x", REL_PATH);
+    const reading = readStatusFromFetchedBranch(
+      g.run,
+      "/r3",
+      "aide/541-x",
+      REL_PATH,
+    );
     g.release();
     expect(await reading).toBeNull();
   });

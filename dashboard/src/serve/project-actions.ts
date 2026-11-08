@@ -21,7 +21,10 @@ export interface ProjectActionsContext {
  *  that will vanish on the next restart is exactly the thing the
  *  operator has to be told, so it comes back as a failed step with
  *  the reason in it. */
-export function persistAllowlist(ctx: ProjectActionsContext, what: string): ProjectStep {
+export function persistAllowlist(
+  ctx: ProjectActionsContext,
+  what: string,
+): ProjectStep {
   if (!ctx.queueConfigFile) {
     return {
       step: "allowlist",
@@ -29,9 +32,16 @@ export function persistAllowlist(ctx: ProjectActionsContext, what: string): Proj
       note: `${what}; this server has no --queue-config file, so the list is not saved across a restart`,
     };
   }
-  const error = persistQueueProjects(ctx.queueConfigFile, [...ctx.allowed].sort());
+  const error = persistQueueProjects(
+    ctx.queueConfigFile,
+    [...ctx.allowed].sort(),
+  );
   return error
-    ? { step: "allowlist", ok: false, error: `${what}, but it could not be saved and will be lost on restart: ${error}` }
+    ? {
+        step: "allowlist",
+        ok: false,
+        error: `${what}, but it could not be saved and will be lost on restart: ${error}`,
+      }
     : { step: "allowlist", ok: true };
 }
 
@@ -53,5 +63,8 @@ export function answerProjectChange(
 ): Response {
   const ok = steps.every((s) => s.ok);
   for (const s of steps) if (s.error) logRefusal(action, project, s.error);
-  return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
+  return json(
+    { ok, project, results: steps, ...(readiness ? { readiness } : {}) },
+    ok ? 200 : 400,
+  );
 }

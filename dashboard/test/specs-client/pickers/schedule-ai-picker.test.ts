@@ -11,14 +11,20 @@
 // same reason `schedule-actions.test.ts` is — nothing on this page lives
 // inside `#jobrows`, so the row-swap harness has nothing to offer here.
 import { afterEach, describe, expect, test } from "bun:test";
-import { applyAiPick, offerEachToItsTool } from "../../../src/specs-client/ai-sync.ts";
+import {
+  applyAiPick,
+  offerEachToItsTool,
+} from "../../../src/specs-client/ai-sync.ts";
 
 const FORM = "schedule-form";
 const MODELS: [string, string][] = [
   ["claude-opus-5", "claude"],
   ["codex-fast", "codex"],
 ];
-const AI_DEFAULT: Record<string, string> = { claude: "claude-opus-5", codex: "codex-fast" };
+const AI_DEFAULT: Record<string, string> = {
+  claude: "claude-opus-5",
+  codex: "codex-fast",
+};
 
 function modelSelect(chosen: string) {
   const group = { hidden: false, tagName: "OPTGROUP" };
@@ -59,7 +65,8 @@ function aiSelect(tool: string) {
     name: "provider",
     options,
     tagName: "SELECT",
-    getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? "model" : null),
+    getAttribute: (n: string) =>
+      n === "form" ? FORM : n === "data-ai" ? "model" : null,
     get selectedOptions() {
       return options.filter((o) => o.selected);
     },
@@ -75,7 +82,8 @@ function aiSelect(tool: string) {
 /** The document `applyAiPick` queries: `select[name="model"][form=…]`. */
 function standUpDocument(model: unknown, ai: unknown): void {
   (globalThis as { document?: unknown }).document = {
-    querySelectorAll: (sel: string) => (sel.startsWith("select[data-ai=") ? [ai] : [model]),
+    querySelectorAll: (sel: string) =>
+      sel.startsWith("select[data-ai=") ? [ai] : [model],
   };
 }
 
@@ -99,8 +107,12 @@ describe("the schedule form's AI picker (one model for the whole entry)", () => 
     standUpDocument(model, ai);
     ai.value = "codex";
     applyAiPick(ai as unknown as HTMLSelectElement);
-    expect(model.options.filter((o) => !o.hidden).map((o) => o.value)).toEqual(["codex-fast"]);
-    expect(model.options.find((o) => o.value === "claude-opus-5")?.disabled).toBe(true);
+    expect(model.options.filter((o) => !o.hidden).map((o) => o.value)).toEqual([
+      "codex-fast",
+    ]);
+    expect(
+      model.options.find((o) => o.value === "claude-opus-5")?.disabled,
+    ).toBe(true);
   });
 
   test("the first paint narrows the bare `model` select too", () => {
@@ -109,8 +121,13 @@ describe("the schedule form's AI picker (one model for the whole entry)", () => 
     // selector that asks for the bare name. A `MODEL_SELECTS` narrowed
     // back to `name^="model."` alone finds nothing here, and the list
     // goes on offering both tools' models.
-    const root = { querySelectorAll: (sel: string) => (sel.includes('[name="model"]') ? [model] : []) };
+    const root = {
+      querySelectorAll: (sel: string) =>
+        sel.includes('[name="model"]') ? [model] : [],
+    };
     offerEachToItsTool(root as unknown as ParentNode);
-    expect(model.options.filter((o) => !o.hidden).map((o) => o.value)).toEqual(["codex-fast"]);
+    expect(model.options.filter((o) => !o.hidden).map((o) => o.value)).toEqual([
+      "codex-fast",
+    ]);
   });
 });

@@ -11,7 +11,8 @@ import type { HasNotVerified } from "./not-verified.ts";
 import type { HasApproachChoice, HasCreateChoices } from "./approach-choice.ts";
 import type { Phase } from "./phase.ts";
 
-export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreateChoices {
+export interface SpecTarget
+  extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
   specFolder: string;
   title?: string;
@@ -267,11 +268,21 @@ export interface SpecsFilter {
 
 /** How the list is cut and ordered: the keys of the address the list
  *  is read from. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks", "phases", "q"] as const;
+export const FILTER_KEYS = [
+  "state",
+  "project",
+  "sort",
+  "dir",
+  "open",
+  "checks",
+  "phases",
+  "q",
+] as const;
 
 export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 
-export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
+export interface SpecGroup
+  extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional
@@ -298,7 +309,12 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
    *  there because it will not work. They are the filter
    *  keys and the CSS suffixes; the words the reader sees are "not
    *  started", "archived" and "closed". */
-  state: QueueRowView["state"] | "not-started" | "archived" | "archived-unlanded" | "closed";
+  state:
+    | QueueRowView["state"]
+    | "not-started"
+    | "archived"
+    | "archived-unlanded"
+    | "closed";
   spentUsd: number;
   /** Whether any step summed into `spentUsd` was over-charged rather
    *  than measured. Rolled up across every job the spec has
@@ -407,11 +423,16 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   archive?: ArchivedSpecView;
 }
 
-export const groupKey = (project: string, specFolder: string): string => `${project}/${specFolder}`;
+export const groupKey = (project: string, specFolder: string): string =>
+  `${project}/${specFolder}`;
 
 /** Whether a group is a finished spec — archived or closed — the one
  *  kind whose missing Created date means "made before the board kept
  *  creation dates" rather than "date on its way". */
 export function isFinishedGroup(g: Pick<SpecGroup, "state">): boolean {
-  return g.state === "archived" || g.state === "archived-unlanded" || g.state === "closed";
+  return (
+    g.state === "archived" ||
+    g.state === "archived-unlanded" ||
+    g.state === "closed"
+  );
 }

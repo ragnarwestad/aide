@@ -55,7 +55,9 @@ export function landCtx(
       renamePendingModel: () => {},
     },
     gitRun,
-    mergeLock: { run: async (_root: string, fn: () => Promise<unknown>) => fn() },
+    mergeLock: {
+      run: async (_root: string, fn: () => Promise<unknown>) => fn(),
+    },
     machineryProjectDir: () => "/repos/aide-code",
     machinerySpecsRoot: () => ROOT,
     codeLanding: () => undefined,
@@ -67,9 +69,12 @@ export function landCtx(
     branchStatus: {
       defaultBranch: async () => "master",
       invalidate: () => {},
-      forgetOpenSpecBranch: (root: string, branch: string) => void forgotten.push({ root, branch }),
-      rememberOpenSpecBranch: (root: string, branch: string) => void remembered.push({ root, branch }),
-      rememberMerged: (root: string, branch: string) => void merged.push({ root, branch }),
+      forgetOpenSpecBranch: (root: string, branch: string) =>
+        void forgotten.push({ root, branch }),
+      rememberOpenSpecBranch: (root: string, branch: string) =>
+        void remembered.push({ root, branch }),
+      rememberMerged: (root: string, branch: string) =>
+        void merged.push({ root, branch }),
     },
     ...extra,
   };

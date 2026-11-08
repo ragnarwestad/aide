@@ -5,7 +5,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  dependsOnIn, discoverProjects, specDependsOn, specDescription, stripDependsOnLine, withDependsOnLine,
+  dependsOnIn,
+  discoverProjects,
+  specDependsOn,
+  specDescription,
+  stripDependsOnLine,
+  withDependsOnLine,
 } from "../../../src/project/discover";
 import { useDiscoverRoot } from "./discover-fixtures.ts";
 
@@ -57,12 +62,19 @@ describe("specDescription", () => {
   });
 
   test("a description section with nothing in it is null, not an empty string", () => {
-    const d = spec("03-empty", "# X - Description\n\n## Description\n\n---\n\n## Related documents\n");
+    const d = spec(
+      "03-empty",
+      "# X - Description\n\n## Description\n\n---\n\n## Related documents\n",
+    );
     expect(specDescription(d)).toBeNull();
   });
 
   test("no Description heading, or no file at all, is null rather than a throw", () => {
-    expect(specDescription(spec("04-noheading", "# X - Description\n\nloose prose\n"))).toBeNull();
+    expect(
+      specDescription(
+        spec("04-noheading", "# X - Description\n\nloose prose\n"),
+      ),
+    ).toBeNull();
     expect(specDescription(join(dir, "nowhere"))).toBeNull();
   });
 
@@ -98,30 +110,48 @@ describe("specDependsOn", () => {
     `${line}\n\n---\n\n## Description\n\nprose\n`;
 
   test("every identifier on the line, in the order written, backticks stripped", () => {
-    const d = spec("01-two", TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"));
+    const d = spec(
+      "01-two",
+      TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"),
+    );
     expect(specDependsOn(d)).toEqual(["105", "92-a-spec-can-depend"]);
   });
 
   test("a single dependency is a one-item list", () => {
-    expect(specDependsOn(spec("02-one", TRACKING("- **Depends on:** `105`")))).toEqual(["105"]);
+    expect(
+      specDependsOn(spec("02-one", TRACKING("- **Depends on:** `105`"))),
+    ).toEqual(["105"]);
   });
 
   test("no line, an empty one, or no file at all is an empty list — never a throw", () => {
     expect(specDependsOn(spec("03-none", TRACKING("")))).toEqual([]);
-    expect(specDependsOn(spec("04-empty", TRACKING("- **Depends on:**")))).toEqual([]);
+    expect(
+      specDependsOn(spec("04-empty", TRACKING("- **Depends on:**"))),
+    ).toEqual([]);
     expect(specDependsOn(join(dir, "nowhere"))).toEqual([]);
   });
 
   test("dependsOnIn reads a description's text the way specDependsOn reads its file", () => {
-    for (const line of ["- **Depends on:** `105`, `92-a-spec-can-depend`", "- **Depends on:** `105`", "- **Depends on:**", ""]) {
-      expect(dependsOnIn(TRACKING(line))).toEqual(specDependsOn(spec(`in-${line.length}`, TRACKING(line))));
+    for (const line of [
+      "- **Depends on:** `105`, `92-a-spec-can-depend`",
+      "- **Depends on:** `105`",
+      "- **Depends on:**",
+      "",
+    ]) {
+      expect(dependsOnIn(TRACKING(line))).toEqual(
+        specDependsOn(spec(`in-${line.length}`, TRACKING(line))),
+      );
     }
-    expect(dependsOnIn(TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"))).toEqual(["105", "92-a-spec-can-depend"]);
+    expect(
+      dependsOnIn(TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`")),
+    ).toEqual(["105", "92-a-spec-can-depend"]);
   });
 
   test("discoverProjects carries it alongside the title and the description", () => {
     const a = discoverProjects(fx.root).find((p) => p.name === "proj-a")!;
-    expect(a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn).toEqual([]);
+    expect(
+      a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn,
+    ).toEqual([]);
   });
 
   // The same line gets a WRITER, so a dependency can be named
@@ -151,23 +181,34 @@ describe("specDependsOn", () => {
     // normalises the same way — the two passes have to agree, or a
     // strip that missed the line would leave the write keeping it.
     test("CRLF is normalised to LF, and the line goes either way", () => {
-      expect(stripDependsOnLine(DESC("- **Depends on:** `105`").replace(/\n/g, "\r\n"))).toBe(DESC());
+      expect(
+        stripDependsOnLine(
+          DESC("- **Depends on:** `105`").replace(/\n/g, "\r\n"),
+        ),
+      ).toBe(DESC());
     });
   });
 
   describe("withDependsOnLine", () => {
     test("inserts right after Created when there is no existing line", () => {
-      expect(withDependsOnLine(DESC(), ["164"])).toBe(DESC("- **Depends on:** `164`"));
+      expect(withDependsOnLine(DESC(), ["164"])).toBe(
+        DESC("- **Depends on:** `164`"),
+      );
     });
 
     test("replaces an existing line rather than writing a second one", () => {
-      const out = withDependsOnLine(DESC("- **Depends on:** `105`"), ["164", "92-a-spec"]);
+      const out = withDependsOnLine(DESC("- **Depends on:** `105`"), [
+        "164",
+        "92-a-spec",
+      ]);
       expect(out).toBe(DESC("- **Depends on:** `164`, `92-a-spec`"));
       expect(out!.match(/Depends on/g)).toHaveLength(1);
     });
 
     test("an empty list removes the line", () => {
-      expect(withDependsOnLine(DESC("- **Depends on:** `105`"), [])).toBe(DESC());
+      expect(withDependsOnLine(DESC("- **Depends on:** `105`"), [])).toBe(
+        DESC(),
+      );
     });
 
     // Nowhere to put it is a refusal for the caller to make, not a
@@ -181,7 +222,10 @@ describe("specDependsOn", () => {
     });
 
     test("what it writes is what specDependsOn reads back", () => {
-      const d = spec("05-roundtrip", withDependsOnLine(DESC(), ["164", "165"])!);
+      const d = spec(
+        "05-roundtrip",
+        withDependsOnLine(DESC(), ["164", "165"])!,
+      );
       expect(specDependsOn(d)).toEqual(["164", "165"]);
     });
   });

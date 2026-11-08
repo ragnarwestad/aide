@@ -3,8 +3,18 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { renderSentence } from "../../../src/i18n/message.ts";
-import { fixedSentenceHolds, type ScheduleContext } from "../../../src/serve/schedules";
-import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
+import {
+  fixedSentenceHolds,
+  type ScheduleContext,
+} from "../../../src/serve/schedules";
+import {
+  cleanupHarness,
+  enqueue,
+  makeRunner,
+  resetHarness,
+  spawns,
+  store,
+} from "../../queue/runner/runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -12,7 +22,8 @@ afterEach(cleanupHarness);
 const deploy = () => enqueue({ specFolder: "deploy", steps: ["deploy"] });
 
 /** The schedule's own context, as far as the fixed holds read it. */
-const ctx = (): ScheduleContext => ({ queue: store }) as unknown as ScheduleContext;
+const ctx = (): ScheduleContext =>
+  ({ queue: store }) as unknown as ScheduleContext;
 
 /** A job whose step has ended and whose branch is being merged. */
 function landing() {

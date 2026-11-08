@@ -36,14 +36,16 @@ describe("a refusal the page's script writes", () => {
 
   test("is a Problem line and a Solution line in the page's own words (AC-6)", () => {
     withLabels("Problem", "Løsning");
-    expect(refusalText({ error: "unknown model x", solution: "reload the page" })).toBe(
-      "Problem: Unknown model x\nLøsning: Reload the page",
-    );
+    expect(
+      refusalText({ error: "unknown model x", solution: "reload the page" }),
+    ).toBe("Problem: Unknown model x\nLøsning: Reload the page");
   });
 
   test("without a fix is the Problem line alone (AC-6)", () => {
     withLabels("Problem", "Løsning");
-    expect(refusalText({ error: "unknown model x" })).toBe("Problem: Unknown model x");
+    expect(refusalText({ error: "unknown model x" })).toBe(
+      "Problem: Unknown model x",
+    );
   });
 
   test("without an error names the failed action and HTTP status (AC-4)", () => {

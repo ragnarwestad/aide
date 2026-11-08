@@ -5,20 +5,33 @@
 // script's (`specs-client/depends-on/`).
 
 import { saveCancelActions } from "../../../ui/components";
-import { createChoicesIn, type CriteriaChecks } from "../../../../project/discover";
-import { cardStep, type CardValues, type CardView } from "../../../../project/spec-card.ts";
+import {
+  createChoicesIn,
+  type CriteriaChecks,
+} from "../../../../project/discover";
+import {
+  cardStep,
+  type CardValues,
+  type CardView,
+} from "../../../../project/spec-card.ts";
 import { optionsGroup } from "../../new-spec-page/options-tab.ts";
 import { esc } from "../../../ui/html.ts";
 import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
-import { groupKey, isArchivedRow, type SpecGroup, type SpecTarget } from "../data-model";
+import {
+  groupKey,
+  isArchivedRow,
+  type SpecGroup,
+  type SpecTarget,
+} from "../data-model";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import { specBusy } from "../row-state.ts";
 
 /** The form's id, which its boxes name with `form=` too, so a tick is
  *  remembered per spec across a redraw. */
-export const dependsOnFormId = (g: Pick<SpecGroup, "project" | "specFolder">): string =>
-  `depends-${g.project}-${g.specFolder}`;
+export const dependsOnFormId = (
+  g: Pick<SpecGroup, "project" | "specFolder">,
+): string => `depends-${g.project}-${g.specFolder}`;
 
 /** What the picker holds: the specs the New spec form offers for the
  *  project, less the spec itself; what the spec depends on now; and the
@@ -28,22 +41,34 @@ export function dependsOnOffer(
   g: SpecGroup,
   opts: Pick<SpecsPageOptions, "targets" | "archived">,
 ): { options: SpecTarget[]; ticked: string[]; locked: string[] } {
-  const options = opts.targets.filter((t) => t.project === g.project && t.specFolder !== g.specFolder);
+  const options = opts.targets.filter(
+    (t) => t.project === g.project && t.specFolder !== g.specFolder,
+  );
   const offered = new Set(options.map((t) => t.specFolder));
   const archived = new Set(opts.archived ?? []);
-  const locked = g.dependsOn.filter((folder) => !offered.has(folder) && archived.has(groupKey(g.project, folder)));
+  const locked = g.dependsOn.filter(
+    (folder) =>
+      !offered.has(folder) && archived.has(groupKey(g.project, folder)),
+  );
   return { options, ticked: g.dependsOn, locked };
 }
 
 /** What the card holds as saved: the spec's dependencies and the four
  *  settings it was created with. */
 function cardValuesOf(g: SpecGroup): CardValues {
-  return { dependsOn: g.dependsOn, ...(g.createChoices ?? createChoicesIn("")) };
+  return {
+    dependsOn: g.dependsOn,
+    ...(g.createChoices ?? createChoicesIn("")),
+  };
 }
 
 /** The four settings the spec was created with, as New spec's Options tab
  *  draws them, each open or locked as the card's view says. */
-function settingsGroup(id: string, view: CardView, lang: SpecsPageOptions["lang"] = "en"): string {
+function settingsGroup(
+  id: string,
+  view: CardView,
+  lang: SpecsPageOptions["lang"] = "en",
+): string {
   return optionsGroup({
     form: id,
     place: "running-row",
@@ -61,19 +86,36 @@ function settingsGroup(id: string, view: CardView, lang: SpecsPageOptions["lang"
  *  create whose folder is not there yet. What can be changed, and whether
  *  Save and Cancel show, is `cardStep`'s to say. The form carries the two
  *  facts it was asked with, for the page script to hand back to it. */
-export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "targets" | "archived" | "lang">): string {
+export function dependsOnLine(
+  g: SpecGroup,
+  opts: Pick<SpecsPageOptions, "targets" | "archived" | "lang">,
+): string {
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
-  const facts = { place: "running-row", jobInFlight: specBusy(g), analyzeRun: g.done.includes("analyze") } as const;
-  const { view } = cardStep(undefined, { type: "opened", facts, saved: cardValuesOf(g) });
+  const facts = {
+    place: "running-row",
+    jobInFlight: specBusy(g),
+    analyzeRun: g.done.includes("analyze"),
+  } as const;
+  const { view } = cardStep(undefined, {
+    type: "opened",
+    facts,
+    saved: cardValuesOf(g),
+  });
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,
     locked: offer.locked,
     project: g.project,
     form: id,
     disabled: view.locks.dependsOn !== null,
-    actions: view.saveCancel ? saveCancelActions(id, { saveDisabled: !view.cancelOffered }, opts.lang ?? "en") : "",
+    actions: view.saveCancel
+      ? saveCancelActions(
+          id,
+          { saveDisabled: !view.cancelOffered },
+          opts.lang ?? "en",
+        )
+      : "",
     lang: opts.lang,
   });
   const settings = settingsGroup(id, view, opts.lang);

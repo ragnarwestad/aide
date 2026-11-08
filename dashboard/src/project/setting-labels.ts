@@ -8,7 +8,13 @@
 import { t, type TranslationKey } from "../i18n";
 
 const KEYS = [
-  "AIDE_SPECS_PATH", "worktreeLinks", "AIDE_TEST_CMD", "acPrefix", "AIDE_INSTALL_CMD", "previewCmd", "description",
+  "AIDE_SPECS_PATH",
+  "worktreeLinks",
+  "AIDE_TEST_CMD",
+  "acPrefix",
+  "AIDE_INSTALL_CMD",
+  "previewCmd",
+  "description",
 ] as const;
 
 export const SETTING_LABELS: Record<string, string> = Object.fromEntries(
@@ -16,5 +22,10 @@ export const SETTING_LABELS: Record<string, string> = Object.fromEntries(
 );
 
 /** A setting's name in the reader's language, or the key itself when it has none. */
-export const settingLabel = (key: string, lang: import("../i18n").Language): string =>
-  (KEYS as readonly string[]).includes(key) ? t(lang, `setting.label.${key}` as TranslationKey) : key;
+export const settingLabel = (
+  key: string,
+  lang: import("../i18n").Language,
+): string =>
+  (KEYS as readonly string[]).includes(key)
+    ? t(lang, `setting.label.${key}` as TranslationKey)
+    : key;

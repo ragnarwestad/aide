@@ -140,8 +140,20 @@ export function createServerState(): ServerState {
   setPendingRestartNotice([]);
   setDeployFaultNotice(null);
   const state: ServerState = {
-    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), branchPreviews: new Map(), notifySoon: null, warming: false, server: null, runner: null,
-    servingSha: null, servingRepoRoot: null, pendingRestart: null, stopped: false, deployFault: null,
+    scan: null,
+    unlanded: [],
+    prOpen: [],
+    pullRequests: new Map(),
+    branchPreviews: new Map(),
+    notifySoon: null,
+    warming: false,
+    server: null,
+    runner: null,
+    servingSha: null,
+    servingRepoRoot: null,
+    pendingRestart: null,
+    stopped: false,
+    deployFault: null,
     deployFailures: new Map(),
   };
   noticeOwner = state;
@@ -161,13 +173,20 @@ export function setPendingRestart(state: ServerState, jobs: string[]): void {
 /** The one place that stores what a deploy left wrong — `null` clears
  *  it. Guarded by `noticeOwner` for the same reason `setPendingRestart`
  *  is: a replaced test server must not write the shared notice. */
-export function setDeployFault(state: ServerState, fault: Sentence | null): void {
+export function setDeployFault(
+  state: ServerState,
+  fault: Sentence | null,
+): void {
   state.deployFault = fault;
   if (state === noticeOwner) setDeployFaultNotice(fault);
 }
 
 /** The one place that keeps or clears a project's failed deploy step. */
-export function setDeployFailure(state: ServerState, project: string, failure: DeployFailure | null): void {
+export function setDeployFailure(
+  state: ServerState,
+  project: string,
+  failure: DeployFailure | null,
+): void {
   if (failure) state.deployFailures.set(project, failure);
   else state.deployFailures.delete(project);
 }

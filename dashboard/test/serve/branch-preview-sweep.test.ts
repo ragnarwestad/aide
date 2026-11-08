@@ -4,41 +4,68 @@
 // kept, and a question GitHub could not answer leaves it where it was.
 
 import { describe, expect, test } from "bun:test";
-import { dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../../src/serve/schedules/branch-previews.ts";
+import {
+  dropPreviewsOfRunningSteps,
+  refreshBranchPreviews,
+  type BranchPreviewContext,
+} from "../../src/serve/schedules/branch-previews.ts";
 import type { PreviewFrom } from "../../src/project/discover";
 import type { GhRunner } from "../../src/integrations/pull-requests.ts";
 
 const ADDRESS = "https://aide-40-x.woodstack.pages.dev";
 const run = (status: string, conclusion: string | null, address = ADDRESS) =>
   JSON.stringify({
-    check_runs: [{
-      id: 1, name: "Cloudflare Pages", status, conclusion, app: { slug: "cloudflare-workers-and-pages" },
-      output: { summary: `<tr><td><strong>Branch Preview URL:</strong></td><td><a href='${address}'>${address}</a></td></tr>` },
-    }],
+    check_runs: [
+      {
+        id: 1,
+        name: "Cloudflare Pages",
+        status,
+        conclusion,
+        app: { slug: "cloudflare-workers-and-pages" },
+        output: {
+          summary: `<tr><td><strong>Branch Preview URL:</strong></td><td><a href='${address}'>${address}</a></td></tr>`,
+        },
+      },
+    ],
   });
 const SUCCESS = run("completed", "success");
 const BUILDING = run("in_progress", null);
 
-function sweep(o: {
-  previewFrom?: Record<string, PreviewFrom | undefined>;
-  onOrigin?: string[];
-  running?: string[];
-  specs?: string[];
-} = {}) {
+function sweep(
+  o: {
+    previewFrom?: Record<string, PreviewFrom | undefined>;
+    onOrigin?: string[];
+    running?: string[];
+    specs?: string[];
+  } = {},
+) {
   const gh = { code: 0, stdout: SUCCESS };
   const asked: { dir: string; args: string[] }[] = [];
   const ghRun: GhRunner = async (dir, args) => {
     asked.push({ dir, args });
     return { code: gh.code, stdout: gh.stdout };
   };
-  const state = { onOrigin: o.onOrigin ?? ["aide/40-x"], running: o.running ?? [] };
+  const state = {
+    onOrigin: o.onOrigin ?? ["aide/40-x"],
+    running: o.running ?? [],
+  };
   const branchPreviews = new Map<string, string>();
   let notified = 0;
   const ctx: BranchPreviewContext = {
-    targets: () => (o.specs ?? ["40-x"]).map((specFolder) => ({ project: "woodstack", specFolder })),
+    targets: () =>
+      (o.specs ?? ["40-x"]).map((specFolder) => ({
+        project: "woodstack",
+        specFolder,
+      })),
     machineryProjectDir: (project) => `/code/${project}`,
-    branchStatus: { peekOpenSpecBranches: () => ({ open: new Set(state.onOrigin), checkedAt: 1 }) },
-    previewFrom: (project) => (o.previewFrom ?? { woodstack: "cloudflare-pages" })[project],
+    branchStatus: {
+      peekOpenSpecBranches: () => ({
+        open: new Set(state.onOrigin),
+        checkedAt: 1,
+      }),
+    },
+    previewFrom: (project) =>
+      (o.previewFrom ?? { woodstack: "cloudflare-pages" })[project],
     stepRunning: (_project, folder) => state.running.includes(folder),
     ghRun,
     branchPreviews,
@@ -60,7 +87,11 @@ describe("refreshBranchPreviews", () => {
   });
 
   test("command, none and unset projects are never asked and hold nothing", async () => {
-    for (const previewFrom of [{ woodstack: "command" as const }, { woodstack: "none" as const }, {}]) {
+    for (const previewFrom of [
+      { woodstack: "command" as const },
+      { woodstack: "none" as const },
+      {},
+    ]) {
       const { ctx, asked, branchPreviews } = sweep({ previewFrom });
       await refreshBranchPreviews(ctx);
       expect([asked.length, branchPreviews.size]).toEqual([0, 0]);

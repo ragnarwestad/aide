@@ -23,7 +23,8 @@ function fakeForm() {
       value: "",
       placeholder,
       addEventListener: (type, listener) => {
-        if (type === "change") listeners.set(made, [...(listeners.get(made) ?? []), listener]);
+        if (type === "change")
+          listeners.set(made, [...(listeners.get(made) ?? []), listener]);
       },
     };
     return made;
@@ -31,15 +32,25 @@ function fakeForm() {
   const gitUrl = input("cloned under the projects root");
   const testCmd = input(DRAWN);
   const form = {
-    querySelector: (selector: string) => (selector.includes("gitUrl") ? gitUrl : selector.includes("testCmd") ? testCmd : null),
+    querySelector: (selector: string) =>
+      selector.includes("gitUrl")
+        ? gitUrl
+        : selector.includes("testCmd")
+          ? testCmd
+          : null,
   } as unknown as HTMLFormElement;
   const change = async (field: FakeInput): Promise<void> => {
-    await Promise.all((listeners.get(field) ?? []).map((listener) => listener()));
+    await Promise.all(
+      (listeners.get(field) ?? []).map((listener) => listener()),
+    );
   };
   return { form, gitUrl, testCmd, change };
 }
 
-const answering = (testCmd: string | null, calls: { url: string; body: unknown }[] = []): typeof fetch =>
+const answering = (
+  testCmd: string | null,
+  calls: { url: string; body: unknown }[] = [],
+): typeof fetch =>
   (async (url: string, init?: RequestInit) => {
     calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
     return { ok: true, json: async () => ({ ok: true, testCmd }) } as Response;
@@ -52,7 +63,9 @@ describe("the Add form's Test command placeholder", () => {
     bindAddProjectForm(f.form, answering("npm test", calls));
     f.gitUrl.value = " https://example.com/p.git ";
     await f.change(f.gitUrl);
-    expect(calls).toEqual([{ url: ROUTE, body: { gitUrl: "https://example.com/p.git" } }]);
+    expect(calls).toEqual([
+      { url: ROUTE, body: { gitUrl: "https://example.com/p.git" } },
+    ]);
     expect(f.testCmd.placeholder).toBe("npm test");
   });
 
@@ -64,7 +77,9 @@ describe("the Add form's Test command placeholder", () => {
     expect(nothing.testCmd.placeholder).toBe(DRAWN);
 
     const failing = fakeForm();
-    bindAddProjectForm(failing.form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
+    bindAddProjectForm(failing.form, (async () => {
+      throw new Error("offline");
+    }) as unknown as typeof fetch);
     failing.gitUrl.value = "https://example.com/p.git";
     await failing.change(failing.gitUrl);
     expect(failing.testCmd.placeholder).toBe(DRAWN);
@@ -73,7 +88,14 @@ describe("the Add form's Test command placeholder", () => {
   test("a later address that gets no answer puts the drawn placeholder back", async () => {
     const f = fakeForm();
     let next: string | null = "npm test";
-    bindAddProjectForm(f.form, (async () => ({ ok: true, json: async () => ({ ok: true, testCmd: next }) }) as Response) as unknown as typeof fetch);
+    bindAddProjectForm(
+      f.form,
+      (async () =>
+        ({
+          ok: true,
+          json: async () => ({ ok: true, testCmd: next }),
+        }) as Response) as unknown as typeof fetch,
+    );
     f.gitUrl.value = "https://example.com/a.git";
     await f.change(f.gitUrl);
     expect(f.testCmd.placeholder).toBe("npm test");
@@ -86,8 +108,17 @@ describe("the Add form's Test command placeholder", () => {
   test("an answer about an address the field no longer holds is ignored", async () => {
     const f = fakeForm();
     let release: (cmd: string | null) => void = () => {};
-    const slow = new Promise<string | null>((resolve) => { release = resolve; });
-    bindAddProjectForm(f.form, (async () => ({ ok: true, json: async () => ({ ok: true, testCmd: await slow }) }) as Response) as unknown as typeof fetch);
+    const slow = new Promise<string | null>((resolve) => {
+      release = resolve;
+    });
+    bindAddProjectForm(
+      f.form,
+      (async () =>
+        ({
+          ok: true,
+          json: async () => ({ ok: true, testCmd: await slow }),
+        }) as Response) as unknown as typeof fetch,
+    );
     f.gitUrl.value = "https://example.com/a.git";
     const asking = f.change(f.gitUrl);
     f.gitUrl.value = "https://example.com/b.git";

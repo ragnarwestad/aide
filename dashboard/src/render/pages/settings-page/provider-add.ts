@@ -18,16 +18,21 @@ import { fieldRow, runtimeRows } from "./provider-detail.ts";
 /** The dialog's id, which the Add buttons name with `data-ask`. */
 export const PROVIDER_ADD_DIALOG = "provider-add";
 const ID_PATTERN = "[A-Za-z0-9_\\-]{1,64}";
-const STEPS: TranslationKey[] = ["settings.providers.stepProvider", "settings.providers.stepIdentity", "settings.providers.stepConfig"];
+const STEPS: TranslationKey[] = [
+  "settings.providers.stepProvider",
+  "settings.providers.stepIdentity",
+  "settings.providers.stepConfig",
+];
 
 function toolCards(lang: Language): string {
   return (
     `<div class="toolcards">` +
-    PROVIDER_TOOLS.map((tool) =>
-      `<label class="toolcard"><input type="radio" name="tool" value="${esc(tool)}" required>` +
-      `<span class="providericon" aria-hidden="true">${TOOL_ICONS[tool]}</span>` +
-      `<span class="providertext"><strong>${esc(TOOL_NAMES[tool] ?? tool)}</strong>` +
-      `<span class="muted small">${esc(t(lang, `settings.providers.card.${tool}` as TranslationKey))}</span></span></label>`,
+    PROVIDER_TOOLS.map(
+      (tool) =>
+        `<label class="toolcard"><input type="radio" name="tool" value="${esc(tool)}" required>` +
+        `<span class="providericon" aria-hidden="true">${TOOL_ICONS[tool]}</span>` +
+        `<span class="providertext"><strong>${esc(TOOL_NAMES[tool] ?? tool)}</strong>` +
+        `<span class="muted small">${esc(t(lang, `settings.providers.card.${tool}` as TranslationKey))}</span></span></label>`,
     ).join("") +
     `</div>`
   );
@@ -36,12 +41,20 @@ function toolCards(lang: Language): string {
 function identity(lang: Language): string {
   return (
     fieldRow({
-      id: "provider-add-name", name: "name", label: t(lang, "settings.providers.displayName"),
-      help: t(lang, "settings.providers.displayNameHelp"), value: "", extra: ` maxlength="64" required`,
+      id: "provider-add-name",
+      name: "name",
+      label: t(lang, "settings.providers.displayName"),
+      help: t(lang, "settings.providers.displayNameHelp"),
+      value: "",
+      extra: ` maxlength="64" required`,
     }) +
     fieldRow({
-      id: "provider-add-id", name: "providerId", label: t(lang, "settings.providers.id"),
-      help: t(lang, "settings.providers.idHelp"), value: "", extra: ` maxlength="64" pattern="${ID_PATTERN}" required`,
+      id: "provider-add-id",
+      name: "providerId",
+      label: t(lang, "settings.providers.id"),
+      help: t(lang, "settings.providers.idHelp"),
+      value: "",
+      extra: ` maxlength="64" pattern="${ID_PATTERN}" required`,
     })
   );
 }
@@ -49,10 +62,11 @@ function identity(lang: Language): string {
 /** Every tool's fields, disabled until the script turns on the chosen one's. */
 function config(lang: Language): string {
   return (
-    PROVIDER_TOOLS.map((tool) =>
-      `<div class="addtool" data-tool="${esc(tool)}" hidden><fieldset disabled>` +
-      runtimeRows(tool, undefined, lang, `provider-add-${tool}`) +
-      `</fieldset></div>`,
+    PROVIDER_TOOLS.map(
+      (tool) =>
+        `<div class="addtool" data-tool="${esc(tool)}" hidden><fieldset disabled>` +
+        runtimeRows(tool, undefined, lang, `provider-add-${tool}`) +
+        `</fieldset></div>`,
     ).join("") +
     `<div class="logincommand"><strong>${esc(t(lang, "settings.providers.loginCommand"))}</strong>` +
     `<span class="muted small">${esc(t(lang, "settings.providers.loginCommandHelp"))}</span>` +
@@ -70,14 +84,36 @@ export function providerAddDialog(lang: Language): string {
     ` data-done="${esc(`${PROVIDERS_TAB_PATH}&provider={key}`)}">` +
     `<h2 id="${PROVIDER_ADD_DIALOG}-title">${esc(t(lang, "settings.providers.addProvider"))}</h2>` +
     `<ol class="addsteps">${STEPS.map((k, i) => `<li data-step="${i + 1}"${i === 0 ? ` aria-current="step"` : ""}>${esc(t(lang, k))}</li>`).join("")}</ol>` +
-    step(1, `<p class="muted">${esc(t(lang, "settings.providers.chooseTool"))}</p>` + toolCards(lang)) +
+    step(
+      1,
+      `<p class="muted">${esc(t(lang, "settings.providers.chooseTool"))}</p>` +
+        toolCards(lang),
+    ) +
     step(2, identity(lang)) +
     step(3, config(lang)) +
     `<div class="addactions">` +
-    btn({ label: t(lang, "settings.providers.add"), variant: "primary", pending: t(lang, "settings.providers.adding"), data: { "add-save": "" } }) +
-    btn({ label: t(lang, "settings.providers.next"), variant: "primary", type: "button", data: { "add-next": "" } }) +
-    btn({ label: t(lang, "nav.back"), type: "button", data: { "add-back": "" } }) +
-    btn({ label: t(lang, "dialog.cancel"), type: "button", data: { "add-close": "" } }) +
+    btn({
+      label: t(lang, "settings.providers.add"),
+      variant: "primary",
+      pending: t(lang, "settings.providers.adding"),
+      data: { "add-save": "" },
+    }) +
+    btn({
+      label: t(lang, "settings.providers.next"),
+      variant: "primary",
+      type: "button",
+      data: { "add-next": "" },
+    }) +
+    btn({
+      label: t(lang, "nav.back"),
+      type: "button",
+      data: { "add-back": "" },
+    }) +
+    btn({
+      label: t(lang, "dialog.cancel"),
+      type: "button",
+      data: { "add-close": "" },
+    }) +
     `</div></form></dialog>`
   );
 }

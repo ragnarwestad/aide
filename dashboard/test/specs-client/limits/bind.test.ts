@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { bindLimits, drawLimits, refreshLimit } from "../../../src/specs-client/limits";
+import {
+  bindLimits,
+  drawLimits,
+  refreshLimit,
+} from "../../../src/specs-client/limits";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
@@ -11,7 +15,10 @@ afterEach(async () => {
 });
 
 /** A page with one Title, a field cut at 5,000, a Description that is counted and never cut, and a Close reason, script bound. */
-function load(body = "", opts: { title?: string; body?: string; bound?: string } = {}) {
+function load(
+  body = "",
+  opts: { title?: string; body?: string; bound?: string } = {},
+) {
   win = new Window();
   win.document.write(
     `<form>` +
@@ -23,8 +30,16 @@ function load(body = "", opts: { title?: string; body?: string; bound?: string }
   );
   const doc = win.document as unknown as Document;
   bindLimits(doc);
-  const q = <T extends Field>(name: string) => doc.querySelector(`[name="${name}"]`) as unknown as T;
-  return { win, doc, title: q<HTMLInputElement>("title"), body: q<HTMLTextAreaElement>("body"), description: q<HTMLTextAreaElement>("description"), reason: q<HTMLTextAreaElement>("reason") };
+  const q = <T extends Field>(name: string) =>
+    doc.querySelector(`[name="${name}"]`) as unknown as T;
+  return {
+    win,
+    doc,
+    title: q<HTMLInputElement>("title"),
+    body: q<HTMLTextAreaElement>("body"),
+    description: q<HTMLTextAreaElement>("description"),
+    reason: q<HTMLTextAreaElement>("reason"),
+  };
 }
 
 const count = (f: Field) => f.nextElementSibling as HTMLElement;
@@ -40,7 +55,13 @@ const type = (w: Window, f: Field, value: string) => {
   fire(w, f, "input");
 };
 /** A paste as a browser makes it: the event, then the insertion it allows. */
-async function paste(w: Window, f: Field, text: string, kept: string, sel: [number, number] = [f.value.length, f.value.length]) {
+async function paste(
+  w: Window,
+  f: Field,
+  text: string,
+  kept: string,
+  sel: [number, number] = [f.value.length, f.value.length],
+) {
   f.setSelectionRange(sel[0], sel[1]);
   fire(w, f, "paste", { clipboardData: { getData: () => text } });
   f.value = f.value.slice(0, sel[0]) + kept + f.value.slice(sel[1]);
@@ -117,14 +138,18 @@ describe("the discarded-text line", () => {
 
   test("a drop from outside is reported; a drop of text dragged within the same field is not", async () => {
     const h = load("", { body: "x".repeat(5000) });
-    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    fire(h.win, h.body, "drop", {
+      dataTransfer: { getData: () => "z".repeat(30) },
+    });
     await tick();
     expect(note(h.body).textContent).toContain("30 characters did not fit");
     type(h.win, h.body, "x".repeat(4999));
     expect(note(h.body).textContent).toBe("");
     type(h.win, h.body, "x".repeat(5000));
     fire(h.win, h.body, "dragstart");
-    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    fire(h.win, h.body, "drop", {
+      dataTransfer: { getData: () => "z".repeat(30) },
+    });
     await tick();
     expect(note(h.body).textContent).toBe("");
   });
@@ -133,7 +158,9 @@ describe("the discarded-text line", () => {
     const h = load("", { body: "x".repeat(5000) });
     fire(h.win, h.body, "dragstart");
     fire(h.win, h.body, "dragend");
-    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    fire(h.win, h.body, "drop", {
+      dataTransfer: { getData: () => "z".repeat(30) },
+    });
     await tick();
     expect(note(h.body).textContent).toContain("30 characters did not fit");
   });
@@ -180,7 +207,9 @@ describe("a field bounded by data-bound is counted and never cut", () => {
     expect(count(h.description).getAttribute("data-limit")).toBe("over");
     expect(h.description.getAttribute("aria-invalid")).toBe("true");
     expect(note(h.description).textContent).toContain("120");
-    expect((h.description.form as unknown as HTMLFormElement).checkValidity()).toBe(false);
+    expect(
+      (h.description.form as unknown as HTMLFormElement).checkValidity(),
+    ).toBe(false);
   });
 
   test("shortened to the bound, the mark, the note and the hold are gone (AC-4)", () => {
@@ -190,7 +219,9 @@ describe("a field bounded by data-bound is counted and never cut", () => {
     expect(count(h.description).getAttribute("data-limit")).not.toBe("over");
     expect(h.description.hasAttribute("aria-invalid")).toBe(false);
     expect(note(h.description).textContent).toBe("");
-    expect((h.description.form as unknown as HTMLFormElement).checkValidity()).toBe(true);
+    expect(
+      (h.description.form as unknown as HTMLFormElement).checkValidity(),
+    ).toBe(true);
   });
 
   test("a further paste keeps all of it and leaves the over sentence in place (AC-2, AC-4)", async () => {
@@ -204,7 +235,8 @@ describe("a field bounded by data-bound is counted and never cut", () => {
 });
 
 describe("drawLimits", () => {
-  const FIELD = '<textarea class="failnote" name="failnote-0" maxlength="500"></textarea>';
+  const FIELD =
+    '<textarea class="failnote" name="failnote-0" maxlength="500"></textarea>';
 
   test("called twice on one root leaves one count and one note per field", () => {
     const { doc } = load();
@@ -214,7 +246,9 @@ describe("drawLimits", () => {
       const f = doc.querySelector(`[name="${name}"]`) as unknown as Field;
       expect(count(f).hasAttribute("data-limit")).toBe(true);
       expect(note(f).hasAttribute("data-limit-note")).toBe(true);
-      expect(note(f).nextElementSibling?.hasAttribute("data-limit")).not.toBe(true);
+      expect(note(f).nextElementSibling?.hasAttribute("data-limit")).not.toBe(
+        true,
+      );
     }
   });
 

@@ -10,7 +10,16 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runScript } from "../../../src/serve/land-branch/run-script.ts";
 import { repoOf } from "./every-step-lands-fixtures.ts";
-import { ARCHIVE_RESULT, AUTH, BRANCH, gitFor, runStep, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
+import {
+  ARCHIVE_RESULT,
+  AUTH,
+  BRANCH,
+  gitFor,
+  runStep,
+  serverWithRunner,
+  settle,
+  start,
+} from "./archive-landing-fixtures.ts";
 
 describe("Cancel while a finished step's work is merged and tested", () => {
   test("stops the test run and ends the job cancelled", async () => {
@@ -20,7 +29,10 @@ describe("Cancel while a finished step's work is merged and tested", () => {
     const git = {
       calls: inner.calls,
       run: async (dir: string, args: string[]) => {
-        if (repoOf(dir) === codeRoot && args.join(" ").startsWith("diff --quiet")) {
+        if (
+          repoOf(dir) === codeRoot &&
+          args.join(" ").startsWith("diff --quiet")
+        ) {
           inner.calls.push({ dir, args });
           return { code: 1, stdout: "" };
         }
@@ -29,14 +41,27 @@ describe("Cancel while a finished step's work is merged and tested", () => {
     };
     // The test run, the way the real one is started: a script of its own,
     // for this job, that would take a minute.
-    const { base, dir, results } = serverWithRunner(start, "aide-cancel-merging-", git as never, {
-      landingGate: async (root, job, branch) => {
-        const out = await runScript(["bash", "-c", "sleep 60"], root, 120_000, (job as { id?: string }).id);
-        return out.code === 0
-          ? { ok: true }
-          : { ok: false, error: `the project's tests are red on this merge — the work is still on ${branch}.` };
+    const { base, dir, results } = serverWithRunner(
+      start,
+      "aide-cancel-merging-",
+      git as never,
+      {
+        landingGate: async (root, job, branch) => {
+          const out = await runScript(
+            ["bash", "-c", "sleep 60"],
+            root,
+            120_000,
+            (job as { id?: string }).id,
+          );
+          return out.code === 0
+            ? { ok: true }
+            : {
+                ok: false,
+                error: `the project's tests are red on this merge — the work is still on ${branch}.`,
+              };
+        },
       },
-    });
+    );
     const specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
     needsRealMerge.push(codeRoot);
@@ -54,7 +79,10 @@ describe("Cancel while a finished step's work is merged and tested", () => {
     await settle(base, job.id, (j) => j.state === "done" && j.landing === true);
 
     const began = Date.now();
-    const pressed = await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", headers: AUTH });
+    const pressed = await fetch(`${base}/api/queue/${job.id}/cancel`, {
+      method: "POST",
+      headers: AUTH,
+    });
     expect(pressed.status).toBe(200);
     const ended = await settle(base, job.id, (j) => j.state === "cancelled");
 

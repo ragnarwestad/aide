@@ -15,23 +15,39 @@ const STEP_TABS = ["log", "files", "errors"] as const;
 export type StepTab = (typeof STEP_TABS)[number];
 
 /** The tab an address names; Log for none, or one that is none of the three. */
-export const resolveStepTab = (raw: string | undefined): StepTab => pickTab(STEP_TABS, raw, "log");
+export const resolveStepTab = (raw: string | undefined): StepTab =>
+  pickTab(STEP_TABS, raw, "log");
 
 /** What the panel draws: a finished step's view already is this, and a
  *  running step's is built from its live log with `running` set. */
-export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "terminalReason" | "screenshots"> & {
+export type StepPanelData = Pick<
+  JobStepResultView,
+  | "logs"
+  | "errors"
+  | "aiModel"
+  | "changedFiles"
+  | "terminalReason"
+  | "screenshots"
+> & {
   running?: boolean;
 };
 
 /** Who writes the part that follows, as its separator line names them.
  *  The phase's row under the specs list draws the same words. */
-export function logPartWriter(part: LogPart, aiModel: string | undefined, lang: Language): string {
-  if (part.by === "subagent") return t(lang, "job.logSubagent", { name: part.name });
+export function logPartWriter(
+  part: LogPart,
+  aiModel: string | undefined,
+  lang: Language,
+): string {
+  if (part.by === "subagent")
+    return t(lang, "job.logSubagent", { name: part.name });
   return {
     "aide-before": t(lang, "job.logAideBefore"),
     "aide-after": t(lang, "job.logAideAfter"),
     aide: t(lang, "job.logAide"),
-    ai: aiModel ? t(lang, "job.logAi", { model: aiModel }) : t(lang, "job.logAiPlain"),
+    ai: aiModel
+      ? t(lang, "job.logAi", { model: aiModel })
+      : t(lang, "job.logAiPlain"),
   }[part.by];
 }
 
@@ -41,27 +57,44 @@ export function logPartWriter(part: LogPart, aiModel: string | undefined, lang: 
  *  not, and are escaped here. */
 export function logPartLines(part: LogPart, lang: Language): string[] {
   if (part.by !== "subagent") return part.lines;
-  if (part.unread) return [t(lang, "job.subagentUnread", { thread: esc(part.unread.thread) })];
+  if (part.unread)
+    return [t(lang, "job.subagentUnread", { thread: esc(part.unread.thread) })];
   return [
-    part.asked !== undefined ? t(lang, "job.subagentAsked", { text: part.asked }) : t(lang, "job.subagentAskedTask", { name: esc(part.name) }),
+    part.asked !== undefined
+      ? t(lang, "job.subagentAsked", { text: part.asked })
+      : t(lang, "job.subagentAskedTask", { name: esc(part.name) }),
     ...part.lines,
-    part.answer !== undefined ? t(lang, "job.subagentAnswered", { text: part.answer }) : t(lang, "job.subagentNoAnswer"),
+    part.answer !== undefined
+      ? t(lang, "job.subagentAnswered", { text: part.answer })
+      : t(lang, "job.subagentNoAnswer"),
   ];
 }
 
 /** The parts a Log draws, each as its separator words and its lines; a part
  *  with nothing to draw is left out. Both the Log tab and the phase's row
  *  draw these. */
-export function drawnParts(parts: LogPart[], aiModel: string | undefined, lang: Language): { writer: string; lines: string[] }[] {
+export function drawnParts(
+  parts: LogPart[],
+  aiModel: string | undefined,
+  lang: Language,
+): { writer: string; lines: string[] }[] {
   return parts
-    .map((part) => ({ writer: logPartWriter(part, aiModel, lang), lines: logPartLines(part, lang) }))
+    .map((part) => ({
+      writer: logPartWriter(part, aiModel, lang),
+      lines: logPartLines(part, lang),
+    }))
     .filter((drawn) => drawn.lines.length > 0);
 }
 
 /** One line under the log: the pictures the step took of the pages it changed, each opening in a new tab. */
 function screenshotLinks(r: StepPanelData, lang: Language): string {
   if (!r.screenshots || r.screenshots.length === 0) return "";
-  const links = r.screenshots.map((s) => `<a href="${esc(s.href)}" target="_blank" rel="noopener">${esc(s.file)}</a>`).join(" ");
+  const links = r.screenshots
+    .map(
+      (s) =>
+        `<a href="${esc(s.href)}" target="_blank" rel="noopener">${esc(s.file)}</a>`,
+    )
+    .join(" ");
   return `<p class="muted small">${esc(t(lang, "job.screenshots"))}: ${links}</p>`;
 }
 
@@ -69,7 +102,12 @@ function logTab(r: StepPanelData, lang: Language): string {
   const parts = drawnParts(r.logs ?? [], r.aiModel, lang);
   const pictures = screenshotLinks(r, lang);
   if (parts.length > 0) {
-    const body = parts.map((part) => `<span class="muted">— ${esc(part.writer)} —</span>\n${part.lines.join("\n")}`).join("\n");
+    const body = parts
+      .map(
+        (part) =>
+          `<span class="muted">— ${esc(part.writer)} —</span>\n${part.lines.join("\n")}`,
+      )
+      .join("\n");
     return `<pre class="specfile">${body}</pre>${pictures}`;
   }
   if (r.terminalReason === "refused") {
@@ -79,9 +117,12 @@ function logTab(r: StepPanelData, lang: Language): string {
 }
 
 function filesTab(r: StepPanelData, lang: Language): string {
-  if (r.running) return `<p class="muted">${esc(t(lang, "job.filesRunning"))}</p>`;
-  if (!r.changedFiles) return `<p class="muted">${esc(t(lang, "job.filesNotKnown"))}</p>`;
-  if (r.changedFiles.length === 0) return `<p class="muted">${esc(t(lang, "job.noChangedFiles"))}</p>`;
+  if (r.running)
+    return `<p class="muted">${esc(t(lang, "job.filesRunning"))}</p>`;
+  if (!r.changedFiles)
+    return `<p class="muted">${esc(t(lang, "job.filesNotKnown"))}</p>`;
+  if (r.changedFiles.length === 0)
+    return `<p class="muted">${esc(t(lang, "job.noChangedFiles"))}</p>`;
   return `<ul>${r.changedFiles
     .map((f) =>
       f.binary
@@ -104,19 +145,34 @@ function errorsTab(r: StepPanelData, lang: Language): string {
  *  the last thing in the tab is. */
 export function stepPanel(
   r: StepPanelData,
-  o: { tabHref?: string; key: string; steptab?: string; refusal?: string; lang: Language },
+  o: {
+    tabHref?: string;
+    key: string;
+    steptab?: string;
+    refusal?: string;
+    lang: Language;
+  },
 ): string {
   const current = resolveStepTab(o.steptab);
-  const count = r.changedFiles && !r.running ? ` (${r.changedFiles.length})` : "";
+  const count =
+    r.changedFiles && !r.running ? ` (${r.changedFiles.length})` : "";
   const label: Record<StepTab, string> = {
     log: t(o.lang, "job.tabLog"),
     files: `${t(o.lang, "job.tabFiles")}${count}`,
     errors: t(o.lang, "job.tabErrors"),
   };
   // "Changed files (0)" keeps its count through the label: `counts` drops a zero.
-  const link = (tab: StepTab): string | undefined => (o.tabHref ? `${o.tabHref}&step=${o.key}&steptab=${tab}` : undefined);
-  const strip = tabBar(STEP_TABS, link, current, {}, "", { label: (tab) => label[tab] });
-  const content = { log: logTab, files: filesTab, errors: errorsTab }[current](r, o.lang);
-  const merge = o.refusal ? `<pre class="specfile">${esc(o.refusal)}</pre>` : "";
+  const link = (tab: StepTab): string | undefined =>
+    o.tabHref ? `${o.tabHref}&step=${o.key}&steptab=${tab}` : undefined;
+  const strip = tabBar(STEP_TABS, link, current, {}, "", {
+    label: (tab) => label[tab],
+  });
+  const content = { log: logTab, files: filesTab, errors: errorsTab }[current](
+    r,
+    o.lang,
+  );
+  const merge = o.refusal
+    ? `<pre class="specfile">${esc(o.refusal)}</pre>`
+    : "";
   return `${merge}${strip}<div class="logbox"><div>${content}</div></div>`;
 }

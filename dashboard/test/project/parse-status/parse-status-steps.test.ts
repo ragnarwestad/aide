@@ -12,8 +12,10 @@
 // the first phase section with unchecked tasks.
 
 import { describe, expect, test } from "bun:test";
-import { archiveHeldBackReason, parseStatus } from "../../../src/project/parse-status";
-
+import {
+  archiveHeldBackReason,
+  parseStatus,
+} from "../../../src/project/parse-status";
 
 // Until now the dashboard GUESSED which workflow steps a spec had had,
 // from the size of 2-analysis.md, a heading in 3-solution.md and the
@@ -24,14 +26,19 @@ import { archiveHeldBackReason, parseStatus } from "../../../src/project/parse-s
 // and this parses it.
 describe("workflow steps completed", () => {
   const withField = (value: string) =>
-    ["# 139 - Status", "", "## Tracking info", "", `- **Workflow steps completed:** ${value}`, ""].join("\n");
+    [
+      "# 139 - Status",
+      "",
+      "## Tracking info",
+      "",
+      `- **Workflow steps completed:** ${value}`,
+      "",
+    ].join("\n");
 
   test("the canonical line comes back as its list", () => {
-    expect(parseStatus(withField("create, analyze, implement")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-    ]);
+    expect(
+      parseStatus(withField("create, analyze, implement")).workflowSteps,
+    ).toEqual(["create", "analyze", "implement"]);
   });
 
   test("a freshly created spec has had exactly create", () => {
@@ -39,7 +46,9 @@ describe("workflow steps completed", () => {
   });
 
   test("no such field means nothing is known to have completed", () => {
-    expect(parseStatus("# 139 - Status\n\nProse only.\n").workflowSteps).toEqual([]);
+    expect(
+      parseStatus("# 139 - Status\n\nProse only.\n").workflowSteps,
+    ).toEqual([]);
   });
 
   test("an empty field is no completed step, not a blank one", () => {
@@ -48,10 +57,9 @@ describe("workflow steps completed", () => {
   });
 
   test("unknown values are ignored", () => {
-    expect(parseStatus(withField("create, resolve, merge, analyze")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-    ]);
+    expect(
+      parseStatus(withField("create, resolve, merge, analyze")).workflowSteps,
+    ).toEqual(["create", "analyze"]);
   });
 
   // `review-plan` was a step before the review was folded into
@@ -59,37 +67,30 @@ describe("workflow steps completed", () => {
   // value is dropped rather than shown as a step the workflow no
   // longer has.
   test("a spec archived before the review was folded in keeps the four steps that remain", () => {
-    expect(parseStatus(withField("create, analyze, review-plan, implement, archive")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
-    ]);
+    expect(
+      parseStatus(withField("create, analyze, review-plan, implement, archive"))
+        .workflowSteps,
+    ).toEqual(["create", "analyze", "implement", "archive"]);
   });
 
   test("duplicates collapse and the order is the workflow's, not the line's", () => {
-    expect(parseStatus(withField("implement, create, analyze, create")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-    ]);
+    expect(
+      parseStatus(withField("implement, create, analyze, create"))
+        .workflowSteps,
+    ).toEqual(["create", "analyze", "implement"]);
   });
 
   test("backticks, case and stray spacing do not change the answer", () => {
-    expect(parseStatus(withField("`Create`,  ANALYZE ,implement")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-    ]);
+    expect(
+      parseStatus(withField("`Create`,  ANALYZE ,implement")).workflowSteps,
+    ).toEqual(["create", "analyze", "implement"]);
   });
 
   test("archive is an allowed value — the archived file stays the whole record", () => {
-    expect(parseStatus(withField("create, analyze, implement, archive")).workflowSteps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
-    ]);
+    expect(
+      parseStatus(withField("create, analyze, implement, archive"))
+        .workflowSteps,
+    ).toEqual(["create", "analyze", "implement", "archive"]);
   });
 
   // The field is an ADDITION to 4-status.md. Everything the
@@ -118,16 +119,20 @@ describe("workflow steps completed", () => {
     expect(status.progress).toEqual({ percent: 95, done: 21, total: 22 });
     expect(status.phase).toBe("Phase 1: RED");
     expect(status.workflowSteps).toEqual(["create", "analyze"]);
-    expect(archiveHeldBackReason(content)).toBe("the Slack webhook (Phase 4, still unchecked)");
+    expect(archiveHeldBackReason(content)).toBe(
+      "the Slack webhook (Phase 4, still unchecked)",
+    );
   });
 
   // The line the old heuristics would have read as "analyze done": a
   // status file saying only `create`, beside an untouched 693-byte
   // analysis template. The parser answers from the field alone.
   test("the field is the only source — a long analysis nearby says nothing", () => {
-    expect(parseStatus(withField("create") + "\n" + "Findings, at length. ".repeat(40)).workflowSteps).toEqual([
-      "create",
-    ]);
+    expect(
+      parseStatus(
+        withField("create") + "\n" + "Findings, at length. ".repeat(40),
+      ).workflowSteps,
+    ).toEqual(["create"]);
   });
 });
 
@@ -141,27 +146,38 @@ describe("step models", () => {
     ["# 244 - Status", "", "## Tracking info", "", line, ""].join("\n");
 
   test("a recorded line comes back keyed by step", () => {
-    expect(parseStatus(withLine("- **Model (analyze):** claude claude-sonnet-5")).stepModels).toEqual({
+    expect(
+      parseStatus(withLine("- **Model (analyze):** claude claude-sonnet-5"))
+        .stepModels,
+    ).toEqual({
       analyze: "claude claude-sonnet-5",
     });
   });
 
   test("a bare tool with no model id is kept as written", () => {
-    expect(parseStatus(withLine("- **Model (create):** claude")).stepModels).toEqual({
+    expect(
+      parseStatus(withLine("- **Model (create):** claude")).stepModels,
+    ).toEqual({
       create: "claude",
     });
   });
 
   test("no such line at all means nothing is known", () => {
-    expect(parseStatus("# 244 - Status\n\nProse only.\n").stepModels).toEqual({});
+    expect(parseStatus("# 244 - Status\n\nProse only.\n").stepModels).toEqual(
+      {},
+    );
   });
 
   test("an unknown or retired step name is dropped", () => {
-    expect(parseStatus(withLine("- **Model (review-plan):** claude")).stepModels).toEqual({});
+    expect(
+      parseStatus(withLine("- **Model (review-plan):** claude")).stepModels,
+    ).toEqual({});
   });
 
   test("nothing after the colon is dropped, not kept as an empty string", () => {
-    expect(parseStatus(withLine("- **Model (analyze):**")).stepModels).toEqual({});
+    expect(parseStatus(withLine("- **Model (analyze):**")).stepModels).toEqual(
+      {},
+    );
   });
 
   test("every recorded step comes back, not just the first", () => {

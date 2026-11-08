@@ -22,17 +22,17 @@
 
 ## Phase 1: RED
 
-| Task                                         | Status | Notes |
-|----------------------------------------------|--------|-------|
-| Content test for the docs wiring             | ✅     |       |
-| Skill dir created → uninstall test red       | ✅     |       |
+| Task                                   | Status | Notes |
+| -------------------------------------- | ------ | ----- |
+| Content test for the docs wiring       | ✅     |       |
+| Skill dir created → uninstall test red | ✅     |       |
 
 ---
 
 ## Phase 2: GREEN
 
 | Task                                          | Status | Notes |
-|-----------------------------------------------|--------|-------|
+| --------------------------------------------- | ------ | ----- |
 | SKILL.md written (lenses, scaling, handoffs)  | ✅     |       |
 | Docs wired (workflows, skills list, template) | ✅     |       |
 | uninstall.sh SKILLS list                      | ✅     |       |
@@ -43,9 +43,9 @@
 
 ## Phase 3: REFACTOR
 
-| Task                                         | Status | Notes |
-|----------------------------------------------|--------|-------|
-| Full suite green + markdownlint clean        | ✅     |       |
+| Task                                  | Status | Notes |
+| ------------------------------------- | ------ | ----- |
+| Full suite green + markdownlint clean | ✅     |       |
 
 ---
 

@@ -231,7 +231,7 @@ en nøytral default — et prosjekt kan lokalisere prefiksene (f.eks. norske
 `klikk/input/velg/verifiser`), men da konsekvent for HELE suiten.)
 
 | UI-element / handling | Konvensjon                           | Eksempel                     |
-|-----------------------|--------------------------------------|------------------------------|
+| --------------------- | ------------------------------------ | ---------------------------- |
 | Knapp                 | `click<Label>()`                     | `clickSave()`                |
 | Checkbox              | `check<Label>()` / `toggle<Label>()` | `checkRemember()`            |
 | Tekstfelt             | `fill<Label>(value: string)`         | `fillEmail("a@b.no")`        |

@@ -8,8 +8,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type BusyJob, testWorkerShare } from "../../src/queue/test-workers.ts";
 
-const CASES = JSON.parse(readFileSync(join(import.meta.dir, "../../../core/tests/fixtures/test-workers.json"), "utf-8"))
-  .cases as { name: string; cores: number; jobs: BusyJob[]; workers: number }[];
+const CASES = JSON.parse(
+  readFileSync(
+    join(import.meta.dir, "../../../core/tests/fixtures/test-workers.json"),
+    "utf-8",
+  ),
+).cases as { name: string; cores: number; jobs: BusyJob[]; workers: number }[];
 
 describe("testWorkerShare", () => {
   test.each(CASES)("$name (AC-1)", ({ cores, jobs, workers }) => {

@@ -47,12 +47,21 @@ export interface SpecsPullResult {
   moved: boolean;
 }
 
-const refuse = (said: string | ReturnType<typeof errorSentence>): SpecsPullResult =>
+const refuse = (
+  said: string | ReturnType<typeof errorSentence>,
+): SpecsPullResult =>
   typeof said === "string"
     ? { ok: false, note: said, moved: false }
-    : { ok: false, note: said.text, problem: said.problem, solution: said.solution, moved: false };
+    : {
+        ok: false,
+        note: said.text,
+        problem: said.problem,
+        solution: said.solution,
+        moved: false,
+      };
 
-const short = (sha: string | null): string => (sha ?? "").slice(0, 7) || "unknown";
+const short = (sha: string | null): string =>
+  (sha ?? "").slice(0, 7) || "unknown";
 
 /** Fast-forward the working tree `dir` sits in, or say why not.
  *
@@ -130,7 +139,12 @@ export async function pullFastForward(
     // Before the merge, so a divergence is its own answer rather than
     // whatever git says when the merge refuses.
     const ref = `refs/remotes/origin/${base}`;
-    const ancestor = await run(root, ["merge-base", "--is-ancestor", "HEAD", ref]);
+    const ancestor = await run(root, [
+      "merge-base",
+      "--is-ancestor",
+      "HEAD",
+      ref,
+    ]);
     if (ancestor.code !== 0) {
       return refuse(
         errorSentence({
@@ -155,13 +169,23 @@ export async function pullFastForward(
     const from = before.code === 0 ? before.stdout.trim() : null;
     const to = after.code === 0 ? after.stdout.trim() : null;
     if (from && to && from === to) {
-      return { ok: true, moved: false, note: "the specs checkout was already up to date" };
+      return {
+        ok: true,
+        moved: false,
+        note: "the specs checkout was already up to date",
+      };
     }
-    return { ok: true, moved: true, note: `pulled the specs checkout: ${short(from)} → ${short(to)}` };
+    return {
+      ok: true,
+      moved: true,
+      note: `pulled the specs checkout: ${short(from)} → ${short(to)}`,
+    };
   } catch (err) {
     // The reader pressed a button. A git that cannot be spawned at all
     // is an answer on the page, never a 500.
-    return refuse(`git could not be run: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(
+      `git could not be run: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
@@ -245,11 +269,18 @@ export async function saveSpecFiles(
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
   edits: SpecFileEdit[],
-  opts: { specLabel: string; message: string; validate?: () => Promise<string | undefined> },
+  opts: {
+    specLabel: string;
+    message: string;
+    validate?: () => Promise<string | undefined>;
+  },
 ): Promise<SpecsSaveResult> {
   // Which file a refusal is ABOUT: one file names itself, several name
   // the save. Computed once, because most of the refusals below say it.
-  const subject = edits.length === 1 ? edits[0]!.file : edits.map((e) => e.file).join(" and ");
+  const subject =
+    edits.length === 1
+      ? edits[0]!.file
+      : edits.map((e) => e.file).join(" and ");
   try {
     // A checkout that cannot be fast-forwarded cannot be pushed either,
     // and the four reasons it gives are the ones a reader needs. Run
@@ -286,7 +317,11 @@ export async function saveSpecFiles(
     // entry.
     const paths = edits.map((edit) => {
       const path = join(dir, edit.file);
-      return { edit, path, previous: existsSync(path) ? readFileSync(path, "utf-8") : null };
+      return {
+        edit,
+        path,
+        previous: existsSync(path) ? readFileSync(path, "utf-8") : null,
+      };
     });
     const rollback = (): void => {
       for (const { path, previous } of paths) {
@@ -294,7 +329,8 @@ export async function saveSpecFiles(
         else writeFileSync(path, previous);
       }
     };
-    for (const { edit, path } of paths) writeFileSync(path, asFileText(edit.text));
+    for (const { edit, path } of paths)
+      writeFileSync(path, asFileText(edit.text));
 
     for (const { edit } of paths) {
       const added = await run(dir, ["add", "--", edit.file]);
@@ -327,9 +363,20 @@ export async function saveSpecFiles(
     // uncommitted in the shared checkout — which is exactly what the
     // next pull, this button's or the cron's, refuses (2026-08-21, the
     // first real save anyone made).
-    const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", ...edits.map((e) => e.file)]);
+    const staged = await run(dir, [
+      "diff",
+      "--cached",
+      "--quiet",
+      "HEAD",
+      "--",
+      ...edits.map((e) => e.file),
+    ]);
     if (staged.code === 0) {
-      return { ok: true, note: `${subject} is unchanged — nothing was saved`, committed: false };
+      return {
+        ok: true,
+        note: `${subject} is unchanged — nothing was saved`,
+        committed: false,
+      };
     }
 
     const committed = await run(root, ["commit", "-q", "-m", opts.message]);
@@ -379,7 +426,19 @@ export async function saveSpecFile(
   run: GitRunner,
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
-  edit: { file: string; text: string; baseSha: string | null; specLabel: string; message: string },
+  edit: {
+    file: string;
+    text: string;
+    baseSha: string | null;
+    specLabel: string;
+    message: string;
+  },
 ): Promise<SpecsSaveResult> {
-  return saveSpecFiles(run, dir, resolveBase, [{ file: edit.file, text: edit.text, baseSha: edit.baseSha }], edit);
+  return saveSpecFiles(
+    run,
+    dir,
+    resolveBase,
+    [{ file: edit.file, text: edit.text, baseSha: edit.baseSha }],
+    edit,
+  );
 }

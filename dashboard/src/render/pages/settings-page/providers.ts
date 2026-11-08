@@ -6,7 +6,10 @@
 import { capitalizeFirst } from "../../ui/job-state/provider-limit.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
-import { type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
+import {
+  type Provider,
+  type ProviderTool,
+} from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
 import { stamp, type ExtraCheck } from "./tools.ts";
 
@@ -20,11 +23,15 @@ export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
 /** A provider's own place: the Providers tab with it chosen. */
-export const providerEditPath = (key: string): string => `${PROVIDERS_TAB_PATH}&provider=${encodeURIComponent(key)}`;
+export const providerEditPath = (key: string): string =>
+  `${PROVIDERS_TAB_PATH}&provider=${encodeURIComponent(key)}`;
 
 /** The provider the tab shows: the one `asked` names, else the first in
  *  config order, else none. */
-export function selectedProviderKey(providers: Record<string, Provider> | undefined, asked: string | null | undefined): string | undefined {
+export function selectedProviderKey(
+  providers: Record<string, Provider> | undefined,
+  asked: string | null | undefined,
+): string | undefined {
   const keys = Object.keys(providers ?? {});
   return asked && keys.includes(asked) ? asked : keys[0];
 }
@@ -53,9 +60,17 @@ export interface ProviderStatus {
 /** What a provider's page says of what was read: that the tool is not
  *  installed, or the login and when it ends. A login that could not be read says so and
  *  says to open the tab again; it is never said to be "not logged in". */
-export function providerStatusLines(status: ProviderStatus, provider: Provider, lang: Language): string[] {
+export function providerStatusLines(
+  status: ProviderStatus,
+  provider: Provider,
+  lang: Language,
+): string[] {
   if (!status.installed) {
-    return [t(lang, "settings.providers.notInstalled", { tool: TOOL_NAMES[provider.tool] ?? provider.tool })];
+    return [
+      t(lang, "settings.providers.notInstalled", {
+        tool: TOOL_NAMES[provider.tool] ?? provider.tool,
+      }),
+    ];
   }
   // The version is the heading's, beside the name.
   const lines: string[] = [];
@@ -64,9 +79,19 @@ export function providerStatusLines(status: ProviderStatus, provider: Provider, 
   if (login.ok === null || !login.answer) {
     lines.push(t(lang, "settings.providers.loginUnread"));
   } else {
-    lines.push(capitalizeFirst(renderSentence(lang, login.detail ? [login.answer, login.detail] : login.answer) ?? ""));
+    lines.push(
+      capitalizeFirst(
+        renderSentence(
+          lang,
+          login.detail ? [login.answer, login.detail] : login.answer,
+        ) ?? "",
+      ),
+    );
   }
-  if (login.ends) lines.push(t(lang, "settings.providers.loginEnds", { at: stamp(login.ends) }));
+  if (login.ends)
+    lines.push(
+      t(lang, "settings.providers.loginEnds", { at: stamp(login.ends) }),
+    );
   return lines;
 }
 
@@ -75,7 +100,9 @@ export function providerStatusLines(status: ProviderStatus, provider: Provider, 
  *  (`login.inWithAs` with `ok: false`) is still a login. */
 export type ProviderLoginState = "in" | "out" | "unread" | "notInstalled";
 
-export function providerLoginState(status: ProviderStatus | undefined): ProviderLoginState {
+export function providerLoginState(
+  status: ProviderStatus | undefined,
+): ProviderLoginState {
   if (!status) return "unread";
   if (!status.installed) return "notInstalled";
   const login = status.login;
@@ -106,7 +133,9 @@ export interface ProviderRow {
 function planOf(login: ExtraCheck | undefined): string | undefined {
   if (!login?.answer || login.answer.key === "login.out") return undefined;
   const method = login.answer.values?.method;
-  return login.plan ?? (typeof method === "string" && method ? method : undefined);
+  return (
+    login.plan ?? (typeof method === "string" && method ? method : undefined)
+  );
 }
 
 export function providerRows(

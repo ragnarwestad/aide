@@ -34,9 +34,15 @@ describe("pageShell install warning banner", () => {
   test("shows the banner when the log's last block has a warning", () => {
     writeLog(
       "--- 2026-08-31T00:00:00Z ---\nall good\n" +
-      "--- 2026-09-01T00:00:00Z ---\n⚠️  [aide tools] mise is not installed — skipping jq\n",
+        "--- 2026-09-01T00:00:00Z ---\n⚠️  [aide tools] mise is not installed — skipping jq\n",
     );
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+    );
     expect(html).toContain("install.log");
     expect(html).toContain("rowmsg waiting");
   });
@@ -44,9 +50,15 @@ describe("pageShell install warning banner", () => {
   test("shows nothing when the last block has no warning", () => {
     writeLog(
       "--- 2026-08-31T00:00:00Z ---\n⚠️  an old warning\n" +
-      "--- 2026-09-01T00:00:00Z ---\neverything installed cleanly\n",
+        "--- 2026-09-01T00:00:00Z ---\neverything installed cleanly\n",
     );
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+    );
     expect(html).not.toContain("install.log");
   });
 
@@ -56,16 +68,28 @@ describe("pageShell install warning banner", () => {
     // every merge on the serving host.
     writeLog(
       "--- 2026-09-01T00:00:00Z ---\n⚠️  Codex CLI is NOT installed\n" +
-      "⚠️  Browser Testing MCP is NOT configured\n⚠️  ~/.local/bin is NOT in PATH for this shell yet\n",
+        "⚠️  Browser Testing MCP is NOT configured\n⚠️  ~/.local/bin is NOT in PATH for this shell yet\n",
     );
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+    );
     expect(html).not.toContain("install.log");
   });
 
   test("shows nothing when the log file does not exist", () => {
     scratchDir = mkdtempSync(join(tmpdir(), "aide-install-log-"));
     process.env.AIDE_INSTALL_LOG = join(scratchDir, "does-not-exist.log");
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+    );
     expect(html).not.toContain("install.log");
   });
 });
@@ -76,18 +100,34 @@ describe("pageShell language", () => {
   // language keeps the reader on the page, tab, sort and filter they
   // were already on — not an "always /?lang=..." link.
   test("the language control's link targets currentUrl with lang swapped", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", {
-      lang: "nb",
-      currentUrl: "/specs/aide/435-x?tab=solution",
-    });
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+      {
+        lang: "nb",
+        currentUrl: "/specs/aide/435-x?tab=solution",
+      },
+    );
     expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=en"');
-    expect(html).toContain('href="/specs/aide/435-x?tab=solution&amp;lang=nb" aria-current="true"');
+    expect(html).toContain(
+      'href="/specs/aide/435-x?tab=solution&amp;lang=nb" aria-current="true"',
+    );
   });
 
   test("no currentUrl falls back to /?lang=..., the same as every caller had before this field existed", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", {
-      lang: "nb",
-    });
+    const html = pageShell(
+      "Projects",
+      ENTRIES,
+      "/projects",
+      "<p>body</p>",
+      "2026-09-01T00:00:00Z",
+      {
+        lang: "nb",
+      },
+    );
     expect(html).toContain('href="/?lang=en"');
     expect(html).toContain('href="/?lang=nb"');
   });
@@ -100,7 +140,12 @@ describe("the header's tabs", () => {
   ];
 
   test("Running comes first, then Specs, Projects and the sections", () => {
-    expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/projects", "/schedule"]);
+    expect(siteTabKeys(NAV, "/").keys).toEqual([
+      "/",
+      "/specs",
+      "/projects",
+      "/schedule",
+    ]);
   });
 
   test("Running is current for / and Specs for /specs", () => {

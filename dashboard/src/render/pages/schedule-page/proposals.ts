@@ -3,7 +3,13 @@
 // `propose-specs.ts` leaves beside the report; no record draws nothing.
 import { t, type Language } from "../../../i18n";
 import { renderMessage } from "../../../i18n/message.ts";
-import type { InvalidWhat, ProposalResult, ProposalsProblem, ProposalsRecord, SkipWhy } from "../../../queue/spec-proposals.ts";
+import type {
+  InvalidWhat,
+  ProposalResult,
+  ProposalsProblem,
+  ProposalsRecord,
+  SkipWhy,
+} from "../../../queue/spec-proposals.ts";
 import { badge } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { specPagePath } from "../spec-page";
@@ -24,7 +30,8 @@ const PROBLEM_KEY = {
 } as const satisfies Record<ProposalsProblem, string>;
 
 const jobHref = (id: string): string => `/jobs/${encodeURIComponent(id)}`;
-const link = (href: string, text: string): string => `<a href="${esc(href)}">${esc(text)}</a>`;
+const link = (href: string, text: string): string =>
+  `<a href="${esc(href)}">${esc(text)}</a>`;
 
 /** A sentence with one blank filled by a link: the words are escaped, the link
  *  is put in after. */
@@ -36,11 +43,23 @@ function reason(lang: Language, project: string, why: SkipWhy): string {
   switch (why.code) {
     case "exists": {
       const key =
-        why.kind === "closed" ? "proposals.existsClosed" : why.kind === "archived" ? "proposals.existsArchived" : "proposals.existsActive";
-      return withLink(t(lang, key, { spec: "\u0001" }), "\u0001", link(specPagePath(project, why.folder), why.folder));
+        why.kind === "closed"
+          ? "proposals.existsClosed"
+          : why.kind === "archived"
+            ? "proposals.existsArchived"
+            : "proposals.existsActive";
+      return withLink(
+        t(lang, key, { spec: "\u0001" }),
+        "\u0001",
+        link(specPagePath(project, why.folder), why.folder),
+      );
     }
     case "queued":
-      return withLink(t(lang, "proposals.queued") + " \u0001", "\u0001", link(jobHref(why.jobId), why.jobId.slice(0, 8)));
+      return withLink(
+        t(lang, "proposals.queued") + " \u0001",
+        "\u0001",
+        link(jobHref(why.jobId), why.jobId.slice(0, 8)),
+      );
     case "invalid":
       return esc(t(lang, INVALID_KEY[why.what], { max: why.max ?? "" }));
     case "refused":
@@ -49,14 +68,20 @@ function reason(lang: Language, project: string, why: SkipWhy): string {
 }
 
 function row(lang: Language, project: string, p: ProposalResult): string {
-  const title = p.title ? esc(p.title) : `<span class="muted">${esc(t(lang, "proposals.noTitle"))}</span>`;
+  const title = p.title
+    ? esc(p.title)
+    : `<span class="muted">${esc(t(lang, "proposals.noTitle"))}</span>`;
   if (p.result === "created") {
     return `<li>${badge("done", t(lang, "proposals.created"))} ${link(jobHref(p.jobId), p.title || p.jobId)}</li>`;
   }
   return `<li>${badge("idle", t(lang, "proposals.skipped"))} ${title} <span class="muted">— ${reason(lang, project, p.why)}</span></li>`;
 }
 
-export function renderProposalsPanel(opts: { lang: Language; project: string; record: ProposalsRecord | null }): string {
+export function renderProposalsPanel(opts: {
+  lang: Language;
+  project: string;
+  record: ProposalsRecord | null;
+}): string {
   const { lang, project, record } = opts;
   if (record === null) return "";
   const problem = record.problem

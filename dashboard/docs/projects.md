@@ -3,22 +3,22 @@
 ## Table of contents
 
 - [Using it](#using-it)
-    - [Adding a project](#adding-a-project)
-    - [Where a project's settings are kept](#where-a-projects-settings-are-kept)
-    - [Removing a project](#removing-a-project)
-    - [Whether a run can start there](#whether-a-run-can-start-there)
-    - [What Add finishes itself](#what-add-finishes-itself)
-    - [A project's own page](#a-projects-own-page)
-        - [Deploy](#deploy)
-        - [Config](#config)
-        - [Schedule](#schedule)
-    - [How a project's code lands](#how-a-projects-code-lands)
+  - [Adding a project](#adding-a-project)
+  - [Where a project's settings are kept](#where-a-projects-settings-are-kept)
+  - [Removing a project](#removing-a-project)
+  - [Whether a run can start there](#whether-a-run-can-start-there)
+  - [What Add finishes itself](#what-add-finishes-itself)
+  - [A project's own page](#a-projects-own-page)
+    - [Deploy](#deploy)
+    - [Config](#config)
+    - [Schedule](#schedule)
+  - [How a project's code lands](#how-a-projects-code-lands)
 - [How it works inside](#how-it-works-inside)
-    - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
-    - [How the settings reach a run](#how-the-settings-reach-a-run)
-    - [Which readiness checks are the dashboard's own](#which-readiness-checks-are-the-dashboards-own)
-    - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
-    - [A server started with no projects root](#a-server-started-with-no-projects-root)
+  - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
+  - [How the settings reach a run](#how-the-settings-reach-a-run)
+  - [Which readiness checks are the dashboard's own](#which-readiness-checks-are-the-dashboards-own)
+  - [A page render never waits on the network](#a-page-render-never-waits-on-the-network)
+  - [A server started with no projects root](#a-server-started-with-no-projects-root)
 
 ---
 
@@ -27,7 +27,6 @@ queue that runs its specs is on [Running specs](running-specs.md).
 
 The page has two parts. [Using it](#using-it) is for someone adding and running projects on the board.
 [How it works inside](#how-it-works-inside) is for someone changing the code that does it.
-
 
 ## Using it
 
@@ -44,7 +43,7 @@ allowlist, which is what a run checks before it starts; removing one takes the n
 The Add form asks for:
 
 | Field            | What it takes                                                                                                                 |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Name             | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere                |
 | Git URL          | Required. The address to clone                                                                                                |
 | Specs path       | Optional. Where this project's specs live, when they are not in `specs/` inside it                                            |
@@ -101,10 +100,10 @@ The specs path and the install command belong to the machine and are kept in its
 committed. The rest live in the manifest table, headed with the file a save writes to. Four
 states decide which:
 
-| The manifest table is headed         | What it means                                                                        |
-|--------------------------------------|--------------------------------------------------------------------------------------|
-| `.aide/project.yaml`                 | The repository tracks a manifest, and it travels with the project to any machine     |
-| the dashboard's `settings.yaml`      | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
+| The manifest table is headed    | What it means                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `.aide/project.yaml`            | The repository tracks a manifest, and it travels with the project to any machine     |
+| the dashboard's `settings.yaml` | The repository tracks no manifest, so this dashboard holds them beside its checkouts |
 
 A tracked manifest wins as a whole file where both exist, and the heading still reads
 `.aide/project.yaml` when neither exists yet — that is the file a save would create.
@@ -151,7 +150,7 @@ all, and is left out of the table below because all it reports is whether the ru
 owns rather than the project's own directory.
 
 | Check           | Blocks a run when                                                                                                                                                     |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `gitRoot`       | the project directory is no repository at all — or, in this dashboard check only, is inside a bigger one (`aide-run-spec` does not refuse that second case)           |
 | `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory                                                                        |
 | `specsRepo`     | (dashboard only) that specs root is in no git repository — `aide-run-spec` silently leaves such a root out of what it commits, rather than refusing                   |
@@ -327,10 +326,10 @@ that is not on the allowlist; a create there is then refused, with the reason on
 When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
 the Add form, which leaves it unchosen and refuses a project added without an answer, or under Edit on the project's own page:
 
-| Code landing                                | What happens                                                                                                                                                                                                                                        |
-|---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Merge into the default branch               | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
-| Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it until it merges.                        |
+| Code landing                  | What happens                                                                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge into the default branch | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                           |
+| Create a pull request         | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it until it merges. |
 
 Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
 repository without review. A project that keeps its specs inside its own repository has one branch for both, so there

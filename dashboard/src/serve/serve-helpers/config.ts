@@ -143,8 +143,12 @@ export const QUEUE_CONCURRENCY_MAX = 8;
 export function isQueueConcurrency(raw: unknown): raw is number {
   // 1..8: six is what the serving host runs now that a landing runs the
   // suite once and the timing tests tolerate a busy host (2026-09-03).
-  return typeof raw === "number" && Number.isInteger(raw) &&
-    raw >= QUEUE_CONCURRENCY_MIN && raw <= QUEUE_CONCURRENCY_MAX;
+  return (
+    typeof raw === "number" &&
+    Number.isInteger(raw) &&
+    raw >= QUEUE_CONCURRENCY_MIN &&
+    raw <= QUEUE_CONCURRENCY_MAX
+  );
 }
 
 export function parseQueueConcurrency(raw: unknown): number {
@@ -159,7 +163,8 @@ export function processSettings(
   startedWith: number | undefined,
 ): ProcessSettings {
   return {
-    concurrency: runner?.concurrency ?? startedWith ?? DEFAULT_QUEUE_CONCURRENCY,
+    concurrency:
+      runner?.concurrency ?? startedWith ?? DEFAULT_QUEUE_CONCURRENCY,
     cores: availableParallelism(),
     min: QUEUE_CONCURRENCY_MIN,
     max: QUEUE_CONCURRENCY_MAX,
@@ -173,6 +178,7 @@ export function processSettings(
  *  Read from `core/scripts/lib/workflow-steps.json` — the
  *  same file `core/scripts/aide-run-spec` reads with jq, so the two
  *  sides can no longer drift apart. */
-export const DEPENDENCY_GATED_STEPS: readonly string[] = workflowStepsData.dependencyGatedSteps;
+export const DEPENDENCY_GATED_STEPS: readonly string[] =
+  workflowStepsData.dependencyGatedSteps;
 
 export const GATED = new Set<string>(DEPENDENCY_GATED_STEPS);

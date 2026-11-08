@@ -29,7 +29,14 @@
 //    the two read-only questions above.
 
 import { realPathOrAbsolute as real } from "./real-path.ts";
-import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
@@ -39,7 +46,12 @@ import { configValue, resolveWorktreeLinks } from "../project/discover";
 /** Where the dashboard keeps its own clones when nothing says otherwise.
  *  Beside `aide-dashboard/`, not inside the projects root: a directory
  *  under the projects root would be DISCOVERED as a project. */
-export const DEFAULT_DASHBOARD_CHECKOUT_ROOT = join(homedir(), ".aide", "dashboard", "checkouts");
+export const DEFAULT_DASHBOARD_CHECKOUT_ROOT = join(
+  homedir(),
+  ".aide",
+  "dashboard",
+  "checkouts",
+);
 
 /** The projects root that holds links to these checkouts rather than
  *  checkouts of its own: `projects/` beside `checkouts/`. A server whose
@@ -149,18 +161,29 @@ const FETCH_TIMEOUT_MS = 60 * 1000;
  *  itself — which is why it is asked BEFORE anything is deleted. The
  *  answer lives in `.git/config`, so a delete that runs first takes the
  *  only copy of it with it. */
-async function originUrlOf(run: GitRunner, dir: string): Promise<string | null> {
+async function originUrlOf(
+  run: GitRunner,
+  dir: string,
+): Promise<string | null> {
   const origin = await run(dir, ["remote", "get-url", "origin"]);
   const url = origin.code === 0 ? origin.stdout.trim() : "";
   return url || null;
 }
 
-async function cloneFrom(run: GitRunner, url: string, dest: string): Promise<string | null> {
+async function cloneFrom(
+  run: GitRunner,
+  url: string,
+  dest: string,
+): Promise<string | null> {
   mkdirSync(dirname(dest), { recursive: true });
   // `cwd` at the parent with the name as the destination argument, the
   // way `addProject` clones: the destination does not exist yet, so it
   // is the one git call that cannot run inside its own directory.
-  const cloned = await run(dirname(dest), ["clone", url, basename(dest)], CLONE_TIMEOUT_MS);
+  const cloned = await run(
+    dirname(dest),
+    ["clone", url, basename(dest)],
+    CLONE_TIMEOUT_MS,
+  );
   if (cloned.code !== 0) {
     const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
     return `cloning ${url} into ${dest} failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`;
@@ -263,7 +286,10 @@ async function bringUpToDate(run: GitRunner, dir: string): Promise<void> {
   await run(dir, ["merge", "--ff-only", "--quiet", `origin/${name}`]);
 }
 
-export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest): Promise<EnsureResult> {
+export async function ensureDashboardCheckout(
+  run: GitRunner,
+  req: EnsureRequest,
+): Promise<EnsureResult> {
   const code = dashboardCheckoutRoot(req.base, req.project);
   let cloned = false;
   if (!looksCloned(code) || !(await isUsable(run, code))) {
@@ -344,8 +370,14 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   // for another job in that window read the person's specs path out of
   // it and ran archive against the wrong checkout (2026-09-03).
   const personConfig = join(req.personDir, ".aide", "config");
-  const personConfigText = existsSync(personConfig) ? readFileSync(personConfig, "utf-8") : null;
-  await carryManifest(run, { code, personDir: req.personDir, settingsFile: dashboardSettingsFile(req.base, req.project) });
+  const personConfigText = existsSync(personConfig)
+    ? readFileSync(personConfig, "utf-8")
+    : null;
+  await carryManifest(run, {
+    code,
+    personDir: req.personDir,
+    settingsFile: dashboardSettingsFile(req.base, req.project),
+  });
   linkWorktreePaths(req.personDir, code);
 
   const personSpecs = configValue(req.personDir, "AIDE_SPECS_PATH");
@@ -360,7 +392,11 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     const personTop = await topOf(run, req.personDir);
     const specsTop = await topOf(run, personSpecs);
     if (!specsTop) {
-      return { ok: false, error: `${personSpecs} is in no git repository, so there is nothing to clone`, cloned };
+      return {
+        ok: false,
+        error: `${personSpecs} is in no git repository, so there is nothing to clone`,
+        cloned,
+      };
     }
     if (personTop && specsTop === personTop) {
       // The specs are in the project's own repository — one clone, and
@@ -424,7 +460,10 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   mkdirSync(join(specs, "archive"), { recursive: true });
   // Written whole on every call: the Settings page writes into the
   // person's config, and the runner reads out of this one.
-  writeCheckoutConfig(code, personConfigText, specs, { project: req.project, specsRepo });
+  writeCheckoutConfig(code, personConfigText, specs, {
+    project: req.project,
+    specsRepo,
+  });
   return { ok: true, cloned, checkout: { code, specs, specsRepo } };
 }
 
@@ -457,9 +496,14 @@ function writeCheckoutConfig(
   const file = join(dir, "config");
   const before = configValue(code, "AIDE_SPECS_PATH");
   if (before !== null && before !== specs) {
-    console.error(`queue: the specs path in ${file} changes: ${before} -> ${specs}`);
+    console.error(
+      `queue: the specs path in ${file} changes: ${before} -> ${specs}`,
+    );
   }
-  if (real(specs) === real(says.specsRepo) && existsSync(join(says.specsRepo, says.project))) {
+  if (
+    real(specs) === real(says.specsRepo) &&
+    existsSync(join(says.specsRepo, says.project))
+  ) {
     console.error(
       `queue: the specs path in ${file} names the specs repository's own root (${specs}), ` +
         `and that repository also holds ${join(says.specsRepo, says.project)} — ` +
@@ -467,7 +511,9 @@ function writeCheckoutConfig(
     );
   }
   mkdirSync(dir, { recursive: true });
-  const kept = (personConfigText ?? "").split("\n").filter((line) => line.split("=")[0] !== "AIDE_SPECS_PATH");
+  const kept = (personConfigText ?? "")
+    .split("\n")
+    .filter((line) => line.split("=")[0] !== "AIDE_SPECS_PATH");
   while (kept.length && kept[kept.length - 1] === "") kept.pop();
   kept.push(`AIDE_SPECS_PATH=${specs}`);
   const tmp = join(dir, `.config.${process.pid}.${Date.now()}.tmp`);

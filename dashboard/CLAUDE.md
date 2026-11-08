@@ -91,6 +91,7 @@ get them, and reads them by hand.
   same tree green (`testedGreen`, `aide_tree_hash`).
 
   `docs/the-runner.md` and `docs/landing.md` have the rest.
+
 - Every move of a shared checkout — the pull (switch, fetch,
   fast-forward) and the worktree add — runs under the per-root lock
   `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`,

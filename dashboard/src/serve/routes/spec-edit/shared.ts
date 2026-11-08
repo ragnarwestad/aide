@@ -13,7 +13,10 @@ export { STATE_SPEC_FILE };
  *  running, or its landing is in flight. A queued job writes nothing
  *  yet — and may be queued precisely for a tick (the acceptance
  *  hold-back), so it must not block one. */
-export function specWriteInFlight(job: { state: string; landing?: boolean }): boolean {
+export function specWriteInFlight(job: {
+  state: string;
+  landing?: boolean;
+}): boolean {
   return job.state === "running" || !!job.landing;
 }
 
@@ -27,7 +30,15 @@ export function followOnJob(
   from: Job | undefined,
 ): Record<string, unknown> {
   if (!from) return { project, specFolder, steps };
-  const forSteps = (map: Record<string, string> | undefined): Record<string, string> =>
+  const forSteps = (
+    map: Record<string, string> | undefined,
+  ): Record<string, string> =>
     Object.fromEntries(steps.filter((s) => map?.[s]).map((s) => [s, map![s]!]));
-  return { project, specFolder, steps, model: forSteps(from.model), effort: forSteps(from.effort) };
+  return {
+    project,
+    specFolder,
+    steps,
+    model: forSteps(from.model),
+    effort: forSteps(from.effort),
+  };
 }

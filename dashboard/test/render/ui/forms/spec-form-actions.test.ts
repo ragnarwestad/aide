@@ -11,7 +11,14 @@
 // spec-editor-viewer-and-theme.test.ts already registers for a harder
 // case (a real Toast UI Editor instance).
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -20,8 +27,25 @@ let scriptText: string;
 beforeAll(async () => {
   const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
   GlobalRegistrator.register();
-  scriptText = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "spec-form-actions.ts"), "utf-8"),
+  scriptText = new Bun.Transpiler({
+    loader: "ts",
+    target: "browser",
+  }).transformSync(
+    readFileSync(
+      join(
+        import.meta.dir,
+        "..",
+        "..",
+        "..",
+        "..",
+        "src",
+        "render",
+        "ui",
+        "forms",
+        "spec-form-actions.ts",
+      ),
+      "utf-8",
+    ),
   );
 });
 
@@ -58,7 +82,10 @@ function checksForm(): { form: HTMLFormElement; tick: HTMLInputElement } {
  *  "spec-cancel" on it is the redraw hook this script owns; whether an
  *  editor is actually mounted is spec-editor/index.ts's own concern
  *  (spec-editor-viewer-and-theme.test.ts). */
-function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTextAreaElement } {
+function documentForm(initialText: string): {
+  form: HTMLFormElement;
+  raw: HTMLTextAreaElement;
+} {
   document.body.innerHTML =
     `<form method="post" class="pageform specform">` +
     `<input type="hidden" name="file" value="2-analysis.md">` +
@@ -86,7 +113,9 @@ function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
     `</form>`;
   return {
     form: document.querySelector("form.settingsform") as HTMLFormElement,
-    input: document.querySelector('input[name="timeoutSec.default"]') as HTMLInputElement,
+    input: document.querySelector(
+      'input[name="timeoutSec.default"]',
+    ) as HTMLInputElement,
   };
 }
 
@@ -221,7 +250,9 @@ describe("Cancel restores every field and re-disables both controls", () => {
     mount();
     tick.checked = true;
     tick.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(() => cancel().dispatchEvent(new Event("click", { bubbles: true }))).not.toThrow();
+    expect(() =>
+      cancel().dispatchEvent(new Event("click", { bubbles: true })),
+    ).not.toThrow();
   });
 });
 
@@ -248,8 +279,12 @@ describe("the settingsform prefix gets the same dirty latch", () => {
   test("Save/Cancel enable on an edit, and Cancel restores the field and re-disables both", () => {
     const { input } = settingsForm();
     mount();
-    const save = document.getElementById("settingsform-save") as HTMLButtonElement;
-    const cancel = document.getElementById("settingsform-cancel") as HTMLButtonElement;
+    const save = document.getElementById(
+      "settingsform-save",
+    ) as HTMLButtonElement;
+    const cancel = document.getElementById(
+      "settingsform-cancel",
+    ) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     expect(cancel.disabled).toBe(true);
 
@@ -278,12 +313,18 @@ describe("a field inside the form that posts elsewhere", () => {
       `<button id="specform-cancel" type="button" disabled>Cancel</button>` +
       `</form>`;
     mount();
-    const saveButton = document.getElementById("specform-save") as HTMLButtonElement;
-    const pick = document.querySelector('select[name="model.analyze"]') as HTMLSelectElement;
+    const saveButton = document.getElementById(
+      "specform-save",
+    ) as HTMLButtonElement;
+    const pick = document.querySelector(
+      'select[name="model.analyze"]',
+    ) as HTMLSelectElement;
     pick.value = "b";
     pick.dispatchEvent(new Event("change", { bubbles: true }));
     expect(saveButton.disabled).toBe(true);
-    const checks = document.querySelector('select[name="criteriaChecks"]') as HTMLSelectElement;
+    const checks = document.querySelector(
+      'select[name="criteriaChecks"]',
+    ) as HTMLSelectElement;
     checks.value = "warn";
     checks.dispatchEvent(new Event("change", { bubbles: true }));
     expect(saveButton.disabled).toBe(false);
@@ -298,7 +339,9 @@ describe("a disabled field changes nothing", () => {
   test("an input from a disabled textarea leaves Save and Cancel off; from a live one it turns them on (AC-1)", () => {
     documentForm("old");
     mount();
-    const raw = document.querySelector(".spec-editor-raw") as HTMLTextAreaElement;
+    const raw = document.querySelector(
+      ".spec-editor-raw",
+    ) as HTMLTextAreaElement;
     raw.disabled = true;
     save().disabled = true;
     cancel().disabled = true;
@@ -317,16 +360,23 @@ describe("a form drawn after the page loaded", () => {
   test("the page script's event binds it: inactive until a field changes, and sending it twice binds it once", async () => {
     document.body.innerHTML = "<p>the list, no spec open</p>";
     mount();
-    const { SPEC_DETAIL_DRAWN } = await import("../../../../src/specs-client/spec-detail/open.ts");
+    const { SPEC_DETAIL_DRAWN } =
+      await import("../../../../src/specs-client/spec-detail/open.ts");
     document.body.innerHTML =
       `<form class="specform" method="post">` +
       `<textarea name="note" class="spec-editor-raw">old</textarea>` +
       `<button id="specform-save" type="submit">Save</button>` +
       `<button id="specform-cancel" type="button" disabled>Cancel</button>` +
       `</form>`;
-    const saveButton = document.getElementById("specform-save") as HTMLButtonElement;
-    const cancelButton = document.getElementById("specform-cancel") as HTMLButtonElement;
-    const raw = document.querySelector(".spec-editor-raw") as HTMLTextAreaElement;
+    const saveButton = document.getElementById(
+      "specform-save",
+    ) as HTMLButtonElement;
+    const cancelButton = document.getElementById(
+      "specform-cancel",
+    ) as HTMLButtonElement;
+    const raw = document.querySelector(
+      ".spec-editor-raw",
+    ) as HTMLTextAreaElement;
     expect(saveButton.disabled).toBe(false);
 
     document.dispatchEvent(new Event(SPEC_DETAIL_DRAWN));
@@ -335,10 +385,15 @@ describe("a form drawn after the page loaded", () => {
 
     raw.value = "new";
     raw.dispatchEvent(new Event("input", { bubbles: true }));
-    expect([saveButton.disabled, cancelButton.disabled]).toEqual([false, false]);
+    expect([saveButton.disabled, cancelButton.disabled]).toEqual([
+      false,
+      false,
+    ]);
 
     let redraws = 0;
-    raw.addEventListener("spec-cancel", () => { redraws++; });
+    raw.addEventListener("spec-cancel", () => {
+      redraws++;
+    });
     cancelButton.click();
     expect(raw.value).toBe("old");
     expect([saveButton.disabled, cancelButton.disabled]).toEqual([true, true]);
@@ -357,8 +412,10 @@ function providerForm(leave?: string): HTMLInputElement {
     `</form>`;
   return document.querySelector('input[name="name"]') as HTMLInputElement;
 }
-const providerCancel = (): HTMLButtonElement => document.getElementById("providerform-cancel") as HTMLButtonElement;
-const providerSave = (): HTMLButtonElement => document.getElementById("providerform-save") as HTMLButtonElement;
+const providerCancel = (): HTMLButtonElement =>
+  document.getElementById("providerform-cancel") as HTMLButtonElement;
+const providerSave = (): HTMLButtonElement =>
+  document.getElementById("providerform-save") as HTMLButtonElement;
 
 describe("a form that names where Cancel goes", () => {
   test("Cancel is pressable from the start, Save waits for an edit, and Cancel restores the fields and leaves", async () => {
@@ -402,7 +459,10 @@ describe("a form that names where Cancel goes", () => {
 
 /** A form whose Cancel is a link back to the saved page: it has a Save under
  *  its prefix and no Cancel button. */
-function saveOnlyForm(prefix: string, saveId = `${prefix}-save`): HTMLInputElement {
+function saveOnlyForm(
+  prefix: string,
+  saveId = `${prefix}-save`,
+): HTMLInputElement {
   document.body.innerHTML =
     `<form class="pageform ${prefix}" method="post">` +
     `<input type="text" name="cron" value="0 3 * * *">` +
@@ -412,7 +472,8 @@ function saveOnlyForm(prefix: string, saveId = `${prefix}-save`): HTMLInputEleme
     `</form>`;
   return document.querySelector('input[name="cron"]') as HTMLInputElement;
 }
-const saveBy = (id: string): HTMLButtonElement => document.getElementById(id) as HTMLButtonElement;
+const saveBy = (id: string): HTMLButtonElement =>
+  document.getElementById(id) as HTMLButtonElement;
 
 describe("a form whose Cancel is a link keeps Save inactive until a field changes", () => {
   for (const prefix of ["projectsettingsform", "scheduleform"]) {
@@ -424,7 +485,8 @@ describe("a form whose Cancel is a link keeps Save inactive until a field change
       field.value = "0 4 * * *";
       field.dispatchEvent(new Event("input", { bubbles: true }));
       expect(saveBy(`${prefix}-save`).disabled).toBe(false);
-      document.querySelector(".refused")!.textContent = "That cron is not valid";
+      document.querySelector(".refused")!.textContent =
+        "That cron is not valid";
       expect(saveBy(`${prefix}-save`).disabled).toBe(false);
     });
   }
@@ -432,9 +494,13 @@ describe("a form whose Cancel is a link keeps Save inactive until a field change
   test("a scheduleform whose button carries no id, as Create does, is left enabled (AC-7)", () => {
     const field = saveOnlyForm("scheduleform", "");
     mount();
-    expect(document.querySelector("button[type=submit]")!.hasAttribute("disabled")).toBe(false);
+    expect(
+      document.querySelector("button[type=submit]")!.hasAttribute("disabled"),
+    ).toBe(false);
     field.value = "0 4 * * *";
     field.dispatchEvent(new Event("input", { bubbles: true }));
-    expect(document.querySelector("button[type=submit]")!.hasAttribute("disabled")).toBe(false);
+    expect(
+      document.querySelector("button[type=submit]")!.hasAttribute("disabled"),
+    ).toBe(false);
   });
 });

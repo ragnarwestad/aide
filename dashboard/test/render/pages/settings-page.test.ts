@@ -1,9 +1,21 @@
 import { describe, expect, test } from "bun:test";
 import {
-  CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_PANELS, SETTINGS_STEPS,
-  SPEC_STEPS, UNROWED_STEPS,
+  CHECKABLE_TOOLS,
+  OTHER_STEPS,
+  renderSettingsPage,
+  resolveSettingsTab,
+  settingsRowChoice,
+  SETTINGS_PANELS,
+  SETTINGS_STEPS,
+  SPEC_STEPS,
+  UNROWED_STEPS,
 } from "../../../src/render";
-import { PROVIDER_TABS, providerDetail, providerTab, providerTabPath } from "../../../src/render/pages/settings-page/provider-detail.ts";
+import {
+  PROVIDER_TABS,
+  providerDetail,
+  providerTab,
+  providerTabPath,
+} from "../../../src/render/pages/settings-page/provider-detail.ts";
 import { t } from "../../../src/i18n";
 import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
@@ -29,7 +41,8 @@ describe("Settings page", () => {
         { key: "Codex", name: "Codex", tool: "codex" },
         { key: "OpenCode", name: "OpenCode", tool: "opencode" },
       ],
-      defaultModels: { default: "sonnet", review: "codex-fast" }, timeoutSec: TIMEOUT_SEC,
+      defaultModels: { default: "sonnet", review: "codex-fast" },
+      timeoutSec: TIMEOUT_SEC,
     });
     for (const part of ["review", "verify"]) {
       expect(html).toContain(`name="provider.${part}"`);
@@ -37,11 +50,19 @@ describe("Settings page", () => {
       expect(html).not.toContain(`name="timeoutSec.${part}"`);
     }
     for (const part of ["review", "verify"]) {
-      const row = html.match(new RegExp(`<tr data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
+      const row =
+        html.match(
+          new RegExp(`<tr data-side="${part}">[\\s\\S]*?<\\/tr>`),
+        )?.[0] ?? "";
       expect(row).not.toContain("Same as Implement");
       expect(row).not.toContain('<option value="">Off</option>');
-      for (const model of ["sonnet", "opus", "codex-fast", "pickle"]) expect(row).toContain(`value="${model}"`);
-      expect(row).toMatch(new RegExp(`<option value="${part === "review" ? "codex-fast" : "sonnet"}"[^>]*selected`));
+      for (const model of ["sonnet", "opus", "codex-fast", "pickle"])
+        expect(row).toContain(`value="${model}"`);
+      expect(row).toMatch(
+        new RegExp(
+          `<option value="${part === "review" ? "codex-fast" : "sonnet"}"[^>]*selected`,
+        ),
+      );
       expect(row).not.toContain("hidden disabled");
     }
   });
@@ -61,14 +82,18 @@ describe("Settings page", () => {
 
   test("explore gets no row: nothing on the board starts it", () => {
     const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+      timeoutSec: TIMEOUT_SEC,
     });
     expect(html).not.toContain('data-step="explore"');
   });
 
   test("the rows are the steps and nothing else: no Fallback row", () => {
     const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+      timeoutSec: TIMEOUT_SEC,
     });
     const rows = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(rows).toEqual([...SETTINGS_STEPS]);
@@ -84,28 +109,48 @@ describe("what a Settings row shows", () => {
     { name: "Sonnet", tool: "claude" as const },
     { name: "codex-fast", tool: "codex" as const },
   ];
-  const listed = { Fable: {}, Opus: {}, Sonnet: {}, "codex-fast": { tool: "codex" } };
+  const listed = {
+    Fable: {},
+    Opus: {},
+    Sonnet: {},
+    "codex-fast": { tool: "codex" },
+  };
 
   test("a row nothing was saved for shows Claude Code and Opus", () => {
-    const { model } = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: listed });
+    const { model } = mergeQueueDefaults(QUEUE_DEFAULTS, {
+      modelChoices: listed,
+    });
     for (const step of SETTINGS_STEPS) {
-      expect(settingsRowChoice(HOST_MODELS, model, step)).toEqual({ model: "Opus", tool: "claude" });
+      expect(settingsRowChoice(HOST_MODELS, model, step)).toEqual({
+        model: "Opus",
+        tool: "claude",
+      });
     }
   });
 
   test("a step's own saved choice is what its row shows", () => {
     const { model } = mergeQueueDefaults(QUEUE_DEFAULTS, {
-      modelChoices: listed, model: { implement: "codex-fast" },
+      modelChoices: listed,
+      model: { implement: "codex-fast" },
     });
-    expect(settingsRowChoice(HOST_MODELS, model, "implement")).toEqual({ model: "codex-fast", tool: "codex" });
-    expect(settingsRowChoice(HOST_MODELS, model, "analyze")).toEqual({ model: "Opus", tool: "claude" });
+    expect(settingsRowChoice(HOST_MODELS, model, "implement")).toEqual({
+      model: "codex-fast",
+      tool: "codex",
+    });
+    expect(settingsRowChoice(HOST_MODELS, model, "analyze")).toEqual({
+      model: "Opus",
+      tool: "claude",
+    });
   });
 });
 
 describe("the Settings tabs", () => {
   const render = (tab: string) =>
     renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab,
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+      timeoutSec: TIMEOUT_SEC,
+      tab,
     });
   /** The keys the page links to, and the ones marked as open. A link that
    *  also names a tab inside an AI's tab belongs to that inner row. */
@@ -113,23 +158,38 @@ describe("the Settings tabs", () => {
     const all = [...html.matchAll(/href="\/settings\?tab=([^"&]+)"([^>]*)>/g)];
     return {
       keys: new Set(all.map((m) => m[1])),
-      current: new Set(all.filter((m) => m[2]!.includes("aria-current")).map((m) => m[1])),
+      current: new Set(
+        all.filter((m) => m[2]!.includes("aria-current")).map((m) => m[1]),
+      ),
     };
   };
 
   test("the one row is Models per phase, Providers, Process and Notifications", () => {
-    expect([...SETTINGS_PANELS]).toEqual(["phases", "providers", "process", "notifications"]);
-    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Process", "Notifications"]);
+    expect([...SETTINGS_PANELS]).toEqual([
+      "phases",
+      "providers",
+      "process",
+      "notifications",
+    ]);
+    expect(SETTINGS_PANELS.map(tabLabel)).toEqual([
+      "Models per phase",
+      "Providers",
+      "Process",
+      "Notifications",
+    ]);
     expect([...CHECKABLE_TOOLS]).toEqual(["claude", "codex", "opencode"]);
   });
 
   test("the page opens on Models per phase, as do the AI tab it had, no tab and an unknown one", () => {
-    for (const raw of ["ai", undefined, "nope"]) expect(resolveSettingsTab(raw)).toBe("phases");
+    for (const raw of ["ai", undefined, "nope"])
+      expect(resolveSettingsTab(raw)).toBe("phases");
   });
 
   test("every tab opens its own panel, and a removed tool tab opens Providers (AC-2)", () => {
-    for (const tab of SETTINGS_PANELS) expect(resolveSettingsTab(tab)).toBe(tab);
-    for (const old of ["claude", "codex", "copilot", "opencode"]) expect(resolveSettingsTab(old)).toBe("providers");
+    for (const tab of SETTINGS_PANELS)
+      expect(resolveSettingsTab(tab)).toBe(tab);
+    for (const old of ["claude", "codex", "copilot", "opencode"])
+      expect(resolveSettingsTab(old)).toBe("providers");
   });
 
   test("the page links the four tabs and marks the open one", () => {
@@ -141,37 +201,94 @@ describe("the Settings tabs", () => {
 
 describe("the tabs of a provider's page", () => {
   const PROVIDER = { name: "Claude", tool: "claude" as const };
-  const STATUS = { key: "Claude", at: "2026-11-05T09:00:00.000Z", installed: true, version: "2.1.318 (Claude Code)" };
-  const USAGE = { tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [{ name: "Window of Claude", usedPercent: 7 }] };
+  const STATUS = {
+    key: "Claude",
+    at: "2026-11-05T09:00:00.000Z",
+    installed: true,
+    version: "2.1.318 (Claude Code)",
+  };
+  const USAGE = {
+    tool: "claude" as const,
+    at: "2026-11-05T09:00:00.000Z",
+    windows: [{ name: "Window of Claude", usedPercent: 7 }],
+  };
   const READING = "<p>what the tab read</p>";
-  const draw = (aiTab?: string, tool: "claude" | "codex" | "opencode" = "claude") =>
-    providerDetail({ key: "Claude", provider: { ...PROVIDER, tool }, status: STATUS, usage: USAGE, reading: READING, aiTab }, Date.parse(STATUS.at), "en");
+  const draw = (
+    aiTab?: string,
+    tool: "claude" | "codex" | "opencode" = "claude",
+  ) =>
+    providerDetail(
+      {
+        key: "Claude",
+        provider: { ...PROVIDER, tool },
+        status: STATUS,
+        usage: USAGE,
+        reading: READING,
+        aiTab,
+      },
+      Date.parse(STATUS.at),
+      "en",
+    );
   /** Each tab the page links to, as its address and its words. */
   const tabs = (html: string) =>
-    [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"([^>]*)>([^<]*)<\/a>/g)].map((m) => ({
-      href: m[1]!.replaceAll("&amp;", "&"), label: m[3], current: m[2]!.includes("aria-current"),
+    [
+      ...html.matchAll(
+        /<a [^>]*href="([^"]*aitab=[^"]*)"([^>]*)>([^<]*)<\/a>/g,
+      ),
+    ].map((m) => ({
+      href: m[1]!.replaceAll("&amp;", "&"),
+      label: m[3],
+      current: m[2]!.includes("aria-current"),
     }));
 
   test("they are Config, Usage, Models and Installation, in that order, each a link to the provider's page", () => {
-    expect([...PROVIDER_TABS]).toEqual(["config", "usage", "models", "installation"]);
-    expect(tabs(draw()).map(({ href, label }) => ({ href, label }))).toEqual([
-      { href: "/settings?tab=providers&provider=Claude&aitab=config", label: "Config" },
-      { href: "/settings?tab=providers&provider=Claude&aitab=usage", label: "Usage" },
-      { href: "/settings?tab=providers&provider=Claude&aitab=models", label: t("en", "settings.part.models") },
-      { href: "/settings?tab=providers&provider=Claude&aitab=installation", label: t("en", "settings.part.installation") },
+    expect([...PROVIDER_TABS]).toEqual([
+      "config",
+      "usage",
+      "models",
+      "installation",
     ]);
-    expect(providerTabPath("Claude", "models")).toBe("/settings?tab=providers&provider=Claude&aitab=models");
+    expect(tabs(draw()).map(({ href, label }) => ({ href, label }))).toEqual([
+      {
+        href: "/settings?tab=providers&provider=Claude&aitab=config",
+        label: "Config",
+      },
+      {
+        href: "/settings?tab=providers&provider=Claude&aitab=usage",
+        label: "Usage",
+      },
+      {
+        href: "/settings?tab=providers&provider=Claude&aitab=models",
+        label: t("en", "settings.part.models"),
+      },
+      {
+        href: "/settings?tab=providers&provider=Claude&aitab=installation",
+        label: t("en", "settings.part.installation"),
+      },
+    ]);
+    expect(providerTabPath("Claude", "models")).toBe(
+      "/settings?tab=providers&provider=Claude&aitab=models",
+    );
   });
 
   test("the page opens on Config, as does an absent, empty or unknown tab, and the old Overview", () => {
-    for (const raw of [undefined, "", "nope", "Models", "overview"]) expect(providerTab(raw)).toBe("config");
-    expect(tabs(draw()).filter((x) => x.current).map((x) => x.label)).toEqual(["Config"]);
+    for (const raw of [undefined, "", "nope", "Models", "overview"])
+      expect(providerTab(raw)).toBe("config");
+    expect(
+      tabs(draw())
+        .filter((x) => x.current)
+        .map((x) => x.label),
+    ).toEqual(["Config"]);
   });
 
   test("a named tab opens that tab", () => {
     for (const tab of PROVIDER_TABS) {
       expect(providerTab(tab)).toBe(tab);
-      expect(tabs(draw(tab)).filter((x) => x.current).map((x) => x.href.split("aitab=")[1])).toEqual([tab]);
+      expect(
+        tabs(draw(tab))
+          .filter((x) => x.current)
+          .map((x) => x.href.split("aitab=")[1]),
+      ).toEqual([tab]);
     }
   });
 
@@ -187,7 +304,9 @@ describe("the tabs of a provider's page", () => {
     const here = providerTabPath("Claude", "config");
     expect(html).toContain('id="provider-form"');
     expect(html).toContain(`data-done="${here.replaceAll("&", "&amp;")}"`);
-    expect(html).toContain(`data-cancel-href="${here.replaceAll("&", "&amp;")}"`);
+    expect(html).toContain(
+      `data-cancel-href="${here.replaceAll("&", "&amp;")}"`,
+    );
     expect(html).not.toContain("Window of Claude");
     expect(html).not.toContain(READING);
     expect(html).not.toContain(t("en", "settings.providers.status"));
@@ -201,14 +320,18 @@ describe("the tabs of a provider's page", () => {
     expect(html).not.toContain("Window of Claude");
   });
 
-  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds what the server read for it, and nothing else", (tool) => {
-    const html = draw("installation", tool);
-    expect(html).toContain(READING);
-    expect(html).not.toContain("data-read-from");
-  });
+  test.each(["claude", "codex", "opencode"] as const)(
+    "%s's Installation tab holds what the server read for it, and nothing else",
+    (tool) => {
+      const html = draw("installation", tool);
+      expect(html).toContain(READING);
+      expect(html).not.toContain("data-read-from");
+    },
+  );
 
   test("every tab has the line Remove's refusal is written into, exactly once", () => {
-    for (const tab of PROVIDER_TABS) expect(draw(tab).split('id="provider-refused"').length - 1).toBe(1);
+    for (const tab of PROVIDER_TABS)
+      expect(draw(tab).split('id="provider-refused"').length - 1).toBe(1);
   });
 
   test("no tab draws a Check, its form or its (?) (AC-6)", () => {
@@ -224,15 +347,22 @@ describe("the Settings answer lines", () => {
   const PROCESS = { concurrency: 2, cores: 8, min: 1, max: 16 };
   const render = (tab: string) =>
     renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC, tab, process: PROCESS,
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+      timeoutSec: TIMEOUT_SEC,
+      tab,
+      process: PROCESS,
     });
   /** The tab's Settings form, parsed, as the page's script finds it. */
   const settingsForm = (html: string): HTMLFormElement => {
     const window = new Window();
     window.document.body.innerHTML = html;
-    return window.document.querySelector("form[data-settings-form]") as unknown as HTMLFormElement;
+    return window.document.querySelector(
+      "form[data-settings-form]",
+    ) as unknown as HTMLFormElement;
   };
-  const words = (f: HTMLFormElement, hook: string): string => f.querySelector(`.${hook} span`)?.textContent ?? "?";
+  const words = (f: HTMLFormElement, hook: string): string =>
+    f.querySelector(`.${hook} span`)?.textContent ?? "?";
 
   // A refusal and "Defaults saved" each have a line of their own, so the
   // script never has to turn one kind into the other, and each answer
@@ -241,11 +371,20 @@ describe("the Settings answer lines", () => {
     for (const tab of ["phases", "process"]) {
       const f = settingsForm(render(tab));
       settingsAnswer(f, "timeout must be a number", false);
-      const refused = { notice: words(f, "notice"), refused: words(f, "refused") };
+      const refused = {
+        notice: words(f, "notice"),
+        refused: words(f, "refused"),
+      };
       settingsAnswer(f, "Defaults saved", true);
-      const saved = { notice: words(f, "notice"), refused: words(f, "refused") };
+      const saved = {
+        notice: words(f, "notice"),
+        refused: words(f, "refused"),
+      };
       settingsAnswer(f, "timeout must be a number", false);
-      const refusedAgain = { notice: words(f, "notice"), refused: words(f, "refused") };
+      const refusedAgain = {
+        notice: words(f, "notice"),
+        refused: words(f, "refused"),
+      };
       expect({ tab, refused, saved, refusedAgain }).toEqual({
         tab,
         refused: { notice: "", refused: "Timeout must be a number" },

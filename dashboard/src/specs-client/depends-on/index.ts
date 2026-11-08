@@ -5,7 +5,14 @@
 // shows back into the controls. A change outlives a live redraw of the rows,
 // and a job starting locks the card without losing it.
 
-import { cardStep, type CardEvent, type CardFacts, type CardState, type CardValues, type CardView } from "../../project/spec-card.ts";
+import {
+  cardStep,
+  type CardEvent,
+  type CardFacts,
+  type CardState,
+  type CardValues,
+  type CardView,
+} from "../../project/spec-card.ts";
 
 /** One card per form id, kept across the redraws that replace the form. */
 const cards = new Map<string, CardState>();
@@ -20,19 +27,26 @@ export function resetCards(): void {
 // `name="dependsOn"`, and a page test looking for that field would find
 // the script instead.
 const boxesOf = (form: Element): HTMLInputElement[] =>
-  Array.from(form.querySelectorAll("input[type=checkbox][name=dependsOn]")) as HTMLInputElement[];
+  Array.from(
+    form.querySelectorAll("input[type=checkbox][name=dependsOn]"),
+  ) as HTMLInputElement[];
 
 /** A setting's box, by the attribute its chip carries: a locked one posts no name. */
 const settingBox = (form: Element, attr: string): HTMLInputElement | null =>
   form.querySelector(`label[${attr}] input[type=checkbox]`);
 
-const checksOf = (form: Element): HTMLSelectElement | null => form.querySelector("select");
+const checksOf = (form: Element): HTMLSelectElement | null =>
+  form.querySelector("select");
 
 const cancelOf = (form: Element): HTMLButtonElement | undefined =>
-  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-cancel`);
+  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find(
+    (b) => b.id === `${form.id}-cancel`,
+  );
 
 const saveOf = (form: Element): HTMLButtonElement | undefined =>
-  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-save`);
+  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find(
+    (b) => b.id === `${form.id}-save`,
+  );
 
 /** A tick on a chip is the chip mover's cue (`ui/forms/depends-lift.ts`),
  *  which listens for `change`; a restore is silent, so the cue is sent. */
@@ -42,7 +56,10 @@ const announce = (box: HTMLInputElement): void => {
 
 /** The level the server drew: the option it marked `selected`. */
 const drawnLevel = (select: HTMLSelectElement): string =>
-  (Array.from(select.options).find((o) => o.hasAttribute("selected")) ?? select.options[0])?.value ?? "";
+  (
+    Array.from(select.options).find((o) => o.hasAttribute("selected")) ??
+    select.options[0]
+  )?.value ?? "";
 
 /** The facts the server drew the form with. */
 const factsOf = (form: Element): CardFacts => ({
@@ -55,11 +72,15 @@ const factsOf = (form: Element): CardFacts => ({
 function savedOf(form: Element): CardValues {
   const select = checksOf(form);
   return {
-    dependsOn: boxesOf(form).filter((b) => b.defaultChecked).map((b) => b.value),
-    acceptanceRequired: settingBox(form, "data-acceptance")?.defaultChecked ?? false,
+    dependsOn: boxesOf(form)
+      .filter((b) => b.defaultChecked)
+      .map((b) => b.value),
+    acceptanceRequired:
+      settingBox(form, "data-acceptance")?.defaultChecked ?? false,
     aiFormulate: settingBox(form, "data-ai-formulate")?.defaultChecked ?? false,
     criteriaChecks: select ? drawnLevel(select) : "off",
-    chooseApproach: settingBox(form, "data-choose-approach")?.defaultChecked ?? false,
+    chooseApproach:
+      settingBox(form, "data-choose-approach")?.defaultChecked ?? false,
   };
 }
 
@@ -67,7 +88,9 @@ function savedOf(form: Element): CardValues {
 function shownOf(form: Element): CardValues {
   const select = checksOf(form);
   return {
-    dependsOn: boxesOf(form).filter((b) => b.checked).map((b) => b.value),
+    dependsOn: boxesOf(form)
+      .filter((b) => b.checked)
+      .map((b) => b.value),
     acceptanceRequired: settingBox(form, "data-acceptance")?.checked ?? false,
     aiFormulate: settingBox(form, "data-ai-formulate")?.checked ?? false,
     criteriaChecks: select?.value ?? "off",
@@ -100,7 +123,13 @@ function show(form: Element, view: CardView): void {
       if (box) box.checked = on;
     }
     const select = checksOf(form);
-    if (select && Array.from(select.options).some((o) => o.value === view.shown.criteriaChecks)) select.value = view.shown.criteriaChecks;
+    if (
+      select &&
+      Array.from(select.options).some(
+        (o) => o.value === view.shown.criteriaChecks,
+      )
+    )
+      select.value = view.shown.criteriaChecks;
   } finally {
     writing = false;
   }
@@ -120,11 +149,20 @@ function send(form: Element, event: CardEvent): void {
  *  drawn, and not written back, since the controls may already hold a hand. */
 function ensureOpen(form: Element): void {
   if (cards.has(form.id)) return;
-  cards.set(form.id, cardStep(undefined, { type: "opened", facts: factsOf(form), saved: savedOf(form) }).state);
+  cards.set(
+    form.id,
+    cardStep(undefined, {
+      type: "opened",
+      facts: factsOf(form),
+      saved: savedOf(form),
+    }).state,
+  );
 }
 
 /** A setting changed by hand: a box, or the checks level. */
-export function pickSetting(control: HTMLInputElement | HTMLSelectElement): void {
+export function pickSetting(
+  control: HTMLInputElement | HTMLSelectElement,
+): void {
   pickControl(control.closest("form.dependsform"));
 }
 
@@ -156,13 +194,21 @@ export function syncDependsOnForms(body: Element): void {
   for (const form of body.querySelectorAll("form.dependsform")) {
     const facts = factsOf(form);
     const was = cards.get(form.id)?.facts.jobInFlight;
-    const type = was === undefined || was === facts.jobInFlight ? "opened" : facts.jobInFlight ? "job-started" : "job-ended";
+    const type =
+      was === undefined || was === facts.jobInFlight
+        ? "opened"
+        : facts.jobInFlight
+          ? "job-started"
+          : "job-ended";
     send(form, { type, facts, saved: savedOf(form) });
   }
 }
 
 /** The Cancel press, delegated from the rows' container. */
 export function onDependsOnCancel(event: Event): void {
-  const button = (event.target as Element | null)?.closest?.('form.dependsform button[type="button"]') as HTMLButtonElement | null;
-  if (typeof button?.id === "string" && button.id.endsWith("-cancel")) cancelDependsOn(button);
+  const button = (event.target as Element | null)?.closest?.(
+    'form.dependsform button[type="button"]',
+  ) as HTMLButtonElement | null;
+  if (typeof button?.id === "string" && button.id.endsWith("-cancel"))
+    cancelDependsOn(button);
 }

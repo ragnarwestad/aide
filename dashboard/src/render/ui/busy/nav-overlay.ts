@@ -50,12 +50,28 @@
 
   document.addEventListener("click", (event: Event) => {
     const e = event as MouseEvent;
-    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    if (timer !== null || (dialog?.open)) return;
-    const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+    if (
+      e.defaultPrevented ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.button !== 0
+    )
+      return;
+    if (timer !== null || dialog?.open) return;
+    const link = (e.target as Element | null)?.closest?.(
+      "a[href]",
+    ) as HTMLAnchorElement | null;
+    if (!link || link.target === "_blank" || link.hasAttribute("download"))
+      return;
     const href = link.getAttribute("href") || "";
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+    if (
+      !href ||
+      href.startsWith("#") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:")
+    )
+      return;
     timer = setTimeout(() => {
       timer = null;
       openOverlay(document.body?.dataset?.overlayNote || "");
@@ -81,7 +97,8 @@
   document.addEventListener("aide-cover", (event: Event) => {
     if (timer !== null) clearTimeout(timer);
     timer = null;
-    const note = (event as CustomEvent<{ note?: string } | undefined>).detail?.note;
+    const note = (event as CustomEvent<{ note?: string } | undefined>).detail
+      ?.note;
     held = true;
     openOverlay(note || document.body?.dataset?.overlayNote || "");
   });

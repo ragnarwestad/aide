@@ -16,13 +16,19 @@ afterEach(async () => {
 function newSpecForm(): HTMLFormElement {
   const win = new Window();
   windows.push(win);
-  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }));
-  return win.document.getElementById("new-spec-form") as unknown as HTMLFormElement;
+  win.document.write(
+    renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }),
+  );
+  return win.document.getElementById(
+    "new-spec-form",
+  ) as unknown as HTMLFormElement;
 }
 
 /** What the form posts under `criteriaChecks`. */
 function posted(form: HTMLFormElement): FormDataEntryValue | null {
-  const FormDataCtor = (form.ownerDocument.defaultView as unknown as { FormData: typeof FormData }).FormData;
+  const FormDataCtor = (
+    form.ownerDocument.defaultView as unknown as { FormData: typeof FormData }
+  ).FormData;
   return new FormDataCtor(form).get("criteriaChecks");
 }
 
@@ -41,7 +47,9 @@ describe("the criteria checks choice", () => {
 
   test("a New spec form with Stop chosen posts stop", () => {
     const form = newSpecForm();
-    const select = form.querySelector("#new-spec-criteria-checks") as HTMLSelectElement;
+    const select = form.querySelector(
+      "#new-spec-criteria-checks",
+    ) as HTMLSelectElement;
     select.value = "stop";
     expect(posted(form)).toBe("stop");
   });

@@ -6,7 +6,12 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
-import { SPEC, createSpecSaveHarness, descriptionPath, savable } from "../../spec-page/spec-save-fixtures.ts";
+import {
+  SPEC,
+  createSpecSaveHarness,
+  descriptionPath,
+  savable,
+} from "../../spec-page/spec-save-fixtures.ts";
 
 browserDeadline();
 
@@ -28,8 +33,16 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-async function openRow(): Promise<{ page: Page; dir: string; loads: { n: number } }> {
-  const { base, dir } = harness.start({ description: TRACKED, alsoSpecs: [OTHER], extra: { gitRun: savable("/host") } });
+async function openRow(): Promise<{
+  page: Page;
+  dir: string;
+  loads: { n: number };
+}> {
+  const { base, dir } = harness.start({
+    description: TRACKED,
+    alsoSpecs: [OTHER],
+    extra: { gitRun: savable("/host") },
+  });
   const page = await browser.newPage();
   await page.goto(`${base}/?open=aide/${SPEC}&live=0`);
   await page.locator(FORM).waitFor({ timeout: 10_000 });
@@ -40,15 +53,26 @@ async function openRow(): Promise<{ page: Page; dir: string; loads: { n: number 
 
 test("Save writes the Depends on line with no page load, and the redrawn row holds the tick", async () => {
   const { page, dir, loads } = await openRow();
-  await page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`).check();
+  await page
+    .locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`)
+    .check();
   await page.locator(`#depends-aide-${SPEC}-save`).click();
   const deadline = Date.now() + 10_000;
-  while (!readFileSync(descriptionPath(dir), "utf-8").includes(`- **Depends on:** \`${OTHER}\``)) {
-    if (Date.now() > deadline) throw new Error("the Depends on line was not written");
+  while (
+    !readFileSync(descriptionPath(dir), "utf-8").includes(
+      `- **Depends on:** \`${OTHER}\``,
+    )
+  ) {
+    if (Date.now() > deadline)
+      throw new Error("the Depends on line was not written");
     await new Promise((r) => setTimeout(r, 50));
   }
   expect(loads.n).toBe(0);
-  expect(await page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`).isChecked()).toBe(true);
+  expect(
+    await page
+      .locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`)
+      .isChecked(),
+  ).toBe(true);
   await page.close();
 });
 

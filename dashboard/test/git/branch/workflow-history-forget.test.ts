@@ -36,6 +36,8 @@ describe("WorkflowHistoryChecker.forget", () => {
     const checker = new WorkflowHistoryChecker({ run: git.run });
     await checker.read("/specs", "81-queue-and-runner");
     checker.forget("/specs", "81-queue-and-runner");
-    expect(checker.peekHistory("/specs", "81-queue-and-runner").history).not.toBeNull();
+    expect(
+      checker.peekHistory("/specs", "81-queue-and-runner").history,
+    ).not.toBeNull();
   });
 });

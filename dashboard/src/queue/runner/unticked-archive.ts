@@ -4,7 +4,11 @@
 
 import type { Job, QueueStore } from "../queue.ts";
 
-export function endUntickedArchive(store: QueueStore, job: Job, now: string): void {
+export function endUntickedArchive(
+  store: QueueStore,
+  job: Job,
+  now: string,
+): void {
   store.transition(job.id, "no-step-left", {
     finishedAt: now,
     error: undefined,

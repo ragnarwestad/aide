@@ -43,7 +43,7 @@ Read the section the step at hand needs.
   written by `aide-run-spec` when `/aide-implement` on a short analysis
   finds the spec is not small after all, or when `/aide-analyze` writes a
   short analysis over a limit, directly after the `Let me choose
-  the approach:` line (else after `Acceptance criteria checks:`, else after
+the approach:` line (else after `Acceptance criteria checks:`, else after
   `Created:`). It is kept on the spec: a spec with the line is never given
   a short analysis again, so it goes back at most once. Absent, or empty,
   is not sent back
@@ -81,7 +81,7 @@ Read the section the step at hand needs.
   its own directly under the Approaches heading. Analyze keeps that line;
   when it names an approach that is not the recommended one, the mark
   moves there and the plan below is written afresh for it. With `## Round
-  N` sections, only the newest round's leads and chosen line count:
+N` sections, only the newest round's leads and chosen line count:
 
   ```markdown
   **Chosen approach:** Approach B
@@ -142,7 +142,7 @@ A short analysis writes these three files and no more:
 
 - `2-analysis.md`: Tracking info, then Findings with `### Affected files`
   (file:line, one line each), `### Files to change` and the `### Overlapping
-  specs` record Step 6 writes. No other section
+specs` record Step 6 writes. No other section
 - `3-solution.md`: Tracking info with the two fields; a `## Short analysis`
   section of one plain sentence saying there is no plan and no plan review,
   the grade, the two counts, and that `/aide-implement` builds it from the
@@ -215,7 +215,7 @@ of the file that is ITS OWN artifact — never into 4-status.md on
 another phase's behalf:
 
 | Phase     | Own file         | Date field enriched |
-|-----------|------------------|---------------------|
+| --------- | ---------------- | ------------------- |
 | create    | 1-description.md | `Created:`          |
 | analyze   | 2-analysis.md    | `Last analyzed:`    |
 | implement | 3-solution.md    | `Last updated:`     |
@@ -266,10 +266,10 @@ one id across several scenarios:
 ```markdown
 ## Acceptance criteria
 
-| Task | Status | Notes |
-|------|--------|-------|
-| AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
-| AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| Task                                                     | Status | Notes |
+| -------------------------------------------------------- | ------ | ----- |
+| AC-1: <requirement text, verbatim from 1-description.md> | ⬜     |       |
+| AC-2: <requirement text, verbatim from 1-description.md> | ⬜     |       |
 ```
 
 The skill writes every row `⬜`, a `Not tested:` row too. `Not verified`

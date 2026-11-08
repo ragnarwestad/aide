@@ -18,23 +18,52 @@
 
 import { esc } from "../html.ts";
 import { t, type Language } from "../../../i18n";
-import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
+import {
+  STEP_LABELS,
+  STEP_LABELS_NB,
+  STEP_LABELS_ES,
+  STEP_LABELS_DE,
+  STEP_LABELS_FR,
+  stepLabel,
+} from "../../../format/step-label.ts";
 
-export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
+export {
+  STEP_LABELS,
+  STEP_LABELS_NB,
+  STEP_LABELS_ES,
+  STEP_LABELS_DE,
+  STEP_LABELS_FR,
+  stepLabel,
+};
 
 // --- button ----------------------------------------------------------------
 
 export {
-  btn, btnLink, buttonForm, dataAttrs, saveCancelActions, type BtnOptions, type BtnVariant, type FormHook,
+  btn,
+  btnLink,
+  buttonForm,
+  dataAttrs,
+  saveCancelActions,
+  type BtnOptions,
+  type BtnVariant,
+  type FormHook,
 } from "./button.ts";
 
 // --- confirm dialog --------------------------------------------------------------
 
-export { confirmDialog, askButton, type ConfirmParts } from "./confirm-dialog.ts";
+export {
+  confirmDialog,
+  askButton,
+  type ConfirmParts,
+} from "./confirm-dialog.ts";
 
 // --- progress dialog -------------------------------------------------------------
 
-export { progressDialog, type ProgressParts, type ProgressStepState } from "./progress-dialog.ts";
+export {
+  progressDialog,
+  type ProgressParts,
+  type ProgressStepState,
+} from "./progress-dialog.ts";
 
 // --- fold arrow ------------------------------------------------------------------
 
@@ -65,7 +94,13 @@ export const phases = (chips: string, cls?: string): string =>
 // --- row-level message --------------------------------------------------------
 
 export {
-  ICON_INFO, ICON_FAILED, rowMessage, rowMessageParts, messageSlot, type MessageVariant, type MessagePart,
+  ICON_INFO,
+  ICON_FAILED,
+  rowMessage,
+  rowMessageParts,
+  messageSlot,
+  type MessageVariant,
+  type MessagePart,
 } from "./message.ts";
 
 // --- field -----------------------------------------------------------------------
@@ -89,12 +124,23 @@ export function field(
   // the wrapper a span that can hold buttons and other labels beside it.
   // `after`: what stands on the label's own line right after the word, as
   // the chips a Depends on picker has picked, or its "none".
-  o: { wide?: boolean; group?: boolean; help?: string; actions?: string; for?: string; after?: string } = {},
+  o: {
+    wide?: boolean;
+    group?: boolean;
+    help?: string;
+    actions?: string;
+    for?: string;
+    after?: string;
+  } = {},
 ): string {
   const tag = o.group || o.for ? "span" : "label";
   const trail = `${o.help ?? ""}${o.actions ?? ""}`;
-  const word = o.for ? `<label for="${esc(o.for)}">${esc(label)}</label>` : esc(label);
-  const lead = o.after ? `<span class="row">${word}${o.after}</span>` : `<span>${word}</span>`;
+  const word = o.for
+    ? `<label for="${esc(o.for)}">${esc(label)}</label>`
+    : esc(label);
+  const lead = o.after
+    ? `<span class="row">${word}${o.after}</span>`
+    : `<span>${word}</span>`;
   const head = trail
     ? `<span class="fieldhead">${lead}` +
       `<span class="fieldend">${trail}</span></span>`
@@ -168,7 +214,9 @@ export function helpPopover(what: string, body: string): string {
  *  title on a line of its own. Omitted, the markup is exactly what it
  *  was before `title` existed. */
 export function backLink(
-  href: string, title?: string | { html: string }, trailing = "",
+  href: string,
+  title?: string | { html: string },
+  trailing = "",
   /** On a page with tabs: the page script keeps this Back while the
    *  reader switches tabs (`specs-client/back-link/`), found by `data-keep`. */
   o: { keep?: boolean; lang?: Language } = {},
@@ -226,7 +274,6 @@ export function resolveBackHref(
 
 // --- typed confirmation ----------------------------------------------------------
 
-
 // --- progress pips -------------------------------------------------------------------
 
 /** The whole workflow in six millimetres, on the line you are already
@@ -253,10 +300,14 @@ export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 // tech per pip, and a screen reader spelling out four bare letters
 // beside four `title`s reading "Create"/"Analyze"/... would say the
 // same thing twice, worse the second time.
-export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): string =>
+export const pips = (
+  items: { kind: PipKind; title: string; third?: 1 | 2 }[],
+): string =>
   `<div class="pipwrap">` +
   `<div class="pipletters" aria-hidden="true">` +
-  items.map((p) => `<span class="${p.kind}">${esc(p.title.slice(0, 1))}</span>`).join("") +
+  items
+    .map((p) => `<span class="${p.kind}">${esc(p.title.slice(0, 1))}</span>`)
+    .join("") +
   `</div>` +
   `<div class="pips">` +
   items
@@ -270,5 +321,16 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): 
   `</div>`;
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, TOOL_ICONS } from "./icons.ts";
-
+export {
+  ICON_CHECK,
+  ICON_LOCK,
+  ICON_WARN,
+  SPINNER,
+  ICON_PDF,
+  ICON_CHEVRON,
+  ICON_SEARCH,
+  ICON_THEME_DARK,
+  ICON_THEME_LIGHT,
+  ICON_THEME_AUTO,
+  TOOL_ICONS,
+} from "./icons.ts";

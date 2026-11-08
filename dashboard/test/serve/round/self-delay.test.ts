@@ -25,7 +25,10 @@ afterEach(() => {
 const press = (base: string, seconds: string) =>
   fetch(`${base}/api/self-run/delay`, {
     method: "POST",
-    headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+    headers: {
+      accept: "application/json",
+      "content-type": "application/x-www-form-urlencoded",
+    },
     body: new URLSearchParams({ seconds }),
   });
 
@@ -53,6 +56,9 @@ test("a board that is not a test board, or one the round did not name a file for
 
 test("a press from another site is refused like every other queue route", async () => {
   const { base } = harness.start({ extra: { testBoardSpec: "aide-wt-run" } });
-  const res = await fetch(`${base}/api/self-run/delay`, { method: "POST", headers: { origin: "https://evil.example" } });
+  const res = await fetch(`${base}/api/self-run/delay`, {
+    method: "POST",
+    headers: { origin: "https://evil.example" },
+  });
   expect(res.status).toBe(403);
 });

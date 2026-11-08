@@ -14,32 +14,55 @@ const marker = (html: string): Element | null => {
 };
 
 const job = (extra: Parameters<typeof row>[0] = {}) =>
-  row({ project: "aide", specFolder: "605-follow", steps: ["create", "analyze", "implement"], stepIndex: 2, ...extra });
+  row({
+    project: "aide",
+    specFolder: "605-follow",
+    steps: ["create", "analyze", "implement"],
+    stepIndex: 2,
+    ...extra,
+  });
 
 describe("followMarker: whether a page follows", () => {
   test("a job that has ended in any way draws no marker", () => {
-    for (const state of ["done", "failed", "stopped", "interrupted", "cancelled"] as const) {
+    for (const state of [
+      "done",
+      "failed",
+      "stopped",
+      "interrupted",
+      "cancelled",
+    ] as const) {
       expect(followMarker(job({ state }), { tab: "steps" }), state).toBe("");
     }
   });
 
   test("a queued job, a running job and a landing job draw one that names the tab", () => {
-    const flying = [job({ state: "queued" }), job({ state: "running" }), job({ state: "done", landing: true })];
+    const flying = [
+      job({ state: "queued" }),
+      job({ state: "running" }),
+      job({ state: "done", landing: true }),
+    ];
     for (const j of flying) {
-      expect(marker(followMarker(j, { tab: "overview" }))?.getAttribute("data-tab"), j.state).toBe("overview");
+      expect(
+        marker(followMarker(j, { tab: "overview" }))?.getAttribute("data-tab"),
+        j.state,
+      ).toBe("overview");
     }
   });
 });
 
 describe("followMarker: what it names", () => {
-  const phases = (html: string): string | null => marker(html)?.getAttribute("data-phases") ?? null;
-  const KEYS = "aide/605-follow:create,aide/605-follow:analyze,aide/605-follow:implement";
+  const phases = (html: string): string | null =>
+    marker(html)?.getAttribute("data-phases") ?? null;
+  const KEYS =
+    "aide/605-follow:create,aide/605-follow:analyze,aide/605-follow:implement";
 
   test("with the running row open it names every step's phase and the running index", () => {
     for (const step of [undefined, "live", "2"]) {
       const html = followMarker(job(), { tab: "steps", step, runningIndex: 2 });
       expect(phases(html), String(step)).toBe(KEYS);
-      expect(marker(html)?.getAttribute("data-running"), String(step)).toBe("2");
+      expect(marker(html)?.getAttribute("data-running"), String(step)).toBe(
+        "2",
+      );
     }
   });
 

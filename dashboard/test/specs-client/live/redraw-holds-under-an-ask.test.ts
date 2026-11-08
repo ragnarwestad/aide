@@ -36,12 +36,18 @@ function listWith(inside: string, open?: string): Window {
   win.document.write(`<div id="jobrows">${inside}</div>`);
   if (open) win.document.getElementById(open)!.setAttribute("open", "");
   (globalThis as { document?: unknown }).document = win.document;
-  (globalThis as { location?: unknown }).location = { search: "?state=archived" };
-  (globalThis as unknown as { fetch: unknown }).fetch = async () => ({ ok: true, text: async () => "<p>fresh</p>" });
+  (globalThis as { location?: unknown }).location = {
+    search: "?state=archived",
+  };
+  (globalThis as unknown as { fetch: unknown }).fetch = async () => ({
+    ok: true,
+    text: async () => "<p>fresh</p>",
+  });
   return win;
 }
 
-const rowsOf = (win: Window): string => win.document.getElementById("jobrows")!.innerHTML;
+const rowsOf = (win: Window): string =>
+  win.document.getElementById("jobrows")!.innerHTML;
 
 describe("swapRows under an open dialog", () => {
   test("an open ask holds the redraw, and the rows stay as they are", async () => {

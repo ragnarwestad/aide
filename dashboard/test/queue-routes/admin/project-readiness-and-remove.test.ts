@@ -13,7 +13,8 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 interface StepBody {
@@ -23,7 +24,13 @@ interface StepBody {
   readiness?: {
     canRun: boolean;
     note: string;
-    checks: { check: string; subject: string; ok: boolean; blocking: boolean; detail: string }[];
+    checks: {
+      check: string;
+      subject: string;
+      ok: boolean;
+      blocking: boolean;
+      detail: string;
+    }[];
   };
 }
 
@@ -34,33 +41,46 @@ interface StepBody {
 // both reach the caller: `ok` says the registration completed, `readiness`
 // says whether `aide-run-spec` would start.
 describe("POST /api/queue/projects reports readiness", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
   /** A git that answers for a checkout which is its own root, clean, on
    *  its default branch — with `answers` layered over it. */
   /** `brings` is what the clone puts in the checkout it makes — a
    *  project is added by its git address now, so anything a test needs
    *  the checkout to hold arrives with the clone. */
-  const readyGit = (answers: Record<string, { code: number; stdout?: string }> = {}, brings: string[] = ["specs"]) =>
+  const readyGit =
+    (
+      answers: Record<string, { code: number; stdout?: string }> = {},
+      brings: string[] = ["specs"],
+    ) =>
     async (at: string, args: string[]) => {
       const joined = args.join(" ");
       for (const [prefix, a] of Object.entries(answers)) {
-        if (joined.startsWith(prefix)) return { code: a.code, stdout: a.stdout ?? "" };
+        if (joined.startsWith(prefix))
+          return { code: a.code, stdout: a.stdout ?? "" };
       }
       const clone = args.indexOf("clone");
       if (clone !== -1) {
         const dest = join(at, args[args.length - 1]!);
         mkdirSync(dest, { recursive: true });
-        for (const path of brings) mkdirSync(join(dest, path), { recursive: true });
+        for (const path of brings)
+          mkdirSync(join(dest, path), { recursive: true });
         return { code: 0, stdout: "" };
       }
-      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
-      if (joined.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (joined.startsWith("rev-parse --show-toplevel"))
+        return { code: 0, stdout: `${at}\n` };
+      if (joined.startsWith("status --porcelain"))
+        return { code: 0, stdout: "" };
       if (joined.startsWith("symbolic-ref --short refs/remotes/origin/HEAD")) {
         return { code: 0, stdout: "origin/main\n" };
       }
-      if (joined.startsWith("show-ref --verify --quiet refs/heads/main")) return { code: 0, stdout: "" };
-      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
+      if (joined.startsWith("show-ref --verify --quiet refs/heads/main"))
+        return { code: 0, stdout: "" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD"))
+        return { code: 0, stdout: "main\n" };
       if (joined.startsWith("worktree list")) return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
     };
@@ -72,13 +92,22 @@ describe("POST /api/queue/projects reports readiness", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "ready-one", gitUrl: "https://example.com/ready-one.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "ready-one",
+        gitUrl: "https://example.com/ready-one.git",
+        codeLanding: "merge",
+      }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
     expect(body.project).toBe("ready-one");
-    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+    expect(body.results.map((r) => r.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+      "allowlist",
+    ]);
     expect(body.readiness!.canRun).toBe(true);
     expect(body.readiness!.note).toContain("ready to run");
   });
@@ -94,7 +123,11 @@ describe("POST /api/queue/projects reports readiness", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "skjer", gitUrl: "https://example.com/skjer.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "skjer",
+        gitUrl: "https://example.com/skjer.git",
+        codeLanding: "merge",
+      }),
     });
     // 200: the registration DID complete, and a 400 would tell an API
     // caller to try it again against a checkout that is already there.
@@ -104,11 +137,15 @@ describe("POST /api/queue/projects reports readiness", () => {
     expect(body.results.every((r) => r.ok)).toBe(true);
     expect(body.readiness!.canRun).toBe(false);
     expect(body.readiness!.note).toContain("cannot run yet");
-    expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(join(path, "specs"));
+    expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(
+      join(path, "specs"),
+    );
     // And it is on the allowlist regardless: registration is what puts
     // it there, and the readiness answer is about a later moment.
-    const html = await (await fetch(`${base}/new`, )).text();
-    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="skjer"');
+    const html = await (await fetch(`${base}/new`)).text();
+    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain(
+      'value="skjer"',
+    );
   });
 
   // At the route: the field is new, and an unusable value is
@@ -117,7 +154,9 @@ describe("POST /api/queue/projects reports readiness", () => {
   // and `.aide/config` is dropped by a global ignore rule, so a clone
   // arrived on the next machine with the answer gone.
   test("worktree links are written to the dashboard's settings file, not the project", async () => {
-    const { base, dir } = start({ gitRun: readyGit({}, ["specs", "node_modules"]) });
+    const { base, dir } = start({
+      gitRun: readyGit({}, ["specs", "node_modules"]),
+    });
     const path = join(dir, "root", "withlinks");
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -130,9 +169,9 @@ describe("POST /api/queue/projects reports readiness", () => {
       }),
     });
     expect(res.status).toBe(200);
-    expect(readFileSync(join(dir, "owned", "withlinks", "settings.yaml"), "utf-8")).toContain(
-      "worktreeLinks: node_modules",
-    );
+    expect(
+      readFileSync(join(dir, "owned", "withlinks", "settings.yaml"), "utf-8"),
+    ).toContain("worktreeLinks: node_modules");
     expect(existsSync(join(path, ".aide", "project.yaml"))).toBe(false);
     expect(existsSync(join(path, ".aide", "config"))).toBe(false);
   });
@@ -152,16 +191,21 @@ describe("POST /api/queue/projects reports readiness", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(false);
-    expect(body.results.find((r) => r.step === "worktreeLinks")!.error).toContain("../escape");
+    expect(
+      body.results.find((r) => r.step === "worktreeLinks")!.error,
+    ).toContain("../escape");
     // Nothing readable is claimed about a project that was not added.
     expect(body.readiness).toBeUndefined();
   });
 });
 
 describe("POST /api/queue/projects/<name>/remove", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
-  test("the name typed back removes it from the allowlist, touches no file and drops its row from the list",async () => {
+  test("the name typed back removes it from the allowlist, touches no file and drops its row from the list", async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
       method: "POST",
@@ -173,8 +217,12 @@ describe("POST /api/queue/projects/<name>/remove", () => {
     expect(body.ok).toBe(true);
     expect(body.results.map((r) => r.step)).toEqual(["confirm", "allowlist"]);
     // The checkout and its specs are exactly where they were.
-    expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
-    expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
+    expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner")),
+    ).toBe(true);
     // And the list drawn again no longer shows it.
     const html = await (await fetch(`${base}/projects`)).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
@@ -207,14 +255,21 @@ describe("POST /api/queue/projects/<name>/remove", () => {
     expect(list).toContain('action="/api/queue/projects/aide/remove"');
     // Under the projects root, but never on the allowlist: not the board's.
     expect(list).not.toContain('href="/projects/other"');
-    expect(list).toContain(`${t("en", "project.count", { n: 1 })} · 1 active · 0 archived`);
-    const config = await (await fetch(`${base}/projects/aide?tab=config`)).text();
+    expect(list).toContain(
+      `${t("en", "project.count", { n: 1 })} · 1 active · 0 archived`,
+    );
+    const config = await (
+      await fetch(`${base}/projects/aide?tab=config`)
+    ).text();
     expect(config).not.toContain("/remove");
   });
 
   // For the second route.
   test("it answers POST only", async () => {
     const { base } = start();
-    expect((await fetch(`${base}/api/queue/projects/aide/remove`, { headers: AUTH })).status).toBe(405);
+    expect(
+      (await fetch(`${base}/api/queue/projects/aide/remove`, { headers: AUTH }))
+        .status,
+    ).toBe(405);
   });
 });

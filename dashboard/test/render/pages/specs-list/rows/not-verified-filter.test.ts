@@ -1,9 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type ArchivedSpecView, type SpecsFilter, type SpecTarget } from "../../../../../src/render";
+import {
+  renderSpecsRows,
+  type ArchivedSpecView,
+  type SpecsFilter,
+  type SpecTarget,
+} from "../../../../../src/render";
 
 // --- The Not verified entry of the State dropdown -------------------
 
-const archived = (folder: string, over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+const archived = (
+  folder: string,
+  over: Partial<ArchivedSpecView> = {},
+): ArchivedSpecView => ({
   project: "aide",
   folder,
   done: ["create", "analyze", "implement", "archive"],
@@ -11,7 +19,10 @@ const archived = (folder: string, over: Partial<ArchivedSpecView> = {}): Archive
   phaseOutcomes: {},
   ...over,
 });
-const live = (specFolder: string, over: Partial<SpecTarget> = {}): SpecTarget => ({ project: "aide", specFolder, ...over });
+const live = (
+  specFolder: string,
+  over: Partial<SpecTarget> = {},
+): SpecTarget => ({ project: "aide", specFolder, ...over });
 
 const draw = (opts: {
   targets?: SpecTarget[];
@@ -30,9 +41,17 @@ const draw = (opts: {
   });
 
 const folders = (html: string): string[] =>
-  [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]!).sort();
+  [
+    ...html.matchAll(
+      /<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g,
+    ),
+  ]
+    .map((m) => m[1]!)
+    .sort();
 const entryCount = (html: string): number | null => {
-  const m = html.match(/href="[^"]*state=not-verified[^"]*" role="radio"[^>]*>[\s\S]*?Not verified \((\d+)\)<\/a>/);
+  const m = html.match(
+    /href="[^"]*state=not-verified[^"]*" role="radio"[^>]*>[\s\S]*?Not verified \((\d+)\)<\/a>/,
+  );
   return m ? Number(m[1]) : null;
 };
 
@@ -40,7 +59,10 @@ describe("the Not verified entry lists rows with a count, live and archived alik
   test("only the live and the archived spec with a count are listed", () => {
     const html = draw({
       targets: [live("10-live-with", { notVerified: 1 }), live("11-live-none")],
-      archivedSpecs: [archived("20-arch-with", { notVerified: 2 }), archived("21-arch-none")],
+      archivedSpecs: [
+        archived("20-arch-with", { notVerified: 2 }),
+        archived("21-arch-none"),
+      ],
       archivedKeys: ["aide/20-arch-with", "aide/21-arch-none"],
       filter: { state: "not-verified" },
     });
@@ -50,7 +72,10 @@ describe("the Not verified entry lists rows with a count, live and archived alik
   test("a spec with only a Failed row is listed by it too, live and archived", () => {
     const html = draw({
       targets: [live("10-live-failed", { failed: 1 }), live("11-live-none")],
-      archivedSpecs: [archived("20-arch-failed", { failed: 1 }), archived("21-arch-none")],
+      archivedSpecs: [
+        archived("20-arch-failed", { failed: 1 }),
+        archived("21-arch-none"),
+      ],
       archivedKeys: ["aide/20-arch-failed", "aide/21-arch-none"],
       filter: { state: "not-verified" },
     });
@@ -77,7 +102,11 @@ describe("the Not verified entry lists rows with a count, live and archived alik
   test("its count on the Active view includes the archived spec with a count and not every unbuilt archived key", () => {
     const html = draw({
       targets: [live("10-live-with", { notVerified: 1 }), live("11-live-none")],
-      archivedKeys: ["aide/20-arch-with", "aide/21-arch-none", "aide/22-arch-none"],
+      archivedKeys: [
+        "aide/20-arch-with",
+        "aide/21-arch-none",
+        "aide/22-arch-none",
+      ],
       notVerified: ["aide/20-arch-with"],
       filter: { state: "not-archived" },
     });

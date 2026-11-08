@@ -70,10 +70,12 @@ export function specDescription(dir: string): string | null {
   if (text === null) return null;
   const body = markdownSection(text, "Description");
   if (body === null) return null;
-  return body
-    // The template's own note about the field is not part of it.
-    .replace(/^_\(This field can be edited manually[^\n]*\n?/gm, "")
-    .trim() || null;
+  return (
+    body
+      // The template's own note about the field is not part of it.
+      .replace(/^_\(This field can be edited manually[^\n]*\n?/gm, "")
+      .trim() || null
+  );
 }
 
 /** What ONE workflow step wrote, as a labelled slice of the spec's own
@@ -97,13 +99,23 @@ export function specDescription(dir: string): string | null {
  *  folder or declined to, and the page must show exactly one of those:
  *  the stamp when it is there, because a folder that MOVED is archived
  *  whatever an earlier attempt wrote into the same file. */
-export function specPhaseFile(dir: string, step: string): { label: string; text: string | null } | null {
-  if (step === "create") return { label: "1-description.md", text: specFileText(dir, "1-description.md") };
-  if (step === "analyze") return { label: "3-solution.md", text: specFileText(dir, "3-solution.md") };
-  if (step === "implement") return { label: "4-status.md", text: specFileText(dir, "4-status.md") };
+export function specPhaseFile(
+  dir: string,
+  step: string,
+): { label: string; text: string | null } | null {
+  if (step === "create")
+    return {
+      label: "1-description.md",
+      text: specFileText(dir, "1-description.md"),
+    };
+  if (step === "analyze")
+    return { label: "3-solution.md", text: specFileText(dir, "3-solution.md") };
+  if (step === "implement")
+    return { label: "4-status.md", text: specFileText(dir, "4-status.md") };
   if (step === "archive") {
     const status = specFileText(dir, "4-status.md");
-    const stamp = status?.match(/^.*\*\*Archived:\*\*.*$/m)?.[0]?.trim() ?? null;
+    const stamp =
+      status?.match(/^.*\*\*Archived:\*\*.*$/m)?.[0]?.trim() ?? null;
     // The same reader the row's own held-back mark uses, so the two
     // cannot word one fact differently.
     const held = status ? archiveHeldBackReason(status) : null;
@@ -127,7 +139,10 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
  *  late, so half the archive answers `null` and the caller has a
  *  fallback for exactly that. */
 export function specArchivedDate(dir: string): string | null {
-  const line = stampInEffect(specFileText(dir, "4-status.md"), /^.*\*\*Archived:\*\*/);
+  const line = stampInEffect(
+    specFileText(dir, "4-status.md"),
+    /^.*\*\*Archived:\*\*/,
+  );
   const m = line?.match(/\*\*Archived:\*\*[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].replace(/`/g, "").trim() || null;
@@ -168,7 +183,10 @@ export function specClosed(dir: string): boolean {
 /** WHEN this spec was closed, off the same `**Closed:**` stamp —
  *  `specArchivedDate`'s sibling. `null` covers a spec never closed. */
 export function specClosedDate(dir: string): string | null {
-  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)?.match(/\*\*Closed:\*\*[ \t]*([0-9-]*)/);
+  const m = stampInEffect(
+    specFileText(dir, "4-status.md"),
+    CLOSED_STAMP,
+  )?.match(/\*\*Closed:\*\*[ \t]*([0-9-]*)/);
   if (!m) return null;
   return m[1].trim() || null;
 }
@@ -177,8 +195,10 @@ export function specClosedDate(dir: string): string | null {
  *  same `**Closed:**` stamp. `null` covers a spec that was never closed
  *  and one whose stamp somehow carries no reason. */
 export function specCloseReason(dir: string): string | null {
-  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)
-    ?.match(/\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/);
+  const m = stampInEffect(
+    specFileText(dir, "4-status.md"),
+    CLOSED_STAMP,
+  )?.match(/\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].trim() || null;
 }
@@ -186,7 +206,8 @@ export function specCloseReason(dir: string): string | null {
 /** Completed workflow steps, falling back to the prose status file. */
 export function proseSteps(dir: string): string[] {
   try {
-    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
+    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8"))
+      .workflowSteps;
   } catch {
     return [];
   }

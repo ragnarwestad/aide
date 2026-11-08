@@ -3,7 +3,14 @@
 // drawn by one of two components, so one of each is asked: Cancel's plain
 // confirmation and Close's progress dialog.
 
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  test,
+} from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,12 +34,24 @@ beforeAll(async () => {
     join(scratch, "queue.json"),
     JSON.stringify([
       {
-        id: "run1", project: "aide", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "running",
-        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-18T03:00:00Z", startedAt: "2026-09-18T03:00:00Z",
+        id: "run1",
+        project: "aide",
+        specFolder: FOLDER,
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "running",
+        timeoutSec: {},
+        permissionMode: {},
+        model: {},
+        createdAt: "2026-09-18T03:00:00Z",
+        startedAt: "2026-09-18T03:00:00Z",
       },
     ]),
   );
-  base = harness.start({ alsoSpecs: [IDLE], extra: { queueMirrorPath: join(scratch, "queue.json") } }).base;
+  base = harness.start({
+    alsoSpecs: [IDLE],
+    extra: { queueMirrorPath: join(scratch, "queue.json") },
+  }).base;
   browser = await chromium.launch();
 });
 
@@ -56,7 +75,11 @@ afterAll(async () => {
 
 type Box = { name: string; url: string; id: string };
 const BOXES: Box[] = [
-  { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, id: "cancelask-run1" },
+  {
+    name: "cancel box",
+    url: `/?live=0&open=aide%2F${FOLDER}`,
+    id: "cancelask-run1",
+  },
   { name: "close box", url: `/specs/aide/${IDLE}?live=0`, id: "closeask" },
 ];
 
@@ -68,7 +91,11 @@ async function open(box: Box): Promise<void> {
   await page.goto(`${base}${box.url}`);
   await page.locator(`button[data-ask="${box.id}"]`).click();
   await dialog(box).waitFor({ state: "visible" });
-  expect(await dialog(box).evaluate((d) => (d as HTMLDialogElement).matches(":modal"))).toBe(true);
+  expect(
+    await dialog(box).evaluate((d) =>
+      (d as HTMLDialogElement).matches(":modal"),
+    ),
+  ).toBe(true);
 }
 
 for (const box of BOXES) {
@@ -80,7 +107,8 @@ for (const box of BOXES) {
         if (r.method() === "POST") posts.push(r.url());
       });
       const before = page.url();
-      if (how === "Cancel") await dialog(box).getByRole("button", { name: "Cancel" }).click();
+      if (how === "Cancel")
+        await dialog(box).getByRole("button", { name: "Cancel" }).click();
       else await page.keyboard.press("Escape");
       await dialog(box).waitFor({ state: "hidden" });
       expect(page.url()).toBe(before);

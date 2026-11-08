@@ -21,14 +21,18 @@ import { crc32, deflateSync } from "node:zlib";
  *  which Android ignores and a browser that draws the file as an ordinary
  *  image does not. */
 export function rasterizeMark(svg: string, size: number): Buffer<ArrayBuffer> {
-  const barRe = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="(#[0-9A-Fa-f]{6})"\/>/g;
+  const barRe =
+    /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="(#[0-9A-Fa-f]{6})"\/>/g;
   const bars = [...svg.matchAll(barRe)];
   const rest = svg.replace(barRe, "");
   if (bars.length !== 4 || !/^<svg [^>]*><\/svg>$/.test(rest)) {
-    throw new Error("icon-png: the SVG is not the shape brand.ts's bars-only svg() emits");
+    throw new Error(
+      "icon-png: the SVG is not the shape brand.ts's bars-only svg() emits",
+    );
   }
   const k = size / 64;
-  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const rgb = (hex: string) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const pills = bars.map((m) => {
     const [x, y, w, h, rx] = [1, 2, 3, 4, 5].map((i) => Number(m[i]));
     return {
@@ -50,7 +54,10 @@ export function rasterizeMark(svg: string, size: number): Buffer<ArrayBuffer> {
       for (const p of pills) {
         const qx = Math.abs(x + 0.5 - p.cx) - (p.hw - p.r);
         const qy = Math.abs(y + 0.5 - p.cy) - (p.hh - p.r);
-        const d = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - p.r;
+        const d =
+          Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
+          Math.min(Math.max(qx, qy), 0) -
+          p.r;
         const cover = Math.min(Math.max(0.5 - d, 0), 1);
         // The bars never overlap, so the one that covers this pixel most
         // is the one whose colour it takes.
@@ -71,18 +78,36 @@ export function rasterizeMark(svg: string, size: number): Buffer<ArrayBuffer> {
 
 export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
   const canvasRe = /<rect width="64" height="64" fill="(#[0-9A-Fa-f]{6})"\/>/;
-  const groupRe = /<g transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)">/;
-  const barRe = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="(#[0-9A-Fa-f]{6})"\/>/g;
+  const groupRe =
+    /<g transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)">/;
+  const barRe =
+    /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="(#[0-9A-Fa-f]{6})"\/>/g;
   const canvas = canvasRe.exec(svg);
   const group = groupRe.exec(svg);
   const bars = [...svg.matchAll(barRe)];
-  const rest = svg.replace(canvasRe, "").replace(groupRe, "").replace("</g>", "").replace(barRe, "");
-  if (!canvas || !group || bars.length !== 4 || !/^<svg [^>]*><\/svg>$/.test(rest)) {
-    throw new Error("icon-png: the SVG is not the shape brand.ts's icon() emits");
+  const rest = svg
+    .replace(canvasRe, "")
+    .replace(groupRe, "")
+    .replace("</g>", "")
+    .replace(barRe, "");
+  if (
+    !canvas ||
+    !group ||
+    bars.length !== 4 ||
+    !/^<svg [^>]*><\/svg>$/.test(rest)
+  ) {
+    throw new Error(
+      "icon-png: the SVG is not the shape brand.ts's icon() emits",
+    );
   }
-  const [tx, ty, scale] = [Number(group[1]), Number(group[2]), Number(group[3])];
+  const [tx, ty, scale] = [
+    Number(group[1]),
+    Number(group[2]),
+    Number(group[3]),
+  ];
   const k = size / 64;
-  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const rgb = (hex: string) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
   // Each bar as a pill in pixel space: centre, half-extents, corner radius.
   const pills = bars.map((m) => {
@@ -108,9 +133,13 @@ export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
         // Signed distance from the pixel centre to the pill's edge, in pixels.
         const qx = Math.abs(x + 0.5 - p.cx) - (p.hw - p.r);
         const qy = Math.abs(y + 0.5 - p.cy) - (p.hh - p.r);
-        const d = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - p.r;
+        const d =
+          Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
+          Math.min(Math.max(qx, qy), 0) -
+          p.r;
         const cover = Math.min(Math.max(0.5 - d, 0), 1);
-        for (let c = 0; c < 3; c++) px[c] = px[c]! * (1 - cover) + p.color[c]! * cover;
+        for (let c = 0; c < 3; c++)
+          px[c] = px[c]! * (1 - cover) + p.color[c]! * cover;
       }
       const o = y * stride + 1 + x * 3;
       raw[o] = Math.round(px[0]!);
@@ -125,7 +154,11 @@ export function rasterizeIcon(svg: string, size: number): Buffer<ArrayBuffer> {
 /** A square PNG from already-filtered scanlines. `colourType` is 2 (RGB)
  *  for the icons and 6 (RGBA) for the badge, which is the only difference
  *  between the two writers above. */
-function pngOf(raw: Buffer, size: number, colourType: 2 | 6): Buffer<ArrayBuffer> {
+function pngOf(
+  raw: Buffer,
+  size: number,
+  colourType: 2 | 6,
+): Buffer<ArrayBuffer> {
   const chunk = (type: string, data: Buffer): Buffer => {
     const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
     const out = Buffer.alloc(body.length + 8);
@@ -139,10 +172,12 @@ function pngOf(raw: Buffer, size: number, colourType: 2 | 6): Buffer<ArrayBuffer
   ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; // bit depth
   ihdr[9] = colourType;
-  return Buffer.from(Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", deflateSync(raw)),
-    chunk("IEND", Buffer.alloc(0)),
-  ]));
+  return Buffer.from(
+    Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      chunk("IHDR", ihdr),
+      chunk("IDAT", deflateSync(raw)),
+      chunk("IEND", Buffer.alloc(0)),
+    ]),
+  );
 }

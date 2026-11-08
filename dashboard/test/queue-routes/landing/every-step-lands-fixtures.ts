@@ -6,7 +6,13 @@
 // plain functions taking their harness/dir explicitly, since three
 // separate test files now call them.
 
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
@@ -15,7 +21,10 @@ import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 export const SPEC = "81-queue-and-runner";
 export const BRANCH = `aide/${SPEC}`;
-export const AUTH = { "content-type": "application/json", accept: "application/json" };
+export const AUTH = {
+  "content-type": "application/json",
+  accept: "application/json",
+};
 
 /** Temp directories a test file makes for itself, outside the harness —
  *  one tracker per file, so `afterEach` in one file never sweeps
@@ -61,16 +70,22 @@ export function gitFor({
   const run = async (dir: string, args: string[]) => {
     calls.push({ dir, args });
     const a = args.join(" ");
-    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("symbolic-ref"))
+      return { code: 0, stdout: "refs/remotes/origin/master\n" };
     if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("rev-parse --abbrev-ref @{u}"))
+      return { code: 0, stdout: "origin/master\n" };
     if (a.startsWith("ls-remote --heads origin refs/heads/aide/*")) {
       return {
         code: lsRemoteCode,
-        stdout: lsRemoteCode === 0 && open.has(repoOf(dir)) ? `a3f9c21\trefs/heads/${BRANCH}\n` : "",
+        stdout:
+          lsRemoteCode === 0 && open.has(repoOf(dir))
+            ? `a3f9c21\trefs/heads/${BRANCH}\n`
+            : "",
       };
     }
-    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
+    if (a.startsWith("merge -q --ff-only origin/"))
+      return { code: 0, stdout: "" };
     if (a.startsWith("merge -q --ff-only")) {
       if (slow) await slow();
       return merged(dir);
@@ -102,8 +117,14 @@ export function repos(dir: string): {
   mkdirSync(join(project, ".aide"), { recursive: true });
   writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
   mkdirSync(join(project, "specs", SPEC), { recursive: true });
-  writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
-  writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze", "implement"]));
+  writeFileSync(
+    join(project, "specs", SPEC, "1-description.md"),
+    "# 81 - Description\n",
+  );
+  writeFileSync(
+    join(project, "specs", SPEC, "4-status.md"),
+    statusSaying(["create", "analyze", "implement"]),
+  );
   mkdirSync(specs, { recursive: true });
   return {
     root: projectsRoot,
@@ -111,7 +132,10 @@ export function repos(dir: string): {
     specs,
     archiveSpec: () => {
       mkdirSync(join(project, "specs", "archive"), { recursive: true });
-      renameSync(join(project, "specs", SPEC), join(project, "specs", "archive", SPEC));
+      renameSync(
+        join(project, "specs", SPEC),
+        join(project, "specs", "archive", SPEC),
+      );
     },
   };
 }
@@ -120,7 +144,10 @@ export function repos(dir: string): {
  *  so the test can ask whether it ran by asking the filesystem. */
 export function installs(project: string): string {
   const marker = join(project, "installed");
-  writeFileSync(join(project, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
+  writeFileSync(
+    join(project, ".aide", "config"),
+    `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`,
+  );
   return marker;
 }
 
@@ -155,7 +182,11 @@ export async function runStep(
     await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: SPEC,
+        steps: [step],
+      }),
     })
   ).json()) as { job: { id: string; project: string; specFolder: string } };
   return made.job;
@@ -173,7 +204,9 @@ export async function settle(
   maxIterations = 100,
 ): Promise<Record<string, unknown>> {
   for (let n = 0; n < maxIterations; n++) {
-    const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
+    const body = (await (
+      await fetch(`${base}/api/queue/${id}`, { headers: AUTH })
+    ).json()) as {
       job: Record<string, unknown>;
     };
     if (done(body.job)) return body.job;
@@ -190,9 +223,13 @@ export async function settle(
  *  `<root>.landing.<branch>` (`mergeWorktreePath`) — so a call's own
  *  directory is not the repo it is about. Everything a landing test
  *  decides is per REPO, so the suffix comes off first. */
-export const repoOf = (dir: string): string => dir.replace(/\.landing\.[^/]*$/, "");
+export const repoOf = (dir: string): string =>
+  dir.replace(/\.landing\.[^/]*$/, "");
 
-export const merges = (calls: { dir: string; args: string[] }[], root?: string) =>
+export const merges = (
+  calls: { dir: string; args: string[] }[],
+  root?: string,
+) =>
   calls.filter(
     (c) =>
       c.args[0] === "merge" &&
@@ -218,9 +255,13 @@ export async function stepWithResult(
   dir: string,
   step: string,
   over: Record<string, unknown>,
-  settled: (job: Record<string, unknown>) => boolean = (j) => j.state === "done" && !j.landing,
+  settled: (job: Record<string, unknown>) => boolean = (j) =>
+    j.state === "done" && !j.landing,
 ): Promise<Record<string, unknown>> {
   const job = await runStep(base, step);
-  writeFileSync(join(resultDir(dir), `${job.id}.json`), JSON.stringify(result(over)));
+  writeFileSync(
+    join(resultDir(dir), `${job.id}.json`),
+    JSON.stringify(result(over)),
+  );
   return settle(base, job.id, settled);
 }

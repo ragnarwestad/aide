@@ -7,13 +7,20 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { isSignallablePid, signalGroup, signalProcess } from "../../src/serve/serve-helpers/signal-group.ts";
+import {
+  isSignallablePid,
+  signalGroup,
+  signalProcess,
+} from "../../src/serve/serve-helpers/signal-group.ts";
 
 let calls: { pid: number; signal: unknown }[];
 let killSpy: ReturnType<typeof spyOn>;
 beforeEach(() => {
   calls = [];
-  killSpy = spyOn(process, "kill").mockImplementation(((pid: number, signal?: unknown) => {
+  killSpy = spyOn(process, "kill").mockImplementation(((
+    pid: number,
+    signal?: unknown,
+  ) => {
     calls.push({ pid, signal });
     return true;
   }) as typeof process.kill);
@@ -22,7 +29,17 @@ afterEach(() => killSpy.mockRestore());
 
 describe("signalGroup", () => {
   test("a pid below 2, or no pid at all, is never negated and sent", () => {
-    for (const pid of [1, 0, -1, -4242, 1.5, Number.NaN, undefined, null, "4242"]) {
+    for (const pid of [
+      1,
+      0,
+      -1,
+      -4242,
+      1.5,
+      Number.NaN,
+      undefined,
+      null,
+      "4242",
+    ]) {
       expect(signalGroup(pid)).toBe(false);
       expect(signalProcess(pid)).toBe(false);
       expect(isSignallablePid(pid)).toBe(false);
@@ -61,7 +78,9 @@ function sources(dir: string): string[] {
 test("no file under src negates a pid for process.kill except signal-group.ts", () => {
   const root = join(import.meta.dir, "..", "..", "src");
   const offenders = sources(root).filter(
-    (path) => !path.endsWith("serve-helpers/signal-group.ts") && /process\.kill\(\s*-/.test(readFileSync(path, "utf8")),
+    (path) =>
+      !path.endsWith("serve-helpers/signal-group.ts") &&
+      /process\.kill\(\s*-/.test(readFileSync(path, "utf8")),
   );
   expect(offenders).toEqual([]);
 });

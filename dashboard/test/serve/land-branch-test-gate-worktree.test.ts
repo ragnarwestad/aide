@@ -6,7 +6,14 @@
 // its .aide/config, and is gone when the gate is over.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
@@ -21,7 +28,6 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-
 const dirs: string[] = [];
 afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
@@ -31,8 +37,13 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, ...args],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (out.exitCode !== 0)
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
@@ -42,7 +53,10 @@ function project(): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-gate-tree-"));
   dirs.push(dir);
   mkdirSync(join(dir, ".aide"), { recursive: true });
-  writeFileSync(join(dir, ".aide", "project.yaml"), "name: aide\nworktreeLinks: deps\n");
+  writeFileSync(
+    join(dir, ".aide", "project.yaml"),
+    "name: aide\nworktreeLinks: deps\n",
+  );
   writeFileSync(join(dir, ".gitignore"), "deps/\n.aide/config\n");
   writeFileSync(join(dir, "README.md"), "# aide\n");
   git(dir, "init", "-q", "-b", "main");
@@ -61,7 +75,11 @@ function project(): string {
 function fakeScripts(record: string): void {
   const bin = mkdtempSync(join(tmpdir(), "aide-gate-bin-"));
   dirs.push(bin);
-  writeFileSync(join(bin, "resolve"), '#!/bin/sh\nprintf \'{"ok":true,"commands":["true"]}\\n\'\n', { mode: 0o755 });
+  writeFileSync(
+    join(bin, "resolve"),
+    '#!/bin/sh\nprintf \'{"ok":true,"commands":["true"]}\\n\'\n',
+    { mode: 0o755 },
+  );
   writeFileSync(
     join(bin, "record"),
     "#!/bin/sh\n" +
@@ -76,19 +94,35 @@ function fakeScripts(record: string): void {
 
 describe("the landing's test gate", () => {
   test("a timeout names the last test that was running without blaming the machine (AC-6)", () => {
-    const verdict = timeoutVerdict("running make test\n--- dashboard/test/slow.test.ts\n", 60, "Archive");
+    const verdict = timeoutVerdict(
+      "running make test\n--- dashboard/test/slow.test.ts\n",
+      60,
+      "Archive",
+    );
     expect(verdict.error).toEqual({
       key: "landing.testsTimedOut",
-      values: { minutes: 60, test: "dashboard/test/slow.test.ts", button: "Archive" },
+      values: {
+        minutes: 60,
+        test: "dashboard/test/slow.test.ts",
+        button: "Archive",
+      },
     });
     expect(sentence(verdict.error)).not.toContain("quieter");
   });
 
   test("a timeout recognises an ordinary runner test heading (AC-6)", () => {
-    const verdict = timeoutVerdict("bun test v1\ndashboard/test/slow.test.ts:\n", 60, "Archive");
+    const verdict = timeoutVerdict(
+      "bun test v1\ndashboard/test/slow.test.ts:\n",
+      60,
+      "Archive",
+    );
     expect(verdict.error).toEqual({
       key: "landing.testsTimedOut",
-      values: { minutes: 60, test: "dashboard/test/slow.test.ts", button: "Archive" },
+      values: {
+        minutes: 60,
+        test: "dashboard/test/slow.test.ts",
+        button: "Archive",
+      },
     });
   });
 
@@ -98,7 +132,11 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(
+      root,
+      { project: "aide", specFolder: "81-x" },
+      "aide/81-x",
+    );
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -126,7 +164,11 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(
+      landing,
+      { project: "aide", specFolder: "81-x" },
+      "aide/81-x",
+    );
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -149,16 +191,26 @@ describe("the landing's test gate", () => {
     dirs.push(runs);
     writeFileSync(
       process.env.AIDE_RECORD_TEST_RUN_BIN!,
-      namingRecorder(`echo run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED tests/test_x.py::test_x - assert 1 == 2'\nexit 1`),
+      namingRecorder(
+        `echo run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED tests/test_x.py::test_x - assert 1 == 2'\nexit 1`,
+      ),
       { mode: 0o755 },
     );
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(
+      root,
+      { project: "aide", specFolder: "81-x" },
+      "aide/81-x",
+    );
 
     expect(verdict.ok).toBe(false);
     expect(verdict.error).toEqual({
       key: "landing.testsRedOnMerge",
-      values: { tests: "tests/test_x.py::test_x — assert 1 == 2", branch: "aide/81-x", button: "Archive" },
+      values: {
+        tests: "tests/test_x.py::test_x — assert 1 == 2",
+        branch: "aide/81-x",
+        button: "Archive",
+      },
     });
     // The same test failed on both runs and passes on main alone: nothing
     // supports a busy machine, so nothing says so.
@@ -186,12 +238,18 @@ describe("the landing's test gate", () => {
       { mode: 0o755 },
     );
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(
+      root,
+      { project: "aide", specFolder: "81-x" },
+      "aide/81-x",
+    );
 
     expect(verdict.ok).toBe(true);
     expect(verdict.retriedAfter).toContain("(fail) flaky > times out");
     expect(readFileSync(count, "utf-8").trim().split("\n")).toHaveLength(2);
-    expect(readFileSync(process.env.AIDE_TEST_GATE_LOG!, "utf-8")).toContain("(retry)");
+    expect(readFileSync(process.env.AIDE_TEST_GATE_LOG!, "utf-8")).toContain(
+      "(retry)",
+    );
   });
 
   test("a suite red twice stays red, and runs no third time on the merge", async () => {
@@ -201,9 +259,17 @@ describe("the landing's test gate", () => {
     fakeScripts(record);
     const count = join(root, "..", `gate-runs-red-${Date.now()}.txt`);
     dirs.push(count);
-    writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, `#!/bin/sh\necho run >> ${count}\necho 'FAILED test_x'\nexit 1\n`, { mode: 0o755 });
+    writeFileSync(
+      process.env.AIDE_RECORD_TEST_RUN_BIN!,
+      `#!/bin/sh\necho run >> ${count}\necho 'FAILED test_x'\nexit 1\n`,
+      { mode: 0o755 },
+    );
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(
+      root,
+      { project: "aide", specFolder: "81-x" },
+      "aide/81-x",
+    );
 
     expect(verdict.ok).toBe(false);
     expect(verdict.retriedAfter).toBeUndefined();

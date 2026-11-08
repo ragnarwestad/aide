@@ -21,7 +21,8 @@ export interface SideRun {
   transcript?: { from: number; to: number };
 }
 
-const count = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
+const count = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined;
 
 /** `outcome.review` or `outcome.verify`, or nothing when it names no outcome. */
 export function sideRun(raw: unknown): SideRun | undefined {
@@ -40,7 +41,12 @@ export function sideRun(raw: unknown): SideRun | undefined {
   const span = r.transcript;
   if (span !== null && typeof span === "object") {
     const { from, to } = span as Record<string, unknown>;
-    if (Number.isInteger(from) && Number.isInteger(to) && (from as number) >= 0 && (from as number) <= (to as number)) {
+    if (
+      Number.isInteger(from) &&
+      Number.isInteger(to) &&
+      (from as number) >= 0 &&
+      (from as number) <= (to as number)
+    ) {
       out.transcript = { from: from as number, to: to as number };
     }
   }

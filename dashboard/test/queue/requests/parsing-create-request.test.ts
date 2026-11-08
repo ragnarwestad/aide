@@ -37,7 +37,10 @@ describe("parseCreateRequest", () => {
   // has room for eighteen criteria.
   test("a description of 10,000 characters is accepted, and one longer is refused (AC-1)", () => {
     const at = (len: number) =>
-      parseCreateRequest({ ...CREATE, description: "x".repeat(len) }, { allow, defaults: DEFAULTS });
+      parseCreateRequest(
+        { ...CREATE, description: "x".repeat(len) },
+        { allow, defaults: DEFAULTS },
+      );
     expect(at(10000).ok).toBe(true);
     const over = at(10001);
     expect(over.ok).toBe(false);
@@ -47,19 +50,30 @@ describe("parseCreateRequest", () => {
   // The bounds are named in the refusal, so a reader with script
   // off learns what to shorten it to.
   test("a title of 121 characters is refused, naming 120", () => {
-    const r = parseCreateRequest({ ...CREATE, title: "t".repeat(121) }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, title: "t".repeat(121) },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("120");
   });
 
   test("a description of 10,001 characters is refused, naming 10000 (AC-6)", () => {
-    const r = parseCreateRequest({ ...CREATE, description: "d".repeat(10001) }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, description: "d".repeat(10001) },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("10000");
   });
 
-  const allow = (project: string) => project === "aide" || project === "brandnew";
-  const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
+  const allow = (project: string) =>
+    project === "aide" || project === "brandnew";
+  const CREATE = {
+    project: "brandnew",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
   test("a project with no spec at all is accepted — the allowlist is the whole test", () => {
     // The resolver every other route uses answers null for this
@@ -84,13 +98,20 @@ describe("parseCreateRequest", () => {
   });
 
   test("a project outside the allowlist is refused", () => {
-    const r = parseCreateRequest({ ...CREATE, project: "someone-elses" }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, project: "someone-elses" },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r.ok).toBe(false);
   });
 
   test("a request that names no project is refused, in words that say one is required", () => {
     const { project: _named, ...noKey } = CREATE;
-    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
+    for (const body of [
+      noKey,
+      { ...CREATE, project: null },
+      { ...CREATE, project: "" },
+    ]) {
       const r = parseCreateRequest(body, { allow, defaults: DEFAULTS });
       expect(r.ok).toBe(false);
       if (r.ok) return;
@@ -107,7 +128,9 @@ describe("parseCreateRequest", () => {
       { ...CREATE, title: 7 },
       {},
     ]) {
-      expect(parseCreateRequest(bad, { allow, defaults: DEFAULTS }).ok).toBe(false);
+      expect(parseCreateRequest(bad, { allow, defaults: DEFAULTS }).ok).toBe(
+        false,
+      );
     }
   });
 
@@ -124,8 +147,13 @@ describe("parseCreateRequest", () => {
 // and a name a request supplies is checked against server-known truth,
 // never against whatever chips the browser happened to render.
 describe("parseCreateRequest — dependsOn", () => {
-  const allow = (project: string) => project === "aide" || project === "brandnew";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const allow = (project: string) =>
+    project === "aide" || project === "brandnew";
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
   test("a same-project active spec is accepted and stored on the job", () => {
     const r = parseCreateRequest(
@@ -138,7 +166,9 @@ describe("parseCreateRequest — dependsOn", () => {
 
   test("a spec archived since the form was drawn is accepted: depending on it is already met", () => {
     const withArchive = (project: string) =>
-      project === "aide" ? { specFolders: [], archivedFolders: ["81-queue-and-runner"] } : null;
+      project === "aide"
+        ? { specFolders: [], archivedFolders: ["81-queue-and-runner"] }
+        : null;
     const r = parseCreateRequest(
       { ...CREATE, dependsOn: ["81-queue-and-runner"] },
       { allow, resolve: withArchive, defaults: DEFAULTS },
@@ -152,8 +182,16 @@ describe("parseCreateRequest — dependsOn", () => {
     // resolved inside ONE specs root (aide-run-spec's own guard does
     // the same), so another project's folder is as unknown as a made-up
     // one.
-    for (const bad of [["01-first"], ["no-such-spec"], ["../etc/passwd"], [7]]) {
-      const r = parseCreateRequest({ ...CREATE, dependsOn: bad }, { allow, resolve, defaults: DEFAULTS });
+    for (const bad of [
+      ["01-first"],
+      ["no-such-spec"],
+      ["../etc/passwd"],
+      [7],
+    ]) {
+      const r = parseCreateRequest(
+        { ...CREATE, dependsOn: bad },
+        { allow, resolve, defaults: DEFAULTS },
+      );
       expect(r.ok).toBe(false);
     }
   });
@@ -161,23 +199,35 @@ describe("parseCreateRequest — dependsOn", () => {
   test("a repeat is refused, and so is a value that is not a list", () => {
     expect(
       parseCreateRequest(
-        { ...CREATE, dependsOn: ["81-queue-and-runner", "81-queue-and-runner"] },
+        {
+          ...CREATE,
+          dependsOn: ["81-queue-and-runner", "81-queue-and-runner"],
+        },
         { allow, resolve, defaults: DEFAULTS },
       ).ok,
     ).toBe(false);
     expect(
-      parseCreateRequest({ ...CREATE, dependsOn: "81-queue-and-runner" }, { allow, resolve, defaults: DEFAULTS }).ok,
+      parseCreateRequest(
+        { ...CREATE, dependsOn: "81-queue-and-runner" },
+        { allow, resolve, defaults: DEFAULTS },
+      ).ok,
     ).toBe(false);
   });
 
   test("nothing chosen means no field at all — exactly today's behaviour", () => {
-    const r = parseCreateRequest(CREATE, { allow, resolve, defaults: DEFAULTS });
+    const r = parseCreateRequest(CREATE, {
+      allow,
+      resolve,
+      defaults: DEFAULTS,
+    });
     expect(r.ok).toBe(true);
     expect(r.ok && r.job.createDependsOn).toBeUndefined();
     // And a caller that passes no resolver at all still parses: the six
     // calls above this block do exactly that, and a create that names
     // nothing has nothing to look up.
-    expect(parseCreateRequest(CREATE, { allow, defaults: DEFAULTS }).ok).toBe(true);
+    expect(parseCreateRequest(CREATE, { allow, defaults: DEFAULTS }).ok).toBe(
+      true,
+    );
   });
 
   test("a project whose first spec this is has nothing to depend on", () => {
@@ -198,15 +248,23 @@ describe("parseCreateRequest — dependsOn", () => {
 // looked up in the same table (`lookUpModel`), so a name this parser
 // accepts is a name `parseJobRequest` would accept too.
 describe("parseCreateRequest — model", () => {
-  const allow = (project: string) => project === "aide" || project === "brandnew";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const allow = (project: string) =>
+    project === "aide" || project === "brandnew";
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
   const WITH_CHOICES: QueueDefaults = {
     ...DEFAULTS,
     modelChoices: { sonnet: {}, fable: {} },
   };
 
   test("a configured model is honoured, and the job carries it for the one step it runs", () => {
-    const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: WITH_CHOICES });
+    const r = parseCreateRequest(
+      { ...CREATE, model: { create: "fable" } },
+      { allow, defaults: WITH_CHOICES },
+    );
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.job.model).toEqual({ create: "fable" });
@@ -232,7 +290,10 @@ describe("parseCreateRequest — model", () => {
   // Nothing configured at all is a different sentence from
   // a name that is merely not on the list.
   test("a server offering no model at all says so, rather than naming the pick", () => {
-    const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, model: { create: "fable" } },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r).toEqual({
       ok: false,
       error:
@@ -262,7 +323,12 @@ describe("parseCreateRequest — model", () => {
 
   test("a malformed name is refused before anything is looked up", () => {
     for (const bad of [{ create: "../etc/passwd" }, { create: 7 }, ["fable"]]) {
-      expect(parseCreateRequest({ ...CREATE, model: bad }, { allow, defaults: WITH_CHOICES }).ok).toBe(false);
+      expect(
+        parseCreateRequest(
+          { ...CREATE, model: bad },
+          { allow, defaults: WITH_CHOICES },
+        ).ok,
+      ).toBe(false);
     }
   });
 
@@ -291,7 +357,11 @@ describe("parseCreateRequest — model", () => {
 // job actually runs.
 describe("parseCreateRequest — steps", () => {
   const allow = (project: string) => project === "aide";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
   const WITH_CHOICES: QueueDefaults = {
     ...DEFAULTS,
     modelChoices: { sonnet: {}, fable: {} },
@@ -327,7 +397,11 @@ describe("parseCreateRequest — steps", () => {
       { allow, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
-    expect(r.ok && r.job.model).toEqual({ create: "fable", analyze: "sonnet", implement: "fable" });
+    expect(r.ok && r.job.model).toEqual({
+      create: "fable",
+      analyze: "sonnet",
+      implement: "fable",
+    });
   });
 
   // A name posted for a step this job does not run is not refused —
@@ -336,7 +410,11 @@ describe("parseCreateRequest — steps", () => {
   // as pending rather than dropped.
   test("a model named for an untouched phase is banked as pending, not dropped", () => {
     const r = parseCreateRequest(
-      { ...CREATE, steps: ["analyze"], model: { create: "sonnet", analyze: "fable", archive: "fable" } },
+      {
+        ...CREATE,
+        steps: ["analyze"],
+        model: { create: "sonnet", analyze: "fable", archive: "fable" },
+      },
       { allow, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
@@ -349,18 +427,31 @@ describe("parseCreateRequest — steps", () => {
   // outside the workflow's own vocabulary.
   test("an entry outside analyze/implement/archive is refused", () => {
     for (const bad of [["create"], ["reopen"], ["explore"], ["nope"], [7]]) {
-      expect(parseCreateRequest({ ...CREATE, steps: bad }, { allow, defaults: DEFAULTS }).ok).toBe(false);
+      expect(
+        parseCreateRequest(
+          { ...CREATE, steps: bad },
+          { allow, defaults: DEFAULTS },
+        ).ok,
+      ).toBe(false);
     }
   });
 
   test("steps that is not a list is refused", () => {
-    expect(parseCreateRequest({ ...CREATE, steps: "analyze" }, { allow, defaults: DEFAULTS }).ok).toBe(false);
+    expect(
+      parseCreateRequest(
+        { ...CREATE, steps: "analyze" },
+        { allow, defaults: DEFAULTS },
+      ).ok,
+    ).toBe(false);
   });
 
   // A repeated entry (two boxes of the same value, however that would
   // happen) never doubles a step in the job.
   test("a repeated entry is folded to one", () => {
-    const r = parseCreateRequest({ ...CREATE, steps: ["analyze", "analyze"] }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, steps: ["analyze", "analyze"] },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r.ok).toBe(true);
     expect(r.ok && r.job.steps).toEqual(["create", "analyze"]);
   });
@@ -375,12 +466,22 @@ describe("parseCreateRequest — steps", () => {
 // lives and the only place it has to be thought about.
 describe("parseCreateRequest — acceptanceRequired", () => {
   const allow = (project: string) => project === "aide";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
   test("ticked — the ordinary case — leaves the job with no not-required field", () => {
-    const r1 = parseCreateRequest({ ...CREATE, acceptanceRequired: "1" }, { allow, defaults: DEFAULTS });
+    const r1 = parseCreateRequest(
+      { ...CREATE, acceptanceRequired: "1" },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r1.ok && r1.job.acceptanceNotRequired).toBeUndefined();
-    const r2 = parseCreateRequest({ ...CREATE, acceptanceRequired: true }, { allow, defaults: DEFAULTS });
+    const r2 = parseCreateRequest(
+      { ...CREATE, acceptanceRequired: true },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r2.ok && r2.job.acceptanceNotRequired).toBeUndefined();
   });
 
@@ -395,7 +496,10 @@ describe("parseCreateRequest — acceptanceRequired", () => {
   test.each([["0"], [false], [""]])(
     "acceptanceRequired %p is a cleared box too",
     (value) => {
-      const r = parseCreateRequest({ ...CREATE, acceptanceRequired: value }, { allow, defaults: DEFAULTS });
+      const r = parseCreateRequest(
+        { ...CREATE, acceptanceRequired: value },
+        { allow, defaults: DEFAULTS },
+      );
       expect(r.ok).toBe(true);
       expect(r.ok && r.job.acceptanceNotRequired).toBe(true);
     },
@@ -412,12 +516,22 @@ describe("parseCreateRequest — acceptanceRequired", () => {
 // existed behaves exactly as it always has.
 describe("parseCreateRequest — aiFormulateAcceptance", () => {
   const allow = (project: string) => project === "aide";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
   test("ticked — the ordinary case — leaves the job with no no-AI field", () => {
-    const r1 = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: "1" }, { allow, defaults: DEFAULTS });
+    const r1 = parseCreateRequest(
+      { ...CREATE, aiFormulateAcceptance: "1" },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r1.ok && r1.job.createNoAiFormulate).toBeUndefined();
-    const r2 = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: true }, { allow, defaults: DEFAULTS });
+    const r2 = parseCreateRequest(
+      { ...CREATE, aiFormulateAcceptance: true },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r2.ok && r2.job.createNoAiFormulate).toBeUndefined();
   });
 
@@ -432,7 +546,10 @@ describe("parseCreateRequest — aiFormulateAcceptance", () => {
   test.each([["0"], [false], [""]])(
     "aiFormulateAcceptance %p is a cleared box too",
     (value) => {
-      const r = parseCreateRequest({ ...CREATE, aiFormulateAcceptance: value }, { allow, defaults: DEFAULTS });
+      const r = parseCreateRequest(
+        { ...CREATE, aiFormulateAcceptance: value },
+        { allow, defaults: DEFAULTS },
+      );
       expect(r.ok).toBe(true);
       expect(r.ok && r.job.createNoAiFormulate).toBe(true);
     },
@@ -443,12 +560,24 @@ describe("parseCreateRequest — aiFormulateAcceptance", () => {
 
 describe("parseCreateRequest — criteriaChecks", () => {
   const allow = (project: string) => project === "aide";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
-  test.each([["off"], ["warn"], ["stop"]])("%p is carried on the job", (level) => {
-    const r = parseCreateRequest({ ...CREATE, criteriaChecks: level }, { allow, defaults: DEFAULTS });
-    expect(r.ok && r.job.createCriteriaChecks).toBe(level as "off" | "warn" | "stop");
-  });
+  test.each([["off"], ["warn"], ["stop"]])(
+    "%p is carried on the job",
+    (level) => {
+      const r = parseCreateRequest(
+        { ...CREATE, criteriaChecks: level },
+        { allow, defaults: DEFAULTS },
+      );
+      expect(r.ok && r.job.createCriteriaChecks).toBe(
+        level as "off" | "warn" | "stop",
+      );
+    },
+  );
 
   test("absent leaves the job with no level", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
@@ -457,7 +586,10 @@ describe("parseCreateRequest — criteriaChecks", () => {
   });
 
   test("any other value is refused, and no job is made", () => {
-    const r = parseCreateRequest({ ...CREATE, criteriaChecks: "strict" }, { allow, defaults: DEFAULTS });
+    const r = parseCreateRequest(
+      { ...CREATE, criteriaChecks: "strict" },
+      { allow, defaults: DEFAULTS },
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("strict");
   });
@@ -467,12 +599,22 @@ describe("parseCreateRequest — criteriaChecks", () => {
 
 describe("parseCreateRequest — chooseApproach", () => {
   const allow = (project: string) => project === "aide";
-  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const CREATE = {
+    project: "aide",
+    title: "A new spec",
+    description: "Do the thing",
+  };
 
-  test.each([["1"], [true]])("ticked (%p) is carried on the job as yes", (value) => {
-    const r = parseCreateRequest({ ...CREATE, chooseApproach: value }, { allow, defaults: DEFAULTS });
-    expect(r.ok && r.job.createChooseApproach).toBe(true);
-  });
+  test.each([["1"], [true]])(
+    "ticked (%p) is carried on the job as yes",
+    (value) => {
+      const r = parseCreateRequest(
+        { ...CREATE, chooseApproach: value },
+        { allow, defaults: DEFAULTS },
+      );
+      expect(r.ok && r.job.createChooseApproach).toBe(true);
+    },
+  );
 
   test("absent is carried as no, so the spec records that it was not ticked", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
@@ -485,7 +627,12 @@ describe("parseCreateRequest — chooseApproach", () => {
 describe("a close request's reason", () => {
   const close = (closeReason: string) =>
     parseJobRequest(
-      { project: "aide", specFolder: "81-queue-and-runner", steps: ["close"], closeReason },
+      {
+        project: "aide",
+        specFolder: "81-queue-and-runner",
+        steps: ["close"],
+        closeReason,
+      },
       { resolve, defaults: DEFAULTS },
     );
 

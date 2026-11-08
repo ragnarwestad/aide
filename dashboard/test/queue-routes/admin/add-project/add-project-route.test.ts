@@ -1,7 +1,14 @@
 // Split out of settings-and-add-project.test.ts: the Add project route.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  rmSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../../src/serve/serve.ts";
@@ -17,7 +24,8 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length)
+    rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 interface StepBody {
@@ -29,7 +37,13 @@ interface StepBody {
   readiness?: {
     canRun: boolean;
     note: string;
-    checks: { check: string; subject: string; ok: boolean; blocking: boolean; detail: string }[];
+    checks: {
+      check: string;
+      subject: string;
+      ok: boolean;
+      blocking: boolean;
+      detail: string;
+    }[];
   };
 }
 
@@ -58,32 +72,51 @@ function ownConfig(contents: Record<string, unknown> = {}): string {
 }
 
 const projectsIn = (file: string): string[] =>
-  (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
+  (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] })
+    .projects ?? [];
 
 describe("POST /api/queue/projects", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const AUTH = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
 
   test("a git URL is cloned, given a manifest, and put on the allowlist", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "newproj",
+        gitUrl: "https://example.com/newproj.git",
+        codeLanding: "merge",
+      }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
-    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+    expect(body.results.map((r) => r.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+      "allowlist",
+    ]);
     expect(body.results.every((r) => r.ok)).toBe(true);
     // Nothing of Aide's is written into the clone; the
     // dashboard keeps the settings beside its own checkouts.
-    expect(existsSync(join(dir, "root", "newproj", ".aide", "project.yaml"))).toBe(false);
-    expect(existsSync(join(dir, "owned", "newproj", "settings.yaml"))).toBe(true);
+    expect(
+      existsSync(join(dir, "root", "newproj", ".aide", "project.yaml")),
+    ).toBe(false);
+    expect(existsSync(join(dir, "owned", "newproj", "settings.yaml"))).toBe(
+      true,
+    );
     // On the allowlist the MOMENT it is done — no restart, and no
     // waiting for the five-second scan: the New-spec form's project
     // list is the raw allowlist, so it shows a project with no spec yet.
-    const html = await (await fetch(`${base}/new`, )).text();
-    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
+    const html = await (await fetch(`${base}/new`)).text();
+    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain(
+      'value="newproj"',
+    );
   });
 
   test("a name already taken under the projects root is refused, and names the collision", async () => {
@@ -91,12 +124,18 @@ describe("POST /api/queue/projects", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "aide", gitUrl: "https://example.com/aide.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "aide",
+        gitUrl: "https://example.com/aide.git",
+        codeLanding: "merge",
+      }),
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(false);
-    expect(body.results.find((r) => r.step === "clone")!.error).toContain("aide");
+    expect(body.results.find((r) => r.step === "clone")!.error).toContain(
+      "aide",
+    );
     expect(existsSync(join(dir, "root", "aide", ".git"))).toBe(false);
   });
 
@@ -120,7 +159,10 @@ describe("POST /api/queue/projects", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" }),
+      body: JSON.stringify({
+        name: "nochoice",
+        gitUrl: "https://example.com/nochoice.git",
+      }),
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as StepBody;
@@ -128,22 +170,37 @@ describe("POST /api/queue/projects", () => {
     expect(existsSync(join(dir, "root", "nochoice"))).toBe(false);
     expect(existsSync(join(dir, "owned", "nochoice"))).toBe(false);
     const html = await (await fetch(`${base}/new`)).text();
-    expect(html.slice(html.indexOf('action="/api/queue/create"'))).not.toContain('value="nochoice"');
+    expect(
+      html.slice(html.indexOf('action="/api/queue/create"')),
+    ).not.toContain('value="nochoice"');
   });
 
   test("the Code landing refusal has the shape of the git-address refusal", async () => {
     const { base } = start({ gitRun: cloningGit() });
     const post = async (payload: object) => {
-      const res = await fetch(`${base}/api/queue/projects`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify(payload),
+      });
       return { status: res.status, body: (await res.json()) as StepBody };
     };
-    const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
+    const noLanding = await post({
+      name: "nochoice",
+      gitUrl: "https://example.com/nochoice.git",
+    });
     const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
     expect(noLanding.status).toBe(400);
     expect(noAddress.status).toBe(400);
-    expect(Object.keys(noLanding.body).sort()).toEqual(Object.keys(noAddress.body).sort());
+    expect(Object.keys(noLanding.body).sort()).toEqual(
+      Object.keys(noAddress.body).sort(),
+    );
     for (const { body } of [noLanding, noAddress]) {
-      expect(Object.keys(body.results[0]!).sort()).toEqual(["error", "ok", "step"]);
+      expect(Object.keys(body.results[0]!).sort()).toEqual([
+        "error",
+        "ok",
+        "step",
+      ]);
       expect(body.results[0]!.ok).toBe(false);
       const error = body.results[0]!.error!;
       expect(error).not.toContain("\n");
@@ -157,10 +214,18 @@ describe("POST /api/queue/projects", () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const post = async (fields: Record<string, string>) => {
-      const res = await fetch(`${base}/api/queue/projects`, { method: "POST", redirect: "manual", headers: FORM, body: new URLSearchParams(fields) });
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        redirect: "manual",
+        headers: FORM,
+        body: new URLSearchParams(fields),
+      });
       return { status: res.status, body: (await res.json()) as StepBody };
     };
-    const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
+    const noLanding = await post({
+      name: "nochoice",
+      gitUrl: "https://example.com/nochoice.git",
+    });
     const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
     expect(noLanding.status).toBe(400);
     expect(noLanding.body.results[0]!.error).toMatch(/^choose/);
@@ -186,7 +251,12 @@ describe("POST /api/queue/projects", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
-    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+    expect(body.results.map((r) => r.step)).toEqual([
+      "name",
+      "clone",
+      "manifest",
+      "allowlist",
+    ]);
   });
 
   const previewFromIn = (text: string) => {
@@ -210,7 +280,10 @@ describe("POST /api/queue/projects", () => {
     const body = (await res.json()) as StepBody;
     expect(body.ok).toBe(true);
     expect(body.results.find((r) => r.step === "previewFrom")?.ok).toBe(true);
-    const settings = readFileSync(join(dir, "owned", "chosen", "settings.yaml"), "utf-8");
+    const settings = readFileSync(
+      join(dir, "owned", "chosen", "settings.yaml"),
+      "utf-8",
+    );
     expect(previewFromIn(settings)).toBe("cloudflare-pages");
   });
 
@@ -219,20 +292,38 @@ describe("POST /api/queue/projects", () => {
     for (const [name, extra] of [
       ["picked-none", { previewFrom: "none" }],
       ["picked-nothing", {}],
-      ["picked-empty-commands", { testCmd: "", installCmd: "", previewCmd: "" }],
+      [
+        "picked-empty-commands",
+        { testCmd: "", installCmd: "", previewCmd: "" },
+      ],
     ] as const) {
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git`, codeLanding: "merge", ...extra }),
+        body: JSON.stringify({
+          name,
+          gitUrl: `https://example.com/${name}.git`,
+          codeLanding: "merge",
+          ...extra,
+        }),
       });
       expect(res.status).toBe(200);
       const body = (await res.json()) as StepBody;
-      expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
-      const settings = readFileSync(join(dir, "owned", name, "settings.yaml"), "utf-8");
+      expect(body.results.map((r) => r.step)).toEqual([
+        "name",
+        "clone",
+        "manifest",
+        "allowlist",
+      ]);
+      const settings = readFileSync(
+        join(dir, "owned", name, "settings.yaml"),
+        "utf-8",
+      );
       expect(settings).not.toContain("deployment");
       expect(settings).not.toMatch(/AIDE_TEST_CMD|previewCmd/);
-      expect(existsSync(join(dir, "root", name, ".aide", "config"))).toBe(false);
+      expect(existsSync(join(dir, "root", name, ".aide", "config"))).toBe(
+        false,
+      );
     }
   });
 
@@ -241,30 +332,63 @@ describe("POST /api/queue/projects", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "odd", gitUrl: "https://example.com/odd.git", codeLanding: "merge", previewFrom: "vercel" }),
+      body: JSON.stringify({
+        name: "odd",
+        gitUrl: "https://example.com/odd.git",
+        codeLanding: "merge",
+        previewFrom: "vercel",
+      }),
     });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as StepBody).results[0]).toMatchObject({ step: "previewFrom", ok: false });
+    expect(((await res.json()) as StepBody).results[0]).toMatchObject({
+      step: "previewFrom",
+      ok: false,
+    });
     expect(existsSync(join(dir, "root", "odd"))).toBe(false);
   });
 
   test("a choice on a project that tracks its manifest is committed to it, and the rest of the file stays", async () => {
-    const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\nlogging:\n  where: Cloudflare dashboard\n";
-    const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
+    const manifest =
+      "name: demo\ndeployment:\n  host: Cloudflare Pages\nlogging:\n  where: Cloudflare dashboard\n";
+    const f = projectWithOrigin(
+      { ".aide/project.yaml": manifest },
+      { clone: false },
+    );
     try {
       const real = createGitRunner(30_000);
-      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
-      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const committer = {
+        GIT_AUTHOR_NAME: "T",
+        GIT_AUTHOR_EMAIL: "t@example.com",
+        GIT_COMMITTER_NAME: "T",
+        GIT_COMMITTER_EMAIL: "t@example.com",
+      };
+      const { base } = start({
+        gitRun: (cwd, args, timeout, env) =>
+          real(cwd, args, timeout, { ...committer, ...env }),
+      });
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name: "demo", gitUrl: f.origin, codeLanding: "merge", previewFrom: "command" }),
+        body: JSON.stringify({
+          name: "demo",
+          gitUrl: f.origin,
+          codeLanding: "merge",
+          previewFrom: "command",
+        }),
       });
       const body = (await res.json()) as StepBody;
-      expect(body.results.find((r) => r.step === "previewFrom")).toEqual({ step: "previewFrom", ok: true });
+      expect(body.results.find((r) => r.step === "previewFrom")).toEqual({
+        step: "previewFrom",
+        ok: true,
+      });
       const onOrigin = git(f.origin, "show", "main:.aide/project.yaml");
       expect(previewFromIn(onOrigin)).toBe("command");
-      expect(onOrigin).toBe(manifest.replace("  host: Cloudflare Pages\n", "  host: Cloudflare Pages\n  previewFrom: command\n"));
+      expect(onOrigin).toBe(
+        manifest.replace(
+          "  host: Cloudflare Pages\n",
+          "  host: Cloudflare Pages\n  previewFrom: command\n",
+        ),
+      );
     } finally {
       f.cleanup();
     }
@@ -290,19 +414,34 @@ describe("POST /api/queue/projects", () => {
     for (const step of ["testCmd", "installCmd", "previewCmd"]) {
       expect(body.results.find((r) => r.step === step)?.ok).toBe(true);
     }
-    const settings = parseManifest(readFileSync(join(dir, "owned", "commands", "settings.yaml"), "utf-8"));
+    const settings = parseManifest(
+      readFileSync(join(dir, "owned", "commands", "settings.yaml"), "utf-8"),
+    );
     expect(settings.ok && settings.data.AIDE_TEST_CMD).toBe("make test");
     expect(settings.ok && settings.data.previewCmd).toBe("make serve");
-    expect(readFileSync(join(dir, "root", "commands", ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install\n");
+    expect(
+      readFileSync(join(dir, "root", "commands", ".aide", "config"), "utf-8"),
+    ).toContain("AIDE_INSTALL_CMD=make install\n");
   });
 
   test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays", async () => {
     const manifest = "name: demo\nlogging:\n  where: Cloudflare dashboard\n";
-    const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
+    const f = projectWithOrigin(
+      { ".aide/project.yaml": manifest },
+      { clone: false },
+    );
     try {
       const real = createGitRunner(30_000);
-      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
-      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const committer = {
+        GIT_AUTHOR_NAME: "T",
+        GIT_AUTHOR_EMAIL: "t@example.com",
+        GIT_COMMITTER_NAME: "T",
+        GIT_COMMITTER_EMAIL: "t@example.com",
+      };
+      const { base } = start({
+        gitRun: (cwd, args, timeout, env) =>
+          real(cwd, args, timeout, { ...committer, ...env }),
+      });
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
@@ -331,14 +470,18 @@ describe("POST /api/queue/projects", () => {
         acPrefix: "F{spec}",
         deployment: { previewFrom: "command" },
       });
-      for (const line of manifest.split("\n").filter(Boolean)) expect(onOrigin.split("\n")).toContain(line);
+      for (const line of manifest.split("\n").filter(Boolean))
+        expect(onOrigin.split("\n")).toContain(line);
     } finally {
       f.cleanup();
     }
   });
 
   test("the test-command route answers what a git address's root files point at, and refuses a GET", async () => {
-    const f = projectWithOrigin({ "package-lock.json": "{}" }, { clone: false });
+    const f = projectWithOrigin(
+      { "package-lock.json": "{}" },
+      { clone: false },
+    );
     try {
       git(f.origin, "config", "uploadpack.allowFilter", "true");
       const { base } = start({ gitRun: createGitRunner(30_000) });
@@ -349,7 +492,9 @@ describe("POST /api/queue/projects", () => {
       });
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ ok: true, testCmd: "npm test" });
-      expect((await fetch(`${base}/api/queue/projects/test-command`)).status).toBe(405);
+      expect(
+        (await fetch(`${base}/api/queue/projects/test-command`)).status,
+      ).toBe(405);
     } finally {
       f.cleanup();
     }
@@ -364,7 +509,11 @@ describe("POST /api/queue/projects", () => {
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "  picked  ", gitUrl: "https://example.com/picked.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "  picked  ",
+        gitUrl: "https://example.com/picked.git",
+        codeLanding: "merge",
+      }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as StepBody;
@@ -380,7 +529,11 @@ describe("POST /api/queue/projects", () => {
     await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git", codeLanding: "merge" }),
+      body: JSON.stringify({
+        name: "newproj",
+        gitUrl: "https://example.com/newproj.git",
+        codeLanding: "merge",
+      }),
     });
     expect(projectsIn(file).sort()).toEqual(["aide", "newproj"]);
     // The rest of the config is untouched.
@@ -397,7 +550,11 @@ describe("POST /api/queue/projects", () => {
       fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git`, codeLanding: "merge" }),
+        body: JSON.stringify({
+          name,
+          gitUrl: `https://example.com/${name}.git`,
+          codeLanding: "merge",
+        }),
       });
     await Promise.all([add("one"), add("two")]);
     expect(projectsIn(file).sort()).toEqual(["aide", "one", "two"]);
@@ -425,7 +582,10 @@ describe("POST /api/queue/projects", () => {
       await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ name: "../escape", gitUrl: "https://example.com/x.git" }),
+        body: JSON.stringify({
+          name: "../escape",
+          gitUrl: "https://example.com/x.git",
+        }),
       });
     } finally {
       console.error = realError;
