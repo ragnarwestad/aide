@@ -24,7 +24,16 @@ async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<str
     const target = await resolveOpenBranchTarget(ctx, dir, entry.name, "1-description.md", fresh);
     fresh = false;
     const branch = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
-    if (target && !branch) throw new Error(`Could not read the current dependencies of ${entry.name}`);
+    if (target && !branch) {
+      // An archive moves the folder under archive/ on its own branch before it lands: that spec is
+      // as good as archived, and an archived spec waits on nothing.
+      const archived = join(dirname(dirname(target.relPath)), "archive", entry.name, "1-description.md");
+      if (await readStatusFromBranch(ctx.gitRun, target.root, target.branch, archived)) {
+        descriptions.set(entry.name, "");
+        continue;
+      }
+      throw new Error(`Could not read the current dependencies of ${entry.name}`);
+    }
     const text = readFileSync(file, "utf8");
     if (!branch || branch.text === text) descriptions.set(entry.name, text);
     else {
