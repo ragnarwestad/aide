@@ -101,7 +101,7 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
           });
         if (!saved.ok) {
           ctx.queue.update(job.id, { error: cycle
-            ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)) } }
+            ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)).join(" → ") } }
             : { key: "runner.autoDependenciesFailed", values: { reason: saved.note } } });
           return;
         }

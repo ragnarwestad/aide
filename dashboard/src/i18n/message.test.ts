@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { messageDetail, messageIdentity, renderMessage, renderSentence } from "./message.ts";
+import { type BoardMessage, messageDetail, messageIdentity, renderMessage, renderSentence } from "./message.ts";
 
 describe("renderMessage", () => {
   test("renders a message with values substituted, per language", () => {
@@ -60,6 +60,12 @@ describe("renderSentence", () => {
     expect(renderSentence("en", stored)).not.toContain("{count}");
     expect(messageDetail(stored)).toBe("first\nsecond");
   });
+  test("a list filling a sentence is never drawn as a bare count", () => {
+    const red: BoardMessage = { key: "runner.testsRedFailing", values: { n: "2", total: "9", tests: ["a › one", "b › two"], button: "Implement" } };
+    expect(renderSentence("en", red)).toBe("Problem: Implement is done, but 2 of 9 tests fail on its result\nSolution: Press Implement again");
+    expect(messageDetail(red)).toBe("a › one\nb › two");
+  });
+
   test("a plain string (a job stored earlier) renders as-is in any language", () => {
     expect(renderSentence("en", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
     expect(renderSentence("nb", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");

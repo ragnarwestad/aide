@@ -24,7 +24,7 @@ describe("testsRedMessage", () => {
       values: { attempts: "3" },
       inner: [{ key: "runner.testsRedFailing" }],
     });
-    expect(renderMessage("en", said(red({ attempts: 3 })))).toContain(
+    expect(messageDetail(said(red({ attempts: 3 })))).toContain(
       "e2e/a.spec.ts:5 › a works — expected 3, received 0",
     );
   });
