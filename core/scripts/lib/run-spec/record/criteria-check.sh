@@ -54,12 +54,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
       def ids: split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""));
       {missing: ($missing == "true"), notEars: ($notEars | ids), noScenario: ($noScenario | ids),
        contradictions: ($contradictions | ids), cannotBuild: ($cannotBuild | ids)}')"
-    terminal_reason="acceptance-criteria"
-    ok="false"
-    suffix=" (stopped: acceptance-criteria)"
-    amend_note="${model_suffix}${suffix}"
-    error_msg="$step_button stopped on the acceptance criteria — $criteria_check_faults"
-    error_solution="put the description right, then press $step_button again"
+    stop_step acceptance-criteria "$step_button stopped on the acceptance criteria — $criteria_check_faults" \
+      "put the description right, then press $step_button again"
     error_log="$criteria_check_faults"
   fi
 fi

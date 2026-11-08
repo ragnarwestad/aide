@@ -108,9 +108,9 @@ verified_defects() {  # <defects> <reply>
 }
 
 side_failure() {  # <Review|Verify> <tool> <model>
-  terminal_reason="$side_reason"
-  [ "$terminal_reason" = "unavailable" ] && terminal_reason="cli-error"
-  error_msg="$1 on ${3:-$2} could not run: ${side_error:-$side_reason}"
+  local side_terminal="$side_reason"
+  [ "$side_terminal" = "unavailable" ] && side_terminal="cli-error"
+  stop_step "$side_terminal" "$1 on ${3:-$2} could not run: ${side_error:-$side_reason}" ""
   error_log="$error_msg"
   provider_limit_out="${side_limit:-}"; at_capacity_out="${side_capacity:-}"; provider_error_out="${side_provider_error:-}"
   stage_error "$error_msg"

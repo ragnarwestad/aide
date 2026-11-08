@@ -216,11 +216,8 @@ if [ -n "$step_tests_folder" ]; then
   fi
   if ! printf '%s' "$step_tests_resolved" | jq -e '.ok == true' >/dev/null 2>&1; then
     tests_not_started_json="$(jq -cn '{kind:"test-command-unresolved"}')"
-    terminal_reason="tests-not-started"
-    ok="false"
-    suffix=" (stopped: tests-not-started)"
-    error_msg="the step reported success, but no test ran because the runner could not work out the project's test command"
-    error_solution="fix AIDE_TEST_CMD in the project's .aide/project.yaml, then press $step_button again"
+    stop_step tests-not-started "the step reported success, but no test ran because the runner could not work out the project's test command" \
+      "fix AIDE_TEST_CMD in the project's .aide/project.yaml, then press $step_button again"
   else
     step_test_args=()
     step_test_count=0
@@ -256,11 +253,8 @@ EOF_CMDS
           break
         fi
         if [ "$step_tests_rc" -eq 124 ]; then
-          terminal_reason="timeout"
-          ok="false"
-          suffix=" (stopped: timeout)"
-          error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running; the work is committed to the branch"
-          error_solution="press $step_button again to test it"
+          stop_step timeout "stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running; the work is committed to the branch" \
+            "press $step_button again to test it"
           time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"tests"}')"
           break
         fi
@@ -269,15 +263,12 @@ EOF_CMDS
         step_tests_unrun="$(recorder_failure "$work_dir/step-test-run.json" "$work_dir/step-test-run.log" "$step_tests_rc")"
         if [ -n "$step_tests_unrun" ]; then
           tests_not_started_json="$step_tests_unrun"
-          terminal_reason="tests-not-started"
-          ok="false"
-          suffix=" (stopped: tests-not-started)"
           if [ "$(jq -r '.kind' <<<"$step_tests_unrun")" = "spec-folder-missing" ]; then
-            error_msg="the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run"
-            error_solution="press $step_button again for this step once the folder is back in place"
+            stop_step tests-not-started "the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run" \
+              "press $step_button again for this step once the folder is back in place"
           else
-            error_msg="the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun"))"
-            error_solution="press $step_button again for this step once the recorder is working"
+            stop_step tests-not-started "the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun"))" \
+              "press $step_button again for this step once the recorder is working"
           fi
           break
         fi
@@ -314,12 +305,8 @@ EOF_CMDS
           [ -n "$step_tests_port" ] && step_tests_holder="$(port_holder "$step_tests_port")"
           tests_not_started_json="$(jq -c --arg command "$step_tests_failed_command" --argjson holder "${step_tests_holder:-null}" \
             '. + {command:$command} + (if $holder == null then {} else {holder:$holder} end)' <<<"$step_tests_start")"
-          terminal_reason="tests-not-started"
-          ok="false"
-          suffix=" (stopped: tests-not-started)"
-          error_msg="the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start.
-$step_tests_start_line"
-          error_solution="press $step_button again once that server can start"
+          stop_step tests-not-started "the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start.
+$step_tests_start_line" "press $step_button again once that server can start"
           [ -n "$step_tests_holder" ] && error_msg="$error_msg
 port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
           # What the server printed and who holds the port: the sentence's lines after its first.
@@ -331,12 +318,8 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
         step_time_left=$(( started_at + ${timeout_sec%.*} - $(date +%s) ))
         if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
            || [ "$step_time_left" -le 0 ]; then
-          terminal_reason="tests-red"
-          ok="false"
-          suffix=" (stopped: tests-red)"
-          error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
-$step_tests_failing"
-          error_solution="press $step_button again for this step"
+          stop_step tests-red "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
+$step_tests_failing" "press $step_button again for this step"
           error_log="$step_tests_failing"
           # No session turn occurs between the last suite run and this
           # isolated check of every red file.
@@ -386,8 +369,7 @@ $step_tests_failing"
     # same hash the record carries) and the commands. A landing that is
     # about to test exactly this tree with exactly these commands has
     # nothing to learn from a run of its own.
-    if [ "$terminal_reason" = "completed" ] && [ "$step_test_count" -gt 0 ] && \
-       declare -f aide_tree_hash >/dev/null 2>&1; then
+    if [ "$terminal_reason" = "completed" ] && [ "$step_test_count" -gt 0 ]; then
       tested_tree="$(aide_tree_hash "$project_wt" 2>/dev/null || echo "")"
       [ -n "$tested_tree" ] && tested_green_json="$(jq -cn --arg tree "$tested_tree" \
         --argjson resolved "$step_tests_resolved" '{tree:$tree, commands:$resolved.commands}')"

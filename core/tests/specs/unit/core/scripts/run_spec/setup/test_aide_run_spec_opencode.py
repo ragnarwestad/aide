@@ -97,6 +97,17 @@ def test_an_opencode_error_event_is_the_failure_and_carries_its_message(
     assert out["sessionId"] == OPENCODE_SESSION_ID
 
 
+def test_an_opencode_2_error_event_carries_its_message_too(runner, workspace, fake_opencode):
+    """opencode 2.x puts the sentence under `.error.message`, and its name
+    under `.error.type` (opencode 2.2.6, read off a failed run)."""
+    event = {"type": "error", "sessionID": OPENCODE_SESSION_ID,
+             "error": {"type": "provider.quota", "message": "Insufficient account funds", "status": 402}}
+    oc = fake_opencode(emits(json.dumps(event)))
+    rc, out, _ = run(runner, workspace, tool="opencode", opencode=oc)
+    assert out["ok"] is False, out
+    assert "Insufficient account funds" in json.dumps(out)
+
+
 @pytest.mark.parametrize(
     "mode,expected,forbidden",
     [

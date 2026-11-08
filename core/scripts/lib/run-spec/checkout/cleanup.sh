@@ -19,7 +19,7 @@
 # the step's own commit when HEAD has moved since the run started, and
 # only opens a commit of its own when the step made none.
 suffix=""
-[ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
+[ "$terminal_reason" != "completed" ] && stop_suffix "$terminal_reason"
 
 # WHO ran the step, next to what happened to it. The tool is
 # always known — it defaults to `claude` and is refused if it is neither

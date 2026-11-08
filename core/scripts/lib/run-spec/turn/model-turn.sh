@@ -193,16 +193,19 @@ if [ "$tool" = "codex" ]; then
          error_msg="$(jq -r '(.error.message // .error // "the turn failed") | tostring' <<<"$result_json")" ;;
     esac
     # Codex's usage block, mapped into the shape the claude path already
-    # defined. Two of the four need saying out loud: reasoning tokens
-    # are BILLED AS OUTPUT and so are added to it rather than dropped,
-    # and Codex exposes no separate cache-WRITE count at all — zero
-    # there is the measurement, not a placeholder for a missing one.
+    # defined, whose four parts do not overlap. Codex's do: its
+    # `input_tokens` already holds the cached and cache-written input, and
+    # its `output_tokens` the reasoning, so Codex's own `total_tokens` is
+    # input plus output (read off a session log, codex-cli 0.167.0). The
+    # cached parts come out of input, and reasoning is not added again.
     tokens_json="$(jq -c '
       if (.usage | type) == "object" then
-        {input:         (.usage.input_tokens // 0),
-         output:        ((.usage.output_tokens // 0) + (.usage.reasoning_output_tokens // 0)),
-         cacheRead:     (.usage.cached_input_tokens // 0),
-         cacheCreation: 0}
+        (.usage.cached_input_tokens // 0) as $read
+        | (.usage.cache_write_input_tokens // 0) as $write
+        | {input:         ([(.usage.input_tokens // 0) - $read - $write, 0] | max),
+           output:        (.usage.output_tokens // 0),
+           cacheRead:     $read,
+           cacheCreation: $write}
         | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
       else empty end
     ' <<<"$result_json" 2>/dev/null)"
@@ -237,7 +240,8 @@ elif [ "$tool" = "opencode" ]; then
   # that event wins: it is the only place a message to show the reader
   # exists. Verified 2026-09-16 against opencode 1.18.31, whose error
   # event carries `.error.name` with the human sentence under
-  # `.error.data.message`.
+  # `.error.data.message`; opencode 2.2.6 carries `.error.type` with the
+  # sentence under `.error.message`.
   error_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "error")' \
     "$transcript" 2>/dev/null | tail -n 1)"
   # Every event carries the session opencode named for itself, so the
@@ -268,7 +272,8 @@ elif [ "$tool" = "opencode" ]; then
   if [ -n "$error_json" ]; then
     have_result="true"
     subtype="turn_failed"
-    error_msg="$(jq -r '(.error.data.message // .error.name // "the turn failed") | tostring' <<<"$error_json")"
+    error_msg="$(jq -r '(.error.data.message // .error.message // .error.name // .error.type // "the turn failed")
+      | tostring' <<<"$error_json")"
   elif [ "$(jq -r '.steps // 0' <<<"${steps_json:-{\}}" 2>/dev/null)" != "0" ]; then
     have_result="true"
     subtype="success"

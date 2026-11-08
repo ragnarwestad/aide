@@ -66,13 +66,10 @@ EOF_PATHS
 $foreign_paths
 EOF_FOREIGN
     foreign_named="$(printf '%s' "$foreign_paths" | head -3 | tr '\n' ' ' | sed 's/ $//')"
-    terminal_reason="scope-violation"
     scope_violation="specs"
     scope_specs_json="$(printf '%s' "$foreign_paths" | head -3 | jq -R . | jq -sc .)"
-    ok="false"
-    suffix=" (stopped: scope-violation)"
-    error_msg="the step reported success but wrote outside its own spec folder in the specs repo — $foreign_named — those changes were discarded; a step writes only $spec_folder/"
-    error_solution="press $step_button again for this step"
+    stop_step scope-violation "the step reported success but wrote outside its own spec folder in the specs repo — $foreign_named — those changes were discarded; a step writes only $spec_folder/" \
+      "press $step_button again for this step"
     echo "aide-run-spec: $error_msg — $error_solution" >&2
   fi
 fi

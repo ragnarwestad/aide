@@ -170,3 +170,18 @@ test("an older open branch cannot hide a dependency already added on main", asyn
   expect(h.queued).toEqual([]);
   expect(second.error).toMatchObject({ key: "runner.dependencyCycle" });
 });
+
+test("a dependency whose archive is landing counts as archived, though its open branch has moved its folder", async () => {
+  const h = setup();
+  // 2-b's archive step has moved its folder under archive/ on its own branch; main still has it open.
+  h.git(h.code, "switch", "-q", "-c", "aide/2-b");
+  mkdirSync(join(h.specs, "archive"), { recursive: true });
+  h.git(h.code, "mv", join("aide", "2-b"), join("aide", "archive", "2-b"));
+  h.git(h.code, "commit", "-qm", "Archive 2-b"); h.git(h.code, "push", "-q", "origin", "aide/2-b");
+  h.git(h.code, "switch", "-q", "main");
+  (h.ctx as unknown as { branchStatus: { openSpecBranches: () => Promise<Set<string>> } }).branchStatus.openSpecBranches =
+    async () => new Set(["aide/2-b"]);
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(h.job.error).toBeUndefined();
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toContain("`2-b`");
+});

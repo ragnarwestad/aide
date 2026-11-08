@@ -154,8 +154,7 @@ if [ -n "$phase_file" ]; then
   # so the lines the form's other choices write land above it.
   if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ]; then
     formulated="yes"; [ "$no_ai_formulate" = "yes" ] && formulated="no"
-    if ! { declare -f aide_spec_record_ai_formulate >/dev/null 2>&1 \
-      && aide_spec_record_ai_formulate "$phase_file" "$formulated"; }; then
+    if ! aide_spec_record_ai_formulate "$phase_file" "$formulated"; then
       stage "could not record whether AI formulated the acceptance criteria: the description has no Created line, so the board reads it as yes"
     fi
   fi
@@ -164,16 +163,14 @@ if [ -n "$phase_file" ]; then
   # Written here rather than by the create session, so both create paths
   # record it the same way.
   if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ] && [ -n "${criteria_checks_arg:-}" ]; then
-    if ! { declare -f aide_spec_record_criteria_checks >/dev/null 2>&1 \
-      && aide_spec_record_criteria_checks "$phase_file" "$criteria_checks_arg"; }; then
+    if ! aide_spec_record_criteria_checks "$phase_file" "$criteria_checks_arg"; then
       stage "could not record the acceptance criteria checks level $criteria_checks_arg: the description has no Created line, so analyze reads it as off"
     fi
   fi
   # Whether the New-spec form asked to choose the approach, recorded the
   # same way and after the level above, so the two lines keep one order.
   if [ "$command_name" = "create" ] && [ "$terminal_reason" = "completed" ] && [ -n "${choose_approach_arg:-}" ]; then
-    if ! { declare -f aide_spec_record_choose_approach >/dev/null 2>&1 \
-      && aide_spec_record_choose_approach "$phase_file" "$choose_approach_arg"; }; then
+    if ! aide_spec_record_choose_approach "$phase_file" "$choose_approach_arg"; then
       stage "could not record whether to choose the approach: the description has no Created line, so analyze reads it as no"
     fi
   fi

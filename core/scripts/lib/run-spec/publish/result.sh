@@ -23,11 +23,8 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   # the step is retried like any other failed step, and
   # commit_and_push_roots's own widened gate retries whatever this run
   # left stuck, whether or not the re-run's own session changes anything.
-  ok="false"
-  terminal_reason="unpushed"
-  suffix=" (stopped: unpushed)"
-  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
-  error_solution="fix the branch in the checkout on the serving host"
+  stop_step unpushed "the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}" \
+    "fix the branch in the checkout on the serving host"
   error_log="${push_error:-}"
   note_unpushed_without_failure
 elif [ -n "$status_file" ]; then
@@ -41,9 +38,7 @@ elif [ -n "$status_file" ]; then
   # by the per-file record below) are left exactly
   # where they sit, same as before: the function touches only the line
   # it owns.
-  if declare -f write_phase_stamp >/dev/null 2>&1; then
-    write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
-  fi
+  write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
 
   # A completed analysis of an implemented spec clears every acceptance
   # tick and rebuilds the rows from the description: the code the ticks
@@ -99,18 +94,15 @@ elif [ -n "$status_file" ]; then
   # original, earlier position — $completed_steps does not exist yet at
   # that point any more, and this write has to ride PASS 2's commit
   # anyway, same as the prose line it derives from.
-  if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ] && declare -f write_spec_state >/dev/null 2>&1; then
+  if [ "$terminal_reason" = "completed" ] && [ -f "$status_file" ]; then
     write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
   fi
 
   # --- PASS 2: the line has to clear the same bar -------------
   commit_and_push_roots
   if [ "$terminal_reason" = "completed" ] && ! roots_confirmed_on_origin; then
-    ok="false"
-    terminal_reason="unpushed"
-    suffix=" (stopped: unpushed)"
-    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
-    error_solution="fix the branch in the checkout on the serving host"
+    stop_step unpushed "the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}" \
+      "fix the branch in the checkout on the serving host"
     error_log="${push_error:-}"
     note_unpushed_without_failure
   fi

@@ -220,13 +220,17 @@ def test_a_step_stopped_by_its_review_commits_its_work_as_unfinished(runner, wor
         "  exit 1\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt\n"
+        '  specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
+        f"  printf 'spec work\\n' > \"$specs/{workspace['folder']}/implement-note\"\n"
         f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done'))}'\n"
         "fi\n"
     )
     rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
     assert out["terminalReason"] == "cli-error", out
-    message = git(workspace["project"], "log", "-1", "--pretty=%B", "aide/81-queue-and-runner")
-    assert message.startswith("WIP: "), message
+    project_message = git(workspace["project"], "log", "-1", "--pretty=%B", "aide/81-queue-and-runner")
+    assert project_message.startswith("WIP: "), project_message
+    message = git(workspace["specs"], "log", "-1", "--pretty=%B", "aide/81-queue-and-runner")
+    assert message.rstrip().endswith(" (stopped: cli-error)"), message
 
 
 def test_a_non_implement_command_never_gets_a_review_call(runner, workspace, fake_claude):

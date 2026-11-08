@@ -69,17 +69,13 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     stage "$sa_said — within the limits, the step completes"
   else
     stage "$sa_said — Analyze fails"
-    terminal_reason="short-analysis-over-limit"
-    ok="false"
-    suffix=" (stopped: short-analysis-over-limit)"
-    amend_note="${model_suffix}${suffix}"
+    stop_step short-analysis-over-limit "$step_button wrote a short analysis for a spec that may not have one: $sa_crossed" \
+      "Analyze runs again and writes the full analysis"
     if [ -z "$(tracking_info_field "$sa_dir/1-description.md" "Sent back to a full analysis")" ]; then
       sa_why="$(printf 'a short analysis was written over a limit: %s' "$sa_crossed" | tr '\n\r' '  ' | tr -d '`' \
         | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | cut -c1-300 | sed 's/[[:space:]]*$//')"
       record_sent_back "$sa_dir/1-description.md" "$sa_why" || true
     fi
-    error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed"
-    error_solution="Analyze runs again and writes the full analysis"
     error_log="$sa_crossed"
   fi
 fi

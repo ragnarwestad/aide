@@ -36,11 +36,8 @@ open_merge_dropped() {
   return 1
 }
 merge_unfinished() {
-  terminal_reason="merge-unfinished"
-  ok="false"
-  suffix=" (stopped: merge-unfinished)"
-  error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away"
-  error_solution="press $step_button again for this step"
+  stop_step merge-unfinished "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away" \
+    "press $step_button again for this step"
 }
 
 status_file=""
@@ -86,11 +83,8 @@ if [ -n "$status_file" ]; then
     # turned a record-keeping slip into a red run someone had to
     # re-drive.
     if [ "$proj_changed" != "yes" ]; then
-      terminal_reason="no-progress"
-      ok="false"
-      suffix=" (stopped: no-progress)"
-      error_msg="the step reported success but left no real progress — nothing changed in the project"
-      error_solution="press $step_button again for this step"
+      stop_step no-progress "the step reported success but left no real progress — nothing changed in the project" \
+        "press $step_button again for this step"
     fi
     # Work done on top of a merge the session threw away is work on the old
     # base, and the landing meets the same conflict again.
@@ -121,10 +115,9 @@ if [ -n "$status_file" ]; then
         ;;
       *)
         archive_refusal=""
-        if declare -f may_apply_spec_transition >/dev/null 2>&1 \
-           && ! may_apply_spec_transition "$status_file" "archive"; then
+        if ! may_apply_spec_transition "$status_file" "archive"; then
           archive_refusal="not-implemented-yet"
-        elif declare -f read_spec_state >/dev/null 2>&1; then
+        else
           read_spec_state "$status_file"
           acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json" 2>/dev/null || echo 0)"
           acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json" 2>/dev/null || echo 0)"
@@ -139,11 +132,8 @@ if [ -n "$status_file" ]; then
           suffix=""
           error_msg=""; error_solution=""; error_log=""
         else
-          terminal_reason="no-progress"
-          ok="false"
-          suffix=" (stopped: no-progress)"
-          error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/"
-          error_solution="press $step_button again for this step"
+          stop_step no-progress "the step reported success but left no real progress — the spec folder was never moved to archive/" \
+            "press $step_button again for this step"
         fi
         ;;
     esac
@@ -230,10 +220,7 @@ if [ -n "$status_file" ]; then
 
     if [ "$proj_changed" = "yes" ] || [ "$rows_advanced" = "yes" ] || \
        [ "$claims_extra_step" = "yes" ]; then
-      terminal_reason="scope-violation"
       scope_violation="analyze"
-      ok="false"
-      suffix=" (stopped: scope-violation)"
       # Says WHICH check tripped, and for a dirty project tree, what was
       # dirty: a generic sentence sent a person to guess (2026-09-03).
       scope_what=""
@@ -249,8 +236,8 @@ if [ -n "$status_file" ]; then
           } else null end),
           phaseRows:($rows == "yes"), workflowSteps:($workflow == "yes")}
          | if .project == null then del(.project) else . end')"
-      error_msg="the step reported success but changed things outside analyze's scope — $scope_what"
-      error_solution="press $step_button again for this step"
+      stop_step scope-violation "the step reported success but changed things outside analyze's scope — $scope_what" \
+        "press $step_button again for this step"
     fi
   fi
 fi

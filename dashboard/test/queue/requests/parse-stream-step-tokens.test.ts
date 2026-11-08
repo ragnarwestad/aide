@@ -149,13 +149,29 @@ describe("stepTokens: Codex", () => {
     expect(got.has(KEY(1))).toBe(false);
   });
 
+  // A thread's `turn.completed` carries its usage so far, every turn of it; input holds the cached
+  // input and output the reasoning, so a turn's tokens are what input plus output grew by.
   test("a turn that begins after the step started and ends before it did counts for it whole", () => {
     const got = codex(
-      ...turn(said(start(1)))(usage(1, 1, 1, 1)),
-      ...turn(said("middle"))(usage(100, 20, 5, 50)),
-      ...turn(said(done(1)))(usage(2, 2, 2, 2)),
+      line({ type: "thread.started", thread_id: "t1" }),
+      ...turn(said(start(1)))(usage(10, 5, 2, 4)),
+      ...turn(said("middle"))(usage(110, 25, 7, 54)),
+      ...turn(said(done(1)))(usage(130, 30, 7, 60)),
     );
-    expect(got.get(KEY(1))).toBe(100 + 20 + 5 + 50);
+    expect(got.get(KEY(1))).toBe(100 + 20);
+  });
+
+  test("another thread in the same transcript starts its own count", () => {
+    const got = codex(
+      line({ type: "thread.started", thread_id: "t1" }),
+      ...turn(said(start(1)))(usage(10, 5, 0, 0)),
+      line({ type: "thread.started", thread_id: "review" }),
+      ...turn(said("middle"))(usage(40, 8, 0, 0)),
+      line({ type: "thread.started", thread_id: "t1" }),
+      ...turn(said("again"))(usage(60, 9, 0, 0)),
+      ...turn(said(done(1)))(usage(70, 10, 0, 0)),
+    );
+    expect(got.get(KEY(1))).toBe(40 + 8 + (60 + 9 - 15));
   });
 });
 

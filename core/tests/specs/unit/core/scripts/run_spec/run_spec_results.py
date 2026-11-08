@@ -59,6 +59,7 @@ FLAT_USAGE = {
 CODEX_USAGE = {
     "input_tokens": 4210,
     "cached_input_tokens": 3900,
+    "cache_write_input_tokens": 150,
     "output_tokens": 812,
     "reasoning_output_tokens": 640,
 }

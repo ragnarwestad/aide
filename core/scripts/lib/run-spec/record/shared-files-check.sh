@@ -27,11 +27,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
     shared_files_json="$shared_new"
     shared_files_said="$(jq -r 'map(.spec + ": " + (.files | join(", "))) | join("; ")' <<<"$shared_new")"
     stage "shared files: $shared_files_said — Analyze ends stopped"
-    terminal_reason="shared-files"
-    ok="false"
-    suffix=" (stopped: shared-files)"
-    amend_note="${model_suffix}${suffix}"
-    error_msg="$step_button stopped: other open specs plan to change the same files as this spec — $shared_files_said"
-    error_solution="add them to this spec's Depends on"
+    stop_step shared-files "$step_button stopped: other open specs plan to change the same files as this spec — $shared_files_said" \
+      "add them to this spec's Depends on"
   fi
 fi

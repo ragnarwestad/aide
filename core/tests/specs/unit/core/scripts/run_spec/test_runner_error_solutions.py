@@ -18,7 +18,7 @@ def sources() -> list[Path]:
 
 
 def sites() -> list[tuple[str, str, str]]:
-    """(file:line, kind, text) for every refuse, refuse_fix, error_msg= and
+    """(file:line, kind, text) for every refuse, refuse_fix, stop_step, error_msg= and
     hand-written "error": line, definitions, comments and resets left out."""
     found = []
     for path in sources():
@@ -27,10 +27,12 @@ def sites() -> list[tuple[str, str, str]]:
             stripped = line.strip()
             if stripped.startswith("#") or re.match(r"(refuse|refuse_fix)\(\)", stripped) or 'refuse_fix "$1" ""' in line:
                 continue
-            if 'error_msg="$saved_error"' in line or "error_msg=\"\"" in line:
+            if 'error_msg="$saved_error"' in line or "error_msg=\"\"" in line or 'error_msg="$2"' in line:
                 continue
             kind = None
-            if re.search(r'\brefuse_fix\s+"', line):
+            if re.search(r'^\s*stop_step\s+', line):
+                kind = "stop_step"
+            elif re.search(r'\brefuse_fix\s+"', line):
                 kind = "refuse_fix"
             elif re.search(r'\brefuse\s+"', line):
                 kind = "refuse"

@@ -284,7 +284,8 @@ def step_tokens(stream, tool):
             continue
         if tool == "codex" and event.get("type") == "turn.completed" and isinstance(event.get("usage"), dict):
             u = event["usage"]
-            totals.append(sum(u.get(k) or 0 for k in ("input_tokens", "output_tokens", "reasoning_output_tokens", "cached_input_tokens")))
+            # Codex's input holds its cached input and its output the reasoning, as its own total_tokens says.
+            totals.append(sum(u.get(k) or 0 for k in ("input_tokens", "output_tokens")))
         elif tool != "codex" and event.get("type") == "result":
             totals.append(claude_event_tokens(event))
     totals = [t for t in totals if t is not None]

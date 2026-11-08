@@ -234,7 +234,7 @@ def test_a_codex_run_writes_a_tokens_line_with_no_cost_line(runner, workspace, f
     assert rc == 0, out
     text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
     u = CODEX_USAGE
-    total = u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
+    total = u["input_tokens"] + u["output_tokens"]  # Codex's own total_tokens
     assert bullet(text, "Tokens") == str(total)
     assert bullet(text, "Cost") is None
 
@@ -288,7 +288,7 @@ def test_a_codex_run_adds_its_tokens_to_an_earlier_total(runner, workspace, fake
     assert rc == 0, out
     text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
     u = CODEX_USAGE
-    total = u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
+    total = u["input_tokens"] + u["output_tokens"]  # Codex's own total_tokens
     assert bullet(text, "Tokens") == str(1000 + total)
 
 def test_a_run_with_no_usage_block_keeps_the_earlier_token_total(runner, workspace, fake_codex):

@@ -51,7 +51,8 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
 
   test("the word is decided after the push is confirmed, never before", () => {
     const closedAt = RUN_SPEC.indexOf('terminal_reason="closed"');
-    const unpushedAt = RUN_SPEC.lastIndexOf('terminal_reason="unpushed"');
+    const unpushedAt = Math.max(RUN_SPEC.lastIndexOf('terminal_reason="unpushed"'), RUN_SPEC.lastIndexOf("stop_step unpushed"));
+    expect(unpushedAt).toBeGreaterThan(-1);
     expect(closedAt).toBeGreaterThan(unpushedAt);
   });
 });

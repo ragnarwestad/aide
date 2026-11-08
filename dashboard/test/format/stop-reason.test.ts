@@ -51,6 +51,7 @@ describe("isFailedStop", () => {
       const source = readFileSync(file, "utf-8");
       for (const m of source.matchAll(/terminal_reason="([a-z][a-z-]*)"/g)) written.add(m[1]!);
       for (const m of source.matchAll(/\(stopped: ([a-z][a-z-]*)\)/g)) written.add(m[1]!);
+      for (const m of source.matchAll(/\bstop_(?:step|suffix) ([a-z][a-z-]*)/g)) written.add(m[1]!);
     }
     expect(written.size).toBeGreaterThan(5);
     const unclassified = [...written].filter((r) => !isFailedStop(r) && !NOT_FAILURES.includes(r));

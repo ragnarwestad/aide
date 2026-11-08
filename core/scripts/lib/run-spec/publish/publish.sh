@@ -197,7 +197,7 @@ link_excludes_for() {
     printf '%s\n' "${git_add_excludes[@]}"
     return 0
   fi
-  declare -f aide_manifest_get >/dev/null 2>&1 && links="$(aide_manifest_get worktreeLinks "$root")"
+  links="$(aide_manifest_get worktreeLinks "$root")"
   for entry in $links; do
     printf '%s\n' ":(exclude,top)$entry"
   done
@@ -241,7 +241,7 @@ commit_and_push_roots() {
   # a fix turn that ends the step later sets only its terminal reason. A
   # step that ended ok (an archive the archive gate turned away) carries none.
   if [ "$terminal_reason" != "completed" ] && [ -z "$suffix" ] && [ "${ok:-}" != "true" ]; then
-    suffix=" (stopped: $terminal_reason)"
+    stop_suffix "$terminal_reason"
   fi
   amend_note="${model_suffix}${suffix}"
   for root in "${roots[@]}"; do
@@ -316,12 +316,8 @@ EXCLUDES_EOF
     if [ "$changed" -gt 0 ] \
        && [ -n "$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null)" ]; then
       commit_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1 >/dev/null | grep -m1 . || true)"
-      ok="false"
-      terminal_reason="unpushed"
-      suffix=" (stopped: unpushed)"
-      amend_note="${model_suffix}${suffix}"
-      error_msg="the step's own work could not be committed in $root${commit_said:+ — $commit_said}"
-      error_solution="fix the checkout on the serving host, then press $step_button again"
+      stop_step unpushed "the step's own work could not be committed in $root${commit_said:+ — $commit_said}" \
+        "fix the checkout on the serving host, then press $step_button again"
       error_log="${commit_said:-}"
       stage_error "$error_msg"
     fi
