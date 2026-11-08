@@ -66,6 +66,18 @@ def test_a_board_that_does_not_answer_in_time_says_the_request_may_be_queued_AC_
     assert "may have been queued" in result.stderr
 
 
+def test_the_specs_fetch_is_given_as_long_as_the_request_itself(machine, board):
+    # A loaded board takes longer than the project check's wait to fetch.
+    board.answer("POST", "/api/queue/projects/demo/fetch-specs", {"ok": True}, delay=3)
+    board.accepts(make_job())
+
+    result = machine.run("analyze", "722", env={"AIDE_BOARD_ANSWER_SECONDS": "1"})
+
+    assert result.returncode == 1
+    assert "did not answer" in result.stderr
+    assert board.posts() == []
+
+
 def test_a_missing_argument_or_an_unknown_command_is_a_usage_error(machine, board):
     assert machine.run("analyze").returncode == 2
     assert machine.run("frobnicate", "722").returncode == 2

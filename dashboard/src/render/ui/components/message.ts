@@ -77,7 +77,7 @@ export interface MessagePart {
 export function rowMessageParts(
   variant: MessageVariant,
   parts: MessagePart[],
-  o: { hook?: string; tag?: "div" | "p" } = {},
+  o: { hook?: string; tag?: "div" | "p"; end?: string } = {},
 ): string {
   const tag = o.tag ?? "div";
   const link = (p: MessagePart): string =>
@@ -89,7 +89,10 @@ export function rowMessageParts(
   // hanging below a box it belongs to (2026-09-25).
   const box = (v: MessageVariant, body: string, lead = "", hook = o.hook, after = ""): string =>
     `<${tag} class="${[hook, "rowmsg", v].filter(Boolean).join(" ")}">${lead}${MESSAGE_ICON[v]}<span>${body}</span>${after}</${tag}>`;
-  if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "));
+  // `end` is trusted markup drawn inside the last box, after its words: a
+  // "(?)" with more detail about the message reads as part of it there.
+  const end = o.end ?? "";
+  if (!parts.some((p) => p.own)) return box(variant, parts.map(link).join(" · "), "", o.hook, end);
   // A part that asks for a line of its own is its own box; the parts
   // between two of them still join with " · " into one, as they always did.
   const boxes: string[] = [];
@@ -107,6 +110,8 @@ export function rowMessageParts(
     boxes.push(box(p.variant ?? variant, link(p), p.lead, boxes.length ? undefined : o.hook, p.after ?? ""));
   }
   flush();
+  const last = boxes.length - 1;
+  if (end) boxes[last] = boxes[last]!.replace(new RegExp(`</${tag}>$`), `${end}</${tag}>`);
   return `<div class="msgstack">${boxes.join("")}</div>`;
 }
 

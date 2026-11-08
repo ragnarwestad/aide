@@ -251,7 +251,13 @@ elif [ "$tool" = "opencode" ]; then
   if [ "$have_result" = "true" ] && [ -n "$steps_json" ]; then
     # Reasoning tokens are added to output for the reason codex's are:
     # they are billed as output, so dropping them understates the run.
-    cost="$(jq -r '.cost' <<<"$steps_json")"
+    # Every turn of a step is written to the step's one transcript, and
+    # opencode reports each call on its own: the step's tokens are every
+    # call's, while this turn's cost is the calls after where it began,
+    # since the callers add a step's turns' costs up.
+    cost="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rsr '
+      [splits("\n") | select(length > 0) | fromjson?
+       | select(type == "object" and .type == "step_finish") | .part.cost // 0] | add // 0')"
     cost_measured="true"
     tokens_json="$(jq -c '{input, output, cacheRead, cacheCreation}
       | . + {total: (.input + .output + .cacheRead + .cacheCreation)}' <<<"$steps_json")"
@@ -344,6 +350,18 @@ fi
 fi
 # How full the window got in this turn's calls (run-spec/turn/context-use.sh).
 context_use_turn "${turn_at:-0}"
+# A Claude result and a Codex `turn.completed` count the whole session; the
+# turn's and the step's share of it (run-spec/turn/session-totals.sh). A stopped turn's flushed figures
+# are not believed, so they are not recorded either.
+if [ -z "$stopped" ] && [ -n "${result_json:-}" ]; then
+  case "$tool" in
+    opencode) ;;
+    codex) session_totals_apply "$session_out" "$(resumed_session)" yes ;;
+    *) session_totals_apply "$session_out" "$(resumed_session)" "$(jq -r \
+         'if (.modelUsage | type) == "object" and (.modelUsage | length) > 0 then "yes" else "no" end' \
+         <<<"$result_json" 2>/dev/null)" ;;
+  esac
+fi
 
 if [ -n "$stopped" ]; then
   terminal_reason="timeout"
