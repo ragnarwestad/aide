@@ -113,24 +113,18 @@ class TestAFailingTest:
 
 
 
-def test_one_browser_file_keeps_one_worker_and_the_rest_share_the_others(workspace_root, tmp_path):
-    """With four workers and one browser file, the other files are spread
-    over the three workers left, not all run by one."""
-    import os
-    import subprocess
+@pytest.mark.parametrize("workers", [2, 4])
+def test_the_other_files_are_spread_over_every_worker_beside_one_browser_file(workspace_root, tmp_path, workers):
+    """With one browser file, the other files still use every worker: a
+    worker kept for that one file alone left a two-worker run with one
+    process running the whole suite."""
     (tmp_path / "browser.test.ts").write_text('import { chromium } from "playwright";\n')
     for n in range(6):
         (tmp_path / f"plain-{n}.test.ts").write_text("")
-    calls = tmp_path / "calls.txt"
-    fake = r'''() { echo "$*" >> "$AIDE_FAKE_BUN_CALLS"; echo "Ran 1 tests across 1 file."; }'''
-    env = {**os.environ, "AIDE_TEST_WORKERS": "4", "BASH_FUNC_bun%%": fake, "AIDE_FAKE_BUN_CALLS": str(calls)}
-    r = subprocess.run(
-        ["bash", str(workspace_root / "dashboard" / "scripts" / "run-tests.sh"), str(tmp_path)],
-        capture_output=True, text=True, env=env, timeout=60,
-    )
+    r, calls = _run_files(workspace_root, tmp_path, {"AIDE_TEST_WORKERS": str(workers)})
     assert r.returncode == 0, r.stdout + r.stderr
-    plain_workers = [ln for ln in calls.read_text().splitlines() if "plain-" in ln]
-    assert len(plain_workers) == 3, calls.read_text()
+    assert len([ln for ln in calls if "plain-" in ln]) == workers, calls
+    assert len([ln for ln in calls if "browser.test.ts" in ln]) == 1, calls
 
 
 def _run_files(workspace_root, tmp_path, env_extra):
