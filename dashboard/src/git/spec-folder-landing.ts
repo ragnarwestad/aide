@@ -15,6 +15,7 @@ import {
   type RepoMergeResult, type Wait,
 } from "./branch-merge/index.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
+import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./branch-merge/worktree.ts";
 import type { MergeHooks } from "./merge-hooks.ts";
 
 export interface SpecFolderLanding {
@@ -44,8 +45,8 @@ export async function landSpecFolderOnly(
     }
     await run(root, ["fetch", "-q", "origin", base, branch]);
     work = mergeWorktreePath(root, branch);
-    await run(root, ["worktree", "remove", "--force", work]);
-    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`]);
+    await prepareMergeWorktree(run, root, work);
+    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
     if (added.code !== 0) {
       await run(root, ["worktree", "prune"]);
       return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } }, (added.stderr ?? "").trim() || undefined);
@@ -101,7 +102,7 @@ export async function landSpecFolderOnly(
     return refuse(root, branch, { key: "landing.gitCouldNotRun" }, err instanceof Error ? err.message : String(err));
   } finally {
     if (work) {
-      await run(root, ["worktree", "remove", "--force", work]);
+      await run(root, ["worktree", "remove", "--force", work], WORKTREE_TIMEOUT_MS);
       await run(root, ["worktree", "prune"]);
     }
   }
