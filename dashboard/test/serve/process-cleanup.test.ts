@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cleanupProcesses, type CleanupProcess } from "../../src/serve/process-cleanup";
 import { parseHostProcessLine } from "../../src/serve/process-cleanup/host.ts";
-import { cleanupTranscriptLine } from "../../src/serve/process-cleanup/job.ts";
+import { cancelCleanupJob, cleanupTranscriptLine, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
 import { stepLog } from "../../src/queue/parse-stream";
 
 const now = Date.parse("2026-11-08T12:00:00Z");
@@ -46,12 +46,31 @@ describe("process cleanup", () => {
   test("requires parent, age and a known temporary root for orphan tests (AC-6)", async () => {
     const candidates = [
       process({ pid: 210 }),
+      process({ pid: 214, cwd: "/tmp/aide-bun-test-example" }),
       process({ pid: 211, ppid: 2 }),
       process({ pid: 212, startedAt: now - 60_000 }),
       process({ pid: 213, cwd: "/tmp/unrelated" }),
     ];
     const { signals } = await run(candidates);
-    expect(signals).toEqual([[210, "SIGTERM"]]);
+    expect(signals).toEqual([[210, "SIGTERM"], [214, "SIGTERM"]]);
+  });
+
+  test("a cancelled cleanup stops before another candidate is signalled (AC-3)", async () => {
+    const candidates = [process({ pid: 230 }), process({ pid: 231 })];
+    const signals: number[] = [];
+    let releaseWait: (() => void) | undefined;
+    const job = createCleanupJob({
+      now: () => now, processes: async () => candidates, portOwner: async () => undefined,
+      registeredPids: () => new Set(), protectedPids: () => new Set(), protectedRoots: () => [],
+      signal: (pid) => { signals.push(pid); return true; }, alive: () => true,
+      wait: () => new Promise<void>((release) => { releaseWait = release; }), ports: [], graceMs: 1,
+    });
+    job.start({ id: "cleanup-1" } as never, "/tmp/cleanup-result-unused", "/tmp/cleanup-stream-unused");
+    while (!releaseWait) await Promise.resolve();
+    cancelCleanupJob("cleanup-1");
+    releaseWait();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(signals).toEqual([230]);
   });
 
   test("preserves registered and active process trees and queued worktrees (AC-7)", async () => {

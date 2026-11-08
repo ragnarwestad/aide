@@ -21,10 +21,11 @@ export interface CleanupDependencies {
   wait: (ms: number) => Promise<void>;
   ports: readonly number[];
   graceMs: number;
+  cancelled?: () => boolean;
 }
 
 const ORPHAN_AGE_MS = 6 * 60 * 60_000;
-const TEMP_ROOT = /(?:^|\/)(?:aide-pytest-|aide-landing-gate-tree-|aide-test-server-|aide-board-)/;
+const TEMP_ROOT = /(?:^|\/)(?:aide-pytest-|aide-bun-test-|aide-landing-gate-tree-|aide-test-server-|aide-board-)/;
 const under = (path: string | undefined, root: string): boolean => {
   if (!path) return false;
   const target = resolve(path);
@@ -73,10 +74,12 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
   });
   const stopped: CleanupProcess[] = [];
   for (const candidate of selected) {
+    if (deps.cancelled?.()) break;
     const current = new Map((await deps.processes()).map((process) => [process.pid, process])).get(candidate.pid);
     if (!current || !sameIdentity(candidate, current)) continue;
     deps.signal(candidate.pid, "SIGTERM");
     await deps.wait(deps.graceMs);
+    if (deps.cancelled?.()) break;
     if (deps.alive(candidate.pid)) {
       deps.signal(candidate.pid, "SIGKILL");
       await deps.wait(deps.graceMs);

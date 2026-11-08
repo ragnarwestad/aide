@@ -12,13 +12,24 @@ const writeResult = (file: string, ok: boolean, error?: string): void => {
 export const cleanupTranscriptLine = (text: string): string =>
   `${JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: text.trimEnd() }] } })}\n`;
 
+const running = new Map<string, AbortController>();
+
+export function cancelCleanupJob(jobId: string): void {
+  running.get(jobId)?.abort();
+}
+
 export function createCleanupJob(deps: CleanupDependencies) {
   return {
-    start(_job: Job, resultFile: string, streamFile: string): SpawnResult {
-      void cleanupProcesses(deps).then((result) => {
+    start(job: Job, resultFile: string, streamFile: string): SpawnResult {
+      const controller = new AbortController();
+      running.set(job.id, controller);
+      void cleanupProcesses({ ...deps, cancelled: () => controller.signal.aborted }).then((result) => {
+        if (controller.signal.aborted) return;
         appendFileSync(streamFile, cleanupTranscriptLine(result.log));
         writeResult(resultFile, true);
-      }).catch((error) => writeResult(resultFile, false, String(error)));
+      }).catch((error) => {
+        if (!controller.signal.aborted) writeResult(resultFile, false, String(error));
+      }).finally(() => running.delete(job.id));
       return { pid: process.pid, pgid: 0 };
     },
   };

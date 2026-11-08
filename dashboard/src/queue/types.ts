@@ -283,6 +283,8 @@ export interface Job {
    *  runs it again at boot and clears this. */
   landingCut?: boolean;
   createdAt: string;
+  /** The serving host's local date for a cleanup created by the nightly timer. */
+  nightlyCleanupDate?: string;
   startedAt?: string;
   finishedAt?: string;
   /** When a person dismissed this job's row on the Running tab. The job,
