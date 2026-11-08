@@ -133,6 +133,12 @@ Then read all four spec files and identify what should OUTLIVE the spec:
 - New conventions or patterns the change introduced
 - Gotchas discovered during implementation (things that will bite again)
 
+Each item must also hold for another spec in the project: the next
+change in the same area would follow it or trip over it. Never a list of
+this spec's own cases, files or one-off incidents — those stay in the
+spec, and a doc that collects them grows with every archive and guides
+nobody.
+
 If nothing qualifies, say so plainly and move on; not every spec leaves
 something behind.
 

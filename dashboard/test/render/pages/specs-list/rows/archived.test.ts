@@ -635,3 +635,36 @@ describe("an archived spec that was sent back to a full analysis", () => {
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; more");
   });
 });
+
+// The phase file records the implement phase as one figure, side sessions
+// included; the queue still holds the run, so the line takes them off.
+describe("an archived spec's Implement line, when the queue still holds the run", () => {
+  const NOW = Date.parse("2026-10-19T12:00:00Z");
+  const run: QueueRowView = {
+    id: "r1", project: "aide", specFolder: "651-x", steps: ["implement"], stepIndex: 0, state: "done",
+    spentUsd: 0.35, spentTokens: 24160, timeoutSec: 1200, createdAt: "2026-10-18T10:00:00Z",
+    results: [{
+      step: "implement", ok: true, costUsd: 0.35, tokens: 24160,
+      review: { outcome: "completed", costUsd: 0.05, tokens: 4930 },
+      verify: { outcome: "completed", tokens: 9562 },
+    }],
+  };
+  const spec: ArchivedSpecView = {
+    project: "aide", folder: "651-x", done: ["create", "analyze", "implement", "archive"], models: {},
+    phaseOutcomes: { implement: { result: "completed", cost: 0.35, tokens: 24160 } },
+  };
+
+  test("shows the implement session's own cost and tokens (AC-4)", () => {
+    const [group] = groupBySpec([run], [], undefined, [spec], NOW);
+    const implement = group!.phases.find((p) => p.step === "implement")!;
+    expect(implement.cost).toBeCloseTo(0.3, 6);
+    expect(implement.tokens).toBe(9668);
+  });
+
+  test("keeps the file's figure when the queue has forgotten the run (AC-4)", () => {
+    const [group] = groupBySpec([], [], undefined, [spec], NOW);
+    const implement = group!.phases.find((p) => p.step === "implement")!;
+    expect(implement.cost).toBe(0.35);
+    expect(implement.tokens).toBe(24160);
+  });
+});

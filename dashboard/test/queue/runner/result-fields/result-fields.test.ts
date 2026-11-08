@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { providerError, testsNotStarted, testsRed, timeLimit } from "../../../../src/queue/runner/types.ts";
 import { scopeAnalyzeChecks } from "../../../../src/queue/runner/cross-check-message.ts";
+import { sideRun } from "../../../../src/queue/runner/side-run.ts";
 
 type Case = { name: string; written: unknown; read: unknown };
 const FIELDS = JSON.parse(
@@ -20,6 +21,8 @@ const PARSERS: Record<string, (raw: unknown) => unknown> = {
   timeLimit,
   providerError,
   scopeAnalyze: scopeAnalyzeChecks,
+  review: sideRun,
+  verify: sideRun,
 };
 
 test("every field in the fixture has a parser here", () => {

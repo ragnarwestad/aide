@@ -7,6 +7,17 @@
 # retry), run-spec/turn/review.sh (the review and its fix turn) and
 # run-spec/turn/step-tests.sh (a fix turn after red tests).
 
+# Two token objects summed key by key, or nothing when either is missing: a
+# token figure is measured or absent, so a sum with an unmeasured turn in it
+# is not one.
+turn_tokens_add() {  # <tokens-json> <tokens-json>
+  jq -cn --argjson a "${1:-null}" --argjson b "${2:-null}" '
+    if $a == null or $b == null then empty
+    else (reduce ("input", "output", "cacheRead", "cacheCreation") as $k ({}; .[$k] = ($a[$k] + $b[$k])))
+      | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
+    end' 2>/dev/null
+}
+
 # One turn of the model: run `argv` on the prompt in $1, wait it out under
 # the step's deadline, and read the result back into the step's own
 # globals ($terminal_reason, $error_msg, $cost, $session_out, ...). A
@@ -234,7 +245,8 @@ elif [ "$tool" = "opencode" ]; then
     "$transcript" 2>/dev/null | tail -n 1)"
   turn_message=""
   [ -n "$turn_message_json" ] && turn_message="$(jq -r '.part.text // empty' <<<"$turn_message_json" 2>/dev/null)"
-  steps_json="$(jq -Rsc '
+  # This turn's own bytes only: the transcript holds every turn of the step.
+  steps_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rsc '
     [splits("\n") | select(length > 0) | fromjson?
      | select(type == "object" and .type == "step_finish") | .part]
     | {cost:          (map(.cost // 0)                  | add // 0),
@@ -243,7 +255,7 @@ elif [ "$tool" = "opencode" ]; then
        cacheRead:     (map(.tokens.cache.read // 0)     | add // 0),
        cacheCreation: (map(.tokens.cache.write // 0)    | add // 0),
        steps:         length}
-  ' "$transcript" 2>/dev/null)"
+  ' 2>/dev/null)"
   if [ -n "$error_json" ]; then
     have_result="true"
     subtype="turn_failed"

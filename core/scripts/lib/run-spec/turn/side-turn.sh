@@ -8,7 +8,10 @@
 # the step's outcome, session, tokens, model id and limits stay the step's,
 # so a review stopped by Codex's usage limit never reads as the step's own
 # limit. What the turn itself came to is in $side_reason, $side_message
-# and $side_cost.
+# and $side_cost, and its tokens, whether its tool reports dollars, how
+# long it took and where its bytes begin and end in the transcript are in
+# $side_tokens, $side_cost_known, $side_measured, $side_seconds, $side_from
+# and $side_to. `side_json` writes them as the result's record of the turn.
 
 # The command line for a fresh session of <tool> on <model>, into
 # $side_argv. Every command uses that AI's read-only mode and a fresh
@@ -75,8 +78,11 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   if [ -n "$4" ]; then export CODEX_HOME="$4"; else unset CODEX_HOME; fi
   # A session of its own: how full its window got is not the step's.
   context_use_skip="yes"
+  side_from="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"; side_clock="$(date +%s)"
   run_model_turn "$2"
   context_use_skip=""
+  side_to="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"; side_seconds=$(( $(date +%s) - side_clock ))
+  side_tokens="${tokens_json:-}"; side_cost_known="$cost_known"; side_measured="$cost_measured"
   side_reason="$terminal_reason"; side_message="$turn_message"; side_cost="${cost:-0}"; side_error="$error_msg"
   side_limit="${provider_limit_out:-}"; side_capacity="${at_capacity_out:-}"; side_provider_error="${provider_error_out:-}"
   tool="$saved_tool"; argv=("${saved_argv[@]}")
@@ -87,4 +93,17 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   claude_config_dir="$saved_claude_dir"
   opencode_config="$saved_opencode_config"
   if [ -n "$saved_codex_home" ]; then export CODEX_HOME="$saved_codex_home"; else unset CODEX_HOME; fi
+}
+
+# The record of the side turn that just ran, as the result carries it: how it
+# ended, on which tool, how long it took, where its bytes are in the
+# transcript, and its dollars and tokens when it measured them.
+side_json() {  # <tool>
+  jq -cn --arg outcome "$side_reason" --arg tool "$1" --argjson seconds "${side_seconds:-0}" \
+    --argjson from "${side_from:-0}" --argjson to "${side_to:-0}" \
+    --argjson costKnown "${side_cost_known:-false}" --argjson measured "${side_measured:-false}" \
+    --argjson cost "${side_cost:-0}" --argjson tokens "${side_tokens:-null}" \
+    '{outcome:$outcome, tool:$tool, durationSec:$seconds, transcript:{from:$from, to:$to}}
+     + (if $costKnown and $measured then {costUsd:$cost} else {} end)
+     + (if $tokens == null then {} else {tokens:$tokens} end)'
 }

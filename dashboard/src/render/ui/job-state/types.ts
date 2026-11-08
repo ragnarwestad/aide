@@ -122,6 +122,17 @@ export interface QueueRowView {
   results?: StepResultView[];
 }
 
+/** A review or a verification of an implement step, as the list draws its
+ *  line: how it ended, how long it took, and its own dollars and tokens
+ *  (the total alone). */
+export interface SideRunView {
+  outcome: string;
+  tool?: string;
+  durationSec?: number;
+  costUsd?: number;
+  tokens?: number;
+}
+
 /** The little of a step's result the LIST needs. The job page's
  *  `JobStepResultView` carries more and stays assignable to this — one
  *  shape, seen at two altitudes. `step` is optional because a result
@@ -153,6 +164,11 @@ export interface StepResultView {
   tokens?: number;
   /** The model id this step's own log named, when it named one. */
   modelId?: string;
+  /** The review and the verification of an implement step, when they ran.
+   *  `costUsd` and `tokens` above are the total over them and the step's own
+   *  session. */
+  review?: SideRunView;
+  verify?: SideRunView;
   /** The usage limit that stopped this step, as the tool reported it —
    *  present only on such a step. */
   providerLimit?: ProviderLimit;
@@ -169,6 +185,16 @@ export interface StepResultView {
    *  that step's own phase line for the same reason its duration is:
    *  one step called `gh`, and the row has a line for it. */
   prError?: string;
+}
+
+/** What a step's review and verification spent between them, in dollars and
+ *  tokens: a part that is missing counts as 0. */
+export function sidesSpent(result: StepResultView): { usd: number; tokens: number } {
+  const sides = [result.review, result.verify];
+  return {
+    usd: sides.reduce((sum, s) => sum + (s?.costUsd ?? 0), 0),
+    tokens: sides.reduce((sum, s) => sum + (s?.tokens ?? 0), 0),
+  };
 }
 
 /** Whether anything summed over these steps was a stand-in rather than a

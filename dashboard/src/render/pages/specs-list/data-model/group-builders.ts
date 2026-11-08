@@ -5,7 +5,7 @@
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
-import { activityMs, attemptsPerStep, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
+import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -206,6 +206,9 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
   const attemptsByStep = attemptsPerStep(jobs);
   const phases = PHASE_LINES.map((step) => {
     const outcome = s.phaseOutcomes[step];
+    // The file records the phase as one figure, review and verification
+    // included; the runs the queue still holds say how much of it they were.
+    const sides = attemptsSidesSpent(attemptsByStep[step] ?? [], step);
     return {
       step,
       attempts: attemptsByStep[step] ?? [],
@@ -222,9 +225,9 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       // back to.
       effort: outcome?.effort,
       timeSpentMs: outcome?.timeSpentMs,
-      cost: outcome?.cost,
+      cost: outcome?.cost === undefined ? undefined : Math.max(0, outcome.cost - sides.usd),
       costUnmeasured: outcome?.costUnmeasured,
-      tokens: outcome?.tokens,
+      tokens: outcome?.tokens === undefined ? undefined : Math.max(0, outcome.tokens - sides.tokens),
       modelId: outcome?.modelId,
       attemptCount: outcome?.attempts,
       fileResult: outcome?.result,

@@ -34,7 +34,16 @@
 # cacheCreation, total}, read off claude's own usage block. Same rule as
 # `specFolder` — absent, never zeroed, when there was nothing to
 # measure. Unlike the cost, it is never assumed: a killed run reports a
-# cost of 0 and no token count at all.
+# cost of 0 and no token count at all. It sums every turn of the step,
+# an implement's review and verification included, and is absent when any
+# one of them measured none.
+#
+# An implement step whose review or verification ran adds `review` or
+# `verify`: {outcome, tool, durationSec, transcript{from, to}, costUsd,
+# tokens} — how that session ended, on which tool, how long it took, the
+# bytes it wrote in the step's transcript, and its own dollars and tokens,
+# each present only when the tool measured it. Absent when the session did
+# not run.
 #
 # A Claude Code step whose log names the model it ran on adds `modelId`
 # (the `system`/`init` event's `model`, e.g. "claude-opus-5-5"). Same rule

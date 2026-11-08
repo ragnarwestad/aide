@@ -307,6 +307,17 @@ back to the start, and a link to that step on the Logs tab. The row is a window 
 Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
 A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
 
+**The Review and Verify lines under Implement are sessions of their own.** An implement step's review and, when a
+Verify model is chosen, its verification run beside the implement session, and the result reports each with its
+state, time, tokens and cost. The newest implement attempt's result gives the line its State, Time and Cost cells, and
+a › that adds `<project>/<folder>:implement.review` (or `.verify`) to `?phases=`. Folded out, the line shows that
+session's own bytes of the step's transcript, cut by the range the result carries and read as the tool that session ran
+on (`sideMessagesFor`, `serve/spec-views/phase-messages.ts`); the implement session's log stays the Implement line's
+own. The step's cost and tokens are the total over all three, which is what every total on the board adds up, and the
+Implement line shows the total less the two side sessions. A session that did not run keeps its pickers and no figures. An archived or
+closed spec shows the figures only while the queue still holds the run, since the phase file records the phase as one
+figure.
+
 **The phase line's State/Action cell says the standard state alone; what explains it is in the unfolded row.** After the
 `Model:` line come the phase's explanations, one info line each: the description changed since the analysis (analyze
 only), no pull request could be opened for the latest attempt's branch, and the sentence the row's notice says about the

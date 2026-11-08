@@ -15,6 +15,7 @@ import pytest
 
 from ...conftest import run
 from ..run_spec_invoking import CREATE_KEY
+from ..run_spec_status_files import with_status
 from ..run_spec_results import (
     OPENCODE_SESSION_ID,
     OPENCODE_STREAM_FAILED,
@@ -22,6 +23,9 @@ from ..run_spec_results import (
     OPENCODE_TOTALS,
     emits,
 )
+
+
+REVIEW_MARKER = "Read this spec's own description"
 
 
 def test_an_opencode_run_sums_tokens_and_cost_over_every_step(runner, workspace, fake_opencode):
@@ -50,6 +54,33 @@ def test_an_opencode_run_sums_tokens_and_cost_over_every_step(runner, workspace,
         + OPENCODE_TOTALS["cacheRead"]
         + OPENCODE_TOTALS["cacheCreation"]
     )
+
+
+def test_an_opencode_review_beside_an_opencode_step_counts_each_turn_once_ac_5(
+    runner, workspace, fake_opencode, tmp_path
+):
+    """opencode's figures are a sum over the transcript's `step_finish`
+    events, and the review appends to the step's transcript: each turn
+    must read only its own bytes."""
+    with_status(workspace, ["create", "analyze"])
+    review_stream = OPENCODE_STREAM_OK.replace('"text": "done"', '"text": "review: no defects found"')
+    oc = fake_opencode(
+        f"if grep -q \"{REVIEW_MARKER}\" {tmp_path / 'opencode-prompt.txt'}; then\n"
+        f"  {emits(review_stream).replace('cat > /dev/null; ', '')}\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  {emits(OPENCODE_STREAM_OK).replace('cat > /dev/null; ', '')}\n"
+        "fi\n"
+    )
+    rc, out, _ = run(runner, workspace, tool="opencode", opencode=oc, command="implement",
+                     review_tool="opencode", review_model="openai/gpt-5")
+    assert out["terminalReason"] == "completed", out
+    turn_total = (OPENCODE_TOTALS["input"] + OPENCODE_TOTALS["output"]
+                  + OPENCODE_TOTALS["cacheRead"] + OPENCODE_TOTALS["cacheCreation"])
+    assert out["review"]["costUsd"] == pytest.approx(OPENCODE_TOTALS["cost"]), out["review"]
+    assert out["review"]["tokens"]["total"] == turn_total, out["review"]
+    assert out["costUsd"] == pytest.approx(2 * OPENCODE_TOTALS["cost"]), out
+    assert out["tokens"]["total"] == 2 * turn_total, out["tokens"]
 
 
 def test_an_opencode_error_event_is_the_failure_and_carries_its_message(

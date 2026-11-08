@@ -141,6 +141,27 @@ describe("jobRow()'s step results", () => {
   });
 });
 
+// The review and the verification of an implement step ride on the step's
+// result, each with its tokens as the one total the page shows.
+describe("jobRow()'s side sessions", () => {
+  test("a stored review and verification reach the row, with their tokens as a total (AC-1, AC-2)", async () => {
+    const store = makeStore();
+    const queued = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
+    if (!queued.ok) throw new Error("enqueue failed");
+    const tokens = { input: 30, output: 700, cacheRead: 4000, cacheCreation: 200, total: 4930 };
+    store.update(queued.job.id, {
+      results: [{
+        step: "implement", ok: true, costUsd: 0.35, costMeasured: true, terminalReason: "completed",
+        review: { outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens, transcript: { from: 1, to: 9 } },
+        verify: { outcome: "timeout", tool: "codex" },
+      }],
+    });
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(queued.job.id)!);
+    expect(row.results?.[0]?.review).toEqual({ outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens: 4930 });
+    expect(row.results?.[0]?.verify).toEqual({ outcome: "timeout", tool: "codex" });
+  });
+});
+
 // The provider a step runs on is worked out once here and handed to every
 // surface as data: its name as it is now, and each result's as it was then.
 describe("jobRow()'s provider", () => {
