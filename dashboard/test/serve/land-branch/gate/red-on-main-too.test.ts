@@ -80,7 +80,8 @@ test("when main and the merge fail different tests, the merge-only test is named
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeToo",
-    values: { tests: "merge only", branch: "aide/81-x", button: "Archive" },
+    values: { count: 1, branch: "aide/81-x", button: "Archive" },
+    lists: { tests: ["merge only"] },
   });
 }, 30_000);
 
@@ -100,6 +101,7 @@ test("green on main: the sentence is the ordinary one, about this merge", async 
   expect(verdict.ok).toBe(false);
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
-    values: { tests: "a test", branch: "aide/81-x", button: "Archive" },
+    values: { count: 1, branch: "aide/81-x", button: "Archive" },
+    lists: { tests: ["a test"] },
   });
 }, 30_000);

@@ -13,6 +13,7 @@ import {
 import { manifestWithScalar, oneLine } from "../../../src/project/project-admin/manifest-io.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
+import { messageDetail } from "../../../src/i18n/message.ts";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
@@ -258,7 +259,8 @@ describe("where the worktree links are read from", () => {
       const links = readiness.checks.find((ch) => ch.check === "worktreeLinks")!;
       if (c.links) {
         expect(links.ok).toBe(true);
-        expect(links.detail).toContain(c.links);
+        expect(links.detail).toContain("1");
+        expect(messageDetail(links.message)).toBe(c.links);
       } else {
         expect(links.ok).toBe(false);
         expect(links.blocking).toBe(false);

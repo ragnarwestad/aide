@@ -5,7 +5,7 @@
 
 import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
+import { messageDetail, messageIdentity, renderSentence, type Sentence } from "../../../i18n/message.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { heldBackReasonText, type NoticePart } from "../../ui/job-state/notice.ts";
 import { specPagePath } from "../spec-page";
@@ -54,6 +54,7 @@ interface LiveMark {
   /** Stands on a line of its own. */
   own?: boolean;
   kind?: "acceptance-hold" | "approach-choice";
+  source?: Sentence | Sentence[];
 }
 
 /** Every mark a LIVE row's own fields carry right now, highest priority
@@ -83,6 +84,7 @@ function liveMarks(
       variant: held ? "waiting" : "refused",
       label: held ? TESTS_RED(lang) : LANDING_FAILED(lang),
       sentence: renderSentence(lang, g.landingError)!,
+      source: g.landingError,
     });
   }
   // Off the step that called `gh` (`prErrorOf`), never off the job,
@@ -184,6 +186,8 @@ export interface RowMarkNotice {
   href?: string;
   own?: boolean;
   kind?: NoticePart["kind"];
+  identity?: string;
+  detail?: string;
 }
 
 /** A mark's label in front of its sentence. A sentence drawn as a Problem
@@ -218,6 +222,8 @@ export function errorMarkNotices(
     href: m.href,
     own: m.own,
     kind: m.kind,
+    identity: messageIdentity(m.source),
+    detail: messageDetail(m.source),
   }));
 }
 

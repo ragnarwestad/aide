@@ -4,6 +4,7 @@
 
 - [The two lines](#the-two-lines)
 - [Only what was checked](#only-what-was-checked)
+- [One event and its lists](#one-event-and-its-lists)
 - [The shared builder](#the-shared-builder)
 - [Where a failure's sentence comes from](#where-a-failures-sentence-comes-from)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
@@ -80,6 +81,16 @@ A sentence claims no more than the code that wrote it has checked.
   the reader to the log for the one fact they needed.
 - **A guess is worded as one.** "Likely" and "points to" mark a judgement, and they are kept for the cases where the
   check behind the judgement is real; a fact is stated without them.
+
+## One event and its lists
+
+The board shows one event once on each page. A mark, a job error and a wrapper around the same message are compared by
+their catalog key and structured values before translation, not by comparing their rendered text. The mark's state
+word remains beside the one surviving message.
+
+A message that names a list keeps its items as structured data. Its sentence states the number of items, and its (?)
+shows the original items one per line, including when the list contains one item. Messages without a list keep their
+current sentence and detail behavior.
 
 ## The shared builder
 

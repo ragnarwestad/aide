@@ -7,7 +7,7 @@
 // own English, with git's lines, stays the row's (?) detail.
 
 import type { Sentence } from "../../i18n/message.ts";
-import { conflictFiles, gitErrorSentence, gitFetchSentence, type GitError } from "../../format/git-error.ts";
+import { gitErrorSentence, gitFetchSentence, type GitError } from "../../format/git-error.ts";
 import type { StepOutcome } from "./types.ts";
 
 type Repo = "code" | "specs";
@@ -96,7 +96,7 @@ export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sen
     if (!c) return undefined;
     return {
       key: c.repo === "code" ? "runner.conflictCode" : "runner.conflictSpecs",
-      values: { branch: c.branch, base: c.base, files: conflictFiles(c.files, c.more) },
+      values: { branch: c.branch, base: c.base, files: [...c.files, ...(c.more ? ["…"] : [])] },
     };
   }
   return undefined;

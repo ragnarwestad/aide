@@ -78,7 +78,7 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
       url: scheduleRunPath(job.project, name, job.id),
     };
   }
-  const values = { step: stepLabel(a.step, lang), button: stepButton(a.step), specs: a.specs?.join(", ") ?? "" };
+  const values = { step: stepLabel(a.step, lang), button: stepButton(a.step), specs: a.specs ?? [] };
   // Both open the Running tab, scrolled to the spec's row: a held-back
   // archive with its criteria unfolded, since they are ticked there, and a
   // failed, stopped or interrupted step with its row unfolded.

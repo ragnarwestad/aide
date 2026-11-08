@@ -64,7 +64,7 @@ describe("gitFailureMessage", () => {
     });
   });
 
-  test("a refusal for a conflict names the files, five at most and how many more", () => {
+  test("a refusal for a conflict keeps each named file as detail (AC-3, AC-5)", () => {
     const m = gitFailureMessage({
       ok: false,
       terminalReason: "refused",
@@ -73,7 +73,7 @@ describe("gitFailureMessage", () => {
     });
     expect(m).toEqual({
       key: "runner.conflictCode",
-      values: { branch: BRANCH, base: "main", files: "a.ts, b.ts, c.ts, d.ts, e.ts (+2)" },
+      values: { branch: BRANCH, base: "main", files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "…"] },
     });
   });
 

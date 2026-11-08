@@ -15,12 +15,12 @@
 import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
 import { withModelId } from "../../ui/components/model-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
-import { renderSentence } from "../../../i18n/message.ts";
+import { messageDetail, messageIdentity, renderSentence } from "../../../i18n/message.ts";
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
-import { facts, pips, stepLabel, type PipKind } from "../../ui/components";
+import { facts, helpPopover, pips, rowMessageParts, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
@@ -104,11 +104,16 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   );
   // A used-up usage limit says what happens next, with the time; any
   // other job says what it was stored with.
-  const sentence = usageLimitText(job, lang, now) ?? renderSentence(lang, job.error);
+  const landingOwnsError = messageIdentity(job.error) !== undefined && messageIdentity(job.error) === messageIdentity(job.landingError);
+  const sentence = usageLimitText(job, lang, now) ?? (landingOwnsError ? undefined : renderSentence(lang, job.error));
+  const detail = landingOwnsError ? undefined : messageDetail(job.error);
+  const head = detail && sentence
+    ? `<p class="pagehead">${stateChip(job, lang)}</p>` +
+      rowMessageParts("failed", [{ text: sentence }], { end: helpPopover("more detail", esc(detail)) })
+    : `<p class="pagehead">${stateChip(job, lang)}` +
+      (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") + `</p>`;
   return (
-    `<p class="pagehead">${stateChip(job, lang)}` +
-    (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") +
-    `</p>` +
+    head +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
   );

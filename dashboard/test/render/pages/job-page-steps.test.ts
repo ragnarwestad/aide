@@ -31,7 +31,8 @@ describe("a landing refusal's detail", () => {
       "en",
     );
     expect(refusal?.step).toBe("create");
-    expect(refusal?.detail).toContain("the specs root moved under the worktree");
+    expect(refusal?.sentence).toContain("could not assign this spec its number");
+    expect(refusal?.detail).toBe("aide-create-spec: the specs root moved under the worktree");
     expect(refusal?.detail).not.toContain("something else entirely");
   });
 });

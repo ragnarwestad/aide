@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence, type Sentence } from "../../../src/i18n/message.ts";
+import { messageDetail, renderSentence, type Sentence } from "../../../src/i18n/message.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -35,10 +35,8 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(after?.stopReason).toBe("acceptance-criteria");
     const en = renderSentence("en", after?.error as Sentence) ?? "";
     const nb = renderSentence("nb", after?.error as Sentence) ?? "";
-    for (const text of [en, nb]) {
-      for (const ac of ["AC-2", "AC-4", "AC-5"]) expect(text).toContain(ac);
-      expect(text).toContain("Analyze");
-    }
+    for (const text of [en, nb]) expect(text).toContain("Analyze");
+    expect(messageDetail(after?.error as Sentence)).toBe("AC-2\nAC-4\nAC-5");
     expect(en).toContain("no acceptance criteria");
     expect(nb).not.toBe(en);
   });
@@ -53,16 +51,15 @@ describe("an analyze stopped on its acceptance criteria", () => {
     });
     const en = renderSentence("en", after?.error as Sentence) ?? "";
     const nb = renderSentence("nb", after?.error as Sentence) ?? "";
-    for (const text of [en, nb]) {
-      for (const ac of ["AC-2", "AC-1/AC-3", "AC-6"]) expect(text).toContain(ac);
-    }
+    expect(messageDetail(after?.error as Sentence)).toBe("AC-2\nAC-1/AC-3\nAC-6");
     expect(nb).not.toBe(en);
   });
 
   test("words the new kinds on their own in the board's sentence", () => {
     const after = stopped({ missing: false, notEars: [], noScenario: [], contradictions: ["AC-1/AC-3"], cannotBuild: [] });
     expect(after?.error).not.toBe(SCRIPT_SENTENCE);
-    expect(renderSentence("nb", after?.error as Sentence) ?? "").toContain("AC-1/AC-3");
+    expect(renderSentence("nb", after?.error as Sentence) ?? "").toContain("1");
+    expect(messageDetail(after?.error as Sentence)).toBe("AC-1/AC-3");
   });
 
   test("keeps the runner's own sentence when the result lists no faults", () => {

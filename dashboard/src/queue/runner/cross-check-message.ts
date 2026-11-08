@@ -55,12 +55,12 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   return undefined;
 }
 
-function scopeSpecsPaths(value: unknown): string | undefined {
+function scopeSpecsPaths(value: unknown): string[] | undefined {
   const paths = Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v !== "") : [];
-  return paths.length ? paths.join(", ") : undefined;
+  return paths.length ? paths : undefined;
 }
 
-export function scopeAnalyzeChecks(value: unknown): string | undefined {
+export function scopeAnalyzeChecks(value: unknown): string[] | undefined {
   if (!value || typeof value !== "object") return undefined;
   const detail = value as { project?: unknown; phaseRows?: unknown; workflowSteps?: unknown };
   const checks: string[] = [];
@@ -76,7 +76,7 @@ export function scopeAnalyzeChecks(value: unknown): string | undefined {
   }
   if (detail.phaseRows === true) checks.push("Phase-table rows");
   if (detail.workflowSteps === true) checks.push("Workflow steps completed");
-  return checks.length ? checks.join("; ") : undefined;
+  return checks.length ? checks : undefined;
 }
 
 /** A red implement run names tests that remain red separately from tests
@@ -101,9 +101,9 @@ export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   };
 }
 
-function testList(names: string[], errors: string[], count: number): string {
+function testList(names: string[], errors: string[], count: number): string[] {
   const shown = names.map((name, index) => errors[index] ? `${name} — ${errors[index]}` : name);
-  return [...shown, ...(count > names.length ? ["…"] : [])].join("; ");
+  return [...shown, ...(count > names.length ? ["…"] : [])];
 }
 
 /** A test run that never started, as the board's sentence naming what
@@ -158,14 +158,18 @@ export function criteriaStopMessage(step: WorkflowStep, outcome: Partial<StepOut
   const raw = outcome.criteriaFaults;
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const ids = (v: unknown): string =>
-    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x !== "").join(", ") : "";
+  const ids = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x !== "") : [];
   const faults: BoardMessage[] = [];
   if (r.missing === true) faults.push({ key: "runner.criteriaMissing" });
-  if (ids(r.notEars)) faults.push({ key: "runner.criteriaNotEars", values: { ids: ids(r.notEars) } });
-  if (ids(r.noScenario)) faults.push({ key: "runner.criteriaNoScenario", values: { ids: ids(r.noScenario) } });
-  if (ids(r.contradictions)) faults.push({ key: "runner.criteriaContradiction", values: { ids: ids(r.contradictions) } });
-  if (ids(r.cannotBuild)) faults.push({ key: "runner.criteriaCannotBuild", values: { ids: ids(r.cannotBuild) } });
+  const notEars = ids(r.notEars);
+  const noScenario = ids(r.noScenario);
+  const contradictions = ids(r.contradictions);
+  const cannotBuild = ids(r.cannotBuild);
+  if (notEars.length) faults.push({ key: "runner.criteriaNotEars", values: { ids: notEars } });
+  if (noScenario.length) faults.push({ key: "runner.criteriaNoScenario", values: { ids: noScenario } });
+  if (contradictions.length) faults.push({ key: "runner.criteriaContradiction", values: { ids: contradictions } });
+  if (cannotBuild.length) faults.push({ key: "runner.criteriaCannotBuild", values: { ids: cannotBuild } });
   if (!faults.length) return undefined;
   return { key: "runner.criteriaStopped", values: { button: stepButton(step) }, inner: faults };
 }
@@ -180,7 +184,7 @@ export function sharedFilesStopMessage(step: WorkflowStep, outcome: Partial<Step
   if (!specs) return undefined;
   const inner: BoardMessage[] = specs.map((s) => ({
     key: "runner.sharedFilesSpec",
-    values: { spec: s.spec, files: s.files.join(", ") },
+    values: { spec: s.spec, files: s.files },
   }));
   return { key: "runner.sharedFilesStopped", values: { button: stepButton(step) }, inner };
 }

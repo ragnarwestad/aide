@@ -23,7 +23,7 @@
 
 import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./worktree.ts";
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
-import { conflictFiles, gitErrorDetail } from "../../format/git-error.ts";
+import { gitErrorDetail } from "../../format/git-error.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
 import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
 import type { MergeHooks } from "../merge-hooks.ts";
@@ -195,7 +195,7 @@ export async function mergeBranchIntoDefault(
       }
       if (!merged) {
         const why: BoardMessage = conflicted.length
-          ? { key: "landing.mergeConflictIn", values: { base, files: conflictFiles(conflicted.slice(0, 5), conflicted.length - 5) } }
+          ? { key: "landing.mergeConflictIn", values: { base, files: conflicted } }
           : { key: "landing.mergeConflict", values: { base } };
         return { ...refuse(root, branch, why, gitErrorDetail(lastStderr) || undefined), reason: "conflict" };
       }

@@ -5,7 +5,8 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { cliErrorMessage, noProgressMessage, runStopMessage } from "../../../../src/queue/runner/cross-check-message.ts";
+import { cliErrorMessage, criteriaStopMessage, noProgressMessage, runStopMessage } from "../../../../src/queue/runner/cross-check-message.ts";
+import { messageDetail } from "../../../../src/i18n/message.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -17,14 +18,14 @@ describe("noProgressMessage", () => {
     expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs" }))).toMatchObject({ key: "runner.scopeSpecs" });
     expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md", "01-y/a.md"] }))).toEqual({
       key: "runner.scopeSpecsNamed",
-      values: { button: "Implement", paths: "00-x/5-note.md, 01-y/a.md" },
+      values: { button: "Implement", paths: ["00-x/5-note.md", "01-y/a.md"] },
     });
     expect(noProgressMessage("analyze", ended("scope-violation", {
       scopeViolation: "analyze",
       scopeAnalyze: { project: { committed: ["src/a.ts"], uncommitted: ["src/b.ts"] }, phaseRows: true, workflowSteps: true },
     }))).toEqual({
       key: "runner.scopeAnalyze",
-      values: { button: "Analyze", checks: "project code (committed: src/a.ts; uncommitted: src/b.ts); Phase-table rows; Workflow steps completed" },
+      values: { button: "Analyze", checks: ["project code (committed: src/a.ts; uncommitted: src/b.ts)", "Phase-table rows", "Workflow steps completed"] },
     });
     expect(noProgressMessage("analyze", ended("scope-violation", { scopeViolation: "analyze" }))).toEqual({
       key: "runner.scopeAnalyzeLegacy",
@@ -44,6 +45,14 @@ describe("noProgressMessage", () => {
   test("a create that left no folder", () => {
     expect(noProgressMessage("create", ended("no-progress"))).toMatchObject({ key: "runner.noProgressCreate" });
   });
+});
+
+test("criteria ids remain structured list detail (AC-3)", () => {
+  const message = criteriaStopMessage("analyze", ended("acceptance-criteria", {
+    criteriaFaults: { notEars: ["AC-1", "AC-2"] },
+  }));
+  expect(message?.inner).toEqual([{ key: "runner.criteriaNotEars", values: { ids: ["AC-1", "AC-2"] } }]);
+  expect(messageDetail(message)).toBe("AC-1\nAC-2");
 });
 
 describe("cliErrorMessage", () => {

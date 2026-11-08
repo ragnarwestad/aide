@@ -9,7 +9,11 @@ import { MESSAGES, type MessageEntry, type MessageKey } from "./messages.ts";
 
 export interface BoardMessage {
   key: MessageKey;
-  values?: Record<string, string | number>;
+  values?: Record<string, string | number | string[]>;
+  /** Lists named by the message stay as data until the message is drawn.
+   *  The sentence uses a scalar count from `values`; the original items
+   *  are shown as detail without having to parse translated prose. */
+  lists?: Record<string, string[]>;
   /** Another message, for a key whose text has a `{message}` blank: a
    *  landing failure says WHICH step's landing it was and then what
    *  went wrong, and the second half is itself a message. Kept as a
@@ -24,6 +28,40 @@ export interface BoardMessage {
  *  landing across several repos can leave: more than one repo's own
  *  message, joined for the one row that reports both. */
 export type Sentence = string | BoardMessage;
+
+const PRESENTATION_WRAPPERS = new Set<MessageKey>(["message.lead", "landing.stepStopped", "landing.stepFailed"]);
+
+/** A language-independent identity for one underlying board event. */
+export function messageIdentity(sentence: Sentence | Sentence[] | undefined): string | undefined {
+  if (sentence === undefined || typeof sentence === "string") return undefined;
+  if (Array.isArray(sentence)) {
+    const identities = sentence.map(messageIdentity).filter((value): value is string => value !== undefined);
+    return identities.length === 1 ? identities[0] : identities.length ? JSON.stringify(identities) : undefined;
+  }
+  if (PRESENTATION_WRAPPERS.has(sentence.key) && sentence.inner !== undefined) return messageIdentity(sentence.inner);
+  const values = Object.entries(sentence.values ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([sentence.key, values]);
+}
+
+/** The original list items belonging to a message, one item per line. */
+export function messageDetail(sentence: Sentence | Sentence[] | undefined): string | undefined {
+  if (sentence === undefined || typeof sentence === "string") return undefined;
+  if (Array.isArray(sentence)) {
+    const details = sentence.map(messageDetail).filter((value): value is string => value !== undefined);
+    return details.length ? details.join("\n") : undefined;
+  }
+  const legacyTests = sentence.key.startsWith("landing.testsRedOnMerge") && typeof sentence.values?.tests === "string"
+    ? sentence.values.tests.split("; ").filter(Boolean)
+    : [];
+  const own = [
+    ...Object.values(sentence.lists ?? {}).flat(),
+    ...Object.values(sentence.values ?? {}).filter((value): value is string[] => Array.isArray(value)).flat(),
+    ...legacyTests,
+  ];
+  const nested = messageDetail(sentence.inner);
+  const items = [...own, ...(nested ? nested.split("\n") : [])];
+  return items.length ? items.join("\n") : undefined;
+}
 
 type Catalog = Record<string, MessageEntry>;
 
@@ -67,7 +105,11 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
   const entry = catalog[m.key]!;
   const fill = (text: string): string => {
     let out = text;
-    if (m.values) for (const [k, v] of Object.entries(m.values)) out = out.replaceAll(`{${k}}`, () => String(v));
+    if (m.values) for (const [k, v] of Object.entries(m.values)) out = out.replaceAll(`{${k}}`, () => String(Array.isArray(v) ? v.length : v));
+    const legacyTests = m.values?.tests;
+    if (out.includes("{count}") && typeof legacyTests === "string") {
+      out = out.replaceAll("{count}", () => String(legacyTests.split("; ").filter(Boolean).length));
+    }
     return out;
   };
   let lines = entry.solution !== undefined;

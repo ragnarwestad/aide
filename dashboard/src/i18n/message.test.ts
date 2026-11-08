@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderMessage, renderSentence } from "./message.ts";
+import { messageDetail, messageIdentity, renderMessage, renderSentence } from "./message.ts";
 
 describe("renderMessage", () => {
   test("renders a message with values substituted, per language", () => {
@@ -38,6 +38,28 @@ describe("renderMessage", () => {
 });
 
 describe("renderSentence", () => {
+  test("presentation wrappers keep the underlying event identity (AC-2)", () => {
+    const event = { key: "landing.testsRedOnMerge", values: { tests: 2 } } as const;
+    expect(messageIdentity(event)).toBe(messageIdentity({ key: "landing.stepStopped", values: { step: "archive" }, inner: event }));
+    expect(messageIdentity({ ...event, values: { tests: 1 } })).not.toBe(messageIdentity(event));
+  });
+
+  test("structured lists retain one or many items as line detail (AC-3, AC-4, AC-5)", () => {
+    expect(messageDetail({ key: "runner.notAnalyzed", lists: { tests: ["one"] } })).toBe("one");
+    expect(messageDetail({ key: "runner.notAnalyzed", lists: { tests: ["one", "two"] } })).toBe("one\ntwo");
+  });
+
+  test("legacy messages and messages without lists have no detail (AC-6)", () => {
+    expect(messageDetail("old stored sentence")).toBeUndefined();
+    expect(messageDetail({ key: "runner.notAnalyzed" })).toBeUndefined();
+  });
+
+  test("a stored landing test list supplies its count and detail without migration (AC-3, AC-6)", () => {
+    const stored = { key: "landing.testsRedOnMerge", values: { tests: "first; second", branch: "aide/81-x", button: "Archive" } } as const;
+    expect(renderSentence("en", stored)).toContain("2 of the project's tests");
+    expect(renderSentence("en", stored)).not.toContain("{count}");
+    expect(messageDetail(stored)).toBe("first\nsecond");
+  });
   test("a plain string (a job stored earlier) renders as-is in any language", () => {
     expect(renderSentence("en", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
     expect(renderSentence("nb", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");

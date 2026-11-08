@@ -8,6 +8,7 @@
 import { t, type Language } from "../../../i18n";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { esc } from "../../ui/html.ts";
+import { helpPopover, rowMessageParts } from "../../ui/components";
 import type { LogPart } from "../../../queue/parse-stream";
 import type { JobStepResultView } from "./types.ts";
 
@@ -104,7 +105,7 @@ function errorsTab(r: StepPanelData, lang: Language): string {
  *  the last thing in the tab is. */
 export function stepPanel(
   r: StepPanelData,
-  o: { tabHref?: string; key: string; steptab?: string; refusal?: string; lang: Language },
+  o: { tabHref?: string; key: string; steptab?: string; refusal?: { sentence: string; detail?: string }; lang: Language },
 ): string {
   const current = resolveStepTab(o.steptab);
   const count = r.changedFiles && !r.running ? ` (${r.changedFiles.length})` : "";
@@ -117,6 +118,10 @@ export function stepPanel(
   const link = (tab: StepTab): string | undefined => (o.tabHref ? `${o.tabHref}&step=${o.key}&steptab=${tab}` : undefined);
   const strip = tabBar(STEP_TABS, link, current, {}, "", { label: (tab) => label[tab] });
   const content = { log: logTab, files: filesTab, errors: errorsTab }[current](r, o.lang);
-  const merge = o.refusal ? `<pre class="specfile">${esc(o.refusal)}</pre>` : "";
+  const merge = o.refusal
+    ? rowMessageParts("waiting", [{ text: o.refusal.sentence }], {
+        end: o.refusal.detail ? helpPopover("more detail", esc(o.refusal.detail)) : "",
+      })
+    : "";
   return `${merge}${strip}<div class="logbox"><div>${content}</div></div>`;
 }

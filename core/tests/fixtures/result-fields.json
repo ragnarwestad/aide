@@ -136,12 +136,12 @@
       {
         "name": "the project repo changed",
         "written": { "project": { "committed": ["src/a.ts"], "uncommitted": ["new-code.txt"] }, "phaseRows": false, "workflowSteps": false },
-        "read": "project code (committed: src/a.ts; uncommitted: new-code.txt)"
+        "read": ["project code (committed: src/a.ts; uncommitted: new-code.txt)"]
       },
       {
         "name": "a row ticked and a step claimed",
         "written": { "phaseRows": true, "workflowSteps": true },
-        "read": "Phase-table rows; Workflow steps completed"
+        "read": ["Phase-table rows", "Workflow steps completed"]
       }
     ],
     "review": [

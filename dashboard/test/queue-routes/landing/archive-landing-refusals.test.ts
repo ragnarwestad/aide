@@ -10,6 +10,7 @@ import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ARCHIVE_RESULT, BRANCH, SPECS_REPO, gitFor, merges, runStep, sentence, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
+import { messageDetail, type Sentence } from "../../../src/i18n/message.ts";
 
 describe("code lands before specs for archive", () => {
   const CODE_REPO = "/repos/aide";
@@ -344,8 +345,7 @@ describe("one landing error names one path for one checkout", () => {
     expect(Array.isArray(failed.error)).toBe(false);
     const errorText = sentence(failed.error);
     expect(errorText.split("still on origin").length - 1).toBe(1);
-    expect(errorText).toContain(codeRoot);
-    expect(errorText).toContain(specsRoot);
+    expect(messageDetail(failed.error as Sentence)).toBe(`${codeRoot}\n${specsRoot}`);
     expect(errorText).not.toContain("; ");
   });
 

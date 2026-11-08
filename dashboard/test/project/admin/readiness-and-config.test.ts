@@ -6,6 +6,7 @@ import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
+import { messageDetail } from "../../../src/i18n/message.ts";
 
 /** Where the dashboard keeps its settings files in these tests,
  *  under the projects root so the same cleanup removes it. */
@@ -396,8 +397,7 @@ describe("whether a run could start there", () => {
     const { projectsRoot, dir } = checkout("missinglink");
     const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules .venv" });
     expect(result.readiness!.canRun).toBe(false);
-    expect(blockers(result)).toContain("node_modules");
-    expect(blockers(result)).toContain(".venv");
+    expect(messageDetail(check(result, "worktreeLinks")[0]!.message)).toBe("node_modules\n.venv");
   });
 
   test("worktree links that are all there do not block", async () => {

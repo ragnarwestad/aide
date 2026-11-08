@@ -57,7 +57,7 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
   const missing = required.filter((entry) => !entry.reason);
   if (missing.length) {
     ctx.queue.update(job.id, { error: { key: "runner.overlapDecisionMissing", values: {
-      specs: missing.map((entry) => specReference(job.project, entry.spec)).join(", "),
+      specs: missing.map((entry) => specReference(job.project, entry.spec)),
     } } });
     return;
   }
@@ -101,13 +101,13 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
           });
         if (!saved.ok) {
           ctx.queue.update(job.id, { error: cycle
-            ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)).join(" → ") } }
+            ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)) } }
             : { key: "runner.autoDependenciesFailed", values: { reason: saved.note } } });
           return;
         }
         const notice = { key: "runner.dependenciesAdded" as const, values: {
           dependencies: required.filter((entry) => added.includes(entry.spec))
-            .map((entry) => `${specReference(job.project, entry.spec)} — ${entry.reason}`).join("; "),
+            .map((entry) => `${specReference(job.project, entry.spec)} — ${entry.reason}`),
         } };
         if (added.length) ctx.queue.update(job.id, { dependencyNotice: notice });
         ctx.queue.update(job.id, { landing: undefined });

@@ -1807,11 +1807,11 @@ export const MESSAGES = {
   // tests by name when the output named them, and what the second run and
   // the run on main alone say about them.
   "landing.testsRedOnMerge": {
-    en: "the project's tests are red on this merge: {tests}. They pass on main alone and failed the same way twice, so the merge broke them; nothing was pushed, and the work is still on {branch}",
-    nb: "prosjektets tester er røde på denne mergen: {tests}. De består på main alene og feilet likt to ganger, så det er mergen som brøt dem; ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
-    es: "los tests del proyecto están en rojo en este merge: {tests}. Pasan en main solo y fallaron igual dos veces, así que el merge los rompió; no se hizo push de nada, y el trabajo sigue en {branch}",
-    de: "die Tests des Projekts sind bei diesem Merge rot: {tests}. Auf main allein laufen sie durch und sind zweimal gleich fehlgeschlagen, also hat der Merge sie kaputt gemacht; nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
-    fr: "les tests du projet sont au rouge sur ce merge : {tests}. Ils passent sur main seul et ont échoué de la même façon deux fois, donc c'est le merge qui les a cassés ; rien n'a été poussé, et le travail est toujours sur {branch}",
+    en: "{count} of the project's tests are red on this merge. They pass on main alone and failed the same way twice, so the merge broke them; nothing was pushed, and the work is still on {branch}",
+    nb: "{count} av prosjektets tester er røde på denne mergen. De består på main alene og feilet likt to ganger, så det er mergen som brøt dem; ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
+    es: "{count} tests del proyecto están en rojo en este merge. Pasan en main solo y fallaron igual dos veces, así que el merge los rompió; no se hizo push de nada, y el trabajo sigue en {branch}",
+    de: "{count} Tests des Projekts sind bei diesem Merge rot. Auf main allein laufen sie durch und sind zweimal gleich fehlgeschlagen, also hat der Merge sie kaputt gemacht; nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
+    fr: "{count} tests du projet sont au rouge sur ce merge. Ils passent sur main seul et ont échoué de la même façon deux fois, donc c'est le merge qui les a cassés ; rien n'a été poussé, et le travail est toujours sur {branch}",
     solution: {
       en: "make them pass on the branch; {button} merges the work once they do",
       nb: "få dem til å bestå på grenen; {button} merger arbeidet når de gjør det",
@@ -1835,11 +1835,11 @@ export const MESSAGES = {
     },
   },
   "landing.testsRedOnMergeVaried": {
-    en: "the project's tests are red on this merge, but its two runs failed different tests: {tests}. They pass on main alone; that points to unstable tests or a busy machine, not to the merge. Nothing was pushed, and the work is still on {branch}",
-    nb: "prosjektets tester er røde på denne mergen, men de to kjøringene feilet ulike tester: {tests}. De består på main alene; det tyder på ustabile tester eller en travel maskin, ikke på mergen. Ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
-    es: "los tests del proyecto están en rojo en este merge, pero sus dos ejecuciones fallaron tests distintos: {tests}. Pasan en main solo; eso apunta a tests inestables o a una máquina ocupada, no al merge. No se hizo push de nada, y el trabajo sigue en {branch}",
-    de: "die Tests des Projekts sind bei diesem Merge rot, aber seine zwei Läufe sind an verschiedenen Tests gescheitert: {tests}. Auf main allein laufen sie durch; das deutet auf instabile Tests oder eine ausgelastete Maschine hin, nicht auf den Merge. Nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
-    fr: "les tests du projet sont au rouge sur ce merge, mais ses deux exécutions ont fait échouer des tests différents : {tests}. Ils passent sur main seul ; cela indique des tests instables ou une machine chargée, pas le merge. Rien n'a été poussé, et le travail est toujours sur {branch}",
+    en: "the project's tests are red on this merge, but its two runs failed {count} different tests. They pass on main alone; that points to unstable tests or a busy machine, not to the merge. Nothing was pushed, and the work is still on {branch}",
+    nb: "prosjektets tester er røde på denne mergen, men de to kjøringene feilet {count} ulike tester. De består på main alene; det tyder på ustabile tester eller en travel maskin, ikke på mergen. Ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
+    es: "los tests del proyecto están en rojo en este merge, pero sus dos ejecuciones fallaron {count} tests distintos. Pasan en main solo; eso apunta a tests inestables o a una máquina ocupada, no al merge. No se hizo push de nada, y el trabajo sigue en {branch}",
+    de: "die Tests des Projekts sind bei diesem Merge rot, aber seine zwei Läufe sind an {count} verschiedenen Tests gescheitert. Auf main allein laufen sie durch; das deutet auf instabile Tests oder eine ausgelastete Maschine hin, nicht auf den Merge. Nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
+    fr: "les tests du projet sont au rouge sur ce merge, mais ses deux exécutions ont fait échouer {count} tests différents. Ils passent sur main seul ; cela indique des tests instables ou une machine chargée, pas le merge. Rien n'a été poussé, et le travail est toujours sur {branch}",
     solution: {
       en: "press {button} again when the machine is quieter",
       nb: "trykk {button} igjen når maskinen har mindre å gjøre",
@@ -1877,11 +1877,11 @@ export const MESSAGES = {
     },
   },
   "landing.testsRedOnMergeToo": {
-    en: "the project's tests are red on main and on this merge. These tests are red on the merge only: {tests}. Nothing was pushed, and the work is still on {branch}",
-    nb: "prosjektets tester er røde på main og på denne mergen. Disse testene er bare røde på mergen: {tests}. Ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
-    es: "los tests del proyecto están en rojo en main y en este merge. Estos tests solo están en rojo en el merge: {tests}. No se hizo push de nada y el trabajo sigue en {branch}",
-    de: "die Tests des Projekts sind auf main und bei diesem Merge rot. Nur beim Merge sind diese Tests rot: {tests}. Nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
-    fr: "les tests du projet sont au rouge sur main et sur ce merge. Ces tests sont au rouge uniquement sur le merge : {tests}. Rien n'a été poussé et le travail reste sur {branch}",
+    en: "the project's tests are red on main and on this merge. {count} tests are red on the merge only. Nothing was pushed, and the work is still on {branch}",
+    nb: "prosjektets tester er røde på main og på denne mergen. {count} tester er bare røde på mergen. Ingenting ble pushet, og arbeidet ligger fortsatt på {branch}",
+    es: "los tests del proyecto están en rojo en main y en este merge. {count} tests solo están en rojo en el merge. No se hizo push de nada y el trabajo sigue en {branch}",
+    de: "die Tests des Projekts sind auf main und bei diesem Merge rot. {count} Tests sind nur beim Merge rot. Nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}",
+    fr: "les tests du projet sont au rouge sur main et sur ce merge. {count} tests sont au rouge uniquement sur le merge. Rien n'a été poussé et le travail reste sur {branch}",
     solution: {
       en: "make them pass on the branch; {button} merges the work once they do",
       nb: "få dem til å bestå på grenen; {button} merger arbeidet når de gjør det",

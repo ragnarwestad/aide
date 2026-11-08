@@ -74,15 +74,15 @@ describe("a merge that conflicts", () => {
     const git = conflicting("a.ts\nb.ts\n");
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
     expect(result.reason).toBe("conflict");
-    expect(result.error).toMatchObject({ key: "landing.mergeConflictIn", values: { files: "a.ts, b.ts" } });
+    expect(result.error).toMatchObject({ key: "landing.mergeConflictIn", values: { files: ["a.ts", "b.ts"] } });
     expect(result.detail).toContain("CONFLICT (content): Merge conflict in a.ts");
     const asked = git.calls.map((c) => c.args.join(" "));
     expect(asked.indexOf("diff --name-only --diff-filter=U")).toBeLessThan(asked.indexOf("merge --abort"));
   });
 
-  test("five files at most, and how many more", async () => {
+  test("keeps every conflict file as its own detail item (AC-3, AC-5)", async () => {
     const git = conflicting("1\n2\n3\n4\n5\n6\n7\n");
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
-    expect(result.error).toMatchObject({ values: { files: "1, 2, 3, 4, 5 (+2)" } });
+    expect(result.error).toMatchObject({ values: { files: ["1", "2", "3", "4", "5", "6", "7"] } });
   });
 });

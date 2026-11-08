@@ -140,10 +140,10 @@ describe("informational holds", () => {
 test("automatic dependency changes remain informational beside the dependency hold", () => {
   const notice = specNotice(lead({ steps: ["analyze"], errorReason: "held-back",
     error: { key: "runner.dependencyNotArchived", values: { dependency: "aide:726" } },
-    dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: "aide:726 — needs its result contract" } },
+    dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: ["aide:726 — needs its result contract"] } },
   }));
-  expect(notice?.parts?.find((part) => part.text.includes("needs its result contract")))
-    .toMatchObject({ variant: "info" });
+  expect(notice?.parts?.find((part) => part.detail?.includes("needs its result contract")))
+    .toMatchObject({ variant: "info", detail: "aide:726 — needs its result contract" });
   expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
 });
 

@@ -341,7 +341,7 @@ export async function landBranch(
         failures.push(
           holding.length === 1
             ? { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root: holding[0]! } }
-            : { key: "landing.stillOnOriginRunArchiveAgainMany", values: { branch, roots: holding.join(", ") } },
+            : { key: "landing.stillOnOriginRunArchiveAgainMany", values: { branch, roots: holding } },
         );
         // Only where nothing more specific was found: a conflict is
         // the reason, and "unlanded" is what a conflict LOOKS like

@@ -3,7 +3,7 @@
 import { stepLabel, type MessageVariant } from "../components";
 import { stepButton } from "../../../format/step-label.ts";
 import { t, type Language } from "../../../i18n";
-import { renderMessage, renderSentence } from "../../../i18n/message.ts";
+import { messageDetail, messageIdentity, renderMessage, renderSentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
@@ -76,6 +76,8 @@ export interface NoticePart {
   variant?: MessageVariant;
   own?: boolean;
   kind?: "acceptance-hold" | "branch-left-behind" | "approach-choice";
+  identity?: string;
+  detail?: string;
 }
 
 /** What a step's raw detail adds to the sentence on its row, shown whole.
@@ -197,11 +199,18 @@ export function specNotice(
   readyToArchive?: boolean,
 ): RowNotice | undefined {
   const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
-  if (lead?.dependencyNotice) parts.push({ variant: "info", text: renderSentence(lang, lead.dependencyNotice)!, own: true });
+  if (lead?.dependencyNotice) parts.push({
+    variant: "info",
+    text: renderSentence(lang, lead.dependencyNotice)!,
+    own: true,
+    detail: messageDetail(lead.dependencyNotice),
+  });
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.
-  const said = (text: string) => marks.some((m) => m.text.endsWith(text));
+  const leadIdentity = messageIdentity(lead?.error);
+  const said = (text: string) => marks.some((m) =>
+    (leadIdentity !== undefined && m.identity === leadIdentity) || m.text.endsWith(text));
   // A queued job the scheduler is holding ("held back: depends on …",
   // "… not analyzed yet", "… another archive is running", "… the
   // Acceptance criteria are not all ticked yet") is
@@ -267,14 +276,15 @@ export function specNotice(
           (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files" ||
             lead.stopReason === "model-at-capacity"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
-      const extra = detailBeyond(text, lead.errorDetail);
+      const structured = messageDetail(lead.error);
+      const extra = structured ?? detailBeyond(text, lead.errorDetail);
       // An archive's own red run lists its failing lines on the row when
       // the result names no tests. Otherwise the log's own lines, if the
       // runner kept any, stay behind the (?).
       if (extra && isArchiveTestsRed(lead.error)) {
         parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
       } else {
-        parts.push({ variant, text, title: extra });
+        parts.push({ variant, text, title: structured ? undefined : extra, identity: leadIdentity, detail: structured });
       }
     }
   }
@@ -284,7 +294,7 @@ export function specNotice(
       variant: parts[0]!.variant,
       text: parts.map((p) => p.text).join(" · "),
       title: parts.length === 1 ? parts[0]!.title : undefined,
-      parts: parts.map((p) => ({ text: p.text, href: p.href, variant: p.variant, own: p.own, kind: p.kind })),
+      parts: parts.map((p) => ({ text: p.text, href: p.href, variant: p.variant, own: p.own, kind: p.kind, identity: p.identity, detail: p.detail })),
     };
   }
   if (lead && inFlight(lead)) return undefined;

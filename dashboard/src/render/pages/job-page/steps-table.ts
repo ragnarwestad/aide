@@ -6,7 +6,7 @@
 // over.
 
 import { esc, usdOrTokens } from "../../ui/html.ts";
-import { renderSentence } from "../../../i18n/message.ts";
+import { messageDetail, renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
 import { heldBackReasonText } from "../../ui/job-state/notice.ts";
 import { facts, foldArrow, stepLabel } from "../../ui/components";
@@ -54,6 +54,7 @@ function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?
 export interface LandingRefusal {
   step: string;
   word: string;
+  sentence: string;
   detail?: string;
 }
 
@@ -72,7 +73,8 @@ export function landingRefusal(
     // tests refused: the step ran and the merge was built, and what is
     // missing is a green suite. Everything else is a failure.
     word: job.errorReason === "tests-red" ? "merge stopped" : "merge failed",
-    detail: [sentence, job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
+    sentence,
+    detail: [messageDetail(e as never), job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
   };
 }
 
@@ -189,7 +191,7 @@ export function stepResults(
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
-      const refusal = opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined;
+      const refusal = opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused : undefined;
       const log = isOpen
         ? `<tr class="steplog"><td colspan="6">${stepFacts(r, lang)}${stepPanel(r, {
             tabHref: opts.tabHref, key, steptab: opts.steptab, refusal, lang,

@@ -71,7 +71,7 @@ test("rejects a complete batch on a transitive cycle and leaves git unchanged", 
   expect(h.git(h.code, "rev-parse", "HEAD")).toBe(before);
   expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
   expect(h.queued).toEqual([]);
-  expect(h.job.error).toEqual({ key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:3 → aide:1" } });
+  expect(h.job.error).toEqual({ key: "runner.dependencyCycle", values: { chain: ["aide:1", "aide:2", "aide:3", "aide:1"] } });
 });
 
 test("unreviewed file overlap does not authorize an automatic dependency", async () => {
@@ -87,7 +87,7 @@ test("the explanation includes the target and reason, and a repeated callback cr
   await applyOverlapDependencies(h.ctx, h.job, outcome);
   expect(h.queued).toHaveLength(1);
   expect(h.jobs.get("new-1")?.dependencyNotice).toEqual({ key: "runner.dependenciesAdded", values: {
-    dependencies: "aide:2 — the result contract must be updated first",
+    dependencies: ["aide:2 — the result contract must be updated first"],
   } });
 });
 

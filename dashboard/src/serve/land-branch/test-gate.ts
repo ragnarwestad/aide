@@ -60,11 +60,10 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
   return at >= 0 && at < tail.length - 1 ? tail.slice(at + 1) : tail;
 }
 
-/** The failing tests a run named, as one list for a sentence: at most
- *  eight, and "…" when there were more. */
-function namedTests(result: Pick<FailingTests, "tests" | "errors">): string {
+/** The failing tests a run named, kept as items for message detail. */
+function namedTests(result: Pick<FailingTests, "tests" | "errors">): string[] {
   const shown = result.tests.slice(0, 8).map((test, index) => result.errors[index] ? `${test} — ${result.errors[index]}` : test);
-  return shown.join("; ") + (result.tests.length > 8 ? "; …" : "");
+  return result.tests.length > 8 ? [...shown, "…"] : shown;
 }
 
 /** `retriedAfter`: green only on the second run, and these are the
@@ -432,7 +431,7 @@ async function runSuiteIn(
         }
         return {
           ok: false,
-          error: { key: "landing.testsRedOnMergeToo", values: { tests: namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }), branch, button } },
+          error: (() => { const tests = namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }); return { key: "landing.testsRedOnMergeToo", values: { count: mergeOnly.length, branch, button }, lists: { tests } }; })(),
           detail,
         };
       }
@@ -443,7 +442,7 @@ async function runSuiteIn(
       if (repeated.length) {
         return {
           ok: false,
-          error: { key: "landing.testsRedOnMerge", values: { tests: namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }), branch, button } },
+          error: (() => { const tests = namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }); return { key: "landing.testsRedOnMerge", values: { count: repeated.length, branch, button }, lists: { tests } }; })(),
           detail,
         };
       }
@@ -455,7 +454,8 @@ async function runSuiteIn(
           ok: false,
           error: {
             key: "landing.testsRedOnMergeVaried",
-            values: { tests: namedTests({ tests: [...combined.keys()], errors: [...combined.values()] }), branch, button },
+            values: { count: combined.size, branch, button },
+            lists: { tests: namedTests({ tests: [...combined.keys()], errors: [...combined.values()] }) },
           },
           detail,
         };

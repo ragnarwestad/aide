@@ -296,8 +296,8 @@ export async function assessProjectReadiness(
           ? answer("worktreeLinks", projectDir, false, true,
             missing.length === 1
               ? { key: "readiness.links.missingOne", values: { entry: missing[0]!, root: projectRoot } }
-              : { key: "readiness.links.missingMany", values: { entries: missing.join(", "), root: projectRoot } })
-          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links } }),
+              : { key: "readiness.links.missingMany", values: { entries: missing, root: projectRoot } })
+          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links: links.split(/\s+/).filter(Boolean) } }),
   );
 
   const canRun = checks.every((c) => !c.blocking);

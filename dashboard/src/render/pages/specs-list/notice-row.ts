@@ -184,7 +184,7 @@ export function specNoticeRow(
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"
           ? view.specOpen ? p : { ...p, after: approachPanel(g, lang) }
-          : p,
+          : p.detail ? { ...p, own: true, after: helpPopover("more detail", esc(p.detail)) } : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (

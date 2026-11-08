@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence, type Sentence } from "../../../src/i18n/message.ts";
+import { messageDetail, renderSentence, type Sentence } from "../../../src/i18n/message.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -40,10 +40,11 @@ describe("an analyze stopped on files another open spec changes", () => {
     expect(after?.stopReason).toBe("shared-files");
   });
 
-  test("its sentence names each spec and each file it shares", () => {
+  test("its sentence names each spec and its detail names each shared file", () => {
     const after = stopped(SHARED);
     const en = renderSentence("en", after?.error as Sentence) ?? "";
-    for (const text of ["603-b", "x.ts", "y.ts", "604-c", "z.ts"]) expect(en).toContain(text);
+    for (const spec of ["603-b", "604-c"]) expect(en).toContain(spec);
+    expect(messageDetail(after?.error as Sentence)).toBe("x.ts\ny.ts\nz.ts");
   });
 
   test("the step result keeps the specs and their files", () => {
