@@ -36,6 +36,7 @@ export interface Attention {
   outcome?: ScheduleOutcome;
   /** The numbers of the specs a shared-files stop added to the analysis's record. */
   specs?: string[];
+  attempts?: number;
 }
 
 export type ScheduleOutcome = "done" | "failed" | "stopped" | "interrupted";
@@ -82,6 +83,7 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
       kind: job.state as "failed" | "stopped" | "interrupted",
       step: step ?? "implement",
       reason: job.stopReason,
+      attempts: job.retry?.action === step && job.retry.previousAttempt ? job.retry.attempts : undefined,
       ...(specs?.length ? { specs } : {}),
     };
   }
@@ -127,12 +129,12 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "archive-held-back") return "push.archiveHeldBack";
   if (a.kind === "create-failed") return "push.createFailed";
   if (a.kind === "interrupted") return "push.interrupted";
-  if (a.kind === "failed") return "push.failed";
+  if (a.kind === "failed") return a.attempts === 2 ? "push.failedAfterTwoAttempts" : "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
   if (a.reason === "sent-back") return "push.stoppedSentBack";
-  return "push.stoppedTimeout";
+  return a.attempts === 2 ? "push.stoppedTimeoutAfterTwoAttempts" : "push.stoppedTimeout";
 }

@@ -143,6 +143,21 @@ describe("what a spec is waiting for picks the sentence", () => {
     );
   });
 
+  test("the second failed run names two attempts and a useful alternative (AC-8)", () => {
+    expect(key(job({ state: "failed", retry: {
+      action: "implement", attempts: 2, previousAttempt: { terminalReason: "no-progress" },
+    } })))
+      .toBe("push.failedAfterTwoAttempts");
+    expect(key(job({ state: "stopped", stopReason: "timeout", retry: {
+      action: "implement", attempts: 2, previousAttempt: { terminalReason: "timeout" },
+    } })))
+      .toBe("push.stoppedTimeoutAfterTwoAttempts");
+  });
+
+  test("a repeated provider or network failure keeps its existing notification (out of scope)", () => {
+    expect(key(job({ state: "failed", retry: { action: "implement", attempts: 2 } }))).toBe("push.failed");
+  });
+
   test("a stop on files another open spec changes pushes its own sentence, not the time limit's", () => {
     expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
   });

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
+import { aiWorkRetryDecision } from "../../../../src/queue/runner/retry.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -24,6 +25,15 @@ describe("a result with no sentence of the runner's own", () => {
         store.update(job.id, {
           retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
         });
+      if (typeof c.result.terminalReason === "string" && aiWorkRetryDecision({
+        terminalReason: c.result.terminalReason,
+        scopeViolation: c.result.scopeViolation as "specs" | "analyze" | undefined,
+      }, 1)) store.update(job.id, {
+        retry: {
+          action: job.steps[job.stepIndex]!, attempts: 2,
+          previousAttempt: { terminalReason: c.result.terminalReason },
+        },
+      });
       const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ok: false, ...c.result }) });
       runner.tick();
       runner.poll();

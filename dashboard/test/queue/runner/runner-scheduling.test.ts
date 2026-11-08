@@ -411,6 +411,8 @@ describe("steps and cost", () => {
     });
     runner.tick();
     runner.poll();
+    runner.tick();
+    runner.poll();
     expect(store.get(job.id)?.state).toBe("stopped");
     expect(store.get(job.id)?.stopReason).toBe("timeout");
   });

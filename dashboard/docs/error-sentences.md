@@ -142,15 +142,18 @@ keeps the runner's words whole behind the (?), and a stored job with only a sent
 
 ## Automatic second attempts
 
-The board makes at most two attempts for a transient action started by one press. It tries again when a step vanishes,
+The board makes at most two attempts for an eligible action started by one press. It tries again when a step vanishes,
 the server restarts under it, a model is at capacity, a provider or network fails, a tool ends without a reason, an
 exact push or fetch has an unclassified transient failure, a merge leaves the branch on origin, number assignment for a
-new spec fails, or a deploy restart leaves the service on the older commit. A capacity retry waits three minutes; the
-other retries start at once.
+new spec fails, or a deploy restart leaves the service on the older commit. It also runs a step once more when the AI
+reports success without progress, writes outside the allowed scope, drops the open merge with main, leaves an overlap
+assessment unfinished, leaves archive tests red, or reaches the step or test time limit. The second run receives the
+first run's stop reason and repository revisions and continues on the same model and branch. A capacity retry waits
+three minutes; the other retries start at once.
 
-Login, access, conflicts, ports, open acceptance criteria, dependency cycles, install failures and failures in the AI's
-own work still stop after the first attempt because a person or the code must change something first. After the second
-transient failure, the sentence says that two attempts were made and points to the model, provider status, serving-host
+Login, access, conflicts, ports, open acceptance criteria, dependency cycles and install failures still stop after the
+first attempt because a person or the code must change something first. After the second eligible failure, the sentence
+says that two attempts were made and points to the model, provider status, serving-host
 network, checkout, board service or deployed service that needs attention. It does not ask for the same press again.
 
 ## An error that has resolved itself

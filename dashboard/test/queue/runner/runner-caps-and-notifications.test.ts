@@ -222,6 +222,10 @@ describe("a usage-limit stop records when the step starts again", () => {
 
   test("a stop for another reason records no wait (AC-2)", () => {
     const job = enqueue();
+    store.update(job.id, { retry: {
+      action: job.steps[job.stepIndex]!, attempts: 2,
+      previousAttempt: { terminalReason: "timeout" },
+    } });
     const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "timeout" }) });
     runner.tick();
     runner.poll();
@@ -312,7 +316,11 @@ describe("notifications", () => {
   });
 
   test("a stop notifies with its reason — the 02:00 case", () => {
-    enqueue();
+    const job = enqueue();
+    store.update(job.id, { retry: {
+      action: job.steps[job.stepIndex]!, attempts: 2,
+      previousAttempt: { terminalReason: "timeout" },
+    } });
     const runner = makeRunner({
       readResult: () => ({ ...okResult(3), ok: false, terminalReason: "timeout" }),
     });
@@ -334,7 +342,11 @@ describe("notifications", () => {
   });
 
   test("a failure the board words notifies with the board's sentence in English, not the bare ending (AC-2)", () => {
-    enqueue({ steps: ["implement"] });
+    const job = enqueue({ steps: ["implement"] });
+    store.update(job.id, { retry: {
+      action: "implement", attempts: 2,
+      previousAttempt: { terminalReason: "no-progress" },
+    } });
     const runner = makeRunner({
       readResult: () => ({ ...okResult(0), ok: false, terminalReason: "no-progress" }),
     });

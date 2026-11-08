@@ -340,3 +340,7 @@ export function archiveFailureContext(job: Job, jobs: readonly Job[]): string | 
     archiveStepRepos: result.repos,
   });
 }
+
+export function previousAttemptContext(job: Job): string | undefined {
+  return job.retry?.previousAttempt ? JSON.stringify(job.retry.previousAttempt) : undefined;
+}

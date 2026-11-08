@@ -54,8 +54,9 @@ stateDiagram-v2
     running --> interrupted: process gone, no result
     done --> failed: landing did not finish
     done --> stopped: the landing's suite went red
+    done --> queued: archive landing gets its automatic second attempt
     done --> cancelled: Cancel pressed while it merged
-    stopped --> queued: the provider's usage limit has reset
+    stopped --> queued: usage limit reset or a late check gets its automatic second attempt
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```

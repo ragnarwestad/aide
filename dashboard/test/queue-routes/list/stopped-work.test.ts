@@ -127,6 +127,11 @@ describe("landing a stopped step's specs-only work", () => {
     throw new Error("the job never settled");
   }
 
+  async function finishSecondAttempt(base: string, results: string, id: string, result: Record<string, unknown>) {
+    await settle(base, id, (job) => job.state === "running" && (job.retry as { attempts?: number } | undefined)?.attempts === 2);
+    writeFileSync(join(results, `${id}.json`), JSON.stringify(result));
+  }
+
   const mergesOf = (calls: { dir: string; args: string[] }[], branch = BRANCH) =>
     calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${branch}`));
 
@@ -137,6 +142,7 @@ describe("landing a stopped step's specs-only work", () => {
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "analyze");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(STOPPED_RESULT));
+    await finishSecondAttempt(base, results, job.id, STOPPED_RESULT);
     const landed = await settle(base, job.id, (j) => j.state === "stopped" && !j.landing);
 
     expect(landed.error).toBeFalsy();
@@ -165,10 +171,12 @@ describe("landing a stopped step's specs-only work", () => {
         body: JSON.stringify({ project: "aide", title: "A half-written spec", description: "Do the thing" }),
       })
     ).json()) as { job: { id: string; specFolder: string } };
+    const stoppedResult = { ...STOPPED_RESULT, branch: CREATE_BRANCH };
     writeFileSync(
       join(results, `${made.job.id}.json`),
-      JSON.stringify({ ...STOPPED_RESULT, branch: CREATE_BRANCH }),
+      JSON.stringify(stoppedResult),
     );
+    await finishSecondAttempt(base, results, made.job.id, stoppedResult);
     const landed = await settle(base, made.job.id, (j) => j.state === "stopped" && !j.landing);
 
     expect(landed.error).toBeFalsy();
@@ -187,7 +195,9 @@ describe("landing a stopped step's specs-only work", () => {
       { root: SPECS_REPO, url: "https://example.test/aide-specs" },
       { root: CODE_REPO, url: "https://example.test/aide" },
     ];
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }));
+    const stoppedResult = { ...STOPPED_RESULT, branchUrls: pushed };
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(stoppedResult));
+    await finishSecondAttempt(base, results, job.id, stoppedResult);
     const stopped = await settle(base, job.id, (j) => j.state === "stopped");
 
     expect(stopped.landing).toBeFalsy();
@@ -203,7 +213,9 @@ describe("landing a stopped step's specs-only work", () => {
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "implement");
     const pushed = [{ root: CODE_REPO, url: "https://example.test/aide" }];
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }));
+    const stoppedResult = { ...STOPPED_RESULT, branchUrls: pushed };
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(stoppedResult));
+    await finishSecondAttempt(base, results, job.id, stoppedResult);
     const stopped = await settle(base, job.id, (j) => j.state === "stopped");
 
     expect(stopped.landing).toBeFalsy();
@@ -217,10 +229,12 @@ describe("landing a stopped step's specs-only work", () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "analyze");
+    const stoppedResult = { ...STOPPED_RESULT, branch: undefined, branchUrls: [] };
     writeFileSync(
       join(results, `${job.id}.json`),
-      JSON.stringify({ ...STOPPED_RESULT, branch: undefined, branchUrls: [] }),
+      JSON.stringify(stoppedResult),
     );
+    await finishSecondAttempt(base, results, job.id, stoppedResult);
     const stopped = await settle(base, job.id, (j) => j.state === "stopped");
 
     expect(stopped.error).toBeFalsy();

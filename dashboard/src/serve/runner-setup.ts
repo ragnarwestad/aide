@@ -26,7 +26,7 @@ import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
-import { analysisSessionToResume, archiveFailureContext, stepTool } from "./serve-helpers/runner-argv.ts";
+import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
@@ -193,6 +193,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         ...spawnEnv(),
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
         AIDE_ARCHIVE_FAILURE_CONTEXT: step === "implement" ? archiveFailureContext(job, ctx.store.list()) : undefined,
+        AIDE_PREVIOUS_ATTEMPT_CONTEXT: previousAttemptContext(job),
         ...(ctx.queueConfigFile ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile } : {}),
         ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
         ...(ctx.queueMirrorPath ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath } : {}),

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { retryDecision } from "../../../../src/queue/runner/retry.ts";
+import { aiWorkRetryDecision, retryDecision } from "../../../../src/queue/runner/retry.ts";
 
 describe("retryDecision", () => {
   test("retries vanished runs and eligible provider failures once (AC-1, AC-3, AC-10)", () => {
@@ -26,5 +26,26 @@ describe("retryDecision", () => {
       retryDecision({ kind: "cli-error", providerKind: "forbidden", attempts: 1, now: 1_000 }),
     ).toBeUndefined();
     expect(retryDecision({ kind: "other", attempts: 1, now: 1_000 })).toBeUndefined();
+  });
+});
+
+describe("aiWorkRetryDecision", () => {
+  test("retries AI-work endings and time limits once (AC-1, AC-2, AC-3, AC-6, AC-9)", () => {
+    for (const terminalReason of ["no-progress", "merge-unfinished", "timeout"]) {
+      expect(aiWorkRetryDecision({ terminalReason }, 1)).toEqual({ retry: true });
+      expect(aiWorkRetryDecision({ terminalReason }, 2)).toBeUndefined();
+    }
+    expect(aiWorkRetryDecision({ terminalReason: "scope-violation", scopeViolation: "specs" }, 1)).toEqual({ retry: true });
+  });
+
+  test("retries late overlap and archive checks through the same cap (AC-4, AC-5, AC-9)", () => {
+    expect(aiWorkRetryDecision({ lateCheck: "overlap-decision-missing" }, 1)).toEqual({ retry: true });
+    expect(aiWorkRetryDecision({ lateCheck: "archive-tests-red" }, 1)).toEqual({ retry: true });
+    expect(aiWorkRetryDecision({ lateCheck: "archive-tests-red" }, 2)).toBeUndefined();
+  });
+
+  test("does not retry failures that require a person or the machinery first (AC-9)", () => {
+    expect(aiWorkRetryDecision({ terminalReason: "tests-not-started" }, 1)).toBeUndefined();
+    expect(aiWorkRetryDecision({ terminalReason: "cli-error" }, 1)).toBeUndefined();
   });
 });

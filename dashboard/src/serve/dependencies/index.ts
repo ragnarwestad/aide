@@ -13,6 +13,7 @@ import { afterTick } from "../routes/spec-edit/checks.ts";
 import { followOnJob } from "../routes/spec-edit/shared.ts";
 import { landingErrorOfStep } from "../land-branch/stopped-reason.ts";
 import { planDependencies } from "./plan.ts";
+import { aiWorkRetryDecision, aiWorkRetryRecord } from "../../queue/runner/retry.ts";
 
 async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<string, string>> {
   const descriptions = new Map<string, string>();
@@ -56,9 +57,30 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
   if (!source || source.state !== "stopped" || source.stopReason !== "shared-files" || source.dependencyNotice || source.landing || landingErrorOfStep(source, "analyze")) return;
   const missing = required.filter((entry) => !entry.reason);
   if (missing.length) {
-    ctx.queue.update(job.id, { error: { key: "runner.overlapDecisionMissing", values: {
+    const attempts = source.retry?.action === "analyze" ? source.retry.attempts : 1;
+    const retry = aiWorkRetryDecision({ lateCheck: "overlap-decision-missing" }, attempts);
+    const record = retry ? aiWorkRetryRecord(source, "analyze", {
+      terminalReason: "overlap-decision-missing",
+      detail: missing.map((entry) => `${entry.spec}: ${entry.files.join(", ")}`).join("\n"),
+      repos: source.results.at(-1)?.repos,
+    }) : undefined;
+    if (record) {
+      ctx.queue.transition(job.id, "retry-late", {
+        retry: record,
+        finishedAt: undefined,
+        stopReason: undefined,
+        error: undefined,
+        errorDetail: undefined,
+      });
+      await ctx.tickRunner();
+      return;
+    }
+    const message = { key: "runner.overlapDecisionMissing" as const, values: {
       specs: missing.map((entry) => specReference(job.project, entry.spec)),
-    } } });
+    } };
+    ctx.queue.update(job.id, { error: attempts >= 2
+      ? { key: "runner.afterTwoAttempts", inner: message }
+      : message });
     return;
   }
   const active = () => ctx.queue.list().some((other) => other.id !== job.id && other.project === job.project &&

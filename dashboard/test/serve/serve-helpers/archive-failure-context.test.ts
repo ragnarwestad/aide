@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
 import { QueueStore, type Job } from "../../../src/queue/queue.ts";
-import { archiveFailureContext } from "../../../src/serve/serve-helpers/runner-argv.ts";
+import { archiveFailureContext, previousAttemptContext } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 let killSpy: ReturnType<typeof spyOn>;
 beforeEach(() => { killSpy = spyOn(process, "kill").mockReturnValue(true); });
@@ -19,6 +19,17 @@ const failed = {
   results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", at: "2026-11-07T09:00:00Z",
     repos: [{ root: "/code", headBefore: "before", headAfter: "branch-tip" }] }],
 } as Job;
+
+test("serializes first-attempt evidence only when the retry record has it (AC-11)", () => {
+  expect(previousAttemptContext(current)).toBeUndefined();
+  const evidence = {
+    terminalReason: "no-progress",
+    detail: "nothing changed",
+    repos: [{ root: "/code", headBefore: "before", headAfter: "after" }],
+  };
+  const retrying = { ...current, retry: { action: "implement", attempts: 2, previousAttempt: evidence } } as Job;
+  expect(JSON.parse(previousAttemptContext(retrying)!)).toEqual(evidence);
+});
 
 test("passes the Archive evidence and branch revisions to the next Implement", () => {
   const context = JSON.parse(archiveFailureContext(current, [failed]) ?? "null");

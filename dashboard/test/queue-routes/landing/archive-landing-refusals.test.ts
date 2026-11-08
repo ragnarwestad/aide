@@ -236,6 +236,18 @@ describe("a red suite on an archive landing is one sentence", () => {
         ],
       }),
     );
+    await settle(base, job.id, (j) => j.state === "running" &&
+      (j.retry as { attempts?: number } | undefined)?.attempts === 2);
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: specsRoot, url: "https://example.test/aide-specs" },
+          { root: codeRoot, url: "https://example.test/aide" },
+        ],
+      }),
+    );
     const stopped = await settle(base, job.id, (j) => !!j.error);
 
     const text = sentence(stopped.error);

@@ -34,7 +34,10 @@ describe("a step stopped at its time limit", () => {
     const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...stopped({ seconds: 600, during: "session" }) }) });
     runner.tick();
     runner.poll();
+    expect(store.get(job.id)?.state).toBe("queued");
+    runner.tick();
+    runner.poll();
     expect(store.get(job.id)?.state).toBe("stopped");
-    expect(store.get(job.id)?.error).toMatchObject({ key: "runner.timeLimitSession" });
+    expect(store.get(job.id)?.error).toMatchObject({ key: "runner.afterTwoTimeouts", inner: { key: "runner.timeLimitSession" } });
   });
 });

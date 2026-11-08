@@ -48,4 +48,35 @@ describe("automatic step retries", () => {
     expect(first.retry).toBeUndefined();
     expect(second.retry).toBeUndefined();
   });
+
+  test("queues one more run with evidence and keeps the selected model (AC-1, AC-7, AC-9, AC-11)", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({
+      readResult: () => ({
+        ok: false,
+        terminalReason: "no-progress",
+        errorLog: "nothing changed",
+        repos: [{ root: "/project", headBefore: "aaa", headAfter: "bbb" }],
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)).toMatchObject({
+      state: "queued",
+      model: { implement: "opus" },
+      retry: {
+        action: "implement",
+        attempts: 2,
+        previousAttempt: {
+          terminalReason: "no-progress",
+          detail: "nothing changed",
+          repos: [{ root: "/project", headBefore: "aaa", headAfter: "bbb" }],
+        },
+      },
+    });
+    runner.tick();
+    runner.poll();
+    expect(spawns).toHaveLength(2);
+    expect(store.get(job.id)?.state).toBe("failed");
+  });
 });

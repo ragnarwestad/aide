@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { landArchivedSpec, landStepBranch } from "../../../../src/serve/land-branch";
 import { MERGE_STEP } from "../../../../src/serve/land-branch/steps.ts";
+import { retryArchiveLanding } from "../../../../src/serve/land-branch/retry";
+import type { Job } from "../../../../src/queue/queue.ts";
 
 const ARCHIVE_MERGE_STEP = MERGE_STEP.archive!;
 import { BRANCH, landCtx, landingGit, REPOS } from "../landing-fixtures.ts";
@@ -74,4 +76,20 @@ describe("the archive's merge is its last step in the log", () => {
       expect(`--- ${last[1]}`, step).toBe(title!);
     }
   });
+});
+
+test("a red archive landing spends one allowance and a repeated failure does not queue a third run (AC-5, AC-9)", () => {
+  const job = { id: "j", state: "done", retry: undefined, results: [{ step: "archive", repos: [] }] } as unknown as Job;
+  const queue = {
+    get: () => job,
+    transition: (_id: string, _event: string, patch: Partial<Job>) => {
+      Object.assign(job, patch, { state: "queued" });
+      return { ok: true as const, job };
+    },
+  };
+  expect(retryArchiveLanding(queue as never, job.id, "archive", true, { key: "landing.testsRedOnMergeFallback", values: { base: "main" } }, "failed test"))
+    .toBe(true);
+  expect(job.retry).toMatchObject({ action: "archive", attempts: 2, previousAttempt: { terminalReason: "archive-tests-red" } });
+  job.state = "done";
+  expect(retryArchiveLanding(queue as never, job.id, "archive", true, "red again", "failed test")).toBe(false);
 });

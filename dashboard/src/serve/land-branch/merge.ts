@@ -34,7 +34,7 @@ import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
 import { clearsLandingError, createNumberRetryLimit, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
-
+import { retryArchiveLanding } from "./retry";
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
  *  step shares.
@@ -393,8 +393,8 @@ export async function landBranch(
         landingError: firstLandingError(first, held),
         landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: "tests-red" as const } : {}),
-      };
-      const result = takeLandingCancel(job.id) ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
+      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && retryArchiveLanding(ctx.queue, job.id, what.step, held, first, [renderSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
+      const result = cancelled ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or
       // held it for a reason of its own, in the gap between this
       // step's own completion and this landing settling

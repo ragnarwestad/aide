@@ -116,6 +116,16 @@ describe("a usage-limit stop can be queued again", () => {
   });
 });
 
+describe("late AI-work checks can spend the same retry allowance", () => {
+  test("stopped and done each have one checked route back to queued (AC-4, AC-5, AC-9)", () => {
+    expect(TRANSITIONS.stopped?.["retry-late"]).toBe("queued");
+    expect(TRANSITIONS.done?.["retry-late"]).toBe("queued");
+    for (const state of JOB_STATES.filter((state) => state !== "stopped" && state !== "done")) {
+      expect(TRANSITIONS[state]?.["retry-late"]).toBeUndefined();
+    }
+  });
+});
+
 describe("the diagram and the table agree", () => {
   /** `A --> B: label` edges between two NAMED states — `[*]` excluded,
    *  since job creation has no prior state to look up (2-analysis.md,

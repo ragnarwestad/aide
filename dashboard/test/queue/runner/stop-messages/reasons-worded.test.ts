@@ -76,6 +76,10 @@ describe("the detail behind a sentence the board words", () => {
     const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...outcome }) });
     runner.tick();
     runner.poll();
+    if (store.get(job.id)?.state === "queued") {
+      runner.tick();
+      runner.poll();
+    }
     return store.get(job.id);
   };
   const result = (terminalReason: string, more: Record<string, unknown> = {}) => ({ ok: false, terminalReason, ...more });
@@ -118,6 +122,8 @@ describe("a stop in the runner's own words", () => {
     });
     runner.tick();
     runner.poll();
+    runner.tick();
+    runner.poll();
     const stored = store.get(job.id);
     expect(stored?.state).toBe("stopped");
     expect(stored?.error).toMatchObject({ key: "message.written", values: { problem: "ran out of time", solution: "press Implement again" } });
@@ -126,6 +132,8 @@ describe("a stop in the runner's own words", () => {
   test("an outcome without a fix stores the plain string (AC-5)", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...ended("timeout", { error: "ran out of time" }) }) });
+    runner.tick();
+    runner.poll();
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.error).toBe("ran out of time");

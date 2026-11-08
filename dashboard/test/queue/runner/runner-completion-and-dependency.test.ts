@@ -164,6 +164,21 @@ describe("the completion hook and the landing window", () => {
     expect(store.get(job.id)?.results[0]?.at).toBeDefined();
   });
 
+  test("a completed second Archive keeps its retry cap until the landing test settles (AC-5, AC-9)", () => {
+    const job = enqueue({ steps: ["archive"] });
+    store.update(job.id, { retry: {
+      action: "archive", attempts: 2,
+      previousAttempt: { terminalReason: "archive-tests-red" },
+    } });
+    const runner = makeRunner({
+      readResult: () => outcome({ ok: true, terminalReason: "completed" }),
+      onStepDone: () => new Promise(() => {}),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)).toMatchObject({ state: "done", retry: { action: "archive", attempts: 2 } });
+  });
+
   test("a hook that finishes without ever awaiting still leaves the queue open", async () => {
     // The ordering hazard the runner owns both sides of the flag for: an
     // async function whose body happens not to await anything settles
@@ -202,9 +217,12 @@ describe("the completion hook and the landing window", () => {
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "no-progress", error: bash }) });
     runner.tick();
     runner.poll();
+    expect(store.get(job.id)?.state).toBe("queued");
+    runner.tick();
+    runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
+    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressArchive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -215,8 +233,10 @@ describe("the completion hook and the landing window", () => {
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "no-progress", error: bash }) });
     runner.tick();
     runner.poll();
+    runner.tick();
+    runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toEqual({ key: "runner.noProgressImplement", values: { button: "Implement" } });
+    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressImplement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -265,9 +285,11 @@ describe("the completion hook and the landing window", () => {
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
     runner.tick();
     runner.poll();
+    runner.tick();
+    runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedArchive", values: { button: "Archive" } });
+    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedArchive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -278,8 +300,10 @@ describe("the completion hook and the landing window", () => {
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
     runner.tick();
     runner.poll();
+    runner.tick();
+    runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedImplement", values: { button: "Implement" } });
+    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedImplement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 

@@ -375,6 +375,7 @@ export interface Job {
     action: WorkflowStep;
     attempts: number;
     dueAt?: string;
+    previousAttempt?: { terminalReason: string; detail?: string; repos?: StepRepoRange[] };
   };
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a

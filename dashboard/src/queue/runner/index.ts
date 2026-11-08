@@ -44,7 +44,7 @@ import { projectHold } from "./project-holds.ts";
 import { clearStaleHolds, holdJob } from "./holds.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, stepResultEntry } from "./step-result.ts";
-import { outcomeRetryDecision, queueVanishedRetry } from "./retry.ts";
+import { aiWorkRetryDecision, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -412,21 +412,11 @@ export class Runner {
     const base = afterStep(job, outcome, results, landing, measures);
 
     const retryAttempts = job.retry?.action === step ? job.retry.attempts : 1;
-    const retry = outcomeRetryDecision(
-      outcome,
-      retryAttempts,
-      Date.parse(this.o.now()),
-    );
+    const retry = stepRetryRecord(job, step, outcome, Date.parse(this.o.now()));
     if (retry) {
       this.o.store.transition(job.id, "retry", {
         ...base,
-        retry: {
-          action: step,
-          attempts: retryAttempts + 1,
-          ...(retry.retryAt > Date.parse(this.o.now())
-            ? { dueAt: new Date(retry.retryAt).toISOString() }
-            : {}),
-        },
+        retry,
         resultFile: undefined,
         finishedAt: undefined,
         error: undefined,
@@ -440,7 +430,10 @@ export class Runner {
     // who cannot tell it from a broken agent will ignore both.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
-      const worded = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
+      const stopMessage = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
+      const worded = stopMessage && retryAttempts >= 2 && outcome.terminalReason === "timeout"
+        ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
+        : stopMessage;
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
@@ -453,8 +446,14 @@ export class Runner {
       return;
     }
     if (!outcome.ok) {
+      const baseMessage = noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
+      const finalMessage = retryAttempts >= 2 && aiWorkRetryDecision(
+        { terminalReason: outcome.terminalReason ?? "", scopeViolation: outcome.scopeViolation }, retryAttempts - 1,
+      ) && baseMessage && !Array.isArray(baseMessage) && typeof baseMessage !== "string"
+        ? { key: "runner.afterTwoAttempts" as const, inner: baseMessage }
+        : baseMessage;
       const failure = stepFailure(
-        noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome),
+        finalMessage,
         outcome,
         job.model[step] ?? job.modelChoice,
       );
@@ -480,7 +479,7 @@ export class Runner {
     if (nextIndex >= job.steps.length) {
       const result = this.o.store.transition(job.id, "step-succeeded-last", {
         ...base,
-        retry: undefined,
+        retry: landingWork ? job.retry : undefined,
         stepIndex: nextIndex - 1,
         finishedAt: this.o.now(),
       });

@@ -248,6 +248,7 @@ export type TransitionEvent =
   | "run-stopped" // running -> stopped: timeout or provider limit
   | "process-gone" // running -> interrupted: the process died with no result
   | "retry" // running -> queued: one eligible automatic second attempt
+  | "retry-late" // stopped|done -> queued: a post-run check spends the same allowance
   | "landing-failed" // done -> failed: a landing did not finish
   | "landing-held" // done -> stopped: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
@@ -273,6 +274,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     cancel: "cancelled",
   },
   done: {
+    "retry-late": "queued",
     // A landing that failed is not a spec that is done. The
     // STEP succeeded, so `complete()` has already written `done`; only
     // from THAT state, because `complete()` may have queued the job's
@@ -294,6 +296,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
   // is queued again by the board once the limit has reset
   // (`restartAfterUsageLimit`). Every other stop waits for a person.
   stopped: {
+    "retry-late": "queued",
     "limit-reset": "queued",
   },
 };

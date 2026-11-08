@@ -43,6 +43,12 @@ const setup = (dependencies: Record<string, string[]> = { "1-a": [], "2-b": [] }
     queue: {
       list: () => [...jobs.values()], get: (id: string) => jobs.get(id),
       update: (id: string, patch: Partial<Job>) => Object.assign(jobs.get(id)!, patch),
+      transition: (id: string, event: string, patch: Partial<Job>) => {
+        const found = jobs.get(id)!;
+        if (event !== "retry-late" || found.state !== "stopped") return { ok: false, state: found.state, event };
+        Object.assign(found, patch, { state: "queued" });
+        return { ok: true, job: found };
+      },
       enqueue: (request: Record<string, unknown>) => {
         queued.push(request); const next = { ...job, ...request, id: `new-${queued.length}`, state: "queued" } as Job;
         jobs.set(next.id, next); return { ok: true, job: next };
@@ -74,11 +80,29 @@ test("rejects a complete batch on a transitive cycle and leaves git unchanged", 
   expect(h.job.error).toEqual({ key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:3 → aide:1" } });
 });
 
-test("unreviewed file overlap does not authorize an automatic dependency", async () => {
+test("unreviewed file overlap queues analyze once more with evidence (AC-4, AC-9, AC-11)", async () => {
   const h = setup();
   await applyOverlapDependencies(h.ctx, h.job, { sharedFiles: [{ spec: "2-b", files: ["shared.ts"] }] });
   expect(h.queued).toEqual([]);
   expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
+  expect(h.job).toMatchObject({ state: "queued", retry: {
+    action: "analyze", attempts: 2,
+    previousAttempt: { terminalReason: "overlap-decision-missing", detail: "2-b: shared.ts" },
+  } });
+});
+
+test("a repeated missing overlap assessment says Analyze ran twice and does not offer the same press (AC-8, AC-9)", async () => {
+  const h = setup();
+  h.job.retry = {
+    action: "analyze", attempts: 2,
+    previousAttempt: { terminalReason: "overlap-decision-missing" },
+  };
+  await applyOverlapDependencies(h.ctx, h.job, { sharedFiles: [{ spec: "2-b", files: ["shared.ts"] }] });
+  expect(h.job.error).toMatchObject({
+    key: "runner.afterTwoAttempts",
+    inner: { key: "runner.overlapDecisionMissing" },
+  });
+  expect(h.job.state).toBe("stopped");
 });
 
 test("the explanation includes the target and reason, and a repeated callback creates no second job", async () => {
