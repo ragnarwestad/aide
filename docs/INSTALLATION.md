@@ -208,6 +208,9 @@ its version, and where each Aide piece lands: the skills, the rules, the hooks a
 reports. A tool that is missing is listed as not found and the files install anyway; they take effect once the tool
 is installed.
 
+For Claude Code it also warns when git on the machine does not ignore `.claude/settings.local.json` in every repo,
+and when the repo it is run from tracks that file. Claude Code keeps one person's settings there.
+
 It is installed to `~/.local/bin/` with the other shared scripts, so it can be run on its own at any time:
 
 ```bash

@@ -13,13 +13,14 @@ import pytest
 SYSTEM_PATH = "/usr/bin:/bin"
 
 
-def _run(workspace_root, args, home, path=SYSTEM_PATH, env=None):
+def _run(workspace_root, args, home, path=SYSTEM_PATH, env=None, cwd=None):
     script = workspace_root / "core" / "scripts" / "aide-preflight"
     return subprocess.run(
         [str(script), *args],
         capture_output=True,
         text=True,
         env={"PATH": path, "HOME": str(home), **(env or {})},
+        cwd=cwd,
     )
 
 
@@ -71,6 +72,44 @@ class TestPreflight:
         or a user without Claude Code will think the skills are missing."""
         result = _run(workspace_root, ["copilot"], home=tmp_path)
         assert ".claude/skills" in result.stdout
+
+
+LOCAL_SETTINGS = ".claude/settings.local.json"
+
+
+def _global_ignore(home, line):
+    ignore = home / ".config" / "git" / "ignore"
+    ignore.parent.mkdir(parents=True, exist_ok=True)
+    ignore.write_text(line + "\n")
+
+
+@pytest.mark.validation
+class TestPreflightLocalSettings:
+    """Claude Code keeps one person's settings in .claude/settings.local.json,
+    and nothing but git's ignore rules keeps it out of a project's history."""
+
+    def test_warns_when_git_on_this_machine_does_not_ignore_it(self, workspace_root, tmp_path):
+        result = _run(workspace_root, ["claude"], home=tmp_path, cwd=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert LOCAL_SETTINGS in result.stdout
+
+    def test_quiet_when_the_global_ignore_covers_it(self, workspace_root, tmp_path):
+        _global_ignore(tmp_path, f"**/{LOCAL_SETTINGS}")
+        result = _run(workspace_root, ["claude"], home=tmp_path, cwd=tmp_path)
+        assert LOCAL_SETTINGS not in result.stdout
+
+    def test_warns_when_the_repo_it_runs_in_tracks_it(self, workspace_root, tmp_path):
+        _global_ignore(tmp_path, f"**/{LOCAL_SETTINGS}")
+        repo = tmp_path / "project"
+        (repo / ".claude").mkdir(parents=True)
+        (repo / LOCAL_SETTINGS).write_text("{}\n")
+        subprocess.run(["git", "init", "-q", str(repo)], check=True,
+                       env={"PATH": SYSTEM_PATH, "HOME": str(tmp_path)})
+        subprocess.run(["git", "-C", str(repo), "add", "-f", LOCAL_SETTINGS], check=True,
+                       env={"PATH": SYSTEM_PATH, "HOME": str(tmp_path)})
+        result = _run(workspace_root, ["claude"], home=tmp_path, cwd=repo / ".claude")
+        assert result.returncode == 0, result.stderr
+        assert str(repo.resolve()) in result.stdout
 
 
 @pytest.mark.validation

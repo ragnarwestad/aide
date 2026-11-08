@@ -87,11 +87,31 @@ places() {
   done < "$TARGETS"
 }
 
+# Claude Code keeps one person's settings in .claude/settings.local.json,
+# and only git's ignore rules keep the file out of a project's history.
+# Warn when git on this machine does not ignore it in every repo, and when
+# the repo the preflight runs in tracks it, which no ignore rule undoes.
+preflight_local_settings() {
+  local file=".claude/settings.local.json" probe_repo top
+  cli_found git || return 0
+  probe_repo="$(mktemp -d)"
+  if git init -q "$probe_repo" 2>/dev/null &&
+     ! git -C "$probe_repo" check-ignore -q "$file"; then
+    echo -e "   ${YELLOW}⚠️  git on this machine does not ignore $file in every repo${NC} — add **/$file to git's global ignore file (~/.config/git/ignore)"
+  fi
+  rm -rf "$probe_repo"
+  top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0
+  if git -C "$top" ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+    echo -e "   ${YELLOW}⚠️  $top tracks $file${NC} — run git rm --cached $file there and commit"
+  fi
+}
+
 preflight_claude() {
   echo "Claude Code"
   echo "-----------"
   probe "Claude Code" claude
   places claude
+  preflight_local_settings
   echo ""
 }
 
