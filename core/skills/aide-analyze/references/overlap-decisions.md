@@ -32,6 +32,14 @@ for example, this work consumes a contract the other spec replaces, or
 both changes need to coordinate the same rule. Never choose `depends`
 from the filename alone. Do not edit Depends on yourself.
 
+Separate keys or functions do not make two changes independent when one
+of them changes something every entry in the file goes through — how each
+message in a catalogue is rendered, what every caller of a helper gets
+back, a format all entries follow — and the other adds or changes entries
+that go through it. That is `depends`: the entries one spec adds are
+written to the rule the other spec replaces. Name the shared rule and the
+entries that use it in the reason.
+
 ## Complete the analysis
 
 Continue to Step 7 and finish the plan and its review even when a
