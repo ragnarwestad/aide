@@ -89,16 +89,31 @@ export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   const counted = red.total !== undefined;
   const n = String(red.failed);
   const values = { tests, button, ...(counted ? { n, total: String(red.total) } : {}) };
+  const withAttempts = (message: BoardMessage): BoardMessage =>
+    red.attempts !== undefined
+      ? {
+          key: "runner.testsRedAfterAttempts",
+          values: { attempts: String(red.attempts) },
+          inner: [message],
+        }
+      : message;
   if (red.passedAloneCount === 0) {
-    return { key: counted ? "runner.testsRedFailing" : "runner.testsRedFailingUncounted", values };
+    return withAttempts({
+      key: counted ? "runner.testsRedFailing" : "runner.testsRedFailingUncounted",
+      values,
+    });
   }
   const k = String(red.passedAloneCount);
   const passed = testList(red.passedAlone, red.passedAloneErrors, red.passedAloneCount);
-  if (red.failed === 0) return { key: "runner.testsRedPassedAlone", values: { k, passed, button } };
-  return {
+  if (red.failed === 0)
+    return withAttempts({
+      key: "runner.testsRedPassedAlone",
+      values: { k, passed, button },
+    });
+  return withAttempts({
     key: counted ? "runner.testsRedFailingPassedAlone" : "runner.testsRedFailingPassedAloneUncounted",
     values: { ...values, k, passed },
-  };
+  });
 }
 
 function testList(names: string[], errors: string[], count: number): string[] {

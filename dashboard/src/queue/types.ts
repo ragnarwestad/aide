@@ -269,7 +269,13 @@ export interface Job {
    *  checkout it deployed, the commit its fetch reached, when the restart
    *  was fired and the `STARTED_AT` of the process that fired it. The
    *  process that starts after the restart reads it to finish the job. */
-  deploy?: { root: string; commit?: string; restartedAt?: string; leaving?: string };
+  deploy?: {
+    root: string;
+    commit?: string;
+    restartedAt?: string;
+    leaving?: string;
+    restartAttempts?: number;
+  };
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The
@@ -283,6 +289,8 @@ export interface Job {
    *  runs it again at boot and clears this. */
   landingCut?: boolean;
   createdAt: string;
+  /** The serving host's local date for a cleanup created by the nightly timer. */
+  nightlyCleanupDate?: string;
   startedAt?: string;
   finishedAt?: string;
   /** When a person dismissed this job's row on the Running tab. The job,
@@ -361,6 +369,13 @@ export interface Job {
   /** Queued by a person's press, not by the board itself. A press made
    *  after a usage-limit stop is not held by it. */
   pressed?: boolean;
+  /** The automatic second attempt for this action and press. Persisted
+   *  before it is queued so a board restart cannot grant a third one. */
+  retry?: {
+    action: WorkflowStep;
+    attempts: number;
+    dueAt?: string;
+  };
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a
    *  real conflict. Stored on the job rather

@@ -68,6 +68,7 @@ def test_red_tests_are_named_without_a_cause_when_no_files_command_is_set_ac_4_a
     assert out["terminalReason"] == "tests-red", out
     assert_written_as_in_fixture("testsRed", out["testsRed"])
     assert out["testsRed"] == {
+        "attempts": 3,
         "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
         "errors": ["", ""],
         "failed": 2,

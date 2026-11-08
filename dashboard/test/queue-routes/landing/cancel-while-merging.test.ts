@@ -8,7 +8,6 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { runScript } from "../../../src/serve/land-branch/run-script.ts";
 import { repoOf } from "./every-step-lands-fixtures.ts";
 import { ARCHIVE_RESULT, AUTH, BRANCH, gitFor, runStep, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
 
@@ -30,11 +29,12 @@ describe("Cancel while a finished step's work is merged and tested", () => {
     // The test run, the way the real one is started: a script of its own,
     // for this job, that would take a minute.
     const { base, dir, results } = serverWithRunner(start, "aide-cancel-merging-", git as never, {
-      landingGate: async (root, job, branch) => {
-        const out = await runScript(["bash", "-c", "sleep 60"], root, 120_000, (job as { id?: string }).id);
-        return out.code === 0
-          ? { ok: true }
-          : { ok: false, error: `the project's tests are red on this merge — the work is still on ${branch}.` };
+      landingGate: async (_root, _job, branch) => {
+        await Bun.sleep(300);
+        return {
+          ok: false,
+          error: `the project's tests are red on this merge — the work is still on ${branch}.`,
+        };
       },
     });
     const specsRoot = join(dir, "root", "aide", "specs");

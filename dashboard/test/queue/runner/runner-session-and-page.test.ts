@@ -78,6 +78,9 @@ describe("the session id is known before the step starts", () => {
     const job = enqueue();
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.tick();
+    store.update(job.id, {
+      retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
+    });
     runner.poll();
     expect(store.get(job.id)!.state).toBe("interrupted");
     expect(store.get(job.id)!.sessionId).toBeUndefined();

@@ -65,7 +65,11 @@ describe("a restart sends one push for the job it cut off, and none for the fini
   test("finished jobs stay quiet; a job left running with no process is interrupted and announced once", async () => {
     const sent = await boot([
       job("f1", "failed"), job("s1", "stopped", { stopReason: "timeout" }), job("d1", "done"),
-      job("r1", "running", { pid: 2_000_000_000, startedAt: "2026-09-01T10:00:00.000Z" }),
+      job("r1", "running", {
+        pid: 2_000_000_000,
+        startedAt: "2026-09-01T10:00:00.000Z",
+        retry: { action: "implement", attempts: 2 },
+      }),
     ]);
     await Bun.sleep(300);
     expect(sent.calls).toHaveLength(1);
@@ -82,7 +86,12 @@ describe("a push carries how many specs wait, counted from the real queue", () =
   test("a spec already failed plus the one the push is about makes 2", async () => {
     const sent = await boot([
       job("f1", "failed"),
-      job("r1", "running", { specFolder: "82-another-spec", pid: 2_000_000_000, startedAt: "2026-09-01T10:00:00.000Z" }),
+      job("r1", "running", {
+        specFolder: "82-another-spec",
+        pid: 2_000_000_000,
+        startedAt: "2026-09-01T10:00:00.000Z",
+        retry: { action: "implement", attempts: 2 },
+      }),
     ]);
     await Bun.sleep(300);
     expect(sent.calls).toHaveLength(1);

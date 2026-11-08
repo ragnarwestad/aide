@@ -11,7 +11,7 @@ import { deployMark, type DeployMark, type DeployStep } from "./plan.ts";
 import { writeDeployDone, writeDeployFailed } from "./result.ts";
 
 export interface AfterRestartDeps {
-  queue: Pick<QueueStore, "list">;
+  queue: Pick<QueueStore, "list" | "update">;
   /** The checkout this process runs from. */
   dashboardRoot: string;
   /** Runs git in `root`, to completion. */
@@ -21,6 +21,10 @@ export interface AfterRestartDeps {
   restartWaitMs?: number;
   /** When this process booted: a job its own process fired is not its to finish. */
   startedAt?: string;
+  restartWhenSettled?: (o: {
+    onWait: (landings: string[]) => void;
+    beforeFire: () => void;
+  }) => Promise<boolean>;
 }
 
 /** The commit this process runs, or undefined when git cannot say. */
@@ -56,7 +60,28 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
     mark("check", "done");
     return writeDeployDone(job.resultFile);
   }
-  const older: Sentence = { key: "landing.deployServiceOlder", values: { served: served.slice(0, 7), head: fetched.slice(0, 7) } };
+  const older: Sentence = {
+    key: "landing.deployServiceOlderAfterTwoRestarts",
+    values: { served: served.slice(0, 7), head: fetched.slice(0, 7) },
+  };
+  if ((job.deploy?.restartAttempts ?? 1) < 2 && deps.restartWhenSettled) {
+    const restartedAt = new Date((deps.now ?? Date.now)()).toISOString();
+    deps.queue.update(job.id, {
+      pid: process.pid,
+      pgid: 0,
+      deploy: {
+        ...job.deploy!,
+        restartAttempts: 2,
+        restartedAt,
+        leaving: deps.startedAt,
+      },
+    });
+    void deps.restartWhenSettled({
+      onWait: () => undefined,
+      beforeFire: () => undefined,
+    });
+    return;
+  }
   deps.setFault(older);
   fail("check", older);
 }

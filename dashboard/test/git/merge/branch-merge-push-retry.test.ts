@@ -118,6 +118,44 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
 });
 
 describe("pushWithRetry: a push origin itself turned down", () => {
+  test("a temporary GitHub failure is pushed a second time even when ls-remote succeeds (AC-4)", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      push: [
+        { code: 1, stderr: "remote: Internal Server Error" },
+        { code: 0 },
+      ],
+    });
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
+    expect(result.ok).toBe(true);
+    expect(
+      argv(git.calls).filter(
+        (a) => a === "push -q origin HEAD:refs/heads/master",
+      ),
+    ).toHaveLength(2);
+  });
+
+  test("two temporary GitHub failures name both attempts and the status page (AC-7)", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      push: { code: 1, stderr: "remote: Internal Server Error" },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const message = sentence(result.error);
+
+    expect(result.ok).toBe(false);
+    expect(message).toContain("after two attempts");
+    expect(message).toContain("GitHub's status page");
+  });
+
   test("is not a base that moved: it is refused once, in origin's own words", async () => {
     const said = [
       "remote: fatal error in commit_refs_rules",
@@ -136,6 +174,32 @@ describe("pushWithRetry: a push origin itself turned down", () => {
 });
 
 describe("pushWithRetry: a push that cannot reach origin at all", () => {
+  test("a base-moved retry that loses the network stops after two pushes (AC-10)", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": [{ code: 0 }, { code: 1 }],
+      reset: { code: 0 },
+      push: [
+        { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
+        { code: 1, stderr: "fatal: Could not resolve host: github.com" },
+        { code: 0 },
+      ],
+    });
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
+    expect(result.ok).toBe(false);
+    expect(
+      argv(git.calls).filter(
+        (a) => a === "push -q origin HEAD:refs/heads/master",
+      ),
+    ).toHaveLength(2);
+  });
+
   test("is retried, waited, up to the bound, then refused if it never recovers", async () => {
     const waits: number[] = [];
     const wait = async (ms: number) => {
@@ -150,7 +214,7 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
     expect(sentence(result.error)).toContain(BRANCH);
-    expect(waits).toEqual([1000, 2000]);
+    expect(waits).toEqual([1000]);
   });
 
   test("a later attempt that reaches origin succeeds, leaving no error", async () => {
@@ -158,7 +222,6 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 1 },
       push: [
-        { code: 1, stderr: "fatal: unable to access 'origin'" },
         { code: 1, stderr: "fatal: unable to access 'origin'" },
         { code: 0 },
       ],

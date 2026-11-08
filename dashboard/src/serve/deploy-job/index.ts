@@ -39,6 +39,7 @@ export function createDeployJob(inputs: DeployJobInputs) {
         dashboardRoot: inputs.dashboardRoot,
         git: inputs.git ?? gitSync,
         setFault: inputs.setFault,
+        restartWhenSettled: inputs.restartWhenSettled,
         startedAt: STARTED_AT,
       });
     },

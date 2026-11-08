@@ -7,6 +7,7 @@
 - [One event and its lists](#one-event-and-its-lists)
 - [The shared builder](#the-shared-builder)
 - [Where a failure's sentence comes from](#where-a-failures-sentence-comes-from)
+- [Automatic second attempts](#automatic-second-attempts)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
 - [Words the reader does not use](#words-the-reader-does-not-use)
 
@@ -138,6 +139,19 @@ The runner still writes its own sentence into its run log for every ending; only
 
 A job stored before the runner sent `errorLog`, or a result that carries only `error` for an ending the board words,
 keeps the runner's words whole behind the (?), and a stored job with only a sentence shows that sentence as it was.
+
+## Automatic second attempts
+
+The board makes at most two attempts for a transient action started by one press. It tries again when a step vanishes,
+the server restarts under it, a model is at capacity, a provider or network fails, a tool ends without a reason, an
+exact push or fetch has an unclassified transient failure, a merge leaves the branch on origin, number assignment for a
+new spec fails, or a deploy restart leaves the service on the older commit. A capacity retry waits three minutes; the
+other retries start at once.
+
+Login, access, conflicts, ports, open acceptance criteria, dependency cycles, install failures and failures in the AI's
+own work still stop after the first attempt because a person or the code must change something first. After the second
+transient failure, the sentence says that two attempts were made and points to the model, provider status, serving-host
+network, checkout, board service or deployed service that needs attention. It does not ask for the same press again.
 
 ## An error that has resolved itself
 

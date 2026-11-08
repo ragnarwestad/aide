@@ -3,6 +3,18 @@
 
 import type { Job } from "../../queue/queue.ts";
 import type { Sentence } from "../../i18n/message.ts";
+import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
+
+/** Only number assignment gets one repeat of the whole per-root operation. */
+export function createNumberRetryLimit(result: RepoMergeResult): number {
+  return !result.ok &&
+    result.error &&
+    !Array.isArray(result.error) &&
+    typeof result.error === "object" &&
+    result.error.key === "landing.createAssignNumberFailed"
+    ? 1
+    : 0;
+}
 
 /** A step that STOPPED — at its own time limit, or on a provider's
  *  usage limit — lands what it did, and its error is the reason it

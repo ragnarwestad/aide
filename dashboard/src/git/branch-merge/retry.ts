@@ -29,7 +29,7 @@ export type Wait = (ms: number) => Promise<void>;
  *  waiting longer between them than the lock retry above, since a
  *  network blip takes longer to clear than a lock held by a
  *  sibling git process on the same machine. */
-const PUSH_RETRY_WAITS_MS = [1000, 2000];
+const PUSH_RETRY_WAITS_MS = [1000];
 /** A push and the question to origin that follows a failed one get a
  *  minute, not the runner's four-second default: a push to GitHub over
  *  SSH takes longer than that, and a killed one says nothing at all. */
@@ -62,15 +62,40 @@ interface PushRetryResult {
  *  `pull --rebase` can settle on its own — unless the rebase
  *  itself conflicts, which is a person's call and never this
  *  function's. */
-export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
+export async function pushWithRetry(
+  run: GitRunner,
+  root: string,
+  base: string,
+  wait: Wait,
+  retryAllowed = true,
+): Promise<PushRetryResult> {
   const refspec = `HEAD:refs/heads/${base}`;
   const push = () => run(root, ["push", "-q", "origin", refspec], PUSH_TIMEOUT_MS);
   let pushed = await push();
   if (pushed.code === 0) return { ok: true };
+  const firstCause = gitError(pushed.stderr ?? "");
+  if (["auth", "no-write", "https-auth"].includes(firstCause.kind))
+    return {
+      ok: false,
+      cause: firstCause,
+      error: gitErrorDetail(pushed.stderr ?? ""),
+    };
   // An SSH key GitHub does not take fails this question too, so git's own
   // words, not the failed answer, say why.
   const reachable = await run(root, ["ls-remote", "origin"], PUSH_TIMEOUT_MS);
-  if (reachable.code !== 0) {
+  if (reachable.code === 0 && BASE_MOVED.test(pushed.stderr ?? "")) {
+    // The caller spends the one remaining attempt by rebuilding the merge
+    // on the new base. That retry and this helper share the same bound.
+    return {
+      ok: false,
+      moved: true,
+      error: gitErrorDetail(pushed.stderr ?? ""),
+    };
+  }
+  const transient = ["github", "network", "other", "none"].includes(
+    firstCause.kind,
+  );
+  if (retryAllowed && (reachable.code !== 0 || transient)) {
     for (const ms of PUSH_RETRY_WAITS_MS) {
       await wait(ms);
       pushed = await push();
@@ -79,16 +104,9 @@ export async function pushWithRetry(run: GitRunner, root: string, base: string, 
     const said = (pushed.stderr ?? "").trim() || (reachable.stderr ?? "");
     return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
   }
-  // Reachable, and origin itself turned the push down (`[remote rejected]`:
-  // a rule, a hook, an error at GitHub): nothing moved, so merging again
-  // would only be refused again. git's own words say why.
+  // The second merge attempt has already spent the retry allowance. A
+  // network failure here is final, so the same press never reaches a third
+  // push. A reachable rule or hook refusal is likewise final.
   const said = pushed.stderr ?? "";
-  if (!BASE_MOVED.test(said)) return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
-  // Reachable, still rejected: base moved on origin under this landing.
-  // Not settled here with `pull --rebase` any more — a rebase of a
-  // landing's merge commits failed before it started once (364,
-  // 2026-09-03) and left the checkout ahead of origin, which then
-  // refused every later landing in that root. The caller drops the
-  // local merge and merges again onto the base that moved.
-  return { ok: false, moved: true, error: gitErrorDetail(pushed.stderr ?? "") };
+  return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
 }

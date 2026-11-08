@@ -255,7 +255,10 @@ describe("Delete branch is only for an archived spec's leftover branch", () => {
     let release = (): void => {};
     const holdMerge = new Promise<void>((r) => (release = r));
     const results = mkdtempSync(join(tmpdir(), "aide-delete-branch-results-"));
-    const { base, dir, git } = startWith({ has: new Set([BRANCH]), holdMerge }, { results });
+    const { base, dir, git } = startWith(
+      { has: new Set([BRANCH, "aide/81-queue-and-runner"]), holdMerge },
+      { results },
+    );
     try {
       const queued = await fetch(`${base}/api/queue`, {
         method: "POST",
@@ -266,7 +269,7 @@ describe("Delete branch is only for an archived spec's leftover branch", () => {
       writeFileSync(join(results, `${live.id}.json`), JSON.stringify({
         ok: true, exitCode: 0, costUsd: 0, costMeasured: true, terminalReason: "completed",
         branch: "aide/81-queue-and-runner", repos: [],
-        branchUrls: [{ root: join(dir, "root", "aide", "specs"), url: "https://example.test/aide" }],
+        branchUrls: [{ root: join(dir, "root", "aide"), url: "https://example.test/aide" }],
       }));
       const deadline = Date.now() + 10_000;
       for (;;) {

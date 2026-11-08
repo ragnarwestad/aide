@@ -260,7 +260,13 @@ export async function mergeBranchIntoDefault(
     for (let attempt = 0; ; attempt++) {
       const failed = await mergeAndGate();
       if (failed) return failed;
-      const pushResult = await pushWithRetry(run, work, base, wait);
+      const pushResult = await pushWithRetry(
+        run,
+        work,
+        base,
+        wait,
+        attempt === 0,
+      );
       if (pushResult.ok) break;
       if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
       await run(work, ["fetch", "--quiet", "origin", base]);

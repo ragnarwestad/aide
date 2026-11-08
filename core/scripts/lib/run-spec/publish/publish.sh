@@ -104,7 +104,7 @@ record_branch_url() {
 # side (`PUSH_RETRY_WAITS_MS` in dashboard/src/git/branch-merge/retry.ts) uses — long enough to
 # ride out a momentary GitHub blip, short enough that a run
 # that is really offline still finishes in seconds.
-PUSH_RETRY_WAITS=(1 2)
+PUSH_RETRY_WAITS=(1)
 
 # One push, with its own recovery. Tries the plain push (and,
 # for a root this run amended, the existing force-with-lease retry)
@@ -129,6 +129,16 @@ push_with_retry() {
 
   try_push && return 0
 
+  local first_kind
+  first_kind="$(git_error_json "$err" | jq -r '.kind')"
+  case "$first_kind" in
+    auth|no-write|https-auth)
+      push_retry_said="$err"
+      push_retry_error="origin refused the push of $branch in $root: $(git_error_detail "$err")"
+      return 1
+      ;;
+  esac
+
   # An SSH key GitHub does not take fails this question too, so git's own
   # words, not the failed answer, say why (lib/git-error.sh).
   if ! probe="$(git -C "$wt" ls-remote origin 2>&1 >/dev/null)"; then
@@ -143,10 +153,15 @@ push_with_retry() {
     return 1
   fi
 
-  # Origin answers now, but may have been away for the push itself: that
-  # push was never rejected, so it is tried again before anything is
-  # read as the branch having moved.
-  try_push && return 0
+  # When the first push never reached origin, the now-reachable remote gets
+  # the one allowed second push. A non-fast-forward goes straight to rebase
+  # instead, whose following push is that second attempt.
+  if ! grep -qiE '\[rejected\]|non-fast-forward|\(fetch first\)' <<<"$err"; then
+    try_push && return 0
+    push_retry_said="$err"
+    push_retry_error="origin refused the second push of $branch in $root: $(git_error_detail "$err")"
+    return 1
+  fi
 
   # Origin answered and holds no copy of this branch, so nothing moved
   # under us: origin refused the push itself (no write access, a hook, a

@@ -267,6 +267,9 @@ describe("reconciliation after a restart", () => {
 
   test("pid gone with no result file → interrupted, the one honest 'we do not know'", () => {
     const job = runningJob();
+    store.update(job.id, {
+      retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
+    });
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.reconcile();
     expect(store.get(job.id)?.state).toBe("interrupted");

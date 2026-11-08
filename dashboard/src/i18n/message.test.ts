@@ -67,14 +67,14 @@ describe("renderSentence", () => {
 
   test("a BoardMessage renders through the catalog", () => {
     expect(renderSentence("nb", { key: "runner.runVanished", values: { button: "Archive" } })).toBe(
-      "Problem: Kjøringen forsvant uten å etterlate et resultat\nLøsning: Trykk Archive igjen",
+      "Problem: Kjøringen forsvant uten å etterlate et resultat etter to forsøk\nLøsning: Sjekk dashboard-tjenesten på serveren",
     );
   });
 
   test("an array of mixed Sentences joins each as its own sentence", () => {
     const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
     expect(result).toBe(
-      "Problem: Cannot fast-forward main\nProblem: The run vanished without leaving a result\nSolution: Press Implement again",
+      "Problem: Cannot fast-forward main\nProblem: The run vanished without leaving a result after two attempts\nSolution: Check the board service on the serving host",
     );
   });
 

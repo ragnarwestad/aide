@@ -20,6 +20,10 @@ describe("a result with no sentence of the runner's own", () => {
   for (const c of CASES) {
     test(`${c.name}: ${c.boardWords ? "the board words it" : "the board has no sentence for it"} (AC-2)`, () => {
       const job = enqueue({ steps: [c.step] });
+      if (c.result.terminalReason === "model-at-capacity")
+        store.update(job.id, {
+          retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
+        });
       const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ok: false, ...c.result }) });
       runner.tick();
       runner.poll();

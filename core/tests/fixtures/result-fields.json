@@ -5,6 +5,7 @@
       {
         "name": "red tests, none passed alone, with the suite's total",
         "written": {
+          "attempts": 3,
           "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
           "errors": ["", ""],
           "failed": 2,
@@ -14,6 +15,7 @@
           "passedAloneCount": 0
         },
         "read": {
+          "attempts": 3,
           "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
           "errors": ["", ""],
           "failed": 2,
@@ -26,6 +28,7 @@
       {
         "name": "one still red, one passed alone, no total",
         "written": {
+          "attempts": 3,
           "tests": ["test/a.test.ts › a works"],
           "errors": ["expected 1, got 2"],
           "failed": 1,
@@ -34,6 +37,7 @@
           "passedAloneCount": 1
         },
         "read": {
+          "attempts": 3,
           "tests": ["test/a.test.ts › a works"],
           "errors": ["expected 1, got 2"],
           "failed": 1,

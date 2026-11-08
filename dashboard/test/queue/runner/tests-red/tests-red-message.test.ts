@@ -18,6 +18,16 @@ const red = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("testsRedMessage", () => {
+  test("says how many suite attempts ran before the tests stayed red (AC-8)", () => {
+    expect(said(red({ attempts: 3 }))).toMatchObject({
+      key: "runner.testsRedAfterAttempts",
+      values: { attempts: "3" },
+      inner: [{ key: "runner.testsRedFailing" }],
+    });
+    expect(renderMessage("en", said(red({ attempts: 3 })))).toContain(
+      "e2e/a.spec.ts:5 › a works — expected 3, received 0",
+    );
+  });
   test("each failing test is followed by its own error (AC-2)", () => {
     expect(said(red())).toEqual({
       key: "runner.testsRedFailing",

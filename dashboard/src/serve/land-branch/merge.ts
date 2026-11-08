@@ -18,8 +18,7 @@ import { join } from "node:path";
  *  answers as itself rather than throwing, so the comparison is then
  *  exactly the string one it replaces. */
 export function sameRoot(a: string, b: string): boolean {
-  if (a === b) return true;
-  return real(a) === real(b);
+  return a === b || real(a) === real(b);
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
@@ -33,7 +32,7 @@ import { installAfterMerge } from "./install.ts";
 import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
-import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
+import { clearsLandingError, createNumberRetryLimit, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
@@ -141,6 +140,7 @@ export async function landBranch(
     // generic "not landed".
     const deleteErrors: Sentence[] = [];
     const leftBehindRoots = new Set<string>();
+    const retryUnlanded = new Map<string, () => Promise<RepoMergeResult>>();
     for (const repo of repos) {
       if (leaveOpen(repo.root)) {
         // Nothing merged, nothing deleted, nothing installed: the code
@@ -182,10 +182,16 @@ export async function landBranch(
               ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
               : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
         );
+      retryUnlanded.set(repo.root, merge);
       let result = await merge();
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
-      for (let retry = 0; !result.ok && result.reason !== "tests-red" && retry < 2; retry++) {
+      const retryLimit = handed.specOnly ? 2 : createNumberRetryLimit(result);
+      for (
+        let retry = 0;
+        !result.ok && result.reason !== "tests-red" && retry < retryLimit;
+        retry++
+      ) {
         await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
         result = await merge();
       }
@@ -313,6 +319,14 @@ export async function landBranch(
     // origin, and beside a conflict its "run archive again" — once per
     // root — contradicted the sentence the reader had just been given.
     if (what.step === "archive" && reason !== "tests-red" && failures.length === 0) {
+      const firstHolding = await ctx.rootsStillHolding(job.project, branch, true);
+      for (const root of firstHolding) {
+        if (leaveOpen(root) || leftBehindRoots.has(root)) continue;
+        const retry = retryUnlanded.get(root);
+        if (!retry) continue;
+        const retried = await retry();
+        if (retried.ok) ctx.branchStatus.invalidate(root, branch);
+      }
       const holding: string[] = [];
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that

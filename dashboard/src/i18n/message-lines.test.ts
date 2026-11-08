@@ -81,8 +81,14 @@ describe("the board's own entries", () => {
 
   test("an entry that offered two fixes names the one that resolves the case (AC-2)", () => {
     expect(renderMessage("en", m("runner.modelAtCapacity", { values: { button: "Analyze" } })).split("\n")[1]).toBe(
-      "Solution: Press Analyze again",
+      "Solution: Choose another model for Analyze",
     );
+  });
+
+  test("a create whose number assignment failed twice points to the serving checkout (AC-7)", () => {
+    const out = renderMessage("en", m("landing.createAssignNumberFailed"));
+    expect(out).toContain("after two attempts");
+    expect(out).toContain("checkout on the serving host");
   });
 
   test("a wrapper takes the fix of the message inside it (AC-3)", () => {

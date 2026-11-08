@@ -196,7 +196,7 @@ note_pull_error() {
 # lock ref") for the moment the first holds the lock — a wait of a few
 # seconds is the whole cure, and a fetch that still fails after it is
 # reported with git's own words instead of being swallowed.
-FETCH_RETRY_WAITS=(1 2 4)
+FETCH_RETRY_WAITS=(1)
 
 # fetch_base_with_retry <root> <base>: `git fetch origin <base>` in
 # <root>, retried on FETCH_RETRY_WAITS. On failure sets
@@ -206,6 +206,12 @@ fetch_base_with_retry() {
   local root="$1" base="$2" wait_s
   fetch_retry_error=""; fetch_retry_said=""
   if fetch_retry_said="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
+  case "$(git_error_json "$fetch_retry_said" | jq -r '.kind')" in
+    auth|no-write|https-auth)
+      fetch_retry_error="$(printf '%s\n' "$fetch_retry_said" | grep -m1 . | sed -e 's/^error: //' | head -c 200)"
+      return 1
+      ;;
+  esac
   for wait_s in "${FETCH_RETRY_WAITS[@]}"; do
     sleep "$wait_s"
     if fetch_retry_said="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi

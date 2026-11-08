@@ -27,7 +27,7 @@ import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
-import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
+import { cleanupStep, closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { isScheduleJob, jobControl, jobDismissible, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
@@ -106,7 +106,7 @@ function messageLine(row: QueueRowView, lang: Language): string {
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open
  *  (`stepRows`, which a spec's unfolded phase draws its steps with too). */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
-  const step = closeOrReopenStep(row) ?? deployStep(row) ?? (isScheduleJob(row) ? "schedule" : undefined);
+  const step = closeOrReopenStep(row) ?? deployStep(row) ?? cleanupStep(row) ?? (isScheduleJob(row) ? "schedule" : undefined);
   return stepRows(step ? (o.steps?.(row.id, step) ?? []) : [], { prefix: jobKey(row), filter: o.filter, listPath: o.listPath, lang: o.lang, now: o.now })
     .map((r) => `${r.tag}${r.cells}</tr>`)
     .join("");
