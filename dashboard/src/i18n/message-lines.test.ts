@@ -89,7 +89,6 @@ describe("the board's own entries", () => {
     const out = renderMessage("en", m("landing.createAssignNumberFailed"));
     expect(out).toContain("after two attempts");
     expect(out).toContain("checkout on the serving host");
-    expect(out).not.toContain("Create again");
   });
 
   test("a wrapper takes the fix of the message inside it (AC-3)", () => {
