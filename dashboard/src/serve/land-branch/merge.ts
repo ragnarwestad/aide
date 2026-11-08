@@ -186,7 +186,7 @@ export async function landBranch(
       let result = await merge();
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
-      const retryLimit = createNumberRetryLimit(result);
+      const retryLimit = handed.specOnly ? 2 : createNumberRetryLimit(result);
       for (
         let retry = 0;
         !result.ok && result.reason !== "tests-red" && retry < retryLimit;

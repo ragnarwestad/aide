@@ -142,6 +142,20 @@ describe("pushWithRetry: a push origin itself turned down", () => {
     ).toHaveLength(2);
   });
 
+  test("two temporary GitHub failures name both attempts and the status page (AC-7)", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      push: { code: 1, stderr: "remote: Internal Server Error" },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    const message = sentence(result.error);
+
+    expect(result.ok).toBe(false);
+    expect(message).toContain("after two attempts");
+    expect(message).toContain("GitHub's status page");
+  });
+
   test("is not a base that moved: it is refused once, in origin's own words", async () => {
     const said = [
       "remote: fatal error in commit_refs_rules",

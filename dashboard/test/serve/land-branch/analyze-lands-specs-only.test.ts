@@ -67,6 +67,34 @@ describe("an analyze landing", () => {
     expect(copiedTheSpec(calls)).toBe(true);
     expect(mergedTheBranch(calls)).toBe(false);
   });
+
+  test("with the specs inside the code repo, retries a temporary worktree failure", async () => {
+    const code = mkdtempSync(join(tmpdir(), "aide-analyze-land-inproject-"));
+    mkdirSync(join(code, "specs"), { recursive: true });
+    const git = landingGit();
+    let worktreeAdds = 0;
+    const run = async (...args: Parameters<typeof git.run>) => {
+      const answer = await git.run(...args);
+      if (args[1][0] === "worktree" && args[1][1] === "add" && worktreeAdds++ === 0) {
+        return { code: 1, stdout: "", stderr: "temporary worktree failure" };
+      }
+      return answer;
+    };
+    const { ctx } = landCtx(run, {
+      machineryProjectDir: () => code,
+      machinerySpecsRoot: () => join(code, "specs"),
+    });
+
+    await landStepBranch(
+      ctx as unknown as Parameters<typeof landStepBranch>[0],
+      JOB as unknown as Parameters<typeof landStepBranch>[1],
+      "analyze",
+      { branch: BRANCH, branchUrls: [{ root: code, url: "" }] },
+    );
+
+    expect(git.calls.filter((c) => c.args[0] === "worktree" && c.args[1] === "add")).toHaveLength(2);
+    expect(copiedTheSpec(git.calls)).toBe(true);
+  });
 });
 
 describe("a create landing", () => {
