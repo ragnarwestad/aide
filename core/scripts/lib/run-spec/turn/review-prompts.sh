@@ -10,8 +10,7 @@
 # under an item in it is a defect too.
 review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headless-note>
   local scope=""
-  if declare -f aide_out_of_scope_section >/dev/null 2>&1 \
-    && [ -n "$(aide_out_of_scope_section "$(cat "$1" 2>/dev/null)")" ]; then
+  if [ -n "$(aide_out_of_scope_section "$(cat "$1" 2>/dev/null)")" ]; then
     scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
   fi
   printf '%s\n' \

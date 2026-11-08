@@ -6,8 +6,7 @@
 # cannot hold the line, it ends `sent-back-refused`, failed, with the
 # description as it was.
 #
-# Sourced by aide-run-spec after run-spec/checkout/cleanup.sh, which sets the
-# `model_suffix` this check reads (the runner runs under `set -u`), and before
+# Sourced by aide-run-spec after run-spec/checkout/cleanup.sh and before
 # run-spec/record/records.sh, so the verdict is decided ahead of the
 # no-progress cross-check in run-spec/record/status-line.sh, the code review and
 # the step's test run, which all act on a `completed` step only. A step that
@@ -37,19 +36,14 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] && 
     fi
     if [ -z "$sent_back_refusal" ]; then
       stage "sent back: $sent_back_why — Implement ends, Analyze runs again with a full analysis"
-      terminal_reason="sent-back"
-      error_msg="$step_button sent the spec back to a full analysis: $sent_back_why"
-      error_solution="Analyze runs again with a full analysis, then $step_button"
+      stop_step sent-back "$step_button sent the spec back to a full analysis: $sent_back_why" \
+        "Analyze runs again with a full analysis, then $step_button"
       error_log="$sent_back_why"
     else
       stage "sent back: refused, $sent_back_refusal — Implement fails"
-      terminal_reason="sent-back-refused"
-      error_msg="$step_button asked to send the spec back to a full analysis, but $sent_back_refusal: $sent_back_why"
-      error_solution="press Analyze again for a new plan"
+      stop_step sent-back-refused "$step_button asked to send the spec back to a full analysis, but $sent_back_refusal: $sent_back_why" \
+        "press Analyze again for a new plan"
       error_log="$sent_back_why"$'\n'"$sent_back_refusal"
     fi
-    ok="false"
-    suffix=" (stopped: $terminal_reason)"
-    amend_note="${model_suffix}${suffix}"
   fi
 fi

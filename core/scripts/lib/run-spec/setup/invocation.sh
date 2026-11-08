@@ -248,9 +248,7 @@ Use exactly this reason when closing the spec: $reason"
   # absent or unknown read as off. Read once here;
   # run-spec/record/criteria-check.sh acts on the same value after the
   # turn. core/tests/fixtures/criteria-checks-level.json is the table.
-  criteria_checks=""
-  declare -f aide_spec_criteria_checks >/dev/null 2>&1 \
-    && criteria_checks="$(aide_spec_criteria_checks "$specs_root" "$spec_folder")"
+  criteria_checks="$(aide_spec_criteria_checks "$specs_root" "$spec_folder")"
   case "$criteria_checks" in off|warn|stop) ;; *) criteria_checks="off" ;; esac
   criteria_line=""
   [ "$command_name" = "analyze" ] && criteria_line="
@@ -259,9 +257,7 @@ The acceptance criteria checks for this spec, per Step 1: criteriaChecks: $crite
   # me choose the approach:` line, recorded when it was created; absent or
   # anything but yes is no, and adds nothing to the prompt.
   # core/tests/fixtures/choose-approach-line.json is the table.
-  choose_approach=""
-  declare -f aide_spec_choose_approach >/dev/null 2>&1 \
-    && choose_approach="$(aide_spec_choose_approach "$specs_root" "$spec_folder")"
+  choose_approach="$(aide_spec_choose_approach "$specs_root" "$spec_folder")"
   approach_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" = "yes" ] && approach_line="
 Let me choose the approach is on for this spec, per Step 7: mark each approach (recommended), (real alternative) or (considered and rejected)"

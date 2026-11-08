@@ -187,7 +187,6 @@ analysis_follows_implement() {   # $1 = status file, $2 = pre-session ref
 rebuild_acceptance_after_analysis() {   # $1 = status file, $2 = pre-session ref
   local status_file="$1" description
   description="$(dirname "$status_file")/1-description.md"
-  declare -f rebuild_acceptance_rows >/dev/null 2>&1 || return 0
   if grep -Eq '^[[:blank:]]*-[[:blank:]]*\*\*Acceptance:\*\*[[:blank:]]*not required[[:blank:]]*$' \
      "$description" 2>/dev/null; then
     rebuild_acceptance_rows "$status_file" "$description" "Not verified"

@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import re
 import pytest
-from ...conftest import run, stand_in
+from ...conftest import git, run, stand_in
 from ..run_spec_fakes import creating_claude, specs_only_claude, writing_claude
 from ..run_spec_invoking import CREATE_KEY, create
 from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
@@ -455,12 +455,20 @@ def test_a_close_that_moved_nothing_says_why(runner, workspace, fake_claude, tmp
     scripts = tmp_path / "scripts"
     shutil.copytree(runner.parent, scripts, symlinks=True)
     stand_in(scripts / "aide-close-spec", f"#!/bin/sh\necho '{answer}'\n" if answer else "#!/bin/sh\nexit 3\n")
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
+        f"printf 'close work\\n' > \"$specs/{workspace['folder']}/close-note\"\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
     rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold",
                      runner_path=scripts / "aide-run-spec")
     assert out["ok"] is False, out
     assert out["terminalReason"] == reason, out
     assert said in out["error"], out
+    if reason == "conflict-open":
+        message = git(workspace["specs"], "log", "-1", "--pretty=%B", "aide/81-queue-and-runner")
+        assert message.rstrip().endswith(" (stopped: conflict-open)"), message
 
 
 def _default_ref(repo):

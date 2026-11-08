@@ -358,9 +358,8 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
     else
       # The script's own refusal, before any AI ran: not the CLI failing,
       # so nothing names a tool or a model for it.
-      terminal_reason="refused"
       tool="none"; model=""; effort=""
-      error_msg="$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)"
+      stop_step refused "$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)" ""
     fi
   elif [ -n "$reopen_keep_no_ai" ] || [ -n "$reopen_reset_no_ai" ]; then
     reopen_args=(--specs-root "$specs_root_wt" --spec "$spec_folder")
@@ -373,9 +372,8 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
       tool="none"
       model=""; effort=""
     else
-      terminal_reason="refused"
       tool="none"; model=""; effort=""
-      error_msg="$(jq -r '.error // "aide-reopen-spec refused"' <<<"$reopen_result" 2>/dev/null)"
+      stop_step refused "$(jq -r '.error // "aide-reopen-spec refused"' <<<"$reopen_result" 2>/dev/null)" ""
     fi
   else
     terminal_reason="$archive_terminal_reason"; error_msg=""; error_solution=""; error_log=""
@@ -450,16 +448,13 @@ if [ "$command_name" = "create" ] && [ "$ok" = "true" ] && [ -z "$create_no_ai" 
   done
   specs_root_shown="${specs_root_wt#"${specs_wt:-$project_wt}"/}"
   [ "$specs_root_shown" = "$specs_root_wt" ] && specs_root_shown="the specs root"
-  terminal_reason="no-progress"
-  ok="false"
-  suffix=" (stopped: no-progress)"
   if [ -n "$misplaced_where" ]; then
-    error_msg="the step reported success but made the spec folder in the wrong place — $spec_arg is $misplaced_where, not under $specs_root_shown"
-    error_solution="press $step_button again for this step"
+    stop_step no-progress "the step reported success but made the spec folder in the wrong place — $spec_arg is $misplaced_where, not under $specs_root_shown" \
+      "press $step_button again for this step"
     error_log="$spec_arg is $misplaced_where, not under $specs_root_shown"
   else
-    error_msg="the step reported success but made no spec folder named $spec_arg under $specs_root_shown"
-    error_solution="press $step_button again for this step"
+    stop_step no-progress "the step reported success but made no spec folder named $spec_arg under $specs_root_shown" \
+      "press $step_button again for this step"
     error_log="no spec folder named $spec_arg under $specs_root_shown"
   fi
   created_spec_folder=""

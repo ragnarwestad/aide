@@ -27,7 +27,7 @@
 # other half of this pair, and
 # core/tests/fixtures/code-landing-precedence.json is the table both are
 # checked against.
-if [ "$push_mode_explicit" = "no" ] && declare -f aide_manifest_get >/dev/null 2>&1; then
+if [ "$push_mode_explicit" = "no" ]; then
   code_landing="$(aide_manifest_get codeLanding "$project_root")"
   if [ "$code_landing" = "pr" ]; then
     push_mode="pr"
@@ -43,10 +43,8 @@ fi
 # dashboard writes itself.
 if [ -n "${specs_root_arg:-}" ]; then
   specs_root="$specs_root_arg"
-elif declare -f aide_specs_root >/dev/null 2>&1; then
-  specs_root="$(aide_specs_root "$project_root")"
 else
-  specs_root="$project_root/specs"
+  specs_root="$(aide_specs_root "$project_root")"
 fi
 # A new project has no specs root until its first spec is made, so
 # `create` makes one inside the project. One outside it is a setup error.
@@ -76,8 +74,7 @@ specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true
 # while every list looks for it under the project's own folder. One
 # repository holds the specs of several projects, each in a folder of its
 # own, so a root set one level too high looks exactly like this.
-if [ -n "$specs_repo" ] && [ "$specs_repo" = "$specs_root" ] \
-  && declare -f aide_manifest_get >/dev/null 2>&1; then
+if [ -n "$specs_repo" ] && [ "$specs_repo" = "$specs_root" ]; then
   specs_root_project="$(aide_manifest_get name "$project_root")"
   if [ -n "$specs_root_project" ] && [ -d "$specs_root/$specs_root_project" ]; then
     refuse_fix "the specs root is $specs_root, which is the specs repository's own top level, and $specs_root/$specs_root_project is already there" \

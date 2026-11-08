@@ -137,22 +137,17 @@ dependency_archived_on_origin() {
 # down, so gating its definition would leave every non-gated command
 # calling a function that does not exist.
 #
-# Guarded like every other library call here: the library is sourced
-# conditionally, and an unguarded call would silently no-op under
-# `set -uo pipefail` rather than failing loudly.
 case " $DEPENDENCY_GATED_STEPS " in
   *" $command_name "*)
-    if declare -f aide_spec_dependencies >/dev/null 2>&1; then
-      for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
-        resolve_dependency_folder "$dep_id"
-        [ -n "$dep_folder" ] \
-          || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
-        [ "$dep_folder" = "$spec_folder" ] \
-          && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
-        dependency_archived_on_origin "$dep_folder" \
-          || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
-      done
-    fi
+    for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
+      resolve_dependency_folder "$dep_id"
+      [ -n "$dep_folder" ] \
+        || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+      [ "$dep_folder" = "$spec_folder" ] \
+        && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+      dependency_archived_on_origin "$dep_folder" \
+        || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
+    done
     ;;
 esac
 
@@ -169,14 +164,12 @@ esac
 # analyzed/implemented --implement--> legal. Same reason, same message.
 if [ "$command_name" = "implement" ]; then
   status_file="$specs_root/$spec_folder/4-status.md"
-  if declare -f may_apply_spec_transition >/dev/null 2>&1; then
-    # A status file that does not exist yet reads as phase "created"
-    # (_peek_spec_state derives an empty state), which the table refuses
-    # implement from — same as the old code's default "no" for a missing
-    # file.
-    may_apply_spec_transition "$status_file" "implement" \
-      || refuse "$transition_message" "$transition_refusal"
-  fi
+  # A status file that does not exist yet reads as phase "created"
+  # (_peek_spec_state derives an empty state), which the table refuses
+  # implement from — same as the old code's default "no" for a missing
+  # file.
+  may_apply_spec_transition "$status_file" "implement" \
+    || refuse "$transition_message" "$transition_refusal"
 fi
 
 # The main checkout is put back ON its default branch and never taken off

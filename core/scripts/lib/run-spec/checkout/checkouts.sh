@@ -44,12 +44,10 @@ link_paths=()
 links_raw=""
 links_source=""
 links_key=""
-if declare -f aide_manifest_get >/dev/null 2>&1; then
-  links_raw="$(aide_manifest_get worktreeLinks "$project_root")"
-  if [ -n "$links_raw" ]; then
-    links_source="project.yaml"
-    links_key="worktreeLinks"
-  fi
+links_raw="$(aide_manifest_get worktreeLinks "$project_root")"
+if [ -n "$links_raw" ]; then
+  links_source="project.yaml"
+  links_key="worktreeLinks"
 fi
 [ -n "$links_source" ] && echo "Worktree links: read from $links_source" >&2
 for entry in $links_raw; do
@@ -242,7 +240,7 @@ on_signal() {
     # started on the same branch meanwhile cuts its worktree only after this
     # commit, never during it.
     for root in ${roots[@]+"${roots[@]}"}; do take_signal_lock "$root"; done
-    suffix=" (stopped: cancelled)"
+    stop_suffix cancelled
     commit_label="${commit_label:-$spec_label}"
     abort_unfinished_merges
     declare -f commit_and_push_roots >/dev/null 2>&1 \
