@@ -340,7 +340,7 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     s.update(create.job.id, { state: "done", landing: true });
     const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
     expect(answer.ok).toBe(false);
-    if (!answer.ok) expect(sentence(answer.error)).toContain(REQ.specFolder);
+    if (!answer.ok) expect(sentence(answer.error)).toContain("aide:81");
   });
 
   test("an unrelated spec is unaffected while this one is landing", () => {

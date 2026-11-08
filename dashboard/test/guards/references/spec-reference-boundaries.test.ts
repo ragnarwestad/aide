@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const root = join(import.meta.dir, "../../..");
+const root = join(import.meta.dir, "../../../..");
 const source = (path: string): string => readFileSync(join(root, path), "utf8");
 
 test("board-facing spec names pass through the shared reference rule", () => {

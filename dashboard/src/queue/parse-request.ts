@@ -98,7 +98,7 @@ export function parseJobRequest(
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
   if (!isScheduleJob && !isDeploy && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
-    return { ok: false, error: invalidRequest(`unknown specFolder: ${r.specFolder}`) };
+    return { ok: false, error: invalidRequest(`unknown specFolder: ${specReference(r.project, r.specFolder)}`) };
   }
 
   if (!Array.isArray(r.steps) || r.steps.length === 0 || r.steps.length > 8) {
