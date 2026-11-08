@@ -21,6 +21,7 @@
 //     spot this whole spec exists to remove.
 
 
+import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./worktree.ts";
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { conflictFiles, gitErrorDetail } from "../../format/git-error.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
@@ -127,8 +128,8 @@ export async function mergeBranchIntoDefault(
     }
 
     work = mergeWorktreePath(root, branch);
-    await run(root, ["worktree", "remove", "--force", work]);
-    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`]);
+    await prepareMergeWorktree(run, root, work);
+    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
     if (added.code !== 0) {
       await run(root, ["worktree", "prune"]);
       return refuse(
@@ -370,7 +371,7 @@ export async function mergeBranchIntoDefault(
     // own administrative record of it behind — and that record is
     // enough to make the next `worktree add` at the same path refuse.
     if (work) {
-      await run(root, ["worktree", "remove", "--force", work]);
+      await run(root, ["worktree", "remove", "--force", work], WORKTREE_TIMEOUT_MS);
       await run(root, ["worktree", "prune"]);
     }
   }

@@ -8,10 +8,11 @@
 // holds afterwards, which a fake git can answer whatever the code does.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { mergeBranchIntoDefault, mergeWorktreePath } from "../../../src/git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../../src/git/spec-folder-landing.ts";
 
 const FOLDER = "03-a-spec";
@@ -120,3 +121,42 @@ describe("landing a spec's own folder", () => {
     expect(result.reason).toBe("gone");
   });
 });
+
+for (const kind of ["branch", "folder"] as const) {
+  test(`${kind} landing preserves an incomplete worktree and retries in a fresh directory`, async () => {
+    const { root, origin } = repo();
+    const work = mergeWorktreePath(root, BRANCH);
+    write(work, "unfinished.txt", "keep this content\n");
+    const result = kind === "branch"
+      ? await mergeBranchIntoDefault(createGitRunner(), root, BRANCH, "main")
+      : await landSpecFolderOnly(createGitRunner(), root, BRANCH, "main", {
+        paths: PATHS, message: "Land analysis", deleteBranch: false,
+      });
+    expect(result.ok).toBe(true);
+    expect(onMain(origin, `specs/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
+    expect(existsSync(work)).toBe(false);
+    const parent = join(root, "..");
+    const backup = readdirSync(parent).find((name) => name.startsWith(work.split("/").pop()! + ".incomplete-"));
+    expect(backup).toBeDefined();
+    expect(readFileSync(join(parent, backup!, "unfinished.txt"), "utf8")).toBe("keep this content\n");
+  });
+}
+
+for (const kind of ["branch", "folder"] as const) {
+  test(`${kind} landing allows a large worktree longer than a status query`, async () => {
+    const { root } = repo();
+    const real = createGitRunner();
+    const run: ReturnType<typeof createGitRunner> = async (dir, args, timeout, env) => {
+      if (args[0] === "worktree" && args[1] === "add" && (timeout ?? 4000) < 30_000) {
+        return { code: 143, stdout: "", stderr: "fatal: Could not write new index file." };
+      }
+      return real(dir, args, timeout, env);
+    };
+    const result = kind === "branch"
+      ? await mergeBranchIntoDefault(run, root, BRANCH, "main")
+      : await landSpecFolderOnly(run, root, BRANCH, "main", {
+        paths: PATHS, message: "Land analysis", deleteBranch: false,
+      });
+    expect(result.ok).toBe(true);
+  });
+}
