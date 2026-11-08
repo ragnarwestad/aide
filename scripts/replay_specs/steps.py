@@ -23,7 +23,7 @@ class Step(NamedTuple):
     tool: str
     model: str
     effort: Optional[str]
-StepRun = namedtuple("StepRun", "seconds result log stream")
+StepRun = namedtuple("StepRun", "seconds result log")
 
 # The time limits and permission mode the board's queue gives each step.
 TIME_LIMITS = {"analyze": 2400, "implement": 5400}
@@ -99,16 +99,13 @@ def run_step(run, command, step, folder, project_dir, specs_root, out):
         except BaseException:
             end_group(proc)
             raise
-    return StepRun(time.monotonic() - started, read_result(result_file, stdout), log, stream)
+    return StepRun(time.monotonic() - started, read_result(result_file, stdout), log)
 
 
 def stats_of(step, ran):
-    """Time is the wall clock around the call; tokens are summed over the stream, else the result line's last turn."""
-    tokens, last_turn = measure.step_tokens(ran.stream, step.tool), False
-    if tokens is None:
-        tokens = ((ran.result or {}).get("tokens") or {}).get("total")
-        last_turn = tokens is not None
-    return Stats(ran.seconds, tokens, (ran.result or {}).get("costUsd"), last_turn)
+    """Time is the wall clock around the call; tokens and cost are the runner's own figures for the whole step."""
+    result = ran.result or {}
+    return Stats(ran.seconds, (result.get("tokens") or {}).get("total"), result.get("costUsd"))
 
 
 def ended(ran):

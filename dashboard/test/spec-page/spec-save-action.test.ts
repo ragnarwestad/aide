@@ -82,7 +82,7 @@ describe("a save that cannot go through changes nothing", () => {
     ],
     ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
     ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
-    ["a push that fails", { push: { code: 1 } }, "push"],
+    ["both push attempts fail", { push: { code: 1 }, rebase: { code: 0 } }, "push"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
     test(`${what}: refused with the reason`, async () => {
       const { base, dir } = start(savable("/host", extra));
