@@ -13,6 +13,20 @@ afterEach(() => harness.cleanup());
 
 const AUTH = { "content-type": "application/json", accept: "application/json" };
 
+describe("POST /api/queue/cleanup", () => {
+  test("enqueues one cleanup job and returns it again while unfinished (AC-2, AC-3)", async () => {
+    const { base } = start();
+    const first = await fetch(`${base}/api/queue/cleanup`, { method: "POST", headers: AUTH });
+    const second = await fetch(`${base}/api/queue/cleanup`, { method: "POST", headers: AUTH });
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    const a = (await first.json()) as { job: { id: string; steps: string[] } };
+    const b = (await second.json()) as { job: { id: string } };
+    expect(a.job.steps).toEqual(["cleanup"]);
+    expect(b.job.id).toBe(a.job.id);
+  });
+});
+
 /** What `defaultBranch()`'s own `symbolic-ref` and `startTestServer()`'s own
  *  `headCommit()` (`ls-remote`) need to resolve and find "main". */
 const onMain = () =>

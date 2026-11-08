@@ -8,7 +8,7 @@ import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../gi
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
-import { persistQueueSettings } from "../../queue/queue.ts";
+import { CLEANUP_KEY, isCleanupJob, persistQueueSettings, UNFINISHED } from "../../queue/queue.ts";
 import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
@@ -22,6 +22,17 @@ export async function handleQueueAdminRoutes(
   req: Request,
   path: string,
 ): Promise<Response | null> {
+  if (path === "/api/queue/cleanup") {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const existing = ctx.queue.list().find((job) => isCleanupJob(job) && UNFINISHED.has(job.state));
+    if (existing) return json({ ok: true, job: existing });
+    const project = [...ctx.allowed][0];
+    if (!project) return json({ ok: false, error: "this board has no project for the cleanup job" }, 400);
+    const result = ctx.queue.enqueue({ project, specFolder: CLEANUP_KEY, steps: ["cleanup"] });
+    if (!result.ok) return json({ ok: false, error: result.error }, 400);
+    await ctx.tickRunner();
+    return json({ ok: true, job: result.job });
+  }
   if (path === "/api/queue/create") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req, MAX_CREATE_BODY);

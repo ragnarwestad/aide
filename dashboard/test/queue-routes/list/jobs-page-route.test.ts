@@ -93,6 +93,11 @@ const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="(
 const noticeOf = (g: string): string => g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
+  test("keeps a completed cleanup in job history (AC-4)", async () => {
+    const { base } = board([job({ id: "clean", specFolder: "cleanup", steps: ["cleanup"], state: "done", finishedAt: "2026-10-08T10:01:00Z" })]);
+    const html = await rowsOf(base);
+    expect(group(html, "spec-aide/cleanup:cleanup")).toContain("Cleanup");
+  });
   test("the page holds its rows in #jobrows, the rows answer holds no page around them", async () => {
     const { base } = board([job({})]);
     const page = await fetch(`${base}/`);

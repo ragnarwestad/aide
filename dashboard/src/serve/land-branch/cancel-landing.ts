@@ -10,6 +10,10 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 const running = new Map<string, Set<number>>();
 const cancelled = new Set<string>();
 
+export function landingProcessGroups(): number[] {
+  return [...running.values()].flatMap((pids) => [...pids]);
+}
+
 /** A script started for this job's landing, in a group of its own. The
  *  first one of a landing also clears a Cancel left from an earlier one. */
 export function trackLandingProcess(jobId: string, pid: number): void {

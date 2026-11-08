@@ -131,6 +131,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 |-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
 | `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
 | `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
+| `POST /api/queue/cleanup`                     | action | nothing                                            | `{ ok, job }`; 400 `{ error }`                                             | form      |
 | `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                                     | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=` and `?open=`                   | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |

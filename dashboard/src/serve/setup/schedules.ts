@@ -36,6 +36,7 @@ import { runScript } from "../land-branch/run-script.ts";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
+import { cleanupDue, enqueueNightlyCleanup } from "../process-cleanup/schedule.ts";
 
 export interface ScheduleSetupOptions {
   projectRoot?: string;
@@ -45,6 +46,7 @@ export interface ScheduleSetupOptions {
   specCachePollMs?: number;
   scheduleCheckMs?: number;
   branchPreviewPollMs?: number;
+  cleanupCheckMs?: number;
 }
 
 export interface ScheduleSetupInputs {
@@ -224,9 +226,17 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       : null;
   branchPreviewTimer?.unref?.();
 
+  const cleanupCheckMs = opts.cleanupCheckMs ?? 60_000;
+  const cleanupTimer = cleanupCheckMs > 0 ? setInterval(() => {
+    const now = new Date();
+    const project = [...allowed][0];
+    if (project && cleanupDue(now) && enqueueNightlyCleanup(queue, project, now)) void tickRunner();
+  }, cleanupCheckMs) : null;
+  cleanupTimer?.unref?.();
+
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
     warmSpec, rereadSpec, rereadProject, refreshSpecCaches, tickRunner,
-    timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer],
+    timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer],
   };
 }
