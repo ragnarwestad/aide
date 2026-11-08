@@ -342,7 +342,7 @@ describe("landing a created spec", () => {
   // trusting the reasoning.
   test("the step after create runs under the spec's real, renamed folder", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
+    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git);
     const made = (await (
       await fetch(`${base}/api/queue/create`, {
         method: "POST",
@@ -360,6 +360,10 @@ describe("landing a created spec", () => {
 
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+    // The landing's merge puts the folder on disk; until it is there, the
+    // next step waits for it rather than starting into the runner's refusal.
+    mkdirSync(join(dir, "root", "aide", "specs", "94-a-new-spec"), { recursive: true });
+    writeFileSync(join(dir, "root", "aide", "specs", "94-a-new-spec", "1-description.md"), "# A new spec - Description\n");
 
     // The next step starts running under the RENAMED folder — never the
     // provisional key `create` was queued under.

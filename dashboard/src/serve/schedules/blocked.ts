@@ -48,7 +48,8 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
   if (!ctx.projectRoot) return blocked;
   // Every job queued as the question is asked: one queued while origin is
   // being asked is left for the next tick (`dependency-hold.ts`).
-  blocked.checked = new Set(ctx.queue.list().filter((job) => job.state === "queued").map((job) => job.id));
+  const checked = new Set(ctx.queue.list().filter((job) => job.state === "queued").map((job) => job.id));
+  blocked.checked = checked;
   const waiting = ctx.queue.list().filter((job) => {
     if (job.state !== "queued") return false;
     const step = job.steps[job.stepIndex];
@@ -76,7 +77,19 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
   for (const job of waiting) {
     const project = projects.get(job.project);
     const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
-    if (!project || !spec) continue;
+    if (!project || !spec) {
+      // The step after a `create` can be queued before the landing that
+      // numbered its spec reaches the checkout this scan reads. Not found
+      // is not "names nothing": the job waits a tick, for as long as an
+      // origin that cannot be asked holds one, and then starts as before.
+      if (job.steps[job.stepIndex - 1] === "create") {
+        const now = (ctx.now ?? Date.now)();
+        const since = unconfirmedSince.get(job.id) ?? now;
+        unconfirmedSince.set(job.id, since);
+        if (now - since < UNCONFIRMED_HOLD_MS) checked.delete(job.id);
+      }
+      continue;
+    }
     for (const id of new Set([...(named.get(key(job)) ?? []), ...spec.dependsOn])) {
       const dep = resolveDependencyFolder(project, id);
       // An unknown identifier, or the spec itself: both are refusals
