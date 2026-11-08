@@ -109,9 +109,10 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
 | `aide status <spec>`                                    | Nothing: it says the spec's phase and what its newest job is doing |
 
 - **The description of a create** comes from `--file`, else from standard input, else from `$VISUAL` or `$EDITOR`.
-  `--depends-on <spec>` (repeatable), `--then analyze,implement,archive`, `--provider`, `--criteria-checks off|warn|stop`,
+  `--depends-on <spec>` (repeatable), `--autostart`, `--provider`, `--criteria-checks off|warn|stop`,
   `--choose-approach`, `--acceptance-not-required` and `--no-ai-criteria` are the form's other settings. Both boxes the
-  form opens ticked are ticked unless the last two flags are given.
+  form opens ticked are ticked unless the last two flags are given. `--autostart` runs analyze, implement and archive once
+  the spec is made, as Analyze on its new row does.
 - **The model** is the phase's model from Models per phase. `--model <name>` runs the step on that model instead, and on
   a create it applies to every step the create runs.
 - **A spec** is named by its number or its folder. A number is looked up in the specs root of the checkout the command

@@ -41,7 +41,7 @@ STEPS="analyze implement archive reopen"
 
 usage() {
   cat <<'EOF'
-usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]... [--then <steps>]
+usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]... [--autostart]
                    [--model <name>] [--provider <name>] [--criteria-checks off|warn|stop]
                    [--choose-approach] [--acceptance-not-required] [--no-ai-criteria]
        aide analyze|implement|archive|reopen <spec> [--project <name>] [--model <name>]
@@ -49,9 +49,9 @@ usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]... 
        aide status <spec> [--project <name>]
 
 create reads the description from --file, else from standard input, else from
-$VISUAL / $EDITOR. --then names the steps to run after create (analyze,
-implement, archive, comma separated). A step runs on the phase's model unless
---model names one. A spec is its number or its folder.
+$VISUAL / $EDITOR. --autostart runs analyze, implement and archive once the
+spec is made, as Analyze on its row does. A step runs on the phase's model
+unless --model names one. A spec is its number or its folder.
 EOF
 }
 
@@ -244,9 +244,7 @@ run_create() {
     depends_json="$(printf '%s' "$folder_list" | jq -R . | jq -sc .)"
   fi
   then_json="[]"
-  if [ -n "$then_steps" ]; then
-    then_json="$(printf '%s' "$then_steps" | tr ',' '\n' | jq -R . | jq -sc .)"
-  fi
+  [ "$autostart" = true ] && then_json='["analyze","implement","archive"]'
   body="$(jq -nc --arg project "$project" --arg title "$title" --arg description "$description" \
     --argjson depends "$depends_json" --argjson extra "$then_json" --arg model "$model" \
     --arg provider "$provider" --arg criteria "$criteria" --argjson approach "$choose_approach" \
@@ -263,7 +261,7 @@ run_create() {
   http_or_die POST "/api/queue/create" "$ANSWER_SECONDS" "$body"
   accepted || refuse
   local what="create of \"$title\""
-  [ -z "$then_steps" ] || what="$what, then ${then_steps//,/, },"
+  [ "$autostart" = false ] || what="$what, then analyze, implement, archive,"
   finish "$what in $project"
 }
 
@@ -331,7 +329,7 @@ command=""
 positionals=()
 depends=()
 file=""
-then_steps=""
+autostart=false
 model=""
 provider=""
 criteria=""
@@ -372,7 +370,7 @@ parse_args() {
       --reason) allow "$1" close; need_value "$@"; reason="$2"; shift 2 ;;
       --file) allow "$1" create; need_value "$@"; file="$2"; shift 2 ;;
       --depends-on) allow "$1" create; need_value "$@"; depends+=("$2"); shift 2 ;;
-      --then) allow "$1" create; need_value "$@"; then_steps="$2"; shift 2 ;;
+      --autostart) allow "$1" create; autostart=true; shift ;;
       --provider) allow "$1" create; need_value "$@"; provider="$2"; shift 2 ;;
       --criteria-checks) allow "$1" create; need_value "$@"; criteria="$2"; shift 2 ;;
       --choose-approach) allow "$1" create; choose_approach=true; shift ;;
@@ -389,12 +387,6 @@ parse_args() {
     title="${positionals[1]}"
     [ -n "$title" ] || usage_error "the title is empty"
     case "$criteria" in ""|off|warn|stop) ;; *) usage_error "--criteria-checks is off, warn or stop" ;; esac
-    if [ -n "$then_steps" ]; then
-      local s
-      for s in $(printf '%s' "$then_steps" | tr ',' ' '); do
-        case "$s" in analyze|implement|archive) ;; *) usage_error "--then names analyze, implement or archive, not $s" ;; esac
-      done
-    fi
   else
     [ "${#positionals[@]}" -eq 1 ] || usage_error "$command takes one spec"
     spec_arg="${positionals[0]}"
