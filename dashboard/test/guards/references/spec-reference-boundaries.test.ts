@@ -20,6 +20,7 @@ test("runner-facing spec names pass through the shared reference rule (AC-2, AC-
     ["core/scripts/lib/run-spec/setup/gates.sh", /\$spec_folder depends on \$dependency_folder/],
     ["core/scripts/lib/run-spec/turn/step-tests.sh", /spec folder \$spec_folder/],
     ["core/scripts/lib/run-spec/record/specs-guard.sh", /only \$spec_folder\//],
+    ["core/scripts/lib/run-spec/record/shared-files-check.sh", /\.spec \+ ": "/],
   ];
   for (const [path, rawReference] of cases) expect(source(path)).not.toMatch(rawReference);
 });
