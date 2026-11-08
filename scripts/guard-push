@@ -89,23 +89,27 @@ def pushed_repo(command, cwd):
 
 
 def landing_origins(projects):
-    """The origins of the board's code and specs checkouts of each project, or None when one cannot be read."""
+    """The origins of the board's code and specs checkouts, by project, or None when one cannot be read."""
     if not all(PROJECT.match(p) for p in projects):
         return None
     local = Path.home() / CHECKOUTS
     if (Path.home() / MIRROR).exists():
-        origins = [origin_of(d) for p in projects for d in sorted((local / p).glob("*")) if (d / ".git").exists()]
-        return origins if origins and all(origins) else None
+        origins = {p: [origin_of(d) for d in sorted((local / p).glob("*")) if (d / ".git").exists()] for p in projects}
+        return origins if all(o and all(o) for o in origins.values()) else None
     host = os.environ.get("AIDE_BOARD_HOST")
-    script = "; ".join(f"for r in ~/{CHECKOUTS}/{p}/*/; do [ -e \"$r.git\" ] && git -C \"$r\" remote get-url origin; done"
+    script = "; ".join(f"for r in ~/{CHECKOUTS}/{p}/*/; do [ -e \"$r.git\" ] && echo {p} $(git -C \"$r\" remote get-url origin); done"
                        for p in projects)
     try:
         done = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", host, script],
                               capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.TimeoutExpired):
         return None
-    origins = [same_repo(line) for line in done.stdout.splitlines() if line.strip()]
-    return origins if done.returncode == 0 and origins else None
+    origins = {}
+    for line in done.stdout.splitlines():
+        project, _, url = line.strip().partition(" ")
+        if project in projects and url.strip():
+            origins.setdefault(project, []).append(same_repo(url.strip()))
+    return origins if done.returncode == 0 and set(origins) == set(projects) else None
 
 
 def main():
@@ -128,8 +132,10 @@ def main():
     if busy:
         mine = pushed_repo(command, payload.get("cwd"))
         theirs = landing_origins(sorted({str(j.get("project")) for j in busy}))
-        if mine and theirs is not None and mine not in theirs:
-            return 0
+        if mine and theirs is not None:
+            busy = [j for j in busy if mine in theirs[str(j.get("project"))]]
+            if not busy:
+                return 0
         names = ", ".join(f"{j.get('project')}/{j.get('specFolder')}" for j in busy)
         print(f"Blocked: an archive is landing on the board ({names}). A push now moves main under its test gate; "
               "push once it has landed.", file=sys.stderr)

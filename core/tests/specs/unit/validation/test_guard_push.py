@@ -44,7 +44,7 @@ def board_checkouts(home, checkouts):
 def guard(tmp_path, command, queue=None, host=None, ssh_queue=None, checkouts=None, cwd=None, ssh_origins=None):
     """Run the hook as Claude Code does: the tool call as JSON on stdin. `queue` is the board's mirror on this
     machine, `checkouts` the board's own checkouts beside it; `ssh_queue` and `ssh_origins` what a stand-in ssh
-    prints for the board host when asked for the queue and for a project's origins."""
+    prints for the board host when asked for the queue and for each project's origins."""
     home = tmp_path / "home"
     if queue is not None:
         (home / ".aide" / "dashboard").mkdir(parents=True, exist_ok=True)
@@ -58,7 +58,8 @@ def guard(tmp_path, command, queue=None, host=None, ssh_queue=None, checkouts=No
         ssh.write_text("#!/bin/sh\necho 'ssh: connect to host board: Connection refused' >&2\nexit 255\n")
     else:
         (tmp_path / "remote-queue.json").write_text(json.dumps(ssh_queue))
-        (tmp_path / "remote-origins").write_text("".join(f"{o}\n" for o in (ssh_origins or [])))
+        (tmp_path / "remote-origins").write_text(
+            "".join(f"{p} {o}\n" for p, origins in (ssh_origins or {}).items() for o in origins))
         ssh.write_text(f"#!/bin/sh\necho \"$@\" >> {tmp_path / 'ssh-args'}\n"
                        f"case \"$*\" in *get-url*) cat {tmp_path / 'remote-origins'};; "
                        f"*) cat {tmp_path / 'remote-queue.json'};; esac\n")
@@ -83,6 +84,15 @@ def test_a_push_to_the_landing_projects_code_repo_is_blocked_and_names_the_spec(
                  checkouts=CHECKOUTS, cwd=aide)
     assert done.returncode == 2
     assert "640-deploy" in done.stderr
+
+
+def test_the_block_names_only_the_landings_that_move_the_pushed_repo(tmp_path):
+    aide = repo(tmp_path, "aide", AIDE)
+    skjera_landing = {**ARCHIVE_LANDING, "project": "skjera", "specFolder": "71-skjera"}
+    done = guard(tmp_path, "git push", queue=[ARCHIVE_LANDING, skjera_landing], checkouts=CHECKOUTS, cwd=aide)
+    assert done.returncode == 2
+    assert "640-deploy" in done.stderr
+    assert "71-skjera" not in done.stderr
 
 
 def test_a_push_to_another_projects_repo_passes_while_one_lands(tmp_path):
@@ -114,11 +124,12 @@ def test_a_push_with_nothing_landing_passes(tmp_path):
 
 def test_away_from_the_board_the_queue_and_the_origins_are_read_over_ssh_from_the_board_host(tmp_path):
     aide = repo(tmp_path, "aide", AIDE)
-    done = guard(tmp_path, "git push", host="board", ssh_queue=[ARCHIVE_LANDING], ssh_origins=[AIDE, SPECS], cwd=aide)
+    done = guard(tmp_path, "git push", host="board", ssh_queue=[ARCHIVE_LANDING],
+                 ssh_origins={"aide": [AIDE, SPECS]}, cwd=aide)
     assert done.returncode == 2
     assert "board" in (tmp_path / "ssh-args").read_text()
     other = guard(tmp_path, "git push", host="board", ssh_queue=[{**ARCHIVE_LANDING, "project": "skjera"}],
-                  ssh_origins=[SKJERA, SPECS], cwd=aide)
+                  ssh_origins={"skjera": [SKJERA, SPECS]}, cwd=aide)
     assert other.returncode == 0, other.stderr
     assert guard(tmp_path, "git push", host="board", ssh_queue=[]).returncode == 0
 
