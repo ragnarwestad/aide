@@ -74,7 +74,9 @@ require_board() {
   [ -n "$instead" ] && tail=" — run $instead in an AI session instead"
   [ -n "$board_url" ] || die "AIDE_BOARD_URL is not set in ~/.aide/config, so there is no board to $what$tail"
   command -v curl >/dev/null 2>&1 || die "curl is not on this machine, so there is no way to reach the board$tail"
-  http_or_die POST "/api/queue/projects/$project/fetch-specs" "$CHECK_SECONDS"
+  # The fetch asks origin and rereads the project, which a loaded board
+  # takes as long over as a queued request.
+  http_or_die POST "/api/queue/projects/$project/fetch-specs" "$ANSWER_SECONDS"
   case "$http_status" in
     404) die "the board at $board_url does not know the project $project, so there is nothing to $what$tail" ;;
     200|400) ;;

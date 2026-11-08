@@ -3,9 +3,11 @@
 #
 # A Claude result reports the SESSION's totals: after `--resume`, its
 # `total_cost_usd` and `modelUsage` include every earlier turn of that
-# session, in this run or an earlier one. The runner records each session's
-# totals after every Claude turn, and a turn that resumed a recorded session
-# reports
+# session, in this run or an earlier one. A Codex `turn.completed` does the
+# same for its thread's tokens, after `exec resume`; Codex names no cost.
+# OpenCode reports each call on its own and is handled where it is read.
+# The runner records each session's totals after every Claude or Codex turn,
+# and a turn that resumed a recorded session reports
 #   - `cost`: what this turn added, since the callers add a step's turns up;
 #   - `tokens_json`: what the session used since this run's first turn on it,
 #     since the callers keep the last turn's tokens as the step's. What an
@@ -16,20 +18,26 @@
 
 session_totals_dir="${AIDE_SESSION_TOTALS_DIR:-$HOME/.aide/run-spec/session-totals}"
 
-# The session the current argv resumes, or nothing.
+# The session the current argv resumes, or nothing: claude's `--resume <id>`,
+# codex's `exec resume ... <thread> -`.
 resumed_session() {
-  local prev="" arg
+  local prev="" arg n=${#argv[@]}
+  if [ "${argv[1]:-}" = "exec" ] && [ "${argv[2]:-}" = "resume" ] && [ "$n" -ge 2 ]; then
+    printf '%s' "${argv[$((n - 2))]}"; return 0
+  fi
   for arg in "${argv[@]}"; do
     [ "$prev" = "--resume" ] && { printf '%s' "$arg"; return 0; }
     prev="$arg"
   done
 }
 
-# Turn this Claude turn's session totals into what the turn and the step
-# used, and record the session's new totals. <session> is the one the result
-# names, <resumed> the one the argv resumed, <result json> the result event.
+# Turn this turn's session totals into what the turn and the step used, and
+# record the session's new totals. <session> is the one the result names,
+# <resumed> the one the argv resumed, <cumulative tokens> yes when the tokens
+# are the session's total (claude's `modelUsage`, codex's usage), not the
+# last call's alone (claude's flat `usage`), which has nothing to subtract.
 session_totals_apply() {
-  local session="$1" resumed="$2" result="$3" record base_file now before
+  local session="$1" resumed="$2" cumulative_tokens="$3" record base_file now before
   case "$session" in ''|*/*) return 0 ;; esac
   record="$session_totals_dir/$session.json"
   base_file="$work_dir/session-step-base-$session.json"
@@ -40,10 +48,7 @@ session_totals_apply() {
     [ -f "$base_file" ] || jq -c '.tokens' <<<"$before" > "$base_file"
     cost="$(jq -rn --argjson b "$before" --argjson n "$now" \
       '[($n.cost - ($b.cost // 0)), 0] | max')"
-    # Only `modelUsage` is the session's total; the flat `usage` fallback is
-    # the last call alone and has nothing to subtract.
-    if [ -n "${tokens_json:-}" ] && jq -e '(.modelUsage | type) == "object" and (.modelUsage | length) > 0' \
-        <<<"$result" >/dev/null 2>&1; then
+    if [ -n "${tokens_json:-}" ] && [ "$cumulative_tokens" = "yes" ]; then
       tokens_json="$(jq -c --slurpfile base "$base_file" '
         ($base[0] // {}) as $b
         | {input:         ([.input - ($b.input // 0), 0] | max),

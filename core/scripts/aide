@@ -30,9 +30,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 [ -f "$SCRIPT_DIR/lib/board-request.sh" ] && source "$SCRIPT_DIR/lib/board-request.sh"
 
 # How long to wait for the board: the connection, then an answer. The
-# project check and the reads wait CHECK_SECONDS. A request that queues
-# something is answered only after a scheduler pass, which may ask origin
-# about each queued job's dependencies, so it waits longer.
+# reads wait CHECK_SECONDS. The specs fetch before every command asks
+# origin, and a request that queues something is answered only after a
+# scheduler pass, which may ask origin about each queued job's
+# dependencies, so both wait longer.
 CONNECT_SECONDS=3
 CHECK_SECONDS=15
 ANSWER_SECONDS="${AIDE_BOARD_ANSWER_SECONDS:-60}"
