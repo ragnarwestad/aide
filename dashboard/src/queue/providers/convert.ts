@@ -7,7 +7,7 @@ import { listedModelName, resolveStepModel } from "../model-name.ts";
 import type { ScheduleEntry } from "../schedule.ts";
 import type { Job, QueueDefaults, StepResult } from "../types.ts";
 import { expandDir, PROVIDER_TOOLS, willRun, type Provider, type ProviderTool } from "./index.ts";
-import { SHORT_TOOL_NAMES } from "./tools.ts";
+import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, providerFamily } from "./tools.ts";
 
 export interface ConversionInput {
   defaults: Pick<QueueDefaults, "model" | "modelChoices">;
@@ -56,7 +56,7 @@ export function convertToProviders(input: ConversionInput): Conversion {
   const toolOfModel = (model: string | undefined): ProviderTool => {
     const listed = model ? listedModelName(Object.keys(defaults.modelChoices ?? {}), model) : undefined;
     const tool = listed && "name" in listed ? defaults.modelChoices?.[listed.name]?.tool : undefined;
-    return tool === "codex" || tool === "opencode" ? tool : "claude";
+    return (RUNNABLE_TOOLS as readonly unknown[]).includes(tool) ? providerFamily(tool!) : "claude";
   };
 
   const provider: Record<string, string> = {};
@@ -112,7 +112,7 @@ export function convertToProviders(input: ConversionInput): Conversion {
   function resultWithProvider(r: StepResult): StepResult {
     const { claudeAccount: accountName, ...result } = r as StepResult & { claudeAccount?: string };
     if (result.provider || result.tool === "none") return result;
-    const tool: ProviderTool = result.tool === "codex" || result.tool === "opencode" ? result.tool : "claude";
+    const tool: ProviderTool = providerFamily(result.tool ?? "claude");
     if (tool === "claude" && accountName) {
       const key = keyForAccountName(accountName);
       return { ...result, provider: { key: key ?? accountName, name: key ? providers[key]!.name : accountName } };

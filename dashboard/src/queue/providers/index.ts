@@ -11,12 +11,13 @@
 import type { Job, ModelChoice, QueueDefaults } from "../types.ts";
 import { NAME_RE } from "../parse-request.ts";
 export { providerKeyFrom } from "./key.ts";
-export { providerLoginCommand } from "./login-command.ts";
+export { loginFolder, providerLoginCommand } from "./login-command.ts";
+import { loginFolder } from "./login-command.ts";
 import { listedModelName, resolveStepModel } from "../model-name.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
-import { PROVIDER_TOOLS, type ProviderTool } from "./tools.ts";
-export { PROVIDER_TOOLS, type ProviderTool };
+import { PROVIDER_TOOLS, asProviderTool, providerFamily, type ProviderTool } from "./tools.ts";
+export { PROVIDER_TOOLS, asProviderTool, type ProviderTool };
 
 export interface Provider {
   /** What the board shows: free text, one line, at most 64 characters. */
@@ -53,9 +54,6 @@ export function providerFields(tool: ProviderTool): ProviderField[] {
   if (tool === "codex") return ["codexHome", "shadowHome"];
   return [];
 }
-
-export const asProviderTool = (value: unknown): ProviderTool | undefined =>
-  (PROVIDER_TOOLS as readonly unknown[]).includes(value) ? (value as ProviderTool) : undefined;
 
 /** The refusal for a name a provider cannot have, or null when it can: one
  *  line of up to 64 characters, not only spaces. */
@@ -95,8 +93,7 @@ export function expandDir(dir: string, home: string): string {
  *  run the scripted stand-in, which is Claude Code's command line with the
  *  binary swapped. A choice with no tool is Claude Code's. */
 export function runsModel(provider: Provider, choice: ModelChoice | undefined): boolean {
-  const tool = choice?.tool ?? "claude";
-  return provider.tool === "claude" ? tool === "claude" || tool === "fake-claude" : tool === provider.tool;
+  return providerFamily(choice?.tool ?? "claude") === provider.tool;
 }
 
 /** The providers a picker lists: those that run at least one model choice,
@@ -215,10 +212,8 @@ export function providerFolders(
  *  home when it has one, else its home), expanded against `home`. Nothing
  *  for a provider on its tool's own folder, and nothing for OpenCode. */
 export function providerLoginEnv(provider: Provider, home: string): Record<string, string> {
-  if (provider.tool === "claude" && provider.configDir) return { CLAUDE_CONFIG_DIR: expandDir(provider.configDir, home) };
-  const folder = provider.shadowHome || provider.codexHome;
-  if (provider.tool === "codex" && folder) return { CODEX_HOME: expandDir(folder, home) };
-  return {};
+  const folder = loginFolder(provider);
+  return folder ? { [folder.variable]: expandDir(folder.path, home) } : {};
 }
 
 

@@ -16,7 +16,7 @@
 //     normal case, not the exception.
 
 import { esc } from "../../format/html.ts";
-import type { ProviderTool, ResultTool } from "../providers/tools.ts";
+import { RUNNABLE_TOOLS, TOOLS, type ProviderTool, type ResultTool, type RunnableTool } from "../providers/tools.ts";
 export { esc };
 
 /** Longest single entry. Past this a tool input is a file, not a label. */
@@ -240,6 +240,15 @@ export function sniff(text: string): ProviderTool {
     if (event.type === "assistant" || event.type === "system" || event.type === "result") return "claude";
   }
   return "claude";
+}
+
+/** The transcript reader named by a runnable tool; old and unknown tool
+ * words keep the Claude format, while an absent word is detected. */
+export function transcriptFormat(tool: string | undefined, text: string): ProviderTool {
+  if (tool === undefined) return sniff(text);
+  return (RUNNABLE_TOOLS as readonly string[]).includes(tool)
+    ? TOOLS[tool as RunnableTool].readers.transcript
+    : "claude";
 }
 /** Which item kind a Codex event names itself — `codexEntry`'s own
  *  lookup (see its comment), read again here because the item shapes

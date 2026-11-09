@@ -15,7 +15,10 @@ echo "🗑️  aide — uninstalling all AI tools"
 echo "==============================================="
 
 status=0
-for ai in claude-code copilot codex opencode; do
+source "$ROOT/core/scripts/lib/ai-tools/read.sh"
+tool_ids="$(ai_tool_ids)" || exit 1
+for id in $tool_ids; do
+  ai="$(ai_tool_field "$id" implementation)" || exit 1
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/core/implementations/$ai/uninstall.sh"; then
@@ -37,7 +40,7 @@ echo ""
 echo "═══════ shared skills ═══════"
 echo "Removing skills from ~/.agents/skills/..."
 source "$ROOT/core/scripts/_install-skills.sh"
-uninstall_agents_skills
+uninstall_skills "$HOME/.agents/skills"
 
 echo ""
 if [ "$status" -eq 0 ]; then

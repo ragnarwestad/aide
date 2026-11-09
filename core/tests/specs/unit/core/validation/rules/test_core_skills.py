@@ -172,39 +172,6 @@ def test_every_core_skill_has_the_frontmatter_the_loaders_read():
 
 
 @pytest.mark.validation
-class TestUninstallListsEverySkill:
-    """install.sh and uninstall.sh must mirror each other.
-
-    Every skill in core/skills/ is installed to ~/.claude/skills/ — so every
-    one of them must be in uninstall.sh's SKILLS list, or uninstalling
-    leaves it behind silently. The one exception is spec-structure, which
-    install.sh excludes by name (see the comment on the filter below).
-    """
-
-    def test_every_core_skill_is_in_the_uninstall_list(self):
-        uninstall = (
-            CORE_SKILLS_DIR.parents[1]
-            / "core" / "implementations" / "claude-code" / "uninstall.sh"
-        )
-        content = uninstall.read_text()
-        missing = [
-            d.name for d in get_skill_dirs()
-            if f'"{d.name}"' not in content
-            # spec-structure is the one exception, and it is excluded by
-            # name in core/implementations/claude-code/install.sh too: Claude
-            # Code already has that content as a path-scoped rule
-            # (core/rules/spec-structure.md), so the generated skill is
-            # for Codex/Copilot's ~/.agents/skills/ only. Never installed
-            # to ~/.claude/skills/, so never uninstalled from it.
-            and d.name != "spec-structure"
-        ]
-        assert not missing, (
-            f"Skills missing from uninstall.sh's SKILLS list: {missing}"
-        )
-
-
-
-@pytest.mark.validation
 class TestUninstallReadsTheManifest:
     """The static SKILLS list is a snapshot of what is shipped
     TODAY, and a name is taken out of it by the very commit that stops
@@ -256,47 +223,6 @@ class TestUninstallReadsTheManifest:
 
         assert result.returncode == 0, result.stderr
         assert (skills / "dataviz").exists()
-
-    def test_a_machine_with_no_manifest_uninstalls_exactly_as_before(self, workspace_root, tmp_path):
-        """The manifest is new; a machine that installed before it
-        existed has none, and the static list is all there is."""
-        home = tmp_path / "home"
-        skills = home / ".claude" / "skills"
-        (skills / "aide-create").mkdir(parents=True)
-
-        result = self.uninstall(workspace_root, home)
-
-        assert result.returncode == 0, result.stderr
-        assert not (skills / "aide-create").exists()
-
-    def test_the_installer_and_the_uninstaller_name_the_same_file(self, workspace_root):
-        """The name is written down twice — once as
-        AIDE_SKILL_MANIFEST_NAME in the shared installer, once as a
-        literal in uninstall.sh, which sources nothing. Two spellings
-        would mean an install that writes a file no uninstall ever
-        reads, which is the failure this whole mechanism exists to
-        prevent, one level up.
-
-        The same shape AGENTS.md pins for
-        WORKFLOW_STEPS and DEPENDENCY_GATED_STEPS: edited by hand
-        together, held together by a test that reads both sides.
-        """
-        core = workspace_root / "core" / "scripts" / "_install-skills.sh"
-        written = re.search(
-            r'^AIDE_SKILL_MANIFEST_NAME="([^"]+)"', core.read_text(), re.MULTILINE
-        )
-        assert written, "_install-skills.sh must define AIDE_SKILL_MANIFEST_NAME"
-
-        uninstall = (
-            workspace_root / "core" / "implementations" / "claude-code" / "uninstall.sh"
-        ).read_text()
-        read = re.search(r'^MANIFEST="\$HOME/\.claude/skills/([^"]+)"', uninstall, re.MULTILINE)
-        assert read, "uninstall.sh must read the manifest out of ~/.claude/skills/"
-        assert read.group(1) == written.group(1), (
-            f"uninstall.sh reads {read.group(1)!r} but the installers write "
-            f"{written.group(1)!r}"
-        )
-
 
 @pytest.mark.validation
 class TestInstallRetiresTheRulesThatBecameSkills:

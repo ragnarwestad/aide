@@ -9,15 +9,35 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/ai-tools/read.sh"
+tool_ids="$(ai_tool_ids)" || exit 1
+mise_packages=""
+self_tools=""
+report_names="ollama|markdownlint|jq|gh|bun|pandoc|md-to-pdf"
+for id in $tool_ids; do
+  upgrade="$(ai_tool_field "$id" upgrade)" || exit 1
+  cli="$(ai_tool_field "$id" cli)" || exit 1
+  if [ "$upgrade" = "self" ]; then
+    self_tools="$self_tools $cli"
+  else
+    mise_packages="$mise_packages $upgrade"
+    report="${upgrade#npm:}"
+    report="${report##*/}"
+    report_names="$report_names|$report"
+  fi
+done
 
 echo "Upgrading AI tools via mise..."
-mise upgrade npm:@github/copilot npm:@openai/codex opencode ollama npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf
+mise upgrade $mise_packages ollama npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf
 
-echo ""
-echo "Upgrading Claude Code (not managed by mise)..."
-claude update
+for cli in $self_tools; do
+  echo ""
+  echo "Upgrading $cli (not managed by mise)..."
+  "$cli" update
+done
 
 echo ""
 echo "Installed versions:"
-mise ls | grep -E "copilot|codex|opencode|ollama|markdownlint|jq|gh|bun|pandoc|md-to-pdf"
-claude --version
+mise ls | grep -E "$report_names"
+for cli in $self_tools; do "$cli" --version; done

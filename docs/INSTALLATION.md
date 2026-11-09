@@ -412,9 +412,10 @@ model call refused until you do.
 **Other AI tools:**
 
 1. **Add new AI tools:**
-    - Follow the same pattern as Codex/Copilot
+    - Add one row to `core/scripts/lib/ai-tools/tools.txt`
+    - Add its destinations to `core/scripts/lib/install-targets.txt`
     - Create `core/implementations/<tool>/`
-    - Reuse the `core/rules/` rules
+    - Call the shared steps in `core/scripts/_install-steps.sh` from its installer
 
 2. **Use the generic workflows:**
     - Read `core/skills/workflows/SKILL.md` for the spec workflow

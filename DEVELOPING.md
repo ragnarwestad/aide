@@ -119,12 +119,10 @@ Example: Adding `database-expert`
 mkdir -p core/skills/database-expert
 vim core/skills/database-expert/SKILL.md
 
-# 2. Add it to the SKILLS list in uninstall.sh
-
-# 3. Install and test
+# 2. Install and test; the manifest records the skill for uninstall
 cd core/implementations/claude-code && ./install.sh
 
-# 4. Commit
+# 3. Commit
 git add core/skills/database-expert/
 git commit -m "Add database-expert skill"
 ```

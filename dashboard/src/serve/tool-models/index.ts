@@ -6,10 +6,9 @@
 
 import { runScript, scriptFor } from "../land-branch/run-script.ts";
 import { lastModels, recordModels } from "../../render/ui/tool-checks.ts";
-import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-check.ts";
-import { readClaudeModels } from "./claude.ts";
-import { readCodexModels } from "./codex.ts";
-import type { CheckableTool, OfferedModel, ToolModels } from "../../render";
+import { TOOLS } from "../../queue/providers/tools.ts";
+import { TOOL_READERS } from "../tool-readers/index.ts";
+import type { CheckableTool, ToolModels } from "../../render";
 
 // The store lives in the render layer beside the checks; re-exported so
 // a caller has one import site for "read the models and remember them".
@@ -31,24 +30,6 @@ export interface ModelsOptions {
   env?: Record<string, string>;
 }
 
-/** `opencode models`: one `provider/model` per line, from every provider
- *  that is logged in. A line of any other shape is not a model. */
-async function readOpencodeModels(
-  run: typeof runScript,
-  bin: string,
-  base: Pick<ToolModels, "tool" | "at">,
-): Promise<ToolModels> {
-  const result = await run([bin, "models"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (result.timedOut) return { ...base, offered: [], error: "opencode models did not finish in time." };
-  if (result.code !== 0) return { ...base, offered: [], error: "opencode models could not be run." };
-  const offered: OfferedModel[] = stripAnsi(result.stdout)
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => /^\S+\/\S+$/.test(line))
-    .map((model) => ({ model }));
-  return { ...base, offered };
-}
-
 /** One reading of `tool`'s models. Never throws: a CLI that cannot be
  *  started is a reading that failed, said as one. */
 export async function readModels(tool: CheckableTool, opts: ModelsOptions = {}): Promise<ToolModels> {
@@ -58,14 +39,9 @@ export async function readModels(tool: CheckableTool, opts: ModelsOptions = {}):
   const run: typeof runScript = (argv, cwd, timeoutMs, owner, extra) => inner(argv, cwd, timeoutMs, owner, { ...extra, ...env });
   const base = { tool, at: (opts.now ?? (() => new Date()))().toISOString() };
   try {
-    switch (tool) {
-      case "claude":
-        return await readClaudeModels(run, path("claude"), opts.configured ?? [], base);
-      case "codex":
-        return await readCodexModels(run, path("codex"), base);
-      case "opencode":
-        return await readOpencodeModels(run, path("opencode"), base);
-    }
+    const reader = TOOLS[tool].readers.models;
+    if (reader === "claude") return await TOOL_READERS[reader].models(run, path(tool), opts.configured ?? [], base);
+    return await TOOL_READERS[reader].models(run, path(tool), base);
   } catch (err) {
     return { ...base, offered: [], error: err instanceof Error ? err.message : String(err) };
   }

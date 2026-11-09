@@ -40,6 +40,11 @@ class TestBuildAgentsMd:
             workspace_root / "core" / "scripts" / "build-agents-md.sh",
             core / "scripts" / "build-agents-md.sh",
         )
+        shutil.copy(
+            workspace_root / "core" / "scripts" / "_install-rules.sh",
+            core / "scripts" / "_install-rules.sh",
+        )
+        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
         shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
         shutil.copytree(workspace_root / "core" / "rules", core / "rules")
 
@@ -63,6 +68,7 @@ class TestBuildAgentsMd:
         (core / "scripts").mkdir(parents=True)
         shutil.copy(workspace_root / "core" / "scripts" / "build-agents-md.sh",
                     core / "scripts" / "build-agents-md.sh")
+        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
         shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
         shutil.copytree(workspace_root / "core" / "rules", core / "rules")
         result = subprocess.run(["bash", str(core / "scripts" / "build-agents-md.sh")],
@@ -121,6 +127,7 @@ class TestBuildAgentsMd:
             workspace_root / "core" / "scripts" / "build-agents-md.sh",
             core / "scripts" / "build-agents-md.sh",
         )
+        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
         shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
         shutil.copytree(workspace_root / "core" / "rules", core / "rules")
 
@@ -175,6 +182,10 @@ class TestSpecStructureSkillIsGenerated:
         shutil.copy(
             workspace_root / "core" / "scripts" / "build-agents-md.sh",
             core / "scripts" / "build-agents-md.sh",
+        )
+        shutil.copy(
+            workspace_root / "core" / "scripts" / "_install-rules.sh",
+            core / "scripts" / "_install-rules.sh",
         )
         shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
         shutil.copytree(workspace_root / "core" / "rules", core / "rules")

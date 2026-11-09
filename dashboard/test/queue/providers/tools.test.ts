@@ -7,7 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PROVIDER_TOOLS as providersExport } from "../../../src/queue/providers/index.ts";
 import {
-  PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES,
+  PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOLS, TOOL_NAMES, providerFamily,
 } from "../../../src/queue/providers/tools.ts";
 import { RUNNABLE_TOOLS as stepsExport, asResultTool } from "../../../src/queue/steps.ts";
 import { SHORT_TOOL_NAMES as pickerShort, TOOL_NAMES as pickerNames } from "../../../src/render/pages/specs-list/model-resolve.ts";
@@ -62,6 +62,24 @@ describe("the tool lists", () => {
 });
 
 describe("the name maps are keyed by the tool type", () => {
+  test("the descriptor is the one source of every display name (AC-1)", () => {
+    expect(Object.fromEntries(RUNNABLE_TOOLS.map((tool) => [tool, TOOLS[tool].name])) as Record<string, string>).toEqual(TOOL_NAMES);
+    expect(Object.fromEntries(RUNNABLE_TOOLS.map((tool) => [tool, TOOLS[tool].shortName])) as Record<string, string>).toEqual(SHORT_TOOL_NAMES);
+    const maps = codeLines().filter((line) =>
+      /(?:claude|codex|opencode):\s*["`](?:Claude(?: Code)?|Codex|OpenCode)["`]/.test(line.text),
+    );
+    expect(maps.every((line) => line.where.startsWith("queue/providers/tools.ts:"))).toBe(true);
+  });
+
+  test("one function decides every runnable tool's provider family (AC-2)", () => {
+    expect(RUNNABLE_TOOLS.map(providerFamily)).toEqual(["claude", "codex", "opencode", "claude"]);
+    const outside = codeLines().filter((line) =>
+      !line.where.startsWith("queue/providers/tools.ts:") &&
+      (/tool\s*===\s*["']fake-claude["']/.test(line.text) || /["']fake-claude["']\s*:\s*["']claude["']/.test(line.text))
+    );
+    expect(outside.map((line) => line.where)).toEqual([]);
+  });
+
   test("a runnable tool left out of TOOL_NAMES is a type error (AC-3)", () => {
     // @ts-expect-error opencode and fake-claude are missing
     const missing = { claude: "x", codex: "x" } satisfies typeof TOOL_NAMES;

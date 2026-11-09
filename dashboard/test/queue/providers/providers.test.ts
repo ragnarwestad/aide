@@ -16,6 +16,7 @@ import {
   sharesSessions,
   type Provider,
 } from "../../../src/queue/providers/index.ts";
+import { TOOLS } from "../../../src/queue/providers/tools.ts";
 import type { Job, QueueDefaults } from "../../../src/queue/queue.ts";
 import { resolveProvider } from "../../../src/render/pages/specs-list/model-resolve.ts";
 
@@ -189,6 +190,17 @@ describe("what a provider's login commands run with", () => {
 });
 
 describe("the command that logs a provider in", () => {
+  test("the command and environment use the descriptor's same login folder (AC-3)", () => {
+    for (const provider of Object.values(PROVIDERS)) {
+      const command = providerLoginCommand(provider);
+      const env = providerLoginEnv(provider, "/home/r");
+      const login = TOOLS[provider.tool].login;
+      const variable = "folderVariable" in login ? login.folderVariable : undefined;
+      expect(Object.keys(env)).toEqual(variable && command.startsWith(`${variable}=`) ? [variable] : []);
+      expect(command.endsWith([provider.binary ?? provider.tool, ...login.args].join(" "))).toBe(true);
+    }
+  });
+
   test("it carries the folder as written, the shadow home first (AC-4)", () => {
     expect(providerLoginCommand(PROVIDERS["Claude-Capra"]!)).toBe("CLAUDE_CONFIG_DIR=~/.claude-capra claude auth login");
     expect(providerLoginCommand({ name: "Codex-p", tool: "codex", codexHome: "~/.codex", shadowHome: "~/.codex-p" })).toBe(

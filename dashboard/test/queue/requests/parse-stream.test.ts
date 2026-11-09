@@ -6,9 +6,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   finalMessage,
+  stepTokens,
   summarizeEntries,
   summarizeStream,
 } from "../../../src/queue/parse-stream";
+import { transcriptFormat } from "../../../src/queue/parse-stream/shared.ts";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const line = (o: unknown) => JSON.stringify(o);
 
@@ -280,6 +284,23 @@ describe("summarizeEntries", () => {
     toolUse("Write", { file_path: "src/queue.ts" }),
     toolUse("Bash", { command: "git status" }),
   ].join("\n");
+
+  test("the descriptor chooses one transcript reader for every consumer (AC-4)", () => {
+    expect(transcriptFormat("fake-claude", CLAUDE)).toBe("claude");
+    expect(transcriptFormat("none", CLAUDE)).toBe("claude");
+    expect(transcriptFormat("unknown", CLAUDE)).toBe("claude");
+    expect(transcriptFormat("codex", CLAUDE)).toBe("codex");
+    expect(summarizeEntries(CLAUDE, { tool: "fake-claude" })).toEqual(summarizeEntries(CLAUDE, { tool: "claude" }));
+    expect(finalMessage(line({ type: "result", result: "done" }), { tool: "fake-claude" })).toBe("done");
+    expect(stepTokens(line({ type: "result", usage: { input_tokens: 2, output_tokens: 3 } }), "fake-claude"))
+      .toEqual(stepTokens(line({ type: "result", usage: { input_tokens: 2, output_tokens: 3 } }), "claude"));
+
+    const dir = join(import.meta.dir, "../../../src/queue/parse-stream");
+    const calls = readdirSync(dir).filter((name) => name.endsWith(".ts")).flatMap((name) =>
+      readFileSync(join(dir, name), "utf8").split("\n").map((text, index) => ({ name, index: index + 1, text })),
+    ).filter((line) => /\bsniff\(/.test(line.text) && !line.text.trimStart().startsWith("//") && !/function sniff/.test(line.text));
+    expect(calls.map((call) => `${call.name}:${call.index}`)).toEqual([expect.stringMatching(/^shared\.ts:/)]);
+  });
 
   test("a Claude transcript's lines carry what they are", () => {
     expect(summarizeEntries(CLAUDE).map((e) => [e.kind, e.failed ?? false])).toEqual([

@@ -7,39 +7,12 @@
 
 set -e  # Exit on error
 
-echo "🔧 Claude Code Setup"
-echo "====================="
-echo ""
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKSPACE_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
-
-# Verify that the workspace exists
-if [ ! -d "$WORKSPACE_ROOT" ]; then
-  echo "❌ Could not find workspace: $WORKSPACE_ROOT"
-  exit 1
-fi
-
-echo "📂 Workspace: $WORKSPACE_ROOT"
-echo ""
+source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
 
 IMPL_DIR="$SCRIPT_DIR"
 
-# Preflight: report what is installed and where the pieces will land
-AIDE_INSTALLING=1 "$WORKSPACE_ROOT/core/scripts/aide-preflight" claude
-
-# 1. Install scripts to ~/.local/bin/
-echo "1️⃣  Installing scripts to ~/.local/bin/..."
-source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
-install_common_bin
-install_mise_declared_tools
-install_shell_path
-# Claude Code has its own skills location and its own copy step below,
-# but the pruning half is shared with the other two installers — one
-# implementation, three call sites.
-source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
-
-echo ""
+install_steps_begin claude
 
 # 2. Install globally to ~/.claude/ (skills, agents, rules)
 echo "2️⃣  Installing globally to ~/.claude/..."
@@ -47,29 +20,8 @@ echo "2️⃣  Installing globally to ~/.claude/..."
 GLOBAL_CLAUDE="$HOME/.claude"
 mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/rules"
 
-# Skills (copy without --delete to avoid deleting other tools' skills)
-if [ -d "$WORKSPACE_ROOT/core/skills" ]; then
-  # spec-structure is generated for Codex/Copilot's ~/.agents/skills/ only
-  # (spec 147). Claude Code already has that content as a path-scoped rule,
-  # core/rules/spec-structure.md, and a second model-triggered copy of the
-  # same guidance would only compete with it.
-  # cp, not rsync: a minimal Linux has no rsync. Merged in, never deleted.
-  mkdir -p "$GLOBAL_CLAUDE/skills"
-  for skill_dir in "$WORKSPACE_ROOT/core/skills"/*/; do
-    skill_name="$(basename "$skill_dir")"
-    [ "$skill_name" = "spec-structure" ] && continue
-    mkdir -p "$GLOBAL_CLAUDE/skills/$skill_name"
-    cp -R "$skill_dir." "$GLOBAL_CLAUDE/skills/$skill_name/"
-  done
-  # ...and the half that subtracts (spec 142). The copy above may not
-  # use --delete — ~/.claude/skills/ is allowed to hold skills aide
-  # never put there — so a skill dropped from core/skills/ would sit
-  # here for good. The manifest names what the LAST install shipped, so
-  # what left the source since is known and can go.
-  prune_retired_skills "$WORKSPACE_ROOT/core/skills" "$GLOBAL_CLAUDE/skills" \
-    "$GLOBAL_CLAUDE/skills/$AIDE_SKILL_MANIFEST_NAME"
-  echo "   ✅ Skills installed: ~/.claude/skills/"
-fi
+install_skills "$GLOBAL_CLAUDE/skills" spec-structure
+echo "   ✅ Skills installed: ~/.claude/skills/"
 
 # Migrate: remove old commands (now consolidated into skills)
 if [ -d "$GLOBAL_CLAUDE/commands" ]; then
@@ -87,8 +39,8 @@ fi
 # The rules that apply to every turn, plus spec-structure, which is copied
 # here but loaded only for spec files (its `paths` frontmatter). The four
 # task-specific ones became skills in spec 147.
-GENERIC_RULES="llm-discipline git testing spec-structure communication"
-for rule in $GENERIC_RULES; do
+source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
+for rule in $(rule_names); do
   if [ -f "$WORKSPACE_ROOT/core/rules/$rule.md" ]; then
     cp "$WORKSPACE_ROOT/core/rules/$rule.md" "$GLOBAL_CLAUDE/rules/"
   fi
@@ -118,15 +70,7 @@ done
 
 echo ""
 
-# 3. Verify that ~/.local/bin is in PATH
-echo "3️⃣  Verifying PATH..."
-if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-  echo "   ✅ ~/.local/bin is in PATH"
-else
-  echo "   ⚠️  ~/.local/bin is NOT in PATH for this shell yet"
-  echo "   ℹ️  It was just added to ~/.zshenv and ~/.bashrc — open a new"
-  echo "      terminal or ssh session to pick it up"
-fi
+install_steps_finish claude
 
 # 4. Install LSP plugins (native Claude Code)
 echo "4️⃣  Installing LSP plugins..."

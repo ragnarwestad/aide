@@ -107,3 +107,16 @@ class TestStampVersions:
         assert "| GitHub Copilot CLI | v0.0.1 | 2020-01-01 | ✅ Supported |" in content, \
             "A missing tool must not have its row stamped"
         assert "2.9.9" in content, "The found tool must still be stamped"
+
+    def test_a_listed_tool_gets_a_missing_supported_row_ac_1(
+        self, workspace_root, matrix, tmp_path
+    ):
+        bin_dir = tmp_path / "bin"
+        _fake_tool(bin_dir, "opencode", "opencode 1.2.3")
+        result = _run(workspace_root, matrix, bin_dir)
+        assert result.returncode == 0, result.stderr
+        today = datetime.date.today().isoformat()
+        cells = [cell.strip() for cell in next(
+            line for line in matrix.read_text().splitlines() if "OpenCode" in line
+        ).split("|")[1:-1]]
+        assert cells == ["OpenCode", "1.2.3", today, "✅ Supported"]

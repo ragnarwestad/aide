@@ -19,6 +19,8 @@ echo "🔧 aide — installing all AI tools"
 echo "============================================="
 
 status=0
+source "$ROOT/core/scripts/lib/ai-tools/read.sh"
+tool_ids="$(ai_tool_ids)" || exit 1
 
 echo ""
 echo "═══════ prerequisites ═══════"
@@ -29,7 +31,8 @@ check_prerequisites || status=1
 
 # Nothing asks: an installer that would, run from here, takes its default.
 # Run one directly to be asked.
-for ai in claude-code copilot codex opencode; do
+for id in $tool_ids; do
+  ai="$(ai_tool_field "$id" implementation)" || exit 1
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/core/implementations/$ai/install.sh" < /dev/null; then

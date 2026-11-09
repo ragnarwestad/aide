@@ -18,6 +18,9 @@
 import { homedir } from "node:os";
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
 import { expandDir, providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
+import { TOOLS, type ProviderTool } from "../queue/providers/tools.ts";
+import { TOOL_READERS } from "./tool-readers/index.ts";
+import { CHECK_TIMEOUT_MS, stripAnsi } from "./tool-readers/run.ts";
 import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
@@ -34,16 +37,7 @@ export type { CheckableTool, ExtraCheck, ToolCheck };
 /** Long enough for a version probe and a directory walk, short enough
  *  that a hung CLI cannot hold a request handler open - the same
  *  bounded-timeout discipline every other spawn here has. */
-export const CHECK_TIMEOUT_MS = 20_000;
-
-const ESC = String.fromCharCode(27);
-const ANSI = new RegExp(`${ESC}\\[[0-9;]*m`, "g");
-
-/** Terminal colour, removed: the preflight writes for a terminal and the
- *  page is not one. */
-export function stripAnsi(text: string): string {
-  return text.replace(ANSI, "");
-}
+export { CHECK_TIMEOUT_MS, stripAnsi };
 
 const printedLines = (text: string): string[] =>
   stripAnsi(text).split("\n").map((l) => l.trimEnd()).filter((l) => l.trim().length > 0);
@@ -173,19 +167,20 @@ function mixedLogins(parsed: Record<string, unknown>): string | undefined {
  *  which is the same question one layer out - it reaches a model through
  *  a provider, so a provider IS the credential. */
 async function loginCheck(
-  tool: CheckableTool,
+  tool: ProviderTool,
+  claude: boolean,
   run: typeof runScript,
   bin: string,
   command: string,
   env: Record<string, string>,
 ): Promise<ExtraCheck> {
-  const args = tool === "claude" ? ["auth", "status"] : ["login", "status"];
+  const args = claude ? ["auth", "status"] : ["login", "status"];
   const asked = [tool, ...args].join(" ");
   const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
   if (result.timedOut) return loginUnknown("timedOut", asked);
   const text = stripAnsi(`${result.stdout}\n${result.stderr}`).trim();
 
-  if (tool === "claude") {
+  if (claude) {
     // Its own JSON, which is the answer rather than a sentence to read.
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>;
@@ -242,12 +237,13 @@ export async function askLogin(
   home: string = homedir(),
 ): Promise<ExtraCheck> {
   const env = provider ? providerLoginEnv(provider, home) : {};
-  const command = provider
-    ? providerLoginCommand(provider)
-    : tool === "claude" ? "claude auth login" : tool === "codex" ? "codex login" : "opencode auth login";
-  const answer = tool === "opencode"
-    ? await opencodeProviderCheck((argv, cwd, ms) => run(argv, cwd, ms, undefined, env), bin, command)
-    : await loginCheck(tool, run, bin, command, env);
+  const command = provider ? providerLoginCommand(provider) : providerLoginCommand({ tool });
+  const loginReaders = {
+    claude: () => loginCheck("claude", true, run, bin, command, env),
+    codex: () => loginCheck("codex", false, run, bin, command, env),
+    opencode: () => opencodeProviderCheck((argv, cwd, ms) => run(argv, cwd, ms, undefined, env), bin, command),
+  };
+  const answer = await loginReaders[TOOL_READERS[TOOLS[tool].readers.login].login]();
   if (!provider) return answer;
   const problem = answer.ok === false
     ? answer.problem === "not logged in" ? `${provider.name} not logged in` : `${provider.name}: ${answer.problem ?? "login"}`
