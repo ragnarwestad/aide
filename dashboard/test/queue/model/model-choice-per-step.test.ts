@@ -241,9 +241,8 @@ describe("editing a running job's model for a step still ahead", () => {
     const answer = job.store.editTailModel(job.id, "implement", "haiku");
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error).toBe(
-        "unknown or not-allowed model: haiku — Reload the page and try again",
-      );
+      expect(answer.error).toBe("unknown or not-allowed model: haiku");
+      expect(answer.solution).toBe("Reload the page and try again");
     }
     expect(job.model().implement).toBe("opus");
   });
@@ -253,9 +252,8 @@ describe("editing a running job's model for a step still ahead", () => {
     const answer = job.store.editTailModel(job.id, "implement", "fable");
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error).toBe(
-        "no model choice is configured on this server — Reload the page and try again",
-      );
+      expect(answer.error).toBe("no model choice is configured on this server");
+      expect(answer.solution).toBe("Reload the page and try again");
     }
   });
 
@@ -264,9 +262,8 @@ describe("editing a running job's model for a step still ahead", () => {
     const answer = job.store.editTailModel(job.id, "implement", "fable/../etc");
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error).toBe(
-        "invalid model — Reload the page and try again",
-      );
+      expect(answer.error).toBe("invalid model");
+      expect(answer.solution).toBe("Reload the page and try again");
     }
   });
 

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { messageSlot } from "../../src/render/ui/components";
 import { refusalText, writeLine } from "../../src/specs-client/press.ts";
+import { requestRefusal } from "../../src/format/request-fixes.ts";
 
 /** The markup parsed into a document, and its first element back. */
 function parse(html: string): Element {
@@ -38,6 +39,13 @@ describe("a refusal the page's script writes", () => {
     withLabels("Problem", "Løsning");
     expect(refusalText({ error: "unknown model x", solution: "reload the page" })).toBe(
       "Problem: Unknown model x\nLøsning: Reload the page",
+    );
+  });
+
+  test("keeps an arbitrary refusal solution on its own line (AC-1)", () => {
+    withLabels("Problem", "Solution");
+    expect(refusalText(requestRefusal("the action was refused", "Choose another path entirely"))).toBe(
+      "Problem: The action was refused\nSolution: Choose another path entirely",
     );
   });
 

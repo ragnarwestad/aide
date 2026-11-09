@@ -13,7 +13,7 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
  *  may exist yet for the phase a pick was just made on. `ParseResult`
  *  (`parse-request.ts`) always carries one, which is why this needs a
  *  smaller type of its own. */
-export type PendingModelResult = { ok: true } | { ok: false; error: string };
+export type PendingModelResult = { ok: true } | ({ ok: false } & import("../../format/request-fixes.ts").RequestRefusal);
 
 /** The sibling of `PendingModelResult`, for
  *  `setPendingSteps()` — same shape. Unlike the other two,
