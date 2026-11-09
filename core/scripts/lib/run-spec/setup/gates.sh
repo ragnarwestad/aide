@@ -23,9 +23,9 @@
 # BEFORE anything touches a checkout, so a refusal here leaves nothing
 # behind.
 
-# Mirrors the --spec resolver above (direct match, then <id>-*), plus one
-# deliberate addition: the archive, so a dependency's folder NAME resolves
-# whichever list it is currently under. Reaching for the shared library's
+# The --spec lookup above (`aide_find_spec_folder`), with one deliberate
+# addition: the archive, so a dependency's folder NAME resolves whichever
+# list it is currently under. Reaching for the shared library's
 # aide_resolve_spec instead would give --spec and "Depends on:" two
 # different ideas of a valid identifier inside one script.
 #
@@ -35,21 +35,9 @@
 # `archive` step landed on origin, so the LOCAL archive/ scan
 # below is a hint for resolving the name, never proof of being done.
 resolve_dependency_folder() {   # sets $dep_folder
-  local id="$1" candidate base
   dep_folder=""
-  [ -n "$id" ] || return 0
-  if [ -d "$specs_root/$id" ]; then
-    dep_folder="$id"; return 0
-  fi
-  for candidate in "$specs_root"/*/; do
-    base="$(basename "$candidate")"
-    case "$base" in "$id"-*) dep_folder="$base"; return 0 ;; esac
-  done
-  [ -d "$specs_root/archive" ] || return 0
-  for candidate in "$specs_root/archive"/*/; do
-    base="$(basename "$candidate")"
-    case "$base" in "$id" | "$id"-*) dep_folder="$base"; return 0 ;; esac
-  done
+  aide_find_spec_folder "$specs_root" "$1" any && dep_folder="$found_folder"
+  return 0
 }
 
 # ls-remote, not fetch: it ASKS origin rather than believing this

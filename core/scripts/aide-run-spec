@@ -203,13 +203,16 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in spec-reference.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in spec-reference.sh run-spec/setup/run-log.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] \
   || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"_aide-spec-lib.sh is missing beside aide-run-spec","errorSolution":"reinstall aide (core/implementations/claude-code/install.sh)"}'
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-reference.sh"
+# The run log's stamped line and a step's mark.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/setup/run-log.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/tracking-info.sh"
 # shellcheck source=/dev/null
@@ -249,10 +252,6 @@ stage() {
   fi
   stage_line "$*"
 }
-# shellcheck disable=SC2329  # called by stage and the part marks below, which the sourced parts call
-stage_line() {
-  printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
-}
 # The parts of a step Aide runs itself — preparing before the AI's first
 # turn, tests and commit after it — marked in the log the way a skill's
 # own steps are: `--- Step Aide: <part> — started`, then `— done` or
@@ -262,12 +261,12 @@ aide_part=""; aide_part_seen=""
 # shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_open() {   # <part>
   aide_part="$1"
-  stage_line "--- Step Aide: $1 — started"
+  stage_line "$(aide_step_mark Aide "$1" started)"
 }
 # shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_close() {  # [<ending>, default done]
   [ -n "$aide_part" ] || return 0
-  stage_line "--- Step Aide: $aide_part — ${1:-done}"
+  stage_line "$(aide_step_mark Aide "$aide_part" "${1:-done}")"
   aide_part=""
 }
 # A failure: the same line, its text starting `error: `. The dashboard's Errors

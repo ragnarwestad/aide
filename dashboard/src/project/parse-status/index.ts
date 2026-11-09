@@ -74,7 +74,10 @@ const PROGRESS_RE =
 // question from whether implement ran.
 const WORKFLOW_STEPS: readonly string[] = workflowArc().map((step) => step.name);
 
-const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
+/** A `- **Workflow steps completed:**` bullet at the start of a line, the label in any letter case:
+ *  the line `workflow_steps_in` (core/scripts/lib/spec-state.sh) reads in bash, and the last one counts
+ *  there and here. test/project/parse-status/workflow-steps-line.test.ts runs both. */
+const WORKFLOW_RE = /^-[ \t]*\*\*workflow steps completed:\*\*(.*)$/gim;
 
 // --- where the current work round starts ------------------------------------
 
@@ -186,10 +189,10 @@ function parseReopenedAfter(content: string): string | null {
  *  a spec predating the field reads as unfinished, which is visible and
  *  fixed by running the step, where a silent guess is neither. */
 function parseWorkflowSteps(content: string): string[] {
-  const m = content.match(WORKFLOW_RE);
+  const m = [...content.matchAll(WORKFLOW_RE)].at(-1);
   if (!m) return [];
   const named = new Set(
-    m[1]
+    m[1]!
       .split(",")
       .map((value) => value.trim().replace(/`/g, "").toLowerCase())
       .filter(Boolean),

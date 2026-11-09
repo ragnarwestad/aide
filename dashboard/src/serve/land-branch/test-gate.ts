@@ -18,6 +18,7 @@ import { runScript, scriptFor } from "./run-script.ts";
 import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
+import { formatRunLogLine } from "../../queue/parse-stream/step-log.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { stepButton } from "../../format/step-label.ts";
@@ -239,7 +240,7 @@ export function stepLogLine(job: GatedJob, text: string, error = false): void {
   const seconds = Number.isNaN(began) ? 0 : Math.max(0, Math.round((now.getTime() - began) / 1000));
   const clock = now.toTimeString().slice(0, 8);
   try {
-    appendFileSync(runLogPath(streamFile), `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}\n`);
+    appendFileSync(runLogPath(streamFile), `${formatRunLogLine(clock, seconds, text, error)}\n`);
   } catch {
     // Nothing to do: the gate log keeps the run either way.
   }

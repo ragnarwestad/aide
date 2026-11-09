@@ -234,11 +234,10 @@ commit_is_public() {
 # marked unfinished, since the message describes the whole change.
 spec_title() {
   local f
-  for f in "$specs_root_wt/$commit_label/${AIDE_DESCRIPTION_FILE}" "$specs_root_wt/archive/$commit_label/${AIDE_DESCRIPTION_FILE}"; do
-    [ -f "$f" ] || continue
-    sed -n '1s/^# //; 1s/ - Description$//p' "$f"
-    return 0
-  done
+  aide_find_spec_folder "$specs_root_wt" "$commit_label" any || return 0
+  f="$specs_root_wt/$found_under$found_folder/${AIDE_DESCRIPTION_FILE}"
+  [ -f "$f" ] || return 0
+  sed -n '1s/^# //; 1s/ - Description$//p' "$f"
 }
 code_commit_message() {
   local msg=""
@@ -337,7 +336,7 @@ EXCLUDES_EOF
         fi
       else
         if [ "$root" = "${specs_repo:-}" ]; then
-          git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
+          git -C "$wt" commit -q -m "$(aide_step_subject "$command_name" "$commit_label" "$model_suffix$suffix")" >/dev/null 2>&1 || true
         else
           git -C "$wt" commit -q -F - >/dev/null 2>&1 <<<"$(code_commit_message)" || true
         fi

@@ -48,21 +48,34 @@ const NUMBERED_MARK = /^--- Step \d+ of \d+: /;
 const STAMPED = /^aide-run-spec (\d\d:\d\d:\d\d) \+(\d+)s (.*)$/;
 const TURN = /^model turn started(?: \(transcript at byte (\d+)\))?$/;
 
+/** A stamped line of the run log, as `stage_line` (core/scripts/lib/run-spec/setup/run-log.sh)
+ *  writes it: the clock, the seconds since the step began, the text, which starts `error: ` for a failure. */
+export const formatRunLogLine = (clock: string, seconds: number, text: string, error = false): string =>
+  `aide-run-spec ${clock} +${seconds}s ${error ? "error: " : ""}${text}`;
+
+/** A stamped line read back, its `error: ` kept in `body`; undefined for an unstamped one. */
+export function readRunLogLine(raw: string): { clock: string; seconds: number; body: string; error: boolean } | undefined {
+  const stamped = STAMPED.exec(raw);
+  if (!stamped) return undefined;
+  const [, clock, seconds, body] = stamped as unknown as [string, string, string, string];
+  return { clock, seconds: Number(seconds), body, error: body.startsWith("error: ") };
+}
+
 function parseRunLog(runLog: string): RunLine[] {
   const out: RunLine[] = [];
   for (const raw of runLog.split("\n")) {
     if (!raw.trim()) continue;
-    const stamped = STAMPED.exec(raw);
-    if (!stamped) {
+    const line = readRunLogLine(raw);
+    if (!line) {
       out.push({ text: esc(raw.replace(/^aide-run-spec: /, "")), error: false });
       continue;
     }
-    const [, clock, seconds, body] = stamped as unknown as [string, string, string, string];
+    const { clock, seconds, body, error } = line;
     const turn = TURN.exec(body);
     if (turn) out.push({ turn: true, offset: turn[1] === undefined ? undefined : Number(turn[1]) });
     else {
       const stamp = `${clock} +${seconds}s`;
-      out.push({ text: esc(`${stamp} ${body}`), error: body.startsWith("error: "), ...(NUMBERED_MARK.test(body) ? { marked: { stamp, body } } : {}) });
+      out.push({ text: esc(`${stamp} ${body}`), error, ...(NUMBERED_MARK.test(body) ? { marked: { stamp, body } } : {}) });
     }
   }
   return out;

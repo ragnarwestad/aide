@@ -8,11 +8,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { landArchivedSpec, landStepBranch } from "../../../../src/serve/land-branch";
-import { MERGE_STEP } from "../../../../src/serve/land-branch/steps.ts";
+import { MERGE_STEP, MERGE_TITLE } from "../../../../src/serve/land-branch/steps.ts";
+import { stepMarkLine } from "../../../../src/queue/parse-stream/step-marks.ts";
 import { retryArchiveLanding } from "../../../../src/serve/land-branch/retry";
 import type { Job } from "../../../../src/queue/queue.ts";
 
-const ARCHIVE_MERGE_STEP = MERGE_STEP.archive!;
+/** A merge mark for `step` with `ending`, as the landing writes it. */
+const mergeMark = (step: keyof typeof MERGE_STEP, ending: string): string => stepMarkLine(MERGE_STEP[step]!, MERGE_TITLE, ending);
 import { BRANCH, landCtx, landingGit, REPOS } from "../landing-fixtures.ts";
 import type { Answer } from "../../../helpers/fake-git.ts";
 
@@ -44,36 +46,36 @@ async function archive(over: Record<string, Answer> = {}, step: "archive" | "ana
   return readFileSync(join(dir, `job.${step}.run.log`), "utf-8").trim().split("\n");
 }
 
-const marks = (lines: string[], title = ARCHIVE_MERGE_STEP) => lines.map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, "")).filter((l) => l.includes(title));
+const marks = (lines: string[], step: keyof typeof MERGE_STEP = "archive") =>
+  lines.map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, "")).filter((l) => l.includes(mergeMark(step, "")));
 
 describe("the archive's merge is its last step in the log", () => {
   test("a merge that went through is started, then done", async () => {
-    expect(marks(await archive())).toEqual([`${ARCHIVE_MERGE_STEP} — started`, `${ARCHIVE_MERGE_STEP} — done`]);
+    expect(marks(await archive())).toEqual([mergeMark("archive", "started"), mergeMark("archive", "done")]);
   });
 
   test("a merge that did not go through is stopped, as an error, saying the archive is not finished", async () => {
     const got = marks(await archive({ "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } }));
-    expect(got[0]).toBe(`${ARCHIVE_MERGE_STEP} — started`);
-    expect(got[1]).toStartWith(`error: ${ARCHIVE_MERGE_STEP} — stopped: `);
+    expect(got[0]).toBe(mergeMark("archive", "started"));
+    expect(got[1]).toStartWith(`error: ${mergeMark("archive", "stopped: ")}`);
     expect(got[1]).toEndWith("the archive is not finished");
     expect(got).toHaveLength(2);
   });
 
   test("a landing resumed at boot marks the step it lands too", async () => {
-    expect(marks(await archive({}, "archive", true))).toEqual([`${ARCHIVE_MERGE_STEP} — started`, `${ARCHIVE_MERGE_STEP} — done`]);
+    expect(marks(await archive({}, "archive", true))).toEqual([mergeMark("archive", "started"), mergeMark("archive", "done")]);
   });
 
   test("an analysis merged into main is marked the same way, as analyze's own last step", async () => {
-    const title = MERGE_STEP.analyze!;
-    expect(marks(await archive({}, "analyze"), title)).toEqual([`${title} — started`, `${title} — done`]);
+    expect(marks(await archive({}, "analyze"), "analyze")).toEqual([mergeMark("analyze", "started"), mergeMark("analyze", "done")]);
   });
 
   test("each step's words are its skill's own last heading", () => {
-    for (const [step, title] of Object.entries(MERGE_STEP)) {
+    for (const [step, place] of Object.entries(MERGE_STEP)) {
       const skill = readFileSync(join(import.meta.dir, `../../../../../core/skills/aide-${step}/SKILL.md`), "utf-8");
       const last = [...skill.matchAll(/^### (Step (\d+) of (\d+): .+)$/gm)].at(-1)!;
       expect(last[2]).toBe(last[3]);
-      expect(`--- ${last[1]}`, step).toBe(title!);
+      expect(last[1], step).toBe(`Step ${place}: ${MERGE_TITLE}`);
     }
   });
 });

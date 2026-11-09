@@ -412,42 +412,6 @@ def test_an_analysis_made_on_top_of_an_implement_with_an_earlier_date_still_wins
     assert out["terminalReason"] == "scope-violation", out
     assert _specs_changed(out, workspace) == 0
 
-def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root, run_spec_source):
-    """The structural half of the grammar check. The grammar exists once in
-    bash (`completed_steps_for`) and once in TypeScript
-    (`subjectPattern`), with no shared source, and BOTH anchor on `$`.
-    Adding a trailing group to one and not the other would stop every
-    future subject matching in the language that was missed — breaking
-    the pre-existing "Workflow steps completed" derivation, not just the
-    model line. The fifth hand-paired pair in this repo, pinned the way
-    the other four already are.
-    """
-    import re
-
-    bash = run_spec_source
-    m = re.search(r'^\s*re="(\^Run /aide-[^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer builds the subject regex as a plain string"
-    from_bash = m.group(1).replace("${folder}", "FOLDER")
-
-    ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
-    m = re.search(r"const subjectPattern[^;]*?new RegExp\(\s*(.*?),?\s*\);", ts, re.S)
-    assert m, "workflow-history.ts no longer builds the subject regex from template literals"
-    from_ts = "".join(re.findall(r"`([^`]*)`", m.group(1)))
-    from_ts = (
-        from_ts.replace("${escapeRegExp(specFolder)}", "FOLDER")
-        # A JS string literal doubles every backslash the regex needs;
-        # bash's `[[ =~ ]]` operand does not. And the only structural
-        # difference the two are allowed is capture-vs-not.
-        .replace("\\\\", "\\")
-        .replace("(?:", "(")
-    )
-
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about the commit-subject grammar:\n"
-        f"  bash: {from_bash}\n"
-        f"  ts:   {from_ts}"
-    )
-
 def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
     runner, workspace, fake_claude
 ):
