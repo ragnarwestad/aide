@@ -2,12 +2,14 @@
 // asks `/api/version` until another process answers, then loads itself
 // again. Run against a fake document, fetch, timer and location.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "restart-watch.ts"), "utf-8"),
-);
+const built = await Bun.build({
+  entrypoints: [join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "restart-watch.ts")],
+  target: "browser", format: "iife",
+});
+if (!built.success) throw new AggregateError(built.logs, "restart-watch.ts failed to bundle");
+const SOURCE = await built.outputs[0]!.text();
 
 /** Runs the script with a notice drawn by `drawnBy` (none when null), and
  *  `answers` as what `/api/version` says, one per ask (`"down"` throws). */

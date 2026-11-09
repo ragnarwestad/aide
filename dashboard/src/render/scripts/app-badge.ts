@@ -1,3 +1,5 @@
+import { PAGE_DRAWN } from "../../page-contract.ts";
+
 // The number on the installed app's icon: how many specs wait for a person.
 //
 // Like `sw-register.ts`, this file can neither import nor export anything —
@@ -35,5 +37,5 @@
   showPage();
 
   document.addEventListener("aide:waiting", (e) => show((e as CustomEvent).detail));
-  document.addEventListener("aide-page-drawn", showPage);
+  document.addEventListener(PAGE_DRAWN, showPage);
 })();

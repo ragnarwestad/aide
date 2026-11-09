@@ -4,7 +4,7 @@
 // hidden ones are Codex's own and never offered.
 
 import type { runScript } from "../land-branch/run-script.ts";
-import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-check.ts";
+import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { OfferedModel, ToolModels } from "../../render";
 
 export const CODEX_MODELS_ARGS = ["debug", "models"];

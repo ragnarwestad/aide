@@ -3,6 +3,7 @@
 // command out as the fields are typed.
 
 import type { Provider } from "./index.ts";
+import { TOOLS } from "./tools.ts";
 
 /** A path as a shell word: left as written when it needs no quoting, else
  *  single-quoted, with a leading `~/` kept outside the quotes so it still
@@ -18,10 +19,15 @@ function shellWord(path: string): string {
  *  can paste it into a terminal. */
 export function providerLoginCommand(provider: Pick<Provider, "tool"> & Partial<Provider>): string {
   const program = provider.binary ? shellWord(provider.binary) : provider.tool;
-  if (provider.tool === "opencode") return `${program} auth login`;
-  if (provider.tool === "claude") {
-    return `${provider.configDir ? `CLAUDE_CONFIG_DIR=${shellWord(provider.configDir)} ` : ""}${program} auth login`;
-  }
-  const folder = provider.shadowHome || provider.codexHome;
-  return `${folder ? `CODEX_HOME=${shellWord(folder)} ` : ""}${program} login`;
+  const login = TOOLS[provider.tool].login;
+  const folder = loginFolder(provider);
+  return `${folder ? `${folder.variable}=${shellWord(folder.path)} ` : ""}${program} ${login.args.join(" ")}`;
+}
+
+export function loginFolder(provider: Pick<Provider, "tool"> & Partial<Provider>): { variable: string; path: string } | undefined {
+  const login = TOOLS[provider.tool].login;
+  if (!("folderVariable" in login)) return undefined;
+  const field = login.folderFields.find((name) => provider[name]);
+  const path = field ? provider[field] : undefined;
+  return path ? { variable: login.folderVariable, path } : undefined;
 }

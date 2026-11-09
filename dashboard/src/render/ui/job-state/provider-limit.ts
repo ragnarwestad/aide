@@ -10,8 +10,7 @@ import type { ProviderLimit } from "../../../queue/queue.ts";
 import { stepLabel } from "../components";
 import { currentStep } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
-
-const TOOL_NAMES: Record<string, string> = { claude: "Claude", codex: "Codex", opencode: "OpenCode" };
+import { SHORT_TOOL_NAMES, asProviderTool } from "../../../queue/providers/tools.ts";
 
 export const windowPhrase = (name: string, lang: Language): string => {
   if (name === "five_hour" || name === "seven_day") return t(lang, `limit.window.${name}` as TranslationKey);
@@ -47,7 +46,8 @@ export function when(iso: string, now: number, lang: Language, timeZone?: string
 /** The provider a limit belongs to, with its model when it has one: the
  *  provider's name, else the tool's own. */
 const limitWho = (tool: string, model: string | undefined, provider?: string): string => {
-  const name = provider ?? TOOL_NAMES[tool] ?? tool;
+  const known = asProviderTool(tool);
+  const name = provider ?? (known ? SHORT_TOOL_NAMES[known] : tool);
   return model ? `${name} (${model})` : name;
 };
 

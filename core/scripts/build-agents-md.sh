@@ -26,7 +26,8 @@ OUTPUT="$WORKSPACE_ROOT/core/AGENTS.md"
 # (workflows, documentation, tools-and-scripts, markdown-linting,
 # spec-structure) are skills instead, loaded when they are relevant
 # test_core_scripts.py holds the byte budget.
-RULE_FILES="llm-discipline git testing communication"
+source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
+RULE_FILES="$(rule_names every-turn)"
 
 # Verify sources
 if [ ! -f "$INTRO" ]; then

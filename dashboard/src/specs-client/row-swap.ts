@@ -10,6 +10,7 @@ import { syncDependsOnForms } from "./depends-on";
 import { openTestFiles, reopenTestFiles } from "./test-files";
 import { holdSpecDetail } from "./spec-detail";
 import { runButton } from "../render/pages/specs-list/data-model/phase.ts";
+import { SPEC_HEAD_CLASS } from "../page-contract.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -160,12 +161,6 @@ interface RowSplit {
  *  thing that says where one spec's rows end and the next spec's begin.
  *  Named once, and used both to cut the fetched markup up and to walk
  *  the page's own rows — two answers to that question could disagree. */
-const SPEC_HEAD_CLASS = "spechead";
-
-/** Where each spec's rows begin. Built from the constant rather than
- *  written out, so the class vocabulary has one spelling here. */
-const SPEC_HEAD = new RegExp(`<tr class="${SPEC_HEAD_CLASS}\\b[^>]*?\\bid="([^"]+)"`, "g");
-
 const OPEN_TBODY = "<tbody>";
 const CLOSE_TBODY = "</tbody>";
 
@@ -185,10 +180,19 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
   // that row, and is one spec's rows alone.
   if (!holdsSpec && html.indexOf(OPEN_TBODY, start) !== -1) return null;
   const content = html.slice(start, close);
+  const Parser = document.defaultView?.DOMParser ?? DOMParser;
+  const parsed = new Parser().parseFromString(html, "text/html");
+  const bodies = parsed.querySelectorAll("tbody");
+  if (!bodies.length || (!holdsSpec && bodies.length !== 1)) return null;
+  const heads = Array.from(bodies[0]!.children).filter((row) => row.classList.contains(SPEC_HEAD_CLASS));
   const at: { key: string; index: number }[] = [];
-  SPEC_HEAD.lastIndex = 0;
-  for (let m = SPEC_HEAD.exec(content); m; m = SPEC_HEAD.exec(content)) {
-    at.push({ key: m[1]!, index: m.index });
+  const tags = Array.from(content.matchAll(/<tr\b[^>]*>/g));
+  for (const head of heads) {
+    const key = head.id;
+    if (!key) return null;
+    const match = tags.find((tag) => /\bid=["']([^"']+)["']/.exec(tag[0])?.[1] === key);
+    if (!match) return null;
+    at.push({ key, index: match.index! });
   }
   // The invariant: every row inside the table belongs to exactly one
   // spec. The first spec starting anywhere but the very beginning means

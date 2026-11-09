@@ -8,14 +8,7 @@ import { PHASE_STEPS } from "../steps.ts";
 import type { QueueDefaults } from "../types.ts";
 import type { RequestRefusal } from "../../format/request-fixes.ts";
 import { runsModel } from "./index.ts";
-import type { RunnableTool } from "./tools.ts";
-
-export const TOOL_LABELS: Record<RunnableTool, string> = {
-  claude: "Claude Code",
-  "fake-claude": "Claude Code",
-  codex: "Codex",
-  opencode: "OpenCode",
-};
+import { TOOLS, providerFamily } from "./tools.ts";
 
 type Defaults = Pick<QueueDefaults, "modelChoices" | "providers">;
 
@@ -29,7 +22,7 @@ export function providerModelError(defaults: Defaults, key: string, model: strin
   const choice = defaults.modelChoices?.[listed.name];
   if (runsModel(provider, choice)) return null;
   return invalidRequest(
-    `${model} is a ${TOOL_LABELS[choice?.tool ?? "claude"]} model and ${provider.name} is a ${TOOL_LABELS[provider.tool]} provider — pick a model under it`,
+    `${model} is a ${TOOLS[providerFamily(choice?.tool ?? "claude")].name} model and ${provider.name} is a ${TOOLS[provider.tool].name} provider — pick a model under it`,
   );
 }
 

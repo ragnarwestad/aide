@@ -1,3 +1,5 @@
+import { PAGE_DRAWN } from "../../page-contract.ts";
+
 // While the page says a Deploy is waiting for landings in flight before it
 // restarts the service, ask `/api/version` every few seconds and load
 // the page again once another process answers: the notice was drawn by
@@ -32,5 +34,5 @@
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch);
   else watch();
-  document.addEventListener("aide-page-drawn", () => { watching = false; watch(); });
+  document.addEventListener(PAGE_DRAWN, () => { watching = false; watch(); });
 })();

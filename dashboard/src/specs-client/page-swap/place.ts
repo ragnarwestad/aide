@@ -1,10 +1,9 @@
+import { ROW_MESSAGE_CLASS, SERVED_BY_META } from "../../page-contract.ts";
+
 export function isBoardPage(next: Document, url: URL): boolean {
   const origin = globalThis.location?.origin ?? url.origin;
   return url.origin === origin && !!next.querySelector("body > header") && !!next.querySelector("body > main");
 }
-
-/** Hand-paired with `SERVED_BY_META` in `render/ui/shell.ts`. */
-const SERVED_BY_META = "aide-served-by";
 
 /** Whether `next` was drawn by another server process than `doc`: after a
  *  Deploy, the page this script came with is older than the code serving. */
@@ -32,7 +31,7 @@ export function placePage(doc: Document, next: Document): void {
   else if (tabs) tabs.remove();
   else if (nextTabs) header.insertAdjacentElement("afterend", doc.importNode(nextTabs, true));
 
-  const messageClass = "row" + "msg";
+  const messageClass = ROW_MESSAGE_CLASS;
   for (const old of Array.from(doc.body.querySelectorAll(`:scope > .${messageClass}, :scope > .pageloading`))) old.remove();
   const anchor = doc.querySelector("body > nav.tabbar") ?? header;
   for (const fresh of Array.from(next.body.children)) {

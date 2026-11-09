@@ -1,3 +1,5 @@
+import { PAGE_DRAWN, PAGE_FETCHING, SPINNER } from "../../../page-contract.ts";
+
 // A click that leaves this page for another covers it, from the click
 // until the new page is in place — the other half of what
 // nav-busy.ts's pale link leaves unsaid: gone the instant the pointer
@@ -25,7 +27,7 @@
     if (!dialog) {
       document.body.insertAdjacentHTML(
         "beforeend",
-        '<dialog class="pageoverlay"><span class="spin" aria-hidden="true"></span>' +
+        `<dialog class="pageoverlay">${SPINNER}` +
           '<p class="overlaynote" hidden></p></dialog>',
       );
       dialog = document.body.lastElementChild as HTMLDialogElement;
@@ -62,14 +64,14 @@
     }, DELAY_MS);
   });
 
-  document.addEventListener("aide-page-fetching", () => {
+  document.addEventListener(PAGE_FETCHING, () => {
     if (timer !== null || dialog?.open) return;
     timer = setTimeout(() => {
       timer = null;
       openOverlay(document.body?.dataset?.overlayNote || "");
     }, DELAY_MS);
   });
-  document.addEventListener("aide-page-drawn", () => {
+  document.addEventListener(PAGE_DRAWN, () => {
     held = false;
     if (timer !== null) clearTimeout(timer);
     timer = null;

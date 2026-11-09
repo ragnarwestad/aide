@@ -54,8 +54,16 @@ def tool_environment(core, tool, tools_dir, home, advisor=None):
     if tool in ("claude", "fake-claude"):
         copy_skills(core, folder, skip=("spec-structure",))
         installer = core / "implementations" / "claude-code" / "install.sh"
-        listed = re.search(r'^GENERIC_RULES="([^"]*)"', installer.read_text() if installer.exists() else "", re.M)
-        rules = listed.group(1).split() if listed else [p.stem for p in sorted((core / "rules").glob("*.md"))]
+        helper = core / "scripts" / "_install-rules.sh"
+        if helper.exists():
+            result = subprocess.run(
+                ["/bin/bash", "-c", 'source "$1"; rule_names', "_", str(helper)],
+                capture_output=True, text=True, check=True,
+            )
+            rules = result.stdout.split()
+        else:
+            listed = re.search(r'^GENERIC_RULES="([^"]*)"', installer.read_text() if installer.exists() else "", re.M)
+            rules = listed.group(1).split() if listed else [p.stem for p in sorted((core / "rules").glob("*.md"))]
         (folder / "rules").mkdir()
         for rule in rules:
             if (core / "rules" / f"{rule}.md").exists():

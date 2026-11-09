@@ -89,6 +89,7 @@ class TestPreflightReadsTheTable:
         bin_dir = tmp_path / "bin"
         (bin_dir / "lib").mkdir(parents=True)
         shutil.copy(workspace_root / "core" / "scripts" / "aide-preflight", bin_dir / "aide-preflight")
+        shutil.copytree(workspace_root / "core" / "scripts" / "lib" / "ai-tools", bin_dir / "lib" / "ai-tools")
         (bin_dir / "lib" / "install-targets.txt").write_text(
             "# a table naming another place\n"
             "claude  skills  core/skills/  ~/.elsewhere/skills/\n"

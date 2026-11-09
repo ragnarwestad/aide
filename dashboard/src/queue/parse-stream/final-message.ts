@@ -1,6 +1,6 @@
 // The assistant's own closing word.
 import { summarizeEntries } from "./entries.ts";
-import { codexKind, esc, events, prose, sniff, splitMarks, type SummarizeOptions } from "./shared.ts";
+import { codexKind, esc, events, prose, splitMarks, transcriptFormat, type SummarizeOptions } from "./shared.ts";
 
 /** The assistant's own final message, in full — Claude's one `result`
  *  event's `result` field, Codex's LAST `agent_message` item's text, or
@@ -13,7 +13,7 @@ export function finalMessage(text: string, opts: SummarizeOptions = {}): string 
 }
 
 function rawFinalMessage(text: string, opts: SummarizeOptions): string | undefined {
-  const tool = opts.tool ?? sniff(text);
+  const tool = transcriptFormat(opts.tool, text);
   let found: string | undefined;
   for (const event of events(text)) {
     if (tool === "codex") {

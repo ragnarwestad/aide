@@ -4,12 +4,14 @@
 // and to go once the press is answered.
 
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "busy", "nav-overlay.ts"), "utf-8"),
-);
+const built = await Bun.build({
+  entrypoints: [join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "busy", "nav-overlay.ts")],
+  target: "browser", format: "iife",
+});
+if (!built.success) throw new AggregateError(built.logs, "nav-overlay.ts failed to bundle");
+const SOURCE = await built.outputs[0]!.text();
 
 function run() {
   const listeners: Record<string, ((e: unknown) => void)[]> = {};

@@ -3,7 +3,7 @@
 // schemas turned into one shape.
 import { itemCounter } from "./numbering.ts";
 import {
-  blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, commandLine, esc, events, keepsEntry, sniff, textEntries, toolSubject, trim,
+  blocksOf, bounded, CLAUDE_WRITES, clip, codexKind, commandLine, esc, events, keepsEntry, textEntries, toolSubject, transcriptFormat, trim,
   type StreamEntry, type StreamEntryKind, type SummarizeOptions,
 } from "./shared.ts";
 
@@ -217,10 +217,8 @@ function opencodeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry
  *  with the kinds dropped, which is all a caller that shows every line
  *  ever wanted. */
 export function summarizeEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] {
-  const tool = opts.tool ?? sniff(text);
-  if (tool === "codex") return codexEntries(text, opts);
-  if (tool === "opencode") return opencodeEntries(text, opts);
-  return claudeEntries(text, opts);
+  const readers = { claude: claudeEntries, codex: codexEntries, opencode: opencodeEntries };
+  return readers[transcriptFormat(opts.tool, text)](text, opts);
 }
 
 /** The transcript, whichever tool wrote it. */

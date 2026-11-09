@@ -12,7 +12,6 @@
 // case (a real Toast UI Editor instance).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 let scriptText: string;
@@ -20,9 +19,12 @@ let scriptText: string;
 beforeAll(async () => {
   const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
   GlobalRegistrator.register();
-  scriptText = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "spec-form-actions.ts"), "utf-8"),
-  );
+  const built = await Bun.build({
+    entrypoints: [join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "spec-form-actions.ts")],
+    target: "browser", format: "iife",
+  });
+  if (!built.success) throw new AggregateError(built.logs, "spec-form-actions.ts failed to bundle");
+  scriptText = await built.outputs[0]!.text();
 });
 
 afterAll(async () => {

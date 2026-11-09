@@ -189,21 +189,6 @@ class TestInstallersWireUpShellPath:
                 f"uninstall-all.sh left the PATH block in ~/{name}"
 
 
-class TestEveryToolIsInstalledAndUninstalled:
-    def test_install_all_and_uninstall_all_cover_every_implementation(self, workspace_root):
-        """An implementation left out of uninstall-all.sh keeps its files
-        after a full uninstall, with nothing saying so."""
-        implementations = sorted(
-            path.parent.name
-            for path in (workspace_root / "core" / "implementations").glob("*/uninstall.sh")
-        )
-        for script in ("install-all.sh", "uninstall-all.sh"):
-            text = (workspace_root / script).read_text()
-            loop = re.search(r"^for ai in (.+); do$", text, re.MULTILINE)
-            assert loop, f"{script} has no `for ai in ...` loop"
-            assert sorted(loop.group(1).split()) == implementations, script
-
-
 class TestInstallReplacesByRename:
     def test_a_reinstall_never_writes_into_the_installed_file(self, workspace_root, tmp_path):
         """Bash reads a running script by byte offset, so an installer

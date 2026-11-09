@@ -5,12 +5,14 @@
 // is transpiled and run here against a `navigator` and a `document` small
 // enough to state in full.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "app-badge.ts"), "utf-8"),
-);
+const built = await Bun.build({
+  entrypoints: [join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "app-badge.ts")],
+  target: "browser", format: "iife",
+});
+if (!built.success) throw new AggregateError(built.logs, "app-badge.ts failed to bundle");
+const SOURCE = await built.outputs[0]!.text();
 
 interface Opts {
   /** The `content` of the page's `aide-waiting` meta; absent: no meta. */

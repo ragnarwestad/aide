@@ -3,8 +3,9 @@
 // theme so the reasoning and the markup that reads it are not one file.
 
 import type { SpecsPageOptions } from "./";
+import { compactModelLabels } from "../../../page-contract.ts";
 import { asRunnableTool } from "../../../queue/steps.ts";
-import { SHORT_TOOL_NAMES, TOOL_NAMES, type ProviderTool } from "../../../queue/providers/tools.ts";
+import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
@@ -92,7 +93,8 @@ export function defaultModelForTool(
 
 /** The tool a provider needs to run a model choice: its own, with a
  *  choice that names none or the scripted stand-in run by Claude Code. */
-export const providerToolOf = (tool: string | undefined): string => (tool === undefined || tool === "fake-claude" ? "claude" : tool);
+export const providerToolOf = (tool: string | undefined): string =>
+  tool === undefined ? "claude" : (RUNNABLE_TOOLS as readonly string[]).includes(tool) ? providerFamily(tool as (typeof RUNNABLE_TOOLS)[number]) : tool;
 
 /** A provider as a picker offers it: its key (the value posted), its name
  *  and the tool whose models it runs. */
@@ -203,29 +205,28 @@ const shortToolName = (tool: string): string => {
  *  the tie-break directly; a real `queue-config.json` cannot produce
  *  one today, since the Record's own key IS the name
  *  (`ModelChoice`'s own comment) and a JS object cannot hold two
- *  identical keys (`2-analysis.md`, "Codebase analysis"). Mirrored
- *  client-side by `refreshAiModelBox()` (`specs-client/ai-sync.ts`) —
- *  the two run in separate bundles with no shared module, so both must
- *  be kept applying the same rule by hand. */
+ *  identical keys. The shared contract applies the label rule after
+ *  this server adapter supplies its plain values. */
 export function compactModelLabel(
   models: NonNullable<SpecsPageOptions["modelChoices"]>,
   on: { model: string; tool: string; provider?: string } | undefined,
 ): string {
-  if (!on) return "";
-  const collides = models.filter((m) => m.name === on.model).length > 1;
-  return collides ? `${on.provider ?? shortToolName(on.tool)} · ${on.model}` : on.model;
+  return compactModelLabels(
+    models.map((model) => model.name),
+    on ? { model: on.model, short: on.provider ?? shortToolName(on.tool) } : undefined,
+  ).short;
 }
 
 /** The FULL text the growing button shows once there is room for it
  *  always tool-prefixed, unlike `compactModelLabel()`'s
  *  own collision-only rule. Identical to `compactModelLabel()`'s own
- *  output whenever a collision already forces the prefix there. Mirrored
- *  client-side by `refreshAiModelBox()` (`specs-client/ai-sync.ts`), the
- *  same hand-paired arrangement `compactModelLabel()` itself is in. */
+ *  output whenever a collision already forces the prefix there. */
 export function compactModelLabelFull(
   _models: NonNullable<SpecsPageOptions["modelChoices"]>,
   on: { model: string; tool: string; provider?: string } | undefined,
 ): string {
-  if (!on) return "";
-  return `${on.provider ?? shortToolName(on.tool)} · ${on.model}`;
+  return compactModelLabels(
+    _models.map((model) => model.name),
+    on ? { model: on.model, short: on.provider ?? shortToolName(on.tool) } : undefined,
+  ).full;
 }

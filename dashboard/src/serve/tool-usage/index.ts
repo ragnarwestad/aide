@@ -4,9 +4,10 @@
 // a way that runs no model, with the provider's folders in the environment.
 
 import { runScript, scriptFor } from "../land-branch/run-script.ts";
-import { CHECK_TIMEOUT_MS } from "../tool-check.ts";
-import { readClaudeUsage } from "./claude.ts";
-import { appServerExchange, readCodexUsage, type UsageExchange } from "./codex.ts";
+import { TOOLS } from "../../queue/providers/tools.ts";
+import { TOOL_READERS } from "../tool-readers/index.ts";
+import { CHECK_TIMEOUT_MS } from "../tool-readers/run.ts";
+import { appServerExchange, type UsageExchange } from "./codex.ts";
 import type { CheckableTool, ToolUsage } from "../../render";
 
 export { codexWindowName, parseCodexRateLimits } from "./codex.ts";
@@ -36,16 +37,10 @@ export async function readUsage(tool: CheckableTool, opts: UsageOptions = {}): P
   const run = opts.run ?? runScript;
   const runWithEnv: typeof runScript = (argv, cwd, timeoutMs, owner, extra) => run(argv, cwd, timeoutMs, owner, { ...extra, ...env });
   try {
-    switch (tool) {
-      case "claude":
-        return await readClaudeUsage(runWithEnv, path("claude"), base);
-      case "codex":
-        return await readCodexUsage(opts.exchange ?? appServerExchange, path("codex"), base, opts.timeoutMs ?? CHECK_TIMEOUT_MS, env);
-      case "opencode":
-        // Every model is a provider's, and OpenCode keeps no usage window
-        // of its own.
-        return { ...base, windows: [] };
-    }
+    const reader = TOOLS[tool].readers.usage;
+    if (reader === "claude") return await TOOL_READERS[reader].usage(runWithEnv, path(tool), base);
+    if (reader === "codex") return await TOOL_READERS[reader].usage(opts.exchange ?? appServerExchange, path(tool), base, opts.timeoutMs ?? CHECK_TIMEOUT_MS, env);
+    return await TOOL_READERS[reader].usage(base);
   } catch (err) {
     return { ...base, windows: [], error: err instanceof Error ? err.message : String(err) };
   }

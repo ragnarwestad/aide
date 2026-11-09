@@ -2,10 +2,8 @@ import { press, chosen, chosenSteps } from "../state";
 import { addScripts, onBack } from "../spec-detail/open";
 import { sameAddress, takesLink } from "./links";
 import { isBoardPage, placePage, servedByAnother } from "./place";
-
-export const PAGE_LEAVE = "aide-page-leave";
-export const PAGE_FETCHING = "aide-page-fetching";
-export const PAGE_DRAWN = "aide-page-drawn";
+export { PAGE_DRAWN, PAGE_FETCHING, PAGE_LEAVE } from "../../page-contract.ts";
+import { PAGE_DRAWN, PAGE_FETCHING, PAGE_LEAVE } from "../../page-contract.ts";
 
 export type SwapOptions = {
   history: "push" | "replace" | "none";

@@ -13,6 +13,7 @@ import type { BoardMessage } from "../../../i18n/message.ts";
 import { esc } from "../../ui/html.ts";
 import { facts } from "../../ui/components";
 import { PROVIDER_TOOLS, type ProviderTool } from "../../../queue/providers/index.ts";
+import { TOOLS } from "../../../queue/providers/tools.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 
 /** The tools a check can be asked about — the ones a provider can be for —
@@ -65,11 +66,9 @@ export interface ToolCheck {
   error?: string;
 }
 
-export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-  opencode: "OpenCode",
-};
+export const TOOL_TAB_LABELS: Record<CheckableTool, string> = Object.fromEntries(
+  PROVIDER_TOOLS.map((tool) => [tool, TOOLS[tool].name]),
+) as Record<CheckableTool, string>;
 
 /** How long ago the check was made, so a stale answer reads as one. The
  *  stamp is the moment it was obtained, never the moment the page was
