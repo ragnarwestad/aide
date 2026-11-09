@@ -237,7 +237,7 @@ Where a field must ride inside the form for event bubbling but must never itself
 
 - `unsaved-changes.ts` — the one place that does this, skipping `[data-unit-choice]`.
 - `spec-form-actions.ts` — its own `bind()` listens on the form with no guard at all.
-- `specs-client/index.ts` — its `closest("select[data-ai]")` is the opposite: it picks a control out
+- `specs-client/page-mount/` — its `closest("select[data-ai]")` is the opposite: it picks a control out
   rather than leaving one alone.
 
 ## What a button's variant means
