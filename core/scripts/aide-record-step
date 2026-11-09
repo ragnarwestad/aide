@@ -62,6 +62,8 @@ source "$SCRIPT_DIR/lib/spec-state.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-reference.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/record/records.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/tracking-info.sh"
