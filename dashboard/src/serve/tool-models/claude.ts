@@ -6,7 +6,7 @@
 
 import type { runScript } from "../land-branch/run-script.ts";
 import { events } from "../../queue/parse-stream/shared.ts";
-import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-check.ts";
+import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { OfferedModel, ToolModels } from "../../render";
 
 /** The four families offered. Every other name Claude Code takes

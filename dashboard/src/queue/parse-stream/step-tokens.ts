@@ -12,7 +12,7 @@
 // A step no usage can be attributed to has no entry. The sum is the four-way sum the runner
 // reports for a whole step (`tokens_json` in core/scripts/lib/run-spec/turn/model-turn.sh).
 import { summarizeEntries } from "./entries.ts";
-import { sniff, type SummarizeOptions } from "./shared.ts";
+import { transcriptFormat, type SummarizeOptions } from "./shared.ts";
 import { markOf } from "./step-marks.ts";
 
 /** What one model call wrote: the marks in it, and the usage it reported. */
@@ -50,8 +50,8 @@ function codexUsage(usage: unknown): number | undefined {
 }
 
 export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<string, number> {
-  const kind = tool ?? sniff(text);
-  const family = kind === "codex" ? "codex" : kind === "opencode" ? "opencode" : "claude";
+  const kind = transcriptFormat(tool, text);
+  const family = kind;
   const totals = new Map<string, number>();
   let open: string | undefined;
   const add = (n: number | undefined, key = open): void => {

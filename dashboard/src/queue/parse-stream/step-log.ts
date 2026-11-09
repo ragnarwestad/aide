@@ -12,7 +12,7 @@ import { aiParts, type AiTurn, type BuiltPart, type Owned } from "./ai-turn.ts";
 import { claudeSubagents } from "./claude-subagents.ts";
 import { codexSpawns } from "./codex-subagents.ts";
 import { codexNumbering } from "./numbering.ts";
-import { esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
+import { esc, transcriptFormat, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
 import { markOf } from "./step-marks.ts";
 
 export type LogPart = TextPart | SubagentPart;
@@ -92,7 +92,7 @@ export function stepLog(
   },
 ): { logs: LogPart[]; errors: string[] } {
   const opts = { tool: o.tool, max: Infinity, whole: true }; // the Log is the whole step, every line of it in full
-  const tool = o.tool ?? sniff(transcript.text);
+  const tool = transcriptFormat(o.tool, transcript.text);
   const aideParts: (BuiltPart | AiTurn)[] = [];
   const noted: NotedMark[] = [];
   const aide = (by: TextPart["by"], lines: RunLine[]) => {

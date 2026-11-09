@@ -5,7 +5,7 @@
 // the tool printed it rather than guessed at.
 
 import type { runScript } from "../land-branch/run-script.ts";
-import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-check.ts";
+import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { ToolUsage, UsageWindow } from "../../render";
 
 /** `--no-session-persistence` keeps each press from leaving a session

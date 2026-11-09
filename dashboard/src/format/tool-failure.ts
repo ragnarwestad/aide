@@ -14,21 +14,15 @@
 // words as they came, and the check that can answer for itself.
 
 import type { BoardMessage } from "../i18n/message.ts";
+import { TOOLS, asProviderTool } from "../queue/providers/tools.ts";
 import { errorSentence, writtenMessage } from "./error-sentence.ts";
-
-/** The tools whose Settings tab a reader can be sent to. Kept as a plain
- *  list rather than imported from the render layer: this module is
- *  called from the queue, which may not import `src/serve`, and the tab
- *  names are the same four the check itself knows. */
-const TOOL_TABS: Record<string, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-  opencode: "OpenCode",
-};
 
 /** The name of `tool`'s own tab on the Settings page, or undefined for a
  *  tool that has none. */
-export const toolLabel = (tool: string | undefined): string | undefined => (tool ? TOOL_TABS[tool] : undefined);
+export const toolLabel = (tool: string | undefined): string | undefined => {
+  const known = asProviderTool(tool);
+  return known ? TOOLS[known].name : undefined;
+};
 
 /** The endings where "is this AI usable at all" is the live question.
  *  `cli-error` is the CLI itself failing rather than the work in it, and
@@ -70,7 +64,7 @@ export function toolFailureSentence(f: ToolFailure): ReturnType<typeof errorSent
   // origin" is not improved by being told which model was running, and a
   // prefix on every failure is a prefix nobody reads.
   if (!TOOL_LEVEL_ENDINGS.has(f.terminalReason ?? "") && !refusedForTheCli(f)) return undefined;
-  const label = f.tool ? (TOOL_TABS[f.tool] ?? f.tool) : undefined;
+  const label = toolLabel(f.tool) ?? f.tool;
   if (!label && !f.model) return undefined;
 
   // "OpenCode on gemini-3.1-pro", "gemini-3.1-pro", or "OpenCode" —
