@@ -13,8 +13,8 @@ function sentence(s: unknown): string {
 }
 
 import {
-  SPEC, BRANCH, AUTH, createOwnDirs, gitFor, repos, serverWith, resultDir,
-  settle, result, stepWithResult,
+  SPEC, AUTH, createOwnDirs, gitFor, repos, serverWith, resultDir,
+  settle, result, stepWithResult, merges,
 } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -50,28 +50,20 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
   });
 
-  test("a branch left on origin in a repo the loop never saw is a failed job", async () => {
-    const dir = own("aide-193-unlanded-");
+  // A cancelled implement pushes its work and records no repo, and the
+  // implement after it has nothing new to push: origin is the record.
+  test("a branch on origin in a repo no job recorded is merged too", async () => {
+    const dir = own("aide-193-unrecorded-");
     const paths = repos(dir);
     const git = gitFor({ openOn: [paths.project] });
     const { base } = serverWithHarness(dir, paths, git);
 
-    const failed = await stepWithResult(
-      base,
-      dir,
-      "archive",
-      onlyTheSpecsRepo(paths),
-      (j) => !!j.error,
-    );
+    const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
 
-    expect(failed.state).toBe("failed");
-    expect(failed.errorReason).toBe("unlanded");
-    expect(sentence(failed.error)).toContain(paths.project);
-    expect(sentence(failed.error)).toContain(BRANCH);
-    // The state is half the sentence — the other half is
-    // the move. The row's own button already offers it; the message
-    // has to say so.
-    expect(sentence(failed.error).toLowerCase()).toContain("press archive again");
+    expect(merges(git.calls, paths.project).length).toBeGreaterThan(0);
+    expect(landed.state).toBe("done");
+    expect(landed.error).toBeFalsy();
+    expect(landed.errorReason).toBeFalsy();
   }, 20000);
 
   // The happy path is the one this whole change must not

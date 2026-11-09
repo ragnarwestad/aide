@@ -40,8 +40,9 @@ point.
 - `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first. The one
   exception is an implement sent back to a full analysis in a project whose specs live inside the code root: it
   lands the spec's own folder, so main, the row and the next analyze have the Sent back line, and not its code.
-- `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's history
-  recorded for the spec. **The code root goes first and the specs root last**, so a failed code merge stops the loop
+- `archive` and `close` land every repo that holds the spec's branch: the roots its own run reported, the ones the
+  queue's history recorded for the spec, and every root of the project where origin still has the branch, recorded or
+  not. **The code root goes first and the specs root last**, so a failed code merge stops the loop
   before the specs root, which carries the `Result: completed` stamp, is attempted. After a code root merges,
   `AIDE_INSTALL_CMD` runs, except in the board's own checkout, which Deploy installs.
 - A stopped step other than `archive` lands what it pushed outside the code root. That covers a `timeout`,
