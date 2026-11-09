@@ -403,9 +403,17 @@ An agent between the tests and the person could open the test server a held-back
 in a browser, and note on its row what it saw, so the person starts from that rather than from nothing. The
 person still ticks: the agent's note is evidence, not a tick.
 
+The [Universe presentation](https://githubnext.com/talks/whats-next-with-github-next/#proof-driven-development)
+describes a Verus proof, tests for the parts taken on trust, and an LLM review for gaps. It does not explain how a
+browser agent tries criteria. The [project write-up](https://githubnext.com/projects/pdd-kit/) illustrates login
+verification in a Rust app and lists browser and computer-use agents among the empirical checks. Those checks
+provide evidence, not proof. For Aide, the useful distinction is to record what was tried, what was observed and
+what remains unchecked; the person still decides whether the criterion is met.
+
 Open questions:
 
-- How PDD Kit's own browser agents work, which its demo at GitHub Universe (28–29 October 2026) should show.
+- How a browser agent selects actions and records evidence for each criterion; the published material does not
+  specify that mechanism.
 - Which criteria the agent may try, since a criterion about an email, a deploy or another machine cannot be tried
   in a browser on the test server.
 - What it costs per spec, and whether it runs for every held-back spec or only on request.

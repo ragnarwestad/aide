@@ -268,7 +268,7 @@ export function specNotice(
       // single BoardMessage while a job is held back (`Runner.hold()`).
       // A held-back key this set does not name falls through to
       // "waiting" — the safer default.
-      const heldBackInfo = heldBackResolvesOnItsOwn(lead);
+      const heldBackInfo = heldBackResolvesOnItsOwn(lead) || usageText !== undefined;
       // `tests-red` waits for the same reason: the landing ran the
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they
