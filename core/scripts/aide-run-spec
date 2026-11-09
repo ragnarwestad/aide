@@ -137,40 +137,29 @@ USAGE
   esac
 done
 
-# Run from a private copy of ourselves. Bash reads a script
-# incrementally from disk by byte offset, so replacing the file
-# mid-execution kills the run — and an aide `implement` step reinstalls
-# aide, which copies this very script over itself. Measured 2026-08-16:
-# that took the runner down eight minutes into a job whose work had
-# already succeeded, leaving no result file. The copy unlinks itself
-# immediately; the open file handle keeps it alive for as long as we
-# run.
-#
-# The marker holds the copy's OWN path, and both markers are unset
-# before anything else runs. An earlier version marked "I am a copy"
-# with a bare flag and left it exported: `claude` inherited it, so every
-# nested invocation — a test, a terminal inside the run, the next step —
-# believed the INSTALLED script was the throwaway copy and deleted it.
-# Measured 2026-08-16, one test run removed core/scripts/aide-run-spec
-# from the worktree.
-#
-# The copy is handed to bash, never exec'd itself: macOS checks every new
-# executable the first time it starts, and a fresh copy per run joined
-# that queue on every run — behind a busy machine's, for minutes
-# (2026-09-19). Read by bash it is only a file, and it is not made
-# executable at all, so a direct exec fails at once instead of waiting.
+# Keep the runner, its libraries and helper commands together for this run.
+# Deploy may replace the installation while a model turn is running.
+# Bash reads scripts incrementally, so even the entry script needs a copy.
+# Invoke the copy through bash to avoid macOS executable validation delays.
 if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
-  _self_copy="$(mktemp "${TMPDIR:-/tmp}/aide-run-spec.XXXXXX")" || exit 2
-  cp "${BASH_SOURCE[0]}" "$_self_copy" || exit 2
-  AIDE_RUN_SPEC_SELF_COPY="$_self_copy" \
-  AIDE_RUN_SPEC_SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
-    exec "$BASH" "$_self_copy" "$@"
+  _source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  _snapshot="$(mktemp -d "${TMPDIR:-/tmp}/aide-run-spec.XXXXXX")" || exit 2
+  trap 'rm -rf "$_snapshot"' EXIT
+  cp -L "${BASH_SOURCE[0]}" "$_snapshot/runner" || exit 2
+  for _helper in "$_source_dir"/aide-* "$_source_dir"/_*.sh; do
+    [ ! -f "$_helper" ] || cp -L "$_helper" "$_snapshot/" || exit 2
+  done
+  [ ! -d "$_source_dir/lib" ] || cp -RL "$_source_dir/lib" "$_snapshot/" || exit 2
+  AIDE_RUN_SPEC_SELF_COPY="$_snapshot/runner" \
+  AIDE_RUN_SPEC_SOURCE_DIR="$_snapshot" \
+    exec "$BASH" "$_snapshot/runner" "$@"
 fi
-# In the copy: keep the directory the original came from (the shared
-# library lives beside it), then drop the file — it is ours, and only
-# ours, because the marker matched our own path.
-SCRIPT_DIR="${AIDE_RUN_SPEC_SOURCE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+# Drop the markers before spawning any child, so a nested runner makes
+# its own copy and cannot delete the installation or its parent's copy.
+SCRIPT_DIR="$AIDE_RUN_SPEC_SOURCE_DIR"
+_runner_snapshot="$SCRIPT_DIR"
 unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
+trap 'rm -rf "$_runner_snapshot"' EXIT
 rm -f "$0"
 
 # A refusal before the arguments are read still has to reach the board,

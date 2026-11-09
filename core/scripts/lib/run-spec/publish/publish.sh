@@ -266,7 +266,7 @@ unmark_finished_work() {
 }
 
 commit_and_push_roots() {
-  local i=0 root wt changed head_now amend_source=() excludes=() line
+  local i=0 root wt changed head_now amend_source=() excludes=() line commit_said commit_subject add_said
   # The stop mark follows the step's outcome as it stands now, not as it
   # stood when cleanup.sh first worked it out: a review, a verification or
   # a fix turn that ends the step later sets only its terminal reason. A
@@ -291,7 +291,8 @@ EXCLUDES_EOF
     if [ "$changed" -gt 0 ]; then
       changed_files_per_root[i]=$(( ${changed_files_per_root[i]:-0} + changed ))
       stage "committing in $root"
-      git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} >/dev/null 2>&1
+      add_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1)" || true
+      commit_said=""
       head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
       # Compared against ${head_after_per_root[$i]} — the tip as THIS
       # root stood when THIS call began — never ${head_before[$i]}, the
@@ -330,15 +331,19 @@ EXCLUDES_EOF
           # reason NOR a model, so it cannot be assumed from an empty
           # $suffix alone.
           existing_message="$(git -C "$wt" log -1 --pretty=%B)"
-          git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" >/dev/null 2>&1 || true
+          commit_said="$(git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" 2>&1)" || true
         else
-          git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
+          commit_said="$(git -C "$wt" commit -q --amend --no-edit 2>&1)" || true
         fi
       else
         if [ "$root" = "${specs_repo:-}" ]; then
-          git -C "$wt" commit -q -m "$(aide_step_subject "$command_name" "$commit_label" "$model_suffix$suffix")" >/dev/null 2>&1 || true
+          if commit_subject="$(aide_step_subject "$command_name" "$commit_label" "$model_suffix$suffix" 2>"$work_dir/commit-subject.err")"; then
+            commit_said="$(git -C "$wt" commit -q -m "$commit_subject" 2>&1)" || true
+          else
+            commit_said="$(cat "$work_dir/commit-subject.err")"
+          fi
         else
-          git -C "$wt" commit -q -F - >/dev/null 2>&1 <<<"$(code_commit_message)" || true
+          commit_said="$(git -C "$wt" commit -q -F - 2>&1 <<<"$(code_commit_message)")" || true
         fi
       fi
     fi
@@ -346,10 +351,11 @@ EXCLUDES_EOF
     # ends: the step does not finish, and git's own words say why.
     if [ "$changed" -gt 0 ] \
        && [ -n "$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null)" ]; then
-      commit_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1 >/dev/null | grep -m1 . || true)"
-      stop_step unpushed "the step's own work could not be committed in $root${commit_said:+ — $commit_said}" \
+      commit_said="${commit_said:-$add_said}"
+      stop_step unpushed "the step's own work could not be committed in $root${commit_said:+ — ${commit_said%%$'\n'*}}" \
         "fix the checkout on the serving host, then press $step_button again"
       error_log="${commit_said:-}"
+      commit_error_log="$error_log"
       stage_error "$error_msg"
     fi
     unmark_finished_work "$i" "$root" "$wt"

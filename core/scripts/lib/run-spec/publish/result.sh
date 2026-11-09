@@ -215,7 +215,7 @@ if [ "$ok" = "true" ]; then aide_part_close; else aide_part_close "stopped: ${te
 
 context_json="$(context_use_json)"
 
-result_error="$error_msg"; result_fix="${error_solution:-}"; result_log=""
+result_error="$error_msg"; result_fix="${error_solution:-}"; result_log="${commit_error_log:-}"
 if board_words_ending; then result_error=""; result_fix=""; result_log="${error_log:-}"; fi
 
 line="$(jq -cn \
