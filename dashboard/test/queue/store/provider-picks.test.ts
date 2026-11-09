@@ -67,6 +67,7 @@ describe("a pending pick's provider", () => {
     const q = store();
     const r = q.setPendingModel("aide", "81-queue", "implement", "Opus", "Gone");
     expect(!r.ok && r.error).toContain("unknown or not-allowed provider: Gone");
+    expect(!r.ok && r.solution).toBe("Reload the page and try again");
     expect(q.pendingProviders["aide/81-queue"]).toBeUndefined();
     expect(q.pendingModels["aide/81-queue"]).toBeUndefined();
   });

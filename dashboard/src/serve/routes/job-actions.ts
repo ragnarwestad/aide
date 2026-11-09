@@ -10,7 +10,6 @@ import { isCleanupJob, isDeployJob } from "../../queue/queue.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
 import { errorSentence } from "../../format/error-sentence.ts";
-import { splitFix } from "../../format/request-fixes.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
@@ -149,7 +148,7 @@ export async function handleJobActionRoutes(
       // `spec` for the same reason merge's answer carries it: the page
       // shows a refusal on the row it belongs to, so the answer has to
       // say which.
-      return refusal(splitFix(result.error), { spec });
+      return refusal(result, { spec });
     }
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
@@ -254,7 +253,7 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailStep(id!, step, add);
     if (!result.ok) {
       logRefusal("steps", spec, result.error);
-      return refusal(splitFix(result.error), { spec });
+      return refusal(result, { spec });
     }
     // Now, not on the next two-second timer: a step added in the
     // instant the running one finishes would otherwise wait for it.
@@ -283,7 +282,7 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailModel(id!, step, model, provider);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
-      return refusal(splitFix(result.error), { spec });
+      return refusal(result, { spec });
     }
     // A step this job was not queued with is a choice about a job still
     // to come: kept on this job alone, it went when the job ended, and

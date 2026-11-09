@@ -13,7 +13,6 @@ import { providerKeyFrom, providerModelError } from "../../queue/providers/parse
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
 import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
-import { splitFix } from "../../format/request-fixes.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -44,7 +43,7 @@ export async function handleQueueAdminRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const result = ctx.queue.enqueueCreate(raw);
-    if (!result.ok) return refusal(splitFix(result.error));
+    if (!result.ok) return refusal(result);
     ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
@@ -105,7 +104,7 @@ export async function handleQueueAdminRoutes(
       const selectedModel = next[step] ?? sideModels[step];
       if (!selectedModel) continue;
       const refusal = providerModelError(ctx.queue.defaults, found.key, selectedModel);
-      if (refusal) return refuse(refusal);
+      if (refusal) return refuse(refusal.error);
       nextProvider[step] = found.key;
     }
 

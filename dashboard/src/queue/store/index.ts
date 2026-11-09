@@ -305,14 +305,14 @@ export class QueueStore {
    *  CALLER read a moment ago is never consulted. */
   editTailStep(id: string, step: string, add: boolean): ParseResult {
     const job = this.jobs.get(id);
-    if (!job) return { ok: false, error: invalidRequest("no such job") };
+    if (!job) return { ok: false, ...invalidRequest("no such job") };
     const editable = tailEditStep(job, step);
-    if ("error" in editable) return { ok: false, error: editable.error };
+    if ("error" in editable) return { ok: false, ...editable };
     const wanted = editable.step;
     if (add === job.steps.includes(wanted)) {
       return {
         ok: false,
-        error: invalidRequest(add ? `${wanted} is already part of this job` : `${wanted} is not part of this job`),
+        ...invalidRequest(add ? `${wanted} is already part of this job` : `${wanted} is not part of this job`),
       };
     }
     const next = { ...job, steps: withTailStep(job, wanted, add) };

@@ -92,4 +92,29 @@ describe("a refused Run gives the problem and the fix apart", () => {
     expect(body.error).not.toContain("Reload the page");
     expect(body.solution).toBe("Reload the page and try again");
   });
+
+  test("queue create keeps its refusal fields apart", async () => {
+    const { base } = start();
+    const res = await press(base, "/api/queue/create", [["project", "nope"], ["title", "x"]]);
+    const body = (await res.json()) as { error?: string; solution?: string };
+    expect(body.error).not.toContain("Reload the page");
+    expect(body.solution).toBe("Reload the page and try again");
+  });
+
+  test("a running job's model refusal keeps its fields apart", async () => {
+    const { base } = start();
+    const job = await queued(base);
+    const res = await press(base, `/api/queue/${job}/model`, [["step", "implement"], ["model", "no-such-model"]]);
+    const body = (await res.json()) as { error?: string; solution?: string };
+    expect(body.error).not.toContain("Reload the page");
+    expect(body.solution).toBe("Reload the page and try again");
+  });
+
+  test("schedule create keeps its store refusal problem-only", async () => {
+    const { base } = start();
+    const res = await press(base, "/api/queue/schedule", [["project", "aide"], ["name", ""], ["cron", "x"]]);
+    const body = (await res.json()) as { error?: string; solution?: string };
+    expect(body.error).toEqual(expect.any(String));
+    expect(body.solution).toBeUndefined();
+  });
 });
