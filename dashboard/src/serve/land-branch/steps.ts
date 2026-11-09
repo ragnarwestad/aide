@@ -138,7 +138,7 @@ export async function landStoppedStepBranch(
  *  the branch on the row and leaves the spec in the list: the old
  *  behaviour is the fallback, not the thing being removed. */
 export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
-  return asMergeStep(ctx, job, "archive", (onMerged) => landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, "archive", async (onMerged) => landBranch(ctx, job, outcome, {
     step: "archive",
     // The ONE landing that reads past its own outcome.
     // `implement` deliberately never lands, so the project's code
@@ -149,8 +149,9 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // branch the `--ff-only` is a no-op, so HEAD never moves and the
     // project root never appears here. `branchesFor` is the record
     // that still has it — implement's job entry keeps its
-    // `branchUrls`, because nothing ever clears them.
-    repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
+    // `branchUrls`, because nothing ever clears them — and origin has
+    // what no job recorded.
+    repos: await recordedOrOnOrigin(ctx, job, outcome),
     // A run that pushed nothing archived nothing new — a re-run of a
     // spec already held back for the same reason writes no commit, and
     // an error there would report a problem that is not one.
@@ -170,6 +171,20 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
   }));
 }
 
+/** The roots an archive or a close lands: every root a job of this spec
+ *  recorded pushing to, and every root of the project where origin still
+ *  holds the branch. A push is not always recorded — a cancelled step
+ *  pushes its work and records nothing, and the step after it may have
+ *  nothing new to push — and origin is what the landing is checked
+ *  against afterwards. */
+async function recordedOrOnOrigin(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<BranchRef[]> {
+  const recorded = mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []);
+  if (!outcome.branch) return recorded;
+  const held = await ctx.rootsStillHolding(job.project, outcome.branch, true);
+  const unrecorded = held.filter((root) => !recorded.some((ref) => sameRoot(ref.root, root)));
+  return [...recorded, ...unrecorded.map((root) => ({ root, url: "" }))];
+}
+
 /** Take a closed spec out of the active list, the same way
  *  `landArchivedSpec` does — but the code root's branch is
  *  DISCARDED here, not merged: closing records that the work will not
@@ -184,9 +199,9 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
  *  the code root is not guaranteed — `branchesFor` is the record that
  *  still has it, from whichever earlier `implement` step pushed it. */
 export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
-  return asMergeStep(ctx, job, "close", (onMerged) => landBranch(ctx, job, outcome, {
+  return asMergeStep(ctx, job, "close", async (onMerged) => landBranch(ctx, job, outcome, {
     step: "close",
-    repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
+    repos: await recordedOrOnOrigin(ctx, job, outcome),
     // The full `why` remains the detail — see landNewSpec above.
     failedNote: (why) => ({ key: "landing.closeLandingFailed", values: { why: firstLine(why), button: stepButton("close") } }),
     // A board running this spec's code

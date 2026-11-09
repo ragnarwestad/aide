@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readStatusFromBranch } from "../git/branch-file.ts";
-import type { GitRunner } from "../git/branch-status.ts";
+import type { GitRunner } from "../git/process/index.ts";
 
 export interface AcTest {
   file: string;

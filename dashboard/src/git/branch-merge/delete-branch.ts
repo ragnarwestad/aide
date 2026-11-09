@@ -1,4 +1,5 @@
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../branch-status.ts";
+import { type GitRunner } from "../process/index.ts";
 import { refuse, type RepoMergeResult } from "./result.ts";
 
 /** Delete a spec's branch without ever merging it — the code

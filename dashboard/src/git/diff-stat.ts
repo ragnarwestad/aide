@@ -11,7 +11,7 @@
 // finished step's `headBefore`/`headAfter` never change once written, so
 // there is nothing here for a TTL to protect against re-asking.
 
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 
 export interface DiffStatEntry {
   path: string;

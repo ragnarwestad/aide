@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSpecSaveHarness, TICK, ARCHIVED, ARCHIVED_TEXT, DESCRIPTION, FILE_SHA, savable } from "../spec-page/spec-save-fixtures.ts";
 import { DONE_ROW, NV_ROW, NV_STATUS, OPEN_ROW, PHASE, STATUS, recording, startWithChecks, statusPath, tick } from "../spec-page/spec-checks-fixtures.ts";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());

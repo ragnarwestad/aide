@@ -52,6 +52,8 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'aide_spec_reference .* was not found on the spec.s branch', "solution": "once the folder is back in place"},
     {"pattern": r'did not write a readable result', "solution": "once the recorder is working"},
     {"pattern": r'tests stopped when the server needed by', "solution": "once that server can start"},
+    {"pattern": r'could not start because Docker is not running', "solution": "start Docker on this machine"},
+    {"pattern": r'could not start because nothing answered on port', "solution": "start the service that listens on port"},
     {"pattern": r"tests are red on its result", "solution": "press $step_button again for this step"},
     {"pattern": r"could not be committed in", "solution": "fix the checkout on the serving host"},
     {"pattern": r"the close moved nothing: a merge is still open", "solution": "finish or abort that merge"},

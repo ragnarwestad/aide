@@ -18,6 +18,7 @@
 import { describe, expect, test } from "bun:test";
 import { pullFastForward } from "../../../src/git/specs-pull.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const DIR = "/host/aide-specs/aide/150-one-page-shows-the-whole-spec";
 const TOP = "/host/aide-specs";
@@ -157,5 +158,38 @@ describe("pullFastForward", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.note).toContain("git");
+  });
+});
+
+describe("pullFastForward and the checkout's lock", () => {
+  test("waits for a lock another process holds, and fetches and merges only while holding it (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      held.releaseAfter(100);
+      const git = watchLock(held, behind({ "rev-parse --show-toplevel": { code: 0, stdout: `${held.root}\n` } }).run);
+      const result = await pullFastForward(git.run, held.root, base);
+      expect(result.ok).toBe(true);
+      const moves = git.moves("fetch", "merge -q --ff-only");
+      expect(moves.map((m) => m.args)).toEqual(["fetch --quiet origin main", "merge -q --ff-only refs/remotes/origin/main"]);
+      expect(moves.every((m) => m.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a lock that never frees pulls nothing, and says so naming the lock (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      const git = behind({ "rev-parse --show-toplevel": { code: 0, stdout: `${held.root}\n` } });
+      const result = await pullFastForward(git.run, held.root, base, async () => {});
+      expect(result.ok).toBe(false);
+      expect(result.moved).toBe(false);
+      expect(result.note).toContain(held.lock);
+      expect(result.note).toContain("nothing was pulled");
+      expect(git.calls.some((c) => c.args[0] === "fetch" || c.args[0] === "merge")).toBe(false);
+    } finally {
+      held.cleanup();
+    }
   });
 });

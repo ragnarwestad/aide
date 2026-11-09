@@ -3,7 +3,8 @@
 
 import type { Sentence } from "../../i18n/message.ts";
 import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
 import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";

@@ -12,8 +12,9 @@
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import {
-  BranchStatusChecker, createGitRunner, type GitRunner,
+  BranchStatusChecker,
 } from "../../git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../git/process/index.ts";
 import {
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   ensureDashboardCheckout,

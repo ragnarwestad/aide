@@ -129,6 +129,10 @@ export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<Step
   const button = stepButton(step);
   const cause = testsNotStarted(outcome.testsNotStarted);
   if (cause?.kind === "test-command-unresolved") return { key: "runner.testsNotStartedCommand", values: { button } };
+  if (cause?.kind === "docker-down") return { key: "runner.testsNotStartedDocker", values: { line: cause.line ?? "", button } };
+  if (cause?.kind === "connection-refused") {
+    return { key: "runner.testsNotStartedRefused", values: { port: String(cause.port), line: cause.line ?? "", button } };
+  }
   if (
     cause &&
     (cause.kind === "port-in-use" || cause.kind === "server-timeout" || cause.kind === "server-exited") &&

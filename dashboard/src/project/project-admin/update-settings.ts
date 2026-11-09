@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { configValue } from "../discover";
 import { isPreviewFrom, parseManifest } from "../parse-manifest.ts";
 import { oneLine, previewFromError, specsPathError, upsertManifestScalar, worktreeLinksError, writeAideConfig } from "./manifest-io.ts";

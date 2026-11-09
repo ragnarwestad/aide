@@ -11,7 +11,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 import { openQuery, setupQueueRoutesHarness } from "../fixtures.ts";

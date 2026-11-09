@@ -10,7 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, appendFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { manifestTracked, seedSettingsFile, writeAtomically } from "../project/project-admin/settings-state.ts";
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 
 const IGNORE_LINE = "/.aide/project.yaml";
 

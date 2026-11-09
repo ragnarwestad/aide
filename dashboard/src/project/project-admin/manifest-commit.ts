@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { pullFastForward, saveSpecFile } from "../../git/specs-pull.ts";
 import { manifestWithScalar } from "./manifest-io.ts";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 
 const MANIFEST_FILE = ".aide/project.yaml";
 

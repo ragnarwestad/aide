@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
 
 const run = createGitRunner();

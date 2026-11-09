@@ -22,7 +22,7 @@
 import { realPathOrAbsolute as real } from "../../git/real-path.ts";
 import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { configValue, resolveWorktreeLinks } from "../discover";
 import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
 import { worktreeLinksError } from "./manifest-io.ts";

@@ -5,7 +5,7 @@
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { queueHarness, type QueueHarness } from "../helpers/queue-server.ts";
 
 export const SPEC = "81-queue-and-runner";

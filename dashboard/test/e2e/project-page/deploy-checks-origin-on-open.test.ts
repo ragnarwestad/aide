@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { chromium, type Browser } from "playwright";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import {
   INSTALLS, behindBy, harness, loadUntil, ownDirs, projectsRoot, serve,

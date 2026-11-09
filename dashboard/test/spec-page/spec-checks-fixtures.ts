@@ -3,7 +3,8 @@
 // (split out of spec-save.test.ts by theme).
 
 import { join } from "node:path";
-import { specBranch, type GitRunner } from "../../src/git/branch-status.ts";
+import { specBranch } from "../../src/git/branch-status.ts";
+import { type GitRunner } from "../../src/git/process/index.ts";
 import { SPEC, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 export { answer, type ActionAnswer } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "../helpers/queue-server.ts";

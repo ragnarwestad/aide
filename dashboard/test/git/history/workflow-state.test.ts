@@ -30,7 +30,7 @@ import {
   resolveWorkflowState,
   workflowLogArgs,
 } from "../../../src/git/workflow-history.ts";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 

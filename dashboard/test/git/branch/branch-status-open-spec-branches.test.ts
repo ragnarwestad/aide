@@ -1,7 +1,8 @@
 // Split out of branch-status.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { BranchStatusChecker, specBranch, type GitRunner } from "../../../src/git/branch-status.ts";
+import { BranchStatusChecker, specBranch } from "../../../src/git/branch-status.ts";
+import { type GitRunner } from "../../../src/git/process/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 // A landing that failed is not a spec that is done.

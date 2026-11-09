@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran } from "../../helpers/queue-server.ts";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import type { GhRunner } from "../../../src/integrations/pull-requests.ts";
 import { specControls, phaseDone, listUntil, specPanel, setupQueueRoutesHarness } from "../fixtures.ts";
 

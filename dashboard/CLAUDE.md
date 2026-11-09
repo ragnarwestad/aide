@@ -97,7 +97,10 @@ get them, and reads them by hand.
   `run-spec/setup/gates.sh`). Runs of one project share its checkout, and a
   git command that moves it outside the lock loses a ref lock or the
   checkout under its feet when another run is in its own section.
-  A refusal from such a command quotes git's own first line.
+  A refusal from such a command quotes git's own first line. The
+  dashboard's own moves take the same lock (`git/checkout-lock/`), and
+  it retries no lost git lock in a shared checkout; `docs/the-runner.md`
+  says what counts as a move.
 
 ## The dashboard's own checkouts
 

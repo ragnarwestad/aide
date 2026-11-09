@@ -2,15 +2,17 @@
 # run-spec/turn/test-start.sh — sourced by aide-run-spec before run-spec/turn/step-tests.sh.
 #
 # A red test run is not always a failing test: the suite can stop before
-# any test ran, because the server it starts could not start. No session
-# can fix a port another process holds, so step-tests.sh asks these
+# any test ran, because the server it starts could not start, or a
+# service it needs on this machine is not running. No session can fix a
+# port another process holds or start Docker, so step-tests.sh asks these
 # functions first and ends such a run `tests-not-started`, with the cause
 # as fields the dashboard words, instead of handing it back for fix rounds.
 
 # $1 = the test run's log. Prints the cause as one JSON object — kind
-# `port-in-use` (with `port`), `server-timeout` (with `ms`) or
-# `server-exited` — and `line`, the log line it was read from. Prints
-# nothing when the log shows no start failure.
+# `port-in-use` (with `port`), `server-timeout` (with `ms`),
+# `server-exited`, `docker-down` or `connection-refused` (with `port`) —
+# and `line`, the log line it was read from. Prints nothing when the log
+# shows no start failure.
 test_start_failure() {
   local log="$1" line url port ms
   [ -f "$log" ] || return 0
@@ -51,6 +53,22 @@ test_start_failure() {
   line="$(grep -m1 -E 'Process from config\.webServer (was not able to start|exited early)' "$log" | sed $'s/\033\\[[0-9;]*m//g')"
   if [ -n "$line" ]; then
     jq -cn --arg line "$line" '{kind:"server-exited", line:$line}'
+    return 0
+  fi
+  # Docker's client when its daemon is not running: "Cannot connect to the
+  # Docker daemon at unix:///…/docker.sock. Is the docker daemon running?"
+  line="$(grep -m1 -E 'Cannot connect to the Docker daemon' "$log" | sed $'s/\033\\[[0-9;]*m//g')"
+  if [ -n "$line" ]; then
+    jq -cn --arg line "$line" '{kind:"docker-down", line:$line}'
+    return 0
+  fi
+  # Node: "Error: connect ECONNREFUSED 127.0.0.1:5432" — a service the
+  # tests need on this machine is not running. Another host's refusal is
+  # not this machine's to start.
+  line="$(grep -E 'ECONNREFUSED (127\.0\.0\.1|::1|localhost):[0-9]+' "$log" | sed $'s/\033\\[[0-9;]*m//g' | head -1)"
+  if [ -n "$line" ]; then
+    port="$(printf '%s' "$line" | sed -nE 's/.*ECONNREFUSED (127\.0\.0\.1|::1|localhost):([0-9]+).*/\2/p')"
+    jq -cn --argjson port "$port" --arg line "$line" '{kind:"connection-refused", port:$port, line:$line}'
     return 0
   fi
   return 0

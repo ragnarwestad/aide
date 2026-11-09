@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { setupProjectResolution } from "../../../src/serve/setup/project-resolution.ts";
 import { createServerState } from "../../../src/serve/state.ts";
 import { checkoutFaults, clearCheckoutFaults } from "../../../src/render/ui/checkout-faults.ts";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import type { ScheduleStore } from "../../../src/queue/schedule-store.ts";
 
 const dirs: string[] = [];

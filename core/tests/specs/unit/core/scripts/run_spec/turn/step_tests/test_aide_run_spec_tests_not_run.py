@@ -101,3 +101,32 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests_ac_3(
     assert "did not write a readable result" in out["testsNotStarted"].get("error", ""), out
     assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert "test suite is red" not in prompts.read_text()
+
+
+def test_a_suite_that_cannot_reach_docker_ends_tests_not_started_with_no_fix_round(
+    runner, workspace, fake_claude, tmp_path
+):
+    """Docker is not running on the machine: no session can start it, so
+    the step ends at once, saying so, and no turn goes back to the session."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    stand_in(
+        suite,
+        "#!/bin/sh\n"
+        "echo '@x/server:test: Cannot connect to the Docker daemon at unix:///x/docker.sock. Is the docker daemon running?'\n"
+        "echo '@x/server:test: Error: Command failed: docker compose up --detach --wait postgres'\n"
+        "exit 1\n",
+    )
+    manifest = workspace["project"] / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text().replace("AIDE_TEST_CMD: true", f"AIDE_TEST_CMD: {suite}"))
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "printf 'real work\\n' > implemented.txt\n"
+        "git add -A && git commit -q -m 'the step' >/dev/null 2>&1 || true\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "tests-not-started", out
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
+    assert out["testsNotStarted"]["kind"] == "docker-down", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 1

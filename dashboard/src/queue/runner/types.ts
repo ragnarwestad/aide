@@ -324,6 +324,8 @@ export type TestsNotStarted =
   | { kind: "port-in-use"; port: number; command?: string; line?: string; holder?: { pid: number; command?: string; spec?: string } }
   | { kind: "server-timeout"; ms?: number; command?: string; line?: string }
   | { kind: "server-exited"; command?: string; line?: string }
+  | { kind: "docker-down"; command?: string; line?: string }
+  | { kind: "connection-refused"; port: number; command?: string; line?: string }
   | { kind: "spec-folder-missing"; folder: string }
   | { kind: "recorder-failed"; error: string };
 
@@ -349,6 +351,12 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   }
   if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}), ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
   if (r.kind === "server-exited") return { kind: "server-exited", ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
+  if (r.kind === "docker-down") return { kind: "docker-down", ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
+  if (r.kind === "connection-refused") {
+    const port = num(r.port);
+    if (port === undefined) return undefined;
+    return { kind: "connection-refused", port, ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
+  }
   const folder = text(r.folder);
   if (r.kind === "spec-folder-missing" && folder) return { kind: "spec-folder-missing", folder };
   const error = text(r.error);

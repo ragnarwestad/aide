@@ -90,6 +90,16 @@
         "name": "the server exited",
         "written": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" },
         "read": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" }
+      },
+      {
+        "name": "Docker is not running on the machine",
+        "written": { "kind": "docker-down", "line": "Cannot connect to the Docker daemon at unix:///x/docker.sock. Is the docker daemon running?", "command": "pnpm check" },
+        "read": { "kind": "docker-down", "line": "Cannot connect to the Docker daemon at unix:///x/docker.sock. Is the docker daemon running?", "command": "pnpm check" }
+      },
+      {
+        "name": "a service the tests need refused the connection",
+        "written": { "kind": "connection-refused", "port": 5433, "line": "Error: connect ECONNREFUSED 127.0.0.1:5433", "command": "pnpm check" },
+        "read": { "kind": "connection-refused", "port": 5433, "line": "Error: connect ECONNREFUSED 127.0.0.1:5433", "command": "pnpm check" }
       }
     ],
     "timeLimit": [

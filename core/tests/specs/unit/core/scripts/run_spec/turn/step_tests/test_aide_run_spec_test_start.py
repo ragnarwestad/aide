@@ -85,6 +85,30 @@ def test_a_server_that_exited_is_a_server_exited(tmp_path, line):
     assert _failure(tmp_path, f"{line}\n")["kind"] == "server-exited"
 
 
+def test_a_docker_daemon_that_does_not_answer_is_docker_down(tmp_path):
+    line = ("@x/server:test: Cannot connect to the Docker daemon at unix:///Users/x/.docker/run/docker.sock. "
+            "Is the docker daemon running?")
+    cause = _failure(tmp_path, f"{line}\n@x/server:test: Error: Command failed: docker compose up --detach --wait postgres\n")
+    assert cause == {"kind": "docker-down", "line": line}
+
+
+@pytest.mark.parametrize(
+    "line, port",
+    [
+        ("Error: connect ECONNREFUSED 127.0.0.1:5433", 5433),
+        ("@x/server:test: Error: connect ECONNREFUSED ::1:9000", 9000),
+        ("Error: connect ECONNREFUSED localhost:6379", 6379),
+    ],
+)
+def test_a_refused_connection_to_this_machine_is_a_service_down(tmp_path, line, port):
+    cause = _failure(tmp_path, f"{line}\n")
+    assert cause == {"kind": "connection-refused", "port": port, "line": line}
+
+
+def test_a_refused_connection_to_another_host_says_nothing(tmp_path):
+    assert _failure(tmp_path, "Error: connect ECONNREFUSED 10.0.0.5:5432\n") is None
+
+
 def test_failing_tests_are_not_a_start_failure_whatever_else_the_log_says(tmp_path):
     log = "(fail) the port test > reports EADDRINUSE :::3000\nError: listen EADDRINUSE: address already in use :::3000\n 1 failed\n"
     assert _failure(tmp_path, log) is None

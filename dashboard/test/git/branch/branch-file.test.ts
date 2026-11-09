@@ -13,8 +13,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { commitTimeOf, readStatusFromBranch, writeStatusToBranch } from "../../../src/git/branch-file.ts";
 
 const BRANCH = "aide/291-example-spec";

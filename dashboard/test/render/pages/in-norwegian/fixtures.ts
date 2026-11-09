@@ -12,7 +12,7 @@ import {
   renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
   CHECKABLE_TOOLS, installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
 } from "../../../../src/render";
-import type { GitRunner } from "../../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../../src/git/process/index.ts";
 import { assessProjectReadiness } from "../../../../src/project/project-admin/readiness.ts";
 import { projectSettings } from "../../../../src/project/project-settings.ts";
 import { CLAUDE_READING } from "../../../queue-routes/settings-models/fixtures.ts";

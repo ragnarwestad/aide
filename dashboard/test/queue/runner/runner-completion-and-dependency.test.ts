@@ -733,6 +733,20 @@ describe("a test run that never started", () => {
     expect(said({ kind: "server-exited" })).toEqual({ key: "runner.testsNotStartedExited", values: { button: "Implement" } });
   });
 
+  test("Docker not running says to start Docker, not to press again alone", () => {
+    expect(said({ kind: "docker-down", line: "Cannot connect to the Docker daemon" })).toEqual({
+      key: "runner.testsNotStartedDocker",
+      values: { line: "Cannot connect to the Docker daemon", button: "Implement" },
+    });
+  });
+
+  test("a refused connection names the port whose service is down", () => {
+    expect(said({ kind: "connection-refused", port: 5433, line: "connect ECONNREFUSED 127.0.0.1:5433" })).toEqual({
+      key: "runner.testsNotStartedRefused",
+      values: { port: "5433", line: "connect ECONNREFUSED 127.0.0.1:5433", button: "Implement" },
+    });
+  });
+
   test("a spec folder the recorder could not find says the tests were not run, for that reason", () => {
     expect(said({ kind: "spec-folder-missing", folder: "81-queue" })).toEqual({
       key: "runner.testsNotStartedNoSpecFolder",

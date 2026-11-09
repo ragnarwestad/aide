@@ -14,7 +14,8 @@
 import { readAcCoverage, withAcCoverage } from "../project/ac-coverage.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, sep, join } from "node:path";
-import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
+import type { BranchStatusChecker } from "../git/branch-status.ts";
+import type { GitRunner } from "../git/process/index.ts";
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";

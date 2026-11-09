@@ -6,7 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { BranchFileStepsChecker } from "../../src/git/branch-file-steps.ts";
 import {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,

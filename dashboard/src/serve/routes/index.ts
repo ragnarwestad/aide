@@ -14,7 +14,7 @@
 // (`job-detail.ts`'s single-segment id regex would otherwise swallow
 // `/api/queue/create` and friends), so the order is never to be
 // changed without re-checking every regex for overlap.
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { SpecRef } from "../../project/discover";

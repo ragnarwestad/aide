@@ -10,7 +10,7 @@
 import { existsSync, mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { TestServerStore } from "../test-servers/store.ts";
 import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
 import { portHolder, testServerOnPort } from "../test-servers/port-owner.ts";

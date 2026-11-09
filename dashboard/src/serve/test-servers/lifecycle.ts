@@ -6,7 +6,7 @@
 import { readFileSync, rmSync } from "node:fs";
 import { signalGroup, signalProcess } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { TestServerStore, TestServer } from "./store.ts";
 import { outputTail } from "../../format/output-tail.ts";
 import { portInUse } from "../../format/port-in-use.ts";

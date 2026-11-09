@@ -14,7 +14,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-spec-page-checks-phase-");

@@ -48,6 +48,30 @@ describe("a notice's detail", () => {
     expect(notice?.parts).toHaveLength(1);
   });
 
+  // A turbo run names only the package task; the reason is in the log lines.
+  test("a red run that names only a task keeps the log lines beside the task", () => {
+    const log = "@x/server:test: Error: Command failed: docker compose up --detach --wait postgres";
+    const notice = specNotice(
+      lead({
+        error: { key: "runner.testsRedFailingUncounted", values: { tests: ["@x/server#test"], button: "Implement" } },
+        errorReason: "tests-red" as QueueRowView["errorReason"],
+        errorDetail: log,
+      }),
+    );
+    expect(notice?.parts?.[0]?.detail).toBe(`@x/server#test\n${log}`);
+  });
+
+  test("a detail line the message already says is left out, the rest kept", () => {
+    const line = "listen tcp4 127.0.0.1:9001: bind: address already in use";
+    const notice = specNotice(
+      lead({
+        error: `the tests stopped because its server could not start: ${line}`,
+        errorDetail: `${line}\nport 9001 is held by com.docker.backend (pid 50072)`,
+      }),
+    );
+    expect(notice?.title).toBe("port 9001 is held by com.docker.backend (pid 50072)");
+  });
+
   test("a stored job whose error is the runner's string shows that string (AC-4)", () => {
     const notice = specNotice(lead({ error: "the step's own work did not reach origin: code" }));
     expect(notice?.text).toContain("the step's own work did not reach origin: code");

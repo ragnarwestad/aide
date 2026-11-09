@@ -309,8 +309,17 @@ EOF_CMDS
           [ -n "$step_tests_port" ] && step_tests_holder="$(port_holder "$step_tests_port")"
           tests_not_started_json="$(jq -c --arg command "$step_tests_failed_command" --argjson holder "${step_tests_holder:-null}" \
             '. + {command:$command} + (if $holder == null then {} else {holder:$holder} end)' <<<"$step_tests_start")"
-          stop_step tests-not-started "the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start.
-$step_tests_start_line" "press $step_button again once that server can start"
+          case "$(printf '%s' "$step_tests_start" | jq -r '.kind')" in
+            docker-down)
+              stop_step tests-not-started "the step reported success, but the project's tests could not start because Docker is not running on this machine.
+$step_tests_start_line" "start Docker on this machine, then press $step_button again" ;;
+            connection-refused)
+              stop_step tests-not-started "the step reported success, but the project's tests could not start because nothing answered on port $step_tests_port on this machine.
+$step_tests_start_line" "start the service that listens on port $step_tests_port, then press $step_button again" ;;
+            *)
+              stop_step tests-not-started "the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start.
+$step_tests_start_line" "press $step_button again once that server can start" ;;
+          esac
           [ -n "$step_tests_holder" ] && error_msg="$error_msg
 port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
           # What the server printed and who holds the port: the sentence's lines after its first.

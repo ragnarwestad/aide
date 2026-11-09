@@ -11,9 +11,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { mergeBranchIntoDefault, mergeWorktreePath } from "../../../src/git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../../src/git/spec-folder-landing.ts";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const FOLDER = "03-a-spec";
 const BRANCH = `aide/${FOLDER}`;
@@ -69,6 +70,7 @@ const onMain = (origin: string, path: string): string | null => {
   return res.exitCode === 0 ? res.stdout.toString() : null;
 };
 const branchOnOrigin = (origin: string): boolean => git(origin, "branch", "--list", BRANCH).trim() !== "";
+const git_ = (cwd: string, ...args: string[]): string => git(cwd, ...args).trim();
 
 describe("landing a spec's own folder", () => {
   test("brings the spec files to main and leaves the code, and the branch, where they were", async () => {
@@ -160,3 +162,65 @@ for (const kind of ["branch", "folder"] as const) {
     expect(result.ok).toBe(true);
   });
 }
+
+const landAs = (kind: "branch" | "folder", run: ReturnType<typeof createGitRunner>, root: string, wait?: (ms: number) => Promise<void>) =>
+  kind === "branch"
+    ? mergeBranchIntoDefault(run, root, BRANCH, "main", wait)
+    : landSpecFolderOnly(run, root, BRANCH, "main", { paths: PATHS, message: "Land analysis", deleteBranch: false }, wait);
+
+const noWait = async (_ms: number): Promise<void> => {};
+
+for (const kind of ["branch", "folder"] as const) {
+  test(`${kind} landing waits for a lock another process holds, and moves the checkout only while holding it (AC-1)`, async () => {
+    const { root, origin } = repo();
+    const held = heldLock(root);
+    try {
+      held.releaseAfter(150);
+      const git = watchLock(held, createGitRunner());
+      const result = await landAs(kind, git.run, root);
+      expect(result.ok).toBe(true);
+      const moves = git.moves("fetch", "worktree add", "checkout", "merge -q --ff-only origin/");
+      expect(moves.filter((m) => m.args.startsWith("worktree add"))).toHaveLength(1);
+      expect(moves.filter((m) => m.args.startsWith("merge -q --ff-only origin/"))).toHaveLength(1);
+      expect(moves.every((m) => m.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+      expect(git_(root, "rev-parse", "HEAD")).toBe(git_(origin, "rev-parse", "main"));
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test(`${kind} landing refuses on a lock that never frees, naming it, with no worktree made (AC-1)`, async () => {
+    const { root, origin } = repo();
+    const before = git_(origin, "rev-parse", "main");
+    const held = heldLock(root);
+    try {
+      const git = watchLock(held, createGitRunner());
+      const result = await landAs(kind, git.run, root, noWait);
+      expect(result.ok).toBe(false);
+      expect((result.error as { key: string }).key).toBe("landing.checkoutLockTimedOut");
+      expect(JSON.stringify(result.error)).toContain(held.lock);
+      expect(git.moves("fetch", "worktree add", "merge")).toEqual([]);
+      expect(git_(origin, "rev-parse", "main")).toBe(before);
+    } finally {
+      held.cleanup();
+    }
+  });
+}
+
+test("a spec-folder landing's catch-up that fails on git's index.lock is run once, and the landing stays landed (AC-3)", async () => {
+  const { root, origin } = repo();
+  const real = createGitRunner();
+  let catchUps = 0;
+  const run: ReturnType<typeof createGitRunner> = async (dir, args, timeout, env) => {
+    if (dir === root && args.join(" ") === "merge -q --ff-only origin/main") {
+      catchUps++;
+      return { code: 128, stdout: "", stderr: `fatal: Unable to create '${root}/.git/index.lock': File exists.` };
+    }
+    return real(dir, args, timeout, env);
+  };
+  const result = await landAs("folder", run, root, noWait);
+  expect(result.ok).toBe(true);
+  expect(catchUps).toBe(1);
+  expect(onMain(origin, `specs/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
+});

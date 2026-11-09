@@ -7,7 +7,8 @@
 // `runner` genuinely does not exist yet when this stage runs — only
 // when a schedule timer actually fires, long afterwards.
 
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { DEFAULT_TTL_MS } from "../../git/branch-status.ts";
 import {
   DescriptionFreshnessChecker,

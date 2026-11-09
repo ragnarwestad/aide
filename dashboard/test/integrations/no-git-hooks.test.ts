@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner } from "../../src/git/branch-status.ts";
+import { createGitRunner } from "../../src/git/process/index.ts";
 import { NO_GIT_HOOKS } from "../../src/integrations/no-git-hooks.ts";
 import { assignSpecNumberAfterMerge } from "../../src/serve/land-branch/finalize-create.ts";
 

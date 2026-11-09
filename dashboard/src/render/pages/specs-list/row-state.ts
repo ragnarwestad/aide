@@ -3,8 +3,8 @@
 // run.
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { stepButton } from "../../../format/step-label.ts";
-import { RUN_STEPS, groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
+import { groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
+import { nextPhase, phasesAhead, runButton } from "./data-model/phase.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
@@ -22,42 +22,9 @@ export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
  *  again: it reads and acts as a live row does until the run is over. */
 export const archivingAgain = (g: SpecGroup): boolean => offersArchiveAgain(g) && specBusy(g);
 
-// THE phase a spec is still waiting on — one fact, read by both halves
-// of the State column, so the badge and the button beside it cannot
-// name different phases. They used to work it out apart:
-// this rule lived in `preTicked` below for the button's sake, and
-// `specHeadRow` asked `g.done` raw for the badge's. A spec whose
-// history listed every step therefore got "done — nothing waiting on
-// you" beside a button reading "Archive", and the button was right.
-//
-// ARCHIVE IS NEVER DONE ON A ROW THAT EXISTS. Archived-ness is a
-// directory (`discover.ts`): a spec the list shows is a spec still in
-// the active root, so whatever the git history says about an archive
-// step having RUN, it did not finish the one thing archiving is.
-//
-// The history is the record of steps that ran, and an
-// archive that ran and declined to move the folder leaves a commit
-// behind exactly like one that moved it. Counted as done it left a spec
-// with every phase ticked, no next phase to suggest and no button
-// at all — beside a badge reading "archive held back", which was the
-// one thing on that row needing a press. Reading the
-// held-back note and dropping that phase is too narrow — with the note cleared the row went to
-// "done — nothing waiting on you" while the spec sat unarchived in
-// the list. The note is a REASON archiving did not happen, not the
-// only evidence that it did not (2026-08-21).
-//
-// So this never comes back empty for a spec on this page: `archive` is
-// a member of `RUN_STEPS` and is deleted before the search, and
-// archive is the floor every row still has ahead of it. Not exported,
-// and deliberately: a caller outside this page — a summary of specs
-// that really ARE archived, say — needs archive counted as done, and
-// would be wrong to read this. Anything wanting to export it has to
-// come back through this paragraph first.
-export function nextPhase(done: readonly string[]): string | undefined {
-  const remaining = new Set(done);
-  remaining.delete("archive");
-  return RUN_STEPS.find((s) => !remaining.has(s));
-}
+// The phase a spec is waiting on, read by the badge and the button in the
+// State column alike, so the two cannot name different phases.
+export { nextPhase };
 
 // What a press would run, if the reader had never touched a box: EVERY
 // phase the spec has not had. A press takes the spec as far
@@ -73,19 +40,9 @@ export function nextPhase(done: readonly string[]): string | undefined {
 // subject, which is what the skills now offer to do; declined, the
 // spec reads as still having that phase ahead of it.
 //
-// `archive` is deleted from that set for the same reason `nextPhase`
-// deletes it: a spec on this list is by definition not archived,
-// however its history reads. That is also what keeps the result from
-// ever being empty, so the row always has a button — a bug two earlier
-// fixes each patched with a fallback of its own, structurally gone
-// rather than guarded against a third time. Two branches went with
-// those fallbacks: whether the spec has ever had a job at all
-// (`g.lead`) made no difference to the answer once every remaining
-// phase is ticked, so it is not asked any more.
-//
-// The first member of this set is `nextPhase(g.done)` — both walk
-// `RUN_STEPS` in order with the same archive rule — which is what
-// keeps the button and the badge naming the same phase.
+// It is `phasesAhead(g.done)`, the walk `nextPhase` takes the first of,
+// so the default ticks and the button's next phase come from one rule.
+// Archive is always among them, so the row always has a button.
 //
 // Renamed from `preTicked()`: this is no longer the only
 // answer to "what is ticked" — it is `chosenSteps()`'s own fallback now,
@@ -93,9 +50,7 @@ export function nextPhase(done: readonly string[]): string | undefined {
 // fix. The boxes are on the phase lines and each asks this the same
 // question, so the rule is read once per row and consulted per phase.
 function defaultTicked(g: SpecGroup): Set<string> {
-  const remaining = new Set(g.done);
-  remaining.delete("archive");
-  return new Set(RUN_STEPS.filter((s) => !remaining.has(s)));
+  return new Set(phasesAhead(g.done));
 }
 
 // What the row's boxes are ticked FROM: a phase choice
@@ -154,21 +109,11 @@ export function actionState(
   g: SpecGroup,
   opts: { pendingSteps?: Record<string, string[]> },
 ): { label: string; active: boolean } | undefined {
-  const next = nextPhase(g.done); // unchanged: still the archive-floor rule, still "which phase is next"
-  if (!next) return undefined;
-  const chosen = chosenSteps(g, opts);
-  // From `next` onward, never before it: a phase already done is never
-  // what a press would run, whatever a stale recorded choice still
-  // names (3-solution.md's own Risk analysis — a chosen-but-not-yet-run
-  // phase that later finishes is simply never looked at again).
-  const remaining = RUN_STEPS.slice(RUN_STEPS.indexOf(next));
-  const firstTicked = remaining.find((s) => chosen.has(s));
-  // A later ticked phase is named ahead of an earlier unticked
-  // one. With nothing ticked at all, `next` itself is named,
-  // disabled — a press that cannot do anything is still named for what
-  // it would take to make it do something, rather than hidden.
-  const shown = firstTicked ?? next;
-  return { label: stepButton(shown), active: !!firstTicked };
+  // The rule the page script names the button by too, so a redraw never
+  // changes what it says. The ticks this side draws never hold a phase
+  // that has run: `defaultTicked` leaves them out, `chosenSteps` drops
+  // them from a recorded choice.
+  return runButton(g.done, chosenSteps(g, opts));
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake

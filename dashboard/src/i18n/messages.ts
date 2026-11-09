@@ -1147,6 +1147,36 @@ export const MESSAGES = {
       fr: "si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté le serveur, corrigez-le d'abord",
     },
   },
+  // A service the tests need is down on the machine that runs the step:
+  // nothing in the code can fix it, so the step got no fix rounds.
+  "runner.testsNotStartedDocker": {
+    en: "implement finished, but the tests could not start because Docker is not running on the machine that runs the board: {line}",
+    nb: "implementering er ferdig, men testene kom ikke i gang fordi Docker ikke kjører på maskinen som kjører boardet: {line}",
+    es: "implement terminó, pero los tests no pudieron arrancar porque Docker no está en marcha en la máquina que ejecuta el tablero: {line}",
+    de: "Implement ist fertig, aber die Tests konnten nicht starten, weil Docker auf der Maschine, die das Board ausführt, nicht läuft: {line}",
+    fr: "implement est terminé, mais les tests n'ont pas pu démarrer, car Docker ne tourne pas sur la machine qui exécute le tableau : {line}",
+    solution: {
+      en: "start Docker on that machine, then press {button} again",
+      nb: "start Docker på den maskinen, og trykk {button} igjen",
+      es: "inicia Docker en esa máquina y vuelve a pulsar {button}",
+      de: "starte Docker auf dieser Maschine und klicke dann erneut auf {button}",
+      fr: "démarrez Docker sur cette machine, puis cliquez de nouveau sur {button}",
+    },
+  },
+  "runner.testsNotStartedRefused": {
+    en: "implement finished, but the tests could not start because nothing answered on port {port} on the machine that runs the board: {line}",
+    nb: "implementering er ferdig, men testene kom ikke i gang fordi ingenting svarte på port {port} på maskinen som kjører boardet: {line}",
+    es: "implement terminó, pero los tests no pudieron arrancar porque nada respondió en el puerto {port} de la máquina que ejecuta el tablero: {line}",
+    de: "Implement ist fertig, aber die Tests konnten nicht starten, weil auf Port {port} der Maschine, die das Board ausführt, nichts antwortete: {line}",
+    fr: "implement est terminé, mais les tests n'ont pas pu démarrer, car rien n'a répondu sur le port {port} de la machine qui exécute le tableau : {line}",
+    solution: {
+      en: "start the service that listens on port {port} there, then press {button} again",
+      nb: "start tjenesten som lytter på port {port} der, og trykk {button} igjen",
+      es: "inicia allí el servicio que escucha en el puerto {port} y vuelve a pulsar {button}",
+      de: "starte dort den Dienst, der auf Port {port} lauscht, und klicke dann erneut auf {button}",
+      fr: "démarrez-y le service qui écoute sur le port {port}, puis cliquez de nouveau sur {button}",
+    },
+  },
   // An implement whose test run the runner's recorder did not make
   // (run-spec/turn/step-tests.sh): the spec's folder was not on its branch,
   // or the recorder failed in its own words.
@@ -1779,6 +1809,20 @@ export const MESSAGES = {
       es: "actualízalo a mano, en el checkout del servidor",
       de: "bringe es von Hand auf den neuesten Stand, im Checkout auf dem Server",
       fr: "mettez-le à jour à la main, dans le checkout sur le serveur",
+    },
+  },
+  "landing.checkoutLockTimedOut": {
+    en: "the wait for the checkout's lock at {lock} ran out ({ref} in {root})",
+    nb: "ventetiden på låsen til det lokale repoet, {lock}, gikk ut ({ref} i {root})",
+    es: "se agotó la espera del bloqueo del checkout en {lock} ({ref} en {root})",
+    de: "das Warten auf die Sperre des Checkouts unter {lock} ist abgelaufen ({ref} in {root})",
+    fr: "l'attente du verrou du checkout à {lock} a expiré ({ref} dans {root})",
+    solution: {
+      en: "remove that lock on the serving host, but only once no aide-run-spec process is using that checkout",
+      nb: "fjern den låsen på serveren, men bare når ingen aide-run-spec-prosess bruker det lokale repoet",
+      es: "elimina ese bloqueo en el servidor, pero solo cuando ningún proceso aide-run-spec use ese checkout",
+      de: "entferne diese Sperre auf dem Server, aber erst, wenn kein aide-run-spec-Prozess diesen Checkout benutzt",
+      fr: "supprimez ce verrou sur le serveur, mais seulement quand aucun processus aide-run-spec n'utilise ce checkout",
     },
   },
   "landing.deployServiceOlder": {

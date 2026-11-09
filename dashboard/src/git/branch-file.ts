@@ -26,7 +26,8 @@ export { realPathOrOriginal as real } from "./real-path.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
-import type { BranchStatusChecker, GitRunner } from "./branch-status.ts";
+import type { BranchStatusChecker } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 import { specBranch } from "./branch-status.ts";
 
 export interface BranchFileRead {

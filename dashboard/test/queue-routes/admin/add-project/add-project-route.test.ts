@@ -5,7 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../../src/serve/serve.ts";
-import { createGitRunner } from "../../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../../src/git/process/index.ts";
 import { parseManifest } from "../../../../src/project/parse-manifest.ts";
 import { git, projectWithOrigin } from "../../../project/admin/git-fixture.ts";
 import { setupQueueRoutesHarness } from "../../fixtures.ts";

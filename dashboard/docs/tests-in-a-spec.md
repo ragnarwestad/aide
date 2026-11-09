@@ -87,9 +87,14 @@ name, and none for a criterion an existing test already proves — that test get
   `AIDE_TEST_FILES_CMD`, every red file is run once more alone before the verdict. A test is described as possibly
   unstable only when that check passes; otherwise the row makes no claim about the cause. The test output is behind
   the (?).
-- **Implement tests not started:** the server the tests need could not start, so no test ran, and no AI turn is spent
-  on it. The row names the cause: a port in use and the spec or process holding it, a server that did not answer in
-  time, or one that stopped. Put that right, then press Implement again.
+- **Implement tests not started:** the server or service the tests need could not start, so no test ran, and no AI
+  turn is spent on it. The row names the cause:
+  - a port in use, and the spec or process holding it
+  - a server that did not answer in time, or one that stopped
+  - Docker not running on the machine that runs the board
+  - nothing answering on a port the tests connect to on that machine
+
+  Put that right, then press Implement again.
 - **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
   a green suite. The row names the failing tests. The same tests failing on both runs, and passing on main alone, is
   the merge breaking them: make them pass on the branch, then Archive. Different tests on the two runs point to

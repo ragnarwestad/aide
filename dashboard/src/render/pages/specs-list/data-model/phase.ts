@@ -1,7 +1,13 @@
 // A spec's phases: the steps a run goes through, the phase lines a row shows,
-// and what one phase says about itself (the Phase every row is built from).
+// what one phase says about itself (the Phase every row is built from), and
+// the rule that names a row's Run button.
+//
+// The specs page script bundles this file (`specs-client/row-swap.ts`), so it
+// imports nothing at run time except the step labels, which import nothing
+// either: a runtime import added here reaches the browser.
 
 import type { QueueRowView } from "../../../ui/job-state";
+import { stepButton } from "../../../../format/step-label.ts";
 
 // Exported because `queue.ts` keeps the same list under
 // `PHASE_STEPS` — it decides which steps a running job may still be
@@ -20,6 +26,36 @@ export const RUN_STEPS = ["analyze", "implement", "archive"];
 // while reading each one's phase-outcome file, rather than keeping a
 // second, hand-copied list of them.
 export const PHASE_LINES = ["create", ...RUN_STEPS];
+
+/** The phases a spec on the specs list still has ahead of it, in workflow
+ *  order. `archive` is never counted done: archived-ness is a directory, and
+ *  a spec the list shows is still in the active root, whatever its history
+ *  says about an archive step having run. So archive is the floor every row
+ *  has ahead, and the answer is never empty. For rows on this list only: a
+ *  summary of specs that really are archived needs archive counted done. */
+export function phasesAhead(done: readonly string[]): string[] {
+  const ran = new Set(done);
+  ran.delete("archive");
+  return RUN_STEPS.filter((s) => !ran.has(s));
+}
+
+/** The phase a spec on the list is waiting on: the first of `phasesAhead`. */
+export const nextPhase = (done: readonly string[]): string | undefined => phasesAhead(done)[0];
+
+/** What the Run button says and whether a press would do anything. With a
+ *  phase ticked, the first ticked one in workflow order, enabled — a phase
+ *  that has run included, since a press runs every ticked box. With nothing
+ *  ticked, the next phase, disabled: named for what it would take to make a
+ *  press do something, rather than hidden. The page draws the button by this
+ *  and the page script names it again by this as the boxes are clicked. */
+export function runButton(
+  done: readonly string[],
+  ticked: ReadonlySet<string>,
+): { label: string; active: boolean } | undefined {
+  const first = RUN_STEPS.find((s) => ticked.has(s));
+  const shown = first ?? nextPhase(done);
+  return shown ? { label: stepButton(shown), active: !!first } : undefined;
+}
 
 export interface Phase {
   step: string;

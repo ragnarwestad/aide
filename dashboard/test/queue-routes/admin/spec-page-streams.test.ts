@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { request } from "node:http";
 import { constants, gunzipSync } from "node:zlib";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-spec-page-streams-");

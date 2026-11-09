@@ -19,7 +19,7 @@
 // anything having to remember it was ever set.
 
 import { basename, dirname, join } from "node:path";
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 
 const DEFAULT_TTL_MS = 30_000;
 
