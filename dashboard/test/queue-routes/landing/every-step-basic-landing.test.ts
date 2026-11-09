@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -8,6 +8,7 @@ import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fix
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
 import { renderSentence } from "../../../src/i18n/message.ts";
+import { specsRootsOnly } from "../../../src/serve/land-branch/steps.ts";
 
 function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
@@ -51,6 +52,26 @@ describe("every step lands its own work", () => {
     git: { run: (dir: string, args: string[]) => Promise<unknown> },
     extra: Parameters<typeof serverWith>[4] = {},
   ) => serverWith(harness, dir, paths, git, extra);
+
+  test("a linked code root still recognizes specs inside the physical repository", () => {
+    const dir = own("aide-linked-specs-root-");
+    const physical = join(dir, "physical", "project");
+    const linked = join(dir, "linked", "project");
+    mkdirSync(join(physical, "specs"), { recursive: true });
+    mkdirSync(join(dir, "linked"), { recursive: true });
+    symlinkSync(physical, linked);
+
+    const roots = specsRootsOnly(
+      {
+        machineryProjectDir: () => linked,
+        machinerySpecsRoot: () => join(physical, "specs"),
+      },
+      { project: "aide" },
+      { branchUrls: [{ root: physical, url: "https://example.test/aide" }] },
+    );
+
+    expect(roots).toBeUndefined();
+  });
 
   // The argument that made `create` and `archive` land
   // themselves holds word for word here: analyze writes markdown in the

@@ -219,6 +219,18 @@ class TestConfigGet:
         )
         assert out == ""
 
+    def test_first_exact_key_wins_and_is_trimmed_ac_2(self, workspace_root, tmp_path):
+        (tmp_path / ".aide").mkdir()
+        (tmp_path / ".aide" / "config").write_text(" KEY=no\nKEY=  first  \nKEY=later\n")
+        assert _call(workspace_root, f'aide_config_get "KEY" "{tmp_path}"') == "first"
+
+    def test_writer_replaces_duplicates_and_preserves_other_lines_ac_3(self, workspace_root, tmp_path):
+        (tmp_path / ".aide").mkdir()
+        config = tmp_path / ".aide" / "config"
+        config.write_text("# keep\nKEY=old\nOTHER=yes\nKEY=duplicate\n")
+        _call(workspace_root, f'aide_config_write "KEY" "new" "{tmp_path}"')
+        assert config.read_text() == "# keep\nOTHER=yes\nKEY=new\n"
+
 
 @pytest.mark.validation
 class TestManifestGet:

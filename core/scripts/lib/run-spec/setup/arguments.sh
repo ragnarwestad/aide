@@ -150,6 +150,7 @@ stream_file=""
 # alone would put their runs in the same directory — which the sweep
 # below would then delete out from under a live run.
 worktree_base=""
+scripts_dir=""
 # Default `none`: a run started by hand publishes nothing nobody asked
 # for. The queue passes the mode from its config, where the default is
 # `branch`.
@@ -207,6 +208,7 @@ while [ $# -gt 0 ]; do
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; push_mode_explicit="yes"; shift 2 ;;
     --worktree-base) worktree_base="${2:-}"; shift 2 ;;
+    --scripts-dir) scripts_dir="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
     *) early_refusal "$(printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}' "$1")" ;;

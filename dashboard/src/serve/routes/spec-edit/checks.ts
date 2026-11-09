@@ -30,6 +30,7 @@ import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBo
 import { specWriteInFlight, stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
+import { dirname } from "node:path";
 
 export async function checkRoutes(
   ctx: RoutesContext,
@@ -250,7 +251,10 @@ export async function checkRoutes(
     // never a second, TypeScript-side computation of the derived state.
     // Refuses rather than ticking with a state file that would fall out
     // of step with what was just ticked.
-    const derived = await runAideWriteSpec(specFolder!, STATUS_SPEC_FILE, ticked);
+    const derived = await runAideWriteSpec(
+      specFolder!, STATUS_SPEC_FILE, ticked,
+      ctx.opts.queueRunnerBin ? dirname(ctx.opts.queueRunnerBin) : undefined,
+    );
     if (!derived.ok || !derived.stateJson) {
       const reason = derived.error ?? "the state file could not be derived";
       logRefusal("tick", `${project}/${specFolder}`, reason);

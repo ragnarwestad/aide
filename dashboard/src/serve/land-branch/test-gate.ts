@@ -25,6 +25,8 @@ import { stepButton } from "../../format/step-label.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { Job } from "../../queue/queue.ts";
 
+export const LANDING_GATE_TEMP_PREFIX = "aide-landing-gate-tree-";
+
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
  *  or red. The record it writes goes
@@ -120,7 +122,7 @@ export async function runProjectSuiteBeforePush(
  *  resolves. Falls back to the live checkout when a worktree cannot be
  *  made, saying so in the log. */
 async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: string; remove: () => Promise<void> }> {
-  const dir = mkdtempSync(join(tmpdir(), "aide-landing-gate-tree-"));
+  const dir = mkdtempSync(join(tmpdir(), LANDING_GATE_TEMP_PREFIX));
   const added = await runScript(["git", ...NO_GIT_HOOKS, "worktree", "add", "--detach", "--quiet", dir, ref], root, 60_000);
   if (added.code !== 0) {
     rmSync(dir, { recursive: true, force: true });

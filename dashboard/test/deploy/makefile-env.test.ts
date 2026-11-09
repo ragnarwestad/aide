@@ -46,6 +46,10 @@ describe("the deploy variables reach the scripts that read them", () => {
 describe("the deploy table says what the Makefile says", () => {
   const makefile = readFileSync(join(ROOT, "Makefile"), "utf-8");
   const doc = readFileSync(join(ROOT, "docs", "hosting.md"), "utf-8");
+  const service = JSON.parse(readFileSync(join(ROOT, "deploy", "service.json"), "utf-8")) as {
+    label: string;
+    override: string;
+  };
 
   /** Every `VAR ?= value` the Makefile declares. */
   const declared = new Map<string, string>(
@@ -61,10 +65,17 @@ describe("the deploy table says what the Makefile says", () => {
     expect([...documented.keys()]).toContain("BIND");
   });
 
-  test.each([...documented.keys()].filter((name) => declared.has(name)))(
+  test.each([...documented.keys()].filter((name) => name !== "LABEL" && declared.has(name)))(
     "%s has the Makefile's own default",
     (name) => {
       expect(documented.get(name)).toBe(declared.get(name));
     },
   );
+
+  test("LABEL gets its default and override from the service identity", () => {
+    expect(documented.get("LABEL")).toBe(service.label);
+    expect(service.override).toBe("AIDE_DASH_LABEL");
+    expect(declared.get("LABEL")).toContain("deploy/service.json");
+    expect(declared.get("LABEL")).toContain(`$(${service.override})`);
+  });
 });

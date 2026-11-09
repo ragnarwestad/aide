@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest, type PreviewFrom } from "../parse-manifest.ts";
+import { readAideConfig } from "../aide-config.ts";
 
 /** One key out of a project's OWN `.aide/config` — the personal,
  *  gitignored file where an operator writes what only their machine
@@ -12,19 +13,7 @@ import { parseManifest, type PreviewFrom } from "../parse-manifest.ts";
  *  here. Plain `KEY=value` lines, as the file has always been; a key
  *  that is absent or empty is `null`, never a guess. */
 export function configValue(projectDir: string, key: string): string | null {
-  const cfg = join(projectDir, ".aide", "config");
-  if (!existsSync(cfg)) return null;
-  for (const line of readFileSync(cfg, "utf-8").split("\n")) {
-    // The name is matched as written, not trimmed: an indented line and
-    // a commented-out one were both ignored before this was generalised,
-    // and a config reader that quietly starts accepting more is a change
-    // nobody asked for.
-    const [name, ...rest] = line.split("=");
-    if (name !== key) continue;
-    const value = rest.join("=").trim();
-    if (value) return value;
-  }
-  return null;
+  return readAideConfig(projectDir, key);
 }
 
 export const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");

@@ -18,6 +18,7 @@ const PARSE_ARGS = read("../../src/serve/serve-helpers/parse-args.ts");
 const INSTALL = read("../../deploy/install-after-merge.sh");
 const SHELL = read("../../src/render/ui/header-notices.ts");
 const SERVE_SH = read("../../serve.sh");
+const SERVICE = JSON.parse(read("../../deploy/service.json")) as { label: string };
 
 const flagsIn = (text: string): string[] =>
   [...new Set([...text.matchAll(/--[a-z][a-z-]*/g)].map((m) => m[0]))].sort();
@@ -50,10 +51,17 @@ describe("the serve job passes only options the code accepts", () => {
   // install step repairs it where it can (repair-serve-plist.test.ts),
   // and says so in the log the board draws its banner from when it cannot.
   test("the install step repairs the installed job, and warns in the log when it cannot", () => {
-    expect(INSTALL).toContain("LaunchAgents/com.aide-dashboard.serve.plist");
+    expect(INSTALL).toContain("deploy/service.json");
     expect(INSTALL).toContain("parse-args.ts");
     expect(INSTALL).toContain("repair-serve-plist.sh");
     expect(INSTALL).toContain("⚠️ [aide serve]");
+  });
+
+  test("Make, TypeScript and install read one service identity (AC-7)", () => {
+    expect(SERVICE.label).toBe("com.aide-dashboard.serve");
+    expect(MAKEFILE).toContain("deploy/service.json");
+    expect(INSTALL).toContain("deploy/service.json");
+    expect(MAKEFILE).toContain("$(AIDE_DASH_LABEL)");
   });
 
   test("the board's banner shows that warning, not only the tools one", () => {

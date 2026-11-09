@@ -45,8 +45,9 @@ export interface AideWriteSpecResult {
  *  itself can run. `AIDE_WRITE_SPEC_BIN` overrides it for a test's own
  *  stub, the same escape hatch `queueRunnerBin` gives the long-running
  *  runner. */
-function resolveBin(): string {
+function resolveBin(scriptDir?: string): string {
   if (process.env.AIDE_WRITE_SPEC_BIN) return process.env.AIDE_WRITE_SPEC_BIN;
+  if (scriptDir) return join(scriptDir, "aide-write-spec");
   // launchd's PATH has no ~/.local/bin, which is where the installer
   // puts the script: a bare name found nothing on the serving host, and
   // every tick from the Checks tab was refused (2026-09-02). The same
@@ -61,8 +62,8 @@ function resolveBin(): string {
  *  the same "refuse, do not commit" shape every other write path here
  *  already returns — the caller decides what "refuse" means for its
  *  own commit. */
-export async function runAideWriteSpec(folder: string, file: string, content: string): Promise<AideWriteSpecResult> {
-  const bin = resolveBin();
+export async function runAideWriteSpec(folder: string, file: string, content: string, scriptDir?: string): Promise<AideWriteSpecResult> {
+  const bin = resolveBin(scriptDir);
   let scratchDir: string | null = null;
   try {
     scratchDir = mkdtempSync(join(tmpdir(), "aide-write-spec-scratch-"));

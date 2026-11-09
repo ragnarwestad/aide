@@ -9,6 +9,7 @@
 
 import { realPathOrAbsolute as real } from "../../git/real-path.ts";
 import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
+import service from "../../../deploy/service.json";
 
 export interface RestartHook {
   /** False on a laptop, and in every test: nothing is registered to
@@ -19,7 +20,7 @@ export interface RestartHook {
   fire(): void;
 }
 
-const LABEL = (): string => process.env.AIDE_DASH_LABEL ?? "com.aide-dashboard.serve";
+const LABEL = (): string => process.env[service.override] ?? service.label;
 
 export function createLaunchdRestart(): RestartHook {
   return {

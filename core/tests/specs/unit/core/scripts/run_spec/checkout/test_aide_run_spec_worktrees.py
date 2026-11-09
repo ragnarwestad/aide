@@ -260,14 +260,14 @@ def test_a_dashboard_checkout_s_worktree_is_named_for_its_project(runner, worksp
     """Every clone the dashboard keeps is called `code`, so naming the
     worktree for the clone put every project's runs in one directory."""
     ws = _as_dashboard_checkout(workspace, "north-star")
-    rc, out, _ = run(runner, ws, writing_claude(fake_claude, ws))
+    rc, out, _ = run(runner, ws, writing_claude(fake_claude, ws), project_name="north-star")
     assert rc == 0, out
     worktree = {r["root"]: r for r in out["repos"]}[str(ws["project"])]["worktree"]
     assert worktree.startswith(str(ws["wtbase"] / "north-star" / "81-queue-and-runner")), worktree
 
 
 def test_any_other_project_s_worktree_is_named_for_its_directory(runner, workspace, fake_claude):
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), project_name="proj")
     assert rc == 0, out
     worktree = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]["worktree"]
     assert worktree.startswith(str(workspace["wtbase"] / "proj" / "81-queue-and-runner")), worktree

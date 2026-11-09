@@ -109,13 +109,9 @@ codex_safety_flags() {
 # parent directory's name, not the clone's. Names the worktree's directory
 # and the display name of each Claude session.
 worktree_project_key() {
-  local root="$1" parent
-  parent="$(dirname "$root")"
-  if [ "$(basename "$root")" = "code" ] && [ "$(basename "$(dirname "$parent")")" = "checkouts" ]; then
-    basename "$parent"
-  else
-    basename "$root"
-  fi
+  local root="$1"
+  [ -n "$project_name" ] && { printf '%s\n' "$project_name"; return 0; }
+  basename "$root"
 }
 
 # How a step ASKS for its skill, which is not the same sentence in every

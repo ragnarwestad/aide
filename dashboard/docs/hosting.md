@@ -225,6 +225,9 @@ All paths are relative to the serving host's own `$HOME`.
 | `ROOT`           | `.aide/dashboard/projects`            | projects root there — see below                                   |
 | `BIND`           | `127.0.0.1`                           | address to bind                                                   |
 
+`dashboard/deploy/service.json` owns the default launchd label. TypeScript, Make and the deploy script read that file;
+`AIDE_DASH_LABEL` is the one environment override.
+
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
 `ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list
 lags the landings until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host

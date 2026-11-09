@@ -11,6 +11,7 @@
 // `_aide-spec-lib.sh`) stay the one place either rule is computed.
 
 import { join, relative } from "node:path";
+import { realPathOrAbsolute } from "../../git/real-path.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import { NO_GIT_HOOKS_ENV } from "../../integrations/no-git-hooks.ts";
 import { runScript, scriptFor } from "./run-script.ts";
@@ -34,7 +35,7 @@ export async function assignSpecNumberAfterMerge(
   provisionalFolder: string,
   opts: { scriptDir?: string } = {},
 ): Promise<FinalizeCreateResult> {
-  const rel = relative(repoRoot, specsRootAbs);
+  const rel = relative(realPathOrAbsolute(repoRoot), realPathOrAbsolute(specsRootAbs));
   const specsRootInWork = rel && !rel.startsWith("..") ? join(work, rel) : work;
   // The runner's own directory first (`--runner-bin`), never PATH alone:
   // see `scriptFor`.

@@ -97,15 +97,16 @@ aide_slug_from_title() {
   printf '%s\n' "$slug"
 }
 
-# Read a key from the per-project config file <project-root>/.aide/config
-# (KEY=value lines, # comments). Echoes the value, or nothing if the file
+# Read a KEY=value from <project-root>/.aide/config. Echoes the value, or nothing if the file
 # or key is missing. Usage: aide_config_get KEY [project-root]
 aide_config_get() {
   local key="$1" root="${2:-.}" file
   file="$root/.aide/config"
   [ -f "$file" ] || return 0
-  sed -n "s/^${key}=//p" "$file" | head -1
+  sed -n "s/^${key}=//p" "$file" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/config/aide-config.sh"
 
 # Read a TOP-LEVEL scalar key from the project's manifest
 # <project-root>/.aide/project.yaml. Echoes the value, or nothing if the
