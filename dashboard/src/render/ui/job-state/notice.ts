@@ -80,12 +80,19 @@ export interface NoticePart {
   detail?: string;
 }
 
-/** What a step's raw detail adds to the sentence on its row, shown whole.
- *  A detail the sentence already carries word for word adds nothing, and
- *  gets no (?). */
-export function detailBeyond(text: string, detail: string | undefined): string | undefined {
-  const shown = detail?.trim();
-  return shown && !text.includes(shown) ? shown : undefined;
+/** What the details behind a row's sentence add to it, for its (?): every
+ *  line of each, in order, once, less a line the sentence already carries
+ *  word for word. Lines too short to tell apart from a word stay. Nothing
+ *  left means no (?). */
+export function detailBeyond(text: string, ...details: (string | undefined)[]): string | undefined {
+  const seen = new Set<string>();
+  const lines = details.flatMap((d) => (d ?? "").split("\n")).filter((line) => {
+    const key = line.trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return key.length < 12 || !text.includes(key);
+  });
+  return lines.length ? lines.join("\n").trim() : undefined;
 }
 
 const isArchiveTestsRed = (error: unknown): boolean =>
@@ -277,14 +284,15 @@ export function specNotice(
             lead.stopReason === "model-at-capacity"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const structured = messageDetail(lead.error);
-      const extra = structured ?? detailBeyond(text, lead.errorDetail);
       // An archive's own red run lists its failing lines on the row when
-      // the result names no tests. Otherwise the log's own lines, if the
-      // runner kept any, stay behind the (?).
-      if (extra && isArchiveTestsRed(lead.error)) {
-        parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
+      // the result names no tests. Otherwise what the message lists and
+      // the log's own lines, if the runner kept any, stay behind the (?).
+      const archiveLines = isArchiveTestsRed(lead.error) ? structured ?? detailBeyond(text, lead.errorDetail) : undefined;
+      if (archiveLines) {
+        parts.push({ variant, text }, { variant, text: archiveLines.split("\n").join(" · ") });
       } else {
-        parts.push({ variant, text, title: structured ? undefined : extra, identity: leadIdentity, detail: structured });
+        const extra = detailBeyond(text, structured, lead.errorDetail);
+        parts.push({ variant, text, title: structured ? undefined : extra, identity: leadIdentity, detail: structured ? extra : undefined });
       }
     }
   }

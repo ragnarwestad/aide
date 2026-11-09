@@ -414,8 +414,8 @@ evidence that the phase happened:
     file. Before a still-red step ends, each named red file is run once more alone when the project has an
     `AIDE_TEST_FILES_CMD`. The result's `testsRed` separates tests that still fail from tests whose files passed that
     check. Only the latter are described as possibly unstable; without the command or enough time, the board states
-    only the last observed failures. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
-    (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
+    only the last observed failures. Implement is the button to press again. A run that never started, because its server could not start, a port it needs is held, Docker is not
+    running or a local service refused its connection (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
     for a port, the spec or process holding it in the result's `testsNotStarted`. A run `aide-record-test-run` did not
     make ends the same way at once, read from the recorder's own result and never from its exit code alone: the spec's
     folder not found on the spec's branch (`spec-folder-missing`), or the recorder refusing or ending without a result
