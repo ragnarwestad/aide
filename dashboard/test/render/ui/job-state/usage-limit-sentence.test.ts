@@ -114,6 +114,13 @@ describe("the sentences ask for no press", () => {
 });
 
 describe("where the sentence is drawn", () => {
+  test.each([true, false])("an automatic usage-limit restart is informational (reset known: %s)", (resetKnown) => {
+    const notice = specNotice(stoppedView({
+      usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown },
+    }));
+    expect(notice?.variant).toBe("info");
+  });
+
   test("the row's notice shows the stopped job's sentence in place of the run's own error", () => {
     const view = stoppedView({ usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
     const notice = specNotice(view);
