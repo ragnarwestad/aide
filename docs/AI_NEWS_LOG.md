@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-09](#2026-11-09)
   - [2026-11-08](#2026-11-08)
   - [2026-11-07](#2026-11-07)
   - [2026-11-06](#2026-11-06)
@@ -123,6 +124,62 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-09
+
+Nov 8 – Nov 9. All sources were fetched. Nothing new on the OpenAI developer blog (newest post Oct 14); Artificial
+Analysis shows no figures for the harnesses. Of the watched pages, `agents.md`, `opencode.ai/docs/skills` and `opencode.ai/docs/agents` changed in star
+counts and page navigation only. The X list digest of Nov 9 was read.
+
+**Claude Code (v2.1.319):**
+
+| Date | Version | News                                                                                                                             | Source                                 |
+|------|---------|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| —    | —       | No release since Nov 8 (latest v2.1.319). Anthropic news still lists Opus 5.5, Sonnet 5.5 and Haiku 5.5; nothing new beyond them | [News](https://www.anthropic.com/news) |
+
+**GitHub Copilot CLI (v1.0.107 stable; v1.0.108-1 the newest pre-release):**
+
+| Date | Version | News                                                                                              | Source                                                     |
+|------|---------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| —    | —       | Nothing newer than v1.0.108-1 (Nov 7, pre-release); the Copilot changelog's newest entry is Nov 6 | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.3 pre-release):**
+
+| Date | Version | News                                                                   | Source                                               |
+|------|---------|------------------------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No release since Nov 8 (stable v0.167.0, pre-release v0.169.0-alpha.3) | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.6):**
+
+| Date | Version | News                                                                                                                                                                                                                                                                                                                                | Source                                     |
+|------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| —    | —       | No release since Nov 8 (latest v2.2.6). The changelog page, which has no dates, lists shared MCP connections (pooling one connection per MCP server across projects), `opencode run -w` / `--worktree=<name>` to start a scripted run in a new git worktree, and `opencode run --archived` to keep CI sessions out of session lists | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for aide:**
+
+- ✅ GitHub blog, undated, featured on the Copilot page: "Beyond code generation: A developer's guide to agentic
+  engineering" on planning, writing, reviewing and investigating production issues with Copilot. Touches the
+  analyze, implement and review steps; not read in full. [Page](https://github.blog/ai-and-ml/github-copilot/)
+- ✅ X list, @theo, Nov 9: runs Codex (Sol) to review the same change that Opus reviews in parallel. A second-model
+  review pass is a pattern Aide does not have; the digest proposes checking `docs/AGENTS_AND_LOOPS.md` and a ROADMAP
+  idea with a cost note. [Post](https://x.com/theo/status/2119633418187333636)
+- ✅ X list, @PawelHuryn, Nov 9: skills that let one harness (Codex, Grok or Claude) drive another as a headless
+  subagent, with session resume and an isolation mode. Same ground as Aide's multi-tool steps; compare with
+  `core/scripts/aide-run-spec`. [Post](https://x.com/PawelHuryn/status/2119557516426158169)
+- ✅ X list, @PawelHuryn, Nov 9: most subagent problems are delegation failures; give the delegate the why, since it
+  starts with nothing but what it is handed. Check that the steps' subagent briefs state the goal and what is ruled
+  out. [Post](https://x.com/PawelHuryn/status/2119335455271321910)
+- ✅ X list, @Voxyz_ai, Nov 9: says Anthropic published an engineering post on how Claude slims down and corrects its
+  own memory; only reported second-hand, the post itself was not found.
+  [Post](https://x.com/Voxyz_ai/status/2119414635485130801)
+- ✅ X list, @Voxyz_ai and @atmoio, Nov 9: "grep before reading a whole file" for AGENTS.md, and one instruction to
+  build cleanly and modularly instead of an AGENTS file. Aide's `.claude/CLAUDE.md` and the `llm-discipline` rule
+  already say both. [Post](https://x.com/Voxyz_ai/status/2119535433969500172)
+- ✅ X list, @sermakarevich, Nov 9: cheat sheets on agent engineering, including skill evals; compare with
+  `docs/REPLAY.md`. [Post](https://x.com/sermakarevich/status/2119407942696878411)
+- ℹ X list: @maria_rcks quotes an OpenAI Developers teaser that says only "Tomorrow."; @theo on writing a guide for
+  MCP and on agents being bad at building tools; @somi_ai on agents writing a formal spec per subsystem; @poteto on
+  state machines as verification skills; @omarsar0 on not relying on someone else's harness and on queues and memory
+  for fewer touchpoints with agents.
 
 ### 2026-11-08
 
