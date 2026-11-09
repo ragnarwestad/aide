@@ -1,8 +1,7 @@
 """A spec's state file (4-status.json) has exactly one
 writer — core/scripts/lib/spec-state.sh's write_spec_state, sourced by
 the three scripts that already own the machine-read lines
-(aide-run-spec, aide-archive-spec, aide-write-spec) and by the one-time
-backfill (aide-backfill-spec-state). Two invariants:
+(aide-run-spec, aide-archive-spec, aide-write-spec). Two invariants:
 
 1. No code anywhere else CONSTRUCTS the file's content — every other
    mention of "4-status.json" in the codebase is a read, a staging
@@ -29,7 +28,6 @@ ALLOWED_BASH_FILES = {
     "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
     "core/scripts/aide-close-spec",          # Same stage-alongside-the-git-mv-rename as aide-archive-spec
     "core/scripts/lib/run-spec/publish/result.sh",   # aide-run-spec derives it after every completed step, so the gates read what the run just landed
-    "core/scripts/aide-backfill-spec-state",  # doc comment only
     "core/scripts/aide-record-step",         # a session's step: writes the state file through write_spec_state, as result.sh does
     "core/scripts/lib/spec-transitions.sh",  # Reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
@@ -90,8 +88,7 @@ class TestBashWriterConfinement:
 
         write_shapes = ('mv "$tmp" "$state_file"', 'mv "$content_tmp" "$state_file"',
                          '> "$state_file"', '>> "$state_file"')
-        for name in ("aide-run-spec", "lib/run-spec/publish/result.sh", "aide-archive-spec", "aide-write-spec",
-                     "aide-backfill-spec-state"):
+        for name in ("aide-run-spec", "lib/run-spec/publish/result.sh", "aide-archive-spec", "aide-write-spec"):
             text = (workspace_root / "core/scripts" / name).read_text()
             for shape in write_shapes:
                 assert shape not in text, (

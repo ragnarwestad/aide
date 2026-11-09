@@ -74,7 +74,7 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
-    def test_spec_state_lib_and_backfill_are_installed(self, workspace_root, tmp_path):
+    def test_spec_state_lib_is_installed(self, workspace_root, tmp_path):
         """The spec's state lives in lib/spec-state.sh, which
         aide-archive-spec sources when present — and treats every spec as
         not implemented when absent. It shipped without being in the
@@ -88,8 +88,6 @@ class TestInstallCommonBin:
         assert result.returncode == 0, result.stderr
         assert (tmp_path / ".local" / "bin" / "lib" / "spec-state.sh").is_file(), \
             "lib/spec-state.sh is not in COMMON_BIN_LIB_SCRIPTS"
-        assert (tmp_path / ".local" / "bin" / "aide-backfill-spec-state").is_file(), \
-            "aide-backfill-spec-state is not in COMMON_BIN_SCRIPTS"
 
     def test_the_aide_command_and_its_sentence_library_are_installed_AC_1(self, workspace_root, tmp_path):
         """`aide` is the command a terminal or an AI session queues steps

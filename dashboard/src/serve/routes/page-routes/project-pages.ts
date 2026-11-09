@@ -356,14 +356,6 @@ export async function projectPages(
     return new Response(html, { headers });
   }
 
-  // Whatever a `schedule` step wrote to its own output
-  // directory, served with the same traversal-safe `serveStatic()`
-  // primitive `schedule-pages.ts` uses for `/schedule-output/` —
-  // pointed at a different root. `scheduleOutputDir()` is the SAME function
-  // `runner-setup.ts`'s spawn imports for the write side; a second
-  // implementation of the join here would be the hand-paired-pair
-  // failure mode `dashboard/CLAUDE.md` already names six instances of.
-
   return null;
 }
 

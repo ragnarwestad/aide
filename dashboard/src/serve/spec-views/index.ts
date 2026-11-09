@@ -77,20 +77,6 @@ export async function specFileViews(ctx: SpecViewsContext, dir: string): Promise
   }));
 }
 
-/** WHEN a spec was archived. The stamp the archive step writes into
- *  `4-status.md` first; failing that, the commit that last touched the
- *  folder — an archived spec is not edited afterwards, so the newest
- *  commit under `archive/<folder>` IS the one that moved it there.
- *
- *  `dir` is the spec's OWN folder and the pathspec is `"."`, the same
- *  dir/pathspec pairing every other `lastCommitOf` call here uses: git
- *  is run IN the directory being asked about, and a pathspec naming a
- *  path outside it would answer nothing at all.
- *
- *  `null` from both is a real answer and the page prints it in words.
- *  Only a spec with no stamp reaches git, which is a
- *  shrinking minority. */
-
 // The three families that used to live here as well.
 export { archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./archived.ts";
 export { specPageView } from "./spec-page.ts";

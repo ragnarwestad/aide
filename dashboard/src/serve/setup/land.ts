@@ -11,7 +11,6 @@
 
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
-import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,
 } from "../../git/description-freshness.ts";
@@ -94,7 +93,6 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     warmSpec: inputs.warmSpec,
     machinerySpecsRoot: inputs.machinerySpecsRoot,
     specsRoot: inputs.specsRoot,
-    jobRow,
     workflowHistory: inputs.workflowHistory,
     specCreatedAt: inputs.specCreatedAt,
     freshness: inputs.freshness,
@@ -132,24 +130,9 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landScheduleRun(job: Job, outcome: Partial<StepOutcome>) {
     return landScheduleRunImpl(landCtx, job, outcome);
   }
-  /** The deploy button's install. The restart it may call for is handed
-   *  back as a thunk rather than fired here: the route answers the
-   *  browser FIRST and fires it after — awaited here, the kickstart
-   *  landed before the answer went out, and the page read "the request
-   *  failed" for a deploy that had succeeded (2026-09-03). `landBranch`
-   *  calls the implementation directly and never restarts. */
-  async function installAfterMerge(result: RepoMergeResult): Promise<{ restart?: () => void }> {
-    if (!(await installAfterMergeImpl(landCtx, result))) return {};
-    return {
-      restart: () => {
-        void restartAfterLanding(landCtx);
-      },
-    };
-  }
   /** What the deploy routes and the deploy job ask of the landing code:
    *  the install, the restart check and the restart itself. */
   const deploy: DeployHooks = {
-    installAfterMerge,
     installCheckout: (result) => installAfterMergeImpl(landCtx, result),
     restartRegistered: () => inputs.restart.registered(),
     isBoard: (root) => isDashboardRoot(landCtx, root),

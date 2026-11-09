@@ -230,7 +230,6 @@ line="$(jq -cn \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
-  --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
   --argjson review "${review_json:-null}" \
   --argjson verify "${verify_json:-null}" \
@@ -286,10 +285,6 @@ line="$(jq -cn \
    # step reports none, and an absent field is the only shape that
    # cannot be added up as if it were a real zero.
    + (if $costUsd == null then {} else {costUsd:$costUsd} end)
-   # And once more for which of the two files the worktree links were
-   # read from: absent means none were configured at all,
-   # which is not the same claim as either file naming an empty list.
-   + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
    # And for the usage limit a provider reported: present only on a step
    # such a limit stopped, in the shape run-spec/turn/provider-limit.sh documents.
    + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)

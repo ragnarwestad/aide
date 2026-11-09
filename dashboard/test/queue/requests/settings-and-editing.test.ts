@@ -8,7 +8,7 @@ import {
   tailEdits,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-import { parseArgs } from "../../../src/serve/serve.ts";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 /** What a reader would see: a message is stored as

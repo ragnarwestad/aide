@@ -3,9 +3,8 @@ import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   createServer,
-  parseArgs,
-  runnerArgv,
 } from "../../../src/serve/serve.ts";
+import { parseArgs, runnerArgv } from "../../../src/serve/serve-helpers";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
 

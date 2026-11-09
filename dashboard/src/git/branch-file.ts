@@ -22,7 +22,6 @@
 // commit to the same branch (git enforces fast-forward server-side).
 
 import { realPathOrOriginal as real } from "./real-path.ts";
-export { realPathOrOriginal as real } from "./real-path.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";

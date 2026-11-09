@@ -103,8 +103,7 @@ if (
 }
 
 /** Keep only jobs after the newest round-discarding job that completed and
- *  landed: a reopen that reset the files, or — in a history old enough to
- *  hold one — a Reset, the step that did the same before it was removed. */
+ *  landed: a reopen that reset the files. */
 export function currentWorkRoundJobs<T extends {
   steps: readonly string[];
   state: string;
@@ -117,7 +116,7 @@ export function currentWorkRoundJobs<T extends {
 ): T[] {
   const at = (job: T): number => Date.parse(job.startedAt ?? job.createdAt) || 0;
   const discardsTheRound = (job: T): boolean =>
-    job.steps.includes("reset") || (job.steps.includes("reopen") && job.resetFiles === true);
+    job.steps.includes("reopen") && job.resetFiles === true;
   const boundary = jobs
     .filter((job) => job.state === "done" && !job.landing && discardsTheRound(job))
     .reduce((latest, job) => Math.max(latest, at(job)), -Infinity);

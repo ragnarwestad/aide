@@ -22,7 +22,7 @@ afterEach(() => {
 
 describe("--no-ai-formulate reaches the runner only when the job says so", () => {
   test("present when the job's box was cleared, absent otherwise", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const job = {
       project: "aide", specFolder: "new-abc123de", steps: ["create"],
        timeoutSec: 2700, permissionMode: {}, model: {},
@@ -42,7 +42,7 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
   });
 
   test("never appended for a step other than create", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const job = {
       project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
        timeoutSec: 2700, permissionMode: {}, model: {},
@@ -64,10 +64,10 @@ describe("--criteria-checks reaches the runner only for a create that chose a le
       timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       ...(level ? { createCriteriaChecks: level } : {}),
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   const argvFor = async (step: string, level?: string) => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     return runnerArgv(job(step, level), step, "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
@@ -96,10 +96,10 @@ describe("--choose-approach reaches the runner for a create from the form", () =
       timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       ...(chooseApproach === undefined ? {} : { createChooseApproach: chooseApproach }),
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   const argvFor = async (step: string, chooseApproach?: boolean) => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     return runnerArgv(job(step, chooseApproach), step, "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
@@ -128,10 +128,10 @@ describe("a chosen dependency reaches the runner and the page", () => {
        timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       ...(dependsOn ? { createDependsOn: dependsOn } : {}),
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   const argvFor = async (dependsOn?: string[]) => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     return runnerArgv(createJob(dependsOn), "create", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });

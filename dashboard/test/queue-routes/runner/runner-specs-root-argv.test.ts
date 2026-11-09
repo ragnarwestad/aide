@@ -10,7 +10,7 @@
 // answer now, handed over as `--specs-root`.
 
 import { describe, expect, test } from "bun:test";
-import { runnerArgv } from "../../../src/serve/serve.ts";
+import { runnerArgv } from "../../../src/serve/serve-helpers";
 
 const job = {
   id: "j1", project: "aide", specFolder: "new-0cdf3db8", steps: ["create"], stepIndex: 0,

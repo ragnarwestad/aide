@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEFAULT_QUEUE_CONCURRENCY, isQueueConcurrency, parseQueueConcurrency, processSettings } from "../../../src/serve/serve.ts";
+import { DEFAULT_QUEUE_CONCURRENCY, isQueueConcurrency, parseQueueConcurrency, processSettings } from "../../../src/serve/serve-helpers";
 import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
 import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -180,10 +180,10 @@ describe("a model choice's tool reaches the runner", () => {
       timeoutSec: 2700,
       permissionMode: { implement: "bypassPermissions" },
       model,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   test("a codex choice passes --tool and its own model name", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -197,7 +197,7 @@ describe("a model choice's tool reaches the runner", () => {
   });
 
   test("a choice with no model of its own keeps using its key", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -208,7 +208,7 @@ describe("a model choice's tool reaches the runner", () => {
   });
 
   test("a choice with no tool field is claude, and the argv is unchanged", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const before = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", o);
     const after = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
@@ -221,7 +221,7 @@ describe("a model choice's tool reaches the runner", () => {
   });
 
   test("a server with no choices configured at all still runs claude", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -242,10 +242,10 @@ describe("a chosen effort reaches the runner", () => {
       permissionMode: { implement: "bypassPermissions" },
       model: {},
       effort,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   test("--effort lands in argv when the job named one for this step", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(effortJob({ implement: "low" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -255,7 +255,7 @@ describe("a chosen effort reaches the runner", () => {
   });
 
   test("no --effort at all when the job named none — byte-for-byte the old argv", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const withNoEffort = runnerArgv(effortJob({}), "implement", "/tmp/r.json", o);
     expect(withNoEffort).not.toContain("--effort");
@@ -275,10 +275,10 @@ describe("the acceptance-not-required switch reaches the runner", () => {
       permissionMode: { analyze: "bypassPermissions" },
       model: {},
       ...(acceptanceNotRequired ? { acceptanceNotRequired } : {}),
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   test("--acceptance-not-required lands in analyze's argv from the file-backed option, not the job field", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(switchJob(), "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -289,7 +289,7 @@ describe("the acceptance-not-required switch reaches the runner", () => {
   });
 
   test("the job's own field no longer reaches analyze's argv at all", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(switchJob(true), "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
       projectDir: "/home/dev/aide",
@@ -299,14 +299,14 @@ describe("the acceptance-not-required switch reaches the runner", () => {
   });
 
   test("no flag at all when neither the job nor the file says so — byte-for-byte the old argv", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const withNoSwitch = runnerArgv(switchJob(), "analyze", "/tmp/r.json", o);
     expect(withNoSwitch).not.toContain("--acceptance-not-required");
   });
 
   test("the job's own field still reaches create's own invocation unchanged", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const createJob = { ...switchJob(true), steps: ["create"] } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(createJob, "create", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
@@ -330,12 +330,12 @@ describe("a step's own time limit reaches the runner", () => {
     ({
       project: "aide", specFolder: "81-queue-and-runner", steps,
        timeoutSec, permissionMode: {}, model: {},
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   const timeoutArg = (argv: string[]): string => argv[argv.indexOf("--timeout-sec") + 1]!;
 
   test("an implement is spawned with implement's number, not default's", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const job = jobWith({ analyze: 1200, implement: 5400 });
     expect(timeoutArg(runnerArgv(job, "implement", "/tmp/r.json", o))).toBe("5400");
@@ -347,7 +347,7 @@ describe("a step's own time limit reaches the runner", () => {
   // and the runner would be handed the string "undefined" as its
   // deadline — a crash-adjacent read, not a cosmetic one.
   test("a job persisted with the old flat number is still given a real deadline", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(jobWith(2700), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
@@ -355,7 +355,7 @@ describe("a step's own time limit reaches the runner", () => {
   });
 
   test("a step the table does not name falls to its default", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(jobWith({ default: 1200, implement: 5400 }, ["archive"]), "archive", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
@@ -370,14 +370,14 @@ describe("a step's own time limit reaches the runner", () => {
   // `undefined` for it, and the runner is handed the string
   // "undefined" as its deadline.
   test("a tail-added step the job's table cannot name falls to the live config", async () => {
-    const { resolveTimeoutSec } = await import("../../../src/serve/serve.ts");
+    const { resolveTimeoutSec } = await import("../../../src/serve/serve-helpers");
     const live = { default: 1200, implement: 5400 };
     expect(resolveTimeoutSec({ analyze: 1200 }, "implement", live)).toBe(5400);
     expect(resolveTimeoutSec({ analyze: 1200 }, "archive", live)).toBe(1200);
   });
 
   test("the argv for a tail-added step carries a real number, not \"undefined\"", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(jobWith({ analyze: 1200 }, ["analyze", "implement"]), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
       timeoutSec: { default: 1200, implement: 5400 },
@@ -403,7 +403,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
       timeoutSec: { analyze: 1200 }, permissionMode: { analyze: "acceptEdits" },
       model: { analyze: "sonnet" },
       ...over,
-    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve-helpers").runnerArgv>[0];
 
   const base = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
   const live = {
@@ -413,13 +413,13 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   };
 
   test("it gets the config's permission mode, not the acceptEdits literal", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", { ...base, ...live });
     expect(argv[argv.indexOf("--permission-mode") + 1]).toBe("bypassPermissions");
   });
 
   test("it gets the config's model, instead of no --model flag at all", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const argv = runnerArgv(jobWith(), "implement", "/tmp/r.json", { ...base, ...live });
     expect(argv[argv.indexOf("--model") + 1]).toBe("opus");
   });
@@ -429,7 +429,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   // its siblings rather than fall through to what the config says for
   // that step in isolation.
   test("a whole-job model choice still wins over the config's per-step default", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const job = jobWith({ modelChoice: "sonnet", model: { analyze: "sonnet" } });
     const argv = runnerArgv(job, "implement", "/tmp/r.json", { ...base, ...live });
     expect(argv[argv.indexOf("--model") + 1]).toBe("sonnet");
@@ -439,7 +439,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
   // has. Every step present at creation keeps running on exactly the
   // terms it was created with, config changes since then included.
   test("a step the job's own table names is untouched by the fallback", async () => {
-    const { runnerArgv } = await import("../../../src/serve/serve.ts");
+    const { runnerArgv } = await import("../../../src/serve/serve-helpers");
     const job = jobWith({
       timeoutSec: { analyze: 900 }, permissionMode: { analyze: "plan" }, model: { analyze: "haiku" },
     });

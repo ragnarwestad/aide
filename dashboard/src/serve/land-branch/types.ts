@@ -9,7 +9,6 @@ import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/w
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
 import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { CodeLanding } from "../../project/discover";
-import type { QueueRowView } from "../../render";
 import type { createRootLock } from "../serve-helpers";
 import type { RestartHook } from "./restart.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
@@ -32,7 +31,6 @@ export interface LandContext {
   warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
   machinerySpecsRoot: (project: string) => string | undefined;
   specsRoot: (dir: string) => Promise<string>;
-  jobRow: (job: Job) => Promise<QueueRowView>;
   workflowHistory: WorkflowHistoryChecker;
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
@@ -53,10 +51,6 @@ export interface LandContext {
   /** Told whenever the jobs-wait's own answer changes — wired
    *  to the Deploy tab's server-held state. */
   onJobsWaitChange?: (jobs: string[]) => void;
-  /** Told whether a restart is waiting to fire (`restartAfterLanding`). */
-  onRestartWait?: (waiting: boolean) => void;
-  /** Called just before a restart fires (`restartAfterLanding`). */
-  beforeRestart?: () => void;
   /** The checkout this dashboard runs from; a landing anywhere else
    *  never restarts it. */
   dashboardRoot?: string;
