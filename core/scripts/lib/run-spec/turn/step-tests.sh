@@ -337,7 +337,7 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
         if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
            || [ "$step_time_left" -le 0 ]; then
           stop_step tests-red "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
-$step_tests_failing" "press $step_button again for this step"
+$step_tests_failing" "if the fault is in the code, press $step_button again; if something on the machine stopped the tests, such as a port in use or a service that is down, fix that first"
           error_log="$step_tests_failing"
           # No session turn occurs between the last suite run and this
           # isolated check of every red file.

@@ -54,7 +54,7 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'tests stopped when the server needed by', "solution": "once that server can start"},
     {"pattern": r'could not start because Docker is not running', "solution": "start Docker on this machine"},
     {"pattern": r'could not start because nothing answered on port', "solution": "start the service that listens on port"},
-    {"pattern": r"tests are red on its result", "solution": "press $step_button again for this step"},
+    {"pattern": r"tests are red on its result", "solution": "if the fault is in the code, press $step_button again; if something on the machine stopped the tests, such as a port in use or a service that is down, fix that first"},
     {"pattern": r"could not be committed in", "solution": "fix the checkout on the serving host"},
     {"pattern": r"the close moved nothing: a merge is still open", "solution": "finish or abort that merge"},
     {"pattern": r"the close moved nothing: \$\{close_said:-the spec is archived\}", "solution": "press Reopen for it first"},
