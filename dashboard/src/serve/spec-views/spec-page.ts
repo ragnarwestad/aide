@@ -2,6 +2,7 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
+import { dirname, join } from "node:path";
 import { parseAcCoverage, readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import {
   acceptanceNotRequiredIn, createChoicesIn, specAcceptanceNotRequired, specCloseReason, specClosedDate, specFileText,
@@ -20,6 +21,7 @@ import { type BranchCopy, readBranchCopy } from "./branch-copy.ts";
 
 import { jobDetailView } from "./job-detail.ts";
 import { stepsOfRound } from "./work-round.ts";
+import { AC_COVERAGE_FILE } from "../../project/spec-names.ts";
 
 export async function specPageView(
   ctx: SpecViewsContext,
@@ -75,7 +77,7 @@ export async function specPageView(
       branchBaseSha = branchRead.sha;
       for (const relPath of [target!.relPath, target!.archivedRelPath]) {
         const coverage = await readStatusFromFetchedBranch(
-          ctx.gitRun, target!.root, target!.branch, relPath.replace(/4-status\.md$/, "ac-coverage.json"),
+          ctx.gitRun, target!.root, target!.branch, join(dirname(relPath), AC_COVERAGE_FILE),
         );
         if (coverage) {
           branchCoverage = parseAcCoverage(coverage.text);

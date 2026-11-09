@@ -3,6 +3,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { DESCRIPTION_FILE } from "../spec-names.ts";
 
 // `[ \t]*`, never `\s*`: `\s` matches a newline, and a trailing `\s*`
 // would run an empty field straight into the `---` on the next line.
@@ -18,7 +19,7 @@ const DEPENDS_ON_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*.*(\n
 // parser shared across bash and TypeScript is more machinery than two
 // lines of comma-splitting justify.
 export function specDependsOn(dir: string): string[] {
-  const desc = join(dir, "1-description.md");
+  const desc = join(dir, DESCRIPTION_FILE);
   if (!existsSync(desc)) return [];
   let text: string;
   try {

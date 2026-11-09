@@ -7,19 +7,13 @@
 // is asked at all.
 
 import { describe, expect, test } from "bun:test";
-import { BranchStatusChecker, specBranch } from "../../../src/git/branch-status.ts";
+import { BranchStatusChecker } from "../../../src/git/branch-status.ts";
 import { type GitRunner } from "../../../src/git/process/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const SYMREF_MASTER = {
   "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
 };
-
-describe("specBranch", () => {
-  test("a spec folder names the branch the runner pushed to", () => {
-    expect(specBranch("04-unmerged-work-is-invisible")).toBe("aide/04-unmerged-work-is-invisible");
-  });
-});
 
 describe("BranchStatusChecker.isMerged", () => {
   test("a branch that is an ancestor of the default branch is merged", async () => {

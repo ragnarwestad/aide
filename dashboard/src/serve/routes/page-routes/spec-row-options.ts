@@ -8,6 +8,7 @@ import { closeOrReopenStep, isCleanupJob, isDeployJob } from "../../../queue/que
 import { jobsShown, type SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
+import { isScheduleKey } from "../../../project/spec-names.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { closeOrReopenSteps, deploySteps, scheduleSteps } from "../../spec-views/job-marks.ts";
 import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messages.ts";
@@ -76,6 +77,6 @@ export function listedSpecJobs<J extends JobLike>(ctx: Pick<RoutesContext, "allo
     jobsShown(jobs, { scheduleEntryExists: () => false }).filter((j) => closeOrReopenStep(j)).map((j) => j.id),
   );
   return jobs.filter(
-    (j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j) && !isCleanupJob(j) && !own.has(j.id),
+    (j) => ctx.allowed.has(j.project) && !isScheduleKey(j.specFolder) && !isDeployJob(j) && !isCleanupJob(j) && !own.has(j.id),
   );
 }

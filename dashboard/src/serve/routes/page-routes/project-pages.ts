@@ -19,7 +19,7 @@ import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
-import { isSpecFolder } from "../../../render/ui/shell.ts";
+import { isSpecFolder } from "../../../project/spec-names.ts";
 import { languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 

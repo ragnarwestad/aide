@@ -4,7 +4,7 @@
 // `startedAt ?? createdAt`, and not before.
 import { describe, expect, test } from "bun:test";
 import {
-  isDue, mostRecentFireTime, nextFireTime, scheduleOutputDir, scheduleTrackingKey,
+  isDue, mostRecentFireTime, nextFireTime, scheduleOutputDir,
   type ScheduleJobRef,
 } from "../../../src/queue/schedule.ts";
 import type { ScheduleEntry } from "../../../src/queue/schedule.ts";
@@ -12,12 +12,6 @@ import type { ScheduleEntry } from "../../../src/queue/schedule.ts";
 const ENTRY: ScheduleEntry = {
   name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true,
 };
-
-describe("scheduleTrackingKey", () => {
-  test("names the job-store key a schedule entry's runs are filed under", () => {
-    expect(scheduleTrackingKey("nightly-report")).toBe("schedule-nightly-report");
-  });
-});
 
 describe("mostRecentFireTime / nextFireTime", () => {
   test("compute around a known instant", () => {

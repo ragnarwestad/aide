@@ -1,4 +1,5 @@
-import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
+import { specBranch } from "../../project/spec-names.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
 
 /** True only when the code checkout's cached origin answer holds the spec's
  *  branch. Not asked yet or not answerable reads as false, like every other

@@ -25,8 +25,8 @@ import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
+import { STATUS_FILE } from "../../project/spec-names.ts";
 import { specFileText } from "../../project/discover";
-import { STATUS_SPEC_FILE } from "../../render";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
 import { installAfterMerge } from "./install.ts";
 import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
@@ -447,7 +447,7 @@ export async function landBranch(
     const landedRoot = ctx.machinerySpecsRoot(job.project);
     const landedDir = landedRoot
       ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)].find(
-          (candidate) => specFileText(candidate, STATUS_SPEC_FILE) !== null,
+          (candidate) => specFileText(candidate, STATUS_FILE) !== null,
         )
       : undefined;
     if (landedDir) await ctx.warmSpec({ dir: landedDir, specFolder: landedFolder });

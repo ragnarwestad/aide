@@ -8,11 +8,11 @@ import type { MessageKey } from "../i18n/messages.ts";
 import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
-import type { ScheduleNotify } from "../queue/schedule.ts";
+import { isScheduleJob, type ScheduleNotify } from "../queue/schedule.ts";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, waitsForPerson, type JobState, type StopReason,
 } from "../queue/steps.ts";
-import { isSpecFolder } from "../render/ui/shell.ts";
+import { isSpecFolder } from "../project/spec-names.ts";
 
 /** What the observer remembers of a job between two changes. */
 export interface Seen {
@@ -44,11 +44,6 @@ export type ScheduleOutcome = "done" | "failed" | "stopped" | "interrupted";
 /** The entry's choice for a scheduled job, read only when asked; null
  *  when the entry is gone. */
 export type ScheduleChoice = () => ScheduleNotify | null;
-
-/** The same test `parse-request.ts` applies: one step, `schedule`, under
- *  a `schedule-` key. */
-const isScheduleJob = (job: Job): boolean =>
-  job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
 
 const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed", "stopped", "interrupted"]);
 

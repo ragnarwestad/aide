@@ -4,9 +4,10 @@
 // under each acceptance row, so whoever ticks it sees what proves it.
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { readStatusFromBranch } from "../git/branch-file.ts";
 import type { GitRunner } from "../git/process/index.ts";
+import { AC_COVERAGE_FILE } from "./spec-names.ts";
 
 export interface AcTest {
   file: string;
@@ -18,7 +19,7 @@ export interface AcTest {
  *  criteria. A record that does not parse reads as none. */
 export function readAcCoverage(dir: string): Record<string, AcTest[]> | null {
   try {
-    return parseAcCoverage(readFileSync(join(dir, "ac-coverage.json"), "utf-8"));
+    return parseAcCoverage(readFileSync(join(dir, AC_COVERAGE_FILE), "utf-8"));
   } catch {
     return null;
   }
@@ -31,7 +32,7 @@ export async function branchAcCoverage(
   target: { root: string; branch: string },
   statusRelPath: string,
 ): Promise<Record<string, AcTest[]> | null> {
-  const file = await readStatusFromBranch(run, target.root, target.branch, statusRelPath.replace(/4-status\.md$/, "ac-coverage.json"));
+  const file = await readStatusFromBranch(run, target.root, target.branch, join(dirname(statusRelPath), AC_COVERAGE_FILE));
   return file ? parseAcCoverage(file.text) : null;
 }
 

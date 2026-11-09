@@ -3,7 +3,8 @@
 // manifest says `deployment.previewFrom: cloudflare-pages`, and kept for
 // the specs list to read. Nothing here runs while a page is drawn.
 
-import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
+import { specBranch } from "../../project/spec-names.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import { askBranchPreview } from "../../integrations/branch-previews.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
 import type { PreviewFrom } from "../../project/discover";

@@ -3,6 +3,7 @@
 // file half of `stepsFileDisagreesOn`'s comparison in `workflow-history.ts`,
 // which re-exports everything here.
 
+import { dirname, join } from "node:path";
 import { branchAcCoverage, type AcTest } from "../project/ac-coverage.ts";
 import type { GitRunner } from "./process/index.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
@@ -11,6 +12,7 @@ import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import { dependsOnIn } from "../project/discover/depends-on.ts";
 import { createChoicesIn, type CreateChoices } from "../project/discover/create-choices.ts";
 import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
+import { DESCRIPTION_FILE, SOLUTION_FILE, STATE_FILE } from "../project/spec-names.ts";
 
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
 export const DEFAULT_TTL_MS = 30_000;
@@ -110,12 +112,12 @@ export class BranchFileStepsChecker {
           // same place `4-status.md` sits — read alongside the prose,
           // never in its place, so `stateSteps` can stay `undefined` for
           // a branch that has none yet.
-          const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
+          const jsonPath = join(dirname(relPath), STATE_FILE);
           const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
           const acCoverage = await branchAcCoverage(this.run, target, relPath);
-          const solution = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "3-solution.md"));
-          const description = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "1-description.md"));
+          const solution = await readStatusFromBranch(this.run, target.root, target.branch, join(dirname(relPath), SOLUTION_FILE));
+          const description = await readStatusFromBranch(this.run, target.root, target.branch, join(dirname(relPath), DESCRIPTION_FILE));
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,

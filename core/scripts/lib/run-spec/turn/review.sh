@@ -43,7 +43,7 @@
 # line, and a non-zero exit when there is no section. Fenced blocks are
 # examples, not the section, and a `## Round N` heading starts over, so
 # a held-back round's own review is the one read.
-plan_review_field() {  # <3-solution.md> <label>
+plan_review_field() {  # <solution file> <label>
   [ -f "$1" ] || return 1
   awk -v label="**$2:**" '
     /^(```|~~~)/ { fence = !fence; next }
@@ -66,7 +66,7 @@ plan_review_field() {  # <3-solution.md> <label>
 # The counts of the newest Plan review section in <3-solution.md>, as
 # `<n> must-fix, <n> should-fix, <n> acted on`; `nocounts` for a section
 # without a whole Findings line; nothing when there is no section.
-plan_review_line() {  # <3-solution.md>
+plan_review_line() {  # <solution file>
   local findings must should acted
   findings="$(plan_review_field "$1" "Findings")" || return 0
   must="$(printf '%s' "$findings" | grep -oE '[0-9]+ must-fix' | head -1)"
@@ -76,11 +76,11 @@ plan_review_line() {  # <3-solution.md>
 }
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
-  plan_review_counts="$(plan_review_line "$specs_root_wt/$spec_label/3-solution.md")"
+  plan_review_counts="$(plan_review_line "$specs_root_wt/$spec_label/${AIDE_SOLUTION_FILE}")"
   case "$plan_review_counts" in
-    "") stage "plan review: the plan (3-solution.md) has no Plan review section" ;;
-    nocounts) stage "plan review: the Plan review section in the plan (3-solution.md) gives no counts — the findings are there" ;;
-    *) stage "plan review: $plan_review_counts — the findings are under Plan review in the plan (3-solution.md)" ;;
+    "") stage "plan review: the plan (${AIDE_SOLUTION_FILE}) has no Plan review section" ;;
+    nocounts) stage "plan review: the Plan review section in the plan (${AIDE_SOLUTION_FILE}) gives no counts — the findings are there" ;;
+    *) stage "plan review: $plan_review_counts — the findings are under Plan review in the plan (${AIDE_SOLUTION_FILE})" ;;
   esac
 fi
 
@@ -145,7 +145,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
   # this turn's, and nothing pasted into the prompt has to be cut short.
   review_base="$(default_ref "$project_wt" "$project_root")"
   review_fork="$(git -C "$project_wt" merge-base "$review_base" HEAD 2>/dev/null)" || review_fork="HEAD"
-  review_description_path="$specs_root_wt/$spec_label/1-description.md"
+  review_description_path="$specs_root_wt/$spec_label/${AIDE_DESCRIPTION_FILE}"
 
   # The pictures of the pages the branch changed, when it changed any.
   screenshots_settle "$review_fork"

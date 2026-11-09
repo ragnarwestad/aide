@@ -234,7 +234,7 @@ commit_is_public() {
 # marked unfinished, since the message describes the whole change.
 spec_title() {
   local f
-  for f in "$specs_root_wt/$commit_label/1-description.md" "$specs_root_wt/archive/$commit_label/1-description.md"; do
+  for f in "$specs_root_wt/$commit_label/${AIDE_DESCRIPTION_FILE}" "$specs_root_wt/archive/$commit_label/${AIDE_DESCRIPTION_FILE}"; do
     [ -f "$f" ] || continue
     sed -n '1s/^# //; 1s/ - Description$//p' "$f"
     return 0

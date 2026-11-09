@@ -1,11 +1,13 @@
 import { dependsOnIn } from "../../project/discover/depends-on.ts";
+import { specNumber } from "../../project/spec-folder.ts";
+import { isSpecFolder } from "../../project/spec-names.ts";
 
 export type DependencyChange = { dependencies: string[]; added: string[] } | { cycle: string[] } | { error: string };
 
 export function planDependencies(source: string, additions: string[], descriptions: ReadonlyMap<string, string>): DependencyChange {
   const resolve = (id: string): string | undefined => {
     if (descriptions.has(id)) return id;
-    const matches = [...descriptions.keys()].filter((folder) => /^\d+$/.test(id) && folder.startsWith(`${id}-`));
+    const matches = [...descriptions.keys()].filter((folder) => isSpecFolder(folder) && specNumber(folder) === id);
     return matches.length === 1 ? matches[0] : undefined;
   };
   const own = descriptions.get(source);

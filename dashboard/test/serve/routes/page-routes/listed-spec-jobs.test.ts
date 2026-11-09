@@ -29,4 +29,9 @@ describe("listedSpecJobs", () => {
     const later = job("b", ["analyze"], "done", "2026-10-14T19:50:00Z");
     expect(listedSpecJobs(ctx, [analyze, close, later]).map((j) => j.id)).toEqual(["a", "c", "b"]);
   });
+
+  test("a scheduled job is never a spec's job (AC-3)", () => {
+    const scheduled = { ...job("s", ["schedule"], "done", "2026-10-14T19:49:00Z"), specFolder: "schedule-nightly" };
+    expect(listedSpecJobs(ctx, [analyze, scheduled]).map((j) => j.id)).toEqual(["a"]);
+  });
 });

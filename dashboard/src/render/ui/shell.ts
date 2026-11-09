@@ -19,6 +19,7 @@ import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { delayFile, nextDelay, readDelay } from "../../integrations/round-delay.ts";
 import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
+import { isSpecFolder } from "../../project/spec-names.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
 export interface NavEntry {
@@ -261,10 +262,6 @@ function delayForm(lang: Language): string {
 function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
   return buttonForm({ action: "/api/self-stop", hook: "actionform", button: { label: t(lang, "shell.stopTestServer") } });
-}
-
-export function isSpecFolder(folder: string): boolean {
-  return /^\d+(-|$)/.test(folder);
 }
 
 /** `tabs` is the tab bar again, shown in the header's own row on a phone

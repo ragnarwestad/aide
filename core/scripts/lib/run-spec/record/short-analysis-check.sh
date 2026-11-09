@@ -30,16 +30,16 @@
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
   sa_dir="$specs_root_wt/$spec_label"
-  sa_analysis="$(spec_analysis "$sa_dir/2-analysis.md")"
-  sa_grade="$(tracking_info_field "$sa_dir/3-solution.md" "Grade")"
+  sa_analysis="$(spec_analysis "$sa_dir/${AIDE_ANALYSIS_FILE}")"
+  sa_grade="$(tracking_info_field "$sa_dir/${AIDE_SOLUTION_FILE}" "Grade")"
   sa_grade="${sa_grade%% *}"
-  sa_recorded="$(tracking_info_field "$sa_dir/3-solution.md" "Acceptance criteria")"
+  sa_recorded="$(tracking_info_field "$sa_dir/${AIDE_SOLUTION_FILE}" "Acceptance criteria")"
   sa_recorded="${sa_recorded%% *}"
   case "$sa_recorded" in ''|*[!0-9]*) sa_recorded=0 ;; esac
-  sa_counted="$(grep -oE '^- \*\*AC-[0-9]+' "$sa_dir/1-description.md" 2>/dev/null | sort -u | wc -l | tr -d ' ')"
+  sa_counted="$(grep -oE '^- \*\*AC-[0-9]+' "$sa_dir/${AIDE_DESCRIPTION_FILE}" 2>/dev/null | sort -u | wc -l | tr -d ' ')"
   sa_criteria="$sa_recorded"
   [ "${sa_counted:-0}" -gt "$sa_criteria" ] && sa_criteria="$sa_counted"
-  sa_paths="$(newest_round "$sa_dir/2-analysis.md" | section "Files to change" | paths_json 2>/dev/null)" || sa_paths="[]"
+  sa_paths="$(newest_round "$sa_dir/${AIDE_ANALYSIS_FILE}" | section "Files to change" | paths_json 2>/dev/null)" || sa_paths="[]"
   sa_sources="$(printf '%s' "${sa_paths:-[]}" | source_paths 2>/dev/null)" || sa_sources="[]"
   sa_files="$(printf '%s' "${sa_paths:-[]}" | jq 'length' 2>/dev/null)"; sa_files="${sa_files:-0}"
   sa_source_count="$(printf '%s' "${sa_sources:-[]}" | jq 'length' 2>/dev/null)"; sa_source_count="${sa_source_count:-0}"
@@ -58,7 +58,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
       sa_cross "it has $sa_source_count source files to change, over the limit of $SHORT_ANALYSIS_MAX_FILES ($(printf '%s' "$sa_sources" | jq -r 'join(", ")'))"
     fi
     [ "${choose_approach:-}" = "yes" ] && sa_cross "it asks to choose the approach"
-    [ -n "$(tracking_info_field "$sa_dir/1-description.md" "Sent back to a full analysis")" ] \
+    [ -n "$(tracking_info_field "$sa_dir/${AIDE_DESCRIPTION_FILE}" "Sent back to a full analysis")" ] \
       && sa_cross "it was sent back to a full analysis"
   fi
 
@@ -71,10 +71,10 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     stage "$sa_said — Analyze fails"
     stop_step short-analysis-over-limit "$step_button wrote a short analysis for a spec that may not have one: $sa_crossed" \
       "Analyze runs again and writes the full analysis"
-    if [ -z "$(tracking_info_field "$sa_dir/1-description.md" "Sent back to a full analysis")" ]; then
+    if [ -z "$(tracking_info_field "$sa_dir/${AIDE_DESCRIPTION_FILE}" "Sent back to a full analysis")" ]; then
       sa_why="$(printf 'a short analysis was written over a limit: %s' "$sa_crossed" | tr '\n\r' '  ' | tr -d '`' \
         | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | cut -c1-300 | sed 's/[[:space:]]*$//')"
-      record_sent_back "$sa_dir/1-description.md" "$sa_why" || true
+      record_sent_back "$sa_dir/${AIDE_DESCRIPTION_FILE}" "$sa_why" || true
     fi
     error_log="$sa_crossed"
   fi

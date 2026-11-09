@@ -1,13 +1,10 @@
 // What more than one of the spec's own route families needs.
 import type { Job } from "../../../queue/types.ts";
+import { dirname, join } from "node:path";
+import { STATE_FILE } from "../../../project/spec-names.ts";
 
-const STATE_SPEC_FILE = "4-status.json";
-
-/** `4-status.json` beside the `4-status.md` path given. */
-export const stateRelPath = (statusRelPath: string): string =>
-  statusRelPath.replace(/4-status\.md$/, STATE_SPEC_FILE);
-
-export { STATE_SPEC_FILE };
+/** The state file beside the status file path given. */
+export const stateRelPath = (statusRelPath: string): string => join(dirname(statusRelPath), STATE_FILE);
 
 /** Whether `job` is writing the spec's files right now: its step is
  *  running, or its landing is in flight. A queued job writes nothing

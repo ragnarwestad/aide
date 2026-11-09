@@ -24,9 +24,10 @@ import {
   type CheckState,
 } from "../../../project/parse-status";
 import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
+import { STATE_FILE } from "../../../project/spec-names.ts";
 import { STATUS_SPEC_FILE } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, refusal, tickMessage } from "../../serve-helpers";
-import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
+import { specWriteInFlight, stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
 
@@ -264,7 +265,7 @@ export async function checkRoutes(
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(`${reason} — nothing was saved`);
     }
-    const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
+    const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_FILE);
     // An open branch writes straight onto `refs/heads/aide/<folder>`
     // at origin — never through `saveSpecFiles`, which structurally
     // cannot target anything but the shared checkout's own `HEAD`
@@ -293,7 +294,7 @@ export async function checkRoutes(
             (root) => ctx.branchStatus.defaultBranch(root),
             [
               { file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha },
-              { file: STATE_SPEC_FILE, text: derived.stateJson!, baseSha: currentState?.sha ?? null },
+              { file: STATE_FILE, text: derived.stateJson!, baseSha: currentState?.sha ?? null },
             ],
             { specLabel: specFolder!, message: tickMessage(specFolder!) },
           ),

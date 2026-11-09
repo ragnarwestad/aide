@@ -6,7 +6,8 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { providerPickerOptions } from "../../providers/options.ts";
-import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
+import { scheduleTrackingKey } from "../../../project/spec-names.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport } from "../../../queue/schedule.ts";
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,

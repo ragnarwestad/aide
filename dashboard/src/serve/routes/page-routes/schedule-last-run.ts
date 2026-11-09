@@ -1,5 +1,6 @@
 // A schedule entry's most recent run, as the Schedule list shows it.
-import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
+import { scheduleTrackingKey } from "../../../project/spec-names.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport } from "../../../queue/schedule.ts";
 import { scheduleRunPath } from "../../../render";
 import type { RoutesContext } from "..";
 

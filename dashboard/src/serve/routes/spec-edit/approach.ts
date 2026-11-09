@@ -15,8 +15,7 @@ import { followOnJob, specWriteInFlight } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
 import type { RoutesContext } from "..";
-
-const SOLUTION_FILE = "3-solution.md";
+import { DESCRIPTION_FILE, SOLUTION_FILE } from "../../../project/spec-names.ts";
 
 export async function approachRoutes(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   const m = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/approach$/);
@@ -55,7 +54,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
     ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
     : null;
   const solution = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, SOLUTION_FILE) ?? "");
-  const pending = pendingChoice(chooseApproachIn(specFileText(dir, "1-description.md") ?? ""), parseApproaches(solution));
+  const pending = pendingChoice(chooseApproachIn(specFileText(dir, DESCRIPTION_FILE) ?? ""), parseApproaches(solution));
   const picked = pending?.find((a) => a.letter === letter);
   if (!picked) return refuse("there is no approach to choose here any more", "reload the page");
 

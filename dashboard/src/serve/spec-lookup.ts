@@ -17,7 +17,7 @@ import { resolve, sep, join } from "node:path";
 import type { BranchStatusChecker } from "../git/branch-status.ts";
 import type { GitRunner } from "../git/process/index.ts";
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
-import { specBranch } from "../git/branch-status.ts";
+import { specBranch, STATUS_FILE } from "../project/spec-names.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   discoverProjects, manifestInside, type CodeLanding, type SpecRef,
@@ -118,7 +118,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // is display text `4-status.json`'s schema does not carry.
         let statusText = "";
         try {
-          statusText = readFileSync(join(s.dir, "4-status.md"), "utf-8");
+          statusText = readFileSync(join(s.dir, STATUS_FILE), "utf-8");
         } catch {
           statusText = "";
         }

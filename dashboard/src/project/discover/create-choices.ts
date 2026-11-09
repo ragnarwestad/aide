@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { acceptanceNotRequiredIn } from "./acceptance.ts";
 import { chooseApproachIn } from "./choose-approach.ts";
 import { CRITERIA_CHECKS, criteriaChecksIn, type CriteriaChecks } from "./criteria-checks.ts";
+import { DESCRIPTION_FILE } from "../spec-names.ts";
 
 export interface CreateChoices {
   /** Whether archive waits for the acceptance rows to be ticked. */
@@ -42,7 +43,7 @@ export function createChoicesIn(text: string): CreateChoices {
  *  when it cannot be read. */
 export function specCreateChoices(dir: string): CreateChoices | undefined {
   try {
-    return createChoicesIn(readFileSync(join(dir, "1-description.md"), "utf-8"));
+    return createChoicesIn(readFileSync(join(dir, DESCRIPTION_FILE), "utf-8"));
   } catch {
     return undefined;
   }

@@ -128,7 +128,7 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root
     # fetched it, and believing one here would re-open a spec that is
     # genuinely done.
     for root in "${roots[@]}"; do
-      if [ -n "$(git -C "$root" ls-remote --heads origin "refs/heads/aide/$archived_candidate" 2>/dev/null)" ]; then
+      if [ -n "$(git -C "$root" ls-remote --heads origin "refs/heads/$(aide_spec_branch "$archived_candidate")" 2>/dev/null)" ]; then
         spec_folder="$archived_candidate"
         break
       fi

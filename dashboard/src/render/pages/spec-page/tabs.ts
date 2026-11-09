@@ -2,6 +2,7 @@
 
 import { pickTab } from "../job-page";
 import type { SpecPageView } from "./types.ts";
+import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../../../project/spec-names.ts";
 
 /** The path this page lives at. One function, because the server routes
  *  on it and the list links to it. */
@@ -91,7 +92,7 @@ export const SPEC_LINES: Record<string, string> = { line: SPEC_REFUSED_LINE, not
  *  because the page decides which tab is a textarea and the server
  *  decides which file the route writes, and those two must be the same
  *  file. */
-export const EDITABLE_SPEC_FILE = "1-description.md";
+export const EDITABLE_SPEC_FILE = DESCRIPTION_FILE;
 
 /** The file whose Status marks a person may now flip, one row at a
  *  time. Named beside `EDITABLE_SPEC_FILE` and for the same
@@ -100,14 +101,14 @@ export const EDITABLE_SPEC_FILE = "1-description.md";
  *  same file. It is NOT editable in the `EDITABLE_SPEC_FILE` sense —
  *  there is no textarea and never will be, because a textarea cannot
  *  structurally stop a person rewriting a step's own prose. */
-export const STATUS_SPEC_FILE = "4-status.md";
+export const STATUS_SPEC_FILE = STATUS_FILE;
 
 /** Which file each document tab shows. The Description tab renders its
  *  own form rather than a `<pre>`, and is here for the file it names. */
 export const TAB_FILES: Partial<Record<SpecTab, string>> = {
   description: EDITABLE_SPEC_FILE,
-  analysis: "2-analysis.md",
-  solution: "3-solution.md",
+  analysis: ANALYSIS_FILE,
+  solution: SOLUTION_FILE,
   status: STATUS_SPEC_FILE,
 };
 
@@ -160,19 +161,19 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
  *  preceding sibling. `stepResults()` is shared with the job page, which
  *  passes no mark and keeps its own output unchanged. */
 export const TAB_HELP: Record<SpecTab, string> = {
-  description: "The problem as it was reported, kept in <code>1-description.md</code>. " +
+  description: `The problem as it was reported, kept in <code>${DESCRIPTION_FILE}</code>. ` +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
   analysis: "What <code>/aide-analyze</code> found when it read the code for this problem, " +
-    "kept in <code>2-analysis.md</code> and written by that step. " +
+    `kept in <code>${ANALYSIS_FILE}</code> and written by that step. ` +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  solution: "The plan <code>/aide-analyze</code> wrote, kept in <code>3-solution.md</code>. " +
+  solution: `The plan <code>/aide-analyze</code> wrote, kept in <code>${SOLUTION_FILE}</code>. ` +
     "Where it lists more than one Approach, only the one marked recommended gets built — " +
     "the rest are the record of what was weighed, not options still open — unless the spec " +
     "was created with Let me choose the approach, where the Specs list offers each real " +
     "alternative until one is chosen. The Acceptance " +
     "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  status: "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
+  status: `Progress through the plan, kept in <code>${STATUS_FILE}</code> and updated by ` +
     "<code>/aide-implement</code> as it runs, shown read-only here. While the spec is active " +
     "and no job is running, the <code>## Acceptance criteria</code> rows at the top can be " +
     "ticked, and Save commits and pushes the ticks; only those rows hold the next archive " +

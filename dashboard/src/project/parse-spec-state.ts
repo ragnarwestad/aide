@@ -14,6 +14,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { STATE_FILE } from "./spec-names.ts";
 
 export interface SpecStateAcceptanceRow {
   task: string;
@@ -100,7 +101,7 @@ export function parseSpecStateText(text: string): SpecState | null {
  *  never fall back to re-parsing the prose beside it. */
 export function readSpecState(dir: string): SpecState | null {
   try {
-    const path = join(dir, "4-status.json");
+    const path = join(dir, STATE_FILE);
     if (!existsSync(path)) return null;
     return parseSpecStateText(readFileSync(path, "utf-8"));
   } catch {

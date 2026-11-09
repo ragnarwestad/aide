@@ -11,7 +11,7 @@ import { projectPagePath } from "../../pages/projects-page/routes.ts";
 // noinspection ES6PreferShortImport
 import { specPagePath } from "../../pages/spec-page/tabs.ts";
 import { esc } from "../html.ts";
-import { isSpecFolder } from "../shell.ts";
+import { isSpecFolder } from "../../../project/spec-names.ts";
 
 /** The project's name as a link to its page. Every link carries
  *  `data-goto`: it leaves the page for another document, and a clicked

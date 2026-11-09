@@ -163,7 +163,7 @@ esac
 # read-only pre-check: created --implement--> refused (not-analyzed-yet),
 # analyzed/implemented --implement--> legal. Same reason, same message.
 if [ "$command_name" = "implement" ]; then
-  status_file="$specs_root/$spec_folder/4-status.md"
+  status_file="$specs_root/$spec_folder/${AIDE_STATUS_FILE}"
   # A status file that does not exist yet reads as phase "created"
   # (_peek_spec_state derives an empty state), which the table refuses
   # implement from — same as the old code's default "no" for a missing
@@ -292,9 +292,9 @@ for root in "${roots[@]}"; do
     if fetch_base_with_retry "$root" "$base"; then
       stage "fetched $base in $root"
       git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
-        || note_pull_error "cannot fast-forward $base (aide/$spec_label in $root)"
+        || note_pull_error "cannot fast-forward $base ($(aide_spec_branch "$spec_label") in $root)"
     else
-      note_pull_error "cannot fetch $base (aide/$spec_label in $root): $fetch_retry_error"
+      note_pull_error "cannot fetch $base ($(aide_spec_branch "$spec_label") in $root): $fetch_retry_error"
     fi
   fi
   release_worktree_lock

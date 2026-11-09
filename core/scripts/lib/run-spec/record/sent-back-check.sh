@@ -29,9 +29,9 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] && 
   if [ -z "$sent_back_why" ]; then
     stage "sent back: the sentence file is empty — the step is judged as it stands"
   else
-    if [ "$(spec_analysis "$sb_dir/2-analysis.md")" != "short" ]; then
+    if [ "$(spec_analysis "$sb_dir/${AIDE_ANALYSIS_FILE}")" != "short" ]; then
       sent_back_refusal="its analysis is already full"
-    elif ! record_sent_back "$sb_dir/1-description.md" "$sent_back_why"; then
+    elif ! record_sent_back "$sb_dir/${AIDE_DESCRIPTION_FILE}" "$sent_back_why"; then
       sent_back_refusal="the description has no Created line to record it under"
     fi
     if [ -z "$sent_back_refusal" ]; then

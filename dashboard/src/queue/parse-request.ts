@@ -16,6 +16,7 @@ import { parseProviderPick } from "./providers/parse.ts";
 import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { specReference } from "../project/spec-folder.ts";
+import { isScheduleKey, newProvisionalKey } from "../project/spec-names.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
 
@@ -85,7 +86,7 @@ export function parseJobRequest(
   // another step skip the "must already exist" check below.
   const isScheduleJob =
     Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "schedule";
-  if (isScheduleJob && !r.specFolder.startsWith("schedule-")) {
+  if (isScheduleJob && !isScheduleKey(r.specFolder)) {
     return { ok: false, error: invalidRequest("invalid specFolder: a schedule job's tracking key must start with schedule-") };
   }
   // The board's own deploy is no spec either: exactly `["deploy"]`, under the
@@ -327,18 +328,6 @@ function text(raw: unknown, max: number, name: string, multiline = false): strin
   return value;
 }
 
-/** The provisional key a create job carries in place of a spec folder,
- *  until landing decides the real name. Obviously not a spec
- *  folder, on purpose: nothing in this codebase may compute a spec's
- *  number or slug except the two shared shell functions
- *  (`aide_next_spec_number`, `aide_slug_from_title` in
- *  `_aide-spec-lib.sh`) that both an interactive `/aide-create` session
- *  and landing's own `--assign-number` step call — never a second,
- *  independent count (a second count would be one rule written down
- *  twice). */
-const provisionalKey = (): string =>
-  `new-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-
 /** `parseCreateRequest`'s own return shape, widened over the base
  *  `ParseResult`: the picks banked for a phase this create job does not
  *  run are consumed by its one caller, `enqueueCreate()`, not
@@ -463,7 +452,7 @@ export function parseCreateRequest(
     job: {
       id: crypto.randomUUID(),
       project: r.project,
-      specFolder: provisionalKey(),
+      specFolder: newProvisionalKey(),
       steps,
       stepIndex: 0,
       state: "queued",

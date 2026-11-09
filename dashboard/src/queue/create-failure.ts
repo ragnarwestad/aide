@@ -4,10 +4,8 @@
 // failed create is.
 
 import type { BoardMessage, Sentence } from "../i18n/message.ts";
+import { isProvisionalKey } from "../project/spec-names.ts";
 import type { Job } from "./queue.ts";
-
-/** `new-` + 8 hex: the key `parseCreateRequest` gives a create job until its merge renames it. */
-export const isProvisionalKey = (folder: string): boolean => /^new-[0-9a-f]{8}$/.test(folder);
 
 const ENDED = new Set(["failed", "stopped", "interrupted"]);
 

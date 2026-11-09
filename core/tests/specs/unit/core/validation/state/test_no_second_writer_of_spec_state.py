@@ -23,6 +23,7 @@ import pytest
 # list that starts mentioning the state file is exactly the drift this
 # guard exists to catch.
 ALLOWED_BASH_FILES = {
+    "core/scripts/lib/spec-reference.sh",   # defines the shared file name; never reads or writes it
     "core/scripts/lib/spec-state.sh",       # the one writer
     "core/scripts/aide-write-spec",          # reads the derived file back, for its own stdout contract
     "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
@@ -32,6 +33,7 @@ ALLOWED_BASH_FILES = {
     "core/scripts/lib/spec-transitions.sh",  # Reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
 ALLOWED_DASHBOARD_FILES = {
+    "dashboard/src/project/spec-names.ts",       # defines the shared file name; never reads or writes it
     "dashboard/src/project/parse-spec-state.ts",  # the one reader
     "dashboard/src/serve/spec-lookup.ts",          # reads it through parse-spec-state.ts
     # spec-edit relays what aide-write-spec derived; since the file was

@@ -4,7 +4,8 @@
 // refuse before any write, then a JSON answer. A saved create or edit
 // names the page the reader came from, for the page script to go to.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
-import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
+import { scheduleTrackingKey } from "../../project/spec-names.ts";
+import { nextFireTime } from "../../queue/schedule.ts";
 import { splitFix } from "../../format/request-fixes.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";

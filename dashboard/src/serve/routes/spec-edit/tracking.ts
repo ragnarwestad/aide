@@ -98,7 +98,7 @@ export async function trackingRoutes(
   }
 
   if (currentText === null) {
-    return refuse("1-description.md could not be read — nothing was saved");
+    return refuse(`${EDITABLE_SPEC_FILE} could not be read — nothing was saved`);
   }
 
   // This form carries no `baseSha` of its own — it is not one document's

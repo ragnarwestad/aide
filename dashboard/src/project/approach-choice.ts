@@ -16,6 +16,7 @@
 // earlier round does not answer a new round's approaches.
 
 import { chooseApproachIn, specFileText } from "./discover";
+import { DESCRIPTION_FILE, SOLUTION_FILE } from "./spec-names.ts";
 
 export const APPROACH_MARKS = ["recommended", "real alternative", "considered and rejected"] as const;
 export type ApproachMark = (typeof APPROACH_MARKS)[number];
@@ -154,6 +155,6 @@ export function withChosenApproach(solution: string, letter: string): string {
  *  or else the checkout's. The solution is not read for a spec that did
  *  not ask. */
 export function specPendingChoice(dir: string, branch?: ApproachChoice): Approach[] | null {
-  if (!chooseApproachIn(specFileText(dir, "1-description.md") ?? "")) return null;
-  return pendingChoice(true, branch ?? parseApproaches(specFileText(dir, "3-solution.md") ?? ""));
+  if (!chooseApproachIn(specFileText(dir, DESCRIPTION_FILE) ?? "")) return null;
+  return pendingChoice(true, branch ?? parseApproaches(specFileText(dir, SOLUTION_FILE) ?? ""));
 }

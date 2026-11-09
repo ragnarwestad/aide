@@ -1,10 +1,9 @@
 // The test board's own Run control: put the round's fixture specs
 // through again, on this same board, without starting a new server.
 //
-// What `test/round/run` used to do in its own loop — send every fixture
-// spec through `/api/queue/create`, wait for the folder it becomes,
-// queue that spec's own steps — lives here now, so the board owns the
-// round and the script is a thin shell around it (2026-09-11). Before
+// The board owns the round: it sends every fixture spec through
+// `/api/queue/create`, waits for the folder it becomes and queues that
+// spec's own steps, and `test/round/run` is a thin shell around it. Before
 // the fixtures go in again the board is put back where the round left
 // it at the start: every live job is cancelled and the project's jobs
 // dropped, and the two throwaway repositories (the fixture project and
@@ -25,6 +24,7 @@ import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
 import { json } from "../serve-helpers";
 import type { Job } from "../../queue/queue.ts";
+import { isProvisionalKey } from "../../project/spec-names.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock/index.ts";
 
 /** The folder a create job's spec can be queued under: its real
@@ -33,7 +33,7 @@ import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock
  *  not say the landing has finished — and the queue refuses a step for
  *  the spec while it has not. */
 export function settledCreateFolder(job: { specFolder: string; landing?: Job["landing"] }): string | undefined {
-  if (/^new-[0-9a-f]{8}$/.test(job.specFolder)) return undefined;
+  if (isProvisionalKey(job.specFolder)) return undefined;
   if (job.landing) return undefined;
   return job.specFolder;
 }

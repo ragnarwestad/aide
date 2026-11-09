@@ -267,7 +267,7 @@ Let me choose the approach is on for this spec, per Step 7: mark each approach (
   # analysis:` line, core/tests/fixtures/sent-back-line.json is the table).
   # The limits are SHORT_ANALYSIS_* (setup/arguments.sh), and
   # record/short-analysis-check.sh holds the line after the turn.
-  already_sent_back="$(tracking_info_field "$specs_root/$spec_folder/1-description.md" "Sent back to a full analysis")"
+  already_sent_back="$(tracking_info_field "$specs_root/$spec_folder/${AIDE_DESCRIPTION_FILE}" "Sent back to a full analysis")"
   short_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && [ -z "$already_sent_back" ] && short_line="
 A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted)"
@@ -401,7 +401,7 @@ else
   session_project="$(worktree_project_key "$project_root")"
   case "$command_name" in
     create)   session_name="$session_project new create" ;;
-    schedule) session_name="$session_project schedule ${spec_arg#schedule-}" ;;
+    schedule) session_name="$session_project schedule $(aide_schedule_name "$spec_arg")" ;;
     *)        session_name="$session_project $spec_id $command_name" ;;
   esac
   argv+=(--name "$session_name")
@@ -435,5 +435,5 @@ fi
 # step changes only the specs repo, and branching just the project left
 # that work committed on main and pushed there — the one thing `push
 # branch` exists to prevent. Measured 2026-08-16.
-branch="aide/$spec_label"
+branch="$(aide_spec_branch "$spec_label")"
 

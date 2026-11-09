@@ -4,7 +4,8 @@
 // job and its row view share, so the route can run them on the raw jobs and
 // the tests on plain objects.
 
-import { scheduleNameOf } from "../../../queue/schedule.ts";
+import { isScheduleKey, scheduleNameOf } from "../../../project/spec-names.ts";
+import { isScheduleJob } from "../../../queue/schedule.ts";
 import { cleanupStep, closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
 import { stepLabel, type MessageVariant } from "../../ui/components";
@@ -35,9 +36,6 @@ export interface JobLike {
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number };
-
-export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
-  job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */
@@ -147,7 +145,7 @@ export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "
 export function scheduleStreamKey(key: string): string | undefined {
   const slash = key.indexOf("/");
   const folder = key.slice(slash + 1);
-  if (slash <= 0 || key.includes(":") || !folder.startsWith("schedule-")) return undefined;
+  if (slash <= 0 || key.includes(":") || !isScheduleKey(folder)) return undefined;
   return phaseKey(key.slice(0, slash), folder, "schedule");
 }
 

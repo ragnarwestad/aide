@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { DESCRIPTION_FILE } from "../spec-names.ts";
 
 // `[ \t]*`, never `\s*`, for the same reason `depends-on.ts` gives: `\s`
 // matches a newline, and a trailing `\s*` would run an empty field
@@ -19,7 +20,7 @@ const ACCEPTANCE_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*.*(\n
  *  for "nothing": the archiving gate keeps holding on unticked rows
  *  exactly as it does today. */
 export function specAcceptanceNotRequired(dir: string): boolean {
-  const desc = join(dir, "1-description.md");
+  const desc = join(dir, DESCRIPTION_FILE);
   if (!existsSync(desc)) return false;
   let text: string;
   try {

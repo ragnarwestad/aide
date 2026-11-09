@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { projectCheckout } from "../git/branch-status.ts";
 import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import { resolveCodeLanding, type CodeLanding } from "../project/discover";
+import { isScheduleKey, scheduleNameOf } from "../project/spec-names.ts";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleStore } from "../queue/schedule-store.ts";
 import type { SpecTarget } from "../render";
@@ -66,8 +67,8 @@ export function codeLanding(ctx: ProjectCheckoutContext, project: string): CodeL
  *  guessing at one. */
 export function promptFileFor(ctx: ProjectCheckoutContext, job: Job, step: string): string | undefined {
   if (step !== "schedule") return undefined;
-  if (!job.specFolder.startsWith("schedule-")) return undefined;
-  const name = job.specFolder.slice("schedule-".length);
+  if (!isScheduleKey(job.specFolder)) return undefined;
+  const name = scheduleNameOf(job.specFolder);
   return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.prompt;
 }
 
@@ -76,8 +77,8 @@ export function promptFileFor(ctx: ProjectCheckoutContext, job: Job, step: strin
  *  path above. False for every other step, and for an entry since removed. */
 export function chromeFor(ctx: ProjectCheckoutContext, job: Job, step: string): boolean {
   if (step !== "schedule") return false;
-  if (!job.specFolder.startsWith("schedule-")) return false;
-  const name = job.specFolder.slice("schedule-".length);
+  if (!isScheduleKey(job.specFolder)) return false;
+  const name = scheduleNameOf(job.specFolder);
   return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.chrome === true;
 }
 
@@ -86,8 +87,8 @@ export function chromeFor(ctx: ProjectCheckoutContext, job: Job, step: string): 
  *  False for every other step, and for an entry since removed. */
 export function noSandboxFor(ctx: ProjectCheckoutContext, job: Job, step: string): boolean {
   if (step !== "schedule") return false;
-  if (!job.specFolder.startsWith("schedule-")) return false;
-  const name = job.specFolder.slice("schedule-".length);
+  if (!isScheduleKey(job.specFolder)) return false;
+  const name = scheduleNameOf(job.specFolder);
   return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.sandbox === false;
 }
 

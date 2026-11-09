@@ -41,6 +41,7 @@ def _commit_with_lost_state(root, wt):
     script = f"""
 set -uo pipefail
 source "{SCRIPTS}/_aide-spec-lib.sh"
+source "{SCRIPTS}/lib/spec-reference.sh"
 source "{SCRIPTS}/lib/run-spec/checkout/worktree.sh"
 stage() {{ :; }}
 roots=("{root}"); work_roots=("{wt}")
@@ -88,6 +89,7 @@ def test_a_root_with_no_worktree_yet_commits_nothing_where_the_runner_stands(tmp
     script = f"""
 set -uo pipefail
 source "{SCRIPTS}/_aide-spec-lib.sh"
+source "{SCRIPTS}/lib/spec-reference.sh"
 source "{SCRIPTS}/lib/run-spec/checkout/worktree.sh"
 stage() {{ :; }}
 roots=("{root}"); work_roots=()

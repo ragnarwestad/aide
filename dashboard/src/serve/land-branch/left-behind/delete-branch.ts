@@ -5,7 +5,8 @@
 // cached answer trusted is a merged pull request: it never changes, so
 // it only has to match the tip origin has just given.
 
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, specBranch } from "../../../git/branch-status.ts";
+import { specBranch } from "../../../project/spec-names.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../../git/branch-status.ts";
 import { deleteBranchOnly } from "../../../git/branch-merge/index.ts";
 import { mergedPullRequest, specRoots } from "../../spec-lookup.ts";
 import type { LandContext } from "../types.ts";

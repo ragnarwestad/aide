@@ -5,8 +5,6 @@ says which project, spec and step a session belonged to. A turn that
 continues a session passes no name, and Codex and OpenCode have none to pass.
 """
 
-import re
-
 import pytest
 
 from ...conftest import git, run
@@ -73,18 +71,6 @@ def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry(runner, wo
     rc, out, _ = schedule(runner, workspace, fake_claude("exit 1"), spec=SCHEDULE_KEY, dry_run=True)
     assert rc == 0, out
     assert _name(out["argv"]) == "proj schedule nightly-report"
-
-
-def test_the_schedule_prefix_the_name_strips_is_the_one_the_dashboard_adds(workspace_root):
-    """The runner reads the entry's name out of the dashboard's tracking key,
-    so the two must use the same prefix."""
-    invocation = (workspace_root / "core/scripts/lib/run-spec/setup/invocation.sh").read_text()
-    schedule_ts = (workspace_root / "dashboard/src/queue/schedule.ts").read_text()
-    stripped = re.findall(r"\$\{spec_arg#([^}]*)\}", invocation)
-    added = re.findall(r"scheduleTrackingKey = \(name: string\): string => `([^$`]*)\$\{name\}`", schedule_ts)
-    assert stripped, "invocation.sh no longer strips a prefix from the schedule's key"
-    assert added, "scheduleTrackingKey no longer builds the key from a prefix and the name"
-    assert set(stripped) == set(added)
 
 
 @pytest.mark.parametrize("tool", ["codex", "opencode"])
