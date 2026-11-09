@@ -9,6 +9,7 @@ import { currentStep, inFlight, sidesSpent, type QueueRowView, type StepResultVi
 import { landingStep } from "../../../ui/job-state/resting.ts";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
 import { workflowArc } from "../../../../workflow-steps.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../../step-endings.ts";
 
 /** Every step this job has anything to say about: the ones it finished,
  *  plus the one it is on. */
@@ -397,7 +398,7 @@ function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, anal
 function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean {
   if (target?.acceptanceOpen !== false) return false;
   const latest = phase.attempts[0]?.results?.find((r) => r.step === "archive");
-  return latest?.terminalReason === "acceptance-criteria-unticked";
+  return latest?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED;
 }
 
 /** The job in flight that is another round of work on this spec, if

@@ -38,10 +38,10 @@ describe("aiWorkRetryDecision", () => {
     expect(aiWorkRetryDecision({ terminalReason: "scope-violation", scopeViolation: "specs" }, 1)).toEqual({ retry: true });
   });
 
-  test("retries late overlap and archive checks through the same cap (AC-4, AC-5, AC-9)", () => {
-    expect(aiWorkRetryDecision({ lateCheck: "overlap-decision-missing" }, 1)).toEqual({ retry: true });
-    expect(aiWorkRetryDecision({ lateCheck: "archive-tests-red" }, 1)).toEqual({ retry: true });
-    expect(aiWorkRetryDecision({ lateCheck: "archive-tests-red" }, 2)).toBeUndefined();
+  test("retries semantic late-check reasons through the same cap (AC-4)", () => {
+    expect(aiWorkRetryDecision({ terminalReason: "no-progress" }, 1)).toEqual({ retry: true });
+    expect(aiWorkRetryDecision({ terminalReason: "tests-red" }, 1)).toEqual({ retry: true });
+    expect(aiWorkRetryDecision({ terminalReason: "tests-red" }, 2)).toBeUndefined();
   });
 
   test("does not retry failures that require a person or the machinery first (AC-9)", () => {

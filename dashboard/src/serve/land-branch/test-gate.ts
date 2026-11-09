@@ -76,6 +76,7 @@ function asFailedTests(named: { test: string; file: string; error: string }[]): 
  *  lines the first run failed on. */
 export interface GateVerdict {
   ok: boolean;
+  terminalReason?: "tests-red" | "timeout";
   error?: Sentence;
   detail?: string;
   retriedAfter?: string;
@@ -219,7 +220,7 @@ export function timeoutVerdict(output: string, minutes: number, button: string):
     const heading = line.match(/^(.+\.(?:test|spec)\.[cm]?[jt]sx?):$/);
     return heading?.[1] ? [heading[1]] : [];
   }).at(-1) ?? "the last test shown in the log";
-  return { ok: false, error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
+  return { ok: false, terminalReason: "timeout", error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
 }
 
 /** The host's cores divided among the steps and landings running as this

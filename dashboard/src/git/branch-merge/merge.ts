@@ -41,7 +41,12 @@ export function mergeWorktreePath(root: string, branch: string): string {
   return `${root}.landing.${branch.replace(/[^A-Za-z0-9._-]/g, "-")}`;
 }
 
-export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+export type LandingGate = (root: string) => Promise<{
+  ok: boolean;
+  terminalReason?: "tests-red" | "timeout";
+  error?: Sentence;
+  detail?: string;
+}>;
 
 export async function mergeBranchIntoDefault(
   run: GitRunner,
@@ -165,7 +170,7 @@ export async function mergeBranchIntoDefault(
     // landing is never gated again. Scoped to the lifetime of this one
     // `mergeBranchIntoDefault()` call — never module- or server-lifetime
     // — so no verdict outlives the landing it was reached for.
-    const gateVerdicts = new Map<string, { ok: boolean; error?: Sentence; detail?: string }>();
+    const gateVerdicts = new Map<string, Awaited<ReturnType<LandingGate>>>();
     // Set on the attempt that actually pushes — never on one whose push
     // was rejected and dropped, so a retry's own rename (recomputed
     // against the base that moved) is the one that survives.
@@ -248,7 +253,7 @@ export async function mergeBranchIntoDefault(
               ok: false,
               error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
               ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
-              reason: "tests-red",
+              reason: verdict.terminalReason ?? "tests-red",
             };
           }
         }

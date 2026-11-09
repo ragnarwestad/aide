@@ -9,6 +9,7 @@ import { mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB_STATES, QueueStore, TRANSITIONS, type QueueDefaults, type TransitionEvent } from "../../../src/queue/queue.ts";
+import { STEP_ENDINGS } from "../../../src/step-endings.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -215,7 +216,6 @@ describe("no state write outside the store", () => {
 // check above does.
 describe("the documented reasons and the unions agree", () => {
   const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
-  const stepsPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "steps.ts");
   const typesPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "types.ts");
 
   /** The members of a `"a" | "b"` union, read as text off its declaration. */
@@ -236,7 +236,9 @@ describe("the documented reasons and the unions agree", () => {
   }
 
   test("stopReason: every member is named where the field is described", () => {
-    expect(documented("stopReason")).toEqual(members(stepsPath, /export type StopReason =([^;]*);/));
+    expect(documented("stopReason")).toEqual(
+      STEP_ENDINGS.filter(({ jobStop }) => jobStop).map(({ name }) => name).sort(),
+    );
   });
 
   test("errorReason: every member is named where the field is described", () => {

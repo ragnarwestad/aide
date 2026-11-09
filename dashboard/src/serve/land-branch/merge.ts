@@ -133,6 +133,7 @@ export async function landBranch(
     // Which refusal it was, when it is one the row can offer a way out
     // of. A conflict is the only one a `resolve` step could finish.
     let reason: Job["errorReason"];
+    let landingTerminalReason: string | undefined;
     // A merge that succeeded but whose delete failed, per
     // repo. `leftBehindRoots` is what stops the post-loop check below
     // from re-flagging a root THIS loop already knows the story of;
@@ -281,7 +282,8 @@ export async function landBranch(
         failures.push(result.error ?? { key: "landing.cannotMergeFallback", values: { branch, root: repo.root } });
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
-        if (result.reason === "tests-red") reason = "tests-red";
+        if (result.reason === "tests-red") reason = landingTerminalReason = "tests-red";
+        if (result.reason === "timeout") landingTerminalReason = "timeout";
         // For archive and schedule alike: a code root that
         // fails to land stops the loop here — the specs root's own
         // merge has not run yet (code-first order, above) and must
@@ -387,9 +389,10 @@ export async function landBranch(
         errorDetail: detail.length ? detail.join("\n") : undefined,
         errorReason: reason,
         landingError: firstLandingError(first, held),
+        landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
         landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: "tests-red" as const } : {}),
-      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && retryArchiveLanding(ctx.queue, job.id, what.step, held, first, [renderSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
+      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && landingTerminalReason && retryArchiveLanding(ctx.queue, job.id, what.step, landingTerminalReason, [renderSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
       const result = cancelled ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or
       // held it for a reason of its own, in the gap between this
@@ -399,7 +402,7 @@ export async function landBranch(
       // job that has moved on is waiting for something else — only
       // `landingError`, the permanent record of this attempt,
       // survives onto it.
-      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
+      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorStep: patch.landingErrorStep, landingErrorDetail: patch.landingErrorDetail });
       return;
     }
     // Landed. The branch is on the default branch now, so the job stops
@@ -483,11 +486,12 @@ export async function landBranch(
       // whole run at a problem it cannot fix.
       errorReason: undefined,
       landingError: firstLandingError(note),
+      landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
       landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? rawMsg,
     };
     const result = ctx.queue.transition(job.id, "landing-failed", patch);
     // Same reasoning as the ordinary failure branch above:
     // a job that has moved on keeps only the permanent record.
-    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
+    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorStep: patch.landingErrorStep, landingErrorDetail: patch.landingErrorDetail });
   }
 }

@@ -122,6 +122,8 @@ class TestInstallCommonBin:
         assert result.returncode == 0, result.stderr
         assert (tmp_path / ".local" / "bin" / "lib" / "workflow-steps.json").is_file(), \
             "workflow-steps.json is not in COMMON_BIN_LIB_SCRIPTS, so it never reaches ~/.local/bin/lib"
+        assert (tmp_path / ".local" / "bin" / "lib" / "step-endings" / "catalog.json").is_file(), \
+            "the step-ending catalogue never reaches installed runners"
 
 
 

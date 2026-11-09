@@ -50,7 +50,7 @@ export interface RepoMergeResult {
    *  on the strength of the reason without matching against that
    *  sentence: the text is joined with every other repo's before the
    *  page sees it, and a rewording would silently take the action away. */
-  reason?: "conflict" | "gone" | "tests-red";
+  reason?: "conflict" | "create-number" | "gone" | "tests-red" | "timeout";
   /** This root's branch was DELETED, never merged — set only
    *  by `deleteBranchOnly`. `landBranch`'s own per-repo success branch
    *  reads this to skip the report and the install call a real merge

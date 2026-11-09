@@ -60,10 +60,9 @@ if [ -n "$phase_file" ]; then
   # A run the archive gates turned away before anything was tried is a
   # guard, not an attempt: the count stays what it was. The same two
   # reasons the dashboard leaves out of its own count (phase-rows.ts).
-  case "$terminal_reason" in
-    not-implemented-yet|acceptance-criteria-unticked) attempts_display=${prior_attempts:-0} ;;
-    *) attempts_display=$(( ${prior_attempts:-0} + 1 )) ;;
-  esac
+  if step_ending_has "$terminal_reason" guard; then attempts_display=${prior_attempts:-0}
+  else attempts_display=$(( ${prior_attempts:-0} + 1 ))
+  fi
   # The phase's total cost, like Attempts its count: this run's cost is
   # added to what the file already holds, so an archived spec's cost is
   # every run of it, as the board summed it while the spec was live. A
@@ -71,9 +70,7 @@ if [ -n "$phase_file" ]; then
   # own (Codex), or a run the archive gates turned away, leaves the
   # earlier total as it was.
   turned_away="false"
-  case "$terminal_reason" in
-    not-implemented-yet|acceptance-criteria-unticked) turned_away="true" ;;
-  esac
+  step_ending_has "$terminal_reason" guard && turned_away="true"
   run_has_cost="$cost_known"
   [ "$turned_away" = "true" ] && run_has_cost="false"
   prior_cost_bullet="$(grep -E '^- \*\*Cost:\*\*[[:space:]]*\$[0-9]' "$phase_file" 2>/dev/null | head -1)"

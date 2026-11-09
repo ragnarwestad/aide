@@ -7,13 +7,7 @@ import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 
 /** Only number assignment gets one repeat of the whole per-root operation. */
 export function createNumberRetryLimit(result: RepoMergeResult): number {
-  return !result.ok &&
-    result.error &&
-    !Array.isArray(result.error) &&
-    typeof result.error === "object" &&
-    result.error.key === "landing.createAssignNumberFailed"
-    ? 1
-    : 0;
+  return !result.ok && result.reason === "create-number" ? 1 : 0;
 }
 
 /** A step that STOPPED — at its own time limit, or on a provider's
@@ -59,19 +53,23 @@ export function firstLandingError(
 }
 
 /** Whether the landing failure a job carries belongs to `step`. */
-export function landingErrorOfStep(job: { landingError?: unknown } | undefined, step: string): boolean {
-  const e = job?.landingError;
-  if (!e || typeof e !== "object" || Array.isArray(e)) return false;
-  return (e as { values?: { step?: unknown } }).values?.step === step;
+export function landingErrorOfStep(job: { landingError?: unknown; landingErrorStep?: string } | undefined, step: string): boolean {
+  if (job?.landingError === undefined) return false;
+  if (job.landingErrorStep !== undefined) return job.landingErrorStep === step;
+  const legacy = job.landingError;
+  return !Array.isArray(legacy) && typeof legacy === "object" && legacy !== null &&
+    (legacy as { values?: { step?: unknown } }).values?.step === step;
 }
 
 /** The patch that takes that record off a job — empty when the record is
  *  another step's, or when there is none. */
 export function clearsLandingError(
-  job: { landingError?: unknown } | undefined,
+  job: { landingError?: unknown; landingErrorStep?: string } | undefined,
   step: string,
-): { landingError?: undefined; landingErrorDetail?: undefined } {
-  return landingErrorOfStep(job, step) ? { landingError: undefined, landingErrorDetail: undefined } : {};
+): { landingError?: undefined; landingErrorDetail?: undefined; landingErrorStep?: undefined } {
+  return landingErrorOfStep(job, step)
+    ? { landingError: undefined, landingErrorDetail: undefined, landingErrorStep: undefined }
+    : {};
 }
 
 /** Keep `tests` as the spec's failed tests on `job` alone: every other

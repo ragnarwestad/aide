@@ -115,7 +115,7 @@ def test_no_progress_is_scoped_to_implement_only(runner, workspace, fake_claude)
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
 
-def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
+def test_archive_post_check_finishes_an_eligible_folder_the_session_never_moved(
     runner, workspace, fake_claude
 ):
     """The archive precheck meets an OPEN conflict (so the model is
@@ -134,10 +134,11 @@ def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
     )
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "no-progress", out
-    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
-    assert recorded_line(workspace) == "create, analyze, implement"
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert recorded_line(
+        workspace, path=f"archive/{workspace['folder']}/4-status.md"
+    ) == "create, analyze, implement, archive"
 
 def _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude):
     """The shape both refusal tests share: the pre-session check meets an

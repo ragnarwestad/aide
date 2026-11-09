@@ -16,10 +16,10 @@ import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messag
 import { sideLines } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
 import { SIDE_PARTS } from "../../../queue/providers/side-tools.ts";
+import { isGuardEnding } from "../../../step-endings.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
-const GUARD_REFUSALS = new Set(["not-implemented-yet", "acceptance-criteria-unticked"]);
 const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).find((x) => x.step === step);
 
 // Ticked and locked: `create`'s box, the one phase that never runs
@@ -145,7 +145,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // is a guard, not an attempt (2026-09-11) — the same two reasons
       // aide-run-spec leaves out of the file's own stamp
       // (run-spec/record/outcome.sh).
-      const tried = p.attempts.filter((a) => !GUARD_REFUSALS.has(stepResultOf(a, p.step)?.terminalReason ?? ""));
+      const tried = p.attempts.filter((a) => !isGuardEnding(stepResultOf(a, p.step)?.terminalReason));
       const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
 
       // Live although the row is busy: a phase this run has

@@ -415,6 +415,8 @@ export interface Job {
    *  lands. `errorReason`/`error` still say what is happening RIGHT
    *  NOW; this says what already went wrong and was never resolved. */
   landingError?: Sentence | Sentence[];
+  /** The workflow step whose landing wrote `landingError`. */
+  landingErrorStep?: WorkflowStep;
   /** The raw words behind `landingError` — what the script or git said
    *  when that landing failed. Kept beside it for the same reason it is:
    *  `errorDetail` belongs to what the row is waiting for right now, and

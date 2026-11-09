@@ -149,7 +149,10 @@ export interface ServerOptions {
     repoRoot: string,
     specsRootAbs: string,
     provisionalFolder: string,
-  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
+  ) => Promise<
+    { ok: true; specFolder: string } |
+    { ok: false; reason: "create-number"; error: Sentence; detail?: string }
+  >;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind. It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

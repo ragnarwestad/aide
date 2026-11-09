@@ -112,26 +112,21 @@ if [ -n "$status_file" ]; then
         open_merge_dropped && merge_unfinished
         ;;
       *)
-        archive_refusal=""
-        if ! may_apply_spec_transition "$status_file" "archive"; then
-          archive_refusal="not-implemented-yet"
-        else
-          read_spec_state "$status_file"
-          acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json" 2>/dev/null || echo 0)"
-          acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json" 2>/dev/null || echo 0)"
-          if [ "${acceptance_total:-0}" -gt 0 ] && [ "${acceptance_done:-0}" -lt "$acceptance_total" ]; then
-            archive_refusal="acceptance-criteria-unticked"
-          fi
-        fi
-        if [ -n "$archive_refusal" ]; then
-          echo "aide-run-spec: the session reported completed, but aide-archive-spec refused: $archive_refusal" >&2
-          terminal_reason="$archive_refusal"
+        archive_args=(--project-dir "$project_wt" --spec "$commit_label")
+        [ "$specs_root_wt" != "$project_wt" ] && archive_args+=(--specs-dir "$specs_root_wt")
+        archive_verdict="$("$SCRIPT_DIR/aide-archive-spec" "${archive_args[@]}" 2>/dev/null || true)"
+        archive_reason="$(jq -r '.terminalReason // "refused"' <<<"$archive_verdict" 2>/dev/null || echo refused)"
+        if step_ending_has "$archive_reason" guard; then
+          terminal_reason="$archive_reason"
           ok="true"
           suffix=""
           error_msg=""; error_solution=""; error_log=""
+        elif [ "$archive_reason" = "archived" ] || [ "$archive_reason" = "already-archived" ]; then
+          status_file_for "$commit_label"
+          open_merge_dropped && merge_unfinished
         else
-          stop_step no-progress "the step reported success but left no real progress — the spec folder was never moved to archive/" \
-            "press $step_button again for this step"
+          error_msg="$(jq -r '.error // "aide-archive-spec refused"' <<<"$archive_verdict" 2>/dev/null)"
+          stop_step "$archive_reason" "$error_msg" ""
         fi
         ;;
     esac

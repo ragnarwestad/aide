@@ -3,6 +3,7 @@
 // no process, no cost — so the row reads the same one refusal either way.
 
 import type { Job, QueueStore } from "../queue.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../step-endings.ts";
 
 export function endUntickedArchive(store: QueueStore, job: Job, now: string): void {
   store.transition(job.id, "no-step-left", {
@@ -17,7 +18,7 @@ export function endUntickedArchive(store: QueueStore, job: Job, now: string): vo
         costUsd: 0,
         tool: "none",
         costMeasured: true,
-        terminalReason: "acceptance-criteria-unticked",
+        terminalReason: ACCEPTANCE_CRITERIA_UNTICKED,
         at: now,
       },
     ],

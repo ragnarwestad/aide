@@ -55,7 +55,7 @@ export interface QueueRowView {
    *  no step actually running right now — including while merely `queued`
    *  for its next one. */
   stepStartedAt?: string;
-  stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
+  stopReason?: string;
   /** When the board starts a job stopped on its AI's usage limit again —
    *  the render-side mirror of `Job.usageLimitWait`. Absent once it has
    *  started, or for a stop that has no restart. */

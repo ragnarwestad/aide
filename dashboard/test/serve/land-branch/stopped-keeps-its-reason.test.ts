@@ -10,7 +10,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { landBranch } from "../../../src/serve/land-branch";
-import { keepLandingFailedTests } from "../../../src/serve/land-branch/stopped-reason.ts";
+import { clearsLandingError, createNumberRetryLimit, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
@@ -61,6 +61,39 @@ describe("a landing of a step that stopped", () => {
     expect("error" in patch).toBe(true);
     expect(patch.error).toBeUndefined();
   });
+});
+
+test("landing-error ownership uses the stored workflow step, not sentence values (AC-4)", () => {
+  const job = {
+    landingError: { key: "landing.stepFailed", values: { step: "archive" } },
+    landingErrorStep: "analyze",
+  };
+  expect(landingErrorOfStep(job, "analyze")).toBe(true);
+  expect(landingErrorOfStep(job, "archive")).toBe(false);
+  expect(clearsLandingError(job, "analyze")).toEqual({
+    landingError: undefined,
+    landingErrorDetail: undefined,
+    landingErrorStep: undefined,
+  });
+});
+
+test("a legacy landing error without landingErrorStep still clears for its own step", () => {
+  const legacy = { landingError: { key: "landing.stepFailed", values: { step: "analyze" } } };
+  expect(clearsLandingError(legacy, "analyze")).toEqual({
+    landingError: undefined,
+    landingErrorDetail: undefined,
+    landingErrorStep: undefined,
+  });
+  expect(clearsLandingError(legacy, "archive")).toEqual({});
+});
+
+test("create-number retry reads the semantic reason, not the message key (AC-4)", () => {
+  expect(createNumberRetryLimit({ ok: false, root: "/repo", reason: "create-number", error: "changed words" })).toBe(1);
+  expect(createNumberRetryLimit({
+    ok: false,
+    root: "/repo",
+    error: { key: "landing.createAssignNumberFailed" },
+  })).toBe(0);
 });
 
 /** A queue holding `jobs`, and which of them keep a list afterwards. */

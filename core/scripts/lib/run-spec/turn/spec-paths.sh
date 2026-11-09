@@ -295,9 +295,7 @@ if [ "$command_name" = "archive" ]; then
   # ok with the refusal as the terminal reason: the dashboard reads the
   # hold-back from 4-status.md itself, and lands an archive only on
   # `completed`.
-  case "$archive_terminal_reason" in
-    not-implemented-yet|acceptance-criteria-unticked) skip_ai="yes" ;;
-  esac
+  step_ending_has "$archive_terminal_reason" guard && skip_ai="yes"
 fi
 
 # --- the mechanical create path -----------------------------

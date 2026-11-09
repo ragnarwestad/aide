@@ -70,7 +70,10 @@ export interface LandContext {
     repoRoot: string,
     specsRootAbs: string,
     provisionalFolder: string,
-  ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
+  ) => Promise<
+    { ok: true; specFolder: string } |
+    { ok: false; reason: "create-number"; error: Sentence; detail?: string }
+  >;
   /** The `git -c` arguments that make a merge in `work` merge the
    *  translation files the manifest in `root` names, key by key; empty
    *  when it names none. Absent means git's own merge (tests). */

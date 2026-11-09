@@ -366,6 +366,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     # those as well, so `lib/workflow-steps.json` is again the only thing
     # missing and this test still asks what it was written to ask.
     (tmp_path / "lib").mkdir(exist_ok=True)
+    shutil.copytree(pathlib.Path(runner).parent / "lib" / "step-endings", tmp_path / "lib" / "step-endings")
     shutil.copytree(pathlib.Path(runner).parent / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
     (tmp_path / "lib" / "files-to-change.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()

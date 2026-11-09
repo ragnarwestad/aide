@@ -10,6 +10,7 @@ import {
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
 import { RUN_STEPS } from "../../../src/render/pages/specs-list";
+import { STEP_ENDINGS } from "../../../src/step-endings.ts";
 
 const DEFAULTS: QueueDefaults = {
   // Per step: an implement is not an analyze, and one number for both
@@ -145,8 +146,8 @@ describe("stopReason", () => {
   };
 
   test("names the same members on the job and on the row's view", () => {
-    const stored = membersOf("queue/steps.ts", /^export type StopReason =([^;]*);/m);
-    expect(stored).toEqual(membersOf("render/ui/job-state/types.ts", /^\s*stopReason\?:([^;]*);/m));
+    const stored = STEP_ENDINGS.filter(({ jobStop }) => jobStop).map(({ name }) => name).sort();
+    expect(membersOf("render/ui/job-state/types.ts", /^\s*stopReason\?:([^;]*);/m)).toEqual(["string"]);
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `tests-red` is the landing's own suite
     // going red on the merged result, which pushes nothing and asks for

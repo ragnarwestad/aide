@@ -1,0 +1,30 @@
+{
+  "reasons": [
+    { "name": "acceptance-criteria", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "acceptance-criteria-unticked", "jobStop": false, "runStop": false, "failure": false, "guard": true, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "already-archived", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "already-landed", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "archived", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "cancelled", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "cli-error", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "closed", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "completed", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "conflict-open", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "merge-unfinished", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "model-at-capacity", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "model-refused", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "no-progress", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "not-implemented-yet", "jobStop": false, "runStop": false, "failure": false, "guard": true, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "provider-limit", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "refused", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "scope-violation", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "sent-back", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "sent-back-refused", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "shared-files", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "short-analysis-over-limit", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "tests-not-started", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false },
+    { "name": "tests-red", "jobStop": true, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
+    { "name": "timeout", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": true },
+    { "name": "unpushed", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false }
+  ]
+}

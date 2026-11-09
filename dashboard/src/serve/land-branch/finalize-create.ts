@@ -18,7 +18,7 @@ import { failingLines } from "./test-gate.ts";
 
 export type FinalizeCreateResult =
   | { ok: true; specFolder: string }
-  | { ok: false; error: Sentence; detail?: string };
+  | { ok: false; reason: "create-number"; error: Sentence; detail?: string };
 
 /** `work` is the merge worktree of the SPECS repo; `specsRootAbs` is the
  *  absolute path, in the ORIGINAL checkout, to where spec folders live
@@ -52,6 +52,7 @@ export async function assignSpecNumberAfterMerge(
   } catch {
     return {
       ok: false,
+      reason: "create-number",
       error: { key: "landing.createAssignNumberFailed" },
       detail: `aide-create-spec --assign-number produced no readable answer — ${failingLines(result.stdout, result.stderr)}`,
     };
@@ -59,6 +60,7 @@ export async function assignSpecNumberAfterMerge(
   if (!parsed.ok || !parsed.specFolder) {
     return {
       ok: false,
+      reason: "create-number",
       error: { key: "landing.createAssignNumberFailed" },
       detail: parsed.error ?? failingLines(result.stdout, result.stderr),
     };

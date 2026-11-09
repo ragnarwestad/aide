@@ -73,6 +73,7 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'refuse "\$spec_reference was moved back out of archive/', "exempt": "git's refusal in the specs checkout, named in the sentence"},
     {"pattern": r'refuse "no such --prompt-file', "exempt": CALLER},
     {"pattern": r'error_msg="\$\(jq -r \'\(\.error', "exempt": PROGRAM},
+    {"pattern": r'stop_step "\$archive_reason"', "exempt": PROGRAM},
     {"pattern": r'\$\(jq -r \'\.error // "aide-', "exempt": PROGRAM},
     {"pattern": r'error_msg="\$\(jq -r \'if \(\(\.errors', "exempt": TOOL},
     {"pattern": r'error_msg="\$\(jq -r \'\(\.errors', "exempt": TOOL},

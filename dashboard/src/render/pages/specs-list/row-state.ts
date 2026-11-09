@@ -6,6 +6,7 @@ import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
 import { nextPhase, phasesAhead, runButton } from "./data-model/phase.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
+import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../step-endings.ts";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off
@@ -136,10 +137,8 @@ export { specNumber } from "../../../project/spec-folder.ts";
  *  and the job it belongs to finishes `done` with no error of its own.
  *  So the only trace on the row is the step result's reason — which is
  *  why this is read as well as the note below, and not instead of it. */
-const PRECHECK_REFUSAL = "acceptance-criteria-unticked";
-
 const refusedForChecks = (a: QueueRowView): boolean =>
-  (a.results ?? []).some((r) => r.step === "archive" && r.terminalReason === PRECHECK_REFUSAL);
+  (a.results ?? []).some((r) => r.step === "archive" && r.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED);
 
 /** Is this spec waiting on a person to judge its acceptance criteria?
  *  Two records say so and either may be the only one there: the note

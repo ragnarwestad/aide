@@ -88,9 +88,9 @@ test("a red archive landing spends one allowance and a repeated failure does not
       return { ok: true as const, job };
     },
   };
-  expect(retryArchiveLanding(queue as never, job.id, "archive", true, { key: "landing.testsRedOnMergeFallback", values: { base: "main" } }, "failed test"))
+  expect(retryArchiveLanding(queue as never, job.id, "archive", "tests-red", "failed test"))
     .toBe(true);
-  expect(job.retry).toMatchObject({ action: "archive", attempts: 2, previousAttempt: { terminalReason: "archive-tests-red" } });
+  expect(job.retry).toMatchObject({ action: "archive", attempts: 2, previousAttempt: { terminalReason: "tests-red" } });
   job.state = "done";
-  expect(retryArchiveLanding(queue as never, job.id, "archive", true, "red again", "failed test")).toBe(false);
+  expect(retryArchiveLanding(queue as never, job.id, "archive", "tests-red", "failed test")).toBe(false);
 });

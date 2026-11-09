@@ -1,6 +1,7 @@
 import type { Job, StepRepoRange, WorkflowStep } from "../queue.ts";
 import { providerError, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
+import { endingMayRetry } from "../../step-endings.ts";
 
 export const CAPACITY_RETRY_DELAY_MS = 3 * 60_000;
 
@@ -13,21 +14,18 @@ type RetryInput =
       now: number;
     };
 
-type AiWorkRetryInput =
-  | { terminalReason: string; scopeViolation?: "specs" | "analyze"; lateCheck?: never }
-  | { terminalReason?: never; lateCheck: "overlap-decision-missing" | "archive-tests-red" | "archive-tests-timeout" };
+type AiWorkRetryInput = { terminalReason: string; scopeViolation?: "specs" | "analyze" };
 
 export function aiWorkRetryDecision(
   input: AiWorkRetryInput,
   attempts: number,
 ): { retry: true } | undefined {
   if (attempts >= 2) return undefined;
-  if (input.lateCheck) return { retry: true };
+  if (!endingMayRetry(input.terminalReason)) return undefined;
   if (input.terminalReason === "scope-violation")
     return input.scopeViolation === "specs" || input.scopeViolation === "analyze" ? { retry: true } : undefined;
-  if (["no-progress", "merge-unfinished", "timeout"].includes(input.terminalReason))
-    return { retry: true };
-  return undefined;
+  if (input.terminalReason === "cli-error" || input.terminalReason === "model-at-capacity") return undefined;
+  return { retry: true };
 }
 
 export function aiWorkRetryRecord(

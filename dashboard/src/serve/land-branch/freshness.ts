@@ -4,6 +4,7 @@
 import { resolveWorkflowState } from "../../git/workflow-history.ts";
 import type { SpecTarget } from "../../render";
 import type { LandContext } from "./types.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../step-endings.ts";
 
 /** Everything about a spec that only git can answer, asked once per
  *  spec over the same checkout.
@@ -39,7 +40,7 @@ import type { LandContext } from "./types.ts";
  *  stopped; whether that still holds is the Checks tab's to say, and it
  *  says so in `acceptanceOpen`, read fresh on every render. */
 function stillStopped(stopped: Record<string, string>, t: SpecTarget): Record<string, string> {
-  if (stopped.archive !== "acceptance-criteria-unticked" || t.acceptanceOpen !== false) return stopped;
+  if (stopped.archive !== ACCEPTANCE_CRITERIA_UNTICKED || t.acceptanceOpen !== false) return stopped;
   const { archive: _archive, ...rest } = stopped;
   return rest;
 }

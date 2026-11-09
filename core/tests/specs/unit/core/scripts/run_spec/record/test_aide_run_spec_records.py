@@ -33,6 +33,24 @@ from ..run_spec_status_files import (
     with_status,
 )
 
+
+def test_archive_post_session_verdict_is_delegated_to_archive_command(workspace_root):
+    """The archive command owns transition and acceptance eligibility."""
+    source = (
+        workspace_root / "core/scripts/lib/run-spec/record/status-line.sh"
+    ).read_text()
+    archive_branch = source.split(
+        'elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then',
+        1,
+    )[1].split(
+        'elif [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then',
+        1,
+    )[0]
+
+    assert '"$SCRIPT_DIR/aide-archive-spec"' in archive_branch
+    assert "may_apply_spec_transition" not in archive_branch
+    assert "acceptanceCriteria" not in archive_branch
+
 def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude
 ):

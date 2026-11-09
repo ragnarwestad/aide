@@ -6,6 +6,14 @@ import type { Job } from "./types.ts";
 import { RESULT_TOOLS, RUNNABLE_TOOLS, type ResultTool, type RunnableTool } from "./providers/tools.ts";
 import { WORKFLOW_STEP_RECORDS, requireWorkflowStep, workflowControls } from "../workflow-steps.ts";
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
+import {
+  ACCEPTANCE_CRITERIA_UNTICKED,
+  isRunStop,
+  type StopReason,
+} from "../step-endings.ts";
+
+export { ACCEPTANCE_CRITERIA_UNTICKED, isRunStop };
+export type { StopReason };
 
 // `core/scripts/aide-run-spec` reads the same list from
 // core/scripts/lib/workflow-steps.json — the shared file both
@@ -175,25 +183,11 @@ export type JobState = (typeof JOB_STATES)[number];
 // usage limit it has no reset to wait for, and another model runs at once.
 // `sent-back` is an implement that found its spec, analysed short, not small
 // after all: the board queues a full analysis and implement again.
-export type StopReason =
-  | "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
-
-/** The reasons a RUN stops on, as a step's result names them. `tests-red`
- *  is not one: a step's own red run fails it, and only a landing stops a
- *  job on red. */
-export const isRunStop = (
-  reason: string | undefined,
-): reason is "timeout" | "provider-limit" | "model-at-capacity" | "acceptance-criteria" | "shared-files" | "sent-back" =>
-  reason === "timeout" || reason === "provider-limit" || reason === "model-at-capacity" ||
-  reason === "acceptance-criteria" || reason === "shared-files" || reason === "sent-back";
-
 /** The states in which a job waits for a person. `cancelled` is not one:
  *  a person ended it themselves. */
 export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped", "interrupted"]);
 
 /** How the result of an archive held back on unticked acceptance criteria ends. */
-export const ACCEPTANCE_CRITERIA_UNTICKED = "acceptance-criteria-unticked";
-
 /** Whether a finished job waits for a person: it failed, stopped or was
  *  interrupted (a conflict is a failure), or it is an archive held back on
  *  unticked acceptance criteria. */

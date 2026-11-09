@@ -24,6 +24,7 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
         (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
     )
     (tmp_path / "lib").mkdir(exist_ok=True)
+    shutil.copytree(pathlib.Path(runner).parent / "lib" / "step-endings", tmp_path / "lib" / "step-endings")
     (tmp_path / "lib" / "workflow").mkdir(exist_ok=True)
     (tmp_path / "lib" / "workflow" / "steps.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "workflow" / "steps.sh").read_bytes()

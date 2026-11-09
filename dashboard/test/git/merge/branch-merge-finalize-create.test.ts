@@ -61,11 +61,13 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
     const git = fakeGit({ ...REACHES_MERGE, reset: { code: 0 } });
     const finalizeCreate: CreateFinalizer = async () => ({
       ok: false,
+      reason: "create-number",
       error: { key: "landing.createAssignNumberFailed" },
       detail: "no such spec folder",
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate);
     expect(result.ok).toBe(false);
+    expect(result.reason).toBe("create-number");
     expect(sentence(result.error)).toContain("assign");
     expect(result.detail).toContain("no such spec folder");
     expect(argv(git.calls)).toContain("reset -q --hard origin/master");

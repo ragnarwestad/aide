@@ -81,10 +81,8 @@
 # made, though its `tokens` are dropped. The key is absent, never zero, when
 # no call was stated, for OpenCode, and for a step with no model turn.
 #
-# terminalReason is this script's own vocabulary, not the CLI's:
-#   completed | timeout | provider-limit | refused | spawn-failed | cli-error
-#   | model-refused | model-at-capacity | already-landed | short-analysis-over-limit
-#   | sent-back | sent-back-refused
+# terminalReason is this script's own vocabulary, not the CLI's. Every
+# value and its meaning is listed in lib/step-endings/catalog.json.
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
 # per line) at PATH instead of discarding it with the working directory.
@@ -203,13 +201,15 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in spec-reference.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in step-endings/catalog.json step-endings/read.sh spec-reference.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] \
   || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"_aide-spec-lib.sh is missing beside aide-run-spec","errorSolution":"reinstall aide (core/implementations/claude-code/install.sh)"}'
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-reference.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/step-endings/read.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/tracking-info.sh"
 # shellcheck source=/dev/null
