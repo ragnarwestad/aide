@@ -4,16 +4,13 @@
 import { clearRefusal } from "./row-refusal";
 import { specRowsOf } from "./row-swap.ts";
 import { press } from "./state.ts";
+import { ACTION_FORM_SELECTOR, SPINNER } from "../page-contract.ts";
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
  *  they ask the server, not in what pressing them should look like. */
-export const ACTIONS = "form.rowrun, form.actionform";
+export const ACTIONS = ACTION_FORM_SELECTOR;
 
-/** Character for character what `components.ts` renders (`SPINNER`).
- *  One runs server-side and the other is bundled for the browser, so
- *  the two are hand-paired rather than sharing an import. Change one
- *  and change the other. */
-export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
+export { SPINNER } from "../page-contract.ts";
 
 /** The looks a button can arrive in. `busy` goes IN PLACE of whichever
  *  one it has, the same swap `btn()` makes server-side for a job

@@ -26,17 +26,15 @@ import { archivingAgain, nextPhase, specBusy } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
 import { approachPanel } from "./approach-choice";
+import { REFUSAL_ROW_TEMPLATE_ID, SPEC_LOADING_ROW_ID } from "../../../page-contract.ts";
 
-const REFUSAL_TEMPLATE_ID = "refusal-row";
 const LIST_REFUSED_ID = "list-refused";
-/** Hand-paired with `specs-client/spec-detail/open.ts`, which copies it. */
-const SPEC_LOADING_ROW_ID = "spec-loading-row";
 
 /** The message row a refused press is written into, held in a
  *  `<template>` for the script to copy — in a table of its own there,
  *  where a row is always parsed as one. */
 export const refusalRowTemplate = (columns = LIST_COLUMNS): string =>
-  `<template id="${REFUSAL_TEMPLATE_ID}"><table><tbody><tr class="specnotice" data-refusal>` +
+  `<template id="${REFUSAL_ROW_TEMPLATE_ID}"><table><tbody><tr class="specnotice" data-refusal>` +
   `<td colspan="${columns}">${messageSlot("refused", "failed")}</td></tr></tbody></table></template>`;
 
 /** The detail row a spec's › draws while the spec is on its way, held in a

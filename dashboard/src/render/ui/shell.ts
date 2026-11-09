@@ -3,9 +3,7 @@
 // external references — because the generated site is published as
 // plain files.
 
-import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
-import { join } from "node:path";
 
 import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
@@ -21,6 +19,8 @@ import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { isSpecFolder } from "../../project/spec-names.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
+import { SERVED_BY_META } from "../../page-contract.ts";
+import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 
 export interface NavEntry {
   label: string;
@@ -36,65 +36,6 @@ export interface NavEntry {
   labelKey?: TranslationKey;
 }
 
-// The theme switcher's own code is TypeScript like the rest of the
-// repo; the browser needs JavaScript. Transpiled once, here, the way
-// `serve.ts` does it for `specs-client.ts` — Bun has the transpiler
-// in-process, so this needs no build step and no bundle in the repo.
-const transpile = (file: string): string =>
-  new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-    readFileSync(join(import.meta.dir, file), "utf-8"),
-  );
-
-const THEME_SCRIPT = transpile("../scripts/theme-script.ts");
-// Its sibling: which UNIT the reader wants consumption in.
-// Its own file and its own IIFE, concatenated into the one <script> tag
-// below rather than given a second: the rule is page code kept off the
-// generated pages, not a second small setting sharing the allowance.
-const UNIT_SCRIPT = transpile("../scripts/unit-script.ts");
-// Close-on-outside-click and Escape for the "…" menu: what makes the
-// disclosure BEHAVE as a menu rather than a box that stays open.
-const MENU_SCRIPT = transpile("../scripts/menu-script.ts");
-// The fourth: the two lines that register the service worker,
-// which is what a browser wants to see before it offers to install the
-// page. It shares the one <script> tag for the reason UNIT_SCRIPT
-// does.
-const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
-// The number of specs that wait for a person, set on the app's icon the
-// moment a page loads and again on every live update.
-const APP_BADGE_SCRIPT = transpile("../scripts/app-badge.ts");
-// The sixth: a link that leaves the page says so the moment it is
-// clicked, on every page — `specs-client.ts` used to own
-// this for the one page it loads on.
-const NAV_BUSY_SCRIPT = transpile("busy/nav-busy.ts");
-// The seventh: the same click nav-busy.ts marks also gets a covering
-// layer, for the whole wait rather than only while the pointer sits
-// still over the link.
-const NAV_OVERLAY_SCRIPT = transpile("busy/nav-overlay.ts");
-// The eighth: the PDF button opens a NEW tab, which neither
-// nav-busy.ts nor nav-overlay.ts covers (both decline a target="_blank"
-// link, since this document is never replaced).
-const PDF_BUSY_SCRIPT = transpile("busy/pdf-busy.ts");
-// The ninth: Save and Cancel enable together the instant a
-// spec form has an edit, and disable together again once Cancel puts it
-// back — one script for every `.specform` on the page rather than one
-// per tab.
-const SPEC_FORM_ACTIONS_SCRIPT = transpile("forms/spec-form-actions.ts");
-/** Ticking a dependency moves its chip between the two blocks at
- *  once, rather than only when the form comes back saved. */
-const DEPENDS_LIFT_SCRIPT = transpile("forms/depends-lift.ts");
-// The tenth: a page with an unsaved edit in one of the
-// tracked forms warns before it is left, by any means — an in-app
-// link, the browser's Back/Forward, a closed tab, a typed address —
-// since it rides `beforeunload` rather than intercepting any one of
-// those individually.
-const UNSAVED_CHANGES_SCRIPT = transpile("forms/unsaved-changes.ts");
-// Where a browser tab starts: an empty Running tab, as the tab's first
-// board page, gives way to the Specs list. First in the tag, so a throw in
-// a later script cannot keep the tab from being marked as started.
-const START_PAGE_SCRIPT = transpile("../scripts/start-page.ts");
-// Loads the page again once a Deploy's held restart has happened, so the
-// notice saying it waits does not outlive it.
-const RESTART_WATCH_SCRIPT = transpile("../scripts/restart-watch.ts");
 
 // Relocated from settings-page.ts's own unitsBlock, markup
 // unchanged — unit-script.ts's mark() already targets every
@@ -395,7 +336,7 @@ export interface PageShellOpts {
 /** Which server process drew a page: a page drawn in place by a newer one
  *  is loaded whole instead, so the page's script is the new one too
  *  (`specs-client/page-swap/`). Hand-paired with `SERVED_BY_META` there. */
-export const SERVED_BY_META = "aide-served-by";
+export { SERVED_BY_META };
 const SERVED_BY = new Date().toISOString();
 
 /** The document up to and including `<body …>`: what a streamed page can
@@ -416,7 +357,7 @@ ${PWA_LINKS}
 ${waitingMeta()}
 <meta name="${SERVED_BY_META}" content="${SERVED_BY}">
 ${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
-<script>${START_PAGE_SCRIPT}${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
+<script>${HEAD_SCRIPT}</script>
 </head>
 <body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}">`;
 }

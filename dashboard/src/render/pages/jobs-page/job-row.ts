@@ -17,6 +17,7 @@
 // waiting line there, with no link.
 
 import { t, type Language } from "../../../i18n";
+import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { askButton, buttonForm, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
@@ -123,7 +124,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
     `<span class="specname">${esc(name)}</span></span>`;
   return (
-    `<tr class="spechead" id="spec-${esc(key)}" data-job="1">` +
+    `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div></td></tr>` +
     `<tr class="specstate"><td colspan="2"></td>` +

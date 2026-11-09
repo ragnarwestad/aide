@@ -51,9 +51,9 @@ describe("no page reloads itself by a meta refresh", () => {
 
 describe("a form's submit is the page script's alone", () => {
   test("no head script the shell inlines listens for submit, but the unsaved-changes guard", () => {
-    const shell = join(ROOT, "src", "render", "ui", "shell.ts");
-    const inlined = [...readFileSync(shell, "utf8").matchAll(/transpile\("([^"]+)"\)/g)].map((m) =>
-      join(dirname(shell), m[1]!),
+    const entry = join(ROOT, "src", "render", "scripts", "index.ts");
+    const inlined = [...readFileSync(entry, "utf8").matchAll(/import\s+"([^"]+)"/g)].map((m) =>
+      join(dirname(entry), m[1]!),
     );
     expect(inlined.length).toBeGreaterThan(0);
     const listening = inlined

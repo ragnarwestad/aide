@@ -1,3 +1,5 @@
+import { PAGE_DRAWN } from "../../page-contract.ts";
+
 // The reader's theme choice, applied before the page paints.
 //
 // The one script every page carries — served and generated alike. That
@@ -78,5 +80,5 @@
     markPage();
   });
   document.addEventListener("DOMContentLoaded", markPage);
-  document.addEventListener("aide-page-drawn", markPage);
+  document.addEventListener(PAGE_DRAWN, markPage);
 })();

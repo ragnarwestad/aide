@@ -1,3 +1,5 @@
+import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../page-contract.ts";
+
 // Save and Cancel enable together the instant a field inside the form
 // changes, and disable together again once Cancel restores the form to
 // what it held when the page was opened. A form whose Cancel is a link
@@ -38,14 +40,14 @@
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things.
   const bindAll = (): void => {
-    for (const prefix of ["specform", "settingsform", "providerform", "projectsettingsform", "scheduleform"]) bind(prefix);
+    for (const prefix of FORM_ACTION_PREFIXES) bind(prefix);
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has
   // loaded, and says so with this event (`spec-detail/open.ts`, which names it
   // too: this script imports nothing).
-  document.addEventListener("spec-detail-drawn", bindAll);
-  document.addEventListener("aide-page-drawn", bindAll);
+  document.addEventListener(SPEC_DETAIL_DRAWN, bindAll);
+  document.addEventListener(PAGE_DRAWN, bindAll);
 
   function bind(prefix: string): void {
     const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;

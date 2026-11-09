@@ -79,14 +79,6 @@ export const dataAttrs = (data: Record<string, string> = {}): string =>
  *  by script and the page loaded again on success (`specs-client/reload-form/`),
  *  `schedulerun` and `removeform` have their own listeners,
  *  and `configactions` lines the button up at the row's end. */
-export type FormHook =
-  | "actionform"
-  | "actionform schedulerun"
-  | "actionform reloadform"
-  | "reloadform"
-  | "removeform"
-  | "configactions reloadform";
-
 /** A form whose only control is one button: hidden fields, a message line
  *  or a dialog inside it are not controls. Every value is raw and escaped
  *  here once. Its attributes come in one order: `id`, `method`, `action`,
@@ -172,3 +164,5 @@ export function saveCancelActions(
     `</span>`
   );
 }
+import type { FormHook } from "../../../page-contract.ts";
+export type { FormHook } from "../../../page-contract.ts";

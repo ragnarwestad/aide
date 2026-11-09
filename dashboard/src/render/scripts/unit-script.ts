@@ -1,3 +1,5 @@
+import { PAGE_DRAWN } from "../../page-contract.ts";
+
 // The unit the reader wants consumption in, applied before the page
 // paints.
 //
@@ -61,5 +63,5 @@
     markPage();
   });
   document.addEventListener("DOMContentLoaded", markPage);
-  document.addEventListener("aide-page-drawn", markPage);
+  document.addEventListener(PAGE_DRAWN, markPage);
 })();

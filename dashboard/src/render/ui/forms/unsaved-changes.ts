@@ -1,3 +1,5 @@
+import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-contract.ts";
+
 // A native "leave this page?" confirmation, armed the instant a field
 // inside one of the tracked forms changes, and disarmed the instant
 // that form's own Save/Create is submitted or its Cancel is pressed
@@ -21,7 +23,7 @@
 // transpiled source against a fake document and window.
 
 (() => {
-  const TRACKED = ".specform, .settingsform, .providerform, .pageform, .scheduleform";
+  const TRACKED = TRACKED_FORM_SELECTOR;
   let dirty = false;
 
   const markDirty = (event: Event): void => {
@@ -104,7 +106,7 @@
     dialog.showModal();
   });
 
-  document.addEventListener("aide-page-leave", (event: Event) => {
+  document.addEventListener(PAGE_LEAVE, (event: Event) => {
     if (!dirty) return;
     const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
     if (!dialog || typeof dialog.showModal !== "function") return;
@@ -121,7 +123,7 @@
     }
     dialog.showModal();
   });
-  document.addEventListener("aide-page-drawn", () => { dirty = false; });
+  document.addEventListener(PAGE_DRAWN, () => { dirty = false; });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!dirty) return;

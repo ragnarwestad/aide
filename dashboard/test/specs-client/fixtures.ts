@@ -14,6 +14,7 @@ import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } f
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
 import { followFakes } from "./fixtures-follow.ts";
+import { Window } from "happy-dom";
 
 const built = await Bun.build({
   entrypoints: [join(import.meta.dir, "..", "..", "src", "specs-client", "index.ts")],
@@ -343,6 +344,7 @@ export function harness(
   // A page that follows its job has a marker.
   const followed = followFakes(o.follow);
   const document = {
+    defaultView: { DOMParser: new Window().DOMParser },
     createElement: followed.createElement,
     // A row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the

@@ -6,13 +6,9 @@
 // into the list's own line above the rows, which no redraw replaces.
 
 import { writeLine } from "../press.ts";
+import { REFUSAL_ROW_TEMPLATE_ID, SPEC_HEAD_CLASS } from "../../page-contract.ts";
 
-/** Hand-paired with `render/pages/specs-list/notice-row.ts`, which draws
- *  the row this copies and the list's own line; the bundle imports nothing
- *  from outside this folder. */
-const TEMPLATE_ID = "refusal-row";
 const LIST_LINE_ID = "list-refused";
-const SPEC_HEAD = "spechead";
 const SPEC_GAP = "specgap";
 
 let held: { why: string; spec?: string } | null = null;
@@ -22,7 +18,7 @@ const hasClass = (el: Element, name: string): boolean => ` ${el.className} `.ind
 /** Where the spec's rows end: its gap row, or its last row when it has none. */
 export function groupEnd(head: Element): { before: Element } | { after: Element } {
   let last = head;
-  for (let el = head.nextElementSibling; el && !hasClass(el, SPEC_HEAD); el = el.nextElementSibling) {
+  for (let el = head.nextElementSibling; el && !hasClass(el, SPEC_HEAD_CLASS); el = el.nextElementSibling) {
     if (hasClass(el, SPEC_GAP)) return { before: el };
     last = el;
   }
@@ -38,7 +34,7 @@ export function applyRefusal(): void {
   writeLine(listLine, held && !held.spec ? held.why : "");
   if (!held?.spec) return;
   const head = document.getElementById(`spec-${held.spec}`);
-  const template = document.getElementById(TEMPLATE_ID) as HTMLTemplateElement | null;
+  const template = document.getElementById(REFUSAL_ROW_TEMPLATE_ID) as HTMLTemplateElement | null;
   const copy = template?.content?.querySelector("tr[data-refusal]")?.cloneNode(true) as Element | undefined;
   if (!head || !copy) return;
   const end = groupEnd(head);

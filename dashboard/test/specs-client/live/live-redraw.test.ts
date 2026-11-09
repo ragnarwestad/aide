@@ -305,6 +305,10 @@ describe("a redraw touches only the specs that changed", () => {
     `<tr class="spechead open" id="spec-${key}" data-folder="${key.split("/")[1]}"><td>${key}</td></tr>` +
     `<tr class="subrow" data-of="${key}"><td>${state}</td></tr>`;
 
+  const groupWithIdFirst = (key: string, state: string): string =>
+    `<tr id="spec-${key}" data-folder="${key.split("/")[1]}" class="open spechead"><td>${key}</td></tr>` +
+    `<tr class="subrow" data-of="${key}"><td>${state}</td></tr>`;
+
   const A = "aide/204-coming-back";
   const B = "aide/203-the-projects-page";
 
@@ -410,6 +414,21 @@ describe("a redraw touches only the specs that changed", () => {
 
     expect(h.rowIds()).toEqual([`spec-${A}`, "", `spec-${B}`, ""]);
     expect(h.rowFor(`spec-${A}`)).toBe(kept);
+  });
+
+  test("attribute order does not decide whether a row group is recognised (AC-4)", async () => {
+    const first = page(group(A, "queued"), group(B, "queued"));
+    const changed = page(groupWithIdFirst(A, "done"), group(B, "queued"));
+    const h = pages(first, changed);
+    await settle(h);
+    const replaced = h.rowFor(`spec-${A}`);
+    const kept = h.rowFor(`spec-${B}`);
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rowFor(`spec-${B}`)).toBe(kept);
+    expect(h.rowFor(`spec-${A}`)).not.toBe(replaced);
   });
 
   test("a spec that went away takes its own rows and no others", async () => {

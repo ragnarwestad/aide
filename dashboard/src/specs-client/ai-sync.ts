@@ -4,6 +4,7 @@
 import { postPendingModel } from "./pending-model.ts";
 import { postTailModel } from "./tail-actions.ts";
 import { chosen, selectKey } from "./state.ts";
+import { compactModelLabels } from "../page-contract.ts";
 
 // The AI picked on ONE phase line, written into that line's own model
 // select. One phase, never the row: the control it replaced
@@ -160,11 +161,12 @@ export function refreshAiModelBox(container: Element): void {
   const ai = container.querySelector("select[data-ai]") as HTMLSelectElement | null;
   const short =
     ai?.selectedOptions[0]?.dataset.short ?? model.selectedOptions[0]?.dataset.tool ?? "";
-  const collides =
-    Array.from(model.querySelectorAll("option[data-tool]"))
-      .filter((o) => (o as HTMLOptionElement).value === model.value).length > 1;
-  const shortText = collides && short ? `${short} · ${model.value}` : model.value;
-  const fullText = `${short} · ${model.value}`;
+  const labels = compactModelLabels(
+    Array.from(model.querySelectorAll("option[data-tool]")).map((o) => (o as HTMLOptionElement).value),
+    { model: model.value, short },
+  );
+  const shortText = labels.short;
+  const fullText = labels.full;
   shortEl.textContent = shortText;
   fullEl.textContent = fullText;
   const box = container.querySelector(".aimodelnow");

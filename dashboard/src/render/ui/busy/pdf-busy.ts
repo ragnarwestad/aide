@@ -1,3 +1,5 @@
+import { SPINNER } from "../../../page-contract.ts";
+
 // The PDF button looks pressed the moment it is clicked, and stays that
 // way until the reader is back on this tab — the one
 // control on this dashboard that opens in a NEW tab rather than
@@ -14,7 +16,6 @@
 // Like its siblings, this file can neither import nor export anything.
 
 (() => {
-  const SPINNER = '<span class="spin" aria-hidden="true"></span>';
 
   document.addEventListener("click", (event: Event) => {
     const e = event as MouseEvent;

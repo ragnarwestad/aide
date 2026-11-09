@@ -9,14 +9,8 @@ import { writeLine } from "../press.ts";
 import { groupEnd } from "../row-refusal/index.ts";
 import { placeSpecRows, swapRows, swapSpec } from "../row-swap.ts";
 import { press } from "../state.ts";
-
-/** Hand-paired with `render/pages/specs-list/notice-row.ts`, which draws the
- *  row this copies; the bundle imports nothing from outside it. */
-export const SPEC_LOADING_ROW_ID = "spec-loading-row";
-/** Sent on `document` once a spec is in its row; hand-paired with
- *  `render/ui/forms/spec-form-actions.ts`, a head script that can import
- *  nothing and binds Save and Cancel when it hears this. */
-export const SPEC_DETAIL_DRAWN = "spec-detail-drawn";
+import { SPEC_DETAIL_DRAWN, SPEC_HEAD_CLASS, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";
+export { SPEC_DETAIL_DRAWN, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";
 
 const LIST_PATH = "/specs";
 const DETAIL = "tr[data-spec-detail]";
@@ -48,7 +42,7 @@ export function openSpecInPlace(event: MouseEvent): boolean {
     return false;
   }
   const link = (event.target as Element | null)?.closest?.("a.fold[data-goto]") as HTMLAnchorElement | null;
-  const head = link?.closest("tr.spechead") as HTMLElement | null;
+  const head = link?.closest(`tr.${SPEC_HEAD_CLASS}`) as HTMLElement | null;
   const body = document.getElementById("jobrows");
   if (!link || !head || !body?.contains(head) || link.getAttribute("aria-expanded") !== "false") return false;
   if (!document.getElementById(SPEC_LOADING_ROW_ID)) return false;

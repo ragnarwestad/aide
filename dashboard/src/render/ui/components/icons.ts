@@ -5,6 +5,7 @@
 // which is why each state has a SHAPE of its own here.
 
 import type { ProviderTool } from "../../../queue/providers/tools.ts";
+export { SPINNER } from "../../../page-contract.ts";
 
 
 
@@ -35,8 +36,6 @@ export const ICON_WARN =
   `<path d="M8 2.5l6 11H2z"></path><path d="M8 6.5v3.2M8 12h.01"></path></svg>`;
 
 /** Something is happening. A span, not an SVG: it is one CSS rotation. */
-export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
-
 /** The spec page's PDF control: Bootstrap Icons' `file-earmark-pdf`
  *  (MIT), a document with the PDF mark on it — the one icon here that
  *  is NOT stroke-only and NOT the text colour: it is filled, and red,
