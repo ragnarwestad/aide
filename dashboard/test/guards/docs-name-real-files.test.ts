@@ -13,10 +13,9 @@ import { join } from "node:path";
 const ROOT = join(import.meta.dir, "..", "..");
 
 const PAGES = [
-  "CLAUDE.md",
+  "AGENTS.md",
   "README.md",
-  "../.claude/CLAUDE.md",
-  "../.claude/rules/development.md",
+  "../AGENTS.md",
   ...[...new Bun.Glob(".claude/rules/*.md").scanSync(ROOT)],
   ...[...new Bun.Glob("docs/**/*.md").scanSync(ROOT)],
 ];

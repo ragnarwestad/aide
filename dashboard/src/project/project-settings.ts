@@ -18,7 +18,7 @@
 // One rule this module holds to strictly: whether a configured PATH
 // resolves is not decided here. `assessProjectReadiness` in
 // `project-admin.ts` already decides it, in the words the reader is
-// shown, and `.claude/rules/development.md` names a second,
+// shown, and `AGENTS.md` names a second,
 // hand-synchronised copy of that decision as a mistake this repo has
 // already paid for twice. So the row's problem is
 // read verbatim off a readiness result handed in from outside.

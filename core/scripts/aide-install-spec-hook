@@ -6,7 +6,7 @@
 # particular worktree — `aide-run-spec` gives every run its own
 # `git worktree` under $HOME/.aide/dashboard/worktrees/, and git shares `hooks/`
 # across every worktree of one repository
-# (`.claude/rules/development.md`, "Hooks are shared across worktrees
+# (`AGENTS.md`, "Hooks are shared across worktrees
 # of one repository"). Installing once into the main checkout therefore
 # protects every worktree `aide-run-spec` creates from it, with no
 # per-worktree install step needed.

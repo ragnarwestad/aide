@@ -4,7 +4,7 @@
 // "parsed once" from "parsed twice", so the property is proven
 // structurally — the same "read two things as text and assert they agree"
 // technique this codebase already uses for `WORKFLOW_STEPS`,
-// `DEPENDENCY_GATED_STEPS` and `errorReason` (`dashboard/CLAUDE.md`).
+// `DEPENDENCY_GATED_STEPS` and `errorReason` (`dashboard/AGENTS.md`).
 
 import { describe, expect, test } from "bun:test";
 import { sourceWithParts } from "../../helpers/source-with-parts.ts";

@@ -80,7 +80,7 @@ def _run_commands(job_text):
 
 @pytest.mark.validation
 class TestCiWorkflow:
-    """The workflow must run the gates .claude/CLAUDE.md documents."""
+    """The workflow must run the gates AGENTS.md documents."""
 
     def test_check_bash_says_how_to_install_shellcheck(self, workspace_root):
         """Without shellcheck on PATH the script refuses with the install

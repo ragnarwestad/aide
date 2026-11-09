@@ -2,7 +2,7 @@
 // for an answer no older than their own call.
 //
 // Split out of dashboard-checkout.ts to keep that file inside the
-// 500-line limit (`dashboard/CLAUDE.md`, "Code health"): the decision
+// 500-line limit (`dashboard/AGENTS.md`, "Code health"): the decision
 // here is its own — who waits for whose answer — and nothing else in
 // that file shares it.
 

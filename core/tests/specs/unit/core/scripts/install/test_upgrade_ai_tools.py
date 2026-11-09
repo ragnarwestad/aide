@@ -1,5 +1,5 @@
 """Tests for core/scripts/upgrade-ai-tools — the cron/manual job that
-keeps every AI CLI current via mise (see .claude/rules/development.md).
+keeps every AI CLI current via mise (see AGENTS.md).
 
 Before this spec, `--help` (like every other argument) was silently
 ignored and the real upgrade ran regardless — the starkest case this

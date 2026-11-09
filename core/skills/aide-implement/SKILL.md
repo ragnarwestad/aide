@@ -199,7 +199,7 @@ First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`,
 2. Implement each task from 3-solution.md's plan (on a short analysis the
    change itself is the one task) — before writing to a file,
    check its current line count against any limit the project's coding
-   standard states (e.g. dashboard/CLAUDE.md's "Code health" section),
+   standard states (e.g. dashboard/AGENTS.md's "Code health" section),
    and split by responsibility instead of appending past it
 3. Run the tests after each task, and log the task as done
 4. Verify that the tests PASS, by changing the code. Never skip, disable

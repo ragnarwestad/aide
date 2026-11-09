@@ -168,7 +168,7 @@ export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard"
 /** The one function both the write side (`runner-setup.ts`'s spawn) and
  *  the read side (the serving route, the Schedule page) import — never a
  *  second implementation of the join, the exact hand-paired-pair failure
- *  mode `dashboard/CLAUDE.md` already names six instances of. */
+ *  mode `dashboard/AGENTS.md` already names six instances of. */
 export function scheduleOutputDir(root: string, project: string, specFolder: string): string {
   return join(root, project, specFolder);
 }

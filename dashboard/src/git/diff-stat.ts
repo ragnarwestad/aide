@@ -4,7 +4,7 @@
 // new question this dashboard asks git is a plain `diff --numstat`
 // between the two. Kept beside, not inside, `description-freshness.ts`
 // (460 lines already, close to the 500-line limit) — a new file for a
-// new question, per `dashboard/CLAUDE.md`'s "new functionality goes into
+// new question, per `dashboard/AGENTS.md`'s "new functionality goes into
 // its own file" rule.
 //
 // No cache, unlike every checker in `description-freshness.ts`: a

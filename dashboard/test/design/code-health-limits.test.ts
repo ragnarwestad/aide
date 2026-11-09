@@ -1,5 +1,5 @@
 // Enforces the four code-health limits named in
-// dashboard/CLAUDE.md's "Code health" section — a source file's line
+// dashboard/AGENTS.md's "Code health" section — a source file's line
 // count, a test file's line count, a directory's file count, and test/
 // mirroring src/'s top-level structure. Picked up by `bun test`'s own
 // discovery with no separate registration.
@@ -50,7 +50,7 @@ const OVER_LINE_LIMIT: Record<string, number> = {};
 const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts", "es.ts", "de.ts", "fr.ts"];
 
 // What a failure says to do, for the session that meets it: the message is what it reads.
-const RULE = '.claude/rules/development.md, "Code health"';
+const RULE = 'AGENTS.md, "Code health"';
 const SPLIT_FILE =
   "split it by responsibility, not in halves: move a part that has a name of its own into its own file, " +
   `and make a module in several files a folder named after it with an index.ts (${RULE})`;

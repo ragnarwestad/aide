@@ -398,7 +398,7 @@ EXCLUDES_EOF
       # stranded here, with nothing new for this run's own session to
       # commit, is retried on every later completed run until it lands,
       # not only the run that made it. Still never a root `changedFiles`
-      # alone would have called dirty (dashboard/CLAUDE.md): the checks
+      # alone would have called dirty (dashboard/AGENTS.md): the checks
       # above already exclude a root with nothing beyond its own default
       # branch, and a root this run neither moved nor completed.
       commit_already_on_origin "$root" "$head_is" && continue

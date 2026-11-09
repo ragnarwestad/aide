@@ -8,7 +8,7 @@
 //
 // The one rule this file guards hardest: resolution is not recomputed
 // here. `assessProjectReadiness` already decides whether a specs root
-// or a worktree link is there, and `.claude/rules/development.md` names
+// or a worktree link is there, and `AGENTS.md` names
 // a second, hand-synchronised copy of that decision as a mistake this
 // repo has already paid for twice. So the row's problem text is read
 // VERBATIM off the injected readiness result.
