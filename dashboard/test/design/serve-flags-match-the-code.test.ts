@@ -61,6 +61,7 @@ describe("the serve job passes only options the code accepts", () => {
     expect(SERVICE.label).toBe("com.aide-dashboard.serve");
     expect(MAKEFILE).toContain("deploy/service.json");
     expect(INSTALL).toContain("deploy/service.json");
+    expect(MAKEFILE).toContain("$(AIDE_DASH_LABEL)");
   });
 
   test("the board's banner shows that warning, not only the tools one", () => {

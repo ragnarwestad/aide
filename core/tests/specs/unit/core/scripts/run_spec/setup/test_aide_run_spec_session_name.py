@@ -31,7 +31,7 @@ def test_a_step_s_session_is_named_for_its_project_spec_and_step(runner, workspa
     claude = fake_claude("exit 1")  # never called in a dry run
     names = {}
     for step in ("analyze", "implement"):
-        rc, out, _ = run(runner, workspace, claude, command=step, dry_run=True)
+        rc, out, _ = run(runner, workspace, claude, command=step, project_name="proj", dry_run=True)
         assert rc == 0, out
         names[step] = _name(out["argv"])
     assert names == {"analyze": "proj 81 analyze", "implement": "proj 81 implement"}
@@ -41,7 +41,9 @@ def test_a_dashboard_checkout_s_session_is_named_for_its_project_not_for_code(
     runner, workspace, fake_claude
 ):
     ws = _as_dashboard_checkout(workspace, "north-star")
-    rc, out, _ = run(runner, ws, fake_claude("exit 1"), command="analyze", dry_run=True)
+    rc, out, _ = run(
+        runner, ws, fake_claude("exit 1"), command="analyze", project_name="north-star", dry_run=True
+    )
     assert rc == 0, out
     assert _name(out["argv"]) == "north-star 81 analyze"
 
@@ -58,7 +60,9 @@ def test_an_implement_that_continues_a_session_passes_no_name(runner, workspace,
 
 
 def test_a_create_s_session_is_named_for_its_project_and_new_create(runner, workspace, fake_claude):
-    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), spec=CREATE_KEY, dry_run=True)
+    rc, out, _ = create(
+        runner, workspace, fake_claude("exit 1"), spec=CREATE_KEY, project_name="proj", dry_run=True
+    )
     assert rc == 0, out
     assert _name(out["argv"]) == "proj new create"
 
@@ -68,7 +72,9 @@ def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry(runner, wo
     (workspace["project"] / "docs" / "nightly-report.md").write_text("Summarize last night's traffic.\n")
     git(workspace["project"], "add", "docs/nightly-report.md")
     git(workspace["project"], "commit", "-qm", "add the job's prompt")
-    rc, out, _ = schedule(runner, workspace, fake_claude("exit 1"), spec=SCHEDULE_KEY, dry_run=True)
+    rc, out, _ = schedule(
+        runner, workspace, fake_claude("exit 1"), spec=SCHEDULE_KEY, project_name="proj", dry_run=True
+    )
     assert rc == 0, out
     assert _name(out["argv"]) == "proj schedule nightly-report"
 

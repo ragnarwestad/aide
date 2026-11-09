@@ -713,7 +713,7 @@ def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix
         "#!/bin/sh\n"
         'case "$*" in\n'
         "  *-t*) echo 4242 ;;\n"
-        "  *-Fcn*) printf 'p4242\\ncnode\\nfcwd\\nn/h/.aide/dashboard/worktrees/skjera/58-sign-up/code/packages/server\\n' ;;\n"
+        f"  *-Fcn*) printf 'p4242\\ncnode\\nfcwd\\nn{workspace['wtbase']}/skjera/58-sign-up/code/packages/server\\n' ;;\n"
         "esac\n",
     )
     monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")

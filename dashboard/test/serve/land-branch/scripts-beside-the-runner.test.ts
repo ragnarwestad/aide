@@ -7,7 +7,7 @@
 // — which is how eleven parallel creates on a test board failed with
 // "unknown argument: --assign-number" (2026-09-14).
 import { describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assignSpecNumberAfterMerge } from "../../../src/serve/land-branch/finalize-create.ts";
@@ -48,6 +48,32 @@ describe("the landed create's number", () => {
       const answer = await assignSpecNumberAfterMerge(work, work, work, "new-abc12345", { scriptDir: bin });
       expect(answer).toEqual({ ok: true, specFolder: "07-x" });
       expect(readFileSync(marker, "utf8")).toContain("--assign-number --folder new-abc12345");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("keeps the specs subdirectory when its parent is reached through a symlink", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-linked-specs-numbering-"));
+    try {
+      const bin = join(dir, "bin");
+      mkdirSync(bin);
+      const marker = join(dir, "called.txt");
+      writeFileSync(
+        join(bin, "aide-create-spec"),
+        `#!/bin/sh\nprintf '%s\\n' "$*" > ${marker}\nprintf '{"ok":true,"specFolder":"07-x"}\\n'\n`,
+      );
+      chmodSync(join(bin, "aide-create-spec"), 0o755);
+      const physical = join(dir, "physical");
+      const linked = join(dir, "linked");
+      const work = join(dir, "work");
+      mkdirSync(join(physical, "aide"), { recursive: true });
+      mkdirSync(join(work, "aide"), { recursive: true });
+      symlinkSync(physical, linked);
+
+      await assignSpecNumberAfterMerge(work, physical, join(linked, "aide"), "new-abc12345", { scriptDir: bin });
+
+      expect(readFileSync(marker, "utf8")).toContain(`--specs-root ${join(work, "aide")}`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

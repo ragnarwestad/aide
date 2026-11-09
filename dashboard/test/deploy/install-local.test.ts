@@ -21,6 +21,8 @@ function dryRun(...args: string[]): string {
   try {
     const mk = join(dir, "Makefile");
     copyFileSync(join(ROOT, "Makefile"), mk);
+    mkdirSync(join(dir, "deploy"));
+    copyFileSync(join(ROOT, "deploy", "service.json"), join(dir, "deploy", "service.json"));
     const res = Bun.spawnSync(["make", "-f", mk, "-n", ...args], { cwd: dir });
     return new TextDecoder().decode(res.stdout);
   } finally {
@@ -44,6 +46,12 @@ describe("install-local is install-serve on this machine", () => {
     expect(recipe).toContain("git -C .aide/dashboard/checkouts/aide/code pull");
     expect(recipe).toContain("is still loaded after 10s");
     expect(recipe).toContain("launchctl bootstrap gui/$(id -u) Library/LaunchAgents/com.aide-dashboard.serve.plist");
+  });
+
+  test("the service label override reaches the plist and launchctl commands", () => {
+    const overridden = dryRun("install-local", "AIDE_DASH_LABEL=custom.board");
+    expect(overridden).toContain('cp "$plist" "$HOME/Library/LaunchAgents/custom.board.plist"');
+    expect(overridden).toContain("launchctl bootstrap gui/$(id -u) Library/LaunchAgents/custom.board.plist");
   });
 });
 

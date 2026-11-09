@@ -149,7 +149,9 @@ def test_the_review_session_is_named_review_not_for_the_implement_it_follows(
     """The stand-in records each call as its arguments joined by spaces."""
     with_status(workspace, ["create", "analyze"])
     claude = _reviewing_claude(fake_claude, "review: no defects found")
-    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
+    rc, out, _ = run(
+        runner, workspace, claude, command="implement", project_name="proj", review_model="claude-sonnet-4"
+    )
     assert rc == 0, out
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 2, calls

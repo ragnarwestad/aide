@@ -1,8 +1,8 @@
 // The four thin `Landing` descriptions each workflow step's own landing
 // is built from.
 
-import { isAbsolute, relative } from "node:path";
 import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "../../queue/queue.ts";
+import { isPathInside } from "../../git/real-path.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
@@ -82,17 +82,16 @@ export async function landStepBranch(
 /** The roots a step's run pushed, minus the project's code root — or
  *  `undefined` (every root the run pushed) when the specs live inside
  *  that code root, which leaves no other root to land them from. */
-function specsRootsOnly(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): BranchRef[] | undefined {
+export function specsRootsOnly(
+  ctx: Pick<LandContext, "machineryProjectDir" | "machinerySpecsRoot">,
+  job: Pick<Job, "project">,
+  outcome: Partial<StepOutcome>,
+): BranchRef[] | undefined {
   const codeRoot = ctx.machineryProjectDir(job.project);
   const specsRoot = ctx.machinerySpecsRoot(job.project);
-  if (!specsRoot || sameRoot(specsRoot, codeRoot) || isInside(specsRoot, codeRoot)) return undefined;
+  if (!specsRoot || sameRoot(specsRoot, codeRoot) || isPathInside(specsRoot, codeRoot)) return undefined;
   return (outcome.branchUrls ?? []).filter((r) => !sameRoot(r.root, codeRoot));
 }
-
-const isInside = (dir: string, root: string): boolean => {
-  const rel = relative(root, dir);
-  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-};
 
 /** Land what a step wrote when it did NOT finish, but ran out of time
  *  having touched no code repo.
