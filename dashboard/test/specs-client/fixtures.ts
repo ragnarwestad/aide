@@ -72,7 +72,17 @@ export function harness(
   reply: (url: string) => Reply,
   control_ = "actionform",
   search = "",
-  o: { offRow?: boolean; pathname?: string; formId?: string; follow?: Record<string, string> } = {},
+  o: {
+    offRow?: boolean;
+    pathname?: string;
+    formId?: string;
+    follow?: Record<string, string>;
+    /** The Run button as the server drew it: the phases done, its label
+     *  and whether it was disabled. */
+    run?: { done?: string[]; label?: string; disabled?: boolean };
+    /** The phase boxes the server drew ticked; analyze alone otherwise. */
+    ticked?: string[];
+  } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -82,10 +92,11 @@ export function harness(
    *  to follow to reach them. */
   const ROW_FORM = "rowrun-aide/127-one-ai";
   const button = makeButton(
-    control.label,
+    formClass === "rowrun" ? o.run?.label ?? control.label : control.label,
     control.pending,
     control.variant,
     formClass === "rowrun" ? ROW_FORM : undefined,
+    formClass === "rowrun" ? o.run : undefined,
   );
   // The row's phase boxes — the space this spec's spinner takes over
   // while the press is out. A COLLAPSED row has none: it
@@ -128,7 +139,7 @@ export function harness(
   // The OTHER controls on the same spec. A press locks the spec's
   // rows, so a fake with one button on it could not tell a spec-wide
   // lock from the single-button one it replaced.
-  const runButton = formClass === "rowrun" ? button : makeButton("Run", "Starting…", "primary", ROW_FORM);
+  const runButton = formClass === "rowrun" ? button : makeButton(o.run?.label ?? "Run", "Starting…", "primary", ROW_FORM, o.run);
   const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
   /** The run form as the State cell holds it: hidden fields only, and
    *  an id every control outside its tags names. */
@@ -201,11 +212,8 @@ export function harness(
     aiSelect(ROW_FORM, "implement", "codex"),
     aiSelect(ROW_FORM, "archive", "claude"),
   ];
-  const stepBoxes = [
-    stepCheckbox(ROW_FORM, "analyze", true),
-    stepCheckbox(ROW_FORM, "implement", false),
-    stepCheckbox(ROW_FORM, "archive", false),
-  ];
+  const servedTicks = new Set(o.ticked ?? ["analyze"]);
+  const stepBoxes = ["analyze", "implement", "archive"].map((s) => stepCheckbox(ROW_FORM, s, servedTicks.has(s)));
   // Two specs' unfolded lists, one criterion text in common.
   const TICK_FORM = "rowchecks-aide/493-a";
   const TICK_ROW = "| AC-1: it folds | ⬜ | |";
@@ -238,6 +246,7 @@ export function harness(
     for (const a of aiSelects) a.redraw();
     for (const m of modelSelects) m.redraw();
     otherRowSelect.redraw();
+    runButton.redraw();
     for (const b of stepBoxes) b.redraw();
     for (const b of tickBoxes) b.redraw();
     for (const b of unverifiedBoxes) b.redraw();
