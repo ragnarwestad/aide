@@ -49,6 +49,7 @@ export function landCtx(
   const ctx: Record<string, unknown> = {
     queue: {
       get: () => undefined,
+      list: () => [],
       update: () => {},
       transition: () => ({ ok: true }),
       branchesFor: () => [],

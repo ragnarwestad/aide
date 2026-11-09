@@ -769,8 +769,8 @@ def test_a_short_analysis_is_not_offered_to_a_spec_sent_back_to_a_full_one(runne
     assert lines == ([] if case["sentBack"] else [SHORT_ANALYSIS_LINE]), out["prompt"]
 
 
-def test_implement_receives_archive_failure_evidence_in_its_prompt(runner, workspace, fake_claude, monkeypatch):
-    evidence = {"jobId": "archive-job", "detail": "TypeError: root.querySelector is not a function", "archiveStepRepos": [{"headAfter": "branch-tip"}]}
+def test_implement_receives_the_landings_failed_tests_in_its_prompt_ac_2(runner, workspace, fake_claude, monkeypatch):
+    evidence = {"jobId": "archive-job", "failedTests": [{"name": "renders the row", "file": "test/row.test.ts", "error": "TypeError"}], "archiveStepRepos": [{"headAfter": "branch-tip"}]}
     monkeypatch.setenv("AIDE_ARCHIVE_FAILURE_CONTEXT", json.dumps(evidence))
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out

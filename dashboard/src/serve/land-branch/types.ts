@@ -12,6 +12,7 @@ import type { CodeLanding } from "../../project/discover";
 import type { createRootLock } from "../serve-helpers";
 import type { RestartHook } from "./restart.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
+import type { GateVerdict } from "./test-gate.ts";
 
 /** Everything `landBranch` and its helpers read off `createServer`'s
  *  closure, bundled the same way `RoutesContext` and
@@ -56,7 +57,7 @@ export interface LandContext {
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
+  landingGate?: (root: string, job: Job, branch: string) => Promise<GateVerdict>;
   /** Landing's own finalize step for a `create` job: renames
    *  the folder off its literal provisional key to its real `NN-slug`
    *  inside the merge worktree, under the specs repo's own merge lock.

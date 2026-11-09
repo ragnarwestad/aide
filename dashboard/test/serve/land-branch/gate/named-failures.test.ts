@@ -117,6 +117,22 @@ test("the sentence counts every repeated failure when detail is shortened (AC-3)
   expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
 }, 30_000);
 
+test("the tests the merge failed twice are kept with their file and error, all of them (AC-1)", async () => {
+  const names = Array.from({ length: 10 }, (_, index) => `test_${index + 1}`).join(" - error'; echo 'FAILED t/test_a.py::");
+  recorder(names, names);
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.failedTests).toHaveLength(10);
+  expect(verdict.failedTests?.[9]).toEqual({ name: "t/test_a.py::test_10", file: "t/test_a.py", error: "second error" });
+  expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
+}, 30_000);
+
+test("a merge that failed different tests, or named none first, keeps no list (AC-7)", async () => {
+  recorder("test_one", "test_two");
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+  recorder("", "test_one");
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+}, 60_000);
+
 describe("failingLines", () => {
   test("the recorder's own answer is not a line the tests said", () => {
     expect(failingLines('noise\n{"ok":true,"exitCode":1}\n', "")).toBe("noise");

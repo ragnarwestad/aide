@@ -19,6 +19,7 @@ import type { MergeHooks } from "../../git/merge-hooks.ts";
 import type { SpecFolderLanding } from "../../git/spec-folder-landing.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { LandContext, Landing } from "./types.ts";
+import { keepLandingFailedTests } from "./stopped-reason.ts";
 
 /** The roots the open-branch cache is keyed by that this repo holds:
  *  the cache is asked per spec root — the project dir, and the specs
@@ -76,6 +77,10 @@ export function handedToMerge(
         // Green only on a second run: the archived row says so, and the
         // lines the first run failed on are kept with it.
         if (verdict.ok && verdict.retriedAfter) ctx.queue.update(job.id, { testsGreenOnRetry: verdict.retriedAfter });
+        // The tests the merge failed, handed to the spec's next implement;
+        // a green landing, or a red one that names no such list, keeps none.
+        // An archive's alone: a schedule landing is no spec's.
+        if (what.step === "archive") keepLandingFailedTests(ctx.queue, job, verdict.ok ? undefined : verdict.failedTests);
         return verdict;
       }
     : undefined;

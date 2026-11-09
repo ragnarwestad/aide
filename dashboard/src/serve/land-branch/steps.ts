@@ -6,6 +6,7 @@ import { mergeBranchRefs, type BranchRef, type Job, type WorkflowStep } from "..
 import type { StepOutcome } from "../../queue/runner";
 import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
+import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepLogLine } from "./test-gate.ts";
 import { stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
 import { renderSentence } from "../../i18n/message.ts";
@@ -167,6 +168,7 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // nothing is tracked for this spec.
     onLanded: async () => {
       onMerged();
+      keepLandingFailedTests(ctx.queue, job, undefined);
       stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
     },
   }));
@@ -209,6 +211,7 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
     // branch has nothing left to serve once that branch is gone.
     onLanded: async () => {
       onMerged();
+      keepLandingFailedTests(ctx.queue, job, undefined);
       stopTestServer(ctx.testServers, job.project, job.specFolder, "its close landed");
     },
   }));

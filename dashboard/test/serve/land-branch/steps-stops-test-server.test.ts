@@ -56,12 +56,16 @@ function storeWithTestServer(): TestServerStore {
   return store;
 }
 
+let listed: Record<string, unknown>[] = [];
+let updates: Record<string, unknown>[] = [];
+
 async function archive(store: TestServerStore, over: Record<string, Answer> = {}) {
   const { ctx } = landCtx(landingGit(over).run, {
     testServers: makeTestServersCtx(store),
     queue: {
       get: () => undefined,
-      update: () => {},
+      list: () => listed,
+      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
       transition: () => ({ ok: true }),
       branchesFor: () => REPOS,
       pullRequestFor: () => ({}),
@@ -75,6 +79,8 @@ async function archive(store: TestServerStore, over: Record<string, Answer> = {}
 }
 
 beforeEach(() => {
+  listed = [];
+  updates = [];
   killed = [];
   killSpy = spyOn(process, "kill").mockImplementation((pid: number, signal?: string) => {
     killed.push({ pid, signal: signal ?? "" });
@@ -102,6 +108,12 @@ describe("landArchivedSpec's onLanded", () => {
     await archive(store, { "merge -q --ff-only": { code: 1 }, "merge -q --no-edit": { code: 1 } });
     expect(killed).toHaveLength(0);
     expect(store.get("aide", "150-spec")).toBeDefined();
+  });
+
+  test("takes the tests a red landing failed off the spec once the archive has landed (AC-6)", async () => {
+    listed = [{ id: "old", project: "aide", specFolder: "150-spec", landingFailedTests: [{ name: "t", file: "f", error: "e" }] }];
+    await archive(new TestServerStore());
+    expect(updates).toContainEqual({ landingFailedTests: undefined });
   });
 
   test("is a no-op when nothing is tracked for the spec", async () => {

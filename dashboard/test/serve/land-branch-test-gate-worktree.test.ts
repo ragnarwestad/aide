@@ -92,6 +92,11 @@ describe("the landing's test gate", () => {
     });
   });
 
+  test("a timed-out run keeps no list of failed tests (AC-7)", () => {
+    const verdict = timeoutVerdict("(fail) a test\n--- dashboard/test/slow.test.ts\n", 60, "Archive");
+    expect(verdict.failedTests).toBeUndefined();
+  });
+
   test("runs the suite in a worktree of HEAD, with the links and the config, and removes it after", async () => {
     const root = project();
     const record = join(root, "..", `gate-record-${Date.now()}.txt`);
