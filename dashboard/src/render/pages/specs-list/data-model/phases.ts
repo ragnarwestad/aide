@@ -8,6 +8,7 @@ import { archiveHeldBackApplies } from "../../../../project/parse-status";
 import { currentStep, inFlight, sidesSpent, type QueueRowView, type StepResultView } from "../../../ui/job-state";
 import { landingStep } from "../../../ui/job-state/resting.ts";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
+import { workflowArc } from "../../../../workflow-steps.ts";
 
 /** Every step this job has anything to say about: the ones it finished,
  *  plus the one it is on. */
@@ -422,7 +423,7 @@ const roundFinished = (step: string, round: QueueRowView): boolean =>
  *  history; a round started at implement leaves analyze's own line
  *  alone. */
 function comesAfterRoundStart(step: string, round: QueueRowView): boolean {
-  const order = ["create", "analyze", "implement", "archive"];
+  const order = workflowArc().map((phase) => phase.name);
   const start = order.indexOf(round.steps[0] ?? "");
   const at = order.indexOf(step);
   return start >= 0 && at > start;

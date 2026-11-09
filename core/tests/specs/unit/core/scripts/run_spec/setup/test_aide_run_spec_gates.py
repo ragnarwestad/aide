@@ -237,19 +237,37 @@ def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
     assert "title" in out["error"], out
     assert not fake_claude.calls.exists()
 
-def test_workflow_steps_json_holds_the_known_lists(workspace_root):
-    """One data file holds the workflow steps, the dependency-gated
-    steps and the workflow arc — each matching today's known-good
-    values. The list has no step that starts a removed skill."""
+def test_workflow_steps_json_holds_complete_records(workspace_root):
+    """One data file holds every current step property."""
     path = workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json"
     assert path.is_file(), f"the shared workflow-step file is missing: {path}"
     data = json.loads(path.read_text())
-    assert data["workflowSteps"] == [
+    assert [step["name"] for step in data["steps"] if step["runBy"] == "runner"] == [
         "explore", "create", "analyze", "implement", "archive", "reopen", "schedule", "close",
     ]
-    assert data["dependencyGatedSteps"] == ["analyze", "implement", "archive"]
-    assert data["workflowArc"] == ["create", "analyze", "implement", "archive"]
+    assert [step["name"] for step in data["steps"] if step["dependencyGated"]] == ["analyze", "implement", "archive"]
+    assert [step["name"] for step in sorted(data["steps"], key=lambda step: step["phaseOrder"] or 999) if step["phaseOrder"] is not None] == ["create", "analyze", "implement", "archive"]
     assert data["workflowArcRetired"] == ["review-plan"]
+
+def test_bash_reader_accepts_a_new_complete_record_and_rejects_bad_records(workspace_root, tmp_path):
+    """The reusable Bash reader needs no copied name list."""
+    reader = workspace_root / "core" / "scripts" / "lib" / "workflow" / "steps.sh"
+    valid = tmp_path / "valid.json"
+    valid.write_text(json.dumps({"steps": [{
+        "name": "new-step", "runBy": "runner", "runsModel": True,
+        "writesStatus": True, "receivesConflict": False, "runsTests": False,
+        "runsReview": False, "takesSlot": True, "ownRow": False,
+        "phaseOrder": 1, "phaseControl": True, "dependencyGated": True,
+    }], "workflowArcRetired": []}))
+    result = subprocess.run(["bash", "-c", f'source "{reader}"; workflow_steps_load "{valid}"; workflow_step_resolve new-step; printf "%s|%s|%s" "$WORKFLOW_STEPS" "$STEP_RUNS_MODEL" "$WORKFLOW_ARC"'], text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "new-step|true|new-step"
+
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text(json.dumps({"steps": [{"name": "broken"}], "workflowArcRetired": []}))
+    result = subprocess.run(["bash", "-c", f'source "{reader}"; workflow_steps_load "{invalid}"'], text=True, capture_output=True)
+    assert result.returncode != 0
+    assert "broken" in result.stderr
 
 def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
     """The runner reads all four lists from workflow-steps.json now.
@@ -264,6 +282,15 @@ def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
         'WORKFLOW_ARC_RETIRED="review-plan"',
     ):
         assert literal not in bash, f"aide-run-spec still declares {literal!r} as a literal"
+
+def test_runner_uses_record_properties_without_step_name_overrides(run_spec_source):
+    """Model and review behavior follow the selected record."""
+    assert '[ "$STEP_RUNS_MODEL" = "false" ]' in run_spec_source
+    condition = next(
+        line for line in run_spec_source.splitlines()
+        if "STEP_RUNS_REVIEW" in line and "terminal_reason" in line
+    )
+    assert "command_name" not in condition
 
 def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root):
     """None of the three plain-import TypeScript files may keep a

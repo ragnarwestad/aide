@@ -126,6 +126,11 @@ describe("a cleanup job has a row only while it runs or waits for a person", () 
   });
 });
 
+test("a step record decides whether a job owns a row (AC-1, AC-4)", () => {
+  expect(ids([job({ id: "close", steps: ["close"], state: "running" })])).toEqual(["close"]);
+  expect(ids([job({ id: "analyze", steps: ["analyze"], state: "running" })])).toEqual([]);
+});
+
 describe("a spec's job is never a job row: its spec's row stands for it", () => {
   test("running, queued, landing, failed and held-back spec jobs are not returned", () => {
     const jobs = [

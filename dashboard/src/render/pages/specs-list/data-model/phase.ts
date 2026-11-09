@@ -8,12 +8,13 @@
 
 import type { QueueRowView } from "../../../ui/job-state";
 import { stepButton } from "../../../../format/step-label.ts";
+import { workflowArc, workflowControls } from "../../../../workflow-steps.ts";
 
 // Exported because `queue.ts` keeps the same list under
 // `PHASE_STEPS` — it decides which steps a running job may still be
 // given — and the render layer does not import that module. A test
 // reads both and refuses to let them drift.
-export const RUN_STEPS = ["analyze", "implement", "archive"];
+export const RUN_STEPS = workflowControls().map((step) => step.name);
 
 // The phase LINES a spec's expanded row shows, in order. `create` is
 // history, not a control: a spec that exists cannot be
@@ -25,7 +26,7 @@ export const RUN_STEPS = ["analyze", "implement", "archive"];
 // Exported so `serve.ts` can iterate the same four steps
 // while reading each one's phase-outcome file, rather than keeping a
 // second, hand-copied list of them.
-export const PHASE_LINES = ["create", ...RUN_STEPS];
+export const PHASE_LINES = workflowArc().map((step) => step.name);
 
 /** The phases a spec on the specs list still has ahead of it, in workflow
  *  order. `archive` is never counted done: archived-ness is a directory, and

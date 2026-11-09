@@ -51,7 +51,7 @@ describe("Settings page", () => {
   // set of steps that deliberately get no row, so a step added to
   // workflow-steps.json still cannot end up silently without one.
   test("every workflow step is grouped or named unrowed", () => {
-    const covered = [...SPEC_STEPS, ...OTHER_STEPS, ...UNROWED_STEPS];
+    const covered: string[] = [...SPEC_STEPS, ...OTHER_STEPS, ...UNROWED_STEPS];
     expect([...covered].sort()).toEqual([...WORKFLOW_STEPS].sort());
   });
 

@@ -135,7 +135,7 @@ sides_priced_again() {
 # The review's and the verification's records for the result, when they ran.
 review_json=""; verify_json=""; sides_priced=""
 
-if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
+if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
   && { [ -n "$review_model" ] || [ -n "$review_tool" ]; }; then
   implement_session="$session_out"
   running_cost="$cost"

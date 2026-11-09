@@ -5,6 +5,7 @@ import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { toolLabel } from "../../format/tool-failure.ts";
 import { modelIdOf, providerError, sharedFiles, testsNotStarted, testsRed, timeLimit, type StepOutcome } from "./types.ts";
+import { requireWorkflowStep } from "../../workflow-steps.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -16,7 +17,7 @@ import { modelIdOf, providerError, sharedFiles, testsNotStarted, testsRed, timeL
  *  wrote. */
 export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence | undefined {
   // A deploy runs in the board's own process, which words its failure itself.
-  if (step === "deploy" && !outcome.ok) return outcome.sentence;
+  if (requireWorkflowStep(step).runBy === "board" && !outcome.ok) return outcome.sentence;
   if (outcome.terminalReason === "model-refused") {
     return { key: "runner.modelRefused", values: { button: stepButton(step) } };
   }

@@ -24,7 +24,7 @@
 import type { GitRunner } from "./process/index.ts";
 import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
 import { leavesStepUndone } from "../format/stop-reason.ts";
-import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import { WORKFLOW_ARC_RETIRED, workflowArc } from "../workflow-steps.ts";
 
 export { BranchFileStepsChecker } from "./branch-file-steps.ts";
 export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-steps.ts";
@@ -35,7 +35,7 @@ export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-step
  *  thing you can queue, not a place a spec gets to. Read from
  *  `core/scripts/lib/workflow-steps.json`, the same file
  *  `core/scripts/aide-run-spec` reads with jq. */
-export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
+export const HISTORY_STEPS: readonly string[] = workflowArc().map((step) => step.name);
 
 /** A step name retired FROM the arc, kept recognized when READING old
  *  commits (the requirement that "every archived spec
@@ -51,7 +51,7 @@ export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
  *
  *  `core/scripts/aide-run-spec` reads the same value from
  *  `workflow-steps.json`'s `workflowArcRetired`. */
-export const HISTORY_STEPS_RETIRED: readonly string[] = workflowStepsData.workflowArcRetired;
+export const HISTORY_STEPS_RETIRED: readonly string[] = WORKFLOW_ARC_RETIRED;
 
 /** The steps after `analyze` in the arc: a completed analyze cancels the
  *  ones before it. `core/scripts/lib/run-spec/record/records.sh` spells the same

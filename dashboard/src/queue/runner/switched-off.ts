@@ -4,7 +4,8 @@
 // holds, so switching the provider on is all it takes.
 
 import type { BoardMessage } from "../../i18n/message.ts";
-import { BOARD_STEPS, type Job } from "../queue.ts";
+import { type Job } from "../queue.ts";
+import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { switchedOff, type Provider } from "../providers/index.ts";
 import type { ProviderOf } from "./usage-limit.ts";
 
@@ -18,7 +19,7 @@ export function switchedOffHolds(
   const held = new Map<string, BoardMessage>();
   for (const job of jobs) {
     if (job.state !== "queued" || job.landing) continue;
-    if ((BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "")) continue;
+    if (requireWorkflowStep(job.steps[job.stepIndex] ?? "").runBy === "board") continue;
     const key = providerOf(job);
     if (switchedOff(key, providers)) held.set(job.id, { key: "runner.providerSwitchedOff", values: { provider: providers![key]!.name } });
   }

@@ -18,10 +18,9 @@
 _workflow_steps_file="$SCRIPT_DIR/lib/workflow-steps.json"
 [ -f "$_workflow_steps_file" ] \
   || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared workflow-step file is missing: $_workflow_steps_file\"}"
-WORKFLOW_STEPS="$(jq -r '.workflowSteps | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
-DEPENDENCY_GATED_STEPS="$(jq -r '.dependencyGatedSteps | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
-WORKFLOW_ARC="$(jq -r '.workflowArc | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
-WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
+source "$SCRIPT_DIR/lib/workflow/steps.sh"
+workflow_steps_load "$_workflow_steps_file" \
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflow steps from $_workflow_steps_file\"}"
 [ -n "$WORKFLOW_STEPS" ] \
   || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflowSteps from $_workflow_steps_file\"}"
 
@@ -281,6 +280,7 @@ case " $WORKFLOW_STEPS " in
   *" $command_name "*) ;;
   *) refuse "invalid --command: $command_name (not an aide workflow step)" ;;
 esac
+workflow_step_resolve "$command_name" || refuse "invalid workflow record: $command_name"
 # The word on the row's own button for this step ("Archive"): there is
 # no Run button on a spec's row, so a message that tells the reader to
 # press again names the button it means. awk, not ${var^}: /bin/bash is 3.2.

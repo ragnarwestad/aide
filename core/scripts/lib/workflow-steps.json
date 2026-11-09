@@ -1,7 +1,16 @@
 {
   "_comment": "The workflow's own vocabulary: one source, read by core/scripts/aide-run-spec (jq) and by the dashboard (import). Readiness rules and how a setting is resolved stay out of this file on purpose — only plain lists belong here. workflowSteps: the names --command accepts. dependencyGatedSteps: the steps an unarchived dependency holds back — the ones that read or build on the code the dependency changes: analyze plans against that code, so a plan made before it lands is a plan for code about to change; create writes only the spec's own folder and needs nothing merged. workflowArc: the four stages a spec passes through, deliberately narrower than workflowSteps (explore is a thing you can queue, not a place a spec gets to). workflowArcRetired: a step name retired FROM the arc, kept recognized when reading old commits (review-plan folded into analyze).",
-  "workflowSteps": ["explore", "create", "analyze", "implement", "archive", "reopen", "schedule", "close"],
-  "dependencyGatedSteps": ["analyze", "implement", "archive"],
-  "workflowArc": ["create", "analyze", "implement", "archive"],
+  "steps": [
+    { "name": "explore", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "create", "runBy": "runner", "runsModel": true, "writesStatus": true, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": false, "ownRow": false, "phaseOrder": 1, "phaseControl": false, "dependencyGated": false },
+    { "name": "analyze", "runBy": "runner", "runsModel": true, "writesStatus": true, "receivesConflict": false, "runsTests": false, "runsReview": true, "takesSlot": true, "ownRow": false, "phaseOrder": 2, "phaseControl": true, "dependencyGated": true },
+    { "name": "implement", "runBy": "runner", "runsModel": true, "writesStatus": true, "receivesConflict": true, "runsTests": true, "runsReview": true, "takesSlot": true, "ownRow": false, "phaseOrder": 3, "phaseControl": true, "dependencyGated": true },
+    { "name": "archive", "runBy": "runner", "runsModel": true, "writesStatus": true, "receivesConflict": true, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": false, "phaseOrder": 4, "phaseControl": true, "dependencyGated": true },
+    { "name": "reopen", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "schedule", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "close", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "deploy", "runBy": "board", "runsModel": false, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": false, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "cleanup", "runBy": "board", "runsModel": false, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": false, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false }
+  ],
   "workflowArcRetired": ["review-plan"]
 }

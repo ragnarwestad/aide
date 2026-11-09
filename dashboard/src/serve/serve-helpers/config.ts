@@ -4,7 +4,7 @@ import { availableParallelism } from "node:os";
 import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import type { QueueDefaults } from "../../queue/queue.ts";
 import type { ProcessSettings } from "../../render/pages/settings-page/process.ts";
-import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import { WORKFLOW_STEP_RECORDS } from "../../workflow-steps.ts";
 
 export const MAX_BODY = 4096;
 
@@ -173,6 +173,6 @@ export function processSettings(
  *  Read from `core/scripts/lib/workflow-steps.json` — the
  *  same file `core/scripts/aide-run-spec` reads with jq, so the two
  *  sides can no longer drift apart. */
-export const DEPENDENCY_GATED_STEPS: readonly string[] = workflowStepsData.dependencyGatedSteps;
+export const DEPENDENCY_GATED_STEPS: readonly string[] = WORKFLOW_STEP_RECORDS.filter((step) => step.dependencyGated).map((step) => step.name);
 
 export const GATED = new Set<string>(DEPENDENCY_GATED_STEPS);

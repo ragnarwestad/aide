@@ -204,10 +204,8 @@ tick_full_suite_row() {   # $1 = what ran
 }
 
 step_tests_folder=""
-if [ "$terminal_reason" = "completed" ]; then
-  case "$command_name" in
-    implement) step_tests_folder="$spec_label" ;;
-  esac
+if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_TESTS" = "true" ]; then
+  step_tests_folder="$spec_label"
 fi
 if [ -n "$step_tests_folder" ]; then
   # Compared with the default branch, so a change to Markdown files alone
