@@ -6,7 +6,7 @@
 // page behind it: the dialog's page script reads the answer.
 import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
-import { landingInProject } from "../../../queue/queue.ts";
+import { inFlight, landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 import { specReference } from "../../../project/spec-folder.ts";
 
@@ -39,7 +39,7 @@ export async function closeControlRoutes(
     if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
     if (ctx.queue.list().some((job) =>
       job.project === project && job.specFolder === specFolder &&
-      (job.state === "queued" || job.state === "running")
+      inFlight(job)
     )) return refuseClose("another job for this spec is still running");
     const result = ctx.queue.enqueue({ project, specFolder, steps: ["close"], closeReason: reason });
     if (!result.ok) {

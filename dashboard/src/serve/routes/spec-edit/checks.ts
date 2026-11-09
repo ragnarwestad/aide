@@ -27,7 +27,8 @@ import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
 import { STATE_FILE } from "../../../project/spec-names.ts";
 import { STATUS_SPEC_FILE } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, refusal, tickMessage } from "../../serve-helpers";
-import { specWriteInFlight, stateRelPath } from "./shared.ts";
+import { writing } from "../../../queue/queue.ts";
+import { stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
 import { dirname } from "node:path";
@@ -74,7 +75,7 @@ export async function checkRoutes(
     // refusing on `queued` made the tick and the hold-back wait for
     // each other.
     const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder && specWriteInFlight(job),
+      (job) => job.project === project && job.specFolder === specFolder && writing(job),
     );
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";

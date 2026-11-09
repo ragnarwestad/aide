@@ -10,9 +10,6 @@ import { specPageRoutes } from "./spec-page.ts";
 import { trackingRoutes } from "./tracking.ts";
 import type { RoutesContext } from "..";
 
-// Its old home, so every caller keeps the import it has.
-export { specWriteInFlight } from "./shared.ts";
-
 /** The spec's own pages and their edit routes, asked family by family.
  *  Each answers `null` for a path that is not its own, so the chain
  *  reads the way the one long function it replaces did. */

@@ -3,6 +3,7 @@
 // never speaks for its spec on either page.
 
 import { describe, expect, test } from "bun:test";
+import { currentWorkRoundJobs } from "../../../../src/queue/queue.ts";
 import type { JobLike } from "../../../../src/render/pages/jobs-page/rows.ts";
 import { listedSpecJobs } from "../../../../src/serve/routes/page-routes/spec-row-options.ts";
 
@@ -33,5 +34,12 @@ describe("listedSpecJobs", () => {
   test("a scheduled job is never a spec's job (AC-3)", () => {
     const scheduled = { ...job("s", ["schedule"], "done", "2026-10-14T19:49:00Z"), specFolder: "schedule-nightly" };
     expect(listedSpecJobs(ctx, [analyze, scheduled]).map((j) => j.id)).toEqual(["a"]);
+  });
+
+  test("a finished Reopen with reset remains a boundary before the current round is selected", () => {
+    const reopen = { ...job("r", ["reopen"], "done", "2026-10-14T19:48:00Z"), resetFiles: true };
+    const later = job("b", ["analyze"], "failed", "2026-10-14T19:50:00Z");
+    const listed = listedSpecJobs(ctx, [analyze, reopen, later]);
+    expect(currentWorkRoundJobs(listed).map((j) => j.id)).toEqual(["b"]);
   });
 });

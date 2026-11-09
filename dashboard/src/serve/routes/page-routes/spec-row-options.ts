@@ -4,13 +4,12 @@
 
 import { providerPickerOptions } from "../../providers/options.ts";
 import type { Language } from "../../../i18n";
-import { closeOrReopenStep, isCleanupJob, isDeployJob } from "../../../queue/queue.ts";
-import { jobsShown, type SpecsPageOptions } from "../../../render";
+import { inFlight, jobKind, waitsForPerson } from "../../../queue/queue.ts";
+import type { SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
-import { isScheduleKey } from "../../../project/spec-names.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
-import { closeOrReopenSteps, deploySteps, scheduleSteps } from "../../spec-views/job-marks.ts";
+import { jobStepLines } from "../../spec-views/job-marks.ts";
 import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
@@ -32,11 +31,9 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     pendingProviders: ctx.queue.pendingProviders,
     pendingSteps: ctx.queue.pendingSteps,
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
-    closeOrReopenSteps: (jobId: string, step: string) => {
+    closeOrReopenSteps: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      if (!job) return [];
-      if (step === "deploy") return deploySteps(job, lang);
-      return step === "schedule" || step === "cleanup" ? scheduleSteps(job, lang) : closeOrReopenSteps(job, step, lang);
+      return job ? jobStepLines(job, lang) : [];
     },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
@@ -73,10 +70,19 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
  *  nor a deploy (no spec folder), nor a Close or Reopen the Jobs tab draws as a
  *  row of its own, so such a job never speaks for its spec on either page. */
 export function listedSpecJobs<J extends JobLike>(ctx: Pick<RoutesContext, "allowed">, jobs: J[]): J[] {
+  const at = (job: J): number => Date.parse(job.createdAt) || 0;
   const own = new Set(
-    jobsShown(jobs, { scheduleEntryExists: () => false }).filter((j) => closeOrReopenStep(j)).map((j) => j.id),
+    jobs.filter((job) => {
+      if (!["close", "reopen"].includes(jobKind(job))) return false;
+      if (inFlight(job)) return true;
+      if (!waitsForPerson(job)) return false;
+      return !jobs.some(
+        (later) => later.project === job.project && later.specFolder === job.specFolder &&
+          later.state !== "cancelled" && at(later) > at(job),
+      );
+    }).map((job) => job.id),
   );
   return jobs.filter(
-    (j) => ctx.allowed.has(j.project) && !isScheduleKey(j.specFolder) && !isDeployJob(j) && !isCleanupJob(j) && !own.has(j.id),
+    (job) => ctx.allowed.has(job.project) && !["schedule", "deploy", "cleanup"].includes(jobKind(job)) && !own.has(job.id),
   );
 }

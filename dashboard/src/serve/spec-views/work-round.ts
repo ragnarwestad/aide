@@ -4,7 +4,7 @@
 // spec page and for the answer that follows it; a test builds the real page
 // view and holds the keys to the same list.
 import { currentWorkRoundJobs } from "../../queue/steps.ts";
-import type { Job, QueueStore } from "../../queue/queue.ts";
+import { inFlight, type Job, type QueueStore } from "../../queue/queue.ts";
 import type { JobDetailView, JobStepResultView } from "../../render";
 
 /** The spec's jobs in its current work round, newest first. */
@@ -14,8 +14,6 @@ export function workRoundJobs(queue: Pick<QueueStore, "list">, project: string, 
     (a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0),
   );
 }
-
-const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running" || !!j.landing;
 
 /** The spec's jobs in its round, the lead job's view and every step of the
  *  round: what the Steps tab draws. The lead is whatever is in flight, or

@@ -12,7 +12,7 @@ import {
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { cardStep } from "../../../project/spec-card.ts";
-import { inFlight } from "../../../render/ui/job-state";
+import { inFlight } from "../../../queue/queue.ts";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {

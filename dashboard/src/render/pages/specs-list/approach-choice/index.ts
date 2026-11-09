@@ -10,6 +10,7 @@ import { t, type Language } from "../../../../i18n";
 import { specTabPath } from "../../spec-page";
 import type { QueueRowView } from "../../../ui/job-state";
 import type { SpecGroup } from "../data-model";
+import { writing } from "../../../../queue/queue.ts";
 
 /** Where an approach's lead is on the spec page's Solution tab. */
 export const approachHref = (project: string, folder: string, letter: string): string =>
@@ -25,7 +26,7 @@ export const approachFormId = (g: Pick<SpecGroup, "project" | "specFolder">): st
  *  is not it. */
 export const stepRunsOrLands = (g: SpecGroup, steps?: string[]): boolean =>
   g.phases.some(
-    (p) => (!steps || steps.includes(p.step)) && p.attempts.some((a) => a.state === "running" || !!a.landing),
+    (p) => (!steps || steps.includes(p.step)) && p.attempts.some(writing),
   );
 
 /** The lead job is the one the runner holds for this choice. */

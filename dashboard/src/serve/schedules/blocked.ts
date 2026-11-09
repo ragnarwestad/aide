@@ -11,7 +11,7 @@ import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import { deployHold } from "../deploy-job/landing-hold.ts";
 import { landingJobNames } from "../land-branch";
-import { isDeployJob, type Job } from "../../queue/queue.ts";
+import { jobKind, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
 
@@ -197,7 +197,7 @@ export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
  *  landings, so it starts when none is in flight. */
 export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
   if (landingJobNames(ctx.queue).length === 0) return new Set();
-  return new Set(ctx.queue.list().filter((job) => job.state === "queued" && isDeployJob(job)).map((job) => job.id));
+  return new Set(ctx.queue.list().filter((job) => job.state === "queued" && jobKind(job) === "deploy").map((job) => job.id));
 }
 
 /** Every queued job held with a fixed sentence this tick, by id: not

@@ -23,6 +23,7 @@ import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
 import { json } from "../serve-helpers";
+import { inFlight, writing } from "../../queue/queue.ts";
 import type { Job } from "../../queue/queue.ts";
 import { isProvisionalKey } from "../../project/spec-names.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock/index.ts";
@@ -220,7 +221,7 @@ async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void
   }
   const until = Date.now() + 30_000;
   while (Date.now() < until) {
-    const busy = ctx.queue.list().some((j) => j.project === project && (j.state === "running" || j.landing));
+    const busy = ctx.queue.list().some((j) => j.project === project && writing(j));
     if (!busy) return;
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -316,9 +317,7 @@ async function followUntilDrained(ctx: RoutesContext, project: string, dirs: str
     ctx.queue.list().some(
       (j) =>
         j.project === project &&
-        (j.state === "running" ||
-          j.landing === true ||
-          j.state === "queued"),
+        inFlight(j),
     );
   const deadline = Date.now() + 30 * 60_000;
   while (live() && Date.now() < deadline) {
@@ -496,5 +495,5 @@ export function jobSettled(
   folder: string,
 ): boolean {
   const mine = jobs.filter((j) => j.specFolder === folder);
-  return mine.length > 0 && mine.every((j) => j.state !== "queued" && j.state !== "running" && j.landing !== true);
+  return mine.length > 0 && mine.every((j) => !inFlight(j));
 }

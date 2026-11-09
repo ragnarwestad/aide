@@ -3,6 +3,7 @@
 import { pickTab } from "../job-page";
 import type { SpecPageView } from "./types.ts";
 import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../../../project/spec-names.ts";
+import { inFlight } from "../../../queue/queue.ts";
 
 /** The path this page lives at. One function, because the server routes
  *  on it and the list links to it. */
@@ -129,7 +130,7 @@ export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
  *  nothing in this spec reads it and no REQ asks for that consolidation;
  *  named so it is not mistaken for a gap this move should have closed. */
 export function activeJob(view: SpecPageView): boolean {
-  return view.lead?.state === "queued" || view.lead?.state === "running";
+  return !!view.lead && inFlight(view.lead);
 }
 
 export type DocumentTabScript = "editor" | "viewer";

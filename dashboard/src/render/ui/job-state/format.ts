@@ -73,9 +73,7 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
  *  and forgotten in the other is exactly the drift neither page can
  *  afford, and the single-job page needs the same test without importing
  *  the list's filter vocabulary. */
-export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running"];
-
-export const inFlight = (r: Pick<QueueRowView, "state" | "landing">): boolean => IN_FLIGHT.includes(r.state) || !!r.landing;
+export { inFlight } from "../../../queue/queue.ts";
 
 /** The step a job is on, or — once it has stopped — the last one it
  *  reached. */

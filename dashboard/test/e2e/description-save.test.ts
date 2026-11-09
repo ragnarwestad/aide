@@ -3,14 +3,18 @@
 // the editor's text, and a refusal is shown on the page with the text kept.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium, type Browser } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
+import { WAITING_RUNNER } from "../helpers/waiting-runner.ts";
 import { ANALYSIS_TAB, DESCRIPTION, DESCRIPTION_TAB, PAGE, SPEC, createSpecSaveHarness, descriptionPath, fillAnalysisAndSolution, savable, specFilePath } from "../spec-page/spec-save-fixtures.ts";
 
 browserDeadline();
 
 const { harness, start } = createSpecSaveHarness("aide-e2e-description-save-");
+const runnerResults = mkdtempSync(join(tmpdir(), "aide-e2e-description-save-results-"));
 let browser: Browser;
 
 beforeAll(async () => {
@@ -20,6 +24,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   harness.cleanup();
+  rmSync(runnerResults, { recursive: true, force: true });
 });
 
 const EDIT = " Edited in the browser.";
@@ -47,21 +52,33 @@ test("Save on the Description tab is posted by the page script, writes the edite
 });
 
 test("a refused Save shows why on the page and keeps the typed text in the editor", async () => {
-  const { base, dir } = start(savable("/host"));
+  const { base, dir } = start(savable("/host"), {
+    queueRunnerBin: WAITING_RUNNER,
+    queueResultDir: runnerResults,
+    queuePollMs: 50,
+  });
   const page = await browser.newPage();
   await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);
   const editor = page.locator("#spec-editor-host [contenteditable=true]:visible").first();
   await editor.waitFor({ state: "visible" });
   await editor.click();
   await editor.pressSequentially(EDIT);
-  // A job queued for the spec while the text was being typed: the Save
-  // that follows is refused.
+  // A job starts writing the spec while the text is being typed: the Save
+  // that follows is refused. A merely queued job does not write yet.
   const queued = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
   });
   expect(queued.status).toBe(200);
+  const { job } = (await queued.json()) as { job: { id: string } };
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const answer = (await (await fetch(`${base}/api/queue/${job.id}`)).json()) as { job: { state: string } };
+    if (answer.job.state === "running") break;
+    if (Date.now() > deadline) throw new Error("the Analyze job never started");
+    await Bun.sleep(50);
+  }
   await page.locator("#specform-save").click();
   await page.waitForFunction(() =>
     (document.getElementById("spec-refused")?.textContent ?? "").toLowerCase().includes("another job for this spec is still running"),

@@ -2,26 +2,18 @@
 // job's step log has marked (`stepMarks`), and for a job that ended any
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why.
-import type { Language } from "../../i18n";
+import { t, type Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
-import { isCleanupJob, type Job } from "../../queue/queue.ts";
+import { jobKind, writing, type Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
 import { CLEANUP_OPERATIONS } from "../process-cleanup/engine.ts";
 import { readRunLog } from "./job-detail.ts";
 
-const CLEANUP_LABELS: Record<Language, readonly [string, string, string, string]> = {
-  en: CLEANUP_OPERATIONS.map(({ title }) => title) as [string, string, string, string],
-  nb: ["Les prosessene på maskinen og beskytt aktive jobber", "Finn ukjente testservere på tavlens porter", "Finn foreldreløse testprosesser eldre enn 6 timer", "Stopp gjenværende prosesser"],
-  es: ["Leer los procesos del equipo y proteger los trabajos activos", "Buscar servidores de prueba desconocidos en los puertos del panel", "Buscar procesos de prueba sin proceso padre de más de 6 horas", "Detener los procesos restantes"],
-  de: ["Host-Prozesse lesen und laufende Jobs schützen", "Unbekannte Testserver auf Board-Ports finden", "Elternlose Testprozesse finden, die älter als 6 Stunden sind", "Übrig gebliebene Prozesse stoppen"],
-  fr: ["Lire les processus de l’hôte et protéger les tâches actives", "Trouver les serveurs de test inconnus sur les ports du tableau", "Trouver les processus de test sans parent de plus de 6 heures", "Arrêter les processus restants"],
-};
-
 const cleanupPlan = (lang: Language): PlannedStep[] =>
-  CLEANUP_LABELS[lang].map((label, index) => ({ key: stepKey(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, ""), label }));
+  CLEANUP_OPERATIONS.map(({ label }, index) => ({ key: stepKey(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, ""), label: t(lang, label) }));
 
 export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
@@ -88,7 +80,7 @@ export function stepLinesOf(marks: StepMark[], logs: LogPart[], plan: PlannedSte
 function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenStep[] {
   const { marks, logs } = jobMarks(job, lang);
   // A done job whose merge into main is still landing goes on.
-  const going = job.state === "running" || (job.state === "done" && !!job.landing);
+  const going = writing(job);
   return stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), going);
 }
 
@@ -106,5 +98,13 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
 /** A scheduled job's steps: only those its log has marked, since its prompt
  *  plans none in advance. */
 export function scheduleSteps(job: Job, lang: Language): CloseOrReopenStep[] {
-  return jobSteps(job, isCleanupJob(job) ? cleanupPlan(lang) : [], lang);
+  return jobSteps(job, jobKind(job) === "cleanup" ? cleanupPlan(lang) : [], lang);
+}
+
+export function jobStepLines(job: Job, lang: Language): CloseOrReopenStep[] {
+  const kind = jobKind(job);
+  if (kind === "deploy") return deploySteps(job, lang);
+  if (kind === "cleanup" || kind === "schedule") return scheduleSteps(job, lang);
+  if (kind === "close" || kind === "reopen") return closeOrReopenSteps(job, kind, lang);
+  return [];
 }

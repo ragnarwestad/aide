@@ -6,9 +6,8 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { isCleanupJob, isDeployJob } from "../../queue/queue.ts";
+import { jobDismissible, jobKind } from "../../queue/queue.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
-import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
 import { errorSentence } from "../../format/error-sentence.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
@@ -167,7 +166,7 @@ export async function handleJobActionRoutes(
     // A running deploy is this process itself: marked cancelled, it would
     // go on fetching and restarting under a row that says it ended. A
     // queued one has no run yet and is cancelled like any queued job.
-    if (job.state === "running" && isDeployJob(job)) {
+    if (job.state === "running" && jobKind(job) === "deploy") {
       const reason = "a deploy cannot be stopped part-way";
       logRefusal("cancel", `${job.project}/${job.specFolder}`, reason);
       return json({ error: reason, spec: `${job.project}/${job.specFolder}` }, 409);
@@ -197,7 +196,7 @@ export async function handleJobActionRoutes(
       logRefusal("cancel", spec, reason);
       return json({ error: reason, spec }, 409);
     }
-    if (isCleanupJob(job)) cancelCleanupJob(job.id);
+    if (jobKind(job) === "cleanup") cancelCleanupJob(job.id);
     // SIGTERM to the GROUP, never a bare pid: claude spawns
     // children, and a kill that only reaches the parent is not a
     // bound.

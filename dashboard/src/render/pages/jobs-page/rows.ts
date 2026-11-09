@@ -5,14 +5,13 @@
 // the tests on plain objects.
 
 import { isScheduleKey, scheduleNameOf } from "../../../project/spec-names.ts";
-import { isScheduleJob } from "../../../queue/schedule.ts";
-import { cleanupStep, closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
+import { inFlight, jobActivity, jobKind } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
 import { stepLabel, type MessageVariant } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { waitsForPerson } from "../../../queue/steps.ts";
-import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
+import { heldBackResolvesOnItsOwn, type QueueRowView } from "../../ui/job-state";
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
 import { specReference } from "../../../project/spec-folder.ts";
@@ -39,15 +38,12 @@ type TitleRow = { project: string; specFolder: string; steps: readonly string[];
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */
-export const jobDismissible = (
-  job: Pick<JobLike, "steps" | "specFolder" | "state" | "landing" | "results">,
-): boolean => isScheduleJob(job) && !inFlight(job) && waitsForPerson(job);
-
 const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
 const sameJob = (job: JobLike): string => `${job.project}\0${job.specFolder}`;
 
 /** 0 running or landing, 1 queued, 2 waiting for the user. */
-const group = (job: JobLike): 0 | 1 | 2 => (job.state === "running" || job.landing ? 0 : job.state === "queued" ? 1 : 2);
+const BAND = { running: 0, landing: 0, queued: 1, idle: 2 } as const;
+const group = (job: JobLike): 0 | 1 | 2 => BAND[jobActivity(job)];
 
 /** Where a row stands: its band (0 running or landing, 1 queued, 2 the rest)
  *  and when it last changed, in milliseconds. */
@@ -103,7 +99,7 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   // does not deal with an earlier job's failure.
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
-    const schedule = isScheduleJob(job);
+    const schedule = jobKind(job) === "schedule";
     if (!requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow) return false;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
@@ -117,16 +113,17 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
  *  twice while it moves. A failed one stands for nothing, and its spec's row
  *  stays beside it. */
 export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
-  return new Set(shown.filter((j) => closeOrReopenStep(j) && inFlight(j)).map((j) => `${j.project}/${j.specFolder}`));
+  return new Set(shown.filter((j) => ["close", "reopen"].includes(jobKind(j)) && inFlight(j)).map((j) => `${j.project}/${j.specFolder}`));
 }
 
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
  *  the deploy and the project it deploys. */
 export function jobTitle(row: TitleRow, lang: Language = "en"): string {
-  if (deployStep(row)) return `${stepLabel("deploy", lang)} ${row.project}`.trim();
-  if (cleanupStep(row)) return stepLabel("cleanup", lang);
-  const step = closeOrReopenStep(row);
+  const kind = jobKind(row);
+  if (kind === "deploy") return `${stepLabel("deploy", lang)} ${row.project}`.trim();
+  if (kind === "cleanup") return stepLabel("cleanup", lang);
+  const step = kind === "close" || kind === "reopen" ? kind : undefined;
   return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);
 }
 
@@ -135,8 +132,8 @@ export function jobTitle(row: TitleRow, lang: Language = "en"): string {
  *  it never folds with the spec's own row and the page hears the job's log grow
  *  while the row is open. */
 export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
-  const step = closeOrReopenStep(row) ?? deployStep(row) ?? cleanupStep(row);
-  return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
+  const kind = jobKind(row);
+  return kind === "spec" || kind === "schedule" ? `${row.project}/${row.specFolder}` : phaseKey(row.project, row.specFolder, kind);
 }
 
 /** The key the event stream listens on for a scheduled job's row key in
@@ -199,7 +196,7 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
       log: `/jobs/${row.id}?tab=steps`,
     };
   }
-  if (deployStep(row) && row.errorReason === "held-back") {
+  if (row.steps[row.stepIndex] === "deploy" && row.errorReason === "held-back") {
     const text = renderSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
@@ -225,7 +222,9 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
  *  its two places. A deploy offers Cancel while it is queued; once it runs it
  *  is the server itself and cannot be stopped. */
 export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
-  if (!inFlight(row) || closeOrReopenStep(row)) return undefined;
-  if (deployStep(row)) return row.state === "queued" ? "cancel" : undefined;
+  const step = row.steps[row.stepIndex];
+  const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
+  if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
+  if (kind === "deploy") return row.state === "queued" ? "cancel" : undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";
 }

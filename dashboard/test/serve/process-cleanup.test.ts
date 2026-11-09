@@ -5,8 +5,8 @@ import { describe, expect, test } from "bun:test";
 import { cleanupProcesses, type CleanupProcess } from "../../src/serve/process-cleanup";
 import type { CleanupProgress } from "../../src/serve/process-cleanup/engine.ts";
 import { parseHostProcessLine } from "../../src/serve/process-cleanup/host.ts";
-import { cancelCleanupJob, cleanupTranscriptLine, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
-import { stepLog } from "../../src/queue/parse-stream";
+import { cancelCleanupJob, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
+import { runLogPath } from "../../src/queue/runner/run-log-path.ts";
 
 const now = Date.parse("2026-11-08T12:00:00Z");
 const process = (overrides: Partial<CleanupProcess> = {}): CleanupProcess => ({
@@ -33,11 +33,6 @@ describe("process cleanup", () => {
       .toBe(parseHostProcessLine(line, "/tmp/aide-pytest-x")?.startedAt);
   });
 
-  test("writes cleanup output as a transcript event the job log reads (AC-9, AC-10)", () => {
-    const transcript = cleanupTranscriptLine("Nothing to stop.\n");
-    const { logs } = stepLog({ text: transcript, start: 0 }, undefined, { tool: "claude", final: true });
-    expect(logs.flatMap((part) => part.lines)).toContain("Nothing to stop.");
-  });
   test("stops an unregistered test-port owner and logs its identity (AC-5, AC-9)", async () => {
     const p = process({ pid: 201, command: "bun dashboard/src/index.ts" });
     const { result, signals } = await run([p], new Map([[8801, 201]]));
@@ -133,7 +128,7 @@ describe("process cleanup", () => {
     expect(events.at(-1)).toEqual({ step: "stop", state: "stopped", text: "PID 202 is still running" });
   });
 
-  test("writes numbered cleanup marks and detail to the job transcript", async () => {
+  test("writes numbered cleanup marks to the run log, not the transcript (AC-4)", async () => {
     const folder = mkdtempSync(join(tmpdir(), "cleanup-job-"));
     const resultFile = join(folder, "result.json");
     const streamFile = join(folder, "stream.jsonl");
@@ -145,8 +140,9 @@ describe("process cleanup", () => {
     });
     cleanup.start({ id: "cleanup-marks" } as never, resultFile, streamFile);
     while (!existsSync(resultFile)) await Promise.resolve();
-    const transcript = readFileSync(streamFile, "utf8");
-    expect(transcript).toContain("--- Step 1 of 4: Read host processes and protect running jobs — started");
-    expect(transcript).toContain("--- Step 4 of 4: Stop leftover processes — skipped: nothing to stop");
+    const runLog = readFileSync(runLogPath(streamFile), "utf8");
+    expect(runLog).toContain("--- Step 1 of 4: Read host processes and protect running jobs — started");
+    expect(runLog).toContain("--- Step 4 of 4: Stop leftover processes — skipped: nothing to stop");
+    expect(readFileSync(streamFile, "utf8")).toBe("");
   });
 });

@@ -11,7 +11,8 @@ import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
 import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
-import { followOnJob, specWriteInFlight } from "./shared.ts";
+import { writing } from "../../../queue/queue.ts";
+import { followOnJob } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
 import type { RoutesContext } from "..";
@@ -34,7 +35,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   // A step running or landing is writing the plan this would write into.
   // A job merely queued — the one held for this very choice — is not.
   const ours = ctx.queue.list().filter((job) => job.project === project && job.specFolder === specFolder);
-  if (ours.some(specWriteInFlight)) return refuse("another job for this spec is still running — nothing was saved");
+  if (ours.some(writing)) return refuse("another job for this spec is still running — nothing was saved");
 
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;

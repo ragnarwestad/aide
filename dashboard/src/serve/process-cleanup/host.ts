@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { Job } from "../../queue/queue.ts";
+import { writing, type Job } from "../../queue/queue.ts";
 import { signalProcess } from "../serve-helpers/signal-group.ts";
 import { TEST_SERVER_PORTS } from "../test-servers/lifecycle.ts";
 import { portHolder } from "../test-servers/port-owner.ts";
@@ -44,7 +44,7 @@ export function hostCleanupDependencies(jobs: () => Job[], store: TestServerStor
     registeredPids: () => new Set(store.all().flatMap((entry) => [entry.wrapperPid, entry.pid].filter((pid): pid is number => pid !== undefined))),
     protectedPids: () => new Set([
       ...landingProcessGroups(),
-      ...jobs().filter((job) => job.state === "running" || job.landing).flatMap((job) => [job.pid, job.pgid].filter((pid): pid is number => typeof pid === "number")),
+      ...jobs().filter(writing).flatMap((job) => [job.pid, job.pgid].filter((pid): pid is number => typeof pid === "number")),
     ]),
     protectedRoots: () => jobs().filter((job) => job.state === "queued").map((job) => join(homedir(), ".aide", "dashboard", "worktrees", job.project, job.specFolder)),
     signal: signalProcess,

@@ -16,6 +16,7 @@ import { listHeaders, specsListParts, specsRowsAnswer } from "../page-routes/spe
 import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
+import { writing } from "../../../queue/queue.ts";
 
 type SpecView = NonNullable<Awaited<ReturnType<RoutesContext["specPageView"]>>>;
 
@@ -280,8 +281,7 @@ export async function specPageRoutes(
     // branch, and a save racing the run's own commits to it is exactly
     // what this gate exists to prevent.
     const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder &&
-        (job.state === "queued" || job.state === "running"),
+      (job) => job.project === project && job.specFolder === specFolder && writing(job),
     );
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";

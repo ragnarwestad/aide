@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { enqueueNightlyCleanup } from "../../../src/serve/process-cleanup/schedule.ts";
+import { cleanupProject, enqueueNightlyCleanup } from "../../../src/serve/process-cleanup/schedule.ts";
 
 test("enqueues once for the local date and reuses an unfinished cleanup (AC-1, AC-3)", () => {
   const made: unknown[] = [];
@@ -8,10 +8,10 @@ test("enqueues once for the local date and reuses an unfinished cleanup (AC-1, A
     enqueue: (raw: unknown) => { made.push(raw); return { ok: true, job: { id: "nightly", ...raw as object } }; },
     update: () => undefined,
   };
-  expect(enqueueNightlyCleanup(queue as never, "aide", new Date(2026, 10, 8, 3, 0))).toBe(true);
+  expect(enqueueNightlyCleanup(queue as never, ["aide"], new Date(2026, 10, 8, 3, 0))).toBe(true);
   expect(made).toEqual([{ project: "aide", specFolder: "cleanup", steps: ["cleanup"] }]);
   const existing = { project: "aide", specFolder: "cleanup", steps: ["cleanup"], state: "queued", createdAt: "2026-11-08T01:00:00Z" };
-  expect(enqueueNightlyCleanup({ list: () => [existing], enqueue: () => { throw new Error("duplicate"); }, update: () => undefined } as never, "aide", new Date(2026, 10, 8, 4, 0))).toBe(false);
+  expect(enqueueNightlyCleanup({ list: () => [existing], enqueue: () => { throw new Error("duplicate"); }, update: () => undefined } as never, ["aide"], new Date(2026, 10, 8, 4, 0))).toBe(false);
 });
 
 test("a manual cleanup earlier today does not replace the nightly occurrence (AC-1)", () => {
@@ -22,6 +22,15 @@ test("a manual cleanup earlier today does not replace the nightly occurrence (AC
     enqueue: (raw: unknown) => ({ ok: true, job: { id: "nightly", ...raw as object } }),
     update: (id: string, patch: unknown) => { updates.push([id, patch]); },
   };
-  expect(enqueueNightlyCleanup(queue as never, "aide", new Date(2026, 10, 8, 3, 0))).toBe(true);
+  expect(enqueueNightlyCleanup(queue as never, ["aide"], new Date(2026, 10, 8, 3, 0))).toBe(true);
   expect(updates).toEqual([["nightly", { nightlyCleanupDate: "2026-11-08" }]]);
+});
+
+test("the nightly cleanup is board-wide and chooses a stable project (AC-5)", () => {
+  expect(cleanupProject(["b", "a"])).toBe("a");
+  expect(cleanupProject(["a", "b"])).toBe("a");
+  const existing = { project: "b", specFolder: "cleanup", steps: ["cleanup"], state: "done", nightlyCleanupDate: "2026-11-08" };
+  const queue = { list: () => [existing], enqueue: () => { throw new Error("duplicate"); }, update: () => undefined };
+  expect(enqueueNightlyCleanup(queue as never, ["a", "b"], new Date(2026, 10, 8, 4, 0))).toBe(false);
+  expect(enqueueNightlyCleanup(queue as never, ["b", "a"], new Date(2026, 10, 8, 4, 0))).toBe(false);
 });

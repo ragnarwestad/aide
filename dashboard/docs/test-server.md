@@ -151,14 +151,15 @@ carries no start link, and a start reached directly for an archived spec is refu
 
 ## Cleaning up leftovers
 
-The serving host runs a cleanup every night. It stops processes on the six test-server ports that
+The board runs one cleanup every night, filed under the first project name in sorted order regardless of how the
+project list was read. It stops processes on the six test-server ports that
 are not in the Test servers register, and old orphaned test processes from the board's temporary
 folders. Registered test servers and processes belonging to queued, running or landing jobs are
 left alone.
 
 The Test servers page also has a **Clean up** button that starts the same cleanup. The cleanup is a
-job: it appears on the Running tab while it runs and remains in the job history with a log of what
-it stopped. Pressing the button while a cleanup is already queued or running starts no second job.
+job: it appears on the Running tab while it runs and remains in the job history; each operation's marks and details
+are in that job's Log. Pressing the button while a cleanup is already queued or running starts no second job.
 
 ## Running the sample specs again
 

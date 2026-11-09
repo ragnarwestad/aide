@@ -504,7 +504,8 @@ tab's file, its stamp and the banner's facts about the description are read off 
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
-same criteria without boxes. An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
+same criteria without boxes while a job is running or landing; a queued job does not lock the editor or the boxes.
+An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
 checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
 on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
@@ -587,7 +588,8 @@ mark, never its prose.
 `POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the open document tab's own form
 carried, and the page script loads that tab again; a save that committed nothing says so in the line under the banner
 instead. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
-one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes.
+one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes. Save
+and Tick both refuse while a job is running or landing, and both accept while a job is only queued.
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the

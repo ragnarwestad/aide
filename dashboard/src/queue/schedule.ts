@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, normalize as normalizePath } from "node:path";
 import { CronExpressionParser } from "cron-parser";
-import { isScheduleKey, scheduleTrackingKey } from "../project/spec-names.ts";
+import { scheduleTrackingKey } from "../project/spec-names.ts";
 
 /** The same character class `queue.ts`'s `NAME_RE` checks a job's own
  *  names against — a schedule entry's name becomes half of a job's
@@ -91,10 +91,6 @@ export function escapesRoot(path: string): boolean {
   const normalized = normalizePath(path).replace(/\\/g, "/");
   return normalized === ".." || normalized.startsWith("../");
 }
-
-/** A scheduled job: one step, `schedule`, under a schedule key. */
-export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
-  job.steps.length === 1 && job.steps[0] === "schedule" && isScheduleKey(job.specFolder);
 
 /** The most recent time `cron` was due at or before `now`, or `null` for
  *  a `cron` string that does not parse — which, since the store

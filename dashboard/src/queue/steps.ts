@@ -11,6 +11,7 @@ import {
   isRunStop,
   type StopReason,
 } from "../step-endings.ts";
+import { isScheduleKey } from "../project/spec-names.ts";
 
 export { ACCEPTANCE_CRITERIA_UNTICKED, isRunStop };
 export type { StopReason };
@@ -304,11 +305,6 @@ export function landingInProject(jobs: Job[], project: string): boolean {
 /** The step a job is on when it is a Close or a Reopen: the Running page
  *  draws such a job as a row of its own, never as its spec's. A reopen
  *  that has gone on to the spec's next step is the spec's again. */
-export function closeOrReopenStep(job: { steps: readonly string[]; stepIndex: number }): "close" | "reopen" | undefined {
-  const step = job.steps[job.stepIndex];
-  return step === "close" || step === "reopen" ? step : undefined;
-}
-
 /** The tracking key of a deploy job: no spec folder is called this. */
 export const DEPLOY_KEY = "deploy";
 
@@ -317,20 +313,32 @@ export const CLEANUP_KEY = "cleanup";
 
 /** The step a job is on when it is a deploy: the Running page draws such a
  *  job as a row of its own, never as a spec's. */
-export function deployStep(job: { steps: readonly string[]; stepIndex: number }): "deploy" | undefined {
-  return job.steps[job.stepIndex] === "deploy" ? "deploy" : undefined;
+export type JobKind = "spec" | "schedule" | "deploy" | "cleanup" | "close" | "reopen";
+
+export function jobKind(job: { steps: readonly string[]; stepIndex: number; specFolder: string }): JobKind {
+  const step = job.steps[job.stepIndex ?? 0];
+  if (step === "deploy" || step === "cleanup" || step === "close" || step === "reopen") return step;
+  return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 
-/** Whether a job is the board's own deploy: the one step, under the one key. */
-export const isDeployJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
-  job.steps.length === 1 && job.steps[0] === "deploy" && job.specFolder === DEPLOY_KEY;
+export type JobActivity = "queued" | "running" | "landing" | "idle";
 
-export function cleanupStep(job: { steps: readonly string[]; stepIndex: number }): "cleanup" | undefined {
-  return job.steps[job.stepIndex] === "cleanup" ? "cleanup" : undefined;
+export function jobActivity(job: { state: string; landing?: boolean }): JobActivity {
+  if (job.landing) return "landing";
+  return job.state === "running" || job.state === "queued" ? job.state : "idle";
 }
 
-export const isCleanupJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
-  job.steps.length === 1 && job.steps[0] === "cleanup" && job.specFolder === CLEANUP_KEY;
+export const inFlight = (job: { state: string; landing?: boolean }): boolean => jobActivity(job) !== "idle";
+
+export const writing = (job: { state: string; landing?: boolean }): boolean => {
+  const activity = jobActivity(job);
+  return activity === "running" || activity === "landing";
+};
+
+export const jobDismissible = (job: {
+  steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
+  results?: readonly { terminalReason?: string }[];
+}): boolean => jobKind(job) === "schedule" && !inFlight(job) && waitsForPerson(job);
 
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a

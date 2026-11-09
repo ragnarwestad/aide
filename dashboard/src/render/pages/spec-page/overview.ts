@@ -15,6 +15,7 @@ import {
 } from "./ask-dialog.ts";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
+import { writing } from "../../../queue/queue.ts";
 
 /** What being closed actually means for this spec —
  *  Names the reason and
@@ -117,7 +118,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // Running, or landing — not queued: a queued job writes nothing yet,
   // and an archive job parked on this very tick is queued (the same
   // rule the tick route applies, `specWriteInFlight`).
-  const activeJob = view.lead?.state === "running" || !!view.lead?.landing;
+  const activeJob = !!view.lead && writing(view.lead);
   // An archived spec's rows stay, and nothing on them presses.
   // A job in flight is writing the file this form would commit onto.
   //

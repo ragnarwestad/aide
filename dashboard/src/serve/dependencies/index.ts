@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Job } from "../../queue/queue.ts";
+import { inFlight, type Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { sharedFiles } from "../../queue/runner/types.ts";
 import type { RoutesContext } from "../routes";
@@ -85,7 +85,7 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
     return;
   }
   const active = () => ctx.queue.list().some((other) => other.id !== job.id && other.project === job.project &&
-    other.specFolder === job.specFolder && (other.state === "queued" || other.state === "running" || other.landing));
+    other.specFolder === job.specFolder && inFlight(other));
   if (active()) return;
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;

@@ -12,14 +12,15 @@ import { existsSync } from "node:fs";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
-import type { Sentence } from "../../i18n/message.ts";
+import { renderSentence, type Sentence } from "../../i18n/message.ts";
+import { t } from "../../i18n";
 import type { QueueStore } from "../../queue/queue.ts";
-import { stepLogLine } from "../land-branch/test-gate.ts";
+import { boardStep } from "../board-step.ts";
 import { servedOlder } from "../routes/deploy-steps.ts";
 import type { RoutesContext } from "../routes";
 import { DEPLOY_RESTART_WAIT_MS } from "../serve-helpers";
-import { deployMark, type DeployMark, type DeployStep } from "./plan.ts";
-import { writeDeployDone, writeDeployFailed } from "./result.ts";
+import { DEPLOY_STEPS, type DeployMark, type DeployStep } from "./plan.ts";
+import { STEP_LABEL } from "../../render/pages/projects-page/deploy-dialog.ts";
 import type { DeployFailure } from "../state.ts";
 
 /** What a deploy run is given: the queue it is a job in, the checkout's git,
@@ -56,12 +57,12 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   const first = deps.queue.get(jobId);
   if (!first) return;
   const { project } = first;
+  const output = boardStep({ resultFile, streamFile: first.streamFile!, startedAt: first.stepStartedAt });
   const root = deps.projectRoot(project);
   let step: DeployStep = "fetch";
 
   const mark = (which: DeployStep, ending: DeployMark): void => {
-    const job = deps.queue.get(jobId);
-    if (job) stepLogLine(job, deployMark(which, ending), ending.startsWith("stopped"));
+    output.mark(`${DEPLOY_STEPS.indexOf(which) + 1} of ${DEPLOY_STEPS.length}`, t("en", STEP_LABEL[which]!), ending);
   };
   const at = (which: DeployStep, ending: DeployMark): void => {
     step = which;
@@ -77,14 +78,15 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   };
 
   const fail = (sentence: Sentence, detail?: string): void => {
-    const error = writeDeployFailed(resultFile, sentence, detail);
+    const error = [renderSentence("en", sentence) ?? "", detail ?? ""].filter(Boolean).join("\n");
+    output.failed("deploy-failed", error, sentence);
     mark(step, `stopped: ${error.split("\n")[0]}`);
     deps.setFailure(project, { step, sentence, ...(detail ? { detail } : {}) });
     hold(false);
   };
   const succeed = (): void => {
     hold(false);
-    writeDeployDone(resultFile);
+    output.done();
   };
 
   try {

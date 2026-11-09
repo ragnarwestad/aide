@@ -3,12 +3,13 @@
 // `Runner.reconcile` then ends the job on. The old process fired the restart
 // and is gone; this is the only one left to say whether it took.
 
-import type { Sentence } from "../../i18n/message.ts";
-import { isDeployJob, type Job, type QueueStore } from "../../queue/queue.ts";
-import { stepLogLine } from "../land-branch/test-gate.ts";
+import { renderSentence, type Sentence } from "../../i18n/message.ts";
+import { t } from "../../i18n";
+import { jobKind, type Job, type QueueStore } from "../../queue/queue.ts";
+import { boardStep } from "../board-step.ts";
 import { DEPLOY_RESTART_WAIT_MS } from "../serve-helpers";
-import { deployMark, type DeployMark, type DeployStep } from "./plan.ts";
-import { writeDeployDone, writeDeployFailed } from "./result.ts";
+import { DEPLOY_STEPS, type DeployMark, type DeployStep } from "./plan.ts";
+import { STEP_LABEL } from "../../render/pages/projects-page/deploy-dialog.ts";
 
 export interface AfterRestartDeps {
   queue: Pick<QueueStore, "list" | "update">;
@@ -41,9 +42,13 @@ function containsFetched(deps: AfterRestartDeps, served: string, fetched: string
 }
 
 function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void {
-  const mark = (step: DeployStep, ending: DeployMark): void => stepLogLine(job, deployMark(step, ending), ending.startsWith("stopped"));
+  const output = boardStep({ resultFile: job.resultFile, streamFile: job.streamFile!, startedAt: job.stepStartedAt });
+  const mark = (step: DeployStep, ending: DeployMark): void =>
+    output.mark(`${DEPLOY_STEPS.indexOf(step) + 1} of ${DEPLOY_STEPS.length}`, t("en", STEP_LABEL[step]!), ending);
   const fail = (step: DeployStep, sentence: Sentence): void => {
-    mark(step, `stopped: ${writeDeployFailed(job.resultFile, sentence)}`);
+    const error = renderSentence("en", sentence) ?? "deploy failed";
+    output.failed("deploy-failed", error, sentence);
+    mark(step, `stopped: ${error}`);
   };
   const waited = (deps.now ?? Date.now)() - Date.parse(job.deploy?.restartedAt ?? "");
   if (waited > (deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS)) return fail("wait", { key: "landing.deployNoAnswer" });
@@ -52,13 +57,13 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
   const fetched = job.deploy?.commit;
   if (!fetched) {
     mark("check", "done");
-    return writeDeployDone(job.resultFile);
+    return output.done();
   }
   const served = runningCommit(deps);
   if (!served) return fail("check", { key: "landing.deployNoAnswer" });
   if (containsFetched(deps, served, fetched)) {
     mark("check", "done");
-    return writeDeployDone(job.resultFile);
+    return output.done();
   }
   const older: Sentence = {
     key: "landing.deployServiceOlderAfterTwoRestarts",
@@ -89,7 +94,7 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
 /** Finish every deploy job the last process left running after its restart. */
 export function finishDeployAfterRestart(deps: AfterRestartDeps): void {
   for (const job of deps.queue.list()) {
-    if (job.state !== "running" || !isDeployJob(job) || !job.deploy?.restartedAt || !job.resultFile) continue;
+    if (job.state !== "running" || jobKind(job) !== "deploy" || !job.deploy?.restartedAt || !job.resultFile) continue;
     if (deps.startedAt && job.deploy.leaving === deps.startedAt) continue;
     finish(deps, job as Job & { resultFile: string });
   }

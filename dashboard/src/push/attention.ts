@@ -7,8 +7,8 @@
 import type { MessageKey } from "../i18n/messages.ts";
 import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
-import type { Job } from "../queue/queue.ts";
-import { isScheduleJob, type ScheduleNotify } from "../queue/schedule.ts";
+import { jobKind, type Job } from "../queue/queue.ts";
+import type { ScheduleNotify } from "../queue/schedule.ts";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, waitsForPerson, type JobState, type StopReason,
 } from "../queue/steps.ts";
@@ -62,7 +62,7 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
   // A create that ended without a spec names its project and title and
   // opens New spec, once: the edge of the rule, not the state, is the trigger.
   if (createEndedWithoutSpec(job)) return prev?.createFailed ? null : { kind: "create-failed", step: "create" };
-  if (isScheduleJob(job)) return scheduleRunAttention(prev, job, scheduleChoice);
+  if (jobKind(job) === "schedule") return scheduleRunAttention(prev, job, scheduleChoice);
   // A create still under way has no spec to name and none to open.
   if (!isSpecFolder(job.specFolder)) return null;
   const last = job.results.at(-1);

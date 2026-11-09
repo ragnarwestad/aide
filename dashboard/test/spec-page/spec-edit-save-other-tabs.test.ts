@@ -187,22 +187,24 @@ describe("Save against an archived spec is refused on every tab", () => {
   }
 });
 
-// --- A queued or running job gates a save on every tab --------------
+// --- A running job gates a save on every tab --------------
 
-describe("a queued job gates a save on the newly-editable tabs too", () => {
+describe("a running job gates a save on the newly-editable tabs too", () => {
   test("solution: refused with the same wording the tick route already gives", async () => {
-    const { base, dir } = start(savable("/host"));
-    fillAnalysisAndSolution(dir);
-    const queued = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
+    const running = {
+      id: "running", project: "aide", specFolder: SPEC, steps: ["analyze"], stepIndex: 0,
+      state: "running", createdAt: "2026-11-09T10:00:00Z", spentUsd: 0,
+      model: {}, effort: {}, timeoutSec: {}, permissionMode: {}, results: [],
+    };
+    const active = harness.start({
+      description: DESCRIPTION, queueMirror: JSON.stringify([running]),
+      extra: { gitRun: savable("/host") },
     });
-    expect(queued.status).toBe(200);
-    const { status, body } = await answer(await post(base, { text: "new solution\n", baseSha: FILE_SHA, file: "3-solution.md" }));
+    fillAnalysisAndSolution(active.dir);
+    const { status, body } = await answer(await post(active.base, { text: "new solution\n", baseSha: FILE_SHA, file: "3-solution.md" }));
     expect(status).toBe(409);
     expect(body.error).toContain("another job for this spec is still running");
-    expect(readFileSync(specFilePath(dir, "3-solution.md"), "utf-8")).toContain("One must-fix.");
+    expect(readFileSync(specFilePath(active.dir, "3-solution.md"), "utf-8")).toContain("One must-fix.");
   });
 });
 

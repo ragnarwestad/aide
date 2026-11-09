@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
-import { DEPLOY_KEY, isDeployJob, UNFINISHED } from "../../queue/queue.ts";
+import { DEPLOY_KEY, jobKind, inFlight } from "../../queue/queue.ts";
 import { json, logRefusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -79,7 +79,7 @@ async function queueDeploy(ctx: RoutesContext, name: string): Promise<Response> 
   if (!(ctx.opts.runnerAvailable ?? ctx.runner !== null)) {
     return refuse("this board has no runner, so a deploy job would never start");
   }
-  const running = ctx.queue.list().find((j) => j.project === name && isDeployJob(j) && UNFINISHED.has(j.state));
+  const running = ctx.queue.list().find((j) => j.project === name && jobKind(j) === "deploy" && inFlight(j));
   if (running) return refuse(`a deploy is already ${running.state} — follow it on the Running tab`);
   const result = ctx.queue.enqueue({ project: name, specFolder: DEPLOY_KEY, steps: ["deploy"] });
   if (!result.ok) return refuse(result.error);

@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { TEMP_PREFIXES } from "./temp-prefixes.generated.ts";
+import type { TranslationKey } from "../../i18n";
 
 export interface CleanupProcess {
   pid: number;
@@ -11,11 +12,13 @@ export interface CleanupProcess {
 }
 
 export const CLEANUP_OPERATIONS = [
-  { step: "protect", title: "Read host processes and protect running jobs" },
-  { step: "ports", title: "Find unknown test servers on board ports" },
-  { step: "orphans", title: "Find parentless test processes older than 6 hours" },
-  { step: "stop", title: "Stop leftover processes" },
+  { step: "protect", label: "cleanup.stepProtect" },
+  { step: "ports", label: "cleanup.stepPorts" },
+  { step: "orphans", label: "cleanup.stepOrphans" },
+  { step: "stop", label: "cleanup.stepStop" },
 ] as const;
+
+void (CLEANUP_OPERATIONS satisfies readonly { step: string; label: TranslationKey }[]);
 
 export type CleanupOperation = (typeof CLEANUP_OPERATIONS)[number]["step"];
 type CleanupTerminalState = "started" | "done" | "skipped";

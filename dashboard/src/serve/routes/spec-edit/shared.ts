@@ -10,10 +10,6 @@ export const stateRelPath = (statusRelPath: string): string => join(dirname(stat
  *  running, or its landing is in flight. A queued job writes nothing
  *  yet — and may be queued precisely for a tick (the acceptance
  *  hold-back), so it must not block one. */
-export function specWriteInFlight(job: { state: string; landing?: boolean }): boolean {
-  return job.state === "running" || !!job.landing;
-}
-
 /** A job that runs `steps`, on the models and effort `from` would have run
  *  them with. The timeouts are not carried: a job takes those from
  *  Settings. */

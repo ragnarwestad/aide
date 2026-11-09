@@ -55,7 +55,7 @@ describe("POST the Save action", () => {
   // route already gates ticking a check — Save writes onto
   // an active spec's own open branch, and a save racing the run's own
   // commits to it is exactly what this gate exists to prevent.
-  test("a job queued for the same spec gates the save", async () => {
+  test("a queued job does not gate Save, as it is not writing yet (AC-2)", async () => {
     const { base, dir } = start(savable("/host"));
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -63,6 +63,23 @@ describe("POST the Save action", () => {
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
+  });
+
+  test("a running job gates Save because it is writing (AC-2)", async () => {
+    const landing = {
+      id: "landing", project: "aide", specFolder: SPEC, steps: ["analyze"], stepIndex: 0,
+      state: "running", createdAt: "2026-11-09T10:00:00Z", spentUsd: 0,
+      model: {}, effort: {}, timeoutSec: {}, permissionMode: {}, results: [],
+    };
+    const { base, dir } = harness.start({
+      description: DESCRIPTION,
+      queueMirror: JSON.stringify([landing]),
+      extra: { gitRun: savable("/host") },
+    });
     const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
     expect(status).toBe(409);
     expect(body.error).toContain("another job for this spec is still running");

@@ -10,7 +10,6 @@ import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages
 import {
   byTabPlace,
   jobControl,
-  jobDismissible,
   jobKey,
   jobMessage,
   jobPlace,
@@ -20,6 +19,7 @@ import {
   specPlace,
   specsStoodForByJobs,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
+import { jobDismissible } from "../../../../src/queue/queue.ts";
 
 type J = Parameters<typeof jobsShown>[0][number];
 type Lead = Parameters<typeof jobPlace>[0];

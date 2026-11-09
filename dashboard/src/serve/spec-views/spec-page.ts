@@ -12,7 +12,7 @@ import { acceptanceSectionUnreadable, parseStatus } from "../../project/parse-st
 import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, type SpecPageView } from "../../render";
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { PDF_UNAVAILABLE } from "../../render/pages/spec-page/overview.ts";
-import { landingInProject } from "../../queue/queue.ts";
+import { jobActivity, landingInProject } from "../../queue/queue.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
@@ -217,7 +217,7 @@ export async function specPageView(
   // a board is another lifecycle action against this spec's own branch,
   // and neither should run while a job for it is in flight or a landing
   // is under way.
-  const busyReason = matchingJobs.some((job) => job.state === "queued" || job.state === "running")
+  const busyReason = matchingJobs.some((job) => ["queued", "running"].includes(jobActivity(job)))
     ? "another job for this spec is still running"
     : landingInProject(ctx.queue.list(), project)
       ? "a merge is in progress"

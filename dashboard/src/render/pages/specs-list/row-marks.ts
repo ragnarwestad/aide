@@ -14,6 +14,7 @@ import { BRANCH_PREVIEW, LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf,
 import { notLandedTitle } from "./cell-helpers.ts";
 import { roundUnderWay } from "./row-state.ts";
 import { approachChoiceShown } from "./approach-choice";
+import { writing } from "../../../queue/queue.ts";
 
 /** The waiting-on-review sentence: the branch is
  *  there, and a request describes it — worded for both a live row's
@@ -115,7 +116,7 @@ function liveMarks(
   // merge being the tail of the same run.
   const archiveRunning = !!g.phases
     .find((p) => p.step === "archive")
-    ?.attempts.some((a) => a.state === "running" || !!a.landing);
+    ?.attempts.some(writing);
   // Nor while a ROUND is under way: both marks describe a
   // spec waiting on a person, and a spec whose Analyze or Implement is
   // running is waiting on the run. The link is the sharper case of the

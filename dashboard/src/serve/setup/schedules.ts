@@ -230,8 +230,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   const cleanupCheckMs = opts.cleanupCheckMs ?? 60_000;
   const cleanupTimer = cleanupCheckMs > 0 ? setInterval(() => {
     const now = new Date();
-    const project = [...allowed][0];
-    if (project && cleanupDue(now) && enqueueNightlyCleanup(queue, project, now)) void tickRunner();
+    if (cleanupDue(now) && enqueueNightlyCleanup(queue, allowed, now)) void tickRunner();
   }, cleanupCheckMs) : null;
   cleanupTimer?.unref?.();
 

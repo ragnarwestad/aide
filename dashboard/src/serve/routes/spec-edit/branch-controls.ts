@@ -4,7 +4,7 @@
 // JSON for the page script.
 import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
-import { landingInProject } from "../../../queue/queue.ts";
+import { inFlight, landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 import { specReference } from "../../../project/spec-folder.ts";
 
@@ -39,7 +39,7 @@ export async function branchControlRoutes(
   if (landingInProject(ctx.queue.list(), project!)) return refuse("a landing is in progress");
   if (ctx.queue.list().some((job) =>
     job.project === project && job.specFolder === specFolder &&
-    (job.state === "queued" || job.state === "running")
+    inFlight(job)
   )) return refuse("another job for this spec is still running");
   const result = await ctx.deleteLeftBehindBranch(project!, specFolder!);
   // Before the event: the page answers it by asking for its rows.

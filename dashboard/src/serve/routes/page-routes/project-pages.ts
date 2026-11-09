@@ -13,7 +13,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
 import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
-import { isDeployJob, UNFINISHED } from "../../../queue/queue.ts";
+import { jobActivity, jobKind, inFlight } from "../../../queue/queue.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
@@ -361,6 +361,7 @@ export async function projectPages(
 
 /** The state of the project's deploy job while one is queued or running. */
 function deployUnderWay(ctx: RoutesContext, project: string): "queued" | "running" | undefined {
-  const job = ctx.queue.list().find((j) => j.project === project && isDeployJob(j) && UNFINISHED.has(j.state));
-  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
+  const job = ctx.queue.list().find((j) => j.project === project && jobKind(j) === "deploy" && inFlight(j));
+  const activity = job ? jobActivity(job) : "idle";
+  return activity === "queued" || activity === "running" ? activity : undefined;
 }
