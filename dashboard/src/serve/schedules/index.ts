@@ -10,7 +10,8 @@
 // separate theme, split out to schedules/blocked.ts; `tickRunner` below
 // is where the two meet.
 
-import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
+import { STATUS_FILE, scheduleTrackingKey, specBranch } from "../../project/spec-names.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
@@ -22,14 +23,13 @@ import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
   SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
 } from "../../project/discover";
-import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
+import { isDue, mostRecentFireTime, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { Job, QueueStore } from "../../queue/queue.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
 import { switchedOffHolds } from "../../queue/runner/switched-off.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
-import { STATUS_SPEC_FILE } from "../../render";
 import { archiveWithOpenAcceptance, blockedDependencies, fixedSentenceHolds } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import { logRefusal } from "../serve-helpers";
@@ -138,7 +138,7 @@ export async function warmSpec(
   // `setInterval` callback (no caller to catch it) requires. `null` is
   // this checker's own "no open branch" answer, so a throwing `gitRun`
   // reads exactly like a spec with none.
-  const target = resolveOpenBranchTarget(ctx, dir, t.specFolder, STATUS_SPEC_FILE, false).catch(() => null);
+  const target = resolveOpenBranchTarget(ctx, dir, t.specFolder, STATUS_FILE, false).catch(() => null);
   await Promise.all([
     ctx.readWorkflowHistory().read(dir, t.specFolder, t.reopenedAfter),
     ctx.readFreshness().isStale(dir, t.specFolder, t.reopenedAfter),

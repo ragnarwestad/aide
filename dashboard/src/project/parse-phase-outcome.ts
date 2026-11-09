@@ -7,6 +7,7 @@
 // this parser there too would make the two files import each other.
 
 import { markdownSection, specFileText } from "./discover";
+import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "./spec-names.ts";
 
 export interface PhaseOutcome {
   model?: string;
@@ -59,10 +60,10 @@ export interface PhaseOutcome {
 // goes into — a different question from `discover.ts`'s `specPhaseFile`
 // ("what did this phase PRODUCE"), so a different map answers it.
 const PHASE_OUTCOME_FILE: Record<string, string> = {
-  create: "1-description.md",
-  analyze: "2-analysis.md",
-  implement: "3-solution.md",
-  archive: "4-status.md",
+  create: DESCRIPTION_FILE,
+  analyze: ANALYSIS_FILE,
+  implement: SOLUTION_FILE,
+  archive: STATUS_FILE,
 };
 
 const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;

@@ -5,7 +5,8 @@ import { createPush, type Push } from "../../push";
 import { waitingCount } from "../../push/attention.ts";
 import { setWaitingCount } from "../../render/ui/pwa.ts";
 import type { Job } from "../../queue/queue.ts";
-import { scheduleNotifyOf, scheduleTrackingKey } from "../../queue/schedule.ts";
+import { scheduleTrackingKey } from "../../project/spec-names.ts";
+import { scheduleNotifyOf } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import type { ServerOptions } from "../options.ts";
 

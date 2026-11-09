@@ -76,8 +76,8 @@ ac_coverage_refs() {   # stdin: ac_coverage_added_lines
 write_ac_coverage() {
   [ "${command_name:-}" = "implement" ] && [ "${terminal_reason:-}" = "completed" ] || return 0
   local folder="$specs_root_wt/$spec_label" ids base_ref
-  [ -f "$folder/1-description.md" ] || return 0
-  ids="$(grep -oE '^- \*\*AC-[0-9]+' "$folder/1-description.md" | grep -oE 'AC-[0-9]+' | sort -t- -k2 -n -u)"
+  [ -f "$folder/${AIDE_DESCRIPTION_FILE}" ] || return 0
+  ids="$(grep -oE '^- \*\*AC-[0-9]+' "$folder/${AIDE_DESCRIPTION_FILE}" | grep -oE 'AC-[0-9]+' | sort -t- -k2 -n -u)"
   [ -n "$ids" ] || return 0
   base_ref="$(default_ref "$project_wt" "$project_root")"
   if ac_coverage_added_lines "$project_wt" "$base_ref" | ac_coverage_refs \
@@ -87,10 +87,10 @@ write_ac_coverage() {
                  | map(. as $id | {key: $id,
                                    value: ([$refs[] | select(.id == $id) | {file, name}] | unique)})
                  | from_entries)}' \
-      > "$folder/ac-coverage.json.tmp" 2>/dev/null; then
-    mv "$folder/ac-coverage.json.tmp" "$folder/ac-coverage.json" \
-      || rm -f "$folder/ac-coverage.json.tmp"
+      > "$folder/${AIDE_AC_COVERAGE_FILE}.tmp" 2>/dev/null; then
+    mv "$folder/${AIDE_AC_COVERAGE_FILE}.tmp" "$folder/${AIDE_AC_COVERAGE_FILE}" \
+      || rm -f "$folder/${AIDE_AC_COVERAGE_FILE}.tmp"
   else
-    rm -f "$folder/ac-coverage.json.tmp"
+    rm -f "$folder/${AIDE_AC_COVERAGE_FILE}.tmp"
   fi
 }

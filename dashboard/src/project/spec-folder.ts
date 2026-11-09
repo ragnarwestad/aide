@@ -8,12 +8,14 @@
 // another in the queue's own record is the drift this file exists to
 // prevent.
 
+import { isSpecFolder } from "./spec-names.ts";
+
 /** The leading number of a spec folder — `92-a-spec-can-depend` is 92.
  *  A value that does not open with one is shown whole: a dependency may
  *  be written as a bare number already, and anything else is better
  *  said in full than silently truncated. */
 export function specNumber(folder: string): string {
-  return /^\d+(?=-|$)/.exec(folder)?.[0] ?? folder;
+  return isSpecFolder(folder) ? folder.slice(0, folder.indexOf("-")) : folder;
 }
 
 /** A dependency is identified by its project and short spec number. */

@@ -70,10 +70,10 @@ status_file_for() {   # sets $status_file
   local folder="$1"
   status_file=""
   [ -n "$folder" ] || return 0
-  if [ -f "$specs_root_wt/$folder/4-status.md" ]; then
-    status_file="$specs_root_wt/$folder/4-status.md"
-  elif [ -f "$specs_root_wt/archive/$folder/4-status.md" ]; then
-    status_file="$specs_root_wt/archive/$folder/4-status.md"
+  if [ -f "$specs_root_wt/$folder/${AIDE_STATUS_FILE}" ]; then
+    status_file="$specs_root_wt/$folder/${AIDE_STATUS_FILE}"
+  elif [ -f "$specs_root_wt/archive/$folder/${AIDE_STATUS_FILE}" ]; then
+    status_file="$specs_root_wt/archive/$folder/${AIDE_STATUS_FILE}"
   fi
   return 0
 }
@@ -86,10 +86,10 @@ phase_file_for() {   # sets $phase_file
   local step="$1" folder="$2" name=""
   phase_file=""
   case "$step" in
-    create)    name="1-description.md" ;;
-    analyze)   name="2-analysis.md" ;;
-    implement) name="3-solution.md" ;;
-    archive)   name="4-status.md" ;;
+    create)    name="${AIDE_DESCRIPTION_FILE}" ;;
+    analyze)   name="${AIDE_ANALYSIS_FILE}" ;;
+    implement) name="${AIDE_SOLUTION_FILE}" ;;
+    archive)   name="${AIDE_STATUS_FILE}" ;;
   esac
   [ -n "$name" ] && [ -n "$folder" ] || return 0
   if [ -f "$specs_root_wt/$folder/$name" ]; then
@@ -186,7 +186,7 @@ analysis_follows_implement() {   # $1 = status file, $2 = pre-session ref
 # spec-transitions.sh.
 rebuild_acceptance_after_analysis() {   # $1 = status file, $2 = pre-session ref
   local status_file="$1" description
-  description="$(dirname "$status_file")/1-description.md"
+  description="$(dirname "$status_file")/${AIDE_DESCRIPTION_FILE}"
   if grep -Eq '^[[:blank:]]*-[[:blank:]]*\*\*Acceptance:\*\*[[:blank:]]*not required[[:blank:]]*$' \
      "$description" 2>/dev/null; then
     rebuild_acceptance_rows "$status_file" "$description" "Not verified"

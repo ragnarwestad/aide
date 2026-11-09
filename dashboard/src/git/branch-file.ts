@@ -28,7 +28,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker } from "./branch-status.ts";
 import type { GitRunner } from "./process/index.ts";
-import { specBranch } from "./branch-status.ts";
+import { specBranch } from "../project/spec-names.ts";
 
 export interface BranchFileRead {
   text: string;

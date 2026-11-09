@@ -7,6 +7,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { signalGroup, signalProcess } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/process/index.ts";
+import { specBranch } from "../../project/spec-names.ts";
 import type { TestServerStore, TestServer } from "./store.ts";
 import { outputTail } from "../../format/output-tail.ts";
 import { portInUse } from "../../format/port-in-use.ts";
@@ -157,7 +158,7 @@ export function whyNotUp(ctx: Pick<TestServersContext, "portHolder">, entry: Tes
 }
 
 /** The registry key `restartMainTestServer` tracks its board under —
- *  never a real spec folder, so `isSpecFolder()` (`render/ui/shell.ts`)
+ *  never a real spec folder, so `isSpecFolder()` (`project/spec-names.ts`)
  *  is what every reader of the registry uses to tell the two apart. */
 export const MAIN_TEST_SERVER_KEY = "main";
 
@@ -170,7 +171,7 @@ export async function startTestServer(
   if (!ctx.previewAvailable(project)) {
     return { ok: false, error: `${project} says nothing about how to start a board for a branch` };
   }
-  const branch = opts.branch ?? `aide/${specFolder}`;
+  const branch = opts.branch ?? specBranch(specFolder);
   const aideCheckout = ctx.aideCheckout(project);
   const commit = await headCommit(ctx.gitRun, aideCheckout, branch);
   if (!commit) return { ok: false, error: `no such branch on origin: ${branch}` };

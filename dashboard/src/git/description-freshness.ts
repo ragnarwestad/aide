@@ -20,6 +20,7 @@
 
 import { basename, dirname, join } from "node:path";
 import type { GitRunner } from "./process/index.ts";
+import { DESCRIPTION_FILE } from "../project/spec-names.ts";
 
 const DEFAULT_TTL_MS = 30_000;
 
@@ -189,7 +190,7 @@ export async function descriptionDiffers(
   dir: string,
   analyzedSha: string,
 ): Promise<boolean> {
-  const out = await run(dir, ["diff", "--quiet", analyzedSha, "--", "1-description.md"]);
+  const out = await run(dir, ["diff", "--quiet", analyzedSha, "--", DESCRIPTION_FILE]);
   return out.code === 1;
 }
 
@@ -244,7 +245,7 @@ export class DescriptionFreshnessChecker {
 
     let stale = false;
     try {
-      const describedAt = await lastCommitAt(this.run, dir, "1-description.md");
+      const describedAt = await lastCommitAt(this.run, dir, DESCRIPTION_FILE);
       // No description commit ends it here: the second lookup cannot
       // change the answer, and it costs a subprocess per spec.
       if (describedAt) {
@@ -405,7 +406,7 @@ export class SpecCreatedAtChecker {
 
     let createdAt: string | null = null;
     try {
-      createdAt = await this.archivedSlot(() => firstCommitAtFollowingRenames(this.run, dir, "1-description.md"));
+      createdAt = await this.archivedSlot(() => firstCommitAtFollowingRenames(this.run, dir, DESCRIPTION_FILE));
     } catch {
       createdAt = null;
     }

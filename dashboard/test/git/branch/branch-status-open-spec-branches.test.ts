@@ -1,7 +1,8 @@
 // Split out of branch-status.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { BranchStatusChecker, specBranch } from "../../../src/git/branch-status.ts";
+import { specBranch } from "../../../src/project/spec-names.ts";
+import { BranchStatusChecker } from "../../../src/git/branch-status.ts";
 import { type GitRunner } from "../../../src/git/process/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 

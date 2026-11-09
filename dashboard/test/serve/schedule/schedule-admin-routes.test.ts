@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { scheduleTrackingKey } from "../../../src/queue/schedule.ts";
+import { scheduleTrackingKey } from "../../../src/project/spec-names.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 
 const harness = queueHarness("aide-schedule-admin-routes-");

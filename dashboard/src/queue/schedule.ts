@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, normalize as normalizePath } from "node:path";
 import { CronExpressionParser } from "cron-parser";
+import { isScheduleKey, scheduleTrackingKey } from "../project/spec-names.ts";
 
 /** The same character class `queue.ts`'s `NAME_RE` checks a job's own
  *  names against — a schedule entry's name becomes half of a job's
@@ -91,15 +92,9 @@ export function escapesRoot(path: string): boolean {
   return normalized === ".." || normalized.startsWith("../");
 }
 
-/** The job-store tracking key a schedule entry's runs are filed under —
- *  never a spec folder, and never resolved under the specs root
- *  (`parseJobRequest`'s own exemption for it). Obviously not a spec
- *  folder, on purpose, the same way `create`'s provisional key is. */
-export const scheduleTrackingKey = (name: string): string => `schedule-${name}`;
-
-/** The entry name inside a scheduled job's tracking key: the inverse of
- *  `scheduleTrackingKey`. */
-export const scheduleNameOf = (key: string): string => key.slice("schedule-".length);
+/** A scheduled job: one step, `schedule`, under a schedule key. */
+export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
+  job.steps.length === 1 && job.steps[0] === "schedule" && isScheduleKey(job.specFolder);
 
 /** The most recent time `cron` was due at or before `now`, or `null` for
  *  a `cron` string that does not parse — which, since the store

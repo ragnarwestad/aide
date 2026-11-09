@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createEndedWithoutSpec, createFailureReason, isProvisionalKey } from "../../src/queue/create-failure.ts";
+import { isProvisionalKey } from "../../src/project/spec-names.ts";
+import { createEndedWithoutSpec, createFailureReason } from "../../src/queue/create-failure.ts";
 import { parseCreateRequest } from "../../src/queue/parse-request.ts";
 import { DEFAULTS } from "../push/fixtures.ts";
 
@@ -38,13 +39,6 @@ describe("the provisional key", () => {
     );
     if (!parsed.ok) throw new Error(parsed.error);
     expect(isProvisionalKey(parsed.job.specFolder)).toBe(true);
-  });
-
-  test("is exactly new- and eight hex", () => {
-    expect(isProvisionalKey("new-abc123de")).toBe(true);
-    expect(isProvisionalKey("new-abc123")).toBe(false);
-    expect(isProvisionalKey("new-abc123deX")).toBe(false);
-    expect(isProvisionalKey("81-new-abc123de")).toBe(false);
   });
 });
 

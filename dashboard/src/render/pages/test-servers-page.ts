@@ -5,7 +5,8 @@
 // the one existing precedent for "a global page with a
 // table of rows", and reached the same way Settings is: the "…" menu.
 
-import { isSpecFolder, pageShell, type NavEntry } from "../ui/shell.ts";
+import { isSpecFolder } from "../../project/spec-names.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { backLink, buttonForm, messageSlot } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import type { Language } from "../../i18n";

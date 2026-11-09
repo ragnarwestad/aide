@@ -7,6 +7,8 @@
 // precedent for reading process-lifetime state directly rather than
 // threading it through `pageShell()`'s call sites.
 
+import { isSpecFolder, specBranch } from "../../project/spec-names.ts";
+
 export interface BoardInfo {
   specFolder: string;
   branch: string;
@@ -19,7 +21,7 @@ let current: BoardInfo | undefined;
  *  merge/leave-if-set implementation would let an earlier test's board
  *  leak into a later, ordinary-server test. */
 export function setBoardInfo(specFolder: string | undefined): void {
-  current = specFolder ? { specFolder, branch: `aide/${specFolder}` } : undefined;
+  current = specFolder ? { specFolder, branch: specBranch(specFolder) } : undefined;
 }
 
 export function getBoardInfo(): BoardInfo | undefined {
@@ -31,5 +33,5 @@ export function getBoardInfo(): BoardInfo | undefined {
  *  control, self-run.ts). A board started from a spec's branch (a
  *  numbered folder) previews that spec and is never re-run. */
 export function isRoundBoard(): boolean {
-  return current !== undefined && !/^\d+(-|$)/.test(current.specFolder);
+  return current !== undefined && !isSpecFolder(current.specFolder);
 }

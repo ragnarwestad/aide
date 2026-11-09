@@ -15,6 +15,7 @@
 
 import { realPathOrOriginal as resolved } from "../../git/real-path.ts";
 import { join } from "node:path";
+import { specFolderOfBranch } from "../../project/spec-names.ts";
 import { TEST_SERVER_PORTS, MAIN_TEST_SERVER_KEY, type TestServersContext } from "./lifecycle.ts";
 import type { TestServer } from "./store.ts";
 
@@ -69,7 +70,7 @@ export function parseWorktrees(porcelain: string): WorktreeLine[] {
 function isRoundWorktree(wt: WorktreeLine): boolean {
   const dir = wt.path.split("/");
   return (
-    (wt.branch.startsWith("aide/") || wt.branch === "") &&
+    (specFolderOfBranch(wt.branch) !== undefined || wt.branch === "") &&
     dir[dir.length - 1] === "checkout" &&
     (dir[dir.length - 2] ?? "").startsWith("tmp.")
   );
@@ -122,8 +123,9 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
     // serving checkout has out — the one it was detached from.
     let specFolder: string;
     let branch: string;
-    if (wt.branch.startsWith("aide/")) {
-      specFolder = wt.branch.slice("aide/".length);
+    const branchFolder = specFolderOfBranch(wt.branch);
+    if (branchFolder !== undefined) {
+      specFolder = branchFolder;
       branch = wt.branch;
     } else if (wt.branch === "") {
       specFolder = MAIN_TEST_SERVER_KEY;

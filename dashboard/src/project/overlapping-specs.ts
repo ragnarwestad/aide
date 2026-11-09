@@ -7,6 +7,7 @@ import type { SharedFiles } from "../queue/types.ts";
 import type { SpecRef } from "./discover";
 import { specFileText } from "./discover";
 import { specNumber } from "./spec-folder.ts";
+import { ANALYSIS_FILE } from "./spec-names.ts";
 
 /** A spec the record names that is still open: what a reader recognises it by, and the files it shares. */
 export interface OpenOverlap {
@@ -59,7 +60,7 @@ export function openOverlappingSpecs(
   refOf: (folder: string) => SpecRef | undefined,
 ): OpenOverlap[] | undefined {
   if (!dir) return undefined;
-  const text = specFileText(dir, "2-analysis.md");
+  const text = specFileText(dir, ANALYSIS_FILE);
   if (text === null) return undefined;
   const record = overlappingSpecsIn(text);
   if (!record.length) return undefined;

@@ -10,13 +10,8 @@
 // every push mode this project uses.
 
 import { join } from "node:path";
+import { specBranch } from "../project/spec-names.ts";
 import type { GitRunner } from "./process/index.ts";
-
-/** The branch a step pushes to: the convention documented in README.md
- *  ("aide/<spec-folder>"), which is why the NAME is not stored on Job. */
-export function specBranch(specFolder: string): string {
-  return `aide/${specFolder}`;
-}
 
 /** How long one answer stands. Exported because the background
  *  drift poll runs on this same window, and a second constant for the

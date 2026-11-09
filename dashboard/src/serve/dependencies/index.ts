@@ -14,21 +14,22 @@ import { followOnJob } from "../routes/spec-edit/shared.ts";
 import { landingErrorOfStep } from "../land-branch/stopped-reason.ts";
 import { planDependencies } from "./plan.ts";
 import { aiWorkRetryDecision, aiWorkRetryRecord } from "../../queue/runner/retry.ts";
+import { DESCRIPTION_FILE } from "../../project/spec-names.ts";
 
 async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<string, string>> {
   const descriptions = new Map<string, string>();
   let fresh = true;
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name === "archive" || entry.name.startsWith(".")) continue;
-    const dir = join(root, entry.name), file = join(dir, "1-description.md");
+    const dir = join(root, entry.name), file = join(dir, DESCRIPTION_FILE);
     if (!existsSync(file)) continue;
-    const target = await resolveOpenBranchTarget(ctx, dir, entry.name, "1-description.md", fresh);
+    const target = await resolveOpenBranchTarget(ctx, dir, entry.name, DESCRIPTION_FILE, fresh);
     fresh = false;
     const branch = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
     if (target && !branch) {
       // An archive moves the folder under archive/ on its own branch before it lands: that spec is
       // as good as archived, and an archived spec waits on nothing.
-      const archived = join(dirname(dirname(target.relPath)), "archive", entry.name, "1-description.md");
+      const archived = join(dirname(dirname(target.relPath)), "archive", entry.name, DESCRIPTION_FILE);
       if (await readStatusFromBranch(ctx.gitRun, target.root, target.branch, archived)) {
         descriptions.set(entry.name, "");
         continue;
@@ -97,10 +98,10 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
       ctx.queue.update(job.id, { landing: true });
       try {
         if (outcome.pushError) throw new Error(outcome.pushError);
-        const specs = dirname(dir), file = join(dir, "1-description.md");
+        const specs = dirname(dir), file = join(dir, DESCRIPTION_FILE);
         const text = readFileSync(file, "utf8");
-        const base = await lastCommitOf(ctx.gitRun, dir, "1-description.md");
-        const edit = { file: "1-description.md", text, baseSha: base?.sha ?? null };
+        const base = await lastCommitOf(ctx.gitRun, dir, DESCRIPTION_FILE);
+        const edit = { file: DESCRIPTION_FILE, text, baseSha: base?.sha ?? null };
         let cycle: string[] | undefined;
         let added: string[] = [];
         // saveSpecFiles validates after its pull and before any file is written.

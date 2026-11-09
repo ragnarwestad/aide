@@ -4,9 +4,10 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { archiveHeldBackReason, parseStatus } from "../parse-status";
+import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../spec-names.ts";
 
 export function specTitle(dir: string): string | null {
-  const desc = join(dir, "1-description.md");
+  const desc = join(dir, DESCRIPTION_FILE);
   if (!existsSync(desc)) return null;
   const m = readFileSync(desc, "utf-8").match(/^#\s+(.+)$/m);
   if (!m) return null;
@@ -17,13 +18,13 @@ export function specTitle(dir: string): string | null {
 
 /** The four files a spec is made of, in the order they are written and
  *  the order a reader goes through them. The layout itself
- *  is `core/rules/spec-structure.md`'s; this is the dashboard's copy of
- *  the NAMES, which is all it needs to show them. */
+ *  is `core/rules/spec-structure.md`'s, and the names are
+ *  `project/spec-names.ts`'; this is the order the dashboard shows them in. */
 export const SPEC_FILES = [
-  "1-description.md",
-  "2-analysis.md",
-  "3-solution.md",
-  "4-status.md",
+  DESCRIPTION_FILE,
+  ANALYSIS_FILE,
+  SOLUTION_FILE,
+  STATUS_FILE,
 ] as const;
 
 /** One spec file, whole. `null` covers all three ways there is nothing
@@ -66,7 +67,7 @@ export function markdownSection(text: string, heading: string): string | null {
 // the templates produce has, and the one a reader currently leaves the
 // dashboard to read.
 export function specDescription(dir: string): string | null {
-  const text = specFileText(dir, "1-description.md");
+  const text = specFileText(dir, DESCRIPTION_FILE);
   if (text === null) return null;
   const body = markdownSection(text, "Description");
   if (body === null) return null;
@@ -98,16 +99,16 @@ export function specDescription(dir: string): string | null {
  *  the stamp when it is there, because a folder that MOVED is archived
  *  whatever an earlier attempt wrote into the same file. */
 export function specPhaseFile(dir: string, step: string): { label: string; text: string | null } | null {
-  if (step === "create") return { label: "1-description.md", text: specFileText(dir, "1-description.md") };
-  if (step === "analyze") return { label: "3-solution.md", text: specFileText(dir, "3-solution.md") };
-  if (step === "implement") return { label: "4-status.md", text: specFileText(dir, "4-status.md") };
+  if (step === "create") return { label: DESCRIPTION_FILE, text: specFileText(dir, DESCRIPTION_FILE) };
+  if (step === "analyze") return { label: SOLUTION_FILE, text: specFileText(dir, SOLUTION_FILE) };
+  if (step === "implement") return { label: STATUS_FILE, text: specFileText(dir, STATUS_FILE) };
   if (step === "archive") {
-    const status = specFileText(dir, "4-status.md");
+    const status = specFileText(dir, STATUS_FILE);
     const stamp = status?.match(/^.*\*\*Archived:\*\*.*$/m)?.[0]?.trim() ?? null;
     // The same reader the row's own held-back mark uses, so the two
     // cannot word one fact differently.
     const held = status ? archiveHeldBackReason(status) : null;
-    return { label: "4-status.md", text: stamp ?? held };
+    return { label: STATUS_FILE, text: stamp ?? held };
   }
   return null;
 }
@@ -127,7 +128,7 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
  *  late, so half the archive answers `null` and the caller has a
  *  fallback for exactly that. */
 export function specArchivedDate(dir: string): string | null {
-  const line = stampInEffect(specFileText(dir, "4-status.md"), /^.*\*\*Archived:\*\*/);
+  const line = stampInEffect(specFileText(dir, STATUS_FILE), /^.*\*\*Archived:\*\*/);
   const m = line?.match(/\*\*Archived:\*\*[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].replace(/`/g, "").trim() || null;
@@ -162,13 +163,13 @@ function stampInEffect(status: string | null, stamp: RegExp): string | null {
 }
 
 export function specClosed(dir: string): boolean {
-  return stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP) !== null;
+  return stampInEffect(specFileText(dir, STATUS_FILE), CLOSED_STAMP) !== null;
 }
 
 /** WHEN this spec was closed, off the same `**Closed:**` stamp —
  *  `specArchivedDate`'s sibling. `null` covers a spec never closed. */
 export function specClosedDate(dir: string): string | null {
-  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)?.match(/\*\*Closed:\*\*[ \t]*([0-9-]*)/);
+  const m = stampInEffect(specFileText(dir, STATUS_FILE), CLOSED_STAMP)?.match(/\*\*Closed:\*\*[ \t]*([0-9-]*)/);
   if (!m) return null;
   return m[1].trim() || null;
 }
@@ -177,7 +178,7 @@ export function specClosedDate(dir: string): string | null {
  *  same `**Closed:**` stamp. `null` covers a spec that was never closed
  *  and one whose stamp somehow carries no reason. */
 export function specCloseReason(dir: string): string | null {
-  const m = stampInEffect(specFileText(dir, "4-status.md"), CLOSED_STAMP)
+  const m = stampInEffect(specFileText(dir, STATUS_FILE), CLOSED_STAMP)
     ?.match(/\*\*Closed:\*\*[ \t]*[0-9-]*[ \t]*—[ \t]*(.*)$/);
   if (!m) return null;
   return m[1].trim() || null;
@@ -186,7 +187,7 @@ export function specCloseReason(dir: string): string | null {
 /** Completed workflow steps, falling back to the prose status file. */
 export function proseSteps(dir: string): string[] {
   try {
-    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
+    return parseStatus(readFileSync(join(dir, STATUS_FILE), "utf-8")).workflowSteps;
   } catch {
     return [];
   }

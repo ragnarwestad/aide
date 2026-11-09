@@ -7,8 +7,7 @@
 
 import { DESCRIPTION_MAX, descriptionPart } from "../project/description-bound.ts";
 import { countText, limitState, overText } from "../specs-client/limits/measure.ts";
-
-const DESCRIPTION_FILE = "1-description.md";
+import { DESCRIPTION_FILE } from "../project/spec-names.ts";
 
 export interface DescriptionCount {
   /** Count `fileText`'s description and draw it. True while it is over the bound. */

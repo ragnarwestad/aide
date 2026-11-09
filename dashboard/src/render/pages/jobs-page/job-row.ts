@@ -28,7 +28,8 @@ import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
 import { cleanupStep, closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
-import { isScheduleJob, jobControl, jobDismissible, jobKey, jobMessage, jobTitle } from "./rows.ts";
+import { isScheduleJob } from "../../../queue/schedule.ts";
+import { jobControl, jobDismissible, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export type { JobStep };

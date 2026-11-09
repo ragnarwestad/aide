@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { parseManifest, type ManifestResult } from "../parse-manifest.ts";
 import { failedCount, notVerifiedCount, parseStatus, type StatusInfo } from "../parse-status";
 import { readSpecState } from "../parse-spec-state.ts";
+import { isSpecFolder, STATUS_FILE } from "../spec-names.ts";
 import { configSpecsPath } from "./config.ts";
 import { specCreateChoices, type CreateChoices } from "./create-choices.ts";
 import { specDependsOn } from "./depends-on.ts";
@@ -67,7 +68,7 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
   if (!existsSync(root)) return [];
   const out: SpecRef[] = [];
   for (const entry of readdirSync(root)) {
-    if (!/^\d+-/.test(entry)) continue;
+    if (!isSpecFolder(entry)) continue;
     const dir = join(root, entry);
     if (!statSync(dir).isDirectory()) continue;
     const closed = archived && specClosed(dir);
@@ -180,7 +181,7 @@ export function buildProjectViews(
     name: p.name,
     manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
     specs: p.specs.map((s) => {
-      const statusPath = join(s.dir, "4-status.md");
+      const statusPath = join(s.dir, STATUS_FILE);
       return {
         ...s,
         status: existsSync(statusPath) ? parseStatus(readFileSync(statusPath, "utf-8")) : null,

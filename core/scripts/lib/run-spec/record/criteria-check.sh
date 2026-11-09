@@ -17,13 +17,13 @@
 # run-spec/setup/invocation.sh.
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ "${criteria_checks:-}" = "stop" ]; then
-  criteria_check_read="$(plan_review_field "$specs_root_wt/$spec_label/3-solution.md" "Criteria check")" || criteria_check_read=""
+  criteria_check_read="$(plan_review_field "$specs_root_wt/$spec_label/${AIDE_SOLUTION_FILE}" "Criteria check")" || criteria_check_read=""
   criteria_check_faults=""
   case "$criteria_check_read" in *" — "*) criteria_check_faults="${criteria_check_read#* — }" ;; esac
   criteria_check_faults="${criteria_check_faults%.}"
   [ "$criteria_check_faults" = "none found" ] && criteria_check_faults=""
   if [ -z "$criteria_check_read" ]; then
-    stage "criteria check: the Plan review section in the plan (3-solution.md) has no Criteria check line — the step completes"
+    stage "criteria check: the Plan review section in the plan (${AIDE_SOLUTION_FILE}) has no Criteria check line — the step completes"
   elif [ -z "$criteria_check_faults" ]; then
     stage "criteria check: $criteria_check_read — the step completes"
   else

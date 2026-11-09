@@ -236,16 +236,15 @@ specs_ref_before="${head_before[0]}"
 # not have committed its own work by the time we look.
 #
 # Two shapes count as a spec folder: the numbered `NN-slug` an
-# interactive session still makes on its own, and the literal
-# `new-<8 hex>` provisional key every headless create now makes instead
-# — the same pattern `parse-request.ts`'s own `provisionalKey()` and
-# `self-run.ts`'s dispatcher already match.
+# interactive session still makes on its own, and the `new-<8 hex>`
+# provisional key every headless create makes instead — both tested by
+# the functions in lib/spec-reference.sh.
 spec_folders_now() {
   local d base
   for d in "$specs_root_wt"/*/; do
     [ -d "$d" ] || continue
     base="$(basename "$d")"
-    [[ "$base" =~ ^([0-9]+-|new-[0-9a-f]{8}$) ]] && printf '%s\n' "$base"
+    { aide_is_spec_folder "$base" || aide_is_provisional_key "$base"; } && printf '%s\n' "$base"
   done
   return 0
 }

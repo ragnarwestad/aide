@@ -10,7 +10,8 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { specFolders } from "../project/discover";
-import { scheduleNameOf, scheduleRunOutputDir } from "./schedule.ts";
+import { scheduleNameOf } from "../project/spec-names.ts";
+import { scheduleRunOutputDir } from "./schedule.ts";
 import type { QueueStore } from "./queue.ts";
 import type { Job } from "./types.ts";
 import {

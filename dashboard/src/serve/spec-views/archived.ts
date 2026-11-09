@@ -7,6 +7,7 @@ import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
 import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
+import { STATUS_FILE } from "../../project/spec-names.ts";
 
 /** Which steps an archived spec's own `4-status.md` CLAIMS it has had
  *  what its phase lines and its pip strip are drawn from
@@ -25,7 +26,7 @@ import type { SpecViewsContext } from "./";
  *  terms: its own question, and an empty list for every way the answer
  *  can be missing. */
 export function archivedSteps(dir: string): string[] {
-  const status = specFileText(dir, "4-status.md");
+  const status = specFileText(dir, STATUS_FILE);
   return status ? parseStatus(status).workflowSteps : [];
 }
 
@@ -35,7 +36,7 @@ export function archivedSteps(dir: string): string[] {
  *  claim, and an empty map for a spec that predates the line or names
  *  nothing. */
 export function archivedModels(dir: string): Record<string, string> {
-  const status = specFileText(dir, "4-status.md");
+  const status = specFileText(dir, STATUS_FILE);
   return status ? parseStatus(status).stepModels : {};
 }
 
@@ -174,7 +175,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       // Read for the specs that have something to unfold, no others.
       acceptance:
         (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
-          ? acceptanceRowsOf(specFileText(ref.dir, "4-status.md") ?? "")
+          ? acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? "")
           : undefined,
       closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });

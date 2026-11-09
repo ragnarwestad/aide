@@ -329,8 +329,8 @@ update_branch_to_base() {
       # are already resolved globals by this point in the script.
       if [ "$root" = "$specs_repo" ]; then
         rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
-        expected1="${rel:+$rel/}$spec_label/4-status.md"
-        expected2="${rel:+$rel/}archive/$spec_label/4-status.md"
+        expected1="${rel:+$rel/}$spec_label/${AIDE_STATUS_FILE}"
+        expected2="${rel:+$rel/}archive/$spec_label/${AIDE_STATUS_FILE}"
         conflicted="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null)"
         if [ "$conflicted" = "$expected1" ] || [ "$conflicted" = "$expected2" ]; then
           if git -C "$wt" checkout --theirs -- "$conflicted" 2>/dev/null \
