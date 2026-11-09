@@ -40,7 +40,7 @@ export interface AideWriteSpecResult {
 /** Resolved by bare name through PATH, the same way `createGitRunner`
  *  resolves `git` — every host running the dashboard already has
  *  `aide-write-spec` on PATH, since the global install
- *  (`dashboard/CLAUDE.md`, "What gets installed where") puts every
+ *  (`dashboard/AGENTS.md`, "What gets installed where") puts every
  *  `core/scripts/` script in `~/.local/bin/` before the dashboard
  *  itself can run. `AIDE_WRITE_SPEC_BIN` overrides it for a test's own
  *  stub, the same escape hatch `queueRunnerBin` gives the long-running

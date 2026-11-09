@@ -4,20 +4,19 @@ What a session working under `dashboard/` has to know before changing the
 queue, the worktrees or a run: the things that are easy to get backwards.
 Each rule names the page in `docs/` that says why. Much of this also
 governs `core/scripts/aide-run-spec`, the dashboard's execution backend — a
-session editing that script directly should read this file by hand.
+session editing that script directly should read this file too. Every AI
+tool reads it (`CLAUDE.md` beside it imports it); the repo-wide rules are in
+the root `AGENTS.md`.
 
 The rules that matter only in one part of the code live in `.claude/rules/`
-beside this file and load when a file they name is read:
+beside this file. Claude Code loads each one when a file it names is read;
+any other tool reads the one for the code it changes before changing it:
 
 - `landing.md` — the landing, the archive step and Close: the code that
   lands a branch, and the rows and pages that read what a landing left.
 - `process-groups.md` — signalling a process group, under `src/serve/`.
 - `dashboard-design.md` — tokens, the class vocabulary and the layout
   rules, under `src/render/`.
-
-They load only for a session whose working directory is `dashboard/`. A
-session run from the repo root — one editing `aide-run-spec` — does not
-get them, and reads them by hand.
 
 ## How a run touches the repositories
 
@@ -168,7 +167,7 @@ look like pairs but share one source.
 ## Code health
 
 The repository's rules for file length, folder size, splitting a module
-and where its tests live are in `.claude/rules/development.md`, "Code
+and where its tests live are in the root `AGENTS.md`, "Code
 health", and hold here as everywhere. The dashboard checks them in
 `test/design/code-health-limits.test.ts`, its stylesheets included. What
 is particular to the dashboard:

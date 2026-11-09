@@ -67,7 +67,7 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
     expect(recipe).not.toContain("develop/");
   });
 
-  // The seventh hand-paired pair (.claude/rules/development.md): the
+  // The seventh hand-paired pair (AGENTS.md): the
   // Makefile spells the machinery checkout's path as a bash literal
   // relative to the serving host's $HOME, and `dashboard-checkout.ts`
   // spells the same path in TypeScript. Nothing but this test makes them
