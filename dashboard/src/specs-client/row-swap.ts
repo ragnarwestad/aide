@@ -9,6 +9,7 @@ import { syncApproachCancels } from "./approach-choice";
 import { syncDependsOnForms } from "./depends-on";
 import { openTestFiles, reopenTestFiles } from "./test-files";
 import { holdSpecDetail } from "./spec-detail";
+import { runButton } from "../render/pages/specs-list/data-model/phase.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -21,18 +22,14 @@ import { holdSpecDetail } from "./spec-detail";
  *  boxes and no hidden steps — but the row said one thing and did
  *  another, which is the whole thing naming the button was for.
  *
- *  The display name comes off a box's own `aria-label`, which the
- *  server already sets to the phase's reader-facing name, so the
- *  step-label table is not spelled a second time in the browser.
- *
- *  Nothing ticked no longer hides the button: it disables it
- *  instead, named for the EARLIEST box on the row — which, since the
- *  boxes drawn here are exactly the not-yet-run phases in workflow
- *  order, is the same phase `nextPhase()` would name server-side. That
- *  is the "named, but not ticked" state `actionState()`'s own `active:
- *  false` draws on the next full render; this keeps the two from
- *  disagreeing in between. The button is hidden only when the row has no
- *  boxes to read at all (an archived or a busy row's Run control never
+ *  It is named by `runButton()` (`data-model/phase.ts`), the rule
+ *  `actionState()` names it by on the server, from the phases the button
+ *  says are done (`data-done`) and the boxes ticked. Every phase has a box,
+ *  run or not, so the boxes alone cannot say which phase is next. With
+ *  nothing ticked the button is named for the next phase and disabled —
+ *  the same "named, but not ticked" state the server draws, so a redraw
+ *  never changes what it says. The button is hidden only when the row has
+ *  no boxes to read at all (an archived or a busy row's Run control never
  *  reaches this file in the first place). Without this file the label
  *  simply stays as rendered, which is the same honest fallback every
  *  other thing here degrades to. */
@@ -54,22 +51,18 @@ export function relabelRunButton(body: Element, formId: string): void {
   // button is up in the head row's State cell, so no walk from one to
   // the other is as reliable as the id both already carry.
   const boxes = Array.from(body.querySelectorAll(`input[name="steps"]${selector}`)) as HTMLInputElement[];
-  const first = boxes.find((b) => b.checked);
-  // No box ticked: named for the earliest one instead of hiding the
-  // button — `boxes[0]` because the boxes on a row are drawn
-  // in workflow order and only for a phase that has not run yet, so the
-  // first of them IS the phase a press would need ticked to do
-  // anything. No boxes at all is the one case this file still hides
-  // for: nothing here says what the button should be named.
-  const shown = first ?? boxes[0];
-  if (!shown) {
+  const done = (button.getAttribute("data-done") ?? "").split(" ").filter(Boolean);
+  const ticked = new Set(boxes.filter((b) => b.checked).map((b) => b.value));
+  // No boxes at all is the one case this file still hides for: nothing
+  // here says what the button should be named.
+  const state = boxes.length ? runButton(done, ticked) : undefined;
+  if (!state) {
     button.hidden = true;
     return;
   }
   button.hidden = false;
-  button.disabled = !first;
-  const name = shown.getAttribute("aria-label") ?? shown.value;
-  button.textContent = `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+  button.disabled = !state.active;
+  button.textContent = state.label;
 }
 
 /** Every open row's button, after a redraw put the server's own label

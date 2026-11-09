@@ -29,7 +29,13 @@ export function classes(el: { className: string }) {
  *  `form` is the attribute, and it is the whole point for Run: that
  *  button is written OUTSIDE `<form class="rowrun">` and reaches it
  *  by name alone (`specs-list.ts`, `stateAction`). */
-export const makeButton = (label: string, pending: string, variant: string, form?: string) => {
+export const makeButton = (
+  label: string,
+  pending: string,
+  variant: string,
+  form?: string,
+  served: { done?: string[]; disabled?: boolean } = {},
+) => {
   const b = {
     textContent: label,
     // What the server drew it as. A fake with no starting class could
@@ -42,11 +48,21 @@ export const makeButton = (label: string, pending: string, variant: string, form
     // able to hold the answer.
     hidden: false,
     title: "",
-    disabled: false,
+    disabled: served.disabled ?? false,
     isConnected: true,
     tagName: "BUTTON",
     dataset: { pending },
-    getAttribute: (n: string) => (n === "form" ? form ?? null : null),
+    // `data-done` is the phases the spec has done, which the server
+    // writes on the Run button for the page script to name it by.
+    getAttribute: (n: string) =>
+      n === "form" ? form ?? null : n === "data-done" && served.done ? served.done.join(" ") : null,
+    /** What the SERVER drew: a swap puts the label and the disabled state
+     *  back to the server's, whatever the script had made of them. */
+    redraw: () => {
+      b.textContent = label;
+      b.disabled = served.disabled ?? false;
+      b.hidden = false;
+    },
     insertAdjacentHTML: (where: string, html: string) => {
       b.innerHTML = where === "afterbegin" ? html + b.innerHTML : b.innerHTML + html;
     },
@@ -193,9 +209,8 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
     disabled: false,
     isConnected: true,
     // `aria-label` is the phase's reader-facing name, which the server
-    // sets on every box (`phaseChip`) and which the button's label is
-    // read off. No step is called anything other than
-    // its own value, so the two say the same thing.
+    // sets on every box (`phaseChip`). No step is called anything other
+    // than its own value, so the two say the same thing.
     getAttribute: (n: string) =>
       n === "form" ? formId : n === "aria-label" ? value : null,
     // A tick lands on the input itself. It is not a select of any

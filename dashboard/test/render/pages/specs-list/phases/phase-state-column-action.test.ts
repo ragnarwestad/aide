@@ -2,7 +2,9 @@
 
 import { describe, expect, test } from "bun:test";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
-import { actionState } from "../../../../../src/render/pages/specs-list/row-state";
+import { actionState, chosenSteps, nextPhase } from "../../../../../src/render/pages/specs-list/row-state";
+import { phasesAhead, RUN_STEPS } from "../../../../../src/render/pages/specs-list/data-model/phase.ts";
+import { stepButton } from "../../../../../src/format/step-label.ts";
 import {
   renderSpecsRows,
   type SpecsPageOptions,
@@ -339,6 +341,14 @@ describe("a recorded phase choice survives the render", () => {
     expect(labels(action(html))).toEqual(["Archive"]);
   });
 
+  test("analyze done and nothing ticked draws Implement, disabled, with the phases done on the button (AC-1)", () => {
+    const html = rows([target("738-implement", { done: ["create", "analyze"] })], {
+      pendingSteps: { "aide/738-implement": [] },
+    });
+    expect(action(html)).toMatch(/<button type="submit"[^>]*data-done="create analyze"[^>]*disabled/);
+    expect(labels(action(html))).toEqual(["Implement"]);
+  });
+
   test("nothing ticked never shows Archive active, even with only archive left", () => {
     const html = rows([target("439-archive-disabled", { done: ["analyze", "implement"] })], {
       pendingSteps: { "aide/439-archive-disabled": [] },
@@ -366,4 +376,14 @@ test("an active spec offers Archive again after a stopped archive", () => {
     [{ project: "aide", specFolder, done: ["create", "analyze", "implement"], stopped: { archive: "provider-limit" } }],
   );
   expect(actionState(group!, {})).toEqual({ label: "Archive", active: true });
+});
+
+test("with no recorded choice the default ticks are the phases ahead, and the button names the next phase (AC-3)", () => {
+  for (const done of [[], ["create"], ["create", "analyze"], ["create", "analyze", "implement"]]) {
+    const specFolder = `738-default-${done.length}`;
+    const [group] = groupBySpec([], [{ project: "aide", specFolder, done }]);
+    const ticks = chosenSteps(group!, {});
+    expect(RUN_STEPS.filter((s) => ticks.has(s))).toEqual(phasesAhead(done));
+    expect(actionState(group!, {})?.label).toBe(stepButton(nextPhase(done)!));
+  }
 });

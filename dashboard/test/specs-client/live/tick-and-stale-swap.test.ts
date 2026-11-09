@@ -95,6 +95,31 @@ describe("a hand-ticked phase box survives the five-second swap", () => {
     expect(h.runButton.textContent).toBe("Analyze");
   });
 
+  // A row whose analyze has run, served as the server draws it: nothing
+  // ticked, the button reading "Implement", disabled.
+  const analyzed = { run: { done: ["create", "analyze"], label: "Implement", disabled: true }, ticked: [] };
+
+  test("with analyze done, ticking and unticking implement leaves the button reading Implement (AC-1)", () => {
+    const h = harness(() => ({ ok: true }), "actionform", "", analyzed);
+    h.changeStep(1, true); // implement
+    expect(h.runButton.textContent).toBe("Implement");
+    expect(h.runButton.disabled).toBe(false);
+    h.changeStep(1, false);
+    expect(h.runButton.textContent).toBe("Implement");
+    expect(h.runButton.disabled).toBe(true);
+  });
+
+  test("a ticked phase that has already run names the button, before and after a redraw (AC-2)", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "", analyzed);
+    h.changeStep(0, true); // analyze, which has run
+    expect(h.runButton.textContent).toBe("Analyze");
+    expect(h.runButton.disabled).toBe(false);
+    await swap(h);
+    expect(ticks(h)).toEqual([true, false, false]);
+    expect(h.runButton.textContent).toBe("Analyze");
+    expect(h.runButton.disabled).toBe(false);
+  });
+
   test("a box the reader ticked is still ticked after the swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeStep(1, true); // implement

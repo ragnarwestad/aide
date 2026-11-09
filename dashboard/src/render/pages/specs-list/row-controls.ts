@@ -231,8 +231,12 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // reader ticks the phase it names, without waiting for a redraw —
     // and `type="submit"` throughout is what makes that re-enabling
     // actually able to submit, rather than a live control a script can
-    // turn on but never press.
-    return btn({ label: action.label, variant: "primary", form: runFormId(g), pending: "starting…", disabled: !action.active });
+    // turn on but never press. `data-done` is the phases the spec has
+    // done, which that script names the button by alongside the ticks.
+    return btn({
+      label: action.label, variant: "primary", form: runFormId(g), pending: "starting…",
+      disabled: !action.active, data: { done: g.done.join(" ") },
+    });
   })();
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and
