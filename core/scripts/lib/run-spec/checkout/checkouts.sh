@@ -191,7 +191,7 @@ take_signal_lock() {
   checkout_lock_take "$1" 120 || return 0
   signal_locks+=("$lock")
 }
-trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT
+trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir" "$_runner_snapshot"' EXIT
 # A merge still open in a worktree is put back, never committed: the
 # publish step's `git add -A` would take the conflict markers in the files
 # and commit them as the merge. The end of every step and a Cancel both
