@@ -9,6 +9,7 @@ import { acceptanceStillOpen } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
+import { deployHold } from "../deploy-job/landing-hold.ts";
 import { landingJobNames } from "../land-branch";
 import { isDeployJob, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
@@ -206,7 +207,7 @@ export function fixedSentenceHolds(ctx: ScheduleContext): Map<string, BoardMessa
   const holds = new Map<string, BoardMessage>();
   for (const id of blockedForMissingAnalyze(ctx)) holds.set(id, { key: "runner.notAnalyzed" });
   for (const id of waitingForApproachChoice(ctx)) if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
-  for (const id of deployWaitingForLanding(ctx)) holds.set(id, { key: "runner.landingPause" });
+  for (const id of deployWaitingForLanding(ctx)) holds.set(id, deployHold(ctx.queue.list(), id));
   return holds;
 }
 

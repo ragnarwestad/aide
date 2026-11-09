@@ -62,6 +62,7 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
   let updates = 0;
   const deps: DeployRunDeps = {
     queue: {
+      list: () => store.list(),
       get: (i) => store.get(i),
       update: (i, patch) => {
         if ("errorReason" in patch) updates += 1;
@@ -205,11 +206,13 @@ describe("a deploy waits for a landing before its fetch", () => {
   test("it fetches nothing while a landing holds the checkout, the job carries the hold, and both go when it clears", async () => {
     const s = setup();
     let release = (): void => {};
+    const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
+    store.update(landing.id, { state: "done", landing: true });
     const held = s.lock.run(ROOT, () => new Promise<void>((r) => (release = r)));
     const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     await wait(60);
     expect(s.git.some((l) => l.startsWith("fetch"))).toBe(false);
-    expect(store.get(s.id)?.error).toEqual({ key: "runner.landingPause" });
+    expect(store.get(s.id)?.error).toEqual({ key: "runner.landingPause", inner: [{ key: "runner.landingRunning", values: { doing: "archive", spec: "aide:81" } }] });
     expect(store.get(s.id)?.errorReason).toBe("held-back");
     expect(s.writes()).toBe(1);
 
@@ -249,7 +252,7 @@ describe("a deploy whose service can be restarted", () => {
     const { s, snap, fired } = restarting();
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(fired()).toBe(1);
-    expect(snap.during?.error).toEqual({ key: "runner.landingPause" });
+    expect(snap.during?.error).toEqual({ key: "runner.landingPause", inner: { key: "runner.landingUnnamed" } });
     expect(snap.during?.errorReason).toBe("held-back");
     expect(snap.after?.error).toBeUndefined();
     expect(snap.after?.errorReason).toBeUndefined();

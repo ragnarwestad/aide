@@ -47,7 +47,7 @@ describe("a row button posts from the page", () => {
   // server restarted used to land on a bare `/`, and the sort and
   // filter they had set were gone (seen 2026-08-19: "Spec ▴" reset to
   // "Started ▾" with no press of theirs).
-  test("a press that cannot be sent at all reloads rather than lying — and keeps the view", async () => {
+  test("a press that cannot be sent at all reloads rather than lying — and keeps the view (AC-1)", async () => {
     const h = harness(() => ({ ok: false, throws: true }), "actionform", "?sort=spec&dir=asc");
     await h.submit();
     expect(h.location.href).toBe("/?sort=spec&dir=asc");

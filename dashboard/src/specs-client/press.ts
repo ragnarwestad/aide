@@ -194,24 +194,32 @@ export async function postForm(
       if (typeof value === "string") body.append(key, value);
     });
     pressed();
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
-      body,
-    });
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+        body,
+      });
+    } catch {
+      // Offline, or the server restarting mid-request: the page reload is
+      // the always-correct answer, because it asks the server again. With
+      // the reader's own query string — the sort and the filter live
+      // there, and a bare `/` threw them away. And with the reader's own
+      // PATH: this code runs on `/projects` too.
+      location.href = location.pathname + location.search;
+      return;
+    }
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
     if (res.ok && answer?.ok) {
       await onOk(answer);
       return;
     }
     await onRefused(refusalText(answer, label || "the action", res.status), answer?.spec);
-  } catch {
-    // Offline, or the server restarting mid-request: the page reload is
-    // the always-correct answer, because it asks the server again. With
-    // the reader's own query string — the sort and the filter live
-    // there, and a bare `/` threw them away. And with the reader's own
-    // PATH: this code runs on `/projects` too.
-    location.href = location.pathname + location.search;
+  } catch (error) {
+    // A fault in what the press does, not in the request: a reload would
+    // hide it, so it goes to the console and the page stays as it is.
+    console.error(error);
   } finally {
     press.inFlight -= 1;
     // `isConnected` because a successful swapRows has already replaced
