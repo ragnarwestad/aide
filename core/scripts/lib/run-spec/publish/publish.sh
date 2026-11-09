@@ -249,6 +249,23 @@ code_commit_message() {
   printf '%s\n' "$msg"
 }
 
+# An attempt that stopped committed its work marked unfinished. When a
+# later attempt of the step completes with nothing more to commit, that
+# commit is the whole change and the work is done, so the mark comes off.
+# The commit may be on origin's copy of the spec's branch already: the
+# push that follows replaces it there, as it does an amended commit.
+unmark_finished_work() {
+  local idx="$1" root="$2" wt="$3" tip message
+  [ "$root" != "${specs_repo:-}" ] || return 0
+  [ "$terminal_reason" = "completed" ] && [ -z "$suffix" ] || return 0
+  tip="$(git -C "$wt" rev-parse HEAD 2>/dev/null)" || return 0
+  tip_has_nothing_of_its_own "$root" "$tip" && return 0
+  message="$(git -C "$wt" log -1 --pretty=%B)"
+  case "$message" in "WIP: "*) ;; *) return 0 ;; esac
+  git -C "$wt" commit -q --amend -m "${message#WIP: }" >/dev/null 2>&1 || return 0
+  amend_source[idx]="$tip"
+}
+
 commit_and_push_roots() {
   local i=0 root wt changed head_now amend_source=() excludes=() line
   # The stop mark follows the step's outcome as it stands now, not as it
@@ -336,6 +353,7 @@ EXCLUDES_EOF
       error_log="${commit_said:-}"
       stage_error "$error_msg"
     fi
+    unmark_finished_work "$i" "$root" "$wt"
     head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
     i=$(( i + 1 ))
   done

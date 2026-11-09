@@ -122,6 +122,35 @@ def test_a_stopped_step_s_own_code_commit_is_marked_unfinished(runner, workspace
     assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "WIP: Queue"
 
 
+def test_a_later_attempt_that_completes_takes_the_unfinished_mark_off(runner, workspace, fake_claude):
+    """The attempt that finished had nothing more to commit, so the
+    stopped attempt's commit is the whole change, and it is done."""
+    stopped = silent_claude(fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n")
+    run(runner, workspace, stopped, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
+    assert git(workspace["project"], "log", "-1", "--pretty=%s", BRANCH) == "WIP: Queue"
+
+    finishing = fake_claude("cat > /dev/null\n" + READ_SPECS + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, finishing)
+
+    assert out["terminalReason"] == "completed", out
+    assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "Queue"
+    assert git(workspace["project"], "show", f"{BRANCH}:new-code.txt")
+
+
+def test_the_unmarked_commit_replaces_the_one_origin_has(runner, workspace, fake_claude, origin):
+    # Fetched from as well as pushed to, so the second attempt starts from the first one's work.
+    git(workspace["project"], "remote", "set-url", "origin", str(origin["project"]))
+    stopped = silent_claude(fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n")
+    run(runner, workspace, stopped, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2", push="branch")
+    assert git(origin["project"], "log", "-1", "--pretty=%s", BRANCH) == "WIP: Queue"
+
+    finishing = fake_claude("cat > /dev/null\n" + READ_SPECS + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, finishing, push="branch")
+
+    assert out["terminalReason"] == "completed", out
+    assert git(origin["project"], "log", "-1", "--pretty=%s", BRANCH) == "Queue"
+
+
 def test_a_commit_that_fails_is_not_a_completed_step(runner, workspace, fake_claude):
     """The worktree goes when the run ends: work that could not be
     committed is lost with it, so the step says so instead of finishing."""
