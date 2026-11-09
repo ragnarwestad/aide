@@ -14,7 +14,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { resetRoundState, settledCreateFolder } from "../../../src/serve/routes/self-run.ts";
+import { resetRepo, resetRoundState, settledCreateFolder } from "../../../src/serve/routes/self-run.ts";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const auth = { headers: { accept: "application/json" } };
 const TEST_BOARD = "aide-wt-run";
@@ -256,5 +257,57 @@ describe("a create's folder counts once its landing is over", () => {
   });
   test("the real folder with the landing over is", () => {
     expect(settledCreateFolder({ specFolder: "07-a-fact" })).toBe("07-a-fact");
+  });
+});
+
+// The round's reset moves the checkouts the runs branch from, so it
+// takes the runner's lock for them like every other move.
+describe("the round's reset and the checkout's lock", () => {
+  const answering = (fail?: { prefix: string; stderr: string }) => {
+    const calls: string[] = [];
+    const gitRun = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      calls.push(a);
+      if (fail && a.startsWith(fail.prefix)) return { code: 1, stdout: "", stderr: fail.stderr };
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    return { gitRun, calls };
+  };
+
+  test("waits for a lock another process holds, and resets only while holding it (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      held.releaseAfter(100);
+      const watched = watchLock(held, answering().gitRun);
+      await resetRepo({ gitRun: watched.run }, held.root, "baseline");
+      const moves = watched.moves("checkout", "reset", "push", "fetch", "branch", "update-ref");
+      expect(moves.map((m) => m.args.split(" ")[0])).toEqual(expect.arrayContaining(["checkout", "reset", "push", "fetch"]));
+      expect(watched.seen.every((c) => c.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a lock that never frees resets nothing, and the error names the lock (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      const git = answering();
+      await expect(resetRepo({ gitRun: git.gitRun }, held.root, "baseline", async () => {})).rejects.toThrow(held.lock);
+      expect(git.calls).toEqual([]);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a round command that fails on cannot lock ref is run once (AC-3)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-self-run-once-"));
+    try {
+      const git = answering({ prefix: "checkout", stderr: "error: cannot lock ref 'refs/heads/main': File exists" });
+      await expect(resetRepo({ gitRun: git.gitRun }, dir, "baseline")).rejects.toThrow("cannot lock ref");
+      expect(git.calls.filter((c) => c.startsWith("checkout"))).toHaveLength(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

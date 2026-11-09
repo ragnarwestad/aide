@@ -6,7 +6,7 @@ import {
   assessProjectReadiness,
   updateProjectSettings,
 } from "../../../src/project/project-admin";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { configValue, resolveCodeLanding } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 

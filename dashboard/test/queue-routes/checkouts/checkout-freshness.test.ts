@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   createServer,
 } from "../../../src/serve/serve.ts";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";

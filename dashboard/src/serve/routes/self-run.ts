@@ -25,6 +25,7 @@ import { configSpecsPath } from "../../project/discover/config.ts";
 import type { RoutesContext } from "./";
 import { json } from "../serve-helpers";
 import type { Job } from "../../queue/queue.ts";
+import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock/index.ts";
 
 /** The folder a create job's spec can be queued under: its real
  *  "NN-slug", and only once the create's landing is over. The job
@@ -225,21 +226,24 @@ async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void
   }
 }
 
-/** One git command, with a few retries on a lock clash: the dashboard's
- *  own checkout sync fetches the owned clone on its own clock
- *  (`ensureCheckout`), and two fetches at once end with "cannot lock
- *  ref" for one of them — a moment later it goes through. */
-async function gitOrThrow(ctx: RoutesContext, at: string, args: string[], timeoutMs = 20_000): Promise<string> {
-  for (let attempt = 1; ; attempt++) {
-    const r = await ctx.gitRun(at, args, timeoutMs);
-    if (r.code === 0) return r.stdout;
-    const why = (r.stderr ?? r.stdout).trim();
-    if (attempt < 5 && /cannot lock ref|index\.lock|\.lock': File exists/.test(why)) {
-      await new Promise((res) => setTimeout(res, 300 * attempt));
-      continue;
-    }
-    throw new Error(`git ${args.join(" ")} in ${at}: ${why}`);
-  }
+/** What the round's git needs of the routes' context. */
+type RoundGit = Pick<RoutesContext, "gitRun">;
+type Wait = (ms: number) => Promise<void>;
+
+/** One git command, run once: every sequence below runs under the
+ *  checkout's lock, so no run and no catch-up of the dashboard's own
+ *  moves the checkout at the same time. */
+async function gitOrThrow(ctx: RoundGit, at: string, args: string[], timeoutMs = 20_000): Promise<string> {
+  const r = await ctx.gitRun(at, args, timeoutMs);
+  if (r.code === 0) return r.stdout;
+  throw new Error(`git ${args.join(" ")} in ${at}: ${(r.stderr ?? r.stdout).trim()}`);
+}
+
+/** `move` under `dir`'s checkout lock, the runner's own; a wait that runs
+ *  out ends the round, naming the lock. */
+async function underCheckoutLock(dir: string, move: () => Promise<void>, wait?: Wait): Promise<void> {
+  const held = await withCheckoutLock(dir, move, wait ? { wait } : {});
+  if (!held.locked) throw new Error(`the wait for the checkout's lock at ${held.lock} ran out`);
 }
 
 /** Every ref that can still reach the old history has to go, not the
@@ -247,7 +251,7 @@ async function gitOrThrow(ctx: RoutesContext, at: string, args: string[], timeou
  *  `git log --all`, and a remote-tracking `origin/aide/*` left behind
  *  by a branch deleted on origin still reaches every commit the last
  *  round made — which is how a fresh 01 read as already implemented. */
-async function dropRunBranches(ctx: RoutesContext, at: string): Promise<void> {
+async function dropRunBranches(ctx: RoundGit, at: string): Promise<void> {
   const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, at, args, timeoutMs);
   const local = (await run(["branch", "--list", "--format=%(refname:short)", "aide/*"]))
     .split("\n")
@@ -268,32 +272,37 @@ async function dropRunBranches(ctx: RoutesContext, at: string): Promise<void> {
  *  landing merges into it while it is being put back. */
 async function resetOwned(ctx: RoutesContext, owned: string): Promise<void> {
   if (!existsSync(join(owned, ".git"))) return;
-  await ctx.mergeLock.run(owned, async () => {
-    await gitOrThrow(ctx, owned, ["fetch", "-q", "--prune", "origin"], 30_000);
-    await gitOrThrow(ctx, owned, ["checkout", "-q", "main"]);
-    await gitOrThrow(ctx, owned, ["reset", "-q", "--hard", "origin/main"]);
-    await dropRunBranches(ctx, owned);
-  });
+  await ctx.mergeLock.run(owned, () =>
+    underCheckoutLock(owned, async () => {
+      await gitOrThrow(ctx, owned, ["fetch", "-q", "--prune", "origin"], 30_000);
+      await gitOrThrow(ctx, owned, ["checkout", "-q", "main"]);
+      await gitOrThrow(ctx, owned, ["reset", "-q", "--hard", "origin/main"]);
+      await dropRunBranches(ctx, owned);
+    }),
+  );
 }
 
 /** The repository back to `base` — the `baseline` tag the round stamps
  *  on the fixture project, or the specs repo's own first commit — on
  *  `main`, force-pushed, with every `aide/*` branch the runs left
  *  deleted on origin and here. `reset --hard` leaves ignored files
- *  alone, so the project's `.aide/config` stays. */
-async function resetRepo(ctx: RoutesContext, dir: string, base: string | null): Promise<void> {
+ *  alone, so the project's `.aide/config` stays. Under the checkout's
+ *  lock, since the runs branch from this checkout. */
+export async function resetRepo(ctx: RoundGit, dir: string, base: string | null, wait?: Wait): Promise<void> {
   const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, dir, args, timeoutMs);
-  await run(["checkout", "-q", "main"]);
-  const target = base ?? (await run(["rev-list", "--max-parents=0", "main"])).trim().split("\n").pop()!;
-  await run(["reset", "-q", "--hard", target]);
-  await run(["push", "-q", "--force", "origin", "main"], 30_000);
-  const remote = (await run(["ls-remote", "--heads", "origin", "refs/heads/aide/*"], 20_000))
-    .split("\n")
-    .map((l) => l.split("\t")[1] ?? "")
-    .filter((r) => r.startsWith("refs/heads/aide/"))
-    .map((r) => r.slice("refs/heads/".length));
-  if (remote.length) await run(["push", "-q", "origin", "--delete", ...remote], 30_000);
-  await dropRunBranches(ctx, dir);
+  await underCheckoutLock(dir, async () => {
+    await run(["checkout", "-q", "main"]);
+    const target = base ?? (await run(["rev-list", "--max-parents=0", "main"])).trim().split("\n").pop()!;
+    await run(["reset", "-q", "--hard", target]);
+    await run(["push", "-q", "--force", "origin", "main"], 30_000);
+    const remote = (await run(["ls-remote", "--heads", "origin", "refs/heads/aide/*"], 20_000))
+      .split("\n")
+      .map((l) => l.split("\t")[1] ?? "")
+      .filter((r) => r.startsWith("refs/heads/aide/"))
+      .map((r) => r.slice("refs/heads/".length));
+    if (remote.length) await run(["push", "-q", "origin", "--delete", ...remote], 30_000);
+    await dropRunBranches(ctx, dir);
+  }, wait);
 }
 
 /** What the specs cron does on the serving host every two minutes, and
@@ -320,10 +329,15 @@ async function followUntilDrained(ctx: RoutesContext, project: string, dirs: str
   ctx.invalidateScan();
 }
 
-/** A fast-forward of the checkouts a person looks at; a checkout that
- *  cannot fast-forward is left as it is — the next pull may. */
+/** A fast-forward of the checkouts a person looks at, each under its
+ *  lock; a checkout that cannot fast-forward, or whose lock stays held,
+ *  is left as it is — the next pull may. */
 async function pullDisplay(ctx: RoutesContext, dirs: string[]): Promise<void> {
-  for (const dir of dirs) await ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000);
+  for (const dir of dirs) {
+    await withCheckoutLock(dir, () => ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000), {
+      waitMs: CATCH_UP_LOCK_WAIT_MS,
+    });
+  }
 }
 
 /** The fixtures in file-name order: `<slug>.json` beside `<slug>.md`. A

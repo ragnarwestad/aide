@@ -1,23 +1,17 @@
 // Waiting out a lost race for a git lock, and retrying a push.
 
-import type { GitRunner } from "../branch-status.ts";
+import type { GitRunner } from "../process/index.ts";
 import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.ts";
 
-/** git's own words when another process is holding the index. A run
- *  starting in the same second pulls the same checkout as a courtesy,
- *  and whoever gets there second sees this — not a divergence, just a
- *  lost race, and it refused three merges on 2026-08-18 as though the
- *  base had moved. */
-/** Every lock git can lose a race for, not only the index's: a run's
- *  own `aide-run-spec` writes refs in this same checkout at its start
- *  and its end (fetch --force, branch -f/-D, update-ref -d, worktree
- *  prune), and a landing in the same second met `packed-refs.lock` and
- *  `cannot lock ref` — refused as "cannot fast-forward", with git's own
- *  words thrown away (2026-09-03, twice in a row). */
+/** Every lock git can lose a race for, not only the index's. Read by
+ *  one place alone: the merge in a landing's own worktree
+ *  (`merge.ts`), which shares refs with the checkout it was cut from
+ *  but not its index or HEAD, and so does not run under the checkout's
+ *  lock. Every move of a shared checkout runs under that lock
+ *  (`checkout-lock/`) and is tried once. */
 export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
 /** Five retries, two seconds at most: a run's ref writes take well under
- *  that, and a lock that is genuinely stuck still refuses in seconds
- *  rather than holding the request open. */
+ *  that, and a lock that is genuinely stuck still refuses in seconds. */
 export const LOCK_RETRIES = 5;
 export const LOCK_WAIT_MS = 400;
 

@@ -5,7 +5,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { detectCommandsIn } from "../detect-commands.ts";
 
 const PROBE_TIMEOUT_MS = 20_000;

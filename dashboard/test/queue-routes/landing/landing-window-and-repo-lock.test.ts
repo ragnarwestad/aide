@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
-import { type GitRunner } from "../../../src/git/branch-status.ts";
+import { type GitRunner } from "../../../src/git/process/index.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";

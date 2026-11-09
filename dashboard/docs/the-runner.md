@@ -45,9 +45,17 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | What the run reports, and the result JSON           | `run-spec/publish/result.sh`              |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
-move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
-How it is waited for, and taken over from a process that is gone, is `core/scripts/lib/checkout-lock.sh`,
-which `aide-preview` uses too.
+move of a shared checkout takes it — a git command that changes its HEAD, index or working tree (a switch, checkout,
+fast-forward, reset, commit or rebase), with the fetch and the `worktree add` in the same section. How it is waited
+for, and taken over from a process that is gone, is `core/scripts/lib/checkout-lock.sh`, which `aide-preview` uses
+too.
+
+The dashboard takes the same lock for its own moves (`withCheckoutLock`, `src/git/checkout-lock/`): a landing's fetch,
+`worktree add` and catch-up, Deploy's fast-forward, the Update button's pull, a Save, the catch-up of its own
+checkouts and the test board's round reset. A run waits for it as for another run, and the dashboard waits for a run:
+120 s for a landing and Deploy, 30 s for a press a person is waiting on, 5 s for a catch-up, which is skipped when the
+wait runs out. Outside the lock stay the fetches that only answer a question on a page, the save on a branch, which
+builds its commit with an index of its own, and everything run in a landing's own worktree.
 
 Two pages sit beside this one:
 

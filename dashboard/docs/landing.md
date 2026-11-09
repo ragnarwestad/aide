@@ -79,8 +79,12 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
   lines are the detail.
 - **A dirty tree decides nothing.** A file that genuinely collides raises git's own error.
-- **A lost lock is not a conflict.** When git's stderr names a lock (`index.lock`, `packed-refs.lock`, a ref lock),
-  the pull and the merge are retried up to five times, 400 ms apart.
+- **The shared checkout moves under the runner's lock.** The fetch, the `worktree add` and the catch-up after the
+  push wait for the checkout's lock ([the per-root lock](the-runner.md)), so a run is never in its own section at the
+  same moment, and each is run once. A wait that runs out refuses the landing, naming the lock; for the catch-up it is
+  logged, and the landing stays landed.
+- **A lost lock is not a conflict.** When the merge in the landing's own worktree fails and git's stderr names a lock
+  (`index.lock`, `packed-refs.lock`, a ref lock), it is retried up to five times, 400 ms apart.
 - **A failed merge is tried again twice**, 700 ms and then 1400 ms after the first. A red test gate is not retried
   this way. Git's own words are kept as the row's detail.
 - **A push that fails says why.** The push and the question to origin that follows a failed one get a minute each,

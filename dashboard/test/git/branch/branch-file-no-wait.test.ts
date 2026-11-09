@@ -4,7 +4,7 @@
 // those fetches.
 
 import { describe, expect, test } from "bun:test";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { readStatusFromFetchedBranch, refreshedRef } from "../../../src/git/branch-file.ts";
 
 const REL_PATH = "aide/specs/541-x/4-status.md";

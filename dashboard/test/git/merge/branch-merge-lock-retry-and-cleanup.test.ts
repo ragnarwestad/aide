@@ -28,22 +28,16 @@ const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
 const ran = (calls: GitCall[], prefix: string): boolean =>
   argv(calls).some((a) => a.startsWith(prefix));
 
-// --- Index.lock is not a conflict -----------------------------------
+// --- The catch-up and git's own lock ---------------------------------
 
-// Three times on 2026-08-18 the button refused with "cannot fast-forward
-// main — merge it by hand" because a starting run was pulling the same
-// checkout in the same second. A lost race against a courtesy pull and a
-// base that genuinely diverged produced the identical refusal, because
-// the only thing that tells them apart — git's own stderr — was thrown
-// away before anyone could read it.
-describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () => {
+// The shared checkout's catch-up runs under the runner's checkout lock,
+// so a run is never in its own section while it runs: a git lock lost
+// there is a failure like any other, tried once. The merge in the
+// landing's own worktree is not in the shared checkout, and is retried.
+describe("mergeBranchIntoDefault: the catch-up and the merge against git's own lock", () => {
   const LOCK = "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.";
 
-  /** fakeGit answers the same way for every call to a prefix, so a
-   *  "fails, then succeeds" case needs a runner that counts — the same
-   *  closure-over-local-state shape queue-routes.test.ts already uses
-   *  for its own call-count-dependent mock. */
-  function catchUpFailing(times: number, stderr: string) {
+  function catchUpFailing(stderr: string) {
     let pulls = 0;
     const calls: GitCall[] = [];
     const run = async (dir: string, args: string[]) => {
@@ -53,56 +47,26 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("merge -q --ff-only origin/")) {
         pulls++;
-        return pulls <= times ? { code: 1, stdout: "", stderr } : { code: 0, stdout: "" };
+        return { code: 1, stdout: "", stderr };
       }
       return { code: 0, stdout: "" };
     };
     return { run, calls, catchUps: () => pulls };
   }
 
-  test("it is retried, and the checkout catches up once the lock clears", async () => {
-    const git = catchUpFailing(1, LOCK);
+  test("a catch-up that fails on git's index.lock is run once, and the landing stays landed (AC-3)", async () => {
+    const git = catchUpFailing(LOCK);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result).toEqual({ root: ROOT, ok: true });
-    expect(git.catchUps()).toBe(2);
+    expect(git.catchUps()).toBe(1);
     expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
   });
-
-  // NOT a refusal any more. The merge is on origin by the time the
-  // shared checkout is asked to catch up — reporting the landing as
-  // failed would say the work did not land when it did. A checkout left
-  // behind is a local state the next landing's own worktree ignores
-  // entirely, and its catch-up settles.
-  test("a lock that never clears leaves the landing successful, and stops retrying", async () => {
-    const git = catchUpFailing(99, LOCK);
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
-    expect(result.ok).toBe(true);
-    // Bounded: a stuck lock costs a fraction of a second, not the
-    // request. The count is the bound, stated once.
-    expect(git.catchUps()).toBeLessThanOrEqual(6);
-  });
-
-  // A run's own aide-run-spec writes refs in this checkout at its start
-  // and end; a landing in the same second met these, and was refused as
-  // "cannot fast-forward" with git's words thrown away (2026-09-03).
-  for (const stderr of [
-    "error: cannot lock ref 'refs/remotes/origin/main': is at abc but expected def",
-    "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.",
-    "fatal: Another git process seems to be running in this repository",
-  ]) {
-    test(`a catch-up that lost another lock race is retried too: ${stderr.slice(0, 32)}…`, async () => {
-      const git = catchUpFailing(1, stderr);
-      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
-      expect(result.ok).toBe(true);
-      expect(git.catchUps()).toBe(2);
-    });
-  }
 
   // The landing still succeeded, and the checkout is the only thing
   // behind — so this is said on the server's own log, not turned into a
   // refusal the reader has to act on.
   test("a catch-up that never succeeds does not refuse the landing", async () => {
-    const git = catchUpFailing(99, "fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.");
+    const git = catchUpFailing("fatal: Unable to create '/repos/aide/.git/packed-refs.lock': File exists.");
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
     expect(argv(git.calls)).toContain("push -q origin HEAD:refs/heads/master");
@@ -119,7 +83,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
       if (a.startsWith("merge -q") && a.includes("refs/remotes/")) {
         merges++;
         return merges <= 2
-          ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
+          ? { code: 1, stdout: "", stderr: LOCK }
           : { code: 0, stdout: "" };
       }
       return { code: 0, stdout: "" };
@@ -128,15 +92,6 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     expect(result.ok).toBe(true);
     expect(result.reason).toBeUndefined();
     expect(argv(calls).filter((a) => a === "merge --abort")).toHaveLength(1);
-  });
-
-  // Anything that is not a lock is not retried: one attempt, and the
-  // landing goes on regardless — it has already pushed.
-  test("a catch-up failing for any other reason is tried once", async () => {
-    const git = catchUpFailing(1, "fatal: Not possible to fast-forward, aborting.");
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(true);
-    expect(git.catchUps()).toBe(1);
   });
 });
 

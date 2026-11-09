@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 

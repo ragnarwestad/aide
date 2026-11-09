@@ -6,7 +6,7 @@ import type { CheckableTool, NavEntry, ProviderStatus, ToolCheck, ToolModels, To
 import type { Provider } from "../queue/providers/index.ts";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
-import type { GitRunner } from "../git/branch-status.ts";
+import type { GitRunner } from "../git/process/index.ts";
 import type { GhRunner } from "../integrations/pull-requests.ts";
 import type { RestartHook } from "./land-branch";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";

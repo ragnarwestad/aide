@@ -163,11 +163,10 @@ export async function landBranch(
         failures.push({ key: "landing.cannotWorkOutDefaultBranch", values: { root: repo.root } });
         continue;
       }
-      // Up to three tries with a pause: this landing races the runs
-      // that pull the same checkout (index.lock, a briefly stale
-      // main), and both 111 and 112 were left stranded by giving up
-      // on the first loss. A real conflict fails all three the same
-      // way and is reported as before.
+      // Up to three tries with a pause, for any refusal but red tests:
+      // a briefly stale main, or a checkout lock a run held past the
+      // wait, settles by the next try. A real conflict fails all three
+      // the same way and is reported as before.
       //
       // The lock goes around the git-mutating call and nothing else:
       // `defaultBranch` above only asks a question, and holding the

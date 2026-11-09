@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject } from "../../../src/project/project-admin";
 import { git, projectWithOrigin } from "./git-fixture.ts";

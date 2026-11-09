@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { SPEC, TICK, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
   PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick, save,

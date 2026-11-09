@@ -26,7 +26,7 @@
 // 3-solution.md.
 
 import { expect } from "bun:test";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 /** The one LIVE spec every harness starts with. */

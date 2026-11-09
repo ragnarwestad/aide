@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { SPEC, savable, specFilePath } from "../spec-page/spec-save-fixtures.ts";
 import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
 

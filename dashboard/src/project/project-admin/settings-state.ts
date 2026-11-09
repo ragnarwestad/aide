@@ -9,7 +9,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { manifestWithScalar } from "./manifest-io.ts";
 
 /** Whether `.aide/project.yaml` is tracked in the checkout `dir`.

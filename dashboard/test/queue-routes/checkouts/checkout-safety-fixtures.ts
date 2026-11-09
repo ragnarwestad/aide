@@ -9,7 +9,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
 export function checkoutSafetyHelpers(ownDirs: string[]) {

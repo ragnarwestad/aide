@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { fixedSentenceHolds, type ScheduleContext } from "../../../src/serve/schedules";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";

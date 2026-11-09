@@ -24,9 +24,11 @@
 
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 import { lastCommitOf } from "./description-freshness.ts";
 import { errorSentence } from "../format/error-sentence.ts";
+import { sleep, type Wait } from "./branch-merge/retry.ts";
+import { REQUEST_LOCK_WAIT_MS, withCheckoutLock } from "./checkout-lock/index.ts";
 import { conflictFiles } from "../format/git-error.ts";
 
 /** The remedy every refusal below shares, once the specific fact has
@@ -61,6 +63,30 @@ const firstGitLine = (said?: string): string =>
     .map((line) => line.trim())
     .find(Boolean) ?? "git gave no reason";
 
+/** The top of the working tree `dir` sits in, or the refusal for a `dir`
+ *  that is in none. */
+async function topOf(run: GitRunner, dir: string): Promise<string | SpecsPullResult> {
+  const top = await run(dir, ["rev-parse", "--show-toplevel"]);
+  if (top.code !== 0) {
+    return refuse(
+      errorSentence({
+        what: `${dir} is not a git working tree — nothing was pulled.`,
+        resolve: `Check the project's specs root is a git checkout, ${IN_THE_CHECKOUT}.`,
+      }),
+    );
+  }
+  return top.stdout.trim();
+}
+
+/** The refusal for a checkout whose lock another process held for the
+ *  whole wait: a run in its own section of the same checkout, as a rule,
+ *  which has ended by the next press. */
+const lockHeld = (lock: string, nothing: string) =>
+  errorSentence({
+    what: `another process held the specs checkout's lock at ${lock} — nothing was ${nothing}.`,
+    resolve: `Try again; if it keeps happening, check that no aide-run-spec process is stuck using it ${IN_THE_CHECKOUT}.`,
+  });
+
 /** Fast-forward the working tree `dir` sits in, or say why not.
  *
  *  `dir` is the SPEC folder the reader was looking at, not the repo:
@@ -76,100 +102,108 @@ export async function pullFastForward(
   run: GitRunner,
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
+  wait: Wait = sleep,
 ): Promise<SpecsPullResult> {
   try {
-    const top = await run(dir, ["rev-parse", "--show-toplevel"]);
-    if (top.code !== 0) {
-      return refuse(
-        errorSentence({
-          what: `${dir} is not a git working tree — nothing was pulled.`,
-          resolve: `Check the project's specs root is a git checkout, ${IN_THE_CHECKOUT}.`,
-        }),
-      );
-    }
-    const root = top.stdout.trim();
-
-    // Uncommitted work of ANY kind, tracked files only: an untracked
-    // file is no obstacle to a fast-forward, and a specs root collects
-    // those (editor scratch, exports) between commits.
-    const dirty = await run(root, ["diff", "--quiet", "HEAD"]);
-    if (dirty.code !== 0) {
-      return refuse(
-        errorSentence({
-          what: "the specs checkout has uncommitted changes — nothing was pulled.",
-          resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
-        }),
-      );
-    }
-
-    const base = await resolveBase(root);
-    if (!base) {
-      return refuse(
-        errorSentence({
-          what: "the specs checkout has no default branch on origin — nothing was pulled.",
-          resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
-        }),
-      );
-    }
-    const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
-    const on = current.stdout.trim();
-    if (current.code !== 0 || on !== base) {
-      // A checkout parked on a spec branch is left alone: pulling it
-      // would fetch a branch whose upstream may be gone.
-      return refuse(
-        errorSentence({
-          what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
-          resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
-        }),
-      );
-    }
-
-    const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
-    if (fetched.code !== 0) {
-      return refuse(
-        errorSentence({
-          what: "origin could not be reached — nothing was pulled.",
-          resolve: "Check the network from the serving host, then try again.",
-        }),
-      );
-    }
-
-    // Before the merge, so a divergence is its own answer rather than
-    // whatever git says when the merge refuses.
-    const ref = `refs/remotes/origin/${base}`;
-    const ancestor = await run(root, ["merge-base", "--is-ancestor", "HEAD", ref]);
-    if (ancestor.code !== 0) {
-      return refuse(
-        errorSentence({
-          what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
-          resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
-        }),
-      );
-    }
-
-    const before = await run(root, ["rev-parse", "HEAD"]);
-    const merged = await run(root, ["merge", "-q", "--ff-only", ref]);
-    if (merged.code !== 0) {
-      return refuse(
-        errorSentence({
-          what: "the pull failed — nothing was pulled.",
-          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
-        }),
-      );
-    }
-    const after = await run(root, ["rev-parse", "HEAD"]);
-
-    const from = before.code === 0 ? before.stdout.trim() : null;
-    const to = after.code === 0 ? after.stdout.trim() : null;
-    if (from && to && from === to) {
-      return { ok: true, moved: false, note: "the specs checkout was already up to date" };
-    }
-    return { ok: true, moved: true, note: `pulled the specs checkout: ${short(from)} → ${short(to)}` };
+    const root = await topOf(run, dir);
+    if (typeof root !== "string") return root;
+    // Under the checkout's lock, which a run takes for its own pull.
+    const pulled = await withCheckoutLock(root, () => pullInCheckout(run, root, resolveBase), {
+      waitMs: REQUEST_LOCK_WAIT_MS,
+      wait,
+    });
+    return pulled.locked ? pulled.value : refuse(lockHeld(pulled.lock, "pulled"));
   } catch (err) {
     // The reader pressed a button. A git that cannot be spawned at all
     // is an answer on the page, never a 500.
     return refuse(`git could not be run: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/** The pull itself, at the top of the work tree `root`, with the
+ *  checkout's lock already held. Save calls this, never
+ *  `pullFastForward`: taking the lock it holds would wait out its own. */
+async function pullInCheckout(
+  run: GitRunner,
+  root: string,
+  resolveBase: (root: string) => Promise<string | null>,
+): Promise<SpecsPullResult> {
+  // Uncommitted work of ANY kind, tracked files only: an untracked
+  // file is no obstacle to a fast-forward, and a specs root collects
+  // those (editor scratch, exports) between commits.
+  const dirty = await run(root, ["diff", "--quiet", "HEAD"]);
+  if (dirty.code !== 0) {
+    return refuse(
+      errorSentence({
+        what: "the specs checkout has uncommitted changes — nothing was pulled.",
+        resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
+      }),
+    );
+  }
+
+  const base = await resolveBase(root);
+  if (!base) {
+    return refuse(
+      errorSentence({
+        what: "the specs checkout has no default branch on origin — nothing was pulled.",
+        resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
+      }),
+    );
+  }
+  const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const on = current.stdout.trim();
+  if (current.code !== 0 || on !== base) {
+    // A checkout parked on a spec branch is left alone: pulling it
+    // would fetch a branch whose upstream may be gone.
+    return refuse(
+      errorSentence({
+        what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
+        resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
+      }),
+    );
+  }
+
+  const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
+  if (fetched.code !== 0) {
+    return refuse(
+      errorSentence({
+        what: "origin could not be reached — nothing was pulled.",
+        resolve: "Check the network from the serving host, then try again.",
+      }),
+    );
+  }
+
+  // Before the merge, so a divergence is its own answer rather than
+  // whatever git says when the merge refuses.
+  const ref = `refs/remotes/origin/${base}`;
+  const ancestor = await run(root, ["merge-base", "--is-ancestor", "HEAD", ref]);
+  if (ancestor.code !== 0) {
+    return refuse(
+      errorSentence({
+        what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
+        resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
+      }),
+    );
+  }
+
+  const before = await run(root, ["rev-parse", "HEAD"]);
+  const merged = await run(root, ["merge", "-q", "--ff-only", ref]);
+  if (merged.code !== 0) {
+    return refuse(
+      errorSentence({
+        what: "the pull failed — nothing was pulled.",
+        resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+      }),
+    );
+  }
+  const after = await run(root, ["rev-parse", "HEAD"]);
+
+  const from = before.code === 0 ? before.stdout.trim() : null;
+  const to = after.code === 0 ? after.stdout.trim() : null;
+  if (from && to && from === to) {
+    return { ok: true, moved: false, note: "the specs checkout was already up to date" };
+  }
+  return { ok: true, moved: true, note: `pulled the specs checkout: ${short(from)} → ${short(to)}` };
 }
 
 // Save, on the same checkout.
@@ -252,157 +286,29 @@ export async function saveSpecFiles(
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
   edits: SpecFileEdit[],
-  opts: { specLabel: string; message: string; validate?: () => Promise<string | undefined> },
+  opts: {
+    specLabel: string;
+    message: string;
+    /** Runs with the checkout's lock held: it must not take that lock. */
+    validate?: () => Promise<string | undefined>;
+    /** Paces the polls for the checkout's lock. */
+    wait?: Wait;
+  },
 ): Promise<SpecsSaveResult> {
   // Which file a refusal is ABOUT: one file names itself, several name
   // the save. Computed once, because most of the refusals below say it.
   const subject = edits.length === 1 ? edits[0]!.file : edits.map((e) => e.file).join(" and ");
   try {
-    // A checkout that cannot be fast-forwarded cannot be pushed either,
-    // and the four reasons it gives are the ones a reader needs. Run
-    // first, so nothing is written for a checkout that was never going
-    // to take it.
-    const pulled = await pullFastForward(run, dir, resolveBase);
-    if (!pulled.ok) return { ok: false, note: pulled.note, committed: false };
-
-    const top = await run(dir, ["rev-parse", "--show-toplevel"]);
-    const root = top.stdout.trim();
-
-    for (const edit of edits) {
-      const current = await lastCommitOf(run, dir, edit.file);
-      if ((current?.sha ?? null) !== edit.baseSha) {
-        return {
-          ok: false,
-          note: `${edit.file} has changed since you opened it for editing — nothing was saved, open it again`,
-          committed: false,
-        };
-      }
-    }
-
-    const validation = await opts.validate?.();
-    if (validation) return { ok: false, note: validation, committed: false };
-
-    // Captured BEFORE the writes, so a rollback undoes exactly this
-    // save's commit and nothing the pull above brought in.
-    const before = await run(root, ["rev-parse", "HEAD"]);
-    // `previous: null` is a file that did not exist before
-    // this save — `4-status.json`, the first time a spec's own tick or
-    // Save lands after this feature ships. Every OTHER caller's files
-    // already exist (a document tab reads them before it can be edited
-    // at all), so this is new only for the state file's own sibling
-    // entry.
-    const paths = edits.map((edit) => {
-      const path = join(dir, edit.file);
-      return { edit, path, previous: existsSync(path) ? readFileSync(path, "utf-8") : null };
-    });
-    const rollback = (): void => {
-      for (const { path, previous } of paths) {
-        if (previous === null) unlinkSync(path);
-        else writeFileSync(path, previous);
-      }
-    };
-    for (const { edit, path } of paths) writeFileSync(path, asFileText(edit.text));
-
-    for (const { edit } of paths) {
-      const added = await run(dir, ["add", "--", edit.file]);
-      if (added.code !== 0) {
-        rollback();
-        return {
-          ok: false,
-          note: errorSentence({
-            what: `${edit.file} could not be staged — nothing was saved.`,
-            resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
-          }).text,
-          committed: false,
-        };
-      }
-    }
-
-    // Nothing staged means every file's text is what was already
-    // committed. No empty commit, no push, and the page must not stamp
-    // a new version onto files that did not move. Asked over the whole
-    // SET: one unchanged file among several is not a reason to skip the
-    // commit.
-    //
-    // Asked from `dir`, NOT from `root`. `file` is a bare filename —
-    // `1-description.md` — which names the file from the spec's own
-    // folder and names NOTHING from the repository root. Asked there it
-    // matched an empty pathspec, git answered "no difference" with exit
-    // 0, and every save took this branch: the text was written and
-    // staged, the commit and the push never ran, and the page reported
-    // success. What it left behind was the reader's edit sitting
-    // uncommitted in the shared checkout — which is exactly what the
-    // next pull, this button's or the cron's, refuses (2026-08-21, the
-    // first real save anyone made).
-    const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", ...edits.map((e) => e.file)]);
-    if (staged.code === 0) {
-      return { ok: true, note: `${subject} is unchanged — nothing was saved`, committed: false };
-    }
-
-    const committed = await run(root, ["commit", "-q", "-m", opts.message]);
-    if (committed.code !== 0) {
-      // The writes are staged at this point, so the shared checkout is
-      // dirty — and a dirty checkout is what the next pull, this
-      // button's or the cron's, refuses.
-      await run(root, ["reset", "--hard", before.stdout.trim()]);
-      return {
-        ok: false,
-        note: errorSentence({
-          what: `${subject} could not be committed — nothing was saved.`,
-          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
-        }).text,
-        committed: false,
-      };
-    }
-
-    const pushed = await run(root, ["push", "-q", "origin", "HEAD"]);
-    if (pushed.code !== 0) {
-      console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(pushed.stderr)}`);
-      const base = await resolveBase(root);
-      if (!base) {
-        await run(root, ["reset", "--hard", before.stdout.trim()]);
-        return {
-          ok: false,
-          note: `${subject} was committed but the default branch could not be found — nothing was kept.`,
-          committed: false,
-        };
-      }
-      const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
-      const rebased =
-        fetched.code === 0 ? await run(root, ["rebase", `refs/remotes/origin/${base}`]) : { code: fetched.code, stdout: "" };
-      if (rebased.code === 0) {
-        const retried = await run(root, ["push", "-q", "origin", "HEAD"]);
-        if (retried.code === 0) return { ok: true, note: `saved ${subject}`, committed: true };
-        console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(retried.stderr)}`);
-      } else if (fetched.code === 0) {
-        const unmerged = await run(root, ["diff", "--name-only", "--diff-filter=U"]);
-        const conflicts = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
-        await run(root, ["rebase", "--abort"]);
-        await run(root, ["reset", "--hard", before.stdout.trim()]);
-        if (conflicts.length > 0) {
-          return {
-            ok: false,
-            note: `${subject} conflicts with origin in ${conflictFiles(conflicts.slice(0, 5), conflicts.length - 5)} — nothing was kept.`,
-            committed: false,
-          };
-        }
-        return {
-          ok: false,
-          note: `${subject} could not be put on top of origin — nothing was kept.`,
-          committed: false,
-        };
-      }
-      await run(root, ["reset", "--hard", before.stdout.trim()]);
-      return {
-        ok: false,
-        note: errorSentence({
-          what: `${subject} was committed but the push to origin failed — nothing was kept.`,
-          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
-        }).text,
-        committed: false,
-      };
-    }
-    return { ok: true, note: `saved ${subject}`, committed: true };
+    const root = await topOf(run, dir);
+    if (typeof root !== "string") return { ok: false, note: root.note, committed: false };
+    // The pull, the writes, the commit and the push — and the rebase or
+    // reset after a refused push — under one hold of the checkout's lock.
+    const saved = await withCheckoutLock(
+      root,
+      () => saveInCheckout(run, dir, root, resolveBase, edits, opts, subject),
+      { waitMs: REQUEST_LOCK_WAIT_MS, wait: opts.wait ?? sleep },
+    );
+    return saved.locked ? saved.value : { ok: false, note: lockHeld(saved.lock, "saved").text, committed: false };
   } catch (err) {
     // A reader pressed a button: git that cannot be spawned, or a file
     // that cannot be written, is an answer on the page and never a 500.
@@ -412,6 +318,159 @@ export async function saveSpecFiles(
       committed: false,
     };
   }
+}
+
+async function saveInCheckout(
+  run: GitRunner,
+  dir: string,
+  root: string,
+  resolveBase: (root: string) => Promise<string | null>,
+  edits: SpecFileEdit[],
+  opts: { message: string; specLabel: string; validate?: () => Promise<string | undefined> },
+  subject: string,
+): Promise<SpecsSaveResult> {
+  // A checkout that cannot be fast-forwarded cannot be pushed either,
+  // and the four reasons it gives are the ones a reader needs. Run
+  // first, so nothing is written for a checkout that was never going
+  // to take it.
+  const pulled = await pullInCheckout(run, root, resolveBase);
+  if (!pulled.ok) return { ok: false, note: pulled.note, committed: false };
+
+  for (const edit of edits) {
+    const current = await lastCommitOf(run, dir, edit.file);
+    if ((current?.sha ?? null) !== edit.baseSha) {
+      return {
+        ok: false,
+        note: `${edit.file} has changed since you opened it for editing — nothing was saved, open it again`,
+        committed: false,
+      };
+    }
+  }
+
+  const validation = await opts.validate?.();
+  if (validation) return { ok: false, note: validation, committed: false };
+
+  // Captured BEFORE the writes, so a rollback undoes exactly this
+  // save's commit and nothing the pull above brought in.
+  const before = await run(root, ["rev-parse", "HEAD"]);
+  // `previous: null` is a file that did not exist before
+  // this save — `4-status.json`, the first time a spec's own tick or
+  // Save lands after this feature ships. Every OTHER caller's files
+  // already exist (a document tab reads them before it can be edited
+  // at all), so this is new only for the state file's own sibling
+  // entry.
+  const paths = edits.map((edit) => {
+    const path = join(dir, edit.file);
+    return { edit, path, previous: existsSync(path) ? readFileSync(path, "utf-8") : null };
+  });
+  const rollback = (): void => {
+    for (const { path, previous } of paths) {
+      if (previous === null) unlinkSync(path);
+      else writeFileSync(path, previous);
+    }
+  };
+  for (const { edit, path } of paths) writeFileSync(path, asFileText(edit.text));
+
+  for (const { edit } of paths) {
+    const added = await run(dir, ["add", "--", edit.file]);
+    if (added.code !== 0) {
+      rollback();
+      return {
+        ok: false,
+        note: errorSentence({
+          what: `${edit.file} could not be staged — nothing was saved.`,
+          resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+        }).text,
+        committed: false,
+      };
+    }
+  }
+
+  // Nothing staged means every file's text is what was already
+  // committed. No empty commit, no push, and the page must not stamp
+  // a new version onto files that did not move. Asked over the whole
+  // SET: one unchanged file among several is not a reason to skip the
+  // commit.
+  //
+  // Asked from `dir`, NOT from `root`. `file` is a bare filename —
+  // `1-description.md` — which names the file from the spec's own
+  // folder and names NOTHING from the repository root. Asked there it
+  // matched an empty pathspec, git answered "no difference" with exit
+  // 0, and every save took this branch: the text was written and
+  // staged, the commit and the push never ran, and the page reported
+  // success. What it left behind was the reader's edit sitting
+  // uncommitted in the shared checkout — which is exactly what the
+  // next pull, this button's or the cron's, refuses (2026-08-21, the
+  // first real save anyone made).
+  const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", ...edits.map((e) => e.file)]);
+  if (staged.code === 0) {
+    return { ok: true, note: `${subject} is unchanged — nothing was saved`, committed: false };
+  }
+
+  const committed = await run(root, ["commit", "-q", "-m", opts.message]);
+  if (committed.code !== 0) {
+    // The writes are staged at this point, so the shared checkout is
+    // dirty — and a dirty checkout is what the next pull, this
+    // button's or the cron's, refuses.
+    await run(root, ["reset", "--hard", before.stdout.trim()]);
+    return {
+      ok: false,
+      note: errorSentence({
+        what: `${subject} could not be committed — nothing was saved.`,
+        resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+      }).text,
+      committed: false,
+    };
+  }
+
+  const pushed = await run(root, ["push", "-q", "origin", "HEAD"]);
+  if (pushed.code !== 0) {
+    console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(pushed.stderr)}`);
+    const base = await resolveBase(root);
+    if (!base) {
+      await run(root, ["reset", "--hard", before.stdout.trim()]);
+      return {
+        ok: false,
+        note: `${subject} was committed but the default branch could not be found — nothing was kept.`,
+        committed: false,
+      };
+    }
+    const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
+    const rebased =
+      fetched.code === 0 ? await run(root, ["rebase", `refs/remotes/origin/${base}`]) : { code: fetched.code, stdout: "" };
+    if (rebased.code === 0) {
+      const retried = await run(root, ["push", "-q", "origin", "HEAD"]);
+      if (retried.code === 0) return { ok: true, note: `saved ${subject}`, committed: true };
+      console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(retried.stderr)}`);
+    } else if (fetched.code === 0) {
+      const unmerged = await run(root, ["diff", "--name-only", "--diff-filter=U"]);
+      const conflicts = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
+      await run(root, ["rebase", "--abort"]);
+      await run(root, ["reset", "--hard", before.stdout.trim()]);
+      if (conflicts.length > 0) {
+        return {
+          ok: false,
+          note: `${subject} conflicts with origin in ${conflictFiles(conflicts.slice(0, 5), conflicts.length - 5)} — nothing was kept.`,
+          committed: false,
+        };
+      }
+      return {
+        ok: false,
+        note: `${subject} could not be put on top of origin — nothing was kept.`,
+        committed: false,
+      };
+    }
+    await run(root, ["reset", "--hard", before.stdout.trim()]);
+    return {
+      ok: false,
+      note: errorSentence({
+        what: `${subject} was committed but the push to origin failed — nothing was kept.`,
+        resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
+      }).text,
+      committed: false,
+    };
+  }
+  return { ok: true, note: `saved ${subject}`, committed: true };
 }
 
 /** One file, which is `saveSpecFiles` with one edit in it. Kept as its

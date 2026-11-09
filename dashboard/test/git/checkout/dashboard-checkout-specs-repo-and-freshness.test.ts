@@ -18,8 +18,9 @@ import {
   dashboardSpecsRepo,
   ensureDashboardCheckout,
 } from "../../../src/git/dashboard-checkout.ts";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const run = createGitRunner();
 const dirs: string[] = [];
@@ -206,6 +207,54 @@ describe("the dashboard's checkout keeps up with origin", () => {
     expect(second.ok).toBe(true);
     expect(second.cloned).toBe(false);
     expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
+  });
+
+  /** A clone made, and a commit pushed after it that the clone lacks. */
+  async function behindByOne() {
+    const where = tmp("aide-checkout-");
+    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const base = join(where, "owned");
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    writeFileSync(join(clone, "later.md"), "written after the clone\n");
+    git(clone, "add", "-A");
+    git(clone, "-c", "user.name=T", "-c", "user.email=t@e.x", "commit", "-qm", "later");
+    git(clone, "push", "-q", "origin", "main");
+    return { base, clone, owned: first.checkout!.code };
+  }
+
+  test("the catch-up waits for a lock another process holds, and moves the checkout only while holding it (AC-1)", async () => {
+    const { base, clone, owned } = await behindByOne();
+    const held = heldLock(owned);
+    try {
+      held.releaseAfter(150);
+      const watched = watchLock(held, run);
+      const result = await ensureDashboardCheckout(watched.run, { base, project: "aide", personDir: clone });
+      expect(result.ok).toBe(true);
+      const moves = watched.moves("fetch", "merge");
+      expect(moves.map((m) => m.args.split(" ")[0])).toEqual(["fetch", "merge"]);
+      expect(moves.every((m) => m.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+      expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a lock that never frees leaves the checkout where it was, and still answers it (AC-1)", async () => {
+    const { base, clone, owned } = await behindByOne();
+    const held = heldLock(owned);
+    try {
+      const watched = watchLock(held, run);
+      const result = await ensureDashboardCheckout(watched.run, {
+        base, project: "aide", personDir: clone, wait: async () => {},
+      });
+      expect(result.ok).toBe(true);
+      expect(result.checkout!.code).toBe(owned);
+      expect(watched.moves("fetch", "merge")).toEqual([]);
+      expect(existsSync(join(owned, "later.md"))).toBe(false);
+    } finally {
+      held.cleanup();
+    }
   });
 });
 

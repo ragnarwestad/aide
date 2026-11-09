@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, mkdtempSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import type { GitRunner } from "../branch-status.ts";
+import type { GitRunner } from "../process/index.ts";
 
 export const WORKTREE_TIMEOUT_MS = 60_000;
 

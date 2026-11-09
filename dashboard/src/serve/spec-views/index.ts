@@ -8,7 +8,8 @@ import { SPEC_FILES, specFileText, type SpecRef } from "../../project/discover";
 import type { SpecFileView, QueueRowView, SpecTarget } from "../../render";
 import type { QueueStore, Job } from "../../queue/queue.ts";
 import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../../git/description-freshness.ts";
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,

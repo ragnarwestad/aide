@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSyn
 import { basename, dirname, join } from "node:path";
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 import { messageDetail } from "../../../src/i18n/message.ts";
 

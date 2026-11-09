@@ -5,7 +5,7 @@
 // route is that ask, and the "Serving" line on a project's own page
 // (project-detail-route.test.ts) compares it live to a checkout's HEAD.
 import { afterEach, describe, expect, test } from "bun:test";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-version-route-");

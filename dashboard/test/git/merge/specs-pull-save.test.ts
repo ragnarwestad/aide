@@ -21,6 +21,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull.ts";
 import { fakeGit, type Answer } from "../../helpers/fake-git.ts";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const base = async () => "main";
 
@@ -435,5 +436,51 @@ describe("saveSpecFiles", () => {
     expect(result.committed).toBe(true);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
     expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
+  });
+});
+
+describe("saveSpecFiles and the checkout's lock", () => {
+  const opts = (wait?: (ms: number) => Promise<void>) => ({
+    specLabel: "162-edit-a-spec-on-its-own-page",
+    message: "Edit it from the dashboard",
+    ...(wait ? { wait } : {}),
+  });
+  const edits = [{ file: FILE, text: NEW_TEXT, baseSha: FILE_SHA }];
+
+  test("waits for a lock another process holds, pulls, commits and pushes while holding it, and lets go (AC-1)", async () => {
+    const { root, dir } = checkout();
+    const held = heldLock(root);
+    try {
+      held.releaseAfter(100);
+      const git = watchLock(held, savable(root).run);
+      const started = Date.now();
+      const result = await saveSpecFiles(git.run, dir, base, edits, opts());
+      expect(result).toMatchObject({ ok: true, committed: true });
+      // Its own pull does not wait out the lock Save already holds.
+      expect(Date.now() - started).toBeLessThan(3000);
+      const moves = git.moves("fetch", "merge -q", "commit", "push");
+      expect(moves.map((m) => m.args.split(" ")[0])).toEqual(["fetch", "merge", "commit", "push"]);
+      expect(moves.every((m) => m.ours)).toBe(true);
+      expect(git.seen.filter((c) => c.args.startsWith("add")).every((c) => c.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a lock that never frees saves nothing, and says so naming the lock (AC-1)", async () => {
+    const { root, dir } = checkout();
+    const held = heldLock(root);
+    try {
+      const git = savable(root);
+      const result = await saveSpecFiles(git.run, dir, base, edits, opts(async () => {}));
+      expect(result).toMatchObject({ ok: false, committed: false });
+      expect(result.note).toContain(held.lock);
+      expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
+      const ran = git.calls.map((c) => c.args[0]);
+      for (const move of ["fetch", "merge", "add", "commit", "push"]) expect(ran).not.toContain(move);
+    } finally {
+      held.cleanup();
+    }
   });
 });

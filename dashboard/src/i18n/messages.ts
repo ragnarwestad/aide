@@ -1781,6 +1781,20 @@ export const MESSAGES = {
       fr: "mettez-le à jour à la main, dans le checkout sur le serveur",
     },
   },
+  "landing.checkoutLockTimedOut": {
+    en: "the wait for the checkout's lock at {lock} ran out ({ref} in {root})",
+    nb: "ventetiden på låsen til det lokale repoet, {lock}, gikk ut ({ref} i {root})",
+    es: "se agotó la espera del bloqueo del checkout en {lock} ({ref} en {root})",
+    de: "das Warten auf die Sperre des Checkouts unter {lock} ist abgelaufen ({ref} in {root})",
+    fr: "l'attente du verrou du checkout à {lock} a expiré ({ref} dans {root})",
+    solution: {
+      en: "remove that lock on the serving host, but only once no aide-run-spec process is using that checkout",
+      nb: "fjern den låsen på serveren, men bare når ingen aide-run-spec-prosess bruker det lokale repoet",
+      es: "elimina ese bloqueo en el servidor, pero solo cuando ningún proceso aide-run-spec use ese checkout",
+      de: "entferne diese Sperre auf dem Server, aber erst, wenn kein aide-run-spec-Prozess diesen Checkout benutzt",
+      fr: "supprimez ce verrou sur le serveur, mais seulement quand aucun processus aide-run-spec n'utilise ce checkout",
+    },
+  },
   "landing.deployServiceOlder": {
     en: "the service is running commit {served}, but the checkout is on {head}",
     nb: "tjenesten kjører commit {served}, men det lokale repoet står på {head}",

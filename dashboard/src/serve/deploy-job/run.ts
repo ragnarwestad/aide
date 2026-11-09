@@ -9,7 +9,8 @@
 
 import { existsSync } from "node:fs";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { QueueStore } from "../../queue/queue.ts";
 import { stepLogLine } from "../land-branch/test-gate.ts";

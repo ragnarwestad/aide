@@ -15,7 +15,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createGitRunner } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
+import * as branchStatus from "../../../src/git/branch-status.ts";
+// @ts-expect-error the runner's type lives in its own module, not in branch-status.ts
+import type { GitRunner as NotHere } from "../../../src/git/branch-status.ts";
 
 describe("a directory that is not there is an answer, not a crash", () => {
   test("git somewhere that does not exist returns a failure naming the path", async () => {
@@ -82,5 +85,13 @@ describe("the env parameter reaches the real spawn", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the git process runner is a module of its own", () => {
+  test("branch-status.ts exports neither the runner nor its type (AC-5)", () => {
+    expect("createGitRunner" in branchStatus).toBe(false);
+    const typed: NotHere | undefined = undefined;
+    expect(typed).toBeUndefined();
   });
 });

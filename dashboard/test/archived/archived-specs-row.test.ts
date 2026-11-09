@@ -1,7 +1,7 @@
 // Split out of archived-specs.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import {
   ARCHIVED_VIEW, SAME_DAY, STAMPED, TWO_TOOLS, UNSTAMPED, blockFor, harness, opened, order, rowFor,
   specsList, start,

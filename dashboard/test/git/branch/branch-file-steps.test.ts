@@ -12,7 +12,7 @@
 import { describe, expect, test } from "bun:test";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { notVerifiedCount } from "../../../src/project/parse-status";
 
 const DIR = "/specs/aide/298-example";

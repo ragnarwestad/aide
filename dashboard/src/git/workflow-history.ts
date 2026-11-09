@@ -21,7 +21,7 @@
 // lands nothing until `archive` runs, so its commit sits on
 // `aide/<spec-folder>` for as long as the spec takes.
 
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
 import { leavesStepUndone } from "../format/stop-reason.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };

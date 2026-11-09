@@ -195,31 +195,6 @@ describe("landing an archived spec", () => {
   // (already the true top-level). Two sentences, two different strings,
   // one repository.
 
-  // Nobody is watching an automatic landing to press the
-  // button again, and this one races the runs that pull the same
-  // checkout — 111 and 112 were both stranded by a first-try loss.
-  test("a landing that loses the index.lock race once lands on the retry", async () => {
-    let failures = 1;
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: (dir: string, args: string[]) => {
-        if (args.join(" ").startsWith("merge -q --ff-only") && dir === SPECS_REPO && failures > 0) {
-          failures -= 1;
-          return Promise.resolve({ code: 1, stdout: "", stderr: "index.lock" });
-        }
-        return inner.run(dir, args);
-      },
-    };
-    const { base, results } = serverWithRunner(start, "aide-archive-results-", git as never);
-    const job = await runStep(base, "archive");
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
-    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
-
-    expect(landed.error).toBeFalsy();
-    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
-  });
-
   // Merged is not deployed, and the manual route runs the
   // project's install for exactly that reason — but an archive run
   // writes two markdown changes in the SPECS repo and moves no code, so

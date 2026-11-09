@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
 import { type GitCall } from "../helpers/fake-git.ts";
-import type { GitRunner } from "../../src/git/branch-status.ts";
+import type { GitRunner } from "../../src/git/process/index.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { refreshSpecCaches, rereadSpec, type ScheduleContext } from "../../src/serve/schedules";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";

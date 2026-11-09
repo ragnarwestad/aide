@@ -4,7 +4,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { BranchStatusChecker, createGitRunner } from "../../../src/git/branch-status.ts";
+import { BranchStatusChecker } from "../../../src/git/branch-status.ts";
+import { createGitRunner } from "../../../src/git/process/index.ts";
 import { commitTimeOf, writeStatusToBranch } from "../../../src/git/branch-file.ts";
 import { readBranchCopy } from "../../../src/serve/spec-views/branch-copy.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";

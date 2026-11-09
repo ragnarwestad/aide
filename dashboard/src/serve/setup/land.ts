@@ -9,7 +9,8 @@
 // earlier removes the one dependency the runner stage would otherwise
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
-import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
+import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,

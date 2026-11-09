@@ -21,7 +21,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 

@@ -4,7 +4,7 @@
 
 import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import type { GitRunner } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { isPreviewFrom } from "../parse-manifest.ts";
 import {

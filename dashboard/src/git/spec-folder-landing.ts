@@ -11,10 +11,11 @@
 // — unless the landing is a `close`, where it is deleted.
 
 import {
-  GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep,
-  type RepoMergeResult, type Wait,
+  mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep, type RepoMergeResult, type Wait,
 } from "./branch-merge/index.ts";
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
+import { withCheckoutLock } from "./checkout-lock/index.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "./branch-status.ts";
+import { type GitRunner } from "./process/index.ts";
 import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./branch-merge/worktree.ts";
 import type { MergeHooks } from "./merge-hooks.ts";
 
@@ -43,14 +44,23 @@ export async function landSpecFolderOnly(
     if (onOrigin.code === LS_REMOTE_NO_MATCH) {
       return { ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }), reason: "gone" };
     }
-    await run(root, ["fetch", "-q", "origin", base, branch]);
-    work = mergeWorktreePath(root, branch);
-    await prepareMergeWorktree(run, root, work);
-    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
-    if (added.code !== 0) {
-      await run(root, ["worktree", "prune"]);
-      return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } }, (added.stderr ?? "").trim() || undefined);
+    // The fetch and the worktree add move the shared checkout, under its
+    // lock, as a run's own do.
+    const prepared = await withCheckoutLock(root, async (): Promise<RepoMergeResult | null> => {
+      await run(root, ["fetch", "-q", "origin", base, branch]);
+      work = mergeWorktreePath(root, branch);
+      await prepareMergeWorktree(run, root, work);
+      const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
+      if (added.code !== 0) {
+        await run(root, ["worktree", "prune"]);
+        return refuse(root, branch, { key: "landing.cannotSwitch", values: { base } }, (added.stderr ?? "").trim() || undefined);
+      }
+      return null;
+    }, { wait });
+    if (!prepared.locked) {
+      return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: prepared.lock } });
     }
+    if (prepared.value) return prepared.value;
     const ref = `refs/remotes/origin/${branch}`;
     for (let attempt = 0; ; attempt++) {
       // What the branch changed under the spec's paths since it left
@@ -77,13 +87,12 @@ export async function landSpecFolderOnly(
     }
 
     if (spec.deleteBranch) await spec.hooks?.beforeCheckoutMoves?.({});
-    // The shared checkout catches up, as after any landing; not fatal.
-    await run(root, ["fetch", "-q", "origin", base]);
-    let caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    for (let n = 0; caughtUp.code !== 0 && GIT_LOCKED.test(caughtUp.stderr ?? "") && n < LOCK_RETRIES; n++) {
-      await wait(LOCK_WAIT_MS);
-      caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    }
+    // The shared checkout catches up, as after any landing, under its
+    // lock; not fatal, and tried once.
+    await withCheckoutLock(root, async () => {
+      await run(root, ["fetch", "-q", "origin", base]);
+      await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    }, { wait });
     // Nothing of the code landed: the caller installs and reports nothing.
     if (!spec.deleteBranch) return { root, ok: true, discarded: true };
     const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);

@@ -32,8 +32,9 @@ import { realPathOrAbsolute as real } from "./real-path.ts";
 import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "./process/index.ts";
 import { carryManifest, excludeDerivedManifest } from "./checkout-manifest.ts";
+import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "./checkout-lock/index.ts";
 import { configValue, resolveWorktreeLinks } from "../project/discover";
 
 /** Where the dashboard keeps its own clones when nothing says otherwise.
@@ -74,6 +75,9 @@ export interface EnsureRequest {
    *  absence, which is how it came to delete woodstack's and try to
    *  clone it back from itself (2026-09-21). */
   mayClone?: boolean;
+  /** Paces the polls for a checkout's lock; a test passes one that
+   *  returns at once. */
+  wait?: (ms: number) => Promise<void>;
 }
 
 export interface EnsureResult {
@@ -255,12 +259,18 @@ function linkWorktreePaths(personDir: string, code: string): void {
  *  edit, under `mergeLock`, so there is nothing else here to lose — and an origin that cannot be reached
  *  should leave the run to work with what it has rather than
  *  refusing. */
-async function bringUpToDate(run: GitRunner, dir: string): Promise<void> {
+async function bringUpToDate(run: GitRunner, dir: string, wait?: EnsureRequest["wait"]): Promise<void> {
   const branch = await run(dir, ["symbolic-ref", "--short", "HEAD"]);
   const name = branch.code === 0 ? branch.stdout.trim() : "";
   if (!name) return;
-  await run(dir, ["fetch", "--quiet", "origin", name], FETCH_TIMEOUT_MS);
-  await run(dir, ["merge", "--ff-only", "--quiet", `origin/${name}`]);
+  // Under the checkout's lock, as a run's own pull is, with a short wait:
+  // the scheduler's tick awaits this for every project with a waiting
+  // job, and the next tick tries again.
+  const moved = await withCheckoutLock(dir, async () => {
+    await run(dir, ["fetch", "--quiet", "origin", name], FETCH_TIMEOUT_MS);
+    await run(dir, ["merge", "--ff-only", "--quiet", `origin/${name}`]);
+  }, { waitMs: CATCH_UP_LOCK_WAIT_MS, ...(wait ? { wait } : {}) });
+  if (!moved.locked) console.error(`checkout: ${dir} not brought up to date — its lock at ${moved.lock} stayed held`);
 }
 
 export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest): Promise<EnsureResult> {
@@ -324,7 +334,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     await excludeDerivedManifest(run, code);
   } else {
     await excludeDerivedManifest(run, code);
-    await bringUpToDate(run, code);
+    await bringUpToDate(run, code, req.wait);
   }
   // `.aide/config` is gitignored, so `git clone` never carries it —
   // without this the dashboard's own checkout would have no
@@ -409,7 +419,7 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
         if (failed) return { ok: false, error: failed, cloned };
         cloned = true;
       } else {
-        await bringUpToDate(run, specsRepo);
+        await bringUpToDate(run, specsRepo, req.wait);
       }
       // The specs ROOT is a folder inside the specs REPO — one
       // repository holds a folder per project, which is how this repo

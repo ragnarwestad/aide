@@ -8,6 +8,7 @@ import { describe, expect, test } from "bun:test";
 import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
+import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -244,22 +245,57 @@ describe("fastForwardToOrigin", () => {
     expect(sentence(result.error)).toContain(ROOT);
   });
 
-  test("the index-lock retry: a lock that clears lets the pull through", async () => {
-    let pulls = 0;
-    const run = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
-      if (a.startsWith("merge -q --ff-only origin/")) {
-        pulls++;
-        return pulls <= 1
-          ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
-          : { code: 0, stdout: "" };
-      }
-      return { code: 0, stdout: "" };
-    };
-    const result = await fastForwardToOrigin(run, ROOT, "master", noWait);
-    expect(result).toEqual({ root: ROOT, ok: true });
-    expect(pulls).toBe(2);
+  test("waits for a lock another process holds, and moves the checkout only while holding it (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      held.releaseAfter(100);
+      const git = watchLock(held, fakeGit({
+        "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+        fetch: { code: 0 },
+        "merge -q --ff-only origin/": { code: 0 },
+      }).run);
+      const result = await fastForwardToOrigin(git.run, held.root, "master");
+      expect(result).toEqual({ root: held.root, ok: true });
+      const moves = git.moves("rev-parse --abbrev-ref HEAD", "fetch", "merge");
+      expect(moves.map((m) => m.args)).toEqual([
+        "rev-parse --abbrev-ref HEAD",
+        "fetch --quiet origin master",
+        "merge -q --ff-only origin/master",
+      ]);
+      expect(moves.every((m) => m.ours)).toBe(true);
+      expect(held.held()).toBe(false);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a lock that never frees refuses, naming it, with nothing fetched or moved (AC-1)", async () => {
+    const held = heldLock();
+    try {
+      const git = fakeGit({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" }, fetch: { code: 0 } });
+      const result = await fastForwardToOrigin(git.run, held.root, "master", noWait);
+      expect(result.ok).toBe(false);
+      expect((result.error as { key: string }).key).toBe("landing.checkoutLockTimedOut");
+      expect(sentence(result.error)).toContain(held.lock);
+      expect(git.calls).toEqual([]);
+    } finally {
+      held.cleanup();
+    }
+  });
+
+  test("a fast-forward that loses git's own lock is run once, and refused (AC-3)", async () => {
+    const git = fakeGit({
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: { code: 0 },
+      "merge -q --ff-only origin/": {
+        code: 1,
+        stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.",
+      },
+    });
+    const result = await fastForwardToOrigin(git.run, ROOT, "master", noWait);
+    expect(result.ok).toBe(false);
+    expect((result.error as { key: string }).key).toBe("landing.deployCannotFastForward");
+    expect(argv(git.calls).filter((a) => a.startsWith("merge -q --ff-only origin/"))).toHaveLength(1);
   });
 
   test("a git that throws resolves to a refusal", async () => {
