@@ -1,7 +1,7 @@
 // Whether a landing leaves a job's error where it is, and what it does
 // with the record of a landing that failed.
 
-import type { Job } from "../../queue/queue.ts";
+import type { Job, QueueStore } from "../../queue/queue.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 
@@ -72,4 +72,24 @@ export function clearsLandingError(
   step: string,
 ): { landingError?: undefined; landingErrorDetail?: undefined } {
   return landingErrorOfStep(job, step) ? { landingError: undefined, landingErrorDetail: undefined } : {};
+}
+
+/** Keep `tests` as the spec's failed tests on `job` alone: every other
+ *  job of the same spec loses its own, so at most one job of a spec keeps
+ *  a list. Nothing, or an empty list, keeps none. Another job is written
+ *  only when it holds a list; `job` is written when `tests` is non-empty
+ *  or a copy of it holds a list, whether or not `queue.list()` returns it. */
+export function keepLandingFailedTests(
+  queue: Pick<QueueStore, "list" | "update">,
+  job: Pick<Job, "id" | "project" | "specFolder" | "landingFailedTests">,
+  tests: Job["landingFailedTests"],
+): void {
+  const keep = tests?.length ? tests : undefined;
+  let held = !!job.landingFailedTests?.length;
+  for (const other of queue.list()) {
+    if (other.project !== job.project || other.specFolder !== job.specFolder || !other.landingFailedTests?.length) continue;
+    if (other.id === job.id) held = true;
+    else queue.update(other.id, { landingFailedTests: undefined });
+  }
+  if (keep || held) queue.update(job.id, { landingFailedTests: keep });
 }

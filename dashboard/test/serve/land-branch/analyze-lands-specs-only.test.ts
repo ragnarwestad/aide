@@ -145,6 +145,33 @@ describe("a close landing with the specs inside the code repo", () => {
   });
 });
 
+describe("a close landing", () => {
+  test("takes the tests a red landing failed off the spec (AC-6)", async () => {
+    const code = mkdtempSync(join(tmpdir(), "aide-close-land-failed-tests-"));
+    mkdirSync(join(code, "specs"), { recursive: true });
+    const updates: Record<string, unknown>[] = [];
+    const { ctx } = landCtx(landingGit().run, {
+      machineryProjectDir: () => code,
+      machinerySpecsRoot: () => join(code, "specs"),
+      testServers: { stop: async () => {}, get: () => undefined, list: () => [] },
+      queue: {
+        get: () => undefined,
+        list: () => [{ ...JOB, id: "old", landingFailedTests: [{ name: "t", file: "f", error: "e" }] }],
+        update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
+        transition: () => ({ ok: true }),
+        branchesFor: () => [],
+        renamePendingModel: () => {},
+      },
+    });
+    await landClosedSpec(
+      ctx as unknown as Parameters<typeof landClosedSpec>[0],
+      JOB as unknown as Parameters<typeof landClosedSpec>[1],
+      { branch: BRANCH, terminalReason: "closed", branchUrls: [{ root: code, url: "" }] },
+    );
+    expect(updates).toContainEqual({ landingFailedTests: undefined });
+  });
+});
+
 describe("a sent-back implement landing with the specs inside the code repo", () => {
   test("lands the spec's folder and never the branch with its code (AC-1)", async () => {
     const code = mkdtempSync(join(tmpdir(), "aide-sent-back-land-inproject-"));

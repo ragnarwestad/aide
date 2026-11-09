@@ -105,3 +105,20 @@ test("green on main: the sentence is the ordinary one, about this merge", async 
     lists: { tests: ["a test"] },
   });
 }, 30_000);
+
+test("the tests only the merge fails are kept with their file and error (AC-1)", async () => {
+  recorder("different");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.failedTests).toEqual([{ name: "merge only", file: "", error: "" }]);
+}, 30_000);
+
+test("red on main too, main unnamed and main not checked keep no list (AC-7)", async () => {
+  recorder("always");
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+  recorder("main unnamed");
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+  const root = merged();
+  git(root, "branch", "-D", "main");
+  recorder("with the spec");
+  expect((await runProjectSuiteBeforePush(root, job, "aide/81-x")).failedTests).toBeUndefined();
+}, 90_000);

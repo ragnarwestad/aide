@@ -212,9 +212,16 @@ fi
 if [ -n "$step_tests_folder" ]; then
   # Compared with the default branch, so a change to Markdown files alone
   # is tested by the project's documentation check, not its whole suite
-  # (aide-resolve-test-cmd --changed-from).
-  step_tests_base="$(default_ref "$project_wt" "$project_root")"
-  step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" --changed-from "$step_tests_base" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  # (aide-resolve-test-cmd --changed-from) — unless the spec's last landing
+  # failed tests on the merge (setup/invocation.sh): those are what this
+  # step is to make pass, and only the whole suite runs them.
+  if [ "${landing_failed_tests:-}" = "yes" ]; then
+    stage "the last landing failed tests on the merge — running the whole suite, whatever the change touched"
+    step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  else
+    step_tests_base="$(default_ref "$project_wt" "$project_root")"
+    step_tests_resolved="$("$SCRIPT_DIR/aide-resolve-test-cmd" --project-dir "$project_wt" --changed-from "$step_tests_base" 2>"$work_dir/resolve-test-cmd.err" | tail -1)"
+  fi
   if printf '%s' "$step_tests_resolved" | jq -e '.docsOnly == true' >/dev/null 2>&1; then
     stage "only Markdown files changed — running the documentation check, not the whole suite"
   fi

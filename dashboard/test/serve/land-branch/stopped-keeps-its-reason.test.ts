@@ -10,6 +10,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { landBranch } from "../../../src/serve/land-branch";
+import { keepLandingFailedTests } from "../../../src/serve/land-branch/stopped-reason.ts";
+import type { Job } from "../../../src/queue/queue.ts";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
@@ -58,5 +60,59 @@ describe("a landing of a step that stopped", () => {
     expect(patch).toBeDefined();
     expect("error" in patch).toBe(true);
     expect(patch.error).toBeUndefined();
+  });
+});
+
+/** A queue holding `jobs`, and which of them keep a list afterwards. */
+function queueOf(jobs: Partial<Job>[], listed = true) {
+  const byId = new Map(jobs.map((j) => [j.id!, { ...j } as Job]));
+  return {
+    list: () => (listed ? [...byId.values()] : []),
+    update: (id: string, patch: Partial<Job>) => {
+      const next = { ...(byId.get(id) ?? ({ id } as Job)), ...patch };
+      byId.set(id, next);
+      return next;
+    },
+    kept: () => Object.fromEntries([...byId].filter(([, j]) => j.landingFailedTests).map(([id, j]) => [id, j.landingFailedTests])),
+  };
+}
+
+const A = { id: "a", project: "aide", specFolder: "479-spec" };
+const B = { id: "b", project: "aide", specFolder: "479-spec" };
+const OLD = [{ name: "old test", file: "t/old.test.ts", error: "old error" }];
+const NEW = [{ name: "new test", file: "t/new.test.ts", error: "new error" }];
+
+describe("the tests a spec's last landing failed", () => {
+  test("a later landing's list replaces the one another job of the spec kept (AC-5)", () => {
+    const queue = queueOf([{ ...A, landingFailedTests: OLD }, B]);
+    keepLandingFailedTests(queue, B, NEW);
+    expect(queue.kept()).toEqual({ b: NEW });
+  });
+
+  test("the same job red twice keeps the second list (AC-5)", () => {
+    const queue = queueOf([{ ...A, landingFailedTests: OLD }]);
+    keepLandingFailedTests(queue, A, NEW);
+    expect(queue.kept()).toEqual({ a: NEW });
+  });
+
+  test("nothing, or an empty list, leaves no job of the spec a list (AC-6, AC-7)", () => {
+    for (const tests of [undefined, []]) {
+      const queue = queueOf([{ ...A, landingFailedTests: OLD }, { ...B, landingFailedTests: OLD }]);
+      keepLandingFailedTests(queue, B, tests);
+      expect(queue.kept()).toEqual({});
+    }
+  });
+
+  test("another spec's list is left alone (AC-5, AC-6)", () => {
+    const other = { id: "c", project: "aide", specFolder: "480-other", landingFailedTests: OLD };
+    const queue = queueOf([other, A]);
+    keepLandingFailedTests(queue, A, undefined);
+    expect(queue.kept()).toEqual({ c: OLD });
+  });
+
+  test("the landing's own job keeps the list even when the queue does not list it (AC-1)", () => {
+    const queue = queueOf([], false);
+    keepLandingFailedTests(queue, A, NEW);
+    expect(queue.update("a", {}).landingFailedTests).toEqual(NEW);
   });
 });

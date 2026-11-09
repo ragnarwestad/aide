@@ -350,6 +350,8 @@ export interface Job {
   /** The landing's suite was red once and green on its one retry: the
    *  lines the red run failed on. */
   testsGreenOnRetry?: string;
+  /** The tests the spec's last archive landing failed on the merge; one job of a spec at most. */
+  landingFailedTests?: { name: string; file: string; error: string }[];
   stopReason?: StopReason;
   /** When the board starts this stopped job again, set with a
    *  `provider-limit` stop: the reset time the tool named

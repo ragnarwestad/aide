@@ -195,6 +195,9 @@ commands the change calls for and runs them through `aide-record-test-run`.
   when the machine is quieter. No test named: the sentence says the tests are red on the merge and green on main
   alone. Each outcome is a message in the board's catalogue, in the reader's language; the test output is the detail
   behind it, without the recorder's JSON line and cut at a line.
+- When the merge broke the tests (`landing.testsRedOnMerge`, `landing.testsRedOnMergeToo`), the job also keeps them,
+  each with its file and error, as `landingFailedTests`, for the spec's next implement; at most one job of a spec keeps
+  such a list, and a green landing, another red ending, an archive or a close takes it off.
 - The landing writes its test run into the step's Log, under "tests and commit": when it starts, green or red, the
   run once more, the run on main, and a run it skipped.
 

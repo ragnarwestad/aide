@@ -2,7 +2,7 @@
 // building the argv `aide-run-spec` is started with from them. Split
 // out of serve-helpers.ts by theme (split serve-helpers.ts by theme).
 
-import { renderSentence, type Sentence } from "../../i18n/message.ts";
+import { renderSentence } from "../../i18n/message.ts";
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
 import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
@@ -315,29 +315,24 @@ function providerFolderArgs(
   return [...(tool === "codex" && provider.tool === "codex" && env.CODEX_HOME ? ["--codex-home", env.CODEX_HOME] : []), ...runtime];
 }
 
-function hasTestFailure(sentence: Sentence | Sentence[] | undefined): boolean {
-  if (Array.isArray(sentence)) return sentence.some(hasTestFailure);
-  if (!sentence || typeof sentence === "string") return false;
-  return sentence.key.startsWith("landing.testsRed") || hasTestFailure(sentence.inner);
-}
-
+/** The evidence the spec's next implement is handed: the job of the spec
+ *  that keeps the tests its last archive landing failed on the merge
+ *  (`keepLandingFailedTests`, at most one), with that landing's sentence,
+ *  its test output and the archive step's branch revisions. None kept,
+ *  none handed. */
 export function archiveFailureContext(job: Job, jobs: readonly Job[]): string | undefined {
-  const attempts = jobs.flatMap((source) => {
-    if (source.project !== job.project || source.specFolder !== job.specFolder) return [];
-    return source.results.filter((result) => result.step === "archive")
-      .map((result) => ({ source, result }));
-  }).sort((a, b) => (b.result.at ?? "").localeCompare(a.result.at ?? ""));
-  const latest = attempts[0];
-  if (!latest || (latest.source.errorReason !== "tests-red" && !hasTestFailure(latest.source.landingError))) return undefined;
-  const { source, result } = latest;
+  const source = jobs.find((j) => j.project === job.project && j.specFolder === job.specFolder && j.landingFailedTests?.length);
+  if (!source) return undefined;
+  const result = source.results.findLast((r) => r.step === "archive");
   const currentFailure = source.errorReason === "tests-red" && source.error;
   return JSON.stringify({
     jobId: source.id,
-    at: result.at,
+    at: result?.at,
     branchUrls: source.branchUrls,
     failure: renderSentence("en", currentFailure || source.landingError),
     detail: currentFailure ? source.errorDetail : source.landingErrorDetail,
-    archiveStepRepos: result.repos,
+    archiveStepRepos: result?.repos,
+    failedTests: source.landingFailedTests,
   });
 }
 

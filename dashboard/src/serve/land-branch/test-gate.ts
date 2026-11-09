@@ -22,6 +22,7 @@ import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { Sentence } from "../../i18n/message.ts";
+import type { Job } from "../../queue/queue.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -66,6 +67,11 @@ function namedTests(result: Pick<FailingTests, "tests" | "errors">): string[] {
   return result.tests.length > 8 ? [...shown, "…"] : shown;
 }
 
+/** The tests a verdict hands on, every one of them: the sentence shows eight. */
+function asFailedTests(named: { test: string; file: string; error: string }[]): GateVerdict["failedTests"] {
+  return named.map(({ test, file, error }) => ({ name: test, file, error }));
+}
+
 /** `retriedAfter`: green only on the second run, and these are the
  *  lines the first run failed on. */
 export interface GateVerdict {
@@ -73,6 +79,9 @@ export interface GateVerdict {
   error?: Sentence;
   detail?: string;
   retriedAfter?: string;
+  /** Every test the merge itself failed, on `landing.testsRedOnMerge` and
+   *  `landing.testsRedOnMergeToo` alone: the next implement is handed them. */
+  failedTests?: Job["landingFailedTests"];
 }
 
 /** `jobs` is the board's queue, read as each run starts: the landing's test
@@ -424,7 +433,7 @@ async function runSuiteIn(
           return { ok: false, error: { key: "landing.testsRedOnMainUnnamed", values: { branch, button } }, detail };
         }
         const onMain = new Set(main.failures.tests);
-        const mergeOnly = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => !onMain.has(test));
+        const mergeOnly = lastTests.map((test, index) => ({ test, file: lastResult.files[index] ?? "", error: lastResult.errors[index] ?? "" })).filter(({ test }) => !onMain.has(test));
         if (!mergeOnly.length) {
           stepLogLine(job, "the same tests are red on main as well", true);
           return { ok: false, error: { key: "landing.testsRedOnMainToo", values: { branch, button } }, detail };
@@ -433,17 +442,19 @@ async function runSuiteIn(
           ok: false,
           error: (() => { const tests = namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }); return { key: "landing.testsRedOnMergeToo", values: { count: mergeOnly.length, branch, button }, lists: { tests } }; })(),
           detail,
+          failedTests: asFailedTests(mergeOnly),
         };
       }
       stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
       if (!firstTests.length) return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
       const firstSet = new Set(firstTests);
-      const repeated = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
+      const repeated = lastTests.map((test, index) => ({ test, file: lastResult.files[index] ?? "", error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
       if (repeated.length) {
         return {
           ok: false,
           error: (() => { const tests = namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }); return { key: "landing.testsRedOnMerge", values: { count: repeated.length, branch, button }, lists: { tests } }; })(),
           detail,
+          failedTests: asFailedTests(repeated),
         };
       }
       if (lastTests.length && variedBetween(firstTests, lastTests)) {

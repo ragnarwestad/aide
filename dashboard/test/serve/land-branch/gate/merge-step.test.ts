@@ -30,6 +30,7 @@ async function archive(over: Record<string, Answer> = {}, step: "archive" | "ana
   const { ctx } = landCtx(landingGit(over).run, {
     queue: {
       get: () => job,
+      list: () => [],
       update: () => {},
       transition: () => ({ ok: true }),
       branchesFor: () => REPOS,

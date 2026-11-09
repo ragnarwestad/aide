@@ -41,6 +41,8 @@ whatever the change touched; aide's own runs pytest, `make test` and the browser
 
 The one exception is a change to Markdown files and nothing else, compared with the default branch: it runs the
 project's `scripts/check-docs` when it has one, and nothing when it does not. A paragraph cannot turn the suite red.
+An implement that follows a landing stopped by tests the merge broke runs the whole suite even then, since those tests
+are what it is to make pass.
 
 Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
 divided by the steps and landings running at that moment, rounded down and at least one. An implement's own run and a
@@ -99,6 +101,11 @@ name, and none for a criterion an existing test already proves — that test get
   a green suite. The row names the failing tests. The same tests failing on both runs, and passing on main alone, is
   the merge breaking them: make them pass on the branch, then Archive. Different tests on the two runs point to
   unstable tests or a busy machine, and the row says so: press Archive again when the machine is quieter.
+- **The next implement after a landing red on the merge:** when the merge broke the tests (the same tests on both
+  runs, or tests that fail on the merge and not on main), the next implement of the spec is told which tests failed,
+  with each test's file and error, and that it is to make them pass on the branch. A later red landing replaces the
+  list; a green landing, an archive or a close of the spec removes it. After any other red landing the implement is
+  told nothing about it.
 - **Red on main as well:** the landing ran the same tests on the default branch without the spec, and they were red
   there too. The failure is main's; nothing about the spec needs changing. Press Archive again once main is green.
 - **Merged after a retry:** the landing's first run was red and the second green. The job keeps the lines that

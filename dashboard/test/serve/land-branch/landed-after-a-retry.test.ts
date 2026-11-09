@@ -9,17 +9,18 @@ import type { LandContext } from "../../../src/serve/land-branch";
 import type { Job } from "../../../src/queue/queue.ts";
 import { archivedRowNotices } from "../../../src/render/pages/specs-list/row-marks.ts";
 import type { ArchivedSpecView } from "../../../src/render";
+import type { GateVerdict } from "../../../src/serve/land-branch/test-gate.ts";
 
 const job = { id: "j1", project: "aide", specFolder: "81-x" } as Job;
 
-function gateWith(verdict: { ok: boolean; retriedAfter?: string }) {
+function gateWith(verdict: Partial<GateVerdict>, listed: Job[] = [], step: "archive" | "schedule" = "archive") {
   const updates: Array<Partial<Job>> = [];
   const ctx = {
     landingGate: async () => verdict,
-    queue: { update: (_id: string, patch: Partial<Job>) => updates.push(patch) },
+    queue: { update: (_id: string, patch: Partial<Job>) => updates.push(patch), list: () => listed },
     machinerySpecsRoot: () => undefined,
   } as unknown as LandContext;
-  const { gate } = handedToMerge(ctx, job, { step: "archive" }, "/repo", "aide/81-x", new Set(["/repo"]));
+  const { gate } = handedToMerge(ctx, job, { step }, "/repo", "aide/81-x", new Set(["/repo"]));
   return { gate: gate!, updates };
 }
 
@@ -53,5 +54,28 @@ describe("a landing green only on its retry", () => {
     );
     expect(notices).toHaveLength(1);
     expect(notices[0]!.variant).toBe("failed");
+  });
+});
+
+describe("the tests a red landing failed", () => {
+  const failedTests = [{ name: "t/a.test.ts > adds", file: "t/a.test.ts", error: "expected 2" }];
+  const error = { key: "landing.testsRedOnMerge", values: { count: 1, branch: "aide/81-x", button: "Archive" } } as const;
+
+  test("an archive landing keeps them on the job beside its unchanged sentence (AC-1)", async () => {
+    const { gate, updates } = gateWith({ ok: false, error, failedTests });
+    expect((await gate("/work")).error).toEqual(error);
+    expect(updates).toEqual([{ landingFailedTests: failedTests }]);
+  });
+
+  test("a green archive landing takes the spec's list off (AC-6)", async () => {
+    const { gate, updates } = gateWith({ ok: true }, [{ ...job, landingFailedTests: failedTests }]);
+    await gate("/work");
+    expect(updates).toEqual([{ landingFailedTests: undefined }]);
+  });
+
+  test("a red schedule landing changes no list (AC-7)", async () => {
+    const { gate, updates } = gateWith({ ok: false, error, failedTests }, [{ ...job, landingFailedTests: failedTests }], "schedule");
+    await gate("/work");
+    expect(updates).toEqual([]);
   });
 });
