@@ -143,7 +143,8 @@ def test_a_port_held_from_an_aide_worktree_names_the_spec(tmp_path):
         "4242\n",
         "p4242\ncnode\nfcwd\nn/Users/x/.aide/dashboard/worktrees/skjera/58-sign-up-flow/code/packages/server\n",
     )
-    r = _bash("port_holder 8806", env=env)
+    env["worktree_base"] = "/Users/x/.aide/dashboard/worktrees"
+    r = _bash("worktree_base=$worktree_base; port_holder 8806", env=env)
     assert r.returncode == 0, r.stderr
     assert json.loads(r.stdout) == {
         "pid": 4242,
@@ -152,6 +153,14 @@ def test_a_port_held_from_an_aide_worktree_names_the_spec(tmp_path):
         "project": "skjera",
         "spec": "58-sign-up-flow",
     }
+
+
+def test_a_port_held_under_the_handed_worktree_base_names_the_spec_ac_1(tmp_path):
+    base = tmp_path / "custom"
+    env = _with_lsof(tmp_path, "4242\n", f"p4242\ncnode\nfcwd\nn{base}/aide/750-layout/code\n")
+    env["worktree_base"] = str(base)
+    holder = json.loads(_bash("worktree_base=$worktree_base; port_holder 8806", env=env).stdout)
+    assert (holder["project"], holder["spec"]) == ("aide", "750-layout")
 
 
 def test_a_port_held_elsewhere_names_the_pid_and_command_and_no_spec(tmp_path):

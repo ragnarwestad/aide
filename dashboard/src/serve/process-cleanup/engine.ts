@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { TEMP_PREFIXES } from "./temp-prefixes.generated.ts";
 
 export interface CleanupProcess {
   pid: number;
@@ -40,7 +41,7 @@ export interface CleanupDependencies {
 }
 
 const ORPHAN_AGE_MS = 6 * 60 * 60_000;
-const TEMP_ROOT = /(?:^|\/)(?:aide-pytest-|aide-bun-test-|aide-landing-gate-tree-|aide-test-server-|aide-board-)/;
+const temporaryRoot = (text: string): boolean => TEMP_PREFIXES.some((prefix) => text.split("/").some((part) => part.startsWith(prefix)));
 const under = (path: string | undefined, root: string): boolean => {
   if (!path) return false;
   const target = resolve(path);
@@ -93,7 +94,7 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
   const selected = snapshot.filter((process) => {
     if (protectedPids.has(process.pid)) return false;
     if (portPids.has(process.pid)) return true;
-    const temporary = TEMP_ROOT.test(process.cwd ?? "") || TEMP_ROOT.test(process.command);
+    const temporary = temporaryRoot(process.cwd ?? "") || temporaryRoot(process.command);
     return process.ppid === 1 && deps.now() - process.startedAt > ORPHAN_AGE_MS && temporary;
   });
   deps.progress?.({ step: "orphans", state: DONE_PROGRESS });

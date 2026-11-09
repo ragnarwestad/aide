@@ -188,6 +188,21 @@ describe("the runner invocation", () => {
     expect(argv).toContain("--project-name aide");
   });
 
+  test("the board hands its worktree base and scripts folder to the runner (AC-1, AC-4)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-runner-layout-"));
+    ownDirs.push(dir);
+    const { bin, argvFile } = stub(dir);
+    const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch" });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST", headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    const argv = await argvOf(argvFile);
+    expect(argv).toContain(`--worktree-base ${join(dir, "worktrees")}`);
+    expect(argv).toContain(`--scripts-dir ${dir}`);
+  });
+
   // `aide-emit-run` reports each TDD phase, and does nothing
   // at all unless `AIDE_RUN_URL` is set — so a headless step reported
   // its phases into silence, because nothing on the chain from launchd

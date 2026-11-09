@@ -89,6 +89,10 @@ same answer its own landing uses (`machinerySpecsRoot`), and
 `.aide/config`. Left out — a run started by hand — the script reads the
 config.
 
+Both languages read `.aide/config` as exact, unindented `KEY=value` lines. The first matching line wins, its value is
+trimmed, and an empty first value means the key has no value. TypeScript writes through
+`dashboard/src/project/aide-config.ts`; Bash writes through `aide_config_write` in `core/scripts/_aide-spec-lib.sh`.
+
 The run and the landing have to agree on this one answer: a create that
 makes its folder somewhere the landing does not look can never be given
 its number.

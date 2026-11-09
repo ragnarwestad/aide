@@ -158,6 +158,8 @@ export function runnerArgv(
      *  Undefined for a project whose specs the dashboard cannot resolve,
      *  where the script's own answer is still the best one available. */
     specsRoot?: string;
+    worktreeBase?: string;
+    scriptsDir?: string;
     push: string;
     /** The file a `schedule` step's prompt is read from, relative to the
      *  project root. Meaningless, and omitted, for every
@@ -214,6 +216,8 @@ export function runnerArgv(
     "--project-dir", o.projectDir,
     "--project-name", job.project,
     ...(o.specsRoot ? ["--specs-root", o.specsRoot] : []),
+    ...(o.worktreeBase ? ["--worktree-base", o.worktreeBase] : []),
+    ...(o.scriptsDir ? ["--scripts-dir", o.scriptsDir] : []),
     "--command", step,
     "--spec", job.specFolder,
     "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),

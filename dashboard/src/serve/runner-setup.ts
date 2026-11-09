@@ -238,6 +238,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             // afterwards (`machinerySpecsRoot`), so the two cannot
             // disagree about where a spec belongs.
             specsRoot: ctx.machinerySpecsRoot(job.project),
+            worktreeBase: join(dirname(ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs")), "worktrees"),
+            scriptsDir: dirname(runnerBin),
             // The global setting speaks for every project
             // on this host at once; a project that reviews its code
             // says so in its own committed manifest, and that

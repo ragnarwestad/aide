@@ -35,7 +35,8 @@ import os
 # the process exits. Left in the machine's shared temp directory they are
 # never removed, and a directory of millions of entries takes minutes to
 # read for every program that reaches for temp.
-_own_tmp = _tempfile.mkdtemp(prefix="aide-pytest-")
+AIDE_PYTEST_TEMP_PREFIX = "aide-pytest-"
+_own_tmp = _tempfile.mkdtemp(prefix=AIDE_PYTEST_TEMP_PREFIX)
 _os.environ["TMPDIR"] = _own_tmp
 _tempfile.tempdir = None
 import atexit as _atexit

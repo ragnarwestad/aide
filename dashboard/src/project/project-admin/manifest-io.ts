@@ -3,9 +3,10 @@
 // both readers refuse the same value by.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
+import { dirname, isAbsolute } from "node:path";
 import { stringify } from "yaml";
 import { PREVIEW_FROMS } from "../parse-manifest.ts";
+export { writeAideConfig } from "../aide-config.ts";
 
 /** A directory name, and nothing that could be read as a path. No
  *  separator, no `..`, no leading dot (a project directory the scan
@@ -228,21 +229,6 @@ export function oneLine(value: string): string {
  *  specs root and the worktree links land in the same file, and a
  *  second copy of this rule would eventually preserve a comment the
  *  first one dropped. */
-export function writeAideConfig(projectDir: string, values: Record<string, string>): void {
-  const dir = join(projectDir, ".aide");
-  const file = join(dir, "config");
-  const keys = Object.keys(values);
-  const kept = existsSync(file)
-    ? readFileSync(file, "utf-8")
-        .split("\n")
-        .filter((line) => !keys.includes(line.split("=")[0]!))
-    : [];
-  while (kept.length && kept[kept.length - 1] === "") kept.pop();
-  for (const key of keys) kept.push(`${key}=${values[key]}`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(file, `${kept.join("\n")}\n`);
-}
-
 /** Directory names a build WRITES into, or that a tool locks a cache in
  *  — never a dependency cache a build only reads. A link is
  *  one symlink into the main checkout that every concurrent run shares,

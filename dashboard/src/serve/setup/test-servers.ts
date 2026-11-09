@@ -19,6 +19,8 @@ import { resolvePreviewCmd, resolvePreviewFrom } from "../../project/discover";
 import type { ServerState } from "../state.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 
+export const BOARD_TEMP_PREFIX = "aide-board-";
+
 export interface TestServersSetupInputs {
   testServersPath?: string;
   machineryProjectDir: (project: string) => string;
@@ -125,7 +127,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
       }),
     portHolder,
     now: () => new Date().toISOString(),
-    makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-")),
+    makeWorkDir: () => mkdtempSync(join(tmpdir(), BOARD_TEMP_PREFIX)),
     // The served board's own port, plus every OTHER tracked
     // board's port — a `failed` entry no longer holds anything.
     reservedPorts: () => [

@@ -82,6 +82,8 @@ Each of those is a section below, except the step's own turn, which is
 Every Claude session a run starts gets a display name, so `claude --resume` on the serving host and the session lists of
 a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
 it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.
+The dashboard also passes the worktree base and the scripts directory explicitly. The runner uses the handed project
+name and worktree base when it names a worktree or attributes a process; it does not infer either from directory names.
 
 | The session                                     | Its name                                        |
 |-------------------------------------------------|-------------------------------------------------|

@@ -39,7 +39,8 @@ mkdir -p "$(dirname "$LOG")"
   # installer already refreshes.
   ./core/implementations/opencode/install.sh
 } >> "$LOG" 2>&1
-PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/com.aide-dashboard.serve.plist}"
+SERVICE_LABEL="${AIDE_DASH_LABEL:-$(sed -n 's/.*"label": "\([^"]*\)".*/\1/p' dashboard/deploy/service.json)}"
+PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist}"
 ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then

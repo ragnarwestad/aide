@@ -1,0 +1,4 @@
+{
+  "label": "com.aide-dashboard.serve",
+  "override": "AIDE_DASH_LABEL"
+}

@@ -54,6 +54,7 @@ describe("process cleanup", () => {
       process({ pid: 211, ppid: 2 }),
       process({ pid: 212, startedAt: now - 60_000 }),
       process({ pid: 213, cwd: "/tmp/unrelated" }),
+      process({ pid: 215, cwd: "/tmp/aide-test-server-obsolete" }),
     ];
     const { signals } = await run(candidates);
     expect(signals).toEqual([[210, "SIGTERM"], [214, "SIGTERM"]]);

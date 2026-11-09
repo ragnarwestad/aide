@@ -10,7 +10,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const own = mkdtempSync(join(tmpdir(), "aide-bun-test-"));
+export const BUN_TEST_TEMP_PREFIX = "aide-bun-test-";
+const own = mkdtempSync(join(tmpdir(), BUN_TEST_TEMP_PREFIX));
 process.env.TMPDIR = own;
 // A hook registered here runs once, after the last test of the process;
 // `bun test` exits without firing process "exit" listeners.

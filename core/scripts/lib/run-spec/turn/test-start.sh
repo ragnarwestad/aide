@@ -79,16 +79,16 @@ test_start_failure() {
 # Aide worktree (…/worktrees/<project>/<spec-folder>/…) — or nothing when
 # no one does, or lsof is not there to ask.
 port_holder() {
-  local port="$1" pid info command cwd rest project spec
+  local port="$1" pid info command cwd rest project spec base="${worktree_base:-$HOME/.aide/dashboard/worktrees}"
   command -v lsof >/dev/null 2>&1 || return 0
   pid="$(lsof -nP -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -1)"
   [ -n "$pid" ] || return 0
   info="$(lsof -a -p "$pid" -d cwd -Fcn 2>/dev/null)"
   command="$(printf '%s\n' "$info" | sed -n 's/^c//p' | head -1)"
   cwd="$(printf '%s\n' "$info" | sed -n 's/^n//p' | head -1)"
-  case "$cwd" in
-    */worktrees/*/*)
-      rest="${cwd##*/worktrees/}"
+  case "$cwd/" in
+    "$base"/*/*/*)
+      rest="${cwd#"$base"/}"
       project="${rest%%/*}"
       rest="${rest#*/}"
       spec="${rest%%/*}"

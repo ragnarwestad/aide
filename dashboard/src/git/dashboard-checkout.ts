@@ -29,13 +29,14 @@
 //    the two read-only questions above.
 
 import { realPathOrAbsolute as real } from "./real-path.ts";
-import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./process/index.ts";
 import { carryManifest, excludeDerivedManifest } from "./checkout-manifest.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "./checkout-lock/index.ts";
 import { configValue, resolveWorktreeLinks } from "../project/discover";
+import { writeAideConfig } from "../project/aide-config.ts";
 
 /** Where the dashboard keeps its own clones when nothing says otherwise.
  *  Beside `aide-dashboard/`, not inside the projects root: a directory
@@ -476,11 +477,5 @@ function writeCheckoutConfig(
         `specs for ${says.project} will be made at the root`,
     );
   }
-  mkdirSync(dir, { recursive: true });
-  const kept = (personConfigText ?? "").split("\n").filter((line) => line.split("=")[0] !== "AIDE_SPECS_PATH");
-  while (kept.length && kept[kept.length - 1] === "") kept.pop();
-  kept.push(`AIDE_SPECS_PATH=${specs}`);
-  const tmp = join(dir, `.config.${process.pid}.${Date.now()}.tmp`);
-  writeFileSync(tmp, `${kept.join("\n")}\n`);
-  renameSync(tmp, join(dir, "config"));
+  writeAideConfig(code, { AIDE_SPECS_PATH: specs }, personConfigText ?? "");
 }
