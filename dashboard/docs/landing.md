@@ -43,7 +43,7 @@ point.
 - `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's history
   recorded for the spec. **The code root goes first and the specs root last**, so a failed code merge stops the loop
   before the specs root, which carries the `Result: completed` stamp, is attempted. After a code root merges,
-  `AIDE_INSTALL_CMD` runs.
+  `AIDE_INSTALL_CMD` runs, except in the board's own checkout, which Deploy installs.
 - A stopped step other than `archive` lands what it pushed outside the code root. That covers a `timeout`,
   `provider-limit` or `shared-files` stop with something pushed and no code root among it. A stopped `implement` whose
   code branch was pushed lands nothing, and that code waits for `archive`. The exception is an implement sent back
@@ -95,7 +95,9 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   holds, left by an interrupted landing, are not refused. Unpushed work of somebody's own on that branch is refused,
   by name.
 - **A code merge can install.** The command is `AIDE_INSTALL_CMD` in the project's `.aide/config`, run in that
-  checkout after its code merges, stopped after 120 seconds, and reported beside the merge. With it unset nothing
+  checkout after its code merges, stopped after 120 seconds, and reported beside the merge. The board's own checkout
+  is the exception: its install puts the runner in `~/.local/bin`, so it waits for Deploy, which installs and
+  restarts together and keeps the runner and the served page at the same version. With it unset nothing
   runs, and the result says deploying is still a hand step. A failed install names the command and its exit code (or
   the time limit, or that it could not be started), and keeps the last eight lines it printed — stderr, else stdout —
   as the detail behind the (?).

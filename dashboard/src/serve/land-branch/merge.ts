@@ -226,17 +226,14 @@ export async function landBranch(
           // version. The install belongs to the project, so the project
           // says what it is.
           if (codeRoots.has(repo.root)) {
-            // The install is the project's own business, whatever it does.
-            // A landing never restarts the dashboard: a restart mid-run
-            // kills every job's process, and no rule for "when it is safe"
-            // held up (2026-09-03). The person restarts it — Deploy on the
-            // board, or launchctl — when it suits; until then the served
-            // page runs the older code, and the log says so.
-            if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) {
-              console.error(
-                `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page still runs the older code; restart it with Deploy when it suits`,
-              );
-            }
+            // A landing never restarts the dashboard (a restart kills every
+            // job's process), and in its own checkout never installs either:
+            // a runner newer than the served page refuses its calls. Deploy
+            // installs and restarts together, when the person chooses.
+            if (!isDashboardRoot(ctx, repo.root)) await installAfterMerge(ctx, result);
+            else console.error(
+              `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page and the installed scripts still run the older code; install and restart it with Deploy when it suits`,
+            );
             // Never fatal, and never silent either: the merge already
             // happened, so this is reported beside it rather than
             // turning a successful merge into a failure. A server log has

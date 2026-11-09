@@ -1,6 +1,6 @@
-// What a landing into the dashboard's OWN checkout does: install, log,
-// and ask for a restart rather than firing one — and what it does for
-// every other project, which is neither.
+// What a landing into the dashboard's OWN checkout does: log that Deploy
+// installs and restarts it, doing neither itself — and what it does for
+// every other project: install, and never restart the dashboard.
 //
 // Split out of every-step-basic-landing.test.ts 2026-09-04; the tests
 // are unchanged and keep their names.
@@ -78,7 +78,7 @@ test.each(["analyze"])(
 // leaving `archive` unticked. The worktree is gone when the run ends,
 // so the branch on origin is what remains.
 
-describe("a landing that installs and asks for a restart", () => {
+describe("a landing, the install and the restart", () => {
   // The restart is what killed this process, and it used to fire from
   // inside the per-repo loop the moment the code root's install was
   // through — with archive's specs root, which carries the folder move
@@ -86,11 +86,11 @@ describe("a landing that installs and asks for a restart", () => {
   // the active list with no error anywhere, because the code that would
   // have written one was killed too. So: every repo merges BEFORE the
   // restart is allowed to fire.
-  test("a landing into the dashboard's own checkout installs, logs, and never restarts", async () => {
-    // A restart mid-run kills every job's process (four of them,
-    // 2026-09-03 00:13), and no rule for a safe moment held up. The
-    // person restarts with Deploy when it suits; the landing only says
-    // the served page is behind.
+  test("a landing into the dashboard's own checkout neither installs nor restarts, and logs that Deploy does both", async () => {
+    // A restart mid-run kills every job's process, and no rule for a safe
+    // moment held up, so the person restarts with Deploy when it suits.
+    // The install waits for that same Deploy: installed alone, the runner
+    // in ~/.local/bin would be newer than the served page that calls it.
     const dir = own("aide-restart-order-");
     const paths = repos(dir);
     const git = gitFor();
@@ -130,12 +130,11 @@ describe("a landing that installs and asks for a restart", () => {
 
     expect(landed.error).toBeFalsy();
     const marker = join(paths.project, "installed");
-    for (let i = 0; i < 80 && !existsSync(marker); i++) await Bun.sleep(25);
-    await Bun.sleep(200);
+    await Bun.sleep(400);
     console.error = realError;
-    expect(existsSync(marker)).toBe(true);
+    expect(existsSync(marker)).toBe(false);
     expect(fired).toBe(0);
-    expect(logged.some((l) => l.includes("restart it with Deploy"))).toBe(true);
+    expect(logged.some((l) => l.includes("install and restart it with Deploy"))).toBe(true);
   });
 
   // A code merge that cannot be made stops the step: nothing

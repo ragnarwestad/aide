@@ -62,8 +62,9 @@ covers the rules, the templates and the skills in seconds).
 The dashboard on the serving host runs as a launchd job
 (`com.aide-dashboard.serve`), and code reaching `main` changes nothing
 there until it is installed: that is what `dashboard/deploy/install-after-merge.sh`
-does (`AIDE_INSTALL_CMD`), and it is what an `archive` step runs after it
-lands code. Restart it through launchd (`launchctl kickstart -k`), since a
+does (`AIDE_INSTALL_CMD`), and Deploy on the board runs it, then restarts. An
+`archive` landing in Aide installs nothing, so the runner and the served page
+change together. Restart it through launchd (`launchctl kickstart -k`), since a
 process started by hand with `pkill` + `bun run` is not the service.
 
 ---

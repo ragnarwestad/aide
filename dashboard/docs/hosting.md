@@ -170,10 +170,10 @@ stops gets a line saying who asked and which process group was signalled.
 
 **The repo it clones there is the dashboard's OWN checkout —
 `~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code landing merges
-into and runs
-`AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart takes down every landing in flight, and
-no rule for a safe moment held up. It logs that the served page runs older code than main, and the user restarts
-when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts. The reinstall
+into. The landing neither installs nor restarts there: a restart takes down every landing in flight, and an install
+alone would leave the runner newer than the served page that calls it. It logs that the served page and the installed
+scripts run older code than main, and the user deploys when it suits — the Deploy button on the project's own page
+(`/projects/aide`) runs `AIDE_INSTALL_CMD` and restarts. The reinstall
 drops from the launchd job's plist every option the serve code no longer accepts, since a job still passing one would
 not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after

@@ -1,11 +1,10 @@
 #!/bin/bash
-# What a code merge in aide runs on the serving host (AIDE_INSTALL_CMD in
-# .aide/config, spec 96): install the shared scripts and skills and
-# refresh the dashboard's dependencies. It used to restart the dashboard
-# server itself, last and detached; that restart moved into the server
-# process (spec 287, dashboard/src/serve/land-branch/restart.ts) so it
-# can wait for any OTHER landing still mid-`git push` — anywhere, not
-# just this repo — before killing the process running it.
+# What Deploy on the board runs for aide on the serving host
+# (AIDE_INSTALL_CMD in .aide/config): install the shared scripts and skills
+# and refresh the dashboard's dependencies. A landing in aide does not run
+# it, so the runner it installs changes together with the served page;
+# the restart that follows is the server's own
+# (dashboard/src/serve/land-branch/restart.ts).
 set -e
 cd "$(dirname "$0")/../.."
 # launchd's PATH has neither ~/.local/bin nor mise's shims. Without them
