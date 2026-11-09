@@ -14,10 +14,11 @@ import { splitFix } from "../../format/request-fixes.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
+import { workflowArc } from "../../workflow-steps.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
-const PHASE_STEPS = new Set(["create", "analyze", "implement", "archive"]);
+const PHASE_STEPS = new Set(workflowArc().map((step) => step.name));
 
 export async function handleJobActionRoutes(
   ctx: RoutesContext,

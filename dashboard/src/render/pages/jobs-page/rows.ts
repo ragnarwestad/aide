@@ -6,7 +6,7 @@
 
 import { isScheduleKey, scheduleNameOf } from "../../../project/spec-names.ts";
 import { isScheduleJob } from "../../../queue/schedule.ts";
-import { cleanupStep, closeOrReopenStep, deployStep, isCleanupJob } from "../../../queue/queue.ts";
+import { cleanupStep, closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
 import { stepLabel, type MessageVariant } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
@@ -16,6 +16,7 @@ import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
 import { specReference } from "../../../project/spec-folder.ts";
+import { requireWorkflowStep } from "../../../workflow-steps.ts";
 
 /** What a job and its row view have in common, and all the rules read. */
 export interface JobLike {
@@ -103,7 +104,7 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
     const schedule = isScheduleJob(job);
-    if (!schedule && !closeOrReopenStep(job) && !deployStep(job) && !isCleanupJob(job)) return false;
+    if (!requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow) return false;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;

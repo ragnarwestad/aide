@@ -1,5 +1,6 @@
 import type { Job, StepRepoRange, WorkflowStep } from "../queue.ts";
 import { providerError, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { requireWorkflowStep } from "../../workflow-steps.ts";
 
 export const CAPACITY_RETRY_DELAY_MS = 3 * 60_000;
 
@@ -95,7 +96,7 @@ export function outcomeRetryDecision(
 /** Persist the automatic second attempt before returning it to the queue. */
 export function queueVanishedRetry(o: RunnerOptions, job: Job): boolean {
   const step = job.steps[job.stepIndex];
-  if (!step || step === "deploy") return false;
+  if (!step || requireWorkflowStep(step).runBy === "board") return false;
   const attempts = job.retry?.action === step ? job.retry.attempts : 1;
   const decision = retryDecision({
     kind: "vanished",

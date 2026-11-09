@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  parseWorkflowSteps,
+  workflowArc,
+  workflowControls,
+} from "../../../src/workflow-steps.ts";
+import {
   PHASE_STEPS,
   currentWorkRoundJobs,
   parseJobRequest,
@@ -24,6 +29,36 @@ const resolve = (project: string) =>
       : null;
 
 const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+
+test("one record supplies every property and derived view (AC-1, AC-2, AC-3, AC-4)", () => {
+  const records = parseWorkflowSteps({
+    steps: [{
+      name: "new-step", runBy: "board", runsModel: false, writesStatus: true,
+      receivesConflict: false, runsTests: false, runsReview: false, takesSlot: false,
+      ownRow: true, phaseOrder: 5, phaseControl: true, dependencyGated: true,
+    }],
+    workflowArcRetired: [],
+  });
+  expect(records[0]).toEqual({
+    name: "new-step", runBy: "board", runsModel: false, writesStatus: true,
+    receivesConflict: false, runsTests: false, runsReview: false, takesSlot: false,
+    ownRow: true, phaseOrder: 5, phaseControl: true, dependencyGated: true,
+  });
+  expect(workflowArc(records).map((step) => step.name)).toEqual(["new-step"]);
+  expect(workflowControls(records).map((step) => step.name)).toEqual(["new-step"]);
+});
+
+test("malformed and duplicate records identify the invalid entry (AC-4)", () => {
+  expect(() => parseWorkflowSteps({ steps: [{ name: "broken" }], workflowArcRetired: [] }))
+    .toThrow("broken");
+  const step = {
+    name: "same", runBy: "runner", runsModel: true, writesStatus: true,
+    receivesConflict: false, runsTests: false, runsReview: false, takesSlot: true,
+    ownRow: false, phaseOrder: null, phaseControl: false, dependencyGated: false,
+  };
+  expect(() => parseWorkflowSteps({ steps: [step, step], workflowArcRetired: [] }))
+    .toThrow("same");
+});
 
 // --- Reopening is a step like any other ---------------------------
 //

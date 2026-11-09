@@ -7,7 +7,7 @@
 
 import type { AcTest } from "../ac-coverage.ts";
 import { isFailedMark, isNotVerifiedMark } from "./not-verified.ts";
-import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import { workflowArc } from "../../workflow-steps.ts";
 
 export interface Progress {
   percent: number;
@@ -72,7 +72,7 @@ const PROGRESS_RE =
 // percentage on the line below it keeps its own job: it says how far
 // the TDD phases INSIDE implement have got, which is a different
 // question from whether implement ran.
-const WORKFLOW_STEPS: readonly string[] = workflowStepsData.workflowArc;
+const WORKFLOW_STEPS: readonly string[] = workflowArc().map((step) => step.name);
 
 const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 

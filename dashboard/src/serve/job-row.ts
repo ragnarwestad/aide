@@ -10,6 +10,7 @@ import type { QueueRowView, SideRunView } from "../render";
 import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
+import { requireWorkflowStep } from "../workflow-steps.ts";
 
 export interface JobRowContext {
   queue: QueueStore;
@@ -20,7 +21,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-  const providerKey = step && step !== "deploy" ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
+  const providerKey = step && requireWorkflowStep(step).runsModel ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
   return {
     id: job.id,
     project: job.project,

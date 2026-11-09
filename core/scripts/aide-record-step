@@ -62,6 +62,8 @@ source "$SCRIPT_DIR/lib/spec-state.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/workflow/steps.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-reference.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/record/records.sh"
@@ -81,8 +83,7 @@ time_spent="$(session_time_spent "$start_epoch")" || aide_spec_refuse "--start-e
 # The step lists, read as aide-run-spec reads them.
 _workflow_steps_file="$SCRIPT_DIR/lib/workflow-steps.json"
 [ -f "$_workflow_steps_file" ] || aide_spec_refuse "the shared workflow-step file is missing: $_workflow_steps_file"
-WORKFLOW_ARC="$(jq -r '.workflowArc | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
-WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
+workflow_steps_load "$_workflow_steps_file" || aide_spec_refuse "could not read workflow steps from $_workflow_steps_file"
 
 specs_root_wt="$specs_root"
 status_file_for "$folder"

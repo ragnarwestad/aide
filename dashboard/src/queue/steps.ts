@@ -4,7 +4,7 @@
 
 import type { Job } from "./types.ts";
 import { RESULT_TOOLS, RUNNABLE_TOOLS, type ResultTool, type RunnableTool } from "./providers/tools.ts";
-import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
+import { WORKFLOW_STEP_RECORDS, requireWorkflowStep, workflowControls } from "../workflow-steps.ts";
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
 
 // `core/scripts/aide-run-spec` reads the same list from
@@ -49,36 +49,14 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // module throws the moment its members and workflow-steps.json's
 // `workflowSteps` disagree, in every process that loads it (the
 // dashboard and every test alike).
-export type WorkflowStep =
-  | "explore" | "create" | "analyze" | "implement" | "archive" | "reopen"
-  | "schedule" | "close" | "deploy" | "cleanup";
+export type WorkflowStep = string;
 
 /** The steps the server runs itself, in its own process: the file the
  *  runner script reads does not name them, so `aide-run-spec --command`
  *  never takes one. They are queued, started and ended like any other
  *  step, but take no slot. */
-export const BOARD_STEPS = ["deploy", "cleanup"] as const;
-
-const KNOWN_STEPS: readonly WorkflowStep[] = [
-  "explore", "create", "analyze", "implement", "archive", "reopen",
-  "schedule", "close", ...BOARD_STEPS,
-];
-
-export const WORKFLOW_STEPS: readonly WorkflowStep[] = [
-  ...(workflowStepsData.workflowSteps as readonly WorkflowStep[]),
-  ...BOARD_STEPS,
-];
-
-if (
-  WORKFLOW_STEPS.length !== KNOWN_STEPS.length ||
-  !KNOWN_STEPS.every((s) => (WORKFLOW_STEPS as readonly string[]).includes(s))
-) {
-  throw new Error(
-    `dashboard/src/queue/steps.ts's WorkflowStep union and ` +
-      `core/scripts/lib/workflow-steps.json disagree: file has ` +
-      `${JSON.stringify(workflowStepsData.workflowSteps)}, union has ${JSON.stringify(KNOWN_STEPS)}`,
-  );
-}
+export const BOARD_STEPS = WORKFLOW_STEP_RECORDS.filter((step) => step.runBy === "board").map((step) => step.name);
+export const WORKFLOW_STEPS: readonly WorkflowStep[] = WORKFLOW_STEP_RECORDS.map((step) => step.name);
 
 // The effort levels a step may be run at, read the same way
 // WORKFLOW_STEPS is above — one shared file, a hand-written literal
@@ -131,7 +109,7 @@ export function currentWorkRoundJobs<T extends {
  *  `queue-list.ts` keeps the same list, because the render layer does
  *  not import this module; the two are hand-paired: change one and
  *  change the other. */
-export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
+export const PHASE_STEPS = workflowControls().map((step) => step.name);
 
 /** The steps quick enough to jump a queued job ahead of a slower one
  *  `create` and `archive` take minutes, `analyze` and
@@ -364,10 +342,8 @@ export const isCleanupJob = (job: { steps: readonly string[]; specFolder: string
  *  server's own process. A create takes about a minute and is what gives a
  *  spec its number and its row, so it is never left behind an analyze or an
  *  implement. Every other step takes a slot. */
-const SLOT_FREE_STEPS: readonly string[] = [...BOARD_STEPS, "create"];
-
 /** Whether the job's CURRENT step holds one of the runner's slots. A step
  *  that takes none neither counts against `maxConcurrent` nor waits for it;
  *  the same job's next step is asked again when it starts. */
 export const takesSlot = (job: { steps: readonly string[]; stepIndex: number }): boolean =>
-  !SLOT_FREE_STEPS.includes(job.steps[job.stepIndex] ?? "");
+  requireWorkflowStep(job.steps[job.stepIndex] ?? "").takesSlot;

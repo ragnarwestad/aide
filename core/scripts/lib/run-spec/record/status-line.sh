@@ -41,9 +41,7 @@ merge_unfinished() {
 }
 
 status_file=""
-case " $WORKFLOW_ARC " in
-  *" $command_name "*) status_file_for "$commit_label" ;;
-esac
+[ "$STEP_WRITES_STATUS" = "true" ] && status_file_for "$commit_label"
 if [ -n "$status_file" ]; then
   # --- A "completed" implement claim is cross-checked ------------
   # The CLI's own turn-subtype is not enough on its own: a step that reports

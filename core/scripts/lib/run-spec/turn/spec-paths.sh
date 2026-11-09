@@ -320,8 +320,10 @@ fi
 # permission mode with nobody to ask.
 reopen_no_ai=""
 if [ "$command_name" = "reopen" ]; then reopen_no_ai="yes"; fi
+property_no_ai=""
+if [ "$STEP_RUNS_MODEL" = "false" ]; then property_no_ai="yes"; fi
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ]; then
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ] || [ -n "$property_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
   # the same zero/absent shape already_landed() already uses above for
@@ -370,6 +372,10 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ]; then
       tool="none"; model=""; effort=""
       stop_step refused "$(jq -r '.error // "aide-reopen-spec refused"' <<<"$reopen_result" 2>/dev/null)" ""
     fi
+  elif [ -n "$property_no_ai" ]; then
+    terminal_reason="completed"
+    cost_measured="true"
+    tool="none"; model=""; effort=""
   else
     terminal_reason="$archive_terminal_reason"; error_msg=""; error_solution=""; error_log=""
   fi

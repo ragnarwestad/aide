@@ -13,7 +13,8 @@
 // wait and is never held by one made on another AI.
 
 import type { BoardMessage } from "../../i18n/message.ts";
-import { BOARD_STEPS, type Job, type QueueStore } from "../queue.ts";
+import { type Job, type QueueStore } from "../queue.ts";
+import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { providerLimit } from "./types.ts";
 
 /** What the board waits when the AI named no reset time, and between two
@@ -118,7 +119,7 @@ export function usageLimitHolds(
   if (holds.size === 0) return held;
   for (const job of jobs) {
     if (job.state !== "queued" || job.landing) continue;
-    if ((BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "")) continue;
+    if (requireWorkflowStep(job.steps[job.stepIndex] ?? "").runBy === "board") continue;
     const key = providerOf(job);
     const hold = holds.get(key);
     if (!hold || hold.probe?.id === job.id) continue;
