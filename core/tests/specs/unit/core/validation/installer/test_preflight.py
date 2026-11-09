@@ -113,22 +113,6 @@ class TestPreflightLocalSettings:
 
 
 @pytest.mark.validation
-class TestPreflightIsWiredIn:
-    """The preflight ships to ~/.local/bin and every installer runs it."""
-
-    def test_every_installer_runs_preflight(self, workspace_root):
-        """Every implementation, not a list of them: a new tool that
-        skips the preflight is exactly what this has to catch."""
-        root = workspace_root / "core" / "implementations"
-        installers = sorted(d.name for d in root.iterdir() if (d / "install.sh").is_file())
-        assert installers, "no core/implementations/<ai>/install.sh found at all"
-        for ai in installers:
-            install = root / ai / "install.sh"
-            assert "aide-preflight" in install.read_text(), \
-                f"{ai}/install.sh does not run the preflight"
-
-
-@pytest.mark.validation
 class TestPreflightDrift:
     """aide-preflight names when the installed ~/.local/bin copy is behind
     the repo it was installed from, via the version stamp

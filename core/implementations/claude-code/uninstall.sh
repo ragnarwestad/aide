@@ -4,6 +4,10 @@
 # Reverses EXACTLY what install.sh does — no more, no less.
 
 set -e  # Exit on error
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
+source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
 
 echo "🗑️  Claude Code Uninstall"
 echo "========================="
@@ -49,62 +53,7 @@ echo ""
 # 4. Remove skills from ~/.claude/skills/
 echo "4️⃣  Removing skills from ~/.claude/skills/..."
 
-SKILLS=(
-  "aide-analyze"
-  "aide-archive"
-  "aide-close"
-  "aide-explore"
-  "aide-reopen"
-  "aide-implement"
-  "aide-create"
-  "aide-to-pdf"
-  "aide-untangle"
-  "task-workflow-assistant"
-  "tdd-coach"
-  "documentation"
-  "markdown-linting"
-  "spec-handover"
-  "tools-and-scripts"
-  "workflows"
-  "playwright-e2e"
-  "unit-tests"
-)
-
-for skill in "${SKILLS[@]}"; do
-  if [ -d "$HOME/.claude/skills/$skill" ]; then
-    rm -rf "$HOME/.claude/skills/$skill"
-    echo "   ✅ Removed: ~/.claude/skills/$skill"
-  else
-    echo "   ⏭️  Did not exist: ~/.claude/skills/$skill"
-  fi
-done
-
-# And whatever the last install actually put there (spec 142). The list
-# above is a snapshot of what is shipped TODAY, and a name leaves it in
-# the same commit that stops shipping the skill — which is exactly when
-# removing the installed copy starts to matter. The manifest is the
-# record that snapshot cannot be, and it lives on THIS machine, so it
-# names what this machine actually has.
-#
-# Spelled out rather than sourced from core/scripts/_install-skills.sh:
-# this script sources nothing, and pinning the two spellings to each
-# other is what test_core_skills.py does.
-MANIFEST="$HOME/.claude/skills/.aide-installed-manifest"
-if [ -f "$MANIFEST" ]; then
-  while IFS= read -r skill; do
-    # A skill name is a directory name and nothing else: this is an
-    # `rm -rf` driven by a file.
-    case "$skill" in
-      "" | .* | */*) continue ;;
-    esac
-    if [ -d "$HOME/.claude/skills/$skill" ]; then
-      rm -rf "$HOME/.claude/skills/$skill"
-      echo "   ✅ Removed: ~/.claude/skills/$skill"
-    fi
-  done < "$MANIFEST"
-  rm -f "$MANIFEST"
-  echo "   ✅ Removed: ~/.claude/skills/.aide-installed-manifest"
-fi
+uninstall_skills "$HOME/.claude/skills"
 
 echo ""
 
@@ -135,15 +84,8 @@ echo ""
 # 7. Remove rules from ~/.claude/rules/
 echo "7️⃣  Removing rules from ~/.claude/rules/..."
 
-RULES=(
-  "llm-discipline.md"
-  "git.md"
-  "testing.md"
-  "spec-structure.md"
-  "communication.md"
-)
-
-for rule in "${RULES[@]}"; do
+for rule in $(rule_names); do
+  rule="$rule.md"
   if [ -f "$HOME/.claude/rules/$rule" ]; then
     rm "$HOME/.claude/rules/$rule"
     echo "   ✅ Removed: ~/.claude/rules/$rule"

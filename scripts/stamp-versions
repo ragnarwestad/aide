@@ -18,6 +18,7 @@ fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 MATRIX="${1:-$SCRIPT_DIR/../docs/AI_SUPPORT_MATRIX.md}"
+source "$SCRIPT_DIR/../core/scripts/lib/ai-tools/read.sh"
 
 if [ ! -f "$MATRIX" ]; then
   echo "❌ Matrix file not found: $MATRIX"
@@ -56,10 +57,31 @@ stamp_row() {
   echo "✅ $label: $version ($TODAY)"
 }
 
-stamp_row "Claude Code"        "$(probe_version claude)"
-stamp_row "GitHub Copilot CLI" "$(probe_version copilot)"
-stamp_row "Codex CLI"          "$(probe_version codex)"
-stamp_row "OpenCode"           "$(probe_version opencode)"
+ensure_row() {
+  local label="$1" tmp
+  awk -F'|' -v label="$label" '{ cell=$2; gsub(/^ +| +$/, "", cell); if (cell == label) found=1 } END { exit !found }' "$MATRIX" && return 0
+  tmp="$(mktemp)"
+  awk -v label="$label" '
+    BEGIN { FS=OFS="|" }
+    /^\|/ && $2 ~ /Tool/ { in_table=1; w2=length($2)-2; w3=length($3)-2; w4=length($4)-2; w5=length($5)-2 }
+    in_table && /^$/ && !added {
+      if (w2 < length(label)) w2=length(label)
+      status="✅ Supported"; if (w5 < length(status)) w5=length(status)
+      printf "| %-*s | %-*s | %-*s | %-*s |\n", w2,label,w3,"",w4,"",w5,status
+      added=1
+    }
+    { print }
+  ' "$MATRIX" > "$tmp" && mv "$tmp" "$MATRIX"
+}
+
+tool_ids="$(ai_tool_ids)" || exit 1
+for id in $tool_ids; do
+  label="$(ai_tool_field "$id" row)"
+  cli="$(ai_tool_field "$id" cli)"
+  version="$(probe_version "$cli")"
+  [ -n "$version" ] && ensure_row "$label"
+  stamp_row "$label" "$version"
+done
 
 echo ""
 echo "Stamped: $MATRIX"

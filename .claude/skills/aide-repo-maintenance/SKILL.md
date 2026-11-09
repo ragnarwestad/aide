@@ -21,8 +21,7 @@ changing the spec structure — not for ordinary spec work in this repo.
 1. Read `docs/SKILL_GUIDE.md` for structure and best practices
 2. Create `core/skills/<name>/SKILL.md` with frontmatter and core instructions
 3. Put heavy documentation in `core/skills/<name>/references/`
-4. Add it to the SKILLS list in uninstall.sh
-5. Run `cd core/implementations/claude-code && ./install.sh`
+4. Run `cd core/implementations/claude-code && ./install.sh`; the manifest records it for uninstall
 
 ## Updating rules
 

@@ -18,6 +18,8 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/ai-tools/read.sh"
 
 # Whether a CLI is on PATH.
 cli_found() {
@@ -141,6 +143,25 @@ preflight_codex() {
   echo ""
 }
 
+preflight_tool() {
+  local id="$1" name cli underline note
+  name="$(ai_tool_field "$id" name)" || return 1
+  cli="$(ai_tool_field "$id" cli)" || return 1
+  echo "$name"
+  underline="$(printf '%*s' "${#name}" '' | tr ' ' '-')"
+  echo "$underline"
+  probe "$name" "$cli"
+  places "$id"
+  case "$id" in
+    claude) preflight_local_settings ;;
+    copilot)
+      echo "   Note: the Copilot CLI reads personal skills from ~/.agents/skills/,"
+      echo "   not ~/.claude/skills/ (verified against 1.0.79). ~/.claude/rules/ is"
+      echo "   NOT read by Copilot; the rules reach it through the instructions file." ;;
+  esac
+  echo ""
+}
+
 preflight_optional_deps() {
   echo "Optional CLI dependencies"
   echo "-------------------------"
@@ -198,14 +219,9 @@ preflight_drift() {
 #   place  <name>  <path as the report shows it>  exists|missing
 #   files  match|behind|unknown
 preflight_facts() {
-  local ai="$1" tool place from to state
-  case "$ai" in
-    claude|copilot|codex|opencode) ;;
-    *)
-      echo "Unknown tool: ${ai:-(none)} (use claude, copilot, codex or opencode)" >&2
-      return 1 ;;
-  esac
-  if cli_found "$ai"; then printf 'cli\tfound\n'; else printf 'cli\tmissing\n'; fi
+  local ai="$1" tool place from to state cli
+  cli="$(ai_tool_field "$ai" cli)" || return 1
+  if cli_found "$cli"; then printf 'cli\tfound\n'; else printf 'cli\tmissing\n'; fi
   if [ -f "$TARGETS" ]; then
     while read -r tool place from to; do
       case "$tool" in ''|'#'*) continue ;; esac
@@ -234,21 +250,20 @@ case "$TOOL" in
   -h|--help)
     sed -n '9,16p' "$0" | sed 's/^# \{0,1\}//'
     exit 0 ;;
-  claude)  preflight_claude; preflight_drift ;;
-  copilot) preflight_copilot; preflight_drift ;;
-  codex)   preflight_codex; preflight_drift ;;
-  opencode) preflight_opencode; preflight_drift ;;
   all)
-    preflight_claude
-    preflight_copilot
-    preflight_codex
-    preflight_opencode
+    tool_ids="$(ai_tool_ids)" || exit 1
+    for id in $tool_ids; do preflight_tool "$id"; done
     preflight_optional_deps
     preflight_drift
     ;;
   *)
-    echo "❌ Unknown tool: $TOOL (use claude, copilot, codex, opencode or all)"
-    exit 1
+    if ai_tool_field "$TOOL" id >/dev/null 2>&1; then
+      preflight_tool "$TOOL"
+      preflight_drift
+    else
+      echo "❌ Unknown tool: $TOOL"
+      exit 1
+    fi
     ;;
 esac
 

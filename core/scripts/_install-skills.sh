@@ -31,6 +31,68 @@ _require_core_skills_dir() {
 # installers and the uninstaller cannot spell it differently.
 AIDE_SKILL_MANIFEST_NAME=".aide-installed-manifest"
 
+_valid_skill_name() {
+  case "$1" in "" | .* | */*) return 1 ;; esac
+}
+
+_skill_is_excluded() {
+  local name="$1" excluded
+  shift
+  for excluded in "$@"; do
+    [ "$name" = "$excluded" ] && return 0
+  done
+  return 1
+}
+
+install_skills() {
+  _require_core_skills_dir || return 1
+  local target="$1" manifest skill_dir skill previous temporary
+  shift
+  mkdir -p "$target"
+  manifest="$target/$AIDE_SKILL_MANIFEST_NAME"
+  previous="${manifest}.previous"
+  [ -f "$manifest" ] && cp "$manifest" "$previous" || : > "$previous"
+  : > "$manifest"
+  for skill_dir in "$_CORE_SKILLS_DIR"/*/; do
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    skill="$(basename "$skill_dir")"
+    _skill_is_excluded "$skill" "$@" && continue
+    temporary="$target/.${skill}.aide-tmp"
+    rm -rf "$temporary"
+    cp -R "${skill_dir%/}" "$temporary"
+    rm -rf "${target:?}/$skill"
+    mv "$temporary" "$target/$skill"
+    printf '%s\n' "$skill" >> "$manifest"
+    echo "   ✅ Installed: $target/$skill"
+  done
+  while IFS= read -r skill; do
+    _valid_skill_name "$skill" || continue
+    grep -Fxq "$skill" "$manifest" && continue
+    if [ -d "$target/$skill" ]; then
+      rm -rf "${target:?}/$skill"
+      echo "   🗑️  Removed retired skill: $target/$skill"
+    fi
+  done < "$previous"
+  rm -f "$previous"
+}
+
+uninstall_skills() {
+  local target="$1" manifest="$1/$AIDE_SKILL_MANIFEST_NAME" skill
+  if [ ! -f "$manifest" ]; then
+    echo "   No skill manifest found in $target; no skills removed."
+    return 0
+  fi
+  while IFS= read -r skill; do
+    _valid_skill_name "$skill" || continue
+    if [ -d "$target/$skill" ]; then
+      rm -rf "${target:?}/$skill"
+      echo "   ✅ Removed: $target/$skill"
+    fi
+  done < "$manifest"
+  rm -f "$manifest"
+  echo "   ✅ Removed: $manifest"
+}
+
 # Removes an installed skill the moment its source disappears, instead
 # of leaving it for a human to notice on another machine, another week.
 #
@@ -84,45 +146,10 @@ _write_skill_manifest() {
 }
 
 install_agents_skills() {
-  _require_core_skills_dir || return 1
-  mkdir -p "$HOME/.agents/skills"
-  local skill_dir skill
-  for skill_dir in "$_CORE_SKILLS_DIR"/*/; do
-    [ -f "$skill_dir/SKILL.md" ] || continue
-    skill=$(basename "$skill_dir")
-    rm -rf "${HOME:?}/.agents/skills/$skill"
-    cp -R "${skill_dir%/}" "$HOME/.agents/skills/$skill"
-    echo "   ✅ Installed: ~/.agents/skills/$skill"
-  done
-  prune_retired_skills "$_CORE_SKILLS_DIR" "$HOME/.agents/skills" \
-    "$HOME/.agents/skills/$AIDE_SKILL_MANIFEST_NAME"
+  install_skills "$HOME/.agents/skills"
 }
 
 uninstall_agents_skills() {
   _require_core_skills_dir || return 1
-  local skill_dir skill manifest="$HOME/.agents/skills/$AIDE_SKILL_MANIFEST_NAME"
-  for skill_dir in "$_CORE_SKILLS_DIR"/*/; do
-    skill=$(basename "$skill_dir")
-    if [ -d "$HOME/.agents/skills/$skill" ]; then
-      rm -rf "${HOME:?}/.agents/skills/$skill"
-      echo "   ✅ Removed: ~/.agents/skills/$skill"
-    fi
-  done
-  # The loop above walks what is shipped TODAY, so a skill retired since
-  # the last install is invisible to it — the same blind spot the
-  # manifest exists for. And the manifest is a file this installer
-  # writes, so this installer is what removes it.
-  if [ -f "$manifest" ]; then
-    while IFS= read -r skill; do
-      case "$skill" in
-        "" | .* | */*) continue ;;
-      esac
-      if [ -d "$HOME/.agents/skills/$skill" ]; then
-        rm -rf "${HOME:?}/.agents/skills/$skill"
-        echo "   ✅ Removed: ~/.agents/skills/$skill"
-      fi
-    done < "$manifest"
-    rm -f "$manifest"
-    echo "   ✅ Removed: ~/.agents/skills/$AIDE_SKILL_MANIFEST_NAME"
-  fi
+  uninstall_skills "$HOME/.agents/skills"
 }

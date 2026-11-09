@@ -8,90 +8,144 @@ Instructions for AI-assisted development focused on:
 
 ---
 
-# LLM coding discipline
+# Communication rules
 
-Behavioral rules that guard against two common LLM failures: silent
-assumptions and scope creep. Inspired by Andrej Karpathy's observations
-on where language models fall short when writing code.
-
-**Trade-off:** These rules favor caution over speed. On trivial tasks,
-use judgment.
+Rules for how the AI assistant presents text in the conversation with the user.
 
 ## Table of contents
 
-- [Think before you code](#think-before-you-code)
-- [Surgical changes](#surgical-changes)
-- [Documentation describes now, not history](#documentation-describes-now-not-history)
-- [See also](#see-also)
+- [Plain Norwegian — no invented or stilted words](#plain-norwegian--no-invented-or-stilted-words)
+- [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
+- [Lead with the outcome](#lead-with-the-outcome)
+- [Who fixes it: the dashboard, or me](#who-fixes-it-the-dashboard-or-me)
+- [Handing over a spec](#handing-over-a-spec)
+- [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
 ---
 
-## Think before you code
+## Plain Norwegian — no invented or stilted words
 
-**State assumptions explicitly and surface trade-offs.**
+Write ordinary, everyday Norwegian. This is the single most repeated piece of feedback the user has
+given — across projects and across many sessions — and it keeps happening, so treat it as a hard rule
+and **re-read your own reply before sending it**.
 
-Before implementing:
+**The test:** would a Norwegian colleague say this out loud in a conversation? If not, rewrite it.
 
-- State your assumptions explicitly. If you are unsure, ask.
-- Lay out multiple interpretations when they exist, rather than silently picking one.
-- If a simpler approach exists, say so. Push back when there is reason to.
-- If something is unclear, stop. Put the confusion into words. Ask.
+**The three failure types:**
 
----
+1. **Process jargon** — "paritet", "skive", "fase", "gate/gated", "lekkasje" (say "frafall"), "trakt",
+   "chrome" (about UI), "bøtte" (bucket), "røret" (pipeline), "maskiner" (say "AI-assistenter").
+2. **Anglicisms with Norwegian endings** — "scopet", "trigge", "pushe" (outside the git command).
+3. **Stilted words where an everyday one exists** — "setet" for "hovedstaden", "senteret", and other
+   "finer" synonyms. This one sneaks in when SUMMARISING work that was explained plainly a moment
+   earlier.
 
-## Surgical changes
+**One word per thing, all the way through.** Having written "hovedstad" in the explanation, write
+"hovedstad" in the summary too — not a variation. The same goes for the user's own words: if he wrote
+"FB reels", write "FB reels", never an abstraction over it ("kortvideo-formatet").
 
-**Touch only what the task requires. Clean up only your own mess.**
+**Every sentence must stand alone.** No phrases that assume the reader followed your reasoning
+("husets egen regel", "telleren er på plass — så tallet er ekte"). Spell references out: "regelen i
+docs/X sier at …".
 
-When modifying existing code:
+**Don't comment on the user's time or state** ("dette kan vente til i morgen", "med friske øyne"). He
+runs his own evening.
 
-- Leave adjacent code, comments, and formatting as they are.
-- Leave working code alone rather than refactoring it.
-- Follow the existing style, even if you would have done it differently.
-- Leave unrelated dead code in place, and mention it.
-
-When your changes leave orphaned code behind:
-
-- Remove imports, variables, and functions that *your* changes made unused.
-- Leave dead code that was already there, unless asked to remove it.
-
-Rule of thumb: every line you change should be directly traceable to what
-the user asked for.
+Applies to the chat. English code comments and commit messages stay English.
 
 ---
 
-## Documentation describes now, not history
+## Answering "do we have anything outstanding?"
 
-**A README, a CLAUDE.md, or any other living doc says how the system
-works TODAY — never a chronicle of how it got there.**
+When the user asks "har vi noe utestående?", "utestående aksjoner?" or any variation, the answer is
+a **numbered list of concrete outstanding actions — nothing else**. Number the points (1., 2., 3. …)
+so the user can refer to them by number in the reply.
 
-- Never write "spec N did X because Y" or "on DATE, Z happened" as the
-  justification for a rule inside a living doc. Git history, blame and
-  commit messages are where that belongs — a reader of the doc wants
-  the current behavior, not its excavation.
-- State the rule and, if a reason genuinely helps, the ONE-LINE
-  invariant it protects — not the story of the incident that found it.
-- This applies whenever a change happens to touch documentation, not
-  only to a spec whose job is documentation — an implement step that
-  updates a README is bound by this exactly as a dedicated doc spec is.
-- Code comments and test names follow the same rule: they say what the
-  code does and why, and never name the spec, requirement or acceptance
-  criterion that brought it. `git log` and `git blame` keep that link.
-- A doc that keeps growing because every change appends its own
-  paragraph of justification is the failure mode this guards against:
-  size should track what the system does, not how many changes it took
-  to get there.
+**Each point must be:**
+
+- A specific action that is still to be done, described so it can be picked up without more context
+- Something we have actually discussed but not prioritised, or a known bug or gap
+- Followed by a proposed solution — not just the problem. Say what you would do about it.
+
+**When the point has several possible solutions the user must choose between**, list them as
+sub-bullets under the point, one per option, each with its advantages, disadvantages and
+consequences. Consequences means what the choice drags along with it: what else has to change, what
+it costs, what it locks in. Say which one you would pick and why.
+
+**Letter the options a, b, c …** under the point's number, so the user can name one as "3c". Write
+the letter at the start of the sub-bullet — `- **a.** Dynamiske tagger.` — and keep the lettering
+restarting at `a` under every point. The user's reply may then be nothing but a reference like "ta
+3c"; treat that as choosing that option and get on with it.
+
+**Never include:**
+
+- What has been done, what was committed, or any other status — with one exception: commits not
+  yet pushed. Run `git log origin/main..main --oneline` in the same reply, and when it lists any,
+  end the list with a point saying they are ready to push (and to Deploy, when they change what a
+  server runs), so finished work is not forgotten
+- Whether the working tree is clean, tests are green, or the build passes
+- Backlog headings without content ("see docs/SPEC.md") — write out the actual points
+- Preamble, summary or closing remarks around the list
+- **Missing content in the user's own data** — an exercise without an illustration, a routine
+  without a description, a record with an empty field. That is the user filling in his own data,
+  not work on the software. It does not belong in the action list, and it does not belong in the
+  project's backlog either. Note it where the data lives (an assets README or similar) if it is
+  worth writing down at all.
+
+If there is genuinely nothing outstanding, say that in one sentence — do not fill the space with a
+recap.
 
 ---
 
-## See also
+## Lead with the outcome
 
-Two related Karpathy principles already have their own coverage here — use
-them rather than duplicating:
+Lead a reply with the outcome, and leave out detail that would not change what the reader does next.
 
-- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
-- **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
-- **Never hand-write a spec's files** — the `spec-structure` rule/skill, "Templates"
+---
+
+## Who fixes it: the dashboard, or me
+
+Every proposed fix says, in its first sentence, which of the two it is.
+
+**It can be done in the dashboard.** Describe it in the dashboard's own
+words — the page, the row, the tab, the button — and stop there. No file
+paths, no function names, no git. The user does it, and wants to; an
+explanation loaded with implementation detail takes that away by making a
+button press look like an operation.
+
+**It cannot be done in the dashboard.** Say so plainly, say why in one
+line, and state that this one is mine to do. Then the details belong in
+the answer, because they describe work the user is not being asked to
+perform.
+
+Never blur the two. A fix described half in dashboard terms and half in
+git terms leaves the user unsure whether he is being handed a task or
+told what happened.
+
+---
+
+## Handing over a spec
+
+**A spec agreed in the conversation is handed over as text, and it ends
+there.** The user creates it from the dashboard. Create it only when the
+user asks, and then with the `aide` command, which queues it on the board
+as the New spec form does: `aide create <project> "<title>"` with the
+description on standard input, and `--depends-on` for each dependency.
+Where `aide` answers that the project has no board, use `/aide-create`
+instead. Never write, commit or push anything in the specs repo on your
+own initiative. The format the text is handed over in is the `spec-handover`
+skill: load it before writing the text.
+
+---
+
+## Suggested text the user will copy out
+
+**Never prefix text the user will paste elsewhere with `> `** (a Slack
+message, a PR comment, a commit message, an email): the `>` comes along
+when copied. Mark it with `---` above and below, or a lead-in line.
+Text whose markdown must arrive intact — a spec, a file's content — goes
+in a fenced code block instead, since rendered text loses its headings,
+backticks and bold when copied.
 
 ---
 
@@ -211,6 +265,93 @@ pushes immediately, with no separate ask for either step — see that skill's ow
 instructions (`core/skills/aide-create/SKILL.md`), which specify it precisely (message format, when
 to omit the model suffix, what "nothing to stage" means) with no gap left for a general rule to
 fill. Kept in the skill rather than duplicated here so the two copies cannot drift.
+
+---
+
+# LLM coding discipline
+
+Behavioral rules that guard against two common LLM failures: silent
+assumptions and scope creep. Inspired by Andrej Karpathy's observations
+on where language models fall short when writing code.
+
+**Trade-off:** These rules favor caution over speed. On trivial tasks,
+use judgment.
+
+## Table of contents
+
+- [Think before you code](#think-before-you-code)
+- [Surgical changes](#surgical-changes)
+- [Documentation describes now, not history](#documentation-describes-now-not-history)
+- [See also](#see-also)
+
+---
+
+## Think before you code
+
+**State assumptions explicitly and surface trade-offs.**
+
+Before implementing:
+
+- State your assumptions explicitly. If you are unsure, ask.
+- Lay out multiple interpretations when they exist, rather than silently picking one.
+- If a simpler approach exists, say so. Push back when there is reason to.
+- If something is unclear, stop. Put the confusion into words. Ask.
+
+---
+
+## Surgical changes
+
+**Touch only what the task requires. Clean up only your own mess.**
+
+When modifying existing code:
+
+- Leave adjacent code, comments, and formatting as they are.
+- Leave working code alone rather than refactoring it.
+- Follow the existing style, even if you would have done it differently.
+- Leave unrelated dead code in place, and mention it.
+
+When your changes leave orphaned code behind:
+
+- Remove imports, variables, and functions that *your* changes made unused.
+- Leave dead code that was already there, unless asked to remove it.
+
+Rule of thumb: every line you change should be directly traceable to what
+the user asked for.
+
+---
+
+## Documentation describes now, not history
+
+**A README, a CLAUDE.md, or any other living doc says how the system
+works TODAY — never a chronicle of how it got there.**
+
+- Never write "spec N did X because Y" or "on DATE, Z happened" as the
+  justification for a rule inside a living doc. Git history, blame and
+  commit messages are where that belongs — a reader of the doc wants
+  the current behavior, not its excavation.
+- State the rule and, if a reason genuinely helps, the ONE-LINE
+  invariant it protects — not the story of the incident that found it.
+- This applies whenever a change happens to touch documentation, not
+  only to a spec whose job is documentation — an implement step that
+  updates a README is bound by this exactly as a dedicated doc spec is.
+- Code comments and test names follow the same rule: they say what the
+  code does and why, and never name the spec, requirement or acceptance
+  criterion that brought it. `git log` and `git blame` keep that link.
+- A doc that keeps growing because every change appends its own
+  paragraph of justification is the failure mode this guards against:
+  size should track what the system does, not how many changes it took
+  to get there.
+
+---
+
+## See also
+
+Two related Karpathy principles already have their own coverage here — use
+them rather than duplicating:
+
+- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
+- **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
+- **Never hand-write a spec's files** — the `spec-structure` rule/skill, "Templates"
 
 ---
 
@@ -391,144 +532,3 @@ nobody can tell when the tests finished.
 Kill only test processes you started yourself: find them with `ps aux | grep "[v]itest"` (or the
 runner's own name) and `kill <PID>` — never `pkill -f node` or `pkill -f vitest`, which take every
 matching process with them.
-
----
-
-# Communication rules
-
-Rules for how the AI assistant presents text in the conversation with the user.
-
-## Table of contents
-
-- [Plain Norwegian — no invented or stilted words](#plain-norwegian--no-invented-or-stilted-words)
-- [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
-- [Lead with the outcome](#lead-with-the-outcome)
-- [Who fixes it: the dashboard, or me](#who-fixes-it-the-dashboard-or-me)
-- [Handing over a spec](#handing-over-a-spec)
-- [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
-
----
-
-## Plain Norwegian — no invented or stilted words
-
-Write ordinary, everyday Norwegian. This is the single most repeated piece of feedback the user has
-given — across projects and across many sessions — and it keeps happening, so treat it as a hard rule
-and **re-read your own reply before sending it**.
-
-**The test:** would a Norwegian colleague say this out loud in a conversation? If not, rewrite it.
-
-**The three failure types:**
-
-1. **Process jargon** — "paritet", "skive", "fase", "gate/gated", "lekkasje" (say "frafall"), "trakt",
-   "chrome" (about UI), "bøtte" (bucket), "røret" (pipeline), "maskiner" (say "AI-assistenter").
-2. **Anglicisms with Norwegian endings** — "scopet", "trigge", "pushe" (outside the git command).
-3. **Stilted words where an everyday one exists** — "setet" for "hovedstaden", "senteret", and other
-   "finer" synonyms. This one sneaks in when SUMMARISING work that was explained plainly a moment
-   earlier.
-
-**One word per thing, all the way through.** Having written "hovedstad" in the explanation, write
-"hovedstad" in the summary too — not a variation. The same goes for the user's own words: if he wrote
-"FB reels", write "FB reels", never an abstraction over it ("kortvideo-formatet").
-
-**Every sentence must stand alone.** No phrases that assume the reader followed your reasoning
-("husets egen regel", "telleren er på plass — så tallet er ekte"). Spell references out: "regelen i
-docs/X sier at …".
-
-**Don't comment on the user's time or state** ("dette kan vente til i morgen", "med friske øyne"). He
-runs his own evening.
-
-Applies to the chat. English code comments and commit messages stay English.
-
----
-
-## Answering "do we have anything outstanding?"
-
-When the user asks "har vi noe utestående?", "utestående aksjoner?" or any variation, the answer is
-a **numbered list of concrete outstanding actions — nothing else**. Number the points (1., 2., 3. …)
-so the user can refer to them by number in the reply.
-
-**Each point must be:**
-
-- A specific action that is still to be done, described so it can be picked up without more context
-- Something we have actually discussed but not prioritised, or a known bug or gap
-- Followed by a proposed solution — not just the problem. Say what you would do about it.
-
-**When the point has several possible solutions the user must choose between**, list them as
-sub-bullets under the point, one per option, each with its advantages, disadvantages and
-consequences. Consequences means what the choice drags along with it: what else has to change, what
-it costs, what it locks in. Say which one you would pick and why.
-
-**Letter the options a, b, c …** under the point's number, so the user can name one as "3c". Write
-the letter at the start of the sub-bullet — `- **a.** Dynamiske tagger.` — and keep the lettering
-restarting at `a` under every point. The user's reply may then be nothing but a reference like "ta
-3c"; treat that as choosing that option and get on with it.
-
-**Never include:**
-
-- What has been done, what was committed, or any other status — with one exception: commits not
-  yet pushed. Run `git log origin/main..main --oneline` in the same reply, and when it lists any,
-  end the list with a point saying they are ready to push (and to Deploy, when they change what a
-  server runs), so finished work is not forgotten
-- Whether the working tree is clean, tests are green, or the build passes
-- Backlog headings without content ("see docs/SPEC.md") — write out the actual points
-- Preamble, summary or closing remarks around the list
-- **Missing content in the user's own data** — an exercise without an illustration, a routine
-  without a description, a record with an empty field. That is the user filling in his own data,
-  not work on the software. It does not belong in the action list, and it does not belong in the
-  project's backlog either. Note it where the data lives (an assets README or similar) if it is
-  worth writing down at all.
-
-If there is genuinely nothing outstanding, say that in one sentence — do not fill the space with a
-recap.
-
----
-
-## Lead with the outcome
-
-Lead a reply with the outcome, and leave out detail that would not change what the reader does next.
-
----
-
-## Who fixes it: the dashboard, or me
-
-Every proposed fix says, in its first sentence, which of the two it is.
-
-**It can be done in the dashboard.** Describe it in the dashboard's own
-words — the page, the row, the tab, the button — and stop there. No file
-paths, no function names, no git. The user does it, and wants to; an
-explanation loaded with implementation detail takes that away by making a
-button press look like an operation.
-
-**It cannot be done in the dashboard.** Say so plainly, say why in one
-line, and state that this one is mine to do. Then the details belong in
-the answer, because they describe work the user is not being asked to
-perform.
-
-Never blur the two. A fix described half in dashboard terms and half in
-git terms leaves the user unsure whether he is being handed a task or
-told what happened.
-
----
-
-## Handing over a spec
-
-**A spec agreed in the conversation is handed over as text, and it ends
-there.** The user creates it from the dashboard. Create it only when the
-user asks, and then with the `aide` command, which queues it on the board
-as the New spec form does: `aide create <project> "<title>"` with the
-description on standard input, and `--depends-on` for each dependency.
-Where `aide` answers that the project has no board, use `/aide-create`
-instead. Never write, commit or push anything in the specs repo on your
-own initiative. The format the text is handed over in is the `spec-handover`
-skill: load it before writing the text.
-
----
-
-## Suggested text the user will copy out
-
-**Never prefix text the user will paste elsewhere with `> `** (a Slack
-message, a PR comment, a commit message, an email): the `>` comes along
-when copied. Mark it with `---` above and below, or a lead-in line.
-Text whose markdown must arrive intact — a spec, a file's content — goes
-in a fenced code block instead, since rendered text loses its headings,
-backticks and bold when copied.

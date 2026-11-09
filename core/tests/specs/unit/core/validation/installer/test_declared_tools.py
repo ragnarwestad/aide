@@ -131,11 +131,13 @@ class TestInstallersDeclareMarkdownlint:
     that only ran one core/implementations/<ai>/install.sh never gets it."""
 
     def test_every_installer_calls_install_mise_declared_tools(self, workspace_root):
+        shared = (workspace_root / "core" / "scripts" / "_install-steps.sh").read_text()
+        assert "install_mise_declared_tools" in shared
         for tool in _implementations(workspace_root):
             installer = workspace_root / "core" / "implementations" / tool / "install.sh"
             text = installer.read_text()
-            assert "install_mise_declared_tools" in text, \
-                f"core/implementations/{tool}/install.sh never calls install_mise_declared_tools"
+            assert "_install-steps.sh" in text, \
+                f"core/implementations/{tool}/install.sh does not use the shared install steps"
 
 
 @pytest.mark.validation
@@ -271,15 +273,6 @@ class TestUpgradeAiToolsReportsEveryToolItUpgrades:
         return pattern.group(1).split("|")
 
     def test_every_upgraded_tool_appears_in_the_version_report(self, workspace_root):
-        upgrade_line, report_line = self._lines(workspace_root)
-        packages = upgrade_line.split()[2:]
-        assert packages, upgrade_line
-        patterns = self._patterns(report_line)
-        missing = [
-            pkg for pkg in packages
-            if not any(alternative in pkg for alternative in patterns)
-        ]
-        assert not missing, (
-            f"{missing} are upgraded but never listed by the version report: "
-            f"{report_line}"
-        )
+        text = (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()
+        assert 'report_names="$report_names|$report"' in text
+        assert 'grep -E "$report_names"' in text

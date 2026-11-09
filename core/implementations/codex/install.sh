@@ -5,50 +5,14 @@
 
 set -e  # Exit on error
 
-echo "🔧 OpenAI Codex Setup"
-echo "====================="
-echo ""
-
-# Codex is installed globally (~/.codex/AGENTS.md + ~/.local/bin/) — no project path needed
-
-echo ""
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKSPACE_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
-
-# Verify that the workspace exists
-if [ ! -d "$WORKSPACE_ROOT" ]; then
-  echo "❌ Could not find workspace: $WORKSPACE_ROOT"
-  exit 1
-fi
-
-echo "📂 Workspace: $WORKSPACE_ROOT"
-echo ""
-
-# Preflight: report what is installed and where the pieces will land
-AIDE_INSTALLING=1 "$WORKSPACE_ROOT/core/scripts/aide-preflight" codex
-
-# 1. Install scripts to ~/.local/bin/
-echo "1️⃣  Installing scripts to ~/.local/bin/..."
-source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
-install_common_bin
-install_mise_declared_tools
-install_shell_path
-
-echo ""
+source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
+install_steps_begin codex
 
 # 2. Install global Codex instructions (AGENTS.md)
 echo "2️⃣  Installing global Codex instructions..."
 
-if [ ! -f "$WORKSPACE_ROOT/core/AGENTS.md" ]; then
-  echo "   ❌ core/AGENTS.md not found!"
-  echo "   Run core/scripts/build-agents-md.sh first, or make sure you have the latest version: git pull"
-  exit 1
-fi
-
-mkdir -p "$HOME/.codex"
-cp "$WORKSPACE_ROOT/core/AGENTS.md" "$HOME/.codex/AGENTS.md"
-echo "   ✅ Installed: ~/.codex/AGENTS.md"
+install_instructions "$HOME/.codex/AGENTS.md"
 
 echo ""
 
@@ -75,36 +39,11 @@ echo ""
 #    shared with Copilot — see core/scripts/_install-skills.sh)
 echo "4️⃣  Installing skills to ~/.agents/skills/..."
 
-source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
-install_agents_skills
+install_skills "$HOME/.agents/skills"
 
 echo ""
 
-# 5. Verify that ~/.local/bin is in PATH
-echo "5️⃣  Verifying PATH..."
-if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-  echo "   ✅ ~/.local/bin is in PATH"
-else
-  echo "   ⚠️  ~/.local/bin is NOT in PATH for this shell yet"
-  echo "   ℹ️  It was just added to ~/.zshenv and ~/.bashrc — open a new"
-  echo "      terminal or ssh session to pick it up"
-fi
-
-# 6. Check if Codex CLI is installed
-echo "6️⃣  Checking Codex CLI..."
-
-if command -v codex &> /dev/null; then
-  echo "   ✅ Codex CLI is installed: $(codex --version 2>/dev/null || echo 'version unknown')"
-else
-  echo "   ⚠️  Codex CLI is NOT installed"
-  echo ""
-  echo "   Install via npm:"
-  echo "      npm install -g @openai/codex"
-  echo ""
-  echo "   Or via mise:"
-  echo "      mise use -g npm:@openai/codex@latest"
-  echo ""
-fi
+install_steps_finish codex
 
 # 7. Check if Browser Testing MCP is configured
 echo "7️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."

@@ -1,0 +1,5 @@
+# <id> | <implementation> | <cli> | <name> | <version row> | <upgrade> | <install>
+claude | claude-code | claude | Claude Code | Claude Code | self | curl -fsSL https://claude.ai/install.sh | bash
+copilot | copilot | copilot | GitHub Copilot | GitHub Copilot CLI | npm:@github/copilot | mise use -g npm:@github/copilot@latest
+codex | codex | codex | OpenAI Codex | Codex CLI | npm:@openai/codex | mise use -g npm:@openai/codex@latest
+opencode | opencode | opencode | OpenCode | OpenCode | opencode | mise use -g opencode@latest

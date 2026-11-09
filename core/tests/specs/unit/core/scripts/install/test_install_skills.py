@@ -60,6 +60,66 @@ def prune(helper, source_dir, target_dir, manifest):
     )
 
 
+def run_function(helper, source_dir, function, target_dir, *excluded):
+    args = " ".join(f'"{value}"' for value in (target_dir, *excluded))
+    return subprocess.run(
+        [BASH, "-c", f'set -e; source "{helper}"; _CORE_SKILLS_DIR="{source_dir}"; {function} {args}'],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_install_replaces_the_complete_skill_directory_ac_2(helper, dirs):
+    source, target, _ = dirs
+    shipped = skill(source, "aide-create")
+    (shipped / "current.txt").write_text("current")
+    old = installed(target, "aide-create")
+    (old / "deleted.txt").write_text("stale")
+
+    result = run_function(helper, source, "install_skills", target)
+
+    assert result.returncode == 0, result.stderr
+    assert not (target / "aide-create/deleted.txt").exists()
+    assert (target / "aide-create/current.txt").read_text() == "current"
+
+
+def test_install_manifest_contains_only_installed_skills_ac_3(helper, dirs):
+    source, target, manifest = dirs
+    skill(source, "aide-create")
+    skill(source, "spec-structure")
+    installed(target, "retired")
+    manifest.write_text("retired\n")
+
+    result = run_function(helper, source, "install_skills", target, "spec-structure")
+
+    assert result.returncode == 0, result.stderr
+    assert manifest.read_text().splitlines() == ["aide-create"]
+    assert not (target / "retired").exists()
+
+
+def test_uninstall_removes_exactly_the_manifest_ac_3(helper, dirs):
+    _, target, manifest = dirs
+    for name in ("owned", "shipped-but-not-listed", "foreign"):
+        installed(target, name)
+    manifest.write_text("owned\n")
+
+    result = run_function(helper, target.parent / "unused", "uninstall_skills", target)
+
+    assert result.returncode == 0, result.stderr
+    assert not (target / "owned").exists()
+    assert (target / "shipped-but-not-listed").exists()
+    assert (target / "foreign").exists()
+    assert not manifest.exists()
+
+
+def test_uninstall_without_manifest_removes_nothing_ac_3(helper, dirs):
+    _, target, _ = dirs
+    installed(target, "foreign")
+    result = run_function(helper, target.parent / "unused", "uninstall_skills", target)
+    assert result.returncode == 0, result.stderr
+    assert (target / "foreign").exists()
+
+
 @pytest.fixture
 def dirs(tmp_path):
     source = tmp_path / "core" / "skills"
@@ -280,14 +340,3 @@ class TestUninstallAgentsSkills:
 
         assert result.returncode == 0, result.stderr
         assert (target / "somebody-elses-skill").exists()
-
-    def test_a_machine_with_no_manifest_uninstalls_exactly_as_before(self, helper, tmp_path):
-        home = tmp_path / "home"
-        target = home / ".agents" / "skills"
-        target.mkdir(parents=True)
-        installed(target, "aide-create")
-
-        result = self.run_uninstall(helper, home)
-
-        assert result.returncode == 0, result.stderr
-        assert not (target / "aide-create").exists()
