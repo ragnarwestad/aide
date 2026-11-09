@@ -4,7 +4,7 @@
 
 import type { SpecsPageOptions } from "./";
 import { asRunnableTool } from "../../../queue/steps.ts";
-import { SHORT_TOOL_NAMES, TOOL_NAMES, type ProviderTool } from "../../../queue/providers/tools.ts";
+import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
@@ -92,7 +92,8 @@ export function defaultModelForTool(
 
 /** The tool a provider needs to run a model choice: its own, with a
  *  choice that names none or the scripted stand-in run by Claude Code. */
-export const providerToolOf = (tool: string | undefined): string => (tool === undefined || tool === "fake-claude" ? "claude" : tool);
+export const providerToolOf = (tool: string | undefined): string =>
+  tool === undefined ? "claude" : (RUNNABLE_TOOLS as readonly string[]).includes(tool) ? providerFamily(tool as (typeof RUNNABLE_TOOLS)[number]) : tool;
 
 /** A provider as a picker offers it: its key (the value posted), its name
  *  and the tool whose models it runs. */
