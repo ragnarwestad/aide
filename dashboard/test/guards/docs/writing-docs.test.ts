@@ -49,10 +49,10 @@ function pagesInScope(): string[] {
     ...scan("core/implementations/**/*.md"),
     ...scan("docs/*.md").filter((f) => f !== "docs/AI_NEWS_LOG.md" && f !== "docs/ROADMAP.md"),
     "dashboard/README.md",
-    "dashboard/CLAUDE.md",
+    "dashboard/AGENTS.md",
     "README.md",
     "DEVELOPING.md",
-    ".claude/CLAUDE.md",
+    "AGENTS.md",
   ];
   return [...new Set(files)].sort();
 }

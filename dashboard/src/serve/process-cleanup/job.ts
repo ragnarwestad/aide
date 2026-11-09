@@ -1,6 +1,7 @@
 import { appendFileSync, renameSync, writeFileSync } from "node:fs";
 import type { SpawnResult } from "../../queue/runner";
 import type { Job } from "../../queue/queue.ts";
+import { stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
 import { CLEANUP_OPERATIONS, cleanupProcesses, type CleanupDependencies, type CleanupProgress } from "./engine.ts";
 
 const writeResult = (file: string, ok: boolean, error?: string): void => {
@@ -19,7 +20,7 @@ const cleanupMark = (event: CleanupProgress): string => {
   const index = CLEANUP_OPERATIONS.findIndex(({ step }) => step === event.step);
   const operation = CLEANUP_OPERATIONS[index]!;
   const ending = event.state === "skipped" ? "skipped: nothing to stop" : event.state === "stopped" ? `stopped: ${event.text}` : event.state;
-  return `--- Step ${index + 1} of ${CLEANUP_OPERATIONS.length}: ${operation.title} — ${ending}`;
+  return stepMarkLine(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, operation.title, ending);
 };
 
 export function cancelCleanupJob(jobId: string): void {

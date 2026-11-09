@@ -12,6 +12,7 @@ import type { Job, QueueDefaults } from "../types.ts";
 import { tailEditStep } from "./tail-edits.ts";
 import type { PendingModelResult } from "./types.ts";
 import { SIDE_PARTS } from "../providers/side-tools.ts";
+import type { RequestRefusal } from "../../format/request-fixes.ts";
 
 /** What the picks read and write, handed over by the store. */
 export interface PickContext {
@@ -27,11 +28,11 @@ export interface PickContext {
 }
 
 /** The refusal for `provider` with `model`, or the key it names. */
-function checkedProvider(defaults: QueueDefaults, provider: string, model: string): { key: string } | { error: string } {
+function checkedProvider(defaults: QueueDefaults, provider: string, model: string): { key: string } | RequestRefusal {
   const found = providerKeyFrom(defaults, provider, "");
   if ("error" in found) return found;
   const refusal = providerModelError(defaults, found.key, model);
-  return refusal ? { error: refusal } : found;
+  return refusal ?? found;
 }
 
 /** Change the model a RUNNING job will use for a step it has not reached
@@ -54,17 +55,17 @@ function checkedProvider(defaults: QueueDefaults, provider: string, model: strin
  *  run the new model. */
 export function editTailModel(ctx: PickContext, id: string, step: string, model: string, provider?: string): ParseResult {
   const job = ctx.jobs.get(id);
-  if (!job) return { ok: false, error: invalidRequest("no such job") };
+  if (!job) return { ok: false, ...invalidRequest("no such job") };
   const editable = tailEditStep(job, step);
-  if ("error" in editable) return { ok: false, error: editable.error };
+  if ("error" in editable) return { ok: false, ...editable };
   const wanted = editable.step;
-  if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
+  if (!NAME_RE.test(model)) return { ok: false, ...invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
-  if ("error" in found) return { ok: false, error: found.error };
+  if ("error" in found) return { ok: false, ...found };
   let providers = job.provider;
   if (provider) {
     const checked = checkedProvider(ctx.defaults, provider, found.name);
-    if ("error" in checked) return { ok: false, error: checked.error };
+    if ("error" in checked) return { ok: false, ...checked };
     providers = { ...providers, [wanted]: checked.key };
   } else if (providers?.[wanted]) {
     const own = ctx.defaults.providers?.[providers[wanted]!];
@@ -113,19 +114,19 @@ export function setPendingModel(
   ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
 ): PendingModelResult {
   const wanted = [...WORKFLOW_STEPS, ...SIDE_PARTS].find((s) => s === step);
-  if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
+  if (!wanted) return { ok: false, ...invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
   if ((SIDE_PARTS as readonly string[]).includes(wanted) && model === "") {
     clearPendingModel(ctx, project, specFolder, wanted);
     ctx.changed();
     return { ok: true };
   }
-  if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
+  if (!NAME_RE.test(model)) return { ok: false, ...invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
-  if ("error" in found) return { ok: false, error: found.error };
+  if ("error" in found) return { ok: false, ...found };
   let key: string | undefined;
   if (provider) {
     const checked = checkedProvider(ctx.defaults, provider, found.name);
-    if ("error" in checked) return { ok: false, error: checked.error };
+    if ("error" in checked) return { ok: false, ...checked };
     key = checked.key;
   }
   writePendingModel(ctx, project, specFolder, wanted, found.name, key);

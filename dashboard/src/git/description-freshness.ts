@@ -21,22 +21,17 @@
 import { basename, dirname, join } from "node:path";
 import type { GitRunner } from "./process/index.ts";
 import { DESCRIPTION_FILE } from "../project/spec-names.ts";
+import { parseStepSubject, stepSubjectStart } from "./workflow-history.ts";
 
 const DEFAULT_TTL_MS = 30_000;
 
-/** The subject `aide-run-spec` writes for a SUCCESSFUL headless run
- *  (`core/scripts/aide-run-spec`, the commit at the end of a step). A
- *  run that stopped appends ` (stopped: <reason>)` to exactly this
- *  string — which is why the match below has to be equality and not a
- *  prefix. */
-const analyzeSubject = (specFolder: string): string =>
-  `Run /aide-analyze for ${specFolder} (headless)`;
-
-/** The subject above, or the subject above naming who ran it — the
- *  ` (model: …)` group `workflow-history.ts` documents in its grammar.
- *  Nothing after it: a stopped run carries ` (stopped: …)` last. */
-const isFinishedAnalyze = (line: string, subject: string): boolean =>
-  line === subject || (line.startsWith(`${subject} (model: `) && /^ \(model: [^)]+\)$/.test(line.slice(subject.length)));
+/** A finished analyze of `specFolder`, headless or committed at a keyboard: its subject read as the
+ *  workflow history reads it, and no stop reason. A fixed-string grep matches a prefix, so a stopped
+ *  run and a longer folder come back from git too, and are told apart here. */
+const isFinishedAnalyze = (subject: string, specFolder: string): boolean => {
+  const read = parseStepSubject(subject, specFolder);
+  return read?.step === "analyze" && read.stopped === undefined;
+};
 
 /** The last commit touching `pathspec` — which one, and when — or null
  *  if git cannot say. Scoped to ONE path on purpose: a plan-merge commit
@@ -144,7 +139,6 @@ export async function lastAnalyzeCommit(
   specFolder: string,
   boundarySha?: string,
 ): Promise<AnalyzeCommit | null> {
-  const subject = analyzeSubject(specFolder);
   const out = await run(dir, [
     "log",
     // The third reader of the same commit grammar. A reopened
@@ -161,13 +155,13 @@ export async function lastAnalyzeCommit(
     ...(boundarySha ? ["HEAD", "--not", boundarySha] : []),
     "--format=%H%x09%aI%x09%s",
     "--fixed-strings",
-    `--grep=${subject}`,
+    `--grep=${stepSubjectStart("analyze", specFolder)}`,
   ]);
   if (out.code !== 0) return null;
   for (const line of out.stdout.split("\n")) {
     const [sha, at, ...rest] = line.split("\t");
     if (!sha || !at || rest.length === 0) continue;
-    if (isFinishedAnalyze(rest.join("\t"), subject)) return { sha, at };
+    if (isFinishedAnalyze(rest.join("\t"), specFolder)) return { sha, at };
   }
   return null;
 }

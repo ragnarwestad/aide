@@ -4,11 +4,11 @@
 # parses, not configuration for any tool.
 exclude = ["dashboard/test/fixtures/**"]
 
-# Two files that belong to different projects by design: .claude/CLAUDE.md
+# Two files that belong to different projects by design: AGENTS.md
 # steers work on this repo (bun in dashboard/), and core/AGENTS.md is built
 # for the projects Aide is installed into (pnpm in its examples).
 [[overrides]]
-paths = [".claude/CLAUDE.md", "core/AGENTS.md"]
+paths = ["AGENTS.md", "core/AGENTS.md"]
 disabled_rules = ["XP-004"]
 
 # Only Claude Code reads .claude/, so naming Claude Code's own paths there
@@ -29,7 +29,21 @@ disabled_rules = ["XP-003"]
 #   CDX-AG-005  paths inside prose, resolved against core/ instead of the repo root
 [[overrides]]
 paths = ["core/AGENTS.md"]
-disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005"]
+disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005", "XP-009"]
+
+# XP-009 above: core/AGENTS.md added to the root AGENTS.md passes Codex's
+# 32 KiB default. Work on this repo starts at the root, where Codex reads
+# the root file alone; core/AGENTS.md is for the projects Aide installs into.
+
+# The root AGENTS.md and dashboard/AGENTS.md are the rules for working on
+# this repo, read by every AI tool (each CLAUDE.md imports its own). Three
+# AGENTS.md files is the layout, not an accident (AGM-006); the paths in
+# their prose are relative to the code they describe or to the home
+# directory (CDX-AG-005); and Windsurf's 12 000-character ceiling is not a
+# tool Aide targets (AGM-003).
+[[overrides]]
+paths = ["AGENTS.md", "dashboard/AGENTS.md", "core/AGENTS.md"]
+disabled_rules = ["AGM-003", "AGM-006", "CDX-AG-005"]
 
 # `effort` and `argument-hint` are Claude Code's own skill fields. Every
 # skill in core/skills carries them on purpose: Claude Code uses them, and
@@ -38,17 +52,17 @@ disabled_rules = ["AGM-003", "PE-001", "PE-004", "PE-006", "CDX-AG-005"]
 paths = ["core/skills/**"]
 disabled_rules = ["XP-SK-001"]
 
-# Pages that document where each tool installs, and the dashboard's own
-# CLAUDE.md, name those tools' paths because that is what they describe.
+# Pages that document where each tool installs, and this repo's own
+# AGENTS.md files, name those tools' paths because that is what they describe.
 [[overrides]]
-paths = ["DEVELOPING.md", "core/implementations/**/*.md", "dashboard/CLAUDE.md"]
+paths = ["DEVELOPING.md", "core/implementations/**/*.md", "AGENTS.md", "dashboard/AGENTS.md"]
 disabled_rules = ["XP-003"]
 
-# The two CLAUDE.md files hold what every session in their directory needs;
+# The two AGENTS.md files hold what every session in their directory needs;
 # splitting them with @import loads the same text anyway. Their rules are
 # written as prohibitions on purpose, like core/AGENTS.md's.
 [[overrides]]
-paths = [".claude/CLAUDE.md", "dashboard/CLAUDE.md"]
+paths = ["AGENTS.md", "dashboard/AGENTS.md"]
 disabled_rules = ["CC-MEM-009", "CC-MEM-006", "PE-001"]
 
 # spec-structure is the rule of the same name installed as a skill for the

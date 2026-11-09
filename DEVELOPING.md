@@ -200,6 +200,6 @@ cd core/implementations/claude-code && ./uninstall.sh
 
 ### Special cases
 
-- **Aide:** `.claude/CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
+- **Aide:** `AGENTS.md`, `CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
 - **The AI installations are global** and apply to all your projects
 - **aide-* skills:** Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts

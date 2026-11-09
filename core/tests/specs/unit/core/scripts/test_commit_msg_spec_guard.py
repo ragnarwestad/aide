@@ -196,19 +196,20 @@ class TestUnrelatedCommitsAreUntouched:
         assert result.returncode == 0, result.stderr
 
 
-def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root, run_spec_source):
-    """The Medium-risk mitigation named in 3-solution.md: the hook
-    restates the convention regex independently in shell (spec-folder-
-    agnostic, since the hook only knows which files are staged, not
-    which spec they belong to). A fourth hand-paired duplicate after
-    WORKFLOW_STEPS/DEPENDENCY_GATED_STEPS/errorReason — if
-    aide-run-spec's copy (aide-run-spec:1623) ever grows a new suffix
-    form, this is what notices the hook's copy did not follow.
+def test_the_hook_accepts_every_subject_the_runner_reads_as_a_step_AC_2(workspace_root):
+    """The hook knows no folder, so its regex stays its own and is looser
+    than the runner's reader (`aide_read_step_subject` in
+    core/scripts/lib/spec-reference.sh). Every subject that reader takes
+    as a step, a keyboard run included, the hook must let through, and a
+    subject outside the grammar is refused by both.
     """
-    bash = run_spec_source
-    m = re.search(r'^\s*re="(\^Run /aide-.*)"$', bash, re.M)
-    assert m, "aide-run-spec no longer declares its commit-subject regex the same way"
-    run_spec_pattern = m.group(1).replace("${folder}", "55-example")
+    lib = workspace_root / "core" / "scripts" / "lib" / "spec-reference.sh"
+
+    def runner_reads(subject):
+        return subprocess.run(
+            ["bash", "-c", 'source "$1"; aide_read_step_subject "$2" "$3"', "_", str(lib), subject, "55-example"],
+            capture_output=True, text=True,
+        ).returncode == 0
 
     hook_text = (workspace_root / "core" / "scripts" / "hooks" / "commit-msg-spec-guard").read_text()
     m = re.search(r'^\s*re="(\^Run /aide-.*)"$', hook_text, re.M)
@@ -218,8 +219,11 @@ def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root, r
     subjects_matching = [
         "Run /aide-create for 55-example",
         "Run /aide-analyze for 55-example (headless)",
+        "Run /aide-analyze for 55-example (headless) (model: claude opus)",
         "Run /aide-implement for 55-example (stopped: time limit)",
         "Run /aide-archive for 55-example (headless) (stopped: budget)",
+        "Run /aide-implement for 55-example (headless) (model: codex) (stopped: timeout)",
+        "Run /aide-analyze for 55-example (model: claude claude-opus-5)",
     ]
     subjects_not_matching = [
         "Add analysis for spec 55",
@@ -229,8 +233,8 @@ def test_the_shared_convention_regex_agrees_with_aide_run_spec(workspace_root, r
     ]
 
     for subject in subjects_matching:
-        assert re.match(run_spec_pattern, subject), f"aide-run-spec's regex rejects: {subject}"
+        assert runner_reads(subject), f"the runner's reader rejects: {subject}"
         assert re.match(hook_pattern, subject), f"the hook's regex rejects: {subject}"
     for subject in subjects_not_matching:
-        assert not re.match(run_spec_pattern, subject), f"aide-run-spec's regex accepts: {subject}"
+        assert not runner_reads(subject), f"the runner's reader accepts: {subject}"
         assert not re.match(hook_pattern, subject), f"the hook's regex accepts: {subject}"

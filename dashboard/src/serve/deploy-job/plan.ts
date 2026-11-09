@@ -6,7 +6,7 @@
 
 import { t, type Language } from "../../i18n";
 import type { PlannedStep } from "../../queue/parse-stream";
-import { stepKey } from "../../queue/parse-stream/step-marks.ts";
+import { stepKey, stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
 import { STEP_LABEL } from "../../render/pages/projects-page/deploy-dialog.ts";
 
 /** The steps, in the order they run: the keys of `STEP_LABEL`. */
@@ -20,7 +20,7 @@ export type DeployMark = "started" | "done" | "skipped" | `stopped: ${string}`;
 
 /** The run-log line that marks `step`, in English whatever the reader's language. */
 export const deployMark = (step: DeployStep, ending: DeployMark): string =>
-  `--- Step ${place(step)}: ${t("en", STEP_LABEL[step]!)} — ${ending}`;
+  stepMarkLine(place(step), t("en", STEP_LABEL[step]!), ending);
 
 /** The plan the Running page lists for a deploy: every step, waiting. */
 export const deployPlan = (lang: Language): PlannedStep[] =>

@@ -231,7 +231,7 @@ class TestInstallAgentsSkillsPrunes:
 @pytest.mark.unit
 class TestUninstallAgentsSkills:
     """install and uninstall must mirror each other (the repo's own rule
-    in .claude/rules/development.md). The install writes a manifest now,
+    in AGENTS.md). The install writes a manifest now,
     so the uninstall is what removes it — and while it has the file
     open, the names in it are exactly the ones its own loop over
     core/skills/ cannot see."""

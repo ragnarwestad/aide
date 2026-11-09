@@ -15,6 +15,7 @@
     { "name": "model-refused", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": false },
     { "name": "no-progress", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },
     { "name": "not-implemented-yet", "jobStop": false, "runStop": false, "failure": false, "guard": true, "leavesStepUndone": false, "mayRetry": false },
+    { "name": "overlap-decision-missing", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": true },
     { "name": "provider-limit", "jobStop": true, "runStop": true, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
     { "name": "refused", "jobStop": false, "runStop": false, "failure": false, "guard": false, "leavesStepUndone": false, "mayRetry": false },
     { "name": "scope-violation", "jobStop": false, "runStop": false, "failure": true, "guard": false, "leavesStepUndone": true, "mayRetry": true },

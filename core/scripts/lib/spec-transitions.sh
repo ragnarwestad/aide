@@ -103,10 +103,8 @@ _peek_spec_state() {
     state_json="$(cat "$state_file" 2>/dev/null || echo '{}')"
     return
   fi
-  local prose_line completed_json archived_json closed_json
-  prose_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" 2>/dev/null | tail -1)"
-  completed_json="$(printf '%s' "$prose_line" | \
-    jq -R -s -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
+  local completed_json archived_json closed_json
+  completed_json="$(workflow_steps_in "$status_file" | jq -R -s -c 'split("\n") | map(select(length>0))')"
   archived_json="$(_spec_state_archived_json "$status_file")"
   closed_json="$(_spec_state_closed_json "$status_file")"
   state_json="$(jq -cn --argjson c "$completed_json" --argjson a "$archived_json" --argjson cl "$closed_json" \
@@ -182,11 +180,15 @@ write_phase_stamp() {
       ;;
     workflow-line)
       [ -n "$value" ] || return 0
-      if grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
+      # Every line workflow_steps_in reads (spec-state.sh: any letter case,
+      # spaces after the dash) is replaced, so none is left for a reader to
+      # take over the one written here.
+      if grep -qiE '^-[[:space:]]*\*\*workflow steps completed:\*\*' "$status_file" 2>/dev/null \
+         || grep -qE '^- \*\*(Task|TODO):\*\*' "$status_file" 2>/dev/null; then
         local tmp; tmp="$(mktemp)"
-        awk -v line="- **Workflow steps completed:** $value" '
+        LC_ALL=C awk -v line="- **Workflow steps completed:** $value" '
           BEGIN { written = 0 }
-          /^- \*\*Workflow steps completed:\*\*/ {
+          tolower($0) ~ /^-[ \t]*\*\*workflow steps completed:\*\*/ {
             if (!written) { print line; written = 1 }
             next
           }

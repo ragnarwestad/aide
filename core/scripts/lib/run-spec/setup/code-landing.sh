@@ -87,14 +87,7 @@ roots=("$project_root")
 
 spec_folder=""
 spec_folder_archived="no"
-if [ -d "$specs_root/$spec_arg" ]; then
-  spec_folder="$spec_arg"
-else
-  for candidate in "$specs_root"/*/; do
-    base="$(basename "$candidate")"
-    case "$base" in "$spec_arg"-*) spec_folder="$base"; break ;; esac
-  done
-fi
+aide_find_spec_folder "$specs_root" "$spec_arg" && spec_folder="$found_folder"
 
 # The way out of an unlanded spec. An `archive` step whose
 # landing never finished leaves the folder under `archive/` — its own
@@ -108,20 +101,9 @@ fi
 # branch still being on origin: a spec that DID land has nothing left to
 # archive, and is reported as such by `already_landed` below — before any
 # money is spent, and told apart from a name that does not exist at all
-#
-# The fourth "try the active folder, then try archive/" in this codebase
-# (aide_resolve_spec, resolve_dependency_folder, status_file_for), and
-# duplicated rather than shared for the same reason those three are.
 if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root/archive" ]; then
   archived_candidate=""
-  if [ -d "$specs_root/archive/$spec_arg" ]; then
-    archived_candidate="$spec_arg"
-  else
-    for candidate in "$specs_root/archive"/*/; do
-      base="$(basename "$candidate")"
-      case "$base" in "$spec_arg"-*) archived_candidate="$base"; break ;; esac
-    done
-  fi
+  aide_find_spec_folder "$specs_root" "$spec_arg" archive && archived_candidate="$found_folder"
   if [ -n "$archived_candidate" ]; then
     # ls-remote, not the remote-tracking refs: a merged-and-deleted
     # branch leaves a stale ref behind in every checkout that ever
@@ -158,11 +140,9 @@ fi
 # of the commit grammar is concerned. Where the folder actually stands is
 # a question `status_file_for` below already answers on its own, by
 # trying both addresses.
-if [ -z "$spec_folder" ] && [ "$command_name" = "reopen" ] && [ -d "$specs_root/archive" ]; then
-  for candidate in "$specs_root/archive"/*/; do
-    base="$(basename "$candidate")"
-    case "$base" in "$spec_arg" | "$spec_arg"-*) spec_folder="$base"; spec_folder_archived="yes"; break ;; esac
-  done
+if [ -z "$spec_folder" ] && [ "$command_name" = "reopen" ] \
+   && aide_find_spec_folder "$specs_root" "$spec_arg" archive; then
+  spec_folder="$found_folder"; spec_folder_archived="yes"
 fi
 # A `create` step is the one that MAKES the folder, so it is the one
 # step for which "no such folder" is the normal case rather than a

@@ -1,5 +1,6 @@
 import type { QueueStore, WorkflowStep } from "../../../queue/queue.ts";
-import { aiWorkRetryDecision, aiWorkRetryRecord } from "../../../queue/runner/retry.ts";
+import { aiWorkRetryRecord } from "../../../queue/runner/retry.ts";
+import { endingMayRetry } from "../../../step-endings.ts";
 
 export function retryArchiveLanding(
   queue: Pick<QueueStore, "get" | "transition">,
@@ -11,8 +12,7 @@ export function retryArchiveLanding(
   if (step !== "archive") return false;
   const job = queue.get(jobId);
   if (!job) return false;
-  const attempts = job.retry?.action === "archive" ? job.retry.attempts : 1;
-  if (!aiWorkRetryDecision({ terminalReason }, attempts)) return false;
+  if (!endingMayRetry(terminalReason)) return false;
   const retry = aiWorkRetryRecord(job, "archive", {
     terminalReason,
     ...(detail ? { detail } : {}),

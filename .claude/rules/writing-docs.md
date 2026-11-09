@@ -2,7 +2,7 @@
 paths:
   - "/README.md"
   - "/DEVELOPING.md"
-  - ".claude/CLAUDE.md"
+  - "/AGENTS.md"
   - ".claude/rules/*.md"
   - "docs/AGENTS_AND_LOOPS.md"
   - "docs/AI_SUPPORT_MATRIX.md"
@@ -15,7 +15,7 @@ paths:
   - "docs/SPEC_WRITING_SOURCES.md"
   - "core/implementations/**/*.md"
   - "dashboard/README.md"
-  - "dashboard/CLAUDE.md"
+  - "dashboard/AGENTS.md"
   - "dashboard/.claude/rules/*.md"
   - "dashboard/docs/**/*.md"
 ---

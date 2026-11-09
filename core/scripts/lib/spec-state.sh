@@ -36,6 +36,38 @@ _spec_state_file_for() {   # $1 = status_file path; prints the sibling state-fil
   printf '%s' "${1%4-status.md}4-status.json"
 }
 
+# The steps on the last `- **Workflow steps completed:**` bullet of a
+# 4-status.md: the file, or standard input when none is given. Spaces may
+# follow the `-`, and the label may be in any letter case. One step per
+# line, backticks dropped, spaces trimmed, lower-cased, empty entries left
+# out. Prints nothing and succeeds for a file without the line, or no file,
+# so a pipeline's status stays that of the command before it. The
+# dashboard reads the same line with parseStatus(...).workflowSteps
+# (dashboard/src/project/parse-status/index.ts);
+# dashboard/test/project/parse-status/workflow-steps-line.test.ts runs both.
+workflow_steps_in() {   # [<file>]
+  [ -z "${1:-}" ] || [ -f "$1" ] || return 0
+  LC_ALL=C awk '
+    {
+      low = tolower($0)
+      if (low !~ /^-[ \t]*\*\*workflow steps completed:\*\*/) next
+      label = "workflow steps completed:**"
+      value = substr($0, index(low, label) + length(label))
+      seen = 1
+    }
+    END {
+      if (!seen) exit 0
+      n = split(value, parts, ",")
+      for (i = 1; i <= n; i++) {
+        step = parts[i]
+        gsub(/`/, "", step)
+        gsub(/^[ \t\r]+|[ \t\r]+$/, "", step)
+        if (step != "") print tolower(step)
+      }
+    }
+  ' ${1:+"$1"}
+}
+
 # One pass over $1, deriving BOTH the per-heading task-row counts
 # (phaseCounts) and, for whichever heading's own keyword is
 # "acceptance" (case-insensitive — matches status_progress_for's own
@@ -185,10 +217,7 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
     completed_json="$(jq -c '.completedPhases // []' "$state_file" 2>/dev/null)"
     [ -n "$completed_json" ] || completed_json="[]"
   else
-    local prose_line
-    prose_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" 2>/dev/null | tail -1)"
-    completed_json="$(printf '%s' "$prose_line" | \
-      jq -R -s -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
+    completed_json="$(workflow_steps_in "$status_file" | jq -R -s -c 'split("\n") | map(select(length>0))')"
   fi
 
   local archived_json closed_json reopened_json
@@ -260,17 +289,10 @@ read_spec_state_at_ref() {
   state_json_found="yes"
   state_json="$(git -C "$dir" show "$ref:./$state_base" 2>/dev/null)"
   if [ -z "$state_json" ]; then
-    local prose prose_line completed_json
+    local prose completed_json
     prose="$(git -C "$dir" show "$ref:./$status_base" 2>/dev/null)"
-    if [ -z "$prose" ]; then
-      state_json_found="no"
-      prose_line=""
-    else
-      prose_line="$(printf '%s\n' "$prose" | \
-        sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' | tail -1)"
-    fi
-    completed_json="$(printf '%s' "$prose_line" | \
-      jq -R -s -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
+    [ -n "$prose" ] || state_json_found="no"
+    completed_json="$(printf '%s\n' "$prose" | workflow_steps_in | jq -R -s -c 'split("\n") | map(select(length>0))')"
     state_json="$(jq -cn --argjson c "$completed_json" \
       '{completedPhases:$c, archived:null, reopened:null, acceptanceCriteria:[], phaseCounts:{}}')"
   fi

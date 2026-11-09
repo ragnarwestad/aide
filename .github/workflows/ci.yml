@@ -1,6 +1,6 @@
 name: CI
 
-# The two gates .claude/CLAUDE.md names, plus the markdown check, run here
+# The two gates AGENTS.md names, plus the markdown check, run here
 # on a pull request, before a person merges it. The commands are the ones
 # that file documents, character for character — a workflow that ran
 # something subtly different would go green about a gate nobody has.

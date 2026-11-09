@@ -2,7 +2,7 @@
 own test (dashboard/test/design/code-health-limits.test.ts): a source file
 is at most 500 lines and a test file at most 800, and a folder holds at
 most 15 of them directly. The rules are written down in
-.claude/rules/development.md, "Code health". Markdown is left out: a page
+AGENTS.md, "Code health". Markdown is left out: a page
 is as long as what it says."""
 from .repo_files import repo_files
 from pathlib import Path
@@ -20,7 +20,7 @@ SOURCE_SUFFIXES = {".sh", ".py", ".ts", ".js", ".mjs", ".css"}
 OVER_LINE_LIMIT = {}
 
 # What a failure says to do, for the session that meets it: the message is what it reads.
-RULE = '.claude/rules/development.md, "Code health"'
+RULE = 'AGENTS.md, "Code health"'
 SPLIT_FILE = ("split it by responsibility, not in halves: move a part that has a name of its own into its own file, "
               f"and make a module in several files a folder named after it ({RULE})")
 SPLIT_FOLDER = f"split it into subfolders named for what their files are about ({RULE})"
@@ -102,4 +102,4 @@ def test_every_folder_holds_at_most_fifteen_source_or_test_files(workspace_root)
 
 
 def test_the_rule_a_failure_points_to_is_there(workspace_root):
-    assert "\n## Code health\n" in Path(workspace_root, ".claude", "rules", "development.md").read_text()
+    assert "\n## Code health\n" in Path(workspace_root, "AGENTS.md").read_text()

@@ -277,7 +277,7 @@ class TestUninstallReadsTheManifest:
         reads, which is the failure this whole mechanism exists to
         prevent, one level up.
 
-        The same shape .claude/rules/development.md pins for
+        The same shape AGENTS.md pins for
         WORKFLOW_STEPS and DEPENDENCY_GATED_STEPS: edited by hand
         together, held together by a test that reads both sides.
         """

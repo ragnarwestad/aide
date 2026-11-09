@@ -60,11 +60,9 @@ const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.index
 
 // --- the commit-subject grammar ---------------------------------------------
 //
-// THIS BLOCK IS COPIED VERBATIM into `core/scripts/aide-run-spec`, which
-// derives the same answer in bash to write the file's own line. Two
-// implementations of one rule, in two languages, the way
-// `WORKFLOW_STEPS` and `DEPENDENCY_GATED_STEPS` already are — change
-// one and the other has to change with it.
+// Read here by `parseStepSubject`, and in bash by `aide_read_step_subject`
+// (core/scripts/lib/spec-reference.sh), which also writes it;
+// test/git/history/step-subject.test.ts runs both readers on one table.
 //
 //     Run /aide-<step> for <spec-folder>[ (headless)][ (model: <tool> [<model>])][ (stopped: <reason>)]
 //
@@ -99,11 +97,25 @@ const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.index
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** What every step's subject starts with. */
+export const STEP_SUBJECT_PREFIX = "Run /aide-";
+
+/** The subject up to the folder: what a fixed-string `git log --grep` narrows on. */
+export const stepSubjectStart = (step: string, specFolder: string): string => `${STEP_SUBJECT_PREFIX}${step} for ${specFolder}`;
+
 const subjectPattern = (specFolder: string): RegExp =>
   new RegExp(
-    `^Run /aide-([a-z][a-z-]*) for ${escapeRegExp(specFolder)}` +
+    `^${escapeRegExp(STEP_SUBJECT_PREFIX)}([a-z][a-z-]*) for ${escapeRegExp(specFolder)}` +
       `(?: \\(headless\\))?(?: \\(model: ([^)]+)\\))?(?: \\(stopped: (.+)\\))?$`,
   );
+
+/** A step's subject for `specFolder` read: the step, and the model and the stop reason when it
+ *  names them; undefined for any other subject. */
+export function parseStepSubject(subject: string, specFolder: string): { step: string; model?: string; stopped?: string } | undefined {
+  const m = subject.match(subjectPattern(specFolder));
+  if (!m) return undefined;
+  return { step: m[1]!, ...(m[2] !== undefined ? { model: m[2] } : {}), ...(m[3] !== undefined ? { stopped: m[3] } : {}) };
+}
 
 export interface WorkflowHistory {
   /** Steps whose newest commit COMPLETED, in workflow order. */
@@ -150,7 +162,7 @@ export function workflowLogArgs(specFolder: string, boundarySha?: string): strin
     // their dates say: the rule compares the order of two steps' commits.
     "--date-order",
     "--fixed-strings",
-    `--grep=Run /aide-`,
+    `--grep=${STEP_SUBJECT_PREFIX}`,
     `--grep= for ${specFolder}`,
     "--all-match",
   ];
@@ -162,7 +174,6 @@ export function workflowLogArgs(specFolder: string, boundarySha?: string): strin
  *  what is under test here is the grammar and which commit wins, never
  *  whether git works. */
 export function readWorkflowSubjects(subjects: string[], specFolder: string): WorkflowHistory {
-  const pattern = subjectPattern(specFolder);
   // `git log` prints newest first, and the first sighting of a step is
   // therefore the one that speaks for it — every later line for the
   // same step is an attempt it superseded.
@@ -170,20 +181,19 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
   let analyzedSince = false;
   const cancelled = new Set<string>();
   for (const line of subjects) {
-    const m = line.trim().match(pattern);
-    if (!m) continue;
-    const step = m[1]!;
+    const read = parseStepSubject(line.trim(), specFolder);
+    if (!read) continue;
+    const { step, stopped: reason } = read;
     if (!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) continue;
-    // m[2] is the model, which nothing on this side reads; m[3] is the
-    // stop reason. Newest first: everything below a completed analyze is
-    // older than it.
-    if (step === "analyze" && m[3] === undefined) analyzedSince = true;
+    // The model is read too, and nothing on this side uses it. Newest
+    // first: everything below a completed analyze is older than it.
+    if (step === "analyze" && reason === undefined) analyzedSince = true;
     if (seen.has(step)) continue;
     if (analyzedSince && AFTER_ANALYZE.includes(step)) {
       cancelled.add(step);
       continue;
     }
-    seen.set(step, m[3] ?? null);
+    seen.set(step, reason ?? null);
   }
   const stopped: Record<string, string> = {};
   for (const [step, reason] of seen) if (reason !== null) stopped[step] = reason;

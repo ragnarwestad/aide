@@ -249,6 +249,25 @@ def test_write_phase_stamp_writes_the_workflow_steps_line_and_mirrors_json(tmp_p
     assert state["completedPhases"] == ["create", "analyze"]
 
 
+def test_the_workflow_line_is_rewritten_in_place_whatever_its_letter_case_AC_3(tmp_path):
+    """The writer replaces the line the readers read (`workflow_steps_in`:
+    any letter case, spaces after the dash), so it never leaves a second
+    line that the readers would take over the one it wrote."""
+    d = tmp_path / "1-x"
+    d.mkdir()
+    status_file = d / "4-status.md"
+    status_file.write_text(
+        "# X - Status\n\n## Tracking info\n\n- **Task:** `1-x/`\n"
+        "-  **WORKFLOW Steps Completed:** create, analyze\n"
+    )
+    write_stamp_and_mirror(status_file, "workflow-line", "create, analyze, implement")
+    text = status_file.read_text()
+    assert text.lower().count("workflow steps completed") == 1, text
+    assert "- **Workflow steps completed:** create, analyze, implement" in text
+    state = json.loads((status_file.parent / "4-status.json").read_text())
+    assert state["completedPhases"] == ["create", "analyze", "implement"]
+
+
 def test_write_phase_stamp_writes_the_archived_stamp(tmp_path):
     status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze, implement")
     write_stamp_and_mirror(status_file, "archived")

@@ -3,6 +3,7 @@
 // this turns that into the reader's own language — never the other way
 // round.
 
+import { gerund } from "../format/gerund.ts";
 import type { Language } from "./translations.ts";
 import { translations } from "./translations.ts";
 import { MESSAGES, type MessageEntry, type MessageKey } from "./messages.ts";
@@ -105,7 +106,10 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
   const entry = catalog[m.key]!;
   const fill = (text: string): string => {
     let out = text;
-    if (m.values) for (const [k, v] of Object.entries(m.values)) out = out.replaceAll(`{${k}}`, () => String(Array.isArray(v) ? v.length : v));
+    if (m.values) for (const [k, v] of Object.entries(m.values)) {
+      const value = k === "doing" && typeof v === "string" ? gerund(lang, v).toLowerCase() : v;
+      out = out.replaceAll(`{${k}}`, () => String(Array.isArray(value) ? value.length : value));
+    }
     const legacyTests = m.values?.tests;
     if (out.includes("{count}") && typeof legacyTests === "string") {
       out = out.replaceAll("{count}", () => String(legacyTests.split("; ").filter(Boolean).length));

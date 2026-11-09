@@ -21,22 +21,10 @@
 # obvious thing to key it on — is not known until that commit has been
 # made. So the edit goes in first and the existing `add -A` picks it up.
 #
-# THIS BLOCK IS COPIED VERBATIM from `dashboard/src/workflow-history.ts`,
-# which derives the same answer in TypeScript for the live page. Two
-# implementations of one rule, in two languages, the way WORKFLOW_STEPS
-# and DEPENDENCY_GATED_STEPS already are — change one and the other has
-# to change with it.
+# The subject's grammar is written once, beside its reader and writer in
+# lib/spec-reference.sh (`aide_read_step_subject`). What this file adds
+# is which commit speaks for a step:
 #
-#     Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
-#
-# - `<step>` is the step's own name, exactly as `--command` names it.
-# - `<spec-folder>` is the folder, never the numeric id: a `create` run
-#   names the folder it just made.
-# - ` (headless)` is present for a run `aide-run-spec` made and absent
-#   for one committed at somebody's keyboard. Both count.
-# - ` (stopped: <reason>)` is present only when the run did NOT
-#   complete, and carries `terminal_reason` verbatim (`timeout`,
-#   `provider-limit`, …). Such a step has RUN but is not DONE.
 # - The newest commit for a step is the one that speaks for it: a
 #   re-run supersedes whatever the attempt before it said.
 # - A completed `analyze` is newer than every `implement` and `archive`
@@ -44,12 +32,10 @@
 #   has been replaced. The log is read newest first (`--date-order`, so a
 #   commit is never listed before one made on top of it), and an
 #   `implement` or `archive` below a completed `analyze` is skipped. A
-#   stopped `analyze` supersedes nothing. The twin spells the steps as
+#   stopped `analyze` supersedes nothing. The twin
+#   (dashboard/src/git/workflow-history.ts) spells the steps as
 #   the ones after `analyze` in `HISTORY_STEPS`; this side spells them
 #   out (`implement|archive`), so a change to the arc has to touch both.
-# - Anything else with the same words in it — a revert, a merge, a
-#   subject with more after it — is not a step. The match is the whole
-#   subject or nothing.
 #
 # The four values the line may name are the workflow's own stages
 # (`WORKFLOW_ARC`, read at the top of this script from
@@ -64,24 +50,19 @@
 
 # Where the spec's `4-status.md` is in the specs worktree RIGHT NOW. An
 # archive step's own `git mv` has already moved the folder by the time
-# this runs, so `archive/` is tried too — the same two-step resolution
-# `resolve_dependency_folder` does for a dependency.
+# this runs, so `archive/` is tried too (`aide_find_spec_folder`, any).
 status_file_for() {   # sets $status_file
   local folder="$1"
   status_file=""
-  [ -n "$folder" ] || return 0
-  if [ -f "$specs_root_wt/$folder/${AIDE_STATUS_FILE}" ]; then
-    status_file="$specs_root_wt/$folder/${AIDE_STATUS_FILE}"
-  elif [ -f "$specs_root_wt/archive/$folder/${AIDE_STATUS_FILE}" ]; then
-    status_file="$specs_root_wt/archive/$folder/${AIDE_STATUS_FILE}"
-  fi
+  aide_find_spec_folder "$specs_root_wt" "$folder" any \
+    && [ -f "$specs_root_wt/$found_under$found_folder/${AIDE_STATUS_FILE}" ] \
+    && status_file="$specs_root_wt/$found_under$found_folder/${AIDE_STATUS_FILE}"
   return 0
 }
 
-# Where THIS step's own artifact is — the same two-candidate
-# (active folder, then archive/) resolution `status_file_for` above
-# already does, generalized to the file each phase owns rather than
-# 4-status.md alone.
+# Where THIS step's own artifact is — the folder found as `status_file_for`
+# above finds it (active, then archive/), and the file each phase owns
+# rather than 4-status.md alone.
 phase_file_for() {   # sets $phase_file
   local step="$1" folder="$2" name=""
   phase_file=""
@@ -91,12 +72,10 @@ phase_file_for() {   # sets $phase_file
     implement) name="${AIDE_SOLUTION_FILE}" ;;
     archive)   name="${AIDE_STATUS_FILE}" ;;
   esac
-  [ -n "$name" ] && [ -n "$folder" ] || return 0
-  if [ -f "$specs_root_wt/$folder/$name" ]; then
-    phase_file="$specs_root_wt/$folder/$name"
-  elif [ -f "$specs_root_wt/archive/$folder/$name" ]; then
-    phase_file="$specs_root_wt/archive/$folder/$name"
-  fi
+  [ -n "$name" ] || return 0
+  aide_find_spec_folder "$specs_root_wt" "$folder" any \
+    && [ -f "$specs_root_wt/$found_under$found_folder/$name" ] \
+    && phase_file="$specs_root_wt/$found_under$found_folder/$name"
   return 0
 }
 
@@ -197,7 +176,7 @@ rebuild_acceptance_after_analysis() {   # $1 = status file, $2 = pre-session ref
 }
 
 completed_steps_for() {   # sets $completed_steps; reads $command_name, $terminal_reason, $WORKFLOW_ARC, $WORKFLOW_ARC_RETIRED
-  local folder="$1" dir="$2" subject step reason seen completed re re_archive
+  local folder="$1" dir="$2" subject step reason seen completed
   local existing_line existing_step archive_counts="yes"
   local analyzed_since="" reset_by_this_run=""
   local boundary_args=()
@@ -218,13 +197,12 @@ completed_steps_for() {   # sets $completed_steps; reads $command_name, $termina
   kept_round_boundary_in "$3"
   if [ -n "$kept_round_sha" ]; then
     archive_counts=""
-    re_archive="^Run /aide-archive for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
     while IFS= read -r subject; do
-      [[ "$subject" =~ $re_archive ]] || continue
-      [ -n "${BASH_REMATCH[5]}" ] || { archive_counts="yes"; break; }
+      aide_read_step_subject "$subject" "$folder" && [ "$subject_step" = "archive" ] || continue
+      [ -n "$subject_stop" ] || { archive_counts="yes"; break; }
     done <<ARCHIVE_SCAN
 $(git -C "$dir" log --all --not "$kept_round_sha" --format=%s --fixed-strings \
-    --grep="Run /aide-archive for $folder" 2>/dev/null)
+    --grep="$(aide_step_subject_start archive "$folder")" 2>/dev/null)
 ARCHIVE_SCAN
   fi
   seen="|"; completed="|"
@@ -238,7 +216,6 @@ ARCHIVE_SCAN
       fi
       ;;
   esac
-  re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
   # --all, not HEAD: `implement` deliberately lands nothing until
   # `archive` runs, so its commit sits on this spec's own branch for as
   # long as the spec takes. Newest first, which is what makes the first
@@ -248,9 +225,9 @@ ARCHIVE_SCAN
   # newer than the analysis above it.
   while IFS= read -r subject; do
     [ -n "$subject" ] || continue
-    [[ "$subject" =~ $re ]] || continue
-    step="${BASH_REMATCH[1]}"
-    reason="${BASH_REMATCH[6]}"
+    aide_read_step_subject "$subject" "$folder" || continue
+    step="$subject_step"
+    reason="$subject_stop"
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
     # Newest first: everything below a completed analyze is older than it.
     [ "$step" = "analyze" ] && [ -z "$reason" ] && analyzed_since="yes"
@@ -261,7 +238,7 @@ ARCHIVE_SCAN
     [ -n "$reason" ] || completed="$completed$step|"
   done <<EOF
 $(git -C "$dir" log --all --date-order ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
-    --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
+    --grep="$AIDE_STEP_SUBJECT_PREFIX" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
   # A step the line already names stays named, whatever the scan found
   # The scan sees a step only through the commit-subject
@@ -295,13 +272,12 @@ EOF
   # read from: a brand-new spec's `4-status.md`, which does not exist at
   # `$4` yet.
   if [ -n "${4:-}" ] && \
-     existing_line="$(git -C "$2" show "$4:./$(basename "$3")" 2>/dev/null | \
-       sed -n 's/^- \*\*Workflow steps completed:\*\*//p' | tail -1)"; then
+     existing_line="$(git -C "$2" show "$4:./$(basename "$3")" 2>/dev/null | workflow_steps_in)"; then
     :
   else
-    existing_line="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' "$3" 2>/dev/null | tail -1)"
+    existing_line="$(workflow_steps_in "$3")"
   fi
-  for existing_step in $(printf '%s' "$existing_line" | tr ',' ' '); do
+  for existing_step in $existing_line; do
     [ "$existing_step" = "archive" ] && [ -z "$archive_counts" ] && continue
     case "$existing_step" in implement|archive) [ -n "$reset_by_this_run" ] && continue ;; esac
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in

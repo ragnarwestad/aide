@@ -42,6 +42,7 @@ describe("the shared step-ending catalogue", () => {
     expect(isGuardEnding(ACCEPTANCE_CRITERIA_UNTICKED)).toBe(true);
     expect(leavesStepUndone("model-at-capacity")).toBe(true);
     expect(endingMayRetry("no-progress")).toBe(true);
+    expect(endingMayRetry("overlap-decision-missing")).toBe(true);
     expect(endingMayRetry("tests-not-started")).toBe(false);
   });
 });

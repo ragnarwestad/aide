@@ -135,40 +135,29 @@ USAGE
   esac
 done
 
-# Run from a private copy of ourselves. Bash reads a script
-# incrementally from disk by byte offset, so replacing the file
-# mid-execution kills the run — and an aide `implement` step reinstalls
-# aide, which copies this very script over itself. Measured 2026-08-16:
-# that took the runner down eight minutes into a job whose work had
-# already succeeded, leaving no result file. The copy unlinks itself
-# immediately; the open file handle keeps it alive for as long as we
-# run.
-#
-# The marker holds the copy's OWN path, and both markers are unset
-# before anything else runs. An earlier version marked "I am a copy"
-# with a bare flag and left it exported: `claude` inherited it, so every
-# nested invocation — a test, a terminal inside the run, the next step —
-# believed the INSTALLED script was the throwaway copy and deleted it.
-# Measured 2026-08-16, one test run removed core/scripts/aide-run-spec
-# from the worktree.
-#
-# The copy is handed to bash, never exec'd itself: macOS checks every new
-# executable the first time it starts, and a fresh copy per run joined
-# that queue on every run — behind a busy machine's, for minutes
-# (2026-09-19). Read by bash it is only a file, and it is not made
-# executable at all, so a direct exec fails at once instead of waiting.
+# Keep the runner, its libraries and helper commands together for this run.
+# Deploy may replace the installation while a model turn is running.
+# Bash reads scripts incrementally, so even the entry script needs a copy.
+# Invoke the copy through bash to avoid macOS executable validation delays.
 if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
-  _self_copy="$(mktemp "${TMPDIR:-/tmp}/aide-run-spec.XXXXXX")" || exit 2
-  cp "${BASH_SOURCE[0]}" "$_self_copy" || exit 2
-  AIDE_RUN_SPEC_SELF_COPY="$_self_copy" \
-  AIDE_RUN_SPEC_SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
-    exec "$BASH" "$_self_copy" "$@"
+  _source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  _snapshot="$(mktemp -d "${TMPDIR:-/tmp}/aide-run-spec.XXXXXX")" || exit 2
+  trap 'rm -rf "$_snapshot"' EXIT
+  cp -L "${BASH_SOURCE[0]}" "$_snapshot/runner" || exit 2
+  for _helper in "$_source_dir"/aide-* "$_source_dir"/_*.sh; do
+    [ ! -f "$_helper" ] || cp -L "$_helper" "$_snapshot/" || exit 2
+  done
+  [ ! -d "$_source_dir/lib" ] || cp -RL "$_source_dir/lib" "$_snapshot/" || exit 2
+  AIDE_RUN_SPEC_SELF_COPY="$_snapshot/runner" \
+  AIDE_RUN_SPEC_SOURCE_DIR="$_snapshot" \
+    exec "$BASH" "$_snapshot/runner" "$@"
 fi
-# In the copy: keep the directory the original came from (the shared
-# library lives beside it), then drop the file — it is ours, and only
-# ours, because the marker matched our own path.
-SCRIPT_DIR="${AIDE_RUN_SPEC_SOURCE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+# Drop the markers before spawning any child, so a nested runner makes
+# its own copy and cannot delete the installation or its parent's copy.
+SCRIPT_DIR="$AIDE_RUN_SPEC_SOURCE_DIR"
+_runner_snapshot="$SCRIPT_DIR"
 unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
+trap 'rm -rf "$_runner_snapshot"' EXIT
 rm -f "$0"
 
 # A refusal before the arguments are read still has to reach the board,
@@ -201,13 +190,16 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in step-endings/catalog.json step-endings/read.sh spec-reference.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in step-endings/catalog.json step-endings/read.sh spec-reference.sh run-spec/setup/run-log.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] \
   || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"_aide-spec-lib.sh is missing beside aide-run-spec","errorSolution":"reinstall aide (core/implementations/claude-code/install.sh)"}'
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-reference.sh"
+# The run log's stamped line and a step's mark.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/setup/run-log.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/step-endings/read.sh"
 # shellcheck source=/dev/null
@@ -249,10 +241,6 @@ stage() {
   fi
   stage_line "$*"
 }
-# shellcheck disable=SC2329  # called by stage and the part marks below, which the sourced parts call
-stage_line() {
-  printf 'aide-run-spec %s +%ss %s\n' "$(date +%H:%M:%S)" "$(( $(date +%s) - step_started_at ))" "$*" >&2
-}
 # The parts of a step Aide runs itself — preparing before the AI's first
 # turn, tests and commit after it — marked in the log the way a skill's
 # own steps are: `--- Step Aide: <part> — started`, then `— done` or
@@ -262,12 +250,12 @@ aide_part=""; aide_part_seen=""
 # shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_open() {   # <part>
   aide_part="$1"
-  stage_line "--- Step Aide: $1 — started"
+  stage_line "$(aide_step_mark Aide "$1" started)"
 }
 # shellcheck disable=SC2329  # called by the parts sourced from lib/run-spec/
 aide_part_close() {  # [<ending>, default done]
   [ -n "$aide_part" ] || return 0
-  stage_line "--- Step Aide: $aide_part — ${1:-done}"
+  stage_line "$(aide_step_mark Aide "$aide_part" "${1:-done}")"
   aide_part=""
 }
 # A failure: the same line, its text starting `error: `. The dashboard's Errors

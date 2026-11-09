@@ -37,6 +37,10 @@ export interface StepMark {
  *  two parts share the place "Aide", so their name stays in. */
 export const stepKey = (place: string, title: string): string => (place === "Aide" ? `Step Aide: ${title}` : `Step ${place}`);
 
+/** A step's mark, as `aide_step_mark` (core/scripts/lib/run-spec/setup/run-log.sh) writes it: the place
+ *  (`Aide`, `N of M`), the title, and the ending (`started`, `done`, `skipped…`, `stopped: <why>`). */
+export const stepMarkLine = (place: string, title: string, ending: string): string => `--- Step ${place}: ${title} — ${ending}`;
+
 /** The ending is read loosely, as `STEP_MARK` reads it: `— done (nothing to
  *  keep)` is a done. The title is the shortest match, so a stopped merge's
  *  `— stopped: <why> — the close is not finished` ends it at the step. */

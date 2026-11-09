@@ -1,4 +1,4 @@
-// `.claude/CLAUDE.md` tells every session which page answers which question.
+// `AGENTS.md` tells every session which page answers which question.
 // A page with no row is a page a session never opens; a row naming a page
 // that is gone sends it to a file that is not there.
 import { expect, test } from "bun:test";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 const REPO = join(import.meta.dir, "..", "..", "..", "..");
 
 function tableRows(): string[] {
-  const text = readFileSync(join(REPO, ".claude", "CLAUDE.md"), "utf-8");
+  const text = readFileSync(join(REPO, "AGENTS.md"), "utf-8");
   const start = text.indexOf("## Reading the documentation");
   if (start < 0) throw new Error("no 'Reading the documentation' section");
   const rest = text.slice(start + 1);

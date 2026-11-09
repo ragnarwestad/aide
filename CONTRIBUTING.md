@@ -20,7 +20,7 @@ structure is easier to steer before it's written than after.
 
 `core/` is Python (pytest, no lockfile, run from the repo root); `dashboard/` is a separate
 Bun + TypeScript project (`dashboard/bun.lock`). Keep changes to one or the
-other — see `.claude/rules/development.md` for why they stay separate.
+other — see `AGENTS.md` for why they stay separate.
 
 ## Running the tests
 

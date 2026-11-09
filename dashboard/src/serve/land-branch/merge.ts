@@ -35,6 +35,7 @@ import type { LandContext, Landing } from "./types.ts";
 import { clearsLandingError, createNumberRetryLimit, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
 import { retryArchiveLanding } from "./retry";
+import { isJobStop } from "../../step-endings.ts";
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
  *  step shares.
@@ -377,7 +378,7 @@ export async function landBranch(
       // step ran, the merge was built, and the project's own tests said
       // the result is not green. That stops the job rather than failing
       // it, the same way a cap-stop does: nothing was pushed.
-      const held = reason === "tests-red";
+      const held = isJobStop(landingTerminalReason);
       // One message per row: the first failure is the row's sentence,
       // and any further one — a second root that could not merge —
       // goes behind it as detail, in the catalog's source language,
@@ -391,7 +392,7 @@ export async function landBranch(
         landingError: firstLandingError(first, held),
         landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
         landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
-        ...(held ? { stopReason: "tests-red" as const } : {}),
+        ...(held ? { stopReason: landingTerminalReason } : {}),
       }; const cancelled = takeLandingCancel(job.id); if (!cancelled && landingTerminalReason && retryArchiveLanding(ctx.queue, job.id, what.step, landingTerminalReason, [renderSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
       const result = cancelled ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or

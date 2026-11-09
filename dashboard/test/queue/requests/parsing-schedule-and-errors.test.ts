@@ -169,3 +169,15 @@ test("an ordinary job request still needs a project with a discovered spec", () 
   );
   expect(r.ok).toBe(false);
 });
+
+test("request refusals never recover a solution from a sentence suffix (AC-2)", () => {
+  const root = join(import.meta.dir, "..", "..", "..", "src");
+  const files = [
+    "format/request-fixes.ts",
+    "serve/routes/queue-admin.ts",
+    "serve/routes/job-actions.ts",
+    "serve/routes/schedule-admin-routes.ts",
+  ];
+  const source = files.map((file) => readFileSync(join(root, file), "utf-8")).join("\n");
+  expect(source).not.toMatch(/splitFix|endsWith\([^\n]*fix|slice\([^\n]*fix/i);
+});

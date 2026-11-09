@@ -49,7 +49,10 @@ describe("parseCreateRequest", () => {
   test("a title of 121 characters is refused, naming 120", () => {
     const r = parseCreateRequest({ ...CREATE, title: "t".repeat(121) }, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("120");
+    if (!r.ok) {
+      expect(r.error).toContain("120");
+      expect(r.solution).toBe("Fix it in the New spec form and submit again");
+    }
   });
 
   test("a description of 10,001 characters is refused, naming 10000 (AC-6)", () => {
@@ -224,8 +227,8 @@ describe("parseCreateRequest — model", () => {
     );
     expect(r).toEqual({
       ok: false,
-      error:
-        "unknown or not-allowed model: nonexistent-model — Reload the page and try again",
+      error: "unknown or not-allowed model: nonexistent-model",
+      solution: "Reload the page and try again",
     });
   });
 
@@ -235,8 +238,8 @@ describe("parseCreateRequest — model", () => {
     const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: DEFAULTS });
     expect(r).toEqual({
       ok: false,
-      error:
-        "no model choice is configured on this server — Reload the page and try again",
+      error: "no model choice is configured on this server",
+      solution: "Reload the page and try again",
     });
   });
 

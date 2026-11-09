@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { Window } from "happy-dom";
 import { harness } from "../fixtures.ts";
 import { postForm } from "../../../src/specs-client/press.ts";
@@ -159,7 +159,10 @@ describe("a Save locks every control on its spec, and only its spec", () => {
     FormData: globalThis.FormData,
   };
   let win: Window | null = null;
+  let consoleError: ReturnType<typeof spyOn> | null = null;
   afterEach(async () => {
+    consoleError?.mockRestore();
+    consoleError = null;
     (globalThis as { document?: unknown }).document = real.document;
     (globalThis as { location?: unknown }).location = real.location;
     globalThis.fetch = real.fetch;
@@ -280,4 +283,43 @@ describe("a Save locks every control on its spec, and only its spec", () => {
       expect(before.filter(Boolean)).toHaveLength(2);
     });
   }
+
+  // A fault in what a press does is not a failed request: a reload would
+  // hide it, so the page stays as it is and the console says what broke.
+  // happy-dom's own `location` reads back the same address after a reload
+  // to "/", so a plain one stands in to show whether `href` was written.
+  /** The page with a `location` whose writes can be seen, and the console's error line held. */
+  function faultPage(rows: string) {
+    const p = page(rows);
+    (globalThis as { location?: unknown }).location = { href: "http://dash.test/", pathname: "/", search: "" };
+    consoleError = spyOn(console, "error").mockImplementation(() => {});
+    return p;
+  }
+
+  test("an onOk that throws leaves the page, logs the error, and puts the controls and the button back (AC-2)", async () => {
+    const { doc, answer } = faultPage(running("aide/a") + running("aide/b"));
+    const a = controlsOf(doc, "aide/a");
+    const before = disabledOf(a);
+    const save = doc.getElementById("checks-save-aide/a") as HTMLButtonElement;
+    const fault = new Error("onOk broke");
+    const sent = postForm(save.closest("form")!, () => { throw fault; }, () => {});
+    answer({ ok: true, body: { ok: true } });
+    await sent;
+    expect((globalThis as unknown as { location: { href: string } }).location.href).toBe("http://dash.test/");
+    expect(consoleError).toHaveBeenCalledWith(fault);
+    expect(disabledOf(controlsOf(doc, "aide/a"))).toEqual(before);
+    expect(save.classList.contains("busy")).toBe(false);
+    expect(save.classList.contains("primary")).toBe(true);
+  });
+
+  test("an onRefused that throws leaves the page and logs the error (AC-2)", async () => {
+    const { doc, answer } = faultPage(running("aide/a"));
+    const save = doc.getElementById("checks-save-aide/a") as HTMLButtonElement;
+    const fault = new Error("onRefused broke");
+    const sent = postForm(save.closest("form")!, () => {}, () => { throw fault; });
+    answer({ ok: false, body: { ok: false, error: "no" } });
+    await sent;
+    expect((globalThis as unknown as { location: { href: string } }).location.href).toBe("http://dash.test/");
+    expect(consoleError).toHaveBeenCalledWith(fault);
+  });
 });

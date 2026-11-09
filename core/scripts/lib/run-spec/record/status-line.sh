@@ -181,30 +181,26 @@ if [ -n "$status_file" ]; then
          > "$work_dir/status-before" 2>/dev/null; then
       status_advanced_count_for "$work_dir/status-before"
       before_advanced="$advanced_count"
-      existing_line_before="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' \
-        "$work_dir/status-before" 2>/dev/null | tail -1)"
+      existing_line_before="$(workflow_steps_in "$work_dir/status-before")"
     fi
     status_advanced_count_for "$status_file"
     rows_advanced="no"
     [ "$advanced_count" -gt "$before_advanced" ] && rows_advanced="yes"
 
-    # Word-split each side the same way completed_steps_for's own
-    # existing-line scan does (line ~1948): a raw `sed` capture keeps the
-    # markdown's own leading space after the bold colon, and splicing
-    # that untrimmed into a `case` pattern string breaks the substring
-    # match a bare `tr` does not fix.
+    # Both sides are read with workflow_steps_in, one trimmed step per
+    # line, and word-split as completed_steps_for reads its own.
     # `create` is always allowed: a spec that exists has been through it,
     # whether or not the pre-session file said so. No spec carries the
     # line at creation, and a model that writes "create, analyze" onto a
     # file that had no line was refused for the one step it could not
     # have skipped.
     allowed_steps="|analyze|create|"
-    for allowed_step in $(printf '%s' "$existing_line_before" | tr ',' ' '); do
+    for allowed_step in $existing_line_before; do
       allowed_steps="$allowed_steps$allowed_step|"
     done
     claims_extra_step="no"
-    raw_line="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' "$status_file" 2>/dev/null | tail -1)"
-    for raw_step in $(printf '%s' "$raw_line" | tr ',' ' '); do
+    raw_line="$(workflow_steps_in "$status_file")"
+    for raw_step in $raw_line; do
       case "$allowed_steps" in
         *"|$raw_step|"*) ;;
         *) claims_extra_step="yes" ;;

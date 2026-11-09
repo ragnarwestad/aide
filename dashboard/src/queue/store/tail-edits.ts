@@ -5,21 +5,20 @@
 import { tailEdits, WORKFLOW_STEPS, type WorkflowStep } from "../steps.ts";
 import type { Job } from "../types.ts";
 import { invalidRequest } from "../parse-request.ts";
+import type { RequestRefusal } from "../../format/request-fixes.ts";
 
 /** The step a tail edit names, when the job can still be given it, or
  *  the one sentence that says why not. It names the step: the row has a
  *  single line to say why a tick or a pick did not take. */
-export function tailEditStep(job: Job, step: string): { step: WorkflowStep } | { error: string } {
+export function tailEditStep(job: Job, step: string): { step: WorkflowStep } | RequestRefusal {
   const named = step || "that step";
   const wanted = WORKFLOW_STEPS.find((s) => s === step);
   if (wanted && tailEdits(job).includes(wanted)) return { step: wanted };
-  return {
-    error: invalidRequest(
+  return invalidRequest(
       job.state === "running"
         ? `${named} is not a step this run can still be given`
         : `${named} cannot be changed: this job is ${job.state}, not running`,
-    ),
-  };
+    );
 }
 
 /** The job's steps with `step` added to or taken out of its tail. An

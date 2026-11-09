@@ -17,7 +17,7 @@ const ctx = (): ScheduleContext => ({ queue: store }) as unknown as ScheduleCont
 /** A job whose step has ended and whose branch is being merged. */
 function landing() {
   const job = enqueue({ specFolder: "91-parallel-spec-runs" });
-  store.update(job.id, { landing: true });
+  store.update(job.id, { landing: true, state: "done" });
   return job;
 }
 
@@ -27,7 +27,7 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     const other = enqueue({ steps: ["implement"] });
     landing();
     const holds = fixedSentenceHolds(ctx());
-    expect(holds.get(d.id)).toEqual({ key: "runner.landingPause" });
+    expect(holds.get(d.id)?.inner).toEqual([{ key: "runner.landingRunning", values: { doing: "analyze", spec: "aide:91" } }]);
     expect(holds.has(other.id)).toBe(false);
   });
 
@@ -43,7 +43,7 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     runner.tick(undefined, fixedSentenceHolds(ctx()));
     expect(store.get(d.id)?.state).toBe("queued");
     expect(store.get(d.id)?.errorReason).toBe("held-back");
-    expect(renderSentence("en", store.get(d.id)?.error)).toContain("merge");
+    expect(renderSentence("en", store.get(d.id)?.error)).toContain("aide:91");
     expect(spawns.map((s) => s.step)).not.toContain("deploy");
 
     store.update(l.id, { landing: undefined });

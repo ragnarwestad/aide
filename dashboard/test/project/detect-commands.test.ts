@@ -97,7 +97,7 @@ describe("detectProjectCommands reads the table in the skill doc", () => {
     expect(found.test?.source).toBe("pytest.ini");
   });
 
-  // ROOT only, the same rule `.claude/CLAUDE.md` states for aide's own
+  // ROOT only, the same rule `AGENTS.md` states for aide's own
   // detection: a lockfile in a subdirectory belongs to that
   // subdirectory's toolchain, not to the project's.
   test("a lockfile one directory down decides nothing", () => {

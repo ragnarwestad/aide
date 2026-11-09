@@ -22,6 +22,7 @@ export function aiWorkRetryDecision(
 ): { retry: true } | undefined {
   if (attempts >= 2) return undefined;
   if (!endingMayRetry(input.terminalReason)) return undefined;
+  if (input.terminalReason === "tests-red") return undefined;
   if (input.terminalReason === "scope-violation")
     return input.scopeViolation === "specs" || input.scopeViolation === "analyze" ? { retry: true } : undefined;
   if (input.terminalReason === "cli-error" || input.terminalReason === "model-at-capacity") return undefined;

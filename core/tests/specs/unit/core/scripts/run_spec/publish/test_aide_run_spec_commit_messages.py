@@ -164,3 +164,17 @@ def test_a_commit_that_fails_is_not_a_completed_step(runner, workspace, fake_cla
     assert out["ok"] is False, out
     assert out["terminalReason"] != "completed", out
     assert "commit" in out["error"], out
+
+
+@pytest.mark.parametrize("amend", [False, True])
+def test_a_commit_failure_reports_the_commit_error(runner, workspace, fake_claude, amend):
+    claude = silent_claude(fake_claude, then=(
+        ('git add new-code.txt; git commit -qm "Write code"\n'
+         'echo leftover >> new-code.txt\n' if amend else "")
+        + 'git config user.name ""\n'
+        + 'git config user.email ""\n'
+    ))
+    rc, out, _ = run(runner, workspace, claude)
+    assert not out["ok"], out
+    assert "Author identity unknown" in out["error"], out
+    assert "empty ident name" in out["errorLog"], out

@@ -15,7 +15,7 @@
 //    a pnpm lockfile and a package-lock is a real thing, and the page
 //    has to name one command rather than two.
 //  - The ROOT only. A lockfile one directory down belongs to that
-//    directory's toolchain — the same rule `.claude/CLAUDE.md` states
+//    directory's toolchain — the same rule `AGENTS.md` states
 //    for aide itself, whose root is pytest while `dashboard/` is bun.
 //
 // And one thing this file deliberately does NOT do: promise. The doc

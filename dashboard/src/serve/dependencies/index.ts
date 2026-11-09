@@ -59,9 +59,9 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
   const missing = required.filter((entry) => !entry.reason);
   if (missing.length) {
     const attempts = source.retry?.action === "analyze" ? source.retry.attempts : 1;
-    const retry = aiWorkRetryDecision({ terminalReason: "no-progress" }, attempts);
+    const retry = aiWorkRetryDecision({ terminalReason: "overlap-decision-missing" }, attempts);
     const record = retry ? aiWorkRetryRecord(source, "analyze", {
-      terminalReason: "no-progress",
+      terminalReason: "overlap-decision-missing",
       detail: missing.map((entry) => `${entry.spec}: ${entry.files.join(", ")}`).join("\n"),
       repos: source.results.at(-1)?.repos,
     }) : undefined;

@@ -8,6 +8,7 @@ import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepLogLine } from "./test-gate.ts";
+import { stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
 import { renderSentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { LandContext } from "./types.ts";
@@ -239,13 +240,15 @@ const firstLine = (text: string): string => text.split(/\r?\n/, 1)[0] ?? text;
 /** The merge into the default branch is the last step of every skill
  *  whose work lands, and the phase is finished only when the merge is:
  *  the step's Log marks it in the skill's own words, the heading of that
- *  skill's last step in `core/skills/aide-<step>/SKILL.md`. */
+ *  skill's last step in `core/skills/aide-<step>/SKILL.md`: its place by
+ *  step, and one title. */
+export const MERGE_TITLE = "Merge into main";
 export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
-  create: "--- Step 7 of 7: Merge into main",
-  analyze: "--- Step 11 of 11: Merge into main",
-  reopen: "--- Step 6 of 6: Merge into main",
-  archive: "--- Step 5 of 5: Merge into main",
-  close: "--- Step 4 of 4: Merge into main",
+  create: "7 of 7",
+  analyze: "11 of 11",
+  reopen: "6 of 6",
+  archive: "5 of 5",
+  close: "4 of 4",
 };
 
 /** Runs a landing as that merge step: started, then done when it merged
@@ -256,9 +259,9 @@ async function asMergeStep(
   step: WorkflowStep,
   land: (onMerged: () => void) => Promise<void>,
 ): Promise<void> {
-  const title = MERGE_STEP[step];
+  const place = MERGE_STEP[step];
   const mark = (end: string, error = false) => {
-    if (title) stepLogLine(job, `${title} — ${end}`, error);
+    if (place) stepLogLine(job, stepMarkLine(place, MERGE_TITLE, end), error);
   };
   let merged = false;
   mark("started");

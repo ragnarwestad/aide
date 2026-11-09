@@ -92,8 +92,21 @@ describe("lastAnalyzeCommit", () => {
     const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
     expect(git.calls[0]!.args).toEqual([
-      "log", "--format=%H%x09%aI%x09%s", "--fixed-strings", `--grep=${SUBJECT}`,
+      "log", "--format=%H%x09%aI%x09%s", "--fixed-strings", `--grep=Run /aide-analyze for ${FOLDER}`,
     ]);
+  });
+
+  test("an analyze committed at a keyboard is found, and a newer one that stopped is passed over (AC-2)", async () => {
+    const keyboard = `Run /aide-analyze for ${FOLDER} (model: claude opus)`;
+    const git = gitFor(
+      null,
+      [
+        analyzeLine("2026-11-09T12:00:00+01:00", `${keyboard} (stopped: timeout)`),
+        analyzeLine("2026-11-09T11:00:00+01:00", keyboard),
+        analyzeLine("2026-11-01T10:00:00+01:00"),
+      ].join("\n"),
+    );
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-11-09T11:00:00+01:00");
   });
 
   // The sharp edge: the success message is a PREFIX of the stopped

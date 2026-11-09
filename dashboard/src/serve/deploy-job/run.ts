@@ -7,6 +7,7 @@
 // restart that fired writes nothing: the process that starts after it checks
 // the commit and writes the result (`after-restart.ts`).
 
+import { deployHold } from "./landing-hold.ts";
 import { existsSync } from "node:fs";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
@@ -24,7 +25,7 @@ import type { DeployFailure } from "../state.ts";
 /** What a deploy run is given: the queue it is a job in, the checkout's git,
  *  and the hooks the landing code already offers the Deploy button. */
 export interface DeployRunDeps {
-  queue: Pick<QueueStore, "get" | "update">;
+  queue: Pick<QueueStore, "get" | "update" | "list">;
   /** Where the project's checkout lives. */
   projectRoot: (project: string) => string;
   /** Whether `root` is the checkout the board runs from. */
@@ -47,7 +48,6 @@ export interface DeployRunDeps {
   restartWaitMs?: number;
 }
 
-const HOLD = { key: "runner.landingPause" } as const;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: string): Promise<void> {
@@ -73,7 +73,7 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   const hold = (on: boolean): void => {
     if (on === held) return;
     held = on;
-    deps.queue.update(jobId, on ? { error: HOLD, errorReason: "held-back" } : { error: undefined, errorReason: undefined });
+    deps.queue.update(jobId, on ? { error: deployHold(deps.queue.list(), jobId), errorReason: "held-back" } : { error: undefined, errorReason: undefined });
   };
 
   const fail = (sentence: Sentence, detail?: string): void => {
