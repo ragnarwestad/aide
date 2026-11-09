@@ -5,7 +5,7 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { navEntries } from "../../../src/render";
 import { NO_DEPLOY_SENTENCE } from "../../../src/render/pages/projects-page/project-page.ts";
-import { parseArgs } from "../../../src/serve/serve.ts";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd, setWorktreeLinks } from "./project-detail-route-fixtures.ts";

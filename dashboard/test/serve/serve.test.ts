@@ -7,7 +7,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test
 import { mkdtempSync, rmSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer, parseArgs } from "../../src/serve/serve.ts";
+import { createServer } from "../../src/serve/serve.ts";
+import { parseArgs } from "../../src/serve/serve-helpers";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 let dir: string;
@@ -191,30 +192,30 @@ describe("resolveDependencyFolder", () => {
   };
 
   test("a number resolves through the `<id>-` prefix", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     expect(resolveDependencyFolder(project, "80")?.folder).toBe("80-dependency");
   });
 
   test("the full folder name resolves as well as the number", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     expect(resolveDependencyFolder(project, "80-dependency")?.folder).toBe("80-dependency");
   });
 
   test("an archived spec resolves too, and says it is archived", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     const found = resolveDependencyFolder(project, "77");
     expect(found?.folder).toBe("77-old");
     expect(found?.archived).toBe(true);
   });
 
   test("a live spec wins over an archived one with the same number", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     const both = { ...project, specs: [...project.specs, spec("77-still-here")] };
     expect(resolveDependencyFolder(both, "77")?.folder).toBe("77-still-here");
   });
 
   test("an unknown id resolves to nothing — that refusal belongs to the run", async () => {
-    const { resolveDependencyFolder } = await import("../../src/serve/serve.ts");
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     expect(resolveDependencyFolder(project, "99")).toBeUndefined();
   });
 });

@@ -137,15 +137,4 @@ describe("the round boundary", () => {
     ];
     expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
   });
-
-  // A history from before the step was removed still names it, and those
-  // jobs are still the boundary they were.
-  test("an old Reset job in the history is still a boundary", () => {
-    const jobs = [
-      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
-      { steps: ["reset"], state: "done", createdAt: "2026-08-24T11:00:00Z" },
-      { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
-    ];
-    expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
-  });
 });

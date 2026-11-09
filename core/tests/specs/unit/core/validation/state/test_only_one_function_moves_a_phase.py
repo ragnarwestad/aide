@@ -13,8 +13,7 @@ from pathlib import Path
 import pytest
 
 BASH_SCRIPTS = ["core/scripts/aide-run-spec", "core/scripts/aide-archive-spec",
-                 "core/scripts/aide-write-spec", "core/scripts/aide-backfill-spec-state",
-                 "core/scripts/aide-record-step"]
+                 "core/scripts/aide-write-spec", "core/scripts/aide-record-step"]
 
 # The exact write shapes that put a phase/stamp pattern into a file.
 # Anything matching one of these outside spec-transitions.sh is a second

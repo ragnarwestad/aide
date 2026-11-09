@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AideRunStore, parseAideRun } from "../../../src/queue/aide-run-store.ts";
+import { AIDE_COMMANDS, AideRunStore, parseAideRun } from "../../../src/queue/aide-run-store.ts";
 
 const valid = {
   host: "laptop",
@@ -21,6 +21,12 @@ describe("parseAideRun (schema)", () => {
     const r = parseAideRun(valid);
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.run.spec).toBe("80");
+  });
+
+  // aide-emit-run's --command takes these two and nothing else.
+  test("the accepted commands are the two aide-emit-run sends (AC-1)", () => {
+    expect([...AIDE_COMMANDS]).toEqual(["implement", "archive"]);
+    for (const command of AIDE_COMMANDS) expect(parseAideRun({ ...valid, command }).ok).toBe(true);
   });
 
   test("rejects a missing command and a bad sessionId", () => {
@@ -63,7 +69,7 @@ describe("parseAideRun (schema)", () => {
   });
 
   test("spec and project are optional", () => {
-    const r = parseAideRun({ host: "h", sessionId: "s", command: "explore" });
+    const r = parseAideRun({ host: "h", sessionId: "s", command: "archive" });
     expect(r.ok).toBe(true);
   });
 });

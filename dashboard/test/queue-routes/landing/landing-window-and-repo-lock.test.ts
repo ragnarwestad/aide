@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createRootLock,
-} from "../../../src/serve/serve.ts";
+} from "../../../src/serve/serve-helpers";
 import { type GitRunner } from "../../../src/git/process/index.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 

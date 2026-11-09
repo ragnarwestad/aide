@@ -24,7 +24,6 @@ import { Notifier } from "../integrations/notify.ts";
 import { QueueStore, type ProjectResolver } from "../queue/queue.ts";
 
 import { QUEUE_DEFAULTS, compressResponse, checkRequest, createHostAllowlist } from "./serve-helpers";
-export * from "./serve-helpers";
 export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
 import { handleCore, type CoreRoutesContext } from "./core-routes.ts";

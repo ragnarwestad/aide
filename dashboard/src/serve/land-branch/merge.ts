@@ -489,8 +489,5 @@ export async function landBranch(
     // Same reasoning as the ordinary failure branch above:
     // a job that has moved on keeps only the permanent record.
     if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
-  } finally {
-    // After every repo, after the report, and after `onLanded` — on
-    // the throwing path too. The process does not survive this call.
   }
 }

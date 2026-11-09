@@ -7,10 +7,8 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-export const AIDE_COMMANDS = [
-  "explore", "create", "analyze", "implement", "archive",
-  "make-tests", "to-pdf", "to-html", "react-class-to-func",
-] as const;
+// What aide-emit-run's --command takes, default implement.
+export const AIDE_COMMANDS = ["implement", "archive"] as const;
 export type AideCommand = (typeof AIDE_COMMANDS)[number];
 
 // The three TDD phases and nothing else: a typo must not reach the

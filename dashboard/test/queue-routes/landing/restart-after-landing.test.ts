@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createRootLock,
-} from "../../../src/serve/serve.ts";
+} from "../../../src/serve/serve-helpers";
 import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../src/git/branch-merge/index.ts";
 

@@ -142,10 +142,8 @@ def test_the_worktree_links_are_read_from_the_documented_source(
     )
     if case["source"]:
         assert f"read from {case['source']}" in err, err
-        assert out["worktreeLinksSource"] == case["source"], out
     else:
         assert "read from" not in err, err
-        assert "worktreeLinksSource" not in out, out
 
 def test_a_manifest_link_that_escapes_the_root_is_refused_in_the_manifests_own_words(
     runner, workspace, fake_claude
@@ -202,7 +200,6 @@ def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert sorted(log.read_text().split()) == [".venv", "dashboard/node_modules"], log.read_text()
-    assert out["worktreeLinksSource"] == "project.yaml", out
 
 @pytest.mark.parametrize(
     "case", READINESS_FIXTURE, ids=[f"{c['check']}: {c['failsWhen']}" for c in READINESS_FIXTURE]

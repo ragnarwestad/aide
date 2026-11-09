@@ -17,7 +17,7 @@ import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../../../src/git/dashboard-checkout.ts";
-import { parseArgs } from "../../../src/serve/serve.ts";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 
 const ROOT = join(import.meta.dir, "..", "..", "..");
 

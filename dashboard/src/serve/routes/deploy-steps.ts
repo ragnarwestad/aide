@@ -12,10 +12,6 @@ import type { RoutesContext } from "./";
 
 /** What a Deploy press asks of the landing code. */
 export interface DeployHooks {
-  /** Install, then hand the restart it may call for back as a thunk, to
-   *  be fired only once the answer has been composed (the combined
-   *  route). */
-  installAfterMerge: (result: RepoMergeResult) => Promise<{ restart?: () => void }>;
   /** The install alone: writes `result.installError` and answers whether
    *  a restart should follow. */
   installCheckout: (result: RepoMergeResult) => Promise<boolean>;

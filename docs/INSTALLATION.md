@@ -150,8 +150,8 @@ project on any machine — that a Vite project needs `node_modules` does
 not depend on whose laptop it is checked out on — and `.aide/config` is
 kept out of git, so a clone arrived on the next machine with the answer
 gone (spec 184). The dashboard's Add form and each project's Settings
-page write this key. Every run says in its own output which file it read
-the links from (`worktreeLinksSource` in the result, and a line on stderr).
+page write this key. Every run says on stderr which file it read the links
+from.
 
 A link is a symlink into the one main checkout, and several runs share
 it — so it names what a build **reads**, never what a build writes. A

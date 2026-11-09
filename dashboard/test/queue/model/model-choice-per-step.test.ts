@@ -14,7 +14,7 @@ import {
   parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-import { resolveStepModel } from "../../../src/serve/serve.ts";
+import { resolveStepModel } from "../../../src/serve/serve-helpers";
 import { stepTool } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 const DEFAULTS: QueueDefaults = {

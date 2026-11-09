@@ -225,8 +225,8 @@ their default branch before the worktrees are made and never leave it, so severa
 - The result's `repos[].root` is the MAIN checkout, not the directory the work happened in; `repos[].worktree` carries
   the throwaway one.
 - A worktree carries tracked files only. `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in the
-  `.aide/project.yaml` (committed, or the dashboard's untracked copy, kept out of the commit). The run reports which
-  file it read (`worktreeLinksSource`).
+  `.aide/project.yaml` (committed, or the dashboard's untracked copy, kept out of the commit). The run's log says which
+  file it read.
 - The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
   specs root inside the project that git ignores (aide's own `/specs/`) is linked in from the main checkout and never
   committed. One inside the project that is tracked, or not committed yet, is part of the branch and committed with the

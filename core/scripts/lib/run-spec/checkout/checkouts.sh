@@ -38,22 +38,15 @@ wt_dir="$worktree_base/$(worktree_project_key "$project_root")/$spec_label"
 # The COMMITTED manifest alone: `.aide/project.yaml` travels
 # with the repo, so a checkout that has never been configured on this
 # machine still knows which gitignored paths its commands need.
-# Which file was read is REPORTED — to stderr for whoever is
-# watching the run, and in the result blob for whatever reads that.
+# Which file was read is REPORTED to stderr for whoever is watching
+# the run.
 link_paths=()
-links_raw=""
-links_source=""
-links_key=""
 links_raw="$(aide_manifest_get worktreeLinks "$project_root")"
-if [ -n "$links_raw" ]; then
-  links_source="project.yaml"
-  links_key="worktreeLinks"
-fi
-[ -n "$links_source" ] && echo "Worktree links: read from $links_source" >&2
+[ -n "$links_raw" ] && echo "Worktree links: read from project.yaml" >&2
 for entry in $links_raw; do
   case "$entry" in
-    /*) refuse "$links_key must name repo-relative paths: $entry" ;;
-    *..*) refuse "$links_key must not escape the root: $entry" ;;
+    /*) refuse "worktreeLinks must name repo-relative paths: $entry" ;;
+    *..*) refuse "worktreeLinks must not escape the root: $entry" ;;
   esac
   # The BASENAME, so a nested module's output (`backend/build`) is the
   # same answer as a top-level one — and asked BEFORE the existence
@@ -62,8 +55,8 @@ for entry in $links_raw; do
   link_base="${entry##*/}"
   for denied in $WORKTREE_LINK_DENYLIST; do
     if [ "$link_base" = "$denied" ]; then
-      refuse_fix "$links_key names a build output, not a dependency cache: $entry" \
-        "remove it from $links_key: such a directory is generated per worktree and wants no link at all"
+      refuse_fix "worktreeLinks names a build output, not a dependency cache: $entry" \
+        "remove it from worktreeLinks: such a directory is generated per worktree and wants no link at all"
     fi
   done
   # A named path with nothing to link is refused rather than skipped
@@ -74,7 +67,7 @@ for entry in $links_raw; do
   # same entry as a reason the project cannot run — one rule, in two
   # places that have to agree about it.
   [ -e "$project_root/$entry" ] \
-    || refuse "$links_key names a path that is not in $project_root: $entry"
+    || refuse "worktreeLinks names a path that is not in $project_root: $entry"
   link_paths+=("$entry")
 done
 # A `dir/` gitignore rule matches directories only, and a symlink is a

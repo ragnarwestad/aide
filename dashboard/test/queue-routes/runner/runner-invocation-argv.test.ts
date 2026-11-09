@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { runnerArgv } from "../../../src/serve/serve.ts";
+import { runnerArgv } from "../../../src/serve/serve-helpers";
 import { analysisSessionToResume } from "../../../src/serve/serve-helpers/runner-argv.ts";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
 

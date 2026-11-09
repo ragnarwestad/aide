@@ -445,6 +445,3 @@ function manifestSaver(ctx: RoutesContext, name: string): SaveManifest {
       ),
     );
 }
-
-/** The directory a path resolves to, or the path itself when it cannot
- *  be resolved — the lock key a landing into the same checkout uses. */
