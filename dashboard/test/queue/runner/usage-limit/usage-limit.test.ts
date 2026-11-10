@@ -371,3 +371,36 @@ describe("two providers of Claude side by side", () => {
     expect(usageLimitHolds(store.list(), toolOf).has(pressed.id)).toBe(false);
   });
 });
+
+describe("which stop decides an AI's time", () => {
+  test("the newest stop decides, so an older stop with a far-off time does not hold the newer ones", () => {
+    const old = stopped(job({ steps: ["analyze"], specFolder: "81-queue-and-runner" }), "06:00", { until: "23:00", resetKnown: true }, "05:00");
+    const again = enqueue({ specFolder: old.specFolder, steps: ["analyze"] });
+    tools.set(again.id, "claude");
+    store.update(again.id, { state: "done", pressed: true, createdAt: iso("07:00") });
+    const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
+    const b = stopped(job({ steps: ["analyze"] }), "10:00", { until: "14:00", resetKnown: true });
+    restartAfterUsageLimit(store, toolOf, at("14:00"));
+    expect(store.get(a.id)?.state).toBe("queued");
+    expect(store.get(b.id)?.state).toBe("queued");
+    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.usageLimitWait).toBeUndefined();
+  });
+
+  test("a stop whose spec has run again since still holds the AI until its own time when it is the newest", () => {
+    const made = stopped(job({ steps: ["analyze"], specFolder: "81-queue-and-runner" }), "10:00", { until: "23:00", resetKnown: true });
+    const again = enqueue({ specFolder: made.specFolder, steps: ["analyze"] });
+    tools.set(again.id, "claude");
+    store.update(again.id, { state: "done", pressed: true, createdAt: iso("10:30") });
+    const queued = job({ steps: ["implement"] });
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(usageLimitHolds(store.list(), toolOf).get(queued.id)?.values).toEqual({ provider: "claude", at: iso("23:00") });
+  });
+
+  test("an older stop's own time is moved to the newest stop's, so its row says when it starts", () => {
+    const older = stopped(job({ steps: ["implement"] }), "09:00", { until: "23:00", resetKnown: true });
+    stopped(job({ steps: ["analyze"] }), "10:00", { until: "14:00", resetKnown: true });
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(older.id)?.usageLimitWait).toEqual({ until: iso("14:00"), resetKnown: true });
+  });
+});
