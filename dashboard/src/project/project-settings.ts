@@ -28,7 +28,7 @@ import { join } from "node:path";
 import { configValue, resolveAcPrefix, resolveDescription, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import { t, type TranslationKey } from "../i18n";
-import type { BoardMessage } from "../i18n/message.ts";
+import type { BoardMessage } from "../messages/types.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin";
 
 export type SettingOrigin = "configured" | "derived" | "unset";

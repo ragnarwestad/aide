@@ -3,8 +3,8 @@
 // is drawn by `provider-list.ts` and the chosen provider by
 // `provider-detail.ts`.
 
-import { capitalizeFirst } from "../../ui/job-state/provider-limit.ts";
-import { renderSentence } from "../../../i18n/message.ts";
+import { capitalizeFirst } from "../../../messages/usage-limit/get.ts";
+import { renderSentence } from "../../../messages/render.ts";
 import { t, type Language } from "../../../i18n";
 import { type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";

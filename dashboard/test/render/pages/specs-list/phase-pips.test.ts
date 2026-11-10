@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { phasesFor } from "../../../../src/render";
 import { phasePipKind } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
-import type { MessageKey } from "../../../../src/i18n/messages.ts";
+import type { MessageKey } from "../../../../src/messages/catalog.ts";
 import type { QueueRowView } from "../../../../src/render";
 import { row } from "../fixtures.ts";
 

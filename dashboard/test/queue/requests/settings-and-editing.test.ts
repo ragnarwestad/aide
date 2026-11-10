@@ -9,7 +9,7 @@ import {
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
 import { parseArgs } from "../../../src/serve/serve-helpers";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when

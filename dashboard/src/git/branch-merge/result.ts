@@ -1,7 +1,8 @@
 // What one repo's landing reports, and the one way a refusal is worded.
 
-import type { BoardMessage, Sentence } from "../../i18n/message.ts";
-import { gitErrorSentence, type GitError } from "../../format/git-error.ts";
+import type { BoardMessage, Sentence } from "../../messages/types.ts";
+import { type GitError } from "../../format/git-error.ts";
+import { getGitPushMessage } from "../../messages/git/get.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -92,6 +93,6 @@ export const pushRefusal = (
   refuse(
     root,
     ref,
-    { key: "landing.pushFailedTo", values: { base }, inner: gitErrorSentence(pushed.cause ?? { kind: "none" }) },
+    { key: "landing.pushFailedTo", values: { base }, inner: getGitPushMessage(pushed.cause ?? { kind: "none" }) },
     pushed.error || undefined,
   );

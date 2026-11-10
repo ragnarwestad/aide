@@ -22,7 +22,7 @@ import { formatRunLogLine } from "../../queue/parse-stream/step-log.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
-import type { Sentence } from "../../i18n/message.ts";
+import type { Sentence } from "../../messages/types.ts";
 import type { Job } from "../../queue/queue.ts";
 
 export const LANDING_GATE_TEMP_PREFIX = "aide-landing-gate-tree-";

@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
-import { renderSentence } from "../../src/i18n/message.ts";
+import { renderSentence } from "../../src/messages/render.ts";
 import { namingRecorder } from "../helpers/naming-recorder.ts";
 
 /** What a reader would see: a message is stored as

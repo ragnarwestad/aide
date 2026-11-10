@@ -5,68 +5,68 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { cliErrorMessage, criteriaStopMessage, noProgressMessage, runStopMessage } from "../../../../src/queue/runner/cross-check-message.ts";
-import { messageDetail } from "../../../../src/i18n/message.ts";
+import { getCliErrorMessage, getCriteriaStopMessage, getNoProgressMessage, getRunStopMessage } from "../../../../src/messages/jobs/outcomes.ts";
+import { messageDetail } from "../../../../src/messages/render.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 const ended = (terminalReason: string, more: Record<string, unknown> = {}) => ({ ok: false, terminalReason, error: "the runner's own words", ...more });
 
-describe("noProgressMessage", () => {
+describe("getNoProgressMessage", () => {
   test("a scope violation says which check it tripped and names its files (AC-4)", () => {
-    expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs" }))).toMatchObject({ key: "runner.scopeSpecs" });
-    expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md", "01-y/a.md"] }))).toEqual({
+    expect(getNoProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs" }))).toMatchObject({ key: "runner.scopeSpecs" });
+    expect(getNoProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md", "01-y/a.md"] }))).toEqual({
       key: "runner.scopeSpecsNamed",
       values: { button: "Implement", paths: ["00-x/5-note.md", "01-y/a.md"] },
     });
-    expect(noProgressMessage("analyze", ended("scope-violation", {
+    expect(getNoProgressMessage("analyze", ended("scope-violation", {
       scopeViolation: "analyze",
       scopeAnalyze: { project: { committed: ["src/a.ts"], uncommitted: ["src/b.ts"] }, phaseRows: true, workflowSteps: true },
     }))).toEqual({
       key: "runner.scopeAnalyze",
       values: { button: "Analyze", checks: ["project code (committed: src/a.ts; uncommitted: src/b.ts)", "Phase-table rows", "Workflow steps completed"] },
     });
-    expect(noProgressMessage("analyze", ended("scope-violation", { scopeViolation: "analyze" }))).toEqual({
+    expect(getNoProgressMessage("analyze", ended("scope-violation", { scopeViolation: "analyze" }))).toEqual({
       key: "runner.scopeAnalyzeLegacy",
       values: { button: "Analyze" },
     });
-    expect(noProgressMessage("analyze", ended("scope-violation"))).toBeUndefined();
+    expect(getNoProgressMessage("analyze", ended("scope-violation"))).toBeUndefined();
   });
 
   test("a short analysis over its limits, and a send-back that was refused", () => {
-    expect(noProgressMessage("analyze", ended("short-analysis-over-limit"))).toMatchObject({ key: "runner.shortAnalysisOverLimit" });
-    expect(noProgressMessage("implement", ended("sent-back-refused"))).toEqual({
+    expect(getNoProgressMessage("analyze", ended("short-analysis-over-limit"))).toMatchObject({ key: "runner.shortAnalysisOverLimit" });
+    expect(getNoProgressMessage("implement", ended("sent-back-refused"))).toEqual({
       key: "runner.sentBackRefused",
       values: { button: "Implement", analyze: "Analyze" },
     });
   });
 
   test("a create that left no folder", () => {
-    expect(noProgressMessage("create", ended("no-progress"))).toMatchObject({ key: "runner.noProgressCreate" });
+    expect(getNoProgressMessage("create", ended("no-progress"))).toMatchObject({ key: "runner.noProgressCreate" });
   });
 });
 
 test("criteria ids remain structured list detail (AC-3)", () => {
-  const message = criteriaStopMessage("analyze", ended("acceptance-criteria", {
+  const message = getCriteriaStopMessage("analyze", ended("acceptance-criteria", {
     criteriaFaults: { notEars: ["AC-1", "AC-2"] },
   }));
   expect(message?.inner).toEqual([{ key: "runner.criteriaNotEars", values: { ids: ["AC-1", "AC-2"] } }]);
   expect(messageDetail(message)).toBe("AC-1\nAC-2");
 });
 
-describe("cliErrorMessage", () => {
+describe("getCliErrorMessage", () => {
   test("a scheduled job that failed names Run now as the button to press again", () => {
-    expect(cliErrorMessage("schedule", ended("cli-error", { tool: "claude", providerError: { kind: "silent" } }))).toEqual({
+    expect(getCliErrorMessage("schedule", ended("cli-error", { tool: "claude", providerError: { kind: "silent" } }))).toEqual({
       key: "runner.cliErrorSilent",
       values: { tool: "Claude Code", button: "Run now" },
     });
   });
 });
 
-describe("runStopMessage", () => {
+describe("getRunStopMessage", () => {
   test("a spec sent back to a full analysis names the step that runs next", () => {
-    expect(runStopMessage("implement", ended("sent-back"))).toEqual({ key: "runner.sentBack", values: { button: "Implement", analyze: "Analyze" } });
+    expect(getRunStopMessage("implement", ended("sent-back"))).toEqual({ key: "runner.sentBack", values: { button: "Implement", analyze: "Analyze" } });
   });
 });
 

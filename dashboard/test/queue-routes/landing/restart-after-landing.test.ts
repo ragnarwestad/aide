@@ -18,7 +18,7 @@ import type { RepoMergeResult } from "../../../src/git/branch-merge/index.ts";
 /** The message a landing carries, as text: it is
  *  stored as WHICH message and what fills its blanks, and the
  *  reader composes it. */
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";

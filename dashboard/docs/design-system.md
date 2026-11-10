@@ -305,14 +305,14 @@ English fallback for the two of those that are not required to cover every langu
    already are) and register it in `translations.ts`'s `translations` object and `LANGUAGES` list. A key
    missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does — and the same way a new
    string does: a key added to `en.ts` fails `tsc` until the other four catalogues have it too.
-2. **The board-message catalogue** (`src/i18n/messages.ts`'s `MESSAGES`, the runner/landing/tab sentences):
+2. **The board-message catalogue** (`src/messages/catalog.ts`'s `MESSAGES`, the runner/landing/tab sentences):
    add the new language's field to the `MessageEntry` interface and then to every one of its entries. This is
    a different shape from step 1 — an interface change plus per-entry content, not a new file — because
    `MESSAGES` types its five language fields directly on one shared interface rather than through a
    `Record<TranslationKey, …>` catalogue file.
 
 **Three tables outside `src/i18n/` need the new language as well**, and `tsc` is what tells you: `LANGUAGE_FLAGS`
-and `LANGUAGE_NATIVE_NAMES` in `header-controls.ts`, and `LOCALES` in `job-state/provider-limit.ts`. Each is a full
+and `LANGUAGE_NATIVE_NAMES` in `header-controls.ts`, and `LOCALES` in `messages/usage-limit/get.ts`. Each is a full
 `Record<Language, string>`, so a language missing from one is a type error rather than a gap that reaches the board.
 `format/gerund.ts` and `format/step-label.ts` are `Partial` and fall back to English, so they can be left. Everything
 else reads `Language`/`LANGUAGES` generically and needs nothing.

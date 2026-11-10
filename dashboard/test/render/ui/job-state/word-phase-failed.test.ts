@@ -3,7 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
-import { renderSentence } from "../../../../src/i18n/message.ts";
+import { renderSentence } from "../../../../src/messages/render.ts";
 
 const said = (w: ReturnType<typeof wordPhase>): string | undefined => renderSentence("en", w.qualifier);
 

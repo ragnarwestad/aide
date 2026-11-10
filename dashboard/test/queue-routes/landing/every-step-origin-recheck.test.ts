@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.

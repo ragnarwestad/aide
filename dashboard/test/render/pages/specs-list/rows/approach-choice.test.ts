@@ -8,7 +8,7 @@ import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-mod
 import { errorMarkNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
 import { approachHref, approachItems } from "../../../../../src/render/pages/specs-list/approach-choice";
 import { specTabPath } from "../../../../../src/render";
-import { specNotice } from "../../../../../src/render/ui/job-state";
+import { getSpecMessage } from "../../../../../src/render/ui/job-state";
 import { row } from "../../fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";
@@ -51,7 +51,7 @@ describe("the approach warning on a row", () => {
 
   test("the held job's own sentence is not said a second time", () => {
     const g = groupOf([held()]);
-    const notice = specNotice(g.lead, undefined, undefined, errorMarkNotices(g, "en", () => false), "en");
+    const notice = getSpecMessage(g.lead, undefined, undefined, errorMarkNotices(g, "en", () => false), "en");
     const texts = (notice?.parts ?? [{ text: notice?.text ?? "" }]).map((p) => p.text);
     expect(texts.filter((text) => /choose the approach/i.test(text))).toHaveLength(1);
   });

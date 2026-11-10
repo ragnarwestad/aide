@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
 import { DEFAULTS, dir, store, enqueue, makeRunner, okResult, resetHarness, setNow, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);

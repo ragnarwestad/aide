@@ -7,7 +7,7 @@ import { discoverProjects, manifestInside } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { acceptanceStillOpen } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import { deployHold } from "../deploy-job/landing-hold.ts";
 import { landingJobNames } from "../land-branch";

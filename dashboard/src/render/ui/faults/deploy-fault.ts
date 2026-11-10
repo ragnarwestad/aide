@@ -4,7 +4,7 @@
 // `pending-restart.ts`'s precedent. `setDeployFault` (serve/state.ts) is
 // the one writer.
 
-import type { Sentence } from "../../../i18n/message.ts";
+import type { Sentence } from "../../../messages/types.ts";
 
 let fault: Sentence | null = null;
 

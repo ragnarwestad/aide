@@ -1,7 +1,7 @@
 // The context every landing function reads instead of `createServer`'s
 // closure, and the `Landing` description `landBranch` is driven by.
 
-import type { Sentence } from "../../i18n/message.ts";
+import type { Sentence } from "../../messages/types.ts";
 import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";

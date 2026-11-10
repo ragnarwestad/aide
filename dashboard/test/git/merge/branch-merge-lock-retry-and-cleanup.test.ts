@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when

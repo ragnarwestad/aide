@@ -3,7 +3,7 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
-import type { Sentence } from "../../../i18n/message.ts";
+import type { Sentence } from "../../../messages/types.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
 import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 

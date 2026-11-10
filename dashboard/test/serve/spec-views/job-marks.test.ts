@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
 import { closeOrReopenSteps, deploySteps, jobMarks, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";

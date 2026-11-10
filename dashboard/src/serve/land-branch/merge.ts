@@ -22,7 +22,7 @@ export function sameRoot(a: string, b: string): boolean {
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
-import { renderSentence, type Sentence } from "../../i18n/message.ts";
+import { renderSentence, type Sentence } from "../../messages/render.ts";
 import { deleteBranchOnly, LANDING_RETRIES, landingRepeats, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { STATUS_FILE } from "../../project/spec-names.ts";

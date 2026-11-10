@@ -13,7 +13,7 @@ import {
   type WorkflowStep,
 } from "../steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
-import type { Sentence } from "../../i18n/message.ts";
+import type { Sentence } from "../../messages/types.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
   invalidRequest,

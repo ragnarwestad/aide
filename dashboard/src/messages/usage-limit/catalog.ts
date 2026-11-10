@@ -1,0 +1,60 @@
+import type { MessageEntry } from "../types.ts";
+
+export const USAGE_LIMIT_CATALOG = {
+  "runner.usageLimitHeld": {
+    en: "held back: waits for {provider}'s usage limit — it starts at {at}",
+    nb: "holdt tilbake: venter på bruksgrensen til {provider} — den starter kl. {at}",
+    es: "retenido: espera el límite de uso de {provider} — empieza a las {at}",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — es startet um {at}",
+    fr: "retenu : attend la limite d'utilisation de {provider} — cela démarre à {at}",
+    statement: "starts by itself when the limit resets — nothing to press",
+  },
+  "runner.usageLimitHeldNoReset": {
+    en: "held back: waits for {provider}'s usage limit — {provider} did not say when it resets, so the board tries again at {at}",
+    nb: "holdt tilbake: venter på bruksgrensen til {provider} — {provider} sa ikke når den nullstilles, så dashbordet prøver igjen kl. {at}",
+    es: "retenido: espera el límite de uso de {provider} — {provider} no dijo cuándo se restablece, así que el dashboard lo intenta de nuevo a las {at}",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — {provider} hat nicht gesagt, wann es zurückgesetzt wird, daher versucht das Dashboard es erneut um {at}",
+    fr: "retenu : attend la limite d'utilisation de {provider} — {provider} n'a pas dit quand elle se réinitialise, donc le dashboard réessaie à {at}",
+    statement: "the board tries again by itself — nothing to press",
+  },
+  "runner.usageLimitHeldProbe": {
+    en: "held back: waits for {provider}'s usage limit — {provider} did not say when it resets; the board tried again at {at}, and this starts once that step has run",
+    nb: "holdt tilbake: venter på bruksgrensen til {provider} — {provider} sa ikke når den nullstilles; dashbordet prøvde igjen kl. {at}, og dette starter når det steget har kjørt",
+    es: "retenido: espera el límite de uso de {provider} — {provider} no dijo cuándo se restablece; el dashboard lo intentó de nuevo a las {at}, y esto empieza cuando ese paso haya terminado",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — {provider} hat nicht gesagt, wann es zurückgesetzt wird; das Dashboard hat es erneut um {at} versucht, und das startet, sobald dieser Schritt gelaufen ist",
+    fr: "retenu : attend la limite d'utilisation de {provider} — {provider} n'a pas dit quand elle se réinitialise ; le dashboard a réessayé à {at}, et cela démarre une fois cette étape exécutée",
+    statement: "starts by itself once the step that was tried has run — nothing to press",
+  },
+  "runner.usageLimitRestarts": {
+    en: "{who}: {limit} is used up — {step} starts again by itself at {at}.",
+    nb: "{who}: {limit} er brukt opp — {step} starter av seg selv igjen kl. {at}.",
+    es: "{who}: {limit} está agotado — {step} se reinicia solo a las {at}.",
+    de: "{who}: {limit} ist aufgebraucht — {step} startet von selbst neu um {at}.",
+    fr: "{who} : {limit} est épuisé — {step} redémarre de lui-même à {at}.",
+    statement: "starts again by itself when the limit resets — nothing to press",
+  },
+  "runner.usageLimitRestartsNoReset": {
+    en: "{who}: {limit} is used up, and the AI did not say when it resets — {step} starts again by itself when the board tries again at {at}.",
+    nb: "{who}: {limit} er brukt opp, og AI-en sa ikke når den nullstilles — {step} starter av seg selv igjen når dashbordet prøver på nytt kl. {at}.",
+    es: "{who}: {limit} está agotado, y la IA no dijo cuándo se restablece — {step} se reinicia solo cuando el dashboard lo intente de nuevo a las {at}.",
+    de: "{who}: {limit} ist aufgebraucht, und die KI hat nicht gesagt, wann es zurückgesetzt wird — {step} startet von selbst neu, wenn das Dashboard es erneut versucht um {at}.",
+    fr: "{who} : {limit} est épuisé, et l'IA n'a pas dit quand elle se réinitialise — {step} redémarre de lui-même quand le dashboard réessaie à {at}.",
+    statement: "the board tries again by itself — nothing to press",
+  },
+  "wordPhase.stopProviderLimit": {
+    en: "the AI's usage limit was reached — the step starts again by itself once the limit resets",
+    nb: "AI-ens bruksgrense ble nådd — steget starter av seg selv igjen når grensen er nullstilt",
+    es: "se alcanzó el límite de uso de la IA — el paso se reinicia solo cuando se restablezca el límite",
+    de: "das Nutzungslimit der KI wurde erreicht — der Schritt startet von selbst neu, sobald das Limit zurückgesetzt ist",
+    fr: "la limite d'utilisation de l'IA a été atteinte — l'étape redémarre d'elle-même une fois la limite réinitialisée",
+    statement: "starts again by itself when the limit resets — nothing to press",
+  },
+  "push.stoppedProviderLimit": {
+    en: "{step} stopped on the AI's usage limit — it starts again by itself once the limit resets.",
+    nb: "{step} stoppet på AI-ens bruksgrense — den starter av seg selv igjen når grensen er nullstilt.",
+    es: "{step} se detuvo por el límite de uso de la IA — se reinicia solo cuando el límite se restablezca.",
+    de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es startet von selbst neu, sobald das Limit zurückgesetzt ist.",
+    fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il redémarre de lui-même une fois la limite réinitialisée.",
+    statement: "starts again by itself when the limit resets — nothing to press",
+  },
+} as const satisfies Record<string, MessageEntry>;

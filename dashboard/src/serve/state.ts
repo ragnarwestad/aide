@@ -11,7 +11,7 @@
 // functions, unchanged — this object is what those functions close
 // over now instead of a bare local.
 
-import type { Sentence } from "../i18n/message.ts";
+import type { Sentence } from "../messages/types.ts";
 import { setDeployFaultNotice } from "../render/ui/faults/deploy-fault.ts";
 import { setPendingRestartNotice } from "../render/ui/pending-restart.ts";
 import type { SpecTarget } from "../render";

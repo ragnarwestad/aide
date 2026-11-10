@@ -6,11 +6,11 @@ import { QueueStore } from "../../../src/queue/queue.ts";
 import {
   DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
 } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
-import { testsNotStartedMessage } from "../../../src/queue/runner/cross-check-message.ts";
+import { getTestsNotStartedMessage } from "../../../src/messages/jobs/outcomes.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -692,7 +692,7 @@ describe("the queue records when each STEP started", () => {
 
 // An implement whose own test run never started gets the board's sentence
 // for what stopped it, read from the result's `testsNotStarted`.
-const said = (testsNotStarted: unknown) => testsNotStartedMessage("implement", { terminalReason: "tests-not-started", testsNotStarted });
+const said = (testsNotStarted: unknown) => getTestsNotStartedMessage("implement", { terminalReason: "tests-not-started", testsNotStarted });
 
 describe("a test run that never started", () => {
   test("an unresolved test command names the manifest setting to fix", () => {

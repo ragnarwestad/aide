@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { messageDetail, renderSentence, type Sentence } from "../../../src/i18n/message.ts";
+import { messageDetail, renderSentence, type Sentence } from "../../../src/messages/render.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);

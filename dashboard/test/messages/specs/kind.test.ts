@@ -1,0 +1,156 @@
+// The held-back branch in getSpecMessage() reads the
+// job's own errorReason field, never a text-prefix guess on lead.error
+// — the f3cd5b7 patch this spec replaces taught the panel to recognise
+// ONE producer's "held back:" prefix, which left every other waiting-
+// shaped message still guessing "warn" or "err" for itself.
+import { describe, expect, test } from "bun:test";
+import { HELD_BACK_INFO_KEYS } from "../../../src/messages/jobs/holds.ts";
+import { getSpecMessage } from "../../../src/render/ui/job-state/index.ts";
+import type { QueueRowView } from "../../../src/render/index.ts";
+
+const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
+  id: "j1",
+  project: "aide",
+  specFolder: "1-x",
+  steps: ["implement"],
+  stepIndex: 0,
+  state: "queued",
+  spentUsd: 0,
+  timeoutSec: 600,
+  createdAt: "2026-09-03T00:00:00Z",
+  ...over,
+});
+
+describe("getSpecMessage's held-back branch reads errorReason, not a text prefix", () => {
+  test("errorReason 'held-back' renders waiting even when the text does not start with 'held back:'", () => {
+    const notice = getSpecMessage(
+      lead({ error: "waiting on another archive to land", errorReason: "held-back" as QueueRowView["errorReason"] }),
+    );
+    expect(notice?.variant).toBe("waiting");
+  });
+
+  test("text starting with 'held back:' but a different errorReason renders failed", () => {
+    const notice = getSpecMessage(lead({ error: "held back: not analyzed yet — run /aide-analyze first", errorReason: "conflict" }));
+    expect(notice?.variant).toBe("failed");
+  });
+
+  // A suite that went red on the merge is the same shape as a hold-back:
+  // nothing in the machinery broke, the work is not green yet, and the
+  // answer is to run implement again. Amber, not red.
+  test("errorReason 'tests-red' renders waiting", () => {
+    const notice = getSpecMessage(
+      lead({ error: "the project's tests are red on the merge — nothing was pushed.", errorReason: "tests-red" }),
+    );
+    expect(notice?.variant).toBe("waiting");
+  });
+});
+
+// Three of the six held-back reasons resolve on their own —
+// nothing for the reader to act on — and take the info kind instead of
+// the waiting kind's warning triangle. The other three still wait on a
+// person and keep the triangle.
+describe("getSpecMessage's held-back branch tells self-resolving reasons from ones a person must act on", () => {
+  test("a held-back key that resolves on its own renders info", () => {
+    const notice = getSpecMessage(lead({ error: { key: "runner.landingPause" }, errorReason: "held-back" }));
+    expect(notice?.variant).toBe("info");
+  });
+
+  test("a held-back key that waits on a person renders waiting", () => {
+    const notice = getSpecMessage(lead({ error: { key: "runner.notAnalyzed" }, errorReason: "held-back" }));
+    expect(notice?.variant).toBe("waiting");
+  });
+});
+
+// Once every Acceptance row is ticked, the held-back sentence
+// goes away and nothing told the reader the next move was theirs —
+// pressing Archive. `readyToArchive` is the lowest-priority case, checked
+// last, so every existing producer here still outranks it.
+describe("getSpecMessage's readyToArchive case", () => {
+  test("readyToArchive alone renders the ready-to-archive sentence", () => {
+    const notice = getSpecMessage(undefined, undefined, undefined, [], "en", true);
+    expect(notice).toEqual({ variant: "waiting", text: "All checks ticked — press Archive to merge it" });
+  });
+
+  test("a held-back reason still wins over readyToArchive", () => {
+    const notice = getSpecMessage(undefined, "the Slack webhook", undefined, [], "en", true);
+    expect(notice?.text).toContain("held back");
+    expect(notice?.text).not.toContain("All checks ticked");
+  });
+});
+
+// An analyze stopped on its acceptance criteria waits on the person who
+// puts the description right: amber, with the faults the runner named.
+describe("getSpecMessage for an analyze stopped on its acceptance criteria", () => {
+  test("renders the job's sentence as a waiting message", () => {
+    const notice = getSpecMessage(
+      lead({
+        steps: ["analyze"],
+        state: "stopped",
+        stopReason: "acceptance-criteria",
+        error: {
+          key: "runner.criteriaStopped",
+          values: { button: "Analyze" },
+          inner: [{ key: "runner.criteriaNotEars", values: { ids: "AC-2, AC-4" } }],
+        },
+      }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("AC-2, AC-4");
+  });
+});
+
+// An analyze stopped on files another open spec changes waits on the person
+// who adds those specs to Depends on, or presses Analyze again: amber, with
+// the sentence the runner worded.
+describe("getSpecMessage for an analyze stopped on files another open spec changes", () => {
+  test("renders the job's sentence as a waiting message", () => {
+    const sentence = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
+    const notice = getSpecMessage(
+      lead({ steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: sentence }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("603-b");
+    expect(notice?.text).toContain("z.ts");
+  });
+});
+
+// A model the provider had no room for waits on the person who presses the
+// step again or picks another model: amber, like the badge.
+describe("getSpecMessage for a step stopped because the model is at capacity", () => {
+  test("renders the job's sentence as a waiting message, not failed", () => {
+    const sentence = "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
+    const notice = getSpecMessage(
+      lead({ steps: ["analyze"], state: "stopped", stopReason: "model-at-capacity", error: sentence }),
+    );
+    expect(notice?.variant).toBe("waiting");
+    expect(notice?.text).toContain("sonnet");
+  });
+});
+
+
+describe("informational holds", () => {
+  test.each([...HELD_BACK_INFO_KEYS])("%s has no error labels", (key) => {
+    const notice = getSpecMessage(lead({ steps: ["analyze"], errorReason: "held-back",
+      error: { key, values: { dependency: "aide:726" } } }));
+    expect(notice?.variant).toBe("info");
+    expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
+  });
+});
+
+test("automatic dependency changes remain informational beside the dependency hold", () => {
+  const notice = getSpecMessage(lead({ steps: ["analyze"], errorReason: "held-back",
+    error: { key: "runner.dependencyNotArchived", values: { dependency: "aide:726" } },
+    dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: ["aide:726 — needs its result contract"] } },
+  }));
+  expect(notice?.parts?.find((part) => part.detail?.includes("needs its result contract")))
+    .toMatchObject({ variant: "info", detail: "aide:726 — needs its result contract" });
+  expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
+});
+
+test("a cycle explanation is not hidden by the older shared-file notice", async () => {
+  const { getSharedFilesMessage } = await import("../../../src/messages/specs/get.ts");
+  const text = getSharedFilesMessage(lead({ state: "stopped", stopReason: "shared-files",
+    error: { key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:1" } },
+  }), "shared-files", () => [{ folder: "2-b", label: "2 B", files: ["x.ts"] }]);
+  expect(text).toContain("aide:1 → aide:2 → aide:1");
+});

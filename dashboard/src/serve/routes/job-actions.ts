@@ -9,7 +9,7 @@ import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { jobDismissible, jobKind } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
-import { errorSentence } from "../../format/error-sentence.ts";
+import { getErrorMessage } from "../../messages/shared/written.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
@@ -94,7 +94,7 @@ export async function handleJobActionRoutes(
           if (typeof step !== "string") continue;
           if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const said = errorSentence({
+            const said = getErrorMessage({
               what: `${specReference(askedFor.project, askedFor.specFolder)}'s analysis has run, but it has not been merged into main, which implement starts from`,
               resolve: "press Analyze again to merge it",
             });

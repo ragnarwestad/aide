@@ -11,7 +11,7 @@ import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
 import { buttonForm, confirmDialog, messageSlot } from "./components";
-import { capitalizeFirst } from "../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { delayFile, nextDelay, readDelay } from "../../integrations/round-delay.ts";

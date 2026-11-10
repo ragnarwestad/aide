@@ -1,4 +1,4 @@
-import type { Sentence } from "../i18n/message.ts";
+import type { Sentence } from "../messages/types.ts";
 import type { GitRunner } from "./process/index.ts";
 
 /** Landing's own finalize step for a `create` job: renames the folder

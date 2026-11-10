@@ -13,7 +13,7 @@ import {
 import { manifestWithScalar, oneLine } from "../../../src/project/project-admin/manifest-io.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
-import { messageDetail } from "../../../src/i18n/message.ts";
+import { messageDetail } from "../../../src/messages/render.ts";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];

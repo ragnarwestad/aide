@@ -7,7 +7,7 @@ import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fix
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 import { specsRootsOnly } from "../../../src/serve/land-branch/steps.ts";
 
 function sentence(s: unknown): string {

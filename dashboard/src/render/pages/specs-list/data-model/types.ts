@@ -5,7 +5,7 @@
 import type { PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import type { QueueRowView } from "../../../ui/job-state";
 import type { FileStepsAnswer } from "../../../../git/workflow-history.ts";
-import type { Sentence } from "../../../../i18n/message.ts";
+import type { Sentence } from "../../../../messages/types.ts";
 import type { StatusCheck } from "../../../../project/parse-status";
 import type { HasNotVerified } from "./not-verified.ts";
 import type { HasApproachChoice, HasCreateChoices } from "./approach-choice.ts";

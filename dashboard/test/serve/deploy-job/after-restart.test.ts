@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
-import type { Sentence } from "../../../src/i18n/message.ts";
+import type { Sentence } from "../../../src/messages/types.ts";
 import { finishDeployAfterRestart } from "../../../src/serve/deploy-job/after-restart.ts";
 import { cleanupHarness, DEFAULTS, dir, enqueue, makeRunner, resetHarness, store } from "../../queue/runner/runner-fixtures.ts";
 

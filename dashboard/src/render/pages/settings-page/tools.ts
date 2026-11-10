@@ -9,7 +9,7 @@
 // which tool, and why.
 
 import { t, type Language } from "../../../i18n";
-import type { BoardMessage } from "../../../i18n/message.ts";
+import type { BoardMessage } from "../../../messages/types.ts";
 import { esc } from "../../ui/html.ts";
 import { facts } from "../../ui/components";
 import { PROVIDER_TOOLS, type ProviderTool } from "../../../queue/providers/index.ts";

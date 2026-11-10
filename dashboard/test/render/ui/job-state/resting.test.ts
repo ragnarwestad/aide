@@ -6,7 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip } from "../../../../src/render/ui/job-state/resting.ts";
-import { specNotice } from "../../../../src/render/ui/job-state";
+import { getSpecMessage } from "../../../../src/render/ui/job-state";
 import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "../../../../src/render/ui/components";
 import type { QueueRowView } from "../../../../src/render";
 
@@ -100,7 +100,7 @@ describe("specStateChip() on a held-back queued row", () => {
       error: { key: "runner.dependencyNotArchived", values: { folder: "80-x" } },
     });
     const badgeHtml = specStateChip(heldRow, "en");
-    const notice = specNotice(heldRow);
+    const notice = getSpecMessage(heldRow);
 
     expect(badgeHtml).toContain(">Held back<");
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);

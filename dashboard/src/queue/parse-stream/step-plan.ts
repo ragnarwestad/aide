@@ -8,7 +8,7 @@
 // writes itself after the session: the merge into main.
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { capitalizeFirst } from "../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { stepKey } from "./step-marks.ts";
 
 /** The parts aide-run-spec marks itself: `aide_part_open "preparing"` (aide-run-spec), and

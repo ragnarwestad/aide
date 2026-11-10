@@ -77,7 +77,7 @@ export function acceptanceRowsOf(content: string): StatusCheck[] {
  *  expected wait apart from the dependency-gated `archiveHeldBack`
  *  case sharing its field — a comparison, not a duplicate literal.
  *  Its words are never shown: every display goes through
- *  `heldBackReasonText`, and old spec files carry this exact text. */
+ *  `getHeldBackReasonMessage`, and old spec files carry this exact text. */
 export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
   "the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
 

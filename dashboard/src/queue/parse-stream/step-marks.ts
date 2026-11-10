@@ -7,7 +7,7 @@
 // skill's steps in the transcript (`--- Step 1 of 4: … — done`, which the
 // Log shows with the time `aide-run-spec` recorded for it), and the
 // landing's merge step in the run log, prefixed `error: ` when it stopped.
-import { capitalizeFirst } from "../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import type { LogPart } from "./step-log.ts";
 
 /** A marked step's state: started is running, done and skipped are done,

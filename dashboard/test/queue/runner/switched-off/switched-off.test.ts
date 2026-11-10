@@ -6,7 +6,7 @@ import { describe, expect, test } from "bun:test";
 import type { Job } from "../../../../src/queue/queue.ts";
 import type { Provider } from "../../../../src/queue/providers/index.ts";
 import { switchedOffHolds } from "../../../../src/queue/runner/switched-off.ts";
-import { renderMessage } from "../../../../src/i18n/message.ts";
+import { renderMessage } from "../../../../src/messages/render.ts";
 
 const PROVIDERS: Record<string, Provider> = {
   off: { name: "Claude Capra", tool: "claude", enabled: false },

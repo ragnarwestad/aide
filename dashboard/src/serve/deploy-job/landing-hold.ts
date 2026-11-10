@@ -1,4 +1,4 @@
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 import type { Job } from "../../queue/queue.ts";
 import { landingStepIndex } from "../../format/gerund.ts";
 import { specReference } from "../../project/spec-folder.ts";

@@ -4,27 +4,27 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { timeLimitMessage } from "../../../../src/queue/runner/cross-check-message.ts";
+import { getTimeLimitMessage } from "../../../../src/messages/jobs/outcomes.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 const stopped = (timeLimit: unknown) => ({ ok: false, terminalReason: "timeout", timeLimit, error: "stopped at its own 40-minute time limit for this step" });
 
-describe("timeLimitMessage", () => {
+describe("getTimeLimitMessage", () => {
   test("names the limit in whole minutes, and which part of the step ran out", () => {
-    expect(timeLimitMessage("implement", stopped({ seconds: 2400, during: "session" }))).toEqual({
+    expect(getTimeLimitMessage("implement", stopped({ seconds: 2400, during: "session" }))).toEqual({
       key: "runner.timeLimitSession",
       values: { button: "Implement", limit: "40 min" },
     });
-    expect(timeLimitMessage("implement", stopped({ seconds: 90, during: "tests" }))).toEqual({
+    expect(getTimeLimitMessage("implement", stopped({ seconds: 90, during: "tests" }))).toEqual({
       key: "runner.timeLimitTests",
       values: { button: "Implement", limit: "90 s" },
     });
   });
 
   test("leaves a result that names no limit to the runner's own sentence", () => {
-    expect(timeLimitMessage("implement", stopped(undefined))).toBeUndefined();
+    expect(getTimeLimitMessage("implement", stopped(undefined))).toBeUndefined();
   });
 });
 

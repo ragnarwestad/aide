@@ -137,10 +137,10 @@ in Codex's messages hold digits too. A provider limit, a model at capacity, a re
 read first and never reach this.
 
 Every kind except `silent` carries the provider's first line as `message`, cut at a word after 160 characters. The board
-words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`): login, account
+words each kind in the reader's language (`getCliErrorMessage`, `src/messages/jobs/outcomes.ts`): login, account
 access, the serving host's network, the provider's side, another error, or a turn that gave no reason. The cause appears
 in every sentence that has one. The result's `errorLog`, the tool's own words, stays behind the row's (?). A step with no `providerError`, or on a
-tool that is no provider, gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
+tool that is no provider, gets the sentence in `src/messages/jobs/failure.ts`, which names the tool and the model and carries the tool's words as
 they came.
 
 ## When a provider limit ends a step
@@ -440,7 +440,7 @@ evidence that the phase happened:
 A `scope-violation` carries `scopeViolation`: `specs` when the step wrote outside its own spec folder (those changes
 are undone), with the first three paths it wrote in `scopeSpecs`, and `analyze` when an analyze changed what it may not.
 The board words these, and a `short-analysis-over-limit`, a `sent-back`, a `sent-back-refused` and a `create` that made
-no folder, in the reader's language with what to press (`src/queue/runner/cross-check-message.ts`). The result carries
+no folder, in the reader's language with what to press (`src/messages/jobs/outcomes.ts`). The result carries
 no sentence for them, and the (?) holds the result's `errorLog`, whole:
 
 - the limits a short analysis crossed;

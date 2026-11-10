@@ -10,7 +10,7 @@
 
 import { stepButton, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n";
-import { renderMessage } from "../i18n/message.ts";
+import { renderMessage } from "../messages/render.ts";
 import type { Job } from "../queue/queue.ts";
 import { scheduleRunPath } from "../render";
 import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";

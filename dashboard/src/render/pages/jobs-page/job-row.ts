@@ -28,8 +28,8 @@ import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
-import { jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
-import { jobDismissible } from "../../../queue/queue.ts";
+import { jobControl, jobKey, jobTitle } from "./rows.ts";
+import { getJobMessage } from "../../../messages/jobs/get.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export type { JobStep };
@@ -88,15 +88,15 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The line under the state, open or shut, from `jobMessage`; its Log link
+/** The line under the state, open or shut, from `getJobMessage`; its Log link
  *  and, for a scheduled job, Dismiss end the line. */
 function messageLine(row: QueueRowView, lang: Language): string {
-  const m = jobMessage(row, lang);
+  const m = getJobMessage(row, lang);
   if (!m) return "";
   const log = m.log ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>` : "";
-  const dismiss = jobDismissible(row)
+  const dismiss = m.dismiss
     ? buttonForm({
-        action: `/api/queue/${row.id}/dismiss`,
+        action: m.dismiss,
         hook: "actionform",
         button: { label: t(lang, "list.createDismiss"), small: true },
       })

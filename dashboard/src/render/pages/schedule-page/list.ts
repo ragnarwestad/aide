@@ -12,7 +12,7 @@ import { en } from "../../../i18n/en.ts";
 import { modelFlag } from "./model-flag.ts";
 import { scheduleSettingsPath } from "./tabs.ts";
 import { queryHref, resolveSort, sortHeading, type SortColumns } from "./sort-head.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 
 export interface SchedulePageRow {
   project: string;

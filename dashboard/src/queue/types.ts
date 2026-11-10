@@ -1,7 +1,7 @@
 // The shapes the queue trades in: a job, its results, and the config
 // that bounds what a request may ask for.
 
-import type { Sentence } from "../i18n/message.ts";
+import type { Sentence } from "../messages/types.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 import type { CriteriaChecks } from "../project/discover";
 import type { Provider } from "./providers/index.ts";

@@ -3,9 +3,9 @@
 import { badge } from "../components";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
-import { heldBackResolvesOnItsOwn } from "./notice.ts";
+import { heldBackResolvesOnItsOwn } from "../../../messages/jobs/holds.ts";
 import type { QueueRowView } from "./types.ts";
 import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
 
@@ -46,7 +46,7 @@ export interface RestingState {
  *  The WORD only. The reason is a sentence out of `4-status.md` — 130
  *  characters in one case — and a badge is `nowrap`, so it would run off
  *  the right edge of the table. It is said in full in the row's own panel
- *  instead (`specNotice`), once.
+ *  instead (`getSpecMessage`), once.
  *
  *  Its own function, because a spec with no job in the
  *  queue's memory needs the same sentence, and a hardcoded "not
@@ -115,7 +115,7 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     const step = currentStep(r);
     // Held back: not competing for a slot, so no number
     // claims it is next in line for one — the row's own panel
-    // (specNotice) already says the actual reason underneath.
+    // (getSpecMessage) already says the actual reason underneath.
     // Its own word, not "stopped": a hold is a routine wait,
     // never a stop, and its colour follows the same classification the
     // notice line already uses — neutral when the hold clears on its

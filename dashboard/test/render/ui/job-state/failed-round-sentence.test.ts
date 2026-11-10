@@ -2,10 +2,10 @@
 
 import { describe, expect, test } from "bun:test";
 import * as jobState from "../../../../src/render/ui/job-state";
-import { specNotice } from "../../../../src/render/ui/job-state";
+import { getSpecMessage } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
 import type { OpenOverlap } from "../../../../src/project/overlapping-specs.ts";
-import { renderMessage } from "../../../../src/i18n/message.ts";
+import { renderMessage } from "../../../../src/messages/render.ts";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "j1",
@@ -21,7 +21,7 @@ const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   ...over,
 });
 
-describe("sharedFilesSentence", () => {
+describe("getSharedFilesMessage", () => {
   const SENTENCE = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts.";
   const stoppedOn = (stopReason: NonNullable<QueueRowView["stopReason"]>, over: Partial<QueueRowView> = {}) =>
     lead({ steps: ["analyze"], state: "stopped", stopReason, error: SENTENCE, ...over });
@@ -50,12 +50,12 @@ describe("sharedFilesSentence", () => {
   };
 
   test("a lead stopped shared-files names every spec still open, number and title, with its files, and tells the reader to add them to Depends on", () => {
-    expect(jobState.sharedFilesSentence(stoppedOn("shared-files"), undefined, () => OPEN)).toBe(NAMED);
+    expect(jobState.getSharedFilesMessage(stoppedOn("shared-files"), undefined, () => OPEN)).toBe(NAMED);
   });
 
   test("the sentence is the same with the job and without it", () => {
-    const withJob = jobState.sharedFilesSentence(stoppedOn("shared-files"), "shared-files", () => OPEN);
-    const withoutJob = jobState.sharedFilesSentence(undefined, "shared-files", () => OPEN);
+    const withJob = jobState.getSharedFilesMessage(stoppedOn("shared-files"), "shared-files", () => OPEN);
+    const withoutJob = jobState.getSharedFilesMessage(undefined, "shared-files", () => OPEN);
     expect(withoutJob).toBe(NAMED);
     expect(withJob).toBe(withoutJob);
   });
@@ -63,44 +63,44 @@ describe("sharedFilesSentence", () => {
   test("a lead stopped for any other reason gives nothing, and the record is not read", () => {
     for (const reason of ["timeout", "acceptance-criteria", "provider-limit"] as const) {
       const r = reading(OPEN);
-      expect(jobState.sharedFilesSentence(stoppedOn(reason), undefined, r.read)).toBeUndefined();
+      expect(jobState.getSharedFilesMessage(stoppedOn(reason), undefined, r.read)).toBeUndefined();
       expect(r.asked.n).toBe(0);
     }
   });
 
   test("a lead that is not stopped, and no lead and no history, give nothing", () => {
     const r = reading(OPEN);
-    expect(jobState.sharedFilesSentence(stoppedOn("shared-files", { state: "failed" }), undefined, r.read)).toBeUndefined();
-    expect(jobState.sharedFilesSentence(undefined, undefined, r.read)).toBeUndefined();
-    expect(jobState.sharedFilesSentence(undefined, "timeout", r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(stoppedOn("shared-files", { state: "failed" }), undefined, r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(undefined, undefined, r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(undefined, "timeout", r.read)).toBeUndefined();
     expect(r.asked.n).toBe(0);
   });
 
   test("the history alone gives nothing while the lead is in flight or ended with a sentence of its own", () => {
     const r = reading(OPEN);
-    expect(jobState.sharedFilesSentence(lead({ state: "running", error: undefined }), "shared-files", r.read)).toBeUndefined();
-    expect(jobState.sharedFilesSentence(lead({ state: "queued", error: undefined }), "shared-files", r.read)).toBeUndefined();
-    expect(jobState.sharedFilesSentence(lead({ state: "failed", error: "It broke." }), "shared-files", r.read)).toBeUndefined();
-    expect(jobState.sharedFilesSentence(stoppedOn("timeout"), "shared-files", r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(lead({ state: "running", error: undefined }), "shared-files", r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(lead({ state: "queued", error: undefined }), "shared-files", r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(lead({ state: "failed", error: "It broke." }), "shared-files", r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(stoppedOn("timeout"), "shared-files", r.read)).toBeUndefined();
     expect(r.asked.n).toBe(0);
   });
 
   test("every spec archived says so and asks only for Analyze, naming no spec and not Depends on", () => {
-    const said = jobState.sharedFilesSentence(stoppedOn("shared-files"), "shared-files", () => []);
+    const said = jobState.getSharedFilesMessage(stoppedOn("shared-files"), "shared-files", () => []);
     expect(said).toBe(ARCHIVED);
     expect(said).not.toContain("Depends on");
   });
 
   test("one spec open and one archived names the open one alone", () => {
-    const said = jobState.sharedFilesSentence(stoppedOn("shared-files"), undefined, () => OPEN.slice(0, 1));
+    const said = jobState.getSharedFilesMessage(stoppedOn("shared-files"), undefined, () => OPEN.slice(0, 1));
     expect(said).toContain("82 The other thing: a.ts, b.ts");
     expect(said).not.toContain("84");
   });
 
   test("with no record the lead's own sentence stands, and the history alone gives nothing", () => {
     const stop = stoppedOn("shared-files");
-    expect(jobState.sharedFilesSentence(stop, "shared-files", () => undefined)).toBe(SENTENCE);
-    expect(jobState.sharedFilesSentence(stop, undefined, () => undefined)).toBe(specNotice(stop)?.text);
-    expect(jobState.sharedFilesSentence(undefined, "shared-files", () => undefined)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(stop, "shared-files", () => undefined)).toBe(SENTENCE);
+    expect(jobState.getSharedFilesMessage(stop, undefined, () => undefined)).toBe(getSpecMessage(stop)?.text);
+    expect(jobState.getSharedFilesMessage(undefined, "shared-files", () => undefined)).toBeUndefined();
   });
 });

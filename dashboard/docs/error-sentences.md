@@ -44,13 +44,18 @@ Solution: Press Try again to open the form with what you typed, then press Creat
 
 ### In the message catalog
 
-Every entry in `src/i18n/messages.ts` holds the problem in its language texts and the fix in `solution`, one text per
-language; `solution: null` is a message with nothing to resolve, and `exempt` says why. The composer
-(`src/i18n/message.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
+`src/messages/catalog.ts` combines the catalogues under `src/messages/`, grouped by subject. Each entry keeps all
+languages together and holds the problem in its language texts and the fix in `solution`, one text per language; `solution: null` is a message with nothing to resolve, and `exempt` says why. The composer
+(`src/messages/render.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
 own texts stay lowercase. A test fails for an entry with neither.
 
 An entry that only informs, such as a check that passed, a run that finished or a wait that ends by itself, has no
 `solution` and says why in `statement`. It is shown as its sentence alone, with no Problem or Solution label.
+
+The `get…Message()` functions live beside their subject's catalogue. Presentation functions return a shared `Message`
+with the text, its kind, and optional Log and Dismiss addresses. `getJobMessage()` selects these together; pages draw
+the result without deciding the actions again. Producers that have no reader yet keep a language-independent
+`BoardMessage` with a key and values. The queue owns the reason a job waits; the message functions own how it is shown.
 
 ### A message inside another
 
@@ -95,7 +100,7 @@ current sentence and detail behavior.
 
 ## The shared builder
 
-`src/format/error-sentence.ts` composes the problem and its fix for every sentence built this way, and returns them
+`src/messages/shared/written.ts` composes the problem and its fix for every sentence built this way, and returns them
 apart as `problem` and `solution` beside the one-line `text`:
 
 ```typescript

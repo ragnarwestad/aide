@@ -29,7 +29,7 @@ import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoi
 export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
-import type { BoardMessage } from "../i18n/message.ts";
+import type { BoardMessage } from "../messages/types.ts";
 
 export { CHECKABLE_TOOLS };
 export type { CheckableTool, ExtraCheck, ToolCheck };

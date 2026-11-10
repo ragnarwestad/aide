@@ -27,16 +27,16 @@
 // theme); the Runner class itself — the only stateful piece — stays
 // here, re-exporting them for every existing importer.
 
-import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage } from "./cross-check-message.ts";
+import { getCliErrorMessage, getNoProgressMessage, getRunnerMessage, getRunStopMessage } from "../../messages/jobs/outcomes.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import { renderSentence, type BoardMessage, type Sentence } from "../../i18n/message.ts";
+import { renderSentence, type BoardMessage, type Sentence } from "../../messages/render.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
-import { stepDetail, stepFailure } from "../../format/tool-failure.ts";
+import { stepDetail, getStepFailureMessage } from "../../messages/jobs/failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 import { clearStaleHolds, holdFor, holdJob, type HoldAnswers } from "./holds.ts";
 import { holdLanding } from "./landing.ts";
@@ -321,7 +321,7 @@ export class Runner {
     // who cannot tell it from a broken agent will ignore both.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
-      const stopMessage = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
+      const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
       const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
         ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
         : stopMessage;
@@ -330,20 +330,20 @@ export class Runner {
         stopReason: outcome.terminalReason,
         ...usageLimitWait(outcome, stoppedAt),
         finishedAt: stoppedAt,
-        error: worded ?? runnerWords(outcome),
+        error: worded ?? getRunnerMessage(outcome),
         errorDetail: worded ? stepDetail(outcome) : undefined,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;
     }
     if (!outcome.ok) {
-      const baseMessage = noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
+      const baseMessage = getNoProgressMessage(step, outcome) ?? getCliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
       const finalMessage = attemptsLeft(retryAttempts) === 0 && aiWorkRetryDecision(
         { terminalReason: outcome.terminalReason ?? "", scopeViolation: outcome.scopeViolation }, retryAttempts - 1,
       ) && baseMessage && !Array.isArray(baseMessage) && typeof baseMessage !== "string"
         ? { key: "runner.afterTwoAttempts" as const, inner: baseMessage }
         : baseMessage;
-      const failure = stepFailure(
+      const failure = getStepFailureMessage(
         finalMessage,
         outcome,
         job.model[step] ?? job.modelChoice,

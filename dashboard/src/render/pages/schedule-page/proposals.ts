@@ -2,7 +2,7 @@
 // run proposed: which it created, which it skipped, and why. Reads the record
 // `propose-specs.ts` leaves beside the report; no record draws nothing.
 import { t, type Language } from "../../../i18n";
-import { renderMessage } from "../../../i18n/message.ts";
+import { renderMessage } from "../../../messages/render.ts";
 import type { InvalidWhat, ProposalResult, ProposalsProblem, ProposalsRecord, SkipWhy } from "../../../queue/spec-proposals.ts";
 import { badge } from "../../ui/components";
 import { esc } from "../../ui/html.ts";

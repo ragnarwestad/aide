@@ -14,7 +14,7 @@ import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import type { CreateFinalizer } from "../../../src/git/create-finalizer.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";

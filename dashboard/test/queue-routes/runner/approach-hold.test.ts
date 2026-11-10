@@ -10,7 +10,7 @@ import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { approachChoiceHolds, notAnalyzedHolds, type ScheduleContext } from "../../../src/serve/schedules";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";

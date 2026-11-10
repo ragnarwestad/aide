@@ -1,5 +1,5 @@
 import { appendFileSync, renameSync, writeFileSync } from "node:fs";
-import type { Sentence } from "../i18n/message.ts";
+import type { Sentence } from "../messages/types.ts";
 import { formatRunLogLine } from "../queue/parse-stream/step-log.ts";
 import { stepMarkLine } from "../queue/parse-stream/step-marks.ts";
 import { runLogPath } from "../queue/runner/run-log-path.ts";

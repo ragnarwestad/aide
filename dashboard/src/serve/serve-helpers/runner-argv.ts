@@ -2,7 +2,7 @@
 // building the argv `aide-run-spec` is started with from them. Split
 // out of serve-helpers.ts by theme (split serve-helpers.ts by theme).
 
-import { renderSentence } from "../../i18n/message.ts";
+import { renderSentence } from "../../messages/render.ts";
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
 import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";

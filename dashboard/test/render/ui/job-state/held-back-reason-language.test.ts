@@ -5,10 +5,10 @@
 // yet — …", half in each language. The marker renders
 // from its catalogue entry; every other reason is shown as written.
 import { describe, expect, test } from "bun:test";
-import { heldBackReasonText } from "../../../../src/render/ui/job-state/notice.ts";
+import { getHeldBackReasonMessage } from "../../../../src/messages/specs/get.ts";
 
 describe("the acceptance-criteria hold-back reads in the reader's language", () => {
   test("a reason an archive run wrote is shown as written", () => {
-    expect(heldBackReasonText("nb", "depends on 12, which is not archived yet")).toBe("depends on 12, which is not archived yet");
+    expect(getHeldBackReasonMessage("nb", "depends on 12, which is not archived yet")).toBe("depends on 12, which is not archived yet");
   });
 });

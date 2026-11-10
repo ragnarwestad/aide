@@ -3,7 +3,7 @@
 // sentences that explain it are said here, for the phase they are about.
 
 import { t, type Language } from "../../../../i18n";
-import { renderSentence } from "../../../../i18n/message.ts";
+import { renderSentence } from "../../../../messages/render.ts";
 import { wordPhase } from "../../../ui/job-state";
 import type { Phase, SpecGroup } from "../data-model";
 import { prErrorOf, prErrorSentence } from "../row-shared.ts";

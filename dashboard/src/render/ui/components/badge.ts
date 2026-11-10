@@ -1,7 +1,7 @@
 // The status badge: a state's word, its colour, and its icon.
 
 import { esc } from "../html.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { stateIconName } from "./state-icon.ts";
 
 /** The six the design sheet defines. Every job state maps onto one of

@@ -6,7 +6,7 @@ import type { Job } from "../../../queue/types.ts";
 import { t, type Language } from "../../../i18n";
 import { durationLabel } from "../../ui/job-state";
 import { esc } from "../../ui/html.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { queryHref, resolveSort, sortHeading, type SortColumns, type SortDir } from "./sort-head.ts";
 import { schedulePagePath } from "./tabs.ts";
 

@@ -6,7 +6,7 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
-import { errorSentence } from "../../../format/error-sentence.ts";
+import { getErrorMessage } from "../../../messages/shared/written.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
@@ -317,7 +317,7 @@ export async function specPageRoutes(
     if (file === EDITABLE_SPEC_FILE) {
       const description = descriptionPart(text);
       if (description !== null && description.length > DESCRIPTION_MAX) {
-        const reason = errorSentence({
+        const reason = getErrorMessage({
           what: `the description is ${description.length - DESCRIPTION_MAX} characters over the ${DESCRIPTION_MAX} it may hold — nothing was saved`,
           resolve: "Shorten it on the Description tab and save again.",
         }).text;

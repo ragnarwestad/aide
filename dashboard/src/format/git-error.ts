@@ -8,8 +8,6 @@
 // not read from remote repository", which a network failure prints too,
 // and GitHub's 500 arrives on a `[remote rejected]` line.
 
-import type { BoardMessage } from "../i18n/message.ts";
-
 /** `auth`: GitHub does not take the machine's SSH key or login. `github`:
  *  GitHub had an error (a 5xx), or the network failed. `refused`: origin
  *  turned the push down, and `message` is origin's own first line.
@@ -76,48 +74,6 @@ export function gitError(said: string): GitError {
   if (GITHUB.test(text)) return { kind: "github" };
   if (NETWORK.test(text)) return { kind: "network", message };
   return REFUSED.test(text) ? { kind: "refused", message } : { kind: "other", message };
-}
-
-/** Why a push failed, as the board's sentence: what happened, then what
- *  to do. A repo's and a branch's name are the caller's, around it. */
-export function gitErrorSentence(error: GitError): BoardMessage {
-  switch (error.kind) {
-    case "auth":
-      return { key: "git.pushAuth" };
-    case "github":
-      return { key: "git.pushGitHub" };
-    case "network":
-      return { key: "git.pushNetwork", values: { cause: error.message } };
-    case "no-write":
-      return { key: "git.pushNoWrite", values: { cause: error.message } };
-    case "https-auth":
-      return { key: "git.pushHttpsAuth", values: { cause: error.message } };
-    case "refused":
-      return { key: "git.pushRefused", values: { cause: error.message } };
-    case "other":
-      return { key: "git.pushOther", values: { cause: error.message } };
-    case "none":
-      return { key: "git.pushNoText" };
-  }
-}
-
-/** Why a fetch of the base failed: the same sentence as a push for a key
- *  GitHub does not take or an error at GitHub, and otherwise git's words
- *  with the advice to fetch by hand rather than to push. */
-export function gitFetchSentence(error: GitError): BoardMessage {
-  switch (error.kind) {
-    case "auth":
-    case "github":
-    case "network":
-    case "no-write":
-    case "https-auth":
-      return gitErrorSentence(error);
-    case "refused":
-    case "other":
-      return { key: "git.fetchOther", values: { cause: error.message } };
-    case "none":
-      return { key: "git.fetchNoText" };
-  }
 }
 
 /** The files a conflict named, as one value every language reads alike:

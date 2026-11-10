@@ -2,7 +2,7 @@
 // reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { Sentence } from "../../i18n/message.ts";
+import type { Sentence } from "../../messages/types.ts";
 import type { ResultTool } from "../providers/tools.ts";
 import type { BranchRef, ContextUse, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
@@ -86,7 +86,7 @@ export interface StepOutcome {
   providerLimit?: unknown;
   testedGreen?: unknown;
   /** The faults an analyze stopped on its acceptance criteria named, by
-   *  kind; read by `criteriaStopMessage`. */
+   *  kind; read by `getCriteriaStopMessage`. */
   criteriaFaults?: unknown;
   /** The open specs an analyze stopped on `shared-files` named, with the
    *  files each shares; read by `sharedFiles()` below. */

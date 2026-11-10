@@ -4,7 +4,7 @@
 // rest from a page left open long enough for its project, spec or model list
 // to go stale before the post landed. What resolves either is the same.
 
-import { errorSentence } from "./error-sentence.ts";
+import { getErrorMessage } from "../messages/shared/written.ts";
 
 export const INVALID_REQUEST_FIX = "Reload the page and try again";
 export const FIX_IN_FORM = "Fix it in the New spec form and submit again";
@@ -15,7 +15,7 @@ export interface RequestRefusal {
 }
 
 export const requestRefusal = (what: string, solution: string): RequestRefusal => {
-  const sentence = errorSentence({ what, resolve: solution });
+  const sentence = getErrorMessage({ what, resolve: solution });
   return { error: sentence.problem, solution: sentence.solution };
 };
 

@@ -12,7 +12,7 @@ import {
 } from "../../../project/project-settings.ts";
 import { settingLabel } from "../../../project/setting-labels.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
+import { renderSentence } from "../../../messages/render.ts";
 import { btn, btnLink, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";

@@ -10,7 +10,7 @@ import { afterEach } from "bun:test";
 import { rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.

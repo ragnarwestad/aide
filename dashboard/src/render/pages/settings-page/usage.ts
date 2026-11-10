@@ -3,7 +3,7 @@
 // Declared here rather than beside the code that reads it, for the same
 // reason `ToolCheck` is: `src/render` may not import `src/serve`.
 
-import { capitalizeFirst, when, windowPhrase } from "../../ui/job-state/provider-limit.ts";
+import { capitalizeFirst, when, windowPhrase } from "../../../messages/usage-limit/get.ts";
 import type { ProviderLimitWindow } from "../../../queue/types.ts";
 import type { Language } from "../../../i18n";
 import type { CheckableTool } from "./tools.ts";

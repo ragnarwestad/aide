@@ -6,7 +6,7 @@
 import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { CriteriaChecks } from "../../../project/discover";
 import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
 import { PHASE_LINES, type SpecGroup } from "../specs-list";

@@ -2,7 +2,7 @@
 // one-line refusal every operation that fails outright uses. Split out
 // of project-admin.ts (split project-admin.ts by theme).
 
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 
 /** The steps an add or a remove is made of. `name` is the request
  *  itself: a project name becomes a directory under the projects root

@@ -22,7 +22,7 @@
 
 
 import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./worktree.ts";
-import type { BoardMessage, Sentence } from "../../i18n/message.ts";
+import type { BoardMessage, Sentence } from "../../messages/types.ts";
 import { gitErrorDetail } from "../../format/git-error.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../branch-status.ts";
 import { type GitRunner } from "../process/index.ts";

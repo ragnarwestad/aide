@@ -1,12 +1,5 @@
-// What a queued job looks like to a page, and how its state is put into
-// words. Both the list and the single-job page need this, and neither
-// owns it. Split by theme into job-state/ (split job-state.ts by
-// theme): types.ts (QueueRowView, StepResultView),
-// format.ts (labels, durations, the state chip, in-flight), resting.ts
-// (the resting-state chip), notice.ts (the row's one long message),
-// tdd.ts (completedThirds) and word-phase.ts (wordPhase).
-// Kept as a barrel at this path because most of the render layer
-// imports from it.
+// A job's row data, labels, state chips and progress.
+// Message selection lives under messages/.
 
 export type { QueueRowView, SideRunView, StepResultView } from "./types.ts";
 export { anyCostUnmeasured, sidesSpent } from "./types.ts";
@@ -16,8 +9,9 @@ export { stateWord, durationLabel, BADGE_VARIANT, stateChip, inFlight, currentSt
 export type { RestingState } from "./resting.ts";
 export { restingChip, specStateChip } from "./resting.ts";
 
-export type { RowNotice } from "./notice.ts";
-export { heldBackResolvesOnItsOwn, sharedFilesSentence, specNotice } from "./notice.ts";
+export type { RowNotice } from "../../../messages/specs/get.ts";
+export { heldBackResolvesOnItsOwn } from "../../../messages/jobs/holds.ts";
+export { getSharedFilesMessage, getSpecMessage } from "../../../messages/specs/get.ts";
 
 
 export { completedThirds } from "./tdd.ts";

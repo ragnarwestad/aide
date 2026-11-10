@@ -13,7 +13,7 @@ import { jobsSentence } from "./components/spec-name.ts";
 import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
 import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
-import { renderSentence } from "../../i18n/message.ts";
+import { renderSentence } from "../../messages/render.ts";
 import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 

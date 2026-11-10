@@ -2,10 +2,10 @@
 // from tests proven to pass when their files were run again alone.
 
 import { describe, expect, test } from "bun:test";
-import { testsRedMessage } from "../../../../src/queue/runner/cross-check-message.ts";
-import { messageDetail, renderMessage } from "../../../../src/i18n/message.ts";
+import { getTestsRedMessage } from "../../../../src/messages/jobs/outcomes.ts";
+import { messageDetail, renderMessage } from "../../../../src/messages/render.ts";
 
-const said = (testsRed: unknown) => testsRedMessage("implement", { terminalReason: "tests-red", testsRed });
+const said = (testsRed: unknown) => getTestsRedMessage("implement", { terminalReason: "tests-red", testsRed });
 const red = (over: Record<string, unknown> = {}) => ({
   tests: ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
   errors: ["expected 3, received 0", "not found"],
@@ -17,7 +17,7 @@ const red = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-describe("testsRedMessage", () => {
+describe("getTestsRedMessage", () => {
   test("says how many suite attempts ran before the tests stayed red (AC-8)", () => {
     expect(said(red({ attempts: 3 }))).toMatchObject({
       key: "runner.testsRedAfterAttempts",

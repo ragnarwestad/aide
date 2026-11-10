@@ -2,7 +2,7 @@
 // when it changed, and taken off again by the first pass that does not
 // hold it.
 
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 import type { Job, QueueStore } from "../queue.ts";
 import { specReference } from "../../project/spec-folder.ts";
 import { landingStepIndex } from "../../format/gerund.ts";

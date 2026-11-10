@@ -6,8 +6,8 @@
 
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { MESSAGES } from "../i18n/messages.ts";
-import type { Sentence } from "../i18n/message.ts";
+import { MESSAGES } from "../messages/catalog.ts";
+import type { Sentence } from "../messages/types.ts";
 import { createFailureReason } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 

@@ -1,3 +1,4 @@
+import { getLandingMessage } from "../../../messages/landing/get.ts";
 // The notice-line sentences a row's own fields can carry, beside its
 // state: a pull request open for review, a push or landing that failed,
 // an archive held back for unticked acceptance criteria. Split out of
@@ -5,9 +6,9 @@
 
 import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
-import { messageDetail, messageIdentity, renderSentence, type Sentence } from "../../../i18n/message.ts";
+import { messageDetail, messageIdentity, renderSentence, type Sentence } from "../../../messages/render.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
-import { heldBackReasonText, type NoticePart } from "../../ui/job-state/notice.ts";
+import { getHeldBackReasonMessage, type NoticePart } from "../../../messages/specs/get.ts";
 import { specPagePath } from "../spec-page";
 import { type ArchivedSpecView, type SpecGroup } from "./data-model";
 import { BRANCH_PREVIEW, LANDING_FAILED, NO_PULL_REQUEST, NOT_PUSHED, prErrorOf, prErrorSentence, PULL_REQUEST, TEST_SERVER, TESTS_RED } from "./row-shared.ts";
@@ -79,12 +80,13 @@ function liveMarks(
   // refusal: the merge was built, the tests on it went red, and nothing
   // was pushed. Amber and its own word, so the row does not read as a
   // broken machine when the answer is to run implement again.
-  if (g.landingError) {
-    const held = g.errorReason === "tests-red";
+  const landing = getLandingMessage(g, lang);
+  if (landing) {
+    const held = landing.variant === "waiting";
     marks.push({
       variant: held ? "waiting" : "refused",
       label: held ? TESTS_RED(lang) : LANDING_FAILED(lang),
-      sentence: renderSentence(lang, g.landingError)!,
+      sentence: landing.text,
       source: g.landingError,
     });
   }
@@ -123,7 +125,7 @@ function liveMarks(
   // two — it offers a board built from a branch the run is moving.
   const quiet = archiveRunning || roundUnderWay(g);
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
-    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: heldBackReasonText(lang, heldBackReason), own: true, kind: "acceptance-hold" });
+    marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: getHeldBackReasonMessage(lang, heldBackReason), own: true, kind: "acceptance-hold" });
   }
   // The approaches a ticked spec's analysis found wait for a choice.
   // Worded from the same two calls the held job's own sentence is, so

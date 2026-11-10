@@ -6,8 +6,9 @@
 // (`update_branch_to_base`, `run-spec/checkout/worktree.sh`). The runner's
 // own English, with git's lines, stays the row's (?) detail.
 
-import type { Sentence } from "../../i18n/message.ts";
-import { gitErrorSentence, gitFetchSentence, type GitError } from "../../format/git-error.ts";
+import type { Sentence } from "../../messages/types.ts";
+import { type GitError } from "../../format/git-error.ts";
+import { getGitPushMessage, getGitFetchMessage } from "../../messages/git/get.ts";
 import type { StepOutcome } from "./types.ts";
 
 type Repo = "code" | "specs";
@@ -77,7 +78,7 @@ export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sen
       (f): Sentence => ({
         key: f.repo === "code" ? "runner.notPushedCode" : "runner.notPushedSpecs",
         values: { branch: f.branch },
-        inner: gitErrorSentence(f.error),
+        inner: getGitPushMessage(f.error),
       }),
     );
     return sentences.length === 1 ? sentences[0] : sentences;
@@ -88,7 +89,7 @@ export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sen
     return {
       key: f.repo === "code" ? "runner.notFetchedCode" : "runner.notFetchedSpecs",
       values: { base: f.branch },
-      inner: gitFetchSentence(f.error),
+      inner: getGitFetchMessage(f.error),
     };
   }
   if (outcome.terminalReason === "refused" && outcome.errorReason === "conflict") {

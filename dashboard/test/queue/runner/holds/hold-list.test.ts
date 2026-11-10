@@ -1,7 +1,7 @@
 // The holds a queued job can wait on are one ordered list, each with its own
 // name: the first that applies is the one its row names.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { BoardMessage } from "../../../../src/i18n/message.ts";
+import type { BoardMessage } from "../../../../src/messages/types.ts";
 import { HOLD_NAMES, HOLDS, holdFor } from "../../../../src/queue/runner/holds.ts";
 import { cleanupHarness, enqueue, makeRunner, now, resetHarness, spawns, store } from "../runner-fixtures.ts";
 

@@ -5,7 +5,7 @@
 // (`data-cover-note`, "Deploying…") until the page moves on (`coverWhile`,
 // specs-client/progress-dialog/).
 
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { Language } from "../../../i18n";
 import { esc } from "../html.ts";
 import { askParts, type AskParts } from "./confirm-dialog.ts";

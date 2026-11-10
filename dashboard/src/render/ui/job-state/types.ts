@@ -3,7 +3,7 @@
 
 import type { ProviderLimit } from "../../../queue/queue.ts";
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
-import type { Sentence } from "../../../i18n/message.ts";
+import type { Sentence } from "../../../messages/types.ts";
 
 export interface QueueRowView {
   id: string;

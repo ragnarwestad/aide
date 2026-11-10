@@ -26,7 +26,7 @@ import {
   type SpecGroup,
 } from "./data-model";
 import type { SpecsPageOptions } from "./";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 
 // Links, not script: the filter lives in the URL, so it survives a
 // reload, can be shared, and works with JavaScript switched off. The

@@ -24,7 +24,7 @@ import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/process/index.ts";
 import { configValue, resolveWorktreeLinks } from "../discover";
-import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
+import { renderMessage, type BoardMessage } from "../../messages/render.ts";
 import { worktreeLinksError } from "./manifest-io.ts";
 import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
 

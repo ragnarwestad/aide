@@ -3,7 +3,7 @@
 // `Runner.reconcile` then ends the job on. The old process fired the restart
 // and is gone; this is the only one left to say whether it took.
 
-import { renderSentence, type Sentence } from "../../i18n/message.ts";
+import { renderSentence, type Sentence } from "../../messages/render.ts";
 import { t } from "../../i18n";
 import { jobKind, type Job, type QueueStore } from "../../queue/queue.ts";
 import { boardStep } from "../board-step.ts";

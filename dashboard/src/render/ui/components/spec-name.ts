@@ -3,7 +3,7 @@
 // be drawn as markup. One function makes that link, so its address and
 // its escaping are the same everywhere.
 
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 // The page barrels import ui/components back, so these two stay direct.
 // noinspection ES6PreferShortImport

@@ -15,10 +15,10 @@
 
 import { helpPopover, messageSlot, rowMessage, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
+import { getSharedFilesMessage, getSpecMessage, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { t, type Language } from "../../../i18n";
-import { renderSentence, type Sentence } from "../../../i18n/message.ts";
+import { renderSentence, type Sentence } from "../../../messages/render.ts";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
@@ -73,7 +73,7 @@ export const listRefusalLine = (): string => messageSlot("refused", "failed", { 
  *  badge, so it has to read the same attempt that function does. */
 function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): string | undefined {
   // An analyze stopped on shared files is said from the spec's own record
-  // (`sharedFilesSentence`), which already opens with the step.
+  // (`getSharedFilesMessage`), which already opens with the step.
   const said = (step: string, qualifier: Sentence, stopped?: string): string =>
     sharedFiles && step === "analyze" && stopped === "shared-files"
       ? sharedFiles
@@ -141,14 +141,14 @@ export function specNoticeRow(
   const analyzeStopped = g.phases.find((p) => p.step === "analyze")?.history.stopped;
   const sharedFiles = locked
     ? undefined
-    : sharedFilesSentence(g.lead, analyzeStopped, () => view.overlappingSpecs?.(g.project, g.specFolder), lang);
+    : getSharedFilesMessage(g.lead, analyzeStopped, () => view.overlappingSpecs?.(g.project, g.specFolder), lang);
   // A stop on shared files is said from the spec's own record, not from the
   // job's sentence, so the row reads the same once the job has gone.
   const lead =
     sharedFiles && g.lead?.state === "stopped" && g.lead.stopReason === "shared-files"
       ? { ...g.lead, error: sharedFiles }
       : g.lead;
-  const notice = specNotice(
+  const notice = getSpecMessage(
     lead,
     archiveHeldBack,
     // A locked row's phases can carry queue-remembered attempts

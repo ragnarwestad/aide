@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { renderSentence } from "../../../../src/i18n/message.ts";
+import { renderSentence } from "../../../../src/messages/render.ts";
 import { gitFailureMessage } from "../../../../src/queue/runner/git-failure.ts";
 
 beforeEach(resetHarness);

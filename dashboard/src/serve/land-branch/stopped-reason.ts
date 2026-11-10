@@ -2,7 +2,7 @@
 // with the record of a landing that failed.
 
 import type { Job, QueueStore } from "../../queue/queue.ts";
-import type { Sentence } from "../../i18n/message.ts";
+import type { Sentence } from "../../messages/types.ts";
 
 /** A step that STOPPED — at its own time limit, or on a provider's
  *  usage limit — lands what it did, and its error is the reason it

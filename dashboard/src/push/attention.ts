@@ -4,7 +4,7 @@
 // already there and has been updated again" — see `index.ts` for the
 // snapshot itself.
 
-import type { MessageKey } from "../i18n/messages.ts";
+import type { MessageKey } from "../messages/catalog.ts";
 import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import { jobKind, type Job } from "../queue/queue.ts";

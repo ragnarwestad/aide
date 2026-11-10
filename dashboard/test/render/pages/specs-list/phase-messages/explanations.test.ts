@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
-import { renderSentence } from "../../../../../src/i18n/message.ts";
+import { renderSentence } from "../../../../../src/messages/render.ts";
 import { stopSentence } from "../../../../../src/render/ui/job-state/word-phase.ts";
 import type { QueueRowView } from "../../../../../src/render";
 import type { Phase } from "../../../../../src/render/pages/specs-list/data-model";

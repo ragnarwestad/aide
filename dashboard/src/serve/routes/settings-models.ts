@@ -14,7 +14,7 @@ import { NAME_RE } from "../../queue/parse-request.ts";
 import { asProviderTool, type ProviderTool } from "../../queue/providers/index.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { recordModelName } from "../../queue/store/model-ids.ts";
-import { capitalizeFirst } from "../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { stepLabel } from "../../format/step-label.ts";
 import {
   choiceModel, choiceOf, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel, TOOL_TAB_LABELS, type ToolModels,

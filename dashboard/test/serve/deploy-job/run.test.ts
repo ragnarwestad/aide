@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/process/index.ts";
-import type { Sentence } from "../../../src/i18n/message.ts";
+import type { Sentence } from "../../../src/messages/types.ts";
 import { runDeploy, type DeployRunDeps } from "../../../src/serve/deploy-job/run.ts";
 import type { DeployFailure } from "../../../src/serve/state.ts";
 import { createRootLock } from "../../../src/serve/serve-helpers";

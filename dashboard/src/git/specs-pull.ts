@@ -26,7 +26,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "./process/index.ts";
 import { lastCommitOf } from "./description-freshness.ts";
-import { errorSentence } from "../format/error-sentence.ts";
+import { getErrorMessage } from "../messages/shared/written.ts";
 import { sleep, type Wait } from "./branch-merge/retry.ts";
 import { REQUEST_LOCK_WAIT_MS, withCheckoutLock } from "./checkout-lock/index.ts";
 import { conflictFiles } from "../format/git-error.ts";
@@ -50,7 +50,7 @@ export interface SpecsPullResult {
   moved: boolean;
 }
 
-const refuse = (said: string | ReturnType<typeof errorSentence>): SpecsPullResult =>
+const refuse = (said: string | ReturnType<typeof getErrorMessage>): SpecsPullResult =>
   typeof said === "string"
     ? { ok: false, note: said, moved: false }
     : { ok: false, note: said.text, problem: said.problem, solution: said.solution, moved: false };
@@ -69,7 +69,7 @@ async function topOf(run: GitRunner, dir: string): Promise<string | SpecsPullRes
   const top = await run(dir, ["rev-parse", "--show-toplevel"]);
   if (top.code !== 0) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: `${dir} is not a git working tree — nothing was pulled.`,
         resolve: `Check the project's specs root is a git checkout, ${IN_THE_CHECKOUT}.`,
       }),
@@ -82,7 +82,7 @@ async function topOf(run: GitRunner, dir: string): Promise<string | SpecsPullRes
  *  whole wait: a run in its own section of the same checkout, as a rule,
  *  which has ended by the next press. */
 const lockHeld = (lock: string, nothing: string) =>
-  errorSentence({
+  getErrorMessage({
     what: `another process held the specs checkout's lock at ${lock} — nothing was ${nothing}.`,
     resolve: `Try again; if it keeps happening, check that no aide-run-spec process is stuck using it ${IN_THE_CHECKOUT}.`,
   });
@@ -134,7 +134,7 @@ async function pullInCheckout(
   const dirty = await run(root, ["diff", "--quiet", "HEAD"]);
   if (dirty.code !== 0) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: "the specs checkout has uncommitted changes — nothing was pulled.",
         resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
       }),
@@ -144,7 +144,7 @@ async function pullInCheckout(
   const base = await resolveBase(root);
   if (!base) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: "the specs checkout has no default branch on origin — nothing was pulled.",
         resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
       }),
@@ -156,7 +156,7 @@ async function pullInCheckout(
     // A checkout parked on a spec branch is left alone: pulling it
     // would fetch a branch whose upstream may be gone.
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
         resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
       }),
@@ -166,7 +166,7 @@ async function pullInCheckout(
   const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
   if (fetched.code !== 0) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: "origin could not be reached — nothing was pulled.",
         resolve: "Check the network from the serving host, then try again.",
       }),
@@ -179,7 +179,7 @@ async function pullInCheckout(
   const ancestor = await run(root, ["merge-base", "--is-ancestor", "HEAD", ref]);
   if (ancestor.code !== 0) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
         resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
       }),
@@ -190,7 +190,7 @@ async function pullInCheckout(
   const merged = await run(root, ["merge", "-q", "--ff-only", ref]);
   if (merged.code !== 0) {
     return refuse(
-      errorSentence({
+      getErrorMessage({
         what: "the pull failed — nothing was pulled.",
         resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
       }),
@@ -377,7 +377,7 @@ async function saveInCheckout(
       rollback();
       return {
         ok: false,
-        note: errorSentence({
+        note: getErrorMessage({
           what: `${edit.file} could not be staged — nothing was saved.`,
           resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
         }).text,
@@ -415,7 +415,7 @@ async function saveInCheckout(
     await run(root, ["reset", "--hard", before.stdout.trim()]);
     return {
       ok: false,
-      note: errorSentence({
+      note: getErrorMessage({
         what: `${subject} could not be committed — nothing was saved.`,
         resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
       }).text,
@@ -463,7 +463,7 @@ async function saveInCheckout(
     await run(root, ["reset", "--hard", before.stdout.trim()]);
     return {
       ok: false,
-      note: errorSentence({
+      note: getErrorMessage({
         what: `${subject} was committed but the push to origin failed — nothing was kept.`,
         resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
       }).text,

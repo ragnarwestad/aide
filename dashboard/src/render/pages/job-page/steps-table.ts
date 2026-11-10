@@ -6,13 +6,13 @@
 // over.
 
 import { esc, usdOrTokens } from "../../ui/html.ts";
-import { messageDetail, renderSentence } from "../../../i18n/message.ts";
+import { messageDetail, renderSentence } from "../../../messages/render.ts";
 import { t, type Language } from "../../../i18n";
-import { heldBackReasonText } from "../../ui/job-state/notice.ts";
+import { getHeldBackReasonMessage } from "../../../messages/specs/get.ts";
 import { facts, foldArrow, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
 import { drawnParts, stepPanel } from "./step-tabs.ts";
-import { providerLimitSentence } from "../../ui/job-state/provider-limit.ts";
+import { getProviderLimitMessage } from "../../../messages/usage-limit/get.ts";
 
 /** A heading that says "Cost" above a column of token counts is the
  *  wrong word, so it flips with the figures under it — the description
@@ -29,7 +29,7 @@ export const unitLabel = (usd: string, tok: string): string =>
  *  list's row shows, from the same field. */
 function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal, lang: Language = "en"): string {
   if (r.step === "archive" && r.ok && archiveHeldBack) {
-    return `held back — ${esc(heldBackReasonText(lang, archiveHeldBack))}`;
+    return `held back — ${esc(getHeldBackReasonMessage(lang, archiveHeldBack))}`;
   }
   // A create step that skipped the AI session reads distinctly
   // from an AI-run one, so a reader can tell which of the two paths
@@ -118,7 +118,7 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
       value:
         esc(r.terminalReason) +
         // The usage limit that stopped the step, from the tool's own record.
-        (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en", Date.now(), undefined, r.provider?.name))}</span>` : ""),
+        (r.providerLimit ? `<br><span class="muted small">${esc(getProviderLimitMessage(r.providerLimit, undefined, "en", Date.now(), undefined, r.provider?.name).text)}</span>` : ""),
     },
     ...(r.provider ? [{ label: t(lang, "job.provider"), value: esc(r.provider.name) }] : []),
   ]);

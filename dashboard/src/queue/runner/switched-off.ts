@@ -3,7 +3,7 @@
 // another provider. Worked out from the jobs each tick, like the usage-limit
 // holds, so switching the provider on is all it takes.
 
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 import { type Job } from "../queue.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { switchedOff, type Provider } from "../providers/index.ts";

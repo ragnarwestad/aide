@@ -3,7 +3,7 @@
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why.
 import { t, type Language } from "../../i18n";
-import { renderSentence } from "../../i18n/message.ts";
+import { renderSentence } from "../../messages/render.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
 import { jobKind, writing, type Job } from "../../queue/queue.ts";

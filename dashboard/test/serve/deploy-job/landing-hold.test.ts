@@ -2,7 +2,7 @@
 // in the words its row uses, so the reader can find it on the board.
 
 import { describe, expect, test } from "bun:test";
-import { renderMessage } from "../../../src/i18n/message.ts";
+import { renderMessage } from "../../../src/messages/render.ts";
 import { gerund } from "../../../src/format/gerund.ts";
 import { deployHold } from "../../../src/serve/deploy-job/landing-hold.ts";
 import type { Job } from "../../../src/queue/queue.ts";

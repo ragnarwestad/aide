@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER } from "../../helpers/fake-git.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 const BRANCH = "aide/49-crop-the-cover-image";
 const ROOT = "/repos/skjera";

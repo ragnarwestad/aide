@@ -2,7 +2,7 @@
 // (2026-09-11): a phase held back or stopped is amber on both, a failed
 // one red on both, a finished one green on both — the row never says a
 // phase's state in two colours.
-import { renderSentence } from "../../../../src/i18n/message.ts";
+import { renderSentence } from "../../../../src/messages/render.ts";
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
 

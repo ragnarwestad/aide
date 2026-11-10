@@ -7,12 +7,10 @@
 import { isScheduleKey, scheduleNameOf } from "../../../project/spec-names.ts";
 import { inFlight, jobActivity, jobKind } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
-import { stepLabel, type MessageVariant } from "../../ui/components";
-import { t, type Language, type TranslationKey } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
+import { stepLabel } from "../../ui/components";
+import { type Language } from "../../../i18n";
 import { waitsForPerson } from "../../../queue/steps.ts";
-import { heldBackResolvesOnItsOwn, type QueueRowView } from "../../ui/job-state";
-import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
+import { type QueueRowView } from "../../ui/job-state";
 import type { SpecGroup } from "../specs-list";
 import { specReference } from "../../../project/spec-folder.ts";
 import { requireWorkflowStep } from "../../../workflow-steps.ts";
@@ -144,77 +142,6 @@ export function scheduleStreamKey(key: string): string | undefined {
   const folder = key.slice(slash + 1);
   if (slash <= 0 || key.includes(":") || !isScheduleKey(folder)) return undefined;
   return phaseKey(key.slice(0, slash), folder, "schedule");
-}
-
-/** The line under a job row's state, or none. A job that failed, stopped or
- *  was interrupted says why, in its own sentence or, with none, in one saying
- *  how it ended, and the line carries the address of the job's own page for
- *  its Log link. A held-back job says why it waits, with no link. A job
- *  whose step ran on another Claude account names it: after its own sentence
- *  when it has one, on a line of its own once it is done or cancelled. Every
- *  other row has no line. */
-export interface JobMessage {
-  variant: MessageVariant;
-  text: string;
-  /** The job's own page, for the line's Log link; absent when it has none. */
-  log?: string;
-}
-
-/** What the line reads: the row view's fields, with `steps` as `JobLike` has
- *  them, so the tests' plain jobs fit as `StateRow`'s do. */
-type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
-  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider">> & {
-    steps: readonly string[];
-  };
-
-const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
-  failed: "jobs.endedFailed",
-  stopped: "jobs.endedStopped",
-  interrupted: "jobs.endedInterrupted",
-};
-
-/** The sentence naming the provider a job's step ran on, from the newest
- *  step result that names one; none when no step ran on an AI. */
-function ranOnSentence(row: MessageRow, lang: Language): string | undefined {
-  const result = [...(row.results ?? [])].reverse().find((r) => r.provider);
-  if (!result?.provider) return undefined;
-  return t(lang, "notice.providerRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: result.provider.name });
-}
-
-export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
-  const ended = ENDED[row.state];
-  if (ended) {
-    // A usage-limit stop is told in its own sentence, which names the
-    // provider the stop was on.
-    const limitText = row.state === "stopped" ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) : undefined;
-    if (limitText !== undefined) return { variant: "info", text: limitText };
-    const own = renderSentence(lang, row.error) || t(lang, ended);
-    const ranOn = ranOnSentence(row, lang);
-    return {
-      // The badge's own colour: a stop is amber, a failure red.
-      variant: row.state === "stopped" ? "waiting" : "failed",
-      text: ranOn ? `${own}\n${ranOn}` : own,
-      log: `/jobs/${row.id}?tab=steps`,
-    };
-  }
-  if (row.errorReason === "held-back") {
-    const text = usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) ?? renderSentence(lang, row.error);
-    if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
-  }
-  // A job names the provider its step runs on while it runs.
-  if (row.provider && row.state !== "done" && row.state !== "cancelled") {
-    const step = row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
-    return {
-      variant: "info",
-      text: t(lang, "notice.providerRuns", { step: stepLabel(step, lang), who: row.provider }),
-    };
-  }
-  // A finished job says which provider its step ran on.
-  if (row.state === "done" || row.state === "cancelled") {
-    const text = ranOnSentence(row, lang);
-    if (text) return { variant: "info", text };
-  }
-  return undefined;
 }
 
 /** What a row offers to end its job: Cancel for a queued one, Stop for a

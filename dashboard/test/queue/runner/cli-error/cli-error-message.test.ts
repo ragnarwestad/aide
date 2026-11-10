@@ -5,8 +5,8 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { renderSentence } from "../../../../src/i18n/message.ts";
-import { cliErrorMessage } from "../../../../src/queue/runner/cross-check-message.ts";
+import { renderSentence } from "../../../../src/messages/render.ts";
+import { getCliErrorMessage } from "../../../../src/messages/jobs/outcomes.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -18,31 +18,31 @@ const CODEX_401 =
 
 const failed = (outcome: Record<string, unknown>) => ({ ok: false, terminalReason: "cli-error", ...outcome });
 
-describe("cliErrorMessage", () => {
+describe("getCliErrorMessage", () => {
   test("a tool that is not logged in keeps the cause (AC-6)", () => {
-    const m = cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "login", message: "token expired" } }));
+    const m = getCliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "login", message: "token expired" } }));
     expect(m).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "token expired", button: "Implement" } });
   });
 
   test("a failure on the provider's side is told to try again in a while", () => {
-    const m = cliErrorMessage("analyze", failed({ tool: "claude", providerError: { kind: "provider", message: "overloaded" } }));
+    const m = getCliErrorMessage("analyze", failed({ tool: "claude", providerError: { kind: "provider", message: "overloaded" } }));
     expect(m).toEqual({ key: "runner.cliErrorProvider", values: { tool: "Claude Code", cause: "overloaded", button: "Analyze" } });
   });
 
   test("forbidden, network and silent failures have distinct sentences (AC-4, AC-5, AC-7)", () => {
-    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "forbidden", message: "403 policy" } }))).toEqual({
+    expect(getCliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "forbidden", message: "403 policy" } }))).toEqual({
       key: "runner.cliErrorForbidden", values: { tool: "Codex", cause: "403 policy", button: "Implement" },
     });
-    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "network", message: "ENOTFOUND" } }))).toEqual({
+    expect(getCliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "network", message: "ENOTFOUND" } }))).toEqual({
       key: "runner.cliErrorNetwork", values: { tool: "Codex", cause: "ENOTFOUND", button: "Implement" },
     });
-    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "silent" } }))).toEqual({
+    expect(getCliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "silent" } }))).toEqual({
       key: "runner.cliErrorSilent", values: { tool: "Codex", button: "Implement" },
     });
   });
 
   test("any other error is given as its own first line", () => {
-    const m = cliErrorMessage(
+    const m = getCliErrorMessage(
       "analyze",
       failed({ tool: "opencode", providerError: { kind: "other", message: "the model refused the turn" } }),
     );
@@ -53,11 +53,11 @@ describe("cliErrorMessage", () => {
   });
 
   test("with no sorted error, no tool, or another ending, there is no message of this kind", () => {
-    expect(cliErrorMessage("analyze", failed({ tool: "codex" }))).toBeUndefined();
-    expect(cliErrorMessage("analyze", failed({ providerError: { kind: "login" } }))).toBeUndefined();
-    expect(cliErrorMessage("analyze", failed({ tool: "codex", providerError: { kind: "other" } }))).toBeUndefined();
+    expect(getCliErrorMessage("analyze", failed({ tool: "codex" }))).toBeUndefined();
+    expect(getCliErrorMessage("analyze", failed({ providerError: { kind: "login" } }))).toBeUndefined();
+    expect(getCliErrorMessage("analyze", failed({ tool: "codex", providerError: { kind: "other" } }))).toBeUndefined();
     expect(
-      cliErrorMessage("analyze", { ok: false, terminalReason: "timeout", tool: "codex", providerError: { kind: "login" } }),
+      getCliErrorMessage("analyze", { ok: false, terminalReason: "timeout", tool: "codex", providerError: { kind: "login" } }),
     ).toBeUndefined();
   });
 });

@@ -5,7 +5,7 @@ import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { renderSentence } from "../../../src/i18n/message.ts";
+import { renderSentence } from "../../../src/messages/render.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it,

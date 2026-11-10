@@ -6,7 +6,7 @@ import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
 import { badge, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";

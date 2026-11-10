@@ -3,7 +3,7 @@
 // once) and the record, so the three cannot disagree about what a
 // failed create is.
 
-import type { BoardMessage, Sentence } from "../i18n/message.ts";
+import type { BoardMessage, Sentence } from "../messages/types.ts";
 import { isProvisionalKey } from "../project/spec-names.ts";
 import type { Job } from "./queue.ts";
 

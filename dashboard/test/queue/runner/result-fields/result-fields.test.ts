@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { providerError, testsNotStarted, testsRed, timeLimit } from "../../../../src/queue/runner/types.ts";
-import { scopeAnalyzeChecks } from "../../../../src/queue/runner/cross-check-message.ts";
+import { scopeAnalyzeChecks } from "../../../../src/messages/jobs/outcomes.ts";
 import { sideRun } from "../../../../src/queue/runner/side-run.ts";
 
 type Case = { name: string; written: unknown; read: unknown };

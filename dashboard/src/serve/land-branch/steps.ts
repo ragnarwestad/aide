@@ -9,7 +9,7 @@ import { landBranch, sameRoot } from "./merge.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepLogLine } from "./test-gate.ts";
 import { stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
-import { renderSentence } from "../../i18n/message.ts";
+import { renderSentence } from "../../messages/render.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { LandContext } from "./types.ts";
 

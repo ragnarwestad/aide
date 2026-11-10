@@ -4,7 +4,7 @@
 // `t()` fails and is named.
 
 import { Window } from "happy-dom";
-import { MESSAGES } from "../../../../src/i18n/messages.ts";
+import { MESSAGES } from "../../../../src/messages/catalog.ts";
 import { translations } from "../../../../src/i18n/translations.ts";
 import { STEP_LABELS_NB } from "../../../../src/format/step-label.ts";
 import { TOOL_NAMES } from "../../../../src/render/pages/specs-list";

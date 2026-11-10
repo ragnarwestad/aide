@@ -3,7 +3,7 @@
 // `index.ts` re-exports every name here; the pages import it from there.
 
 import { esc } from "../html.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { t, type Language } from "../../../i18n";
 import { ICON_CLOSE, SPINNER } from "./icons.ts";
 

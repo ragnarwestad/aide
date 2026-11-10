@@ -12,7 +12,7 @@
 // (`docs/job-states.md`), so an OpenCode or Copilot job never makes a
 // wait and is never held by one made on another AI.
 
-import type { BoardMessage } from "../../i18n/message.ts";
+import type { BoardMessage } from "../../messages/types.ts";
 import { type Job, type QueueStore } from "../queue.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { providerLimit } from "./types.ts";

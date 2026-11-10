@@ -1,12 +1,12 @@
 // The one rule for what a phase shows.
 
 import type { BadgeVariant, PipKind } from "../components";
-import type { BoardMessage, Sentence } from "../../../i18n/message.ts";
-import type { MessageKey } from "../../../i18n/messages.ts";
+import type { BoardMessage, Sentence } from "../../../messages/types.ts";
+import type { MessageKey } from "../../../messages/catalog.ts";
 import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { isFailedStop } from "../../../format/stop-reason.ts";
 import { BADGE_VARIANT, inFlight, stateWord } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
@@ -51,7 +51,7 @@ export interface PhaseWord {
    *
    *  A sentence, not a word — so the phase LINE never draws it. The
    *  caller hands it to the row's panel instead, named for its phase
-   *  (`specNotice`); on the queue list a phase line is the
+   *  (`getSpecMessage`); on the queue list a phase line is the
    *  badge and nothing else, whatever has happened to that phase. */
   qualifier?: Sentence;
 }

@@ -6,9 +6,9 @@ export { durationLabel };
 
 import { badge, helpPopover, type BadgeVariant } from "../components";
 import { esc } from "../html.ts";
-import { renderSentence } from "../../../i18n/message.ts";
+import { renderSentence } from "../../../messages/render.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { QueueRowView } from "./types.ts";
 
 // Every state is a single catalogue key — added here rather than left
@@ -75,8 +75,4 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
  *  the list's filter vocabulary. */
 export { inFlight } from "../../../queue/queue.ts";
 
-/** The step a job is on, or — once it has stopped — the last one it
- *  reached. */
-export function currentStep(r: { steps: readonly string[]; stepIndex: number }): string {
-  return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
-}
+export { currentStep } from "../../../messages/jobs/context.ts";

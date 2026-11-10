@@ -45,9 +45,7 @@ const TEST = join(ROOT, "test");
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {};
 
-// src/i18n/messages.ts is exempt by filename alone (see EXEMPT_BY_FILENAME
-// below) and is deliberately not duplicated here.
-const EXEMPT_BY_FILENAME = ["messages.ts", "en.ts", "nb.ts", "es.ts", "de.ts", "fr.ts"];
+const EXEMPT_BY_FILENAME = ["en.ts", "nb.ts", "es.ts", "de.ts", "fr.ts"];
 
 // What a failure says to do, for the session that meets it: the message is what it reads.
 const RULE = 'AGENTS.md, "Code health"';

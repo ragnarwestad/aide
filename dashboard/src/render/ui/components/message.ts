@@ -2,7 +2,7 @@
 // `index.ts` re-exports every name here; the pages import it from there.
 
 import { esc } from "../html.ts";
-import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { ICON_WARN } from "./icons.ts";
 
 // --- row-level message ----------------------------------------------------------
@@ -10,7 +10,8 @@ import { ICON_WARN } from "./icons.ts";
 /** The three kinds a row, job-page or project-page message can be — and
  *  the only three. A call site picks the KIND; the colour and the icon
  *  are decided here, once, from it — never guessed from the text. */
-export type MessageVariant = "info" | "waiting" | "failed";
+import type { MessageVariant } from "../../../messages/types.ts";
+export type { MessageVariant } from "../../../messages/types.ts";
 
 /** The mark on an info message — a fact, nothing to do. Distinct from
  *  the warning triangle: a reader who cannot tell red from amber must
