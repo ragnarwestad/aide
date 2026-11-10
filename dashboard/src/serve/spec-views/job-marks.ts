@@ -3,7 +3,7 @@
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why.
 import { t, type Language } from "../../i18n";
-import { renderSentence } from "../../messages/render.ts";
+import { formatSentence } from "../../messages/format.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
 import { jobKind, writing, type Job } from "../../queue/queue.ts";
@@ -36,7 +36,7 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   const failed = marks.find((m) => m.state === "failed") ?? marks.findLast((m) => m.state === "running");
   if (failed) failed.state = "failed";
   const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
-  const reason = renderSentence(lang, said) || failed?.why;
+  const reason = formatSentence(lang, said) || failed?.why;
   return reason ? { marks, reason, logs } : { marks, logs };
 }
 

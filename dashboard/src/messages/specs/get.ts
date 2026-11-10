@@ -3,7 +3,7 @@
 import { stepLabel } from "../../format/step-label.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { t, type Language } from "../../i18n/index.ts";
-import { messageDetail, messageIdentity, renderMessage, renderSentence } from "../render.ts";
+import { messageDetail, messageIdentity, formatMessage, formatSentence } from "../format.ts";
 import { heldBackResolvesOnItsOwn } from "../jobs/holds.ts";
 import type { Message, MessageVariant } from "../types.ts";
 import type { OpenOverlap } from "../../project/overlapping-specs.ts";
@@ -90,7 +90,7 @@ export function getSharedFilesMessage(
   const historyStopped = analyzeStopped === "shared-files" && !(lead && (inFlight(lead) || lead.error));
   if (!leadStopped && !historyStopped) return undefined;
   if (leadStopped && lead?.error && typeof lead.error === "object" && !Array.isArray(lead.error) &&
-      ["runner.dependencyCycle", "runner.autoDependenciesFailed", "runner.overlapDecisionMissing"].includes(lead.error.key)) return renderSentence(lang, lead.error);
+      ["runner.dependencyCycle", "runner.autoDependenciesFailed", "runner.overlapDecisionMissing"].includes(lead.error.key)) return formatSentence(lang, lead.error);
   const open = overlaps();
   const button = stepButton("analyze");
   if (open?.length) {
@@ -98,10 +98,10 @@ export function getSharedFilesMessage(
       key: "runner.sharedFilesSpec" as const,
       values: { spec: o.label, files: o.files.join(", ") },
     }));
-    return renderMessage(lang, { key: "wordPhase.stopSharedFilesNamed", values: { button }, inner });
+    return formatMessage(lang, { key: "wordPhase.stopSharedFilesNamed", values: { button }, inner });
   }
-  if (open) return renderMessage(lang, { key: "wordPhase.stopSharedFilesArchived", values: { button } });
-  return leadStopped && lead!.error ? renderSentence(lang, lead!.error) : undefined;
+  if (open) return formatMessage(lang, { key: "wordPhase.stopSharedFilesArchived", values: { button } });
+  return leadStopped && lead!.error ? formatSentence(lang, lead!.error) : undefined;
 }
 
 /** Which applies, if any. The order is the row's own: a job that
@@ -180,7 +180,7 @@ export function getSpecMessage(
   const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
   if (lead?.dependencyNotice) parts.push({
     variant: "info",
-    text: renderSentence(lang, lead.dependencyNotice)!,
+    text: formatSentence(lang, lead.dependencyNotice)!,
     own: true,
     detail: messageDetail(lead.dependencyNotice),
   });
@@ -230,8 +230,8 @@ export function getSpecMessage(
           limited.provider?.name ?? lead.provider,
         ).text
       : lead.errorReason === "held-back"
-        ? renderSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
-        : renderSentence(lang, lead.error)!;
+        ? formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
+        : formatSentence(lang, lead.error)!;
     if (!said(text)) {
       // Three of the six held-back reasons resolve on their own —
       // nothing for the reader to act on — so they read as info, not
@@ -308,6 +308,6 @@ export function getSpecMessage(
  *  render from. Every other reason is shown as written. */
 export function getHeldBackReasonMessage(lang: Language, reason: string): string {
   return reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE
-    ? renderSentence(lang, { key: "wordPhase.stopAcceptanceCriteriaUnticked" })!
+    ? formatSentence(lang, { key: "wordPhase.stopAcceptanceCriteriaUnticked" })!
     : reason;
 }

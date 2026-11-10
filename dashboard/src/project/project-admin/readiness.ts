@@ -24,7 +24,7 @@ import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/process/index.ts";
 import { configValue, resolveWorktreeLinks } from "../discover";
-import { renderMessage, type BoardMessage } from "../../messages/render.ts";
+import { formatMessage, type BoardMessage } from "../../messages/format.ts";
 import { worktreeLinksError } from "./manifest-io.ts";
 import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
 
@@ -33,7 +33,7 @@ import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
 function answer(
   check: ReadinessCheck["check"], subject: string, ok: boolean, blocking: boolean, message: BoardMessage,
 ): ReadinessCheck {
-  return { check, subject, ok, blocking, detail: renderMessage("en", message), message };
+  return { check, subject, ok, blocking, detail: formatMessage("en", message), message };
 }
 
 /** What a repository is called inside a sentence, as a message of its own,

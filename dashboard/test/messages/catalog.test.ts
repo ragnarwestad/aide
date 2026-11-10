@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MESSAGES, type MessageEntry, type MessageKey } from "../../src/messages/catalog.ts";
-import { renderMessage } from "../../src/messages/render.ts";
+import { formatMessage } from "../../src/messages/format.ts";
 import { en } from "../../src/i18n/en.ts";
 import { nb } from "../../src/i18n/nb.ts";
 import { es } from "../../src/i18n/es.ts";
@@ -74,7 +74,7 @@ describe("a sentence that informs is not a problem", () => {
   ];
 
   test.each(KEYS)("%s is shown without a Problem label", (key) => {
-    expect(renderMessage("en", { key, values: { dir: "/x", method: "m", account: "a" } })).not.toStartWith("Problem:");
+    expect(formatMessage("en", { key, values: { dir: "/x", method: "m", account: "a" } })).not.toStartWith("Problem:");
   });
 });
 

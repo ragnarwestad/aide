@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
 import { closeOrReopenSteps, deploySteps, jobMarks, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
@@ -67,7 +67,7 @@ describe("jobMarks", () => {
       ["Preparing", "done"],
       ["Run the mechanical script", "failed"],
     ]);
-    expect(got.reason).toBe(renderSentence("nb", error)!);
+    expect(got.reason).toBe(formatSentence("nb", error)!);
   });
 
   test("a failed job with no error gives the failed step's own reason", () => {
@@ -89,7 +89,7 @@ describe("jobMarks", () => {
       ["Tests and commit", "done"],
       ["Merge into main", "failed"],
     ]);
-    expect(got.reason).toBe(renderSentence("en", landingError)!);
+    expect(got.reason).toBe(formatSentence("en", landingError)!);
     const unrecorded = jobMarks(job({ state: "done", streamFile: file }), "en");
     expect(unrecorded.reason).toBe("nothing was merged — the close is not finished");
   });

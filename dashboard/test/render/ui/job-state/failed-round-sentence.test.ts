@@ -5,7 +5,7 @@ import * as jobState from "../../../../src/render/ui/job-state";
 import { getSpecMessage } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
 import type { OpenOverlap } from "../../../../src/project/overlapping-specs.ts";
-import { renderMessage } from "../../../../src/messages/render.ts";
+import { formatMessage } from "../../../../src/messages/format.ts";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "j1",
@@ -29,7 +29,7 @@ describe("getSharedFilesMessage", () => {
     { folder: "82-other", label: "82 The other thing", files: ["a.ts", "b.ts"] },
     { folder: "84-third", label: "84 Third", files: ["c.ts"] },
   ];
-  const NAMED = renderMessage("en", {
+  const NAMED = formatMessage("en", {
     key: "wordPhase.stopSharedFilesNamed",
     values: { button: "Analyze" },
     inner: [

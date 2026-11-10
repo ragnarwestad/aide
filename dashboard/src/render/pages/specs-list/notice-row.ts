@@ -18,7 +18,7 @@ import { esc } from "../../ui/html.ts";
 import { getSharedFilesMessage, getSpecMessage, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { t, type Language } from "../../../i18n";
-import { renderSentence, type Sentence } from "../../../messages/render.ts";
+import { formatSentence, type Sentence } from "../../../messages/format.ts";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
@@ -79,7 +79,7 @@ function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): 
       ? sharedFiles
       : typeof qualifier === "string"
         ? `${stepLabel(step, lang)} ${qualifier}`
-        : renderSentence(lang, { key: "message.lead", values: { lead: stepLabel(step, lang) }, inner: qualifier })!;
+        : formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(step, lang) }, inner: qualifier })!;
   let earliest: { step: string; qualifier: Sentence; stopped?: string } | undefined;
   for (const p of g.phases) {
     const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);

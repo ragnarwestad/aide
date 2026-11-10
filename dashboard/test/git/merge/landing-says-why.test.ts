@@ -5,13 +5,13 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER } from "../../helpers/fake-git.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 const BRANCH = "aide/49-crop-the-cover-image";
 const ROOT = "/repos/skjera";
 const noWait = async (_ms: number): Promise<void> => {};
 const sentence = (lang: "en" | "nb", s: unknown): string =>
-  renderSentence(lang, s as Parameters<typeof renderSentence>[1]) ?? "";
+  formatSentence(lang, s as Parameters<typeof formatSentence>[1]) ?? "";
 
 const REACHES_THE_PUSH = {
   ...CLEAN_MASTER,

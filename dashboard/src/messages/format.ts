@@ -137,20 +137,20 @@ function asLines(lang: Language, problem: string, solution: string | undefined):
   return solution ? `${first}\n${label["message.solution"]}: ${opensWithCapital(solution)}` : first;
 }
 
-export function renderMessage(lang: Language, m: BoardMessage, catalog: Catalog = MESSAGES): string {
+export function formatMessage(lang: Language, m: BoardMessage, catalog: Catalog = MESSAGES): string {
   const p = messageParts(lang, m, catalog);
   if (p.lines) return asLines(lang, p.problem, p.solution);
   // A statement stands alone as a sentence of its own.
   return catalog[m.key]?.statement !== undefined ? opensWithCapital(p.problem) : p.problem;
 }
 
-export function renderSentence(
+export function formatSentence(
   lang: Language,
   s: Sentence | Sentence[] | undefined,
   catalog: Catalog = MESSAGES,
 ): string | undefined {
   if (s === undefined) return undefined;
-  if (!Array.isArray(s)) return typeof s === "string" ? s : renderMessage(lang, s, catalog);
+  if (!Array.isArray(s)) return typeof s === "string" ? s : formatMessage(lang, s, catalog);
   const parts = s.map((one) => sentenceParts(lang, one, catalog)).filter((p) => p.problem);
   if (!parts.some((p) => p.lines)) return joined(parts.map(flat));
   // Messages that share a fix share one Solution line; a message with a

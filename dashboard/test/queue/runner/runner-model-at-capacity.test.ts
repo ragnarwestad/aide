@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
 import { DEFAULTS, dir, store, enqueue, makeRunner, okResult, resetHarness, setNow, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -31,7 +31,7 @@ describe("a step stopped because the model is at capacity", () => {
   });
 
   test("names the model and says to choose another model after two attempts (AC-2, AC-7)", () => {
-    const text = renderSentence("en", atCapacity()?.error as Parameters<typeof renderSentence>[1]) ?? "";
+    const text = formatSentence("en", atCapacity()?.error as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain("sonnet");
     expect(text).toContain("at capacity right now");
     expect(text).toContain("two attempts");
@@ -57,7 +57,7 @@ describe("a board whose defaults name no model", () => {
     setNow(Date.parse("2026-08-16T10:03:00Z"));
     runner.tick();
     runner.poll();
-    const text = renderSentence("en", bare.get(r.job.id)?.error as Parameters<typeof renderSentence>[1]) ?? "";
+    const text = formatSentence("en", bare.get(r.job.id)?.error as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain("claude-sonnet-5");
     expect(text).toContain("at capacity right now");
   });

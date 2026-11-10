@@ -3,7 +3,7 @@
 // `Runner.reconcile` then ends the job on. The old process fired the restart
 // and is gone; this is the only one left to say whether it took.
 
-import { renderSentence, type Sentence } from "../../messages/render.ts";
+import { formatSentence, type Sentence } from "../../messages/format.ts";
 import { t } from "../../i18n";
 import { jobKind, type Job, type QueueStore } from "../../queue/queue.ts";
 import { boardStep } from "../board-step.ts";
@@ -46,7 +46,7 @@ function finish(deps: AfterRestartDeps, job: Job & { resultFile: string }): void
   const mark = (step: DeployStep, ending: DeployMark): void =>
     output.mark(`${DEPLOY_STEPS.indexOf(step) + 1} of ${DEPLOY_STEPS.length}`, t("en", STEP_LABEL[step]!), ending);
   const fail = (step: DeployStep, sentence: Sentence): void => {
-    const error = renderSentence("en", sentence) ?? "deploy failed";
+    const error = formatSentence("en", sentence) ?? "deploy failed";
     output.failed("deploy-failed", error, sentence);
     mark(step, `stopped: ${error}`);
   };

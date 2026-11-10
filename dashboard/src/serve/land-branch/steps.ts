@@ -9,7 +9,7 @@ import { landBranch, sameRoot } from "./merge.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepLogLine } from "./test-gate.ts";
 import { stepMarkLine } from "../../queue/parse-stream/step-marks.ts";
-import { renderSentence } from "../../messages/render.ts";
+import { formatSentence } from "../../messages/format.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { LandContext } from "./types.ts";
 
@@ -270,5 +270,5 @@ async function asMergeStep(
   if (merged) return mark("done");
   const error = ctx.queue.get(job.id)?.landingError;
   const why = Array.isArray(error) ? error[0] : error;
-  mark(`stopped: ${(why && renderSentence("en", why)) || "nothing was merged"} — the ${step} is not finished`, true);
+  mark(`stopped: ${(why && formatSentence("en", why)) || "nothing was merged"} — the ${step} is not finished`, true);
 }

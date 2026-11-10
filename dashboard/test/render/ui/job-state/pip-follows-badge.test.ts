@@ -2,7 +2,7 @@
 // (2026-09-11): a phase held back or stopped is amber on both, a failed
 // one red on both, a finished one green on both — the row never says a
 // phase's state in two colours.
-import { renderSentence } from "../../../../src/messages/render.ts";
+import { formatSentence } from "../../../../src/messages/format.ts";
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
 
@@ -37,7 +37,7 @@ describe("the pip follows the badge", () => {
   // knows what to press; it used to state the mismatch and stop.
   test("files that disagree with the record name the phase and the button to press", () => {
     const w = wordPhase(true, undefined, noJob, { fileDisagrees: true, step: "analyze" });
-    expect(renderSentence("en", w.qualifier)).toBe(
+    expect(formatSentence("en", w.qualifier)).toBe(
       "Problem: The files and the run record disagree about whether analyze ran\nSolution: Press Analyze to run it again",
     );
   });

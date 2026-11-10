@@ -6,7 +6,7 @@ import { getLandingMessage } from "../../../messages/landing/get.ts";
 
 import { stepLabel, type BadgeVariant, type MessageVariant } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
-import { messageDetail, messageIdentity, renderSentence, type Sentence } from "../../../messages/render.ts";
+import { messageDetail, messageIdentity, formatSentence, type Sentence } from "../../../messages/format.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { getHeldBackReasonMessage, type NoticePart } from "../../../messages/specs/get.ts";
 import { specPagePath } from "../spec-page";
@@ -135,7 +135,7 @@ function liveMarks(
     marks.push({
       variant: "waiting",
       label: t(lang, "list.archiveHeldBackWord", { step: implement }),
-      sentence: renderSentence(lang, { key: "message.lead", values: { lead: implement }, inner: { key: "runner.approachChoice" } })!,
+      sentence: formatSentence(lang, { key: "message.lead", values: { lead: implement }, inner: { key: "runner.approachChoice" } })!,
       own: true,
       kind: "approach-choice",
     });

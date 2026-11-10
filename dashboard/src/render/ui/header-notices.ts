@@ -13,7 +13,7 @@ import { jobsSentence } from "./components/spec-name.ts";
 import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
 import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
-import { renderSentence } from "../../messages/render.ts";
+import { formatSentence } from "../../messages/format.ts";
 import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 
@@ -126,7 +126,7 @@ function checkoutFaultNotices(lang: Language): string {
 function deployFaultNotice(lang: Language): string {
   const fault = getDeployFaultNotice();
   if (fault === null) return "";
-  return rowMessage("failed", renderSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
+  return rowMessage("failed", formatSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
 }
 
 export function headerNotices(lang: Language): string {

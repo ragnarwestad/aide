@@ -10,7 +10,7 @@ import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { approachChoiceHolds, notAnalyzedHolds, type ScheduleContext } from "../../../src/serve/schedules";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";
@@ -92,7 +92,7 @@ function ctxFor(root: string, jobs: QueuedJob[], checker: BranchFileStepsChecker
   return { projectRoot: root, queue: { list: () => jobs }, readBranchFileSteps: () => checker } as unknown as ScheduleContext;
 }
 
-const sentence = (m: unknown): string => renderSentence("en", m as Parameters<typeof renderSentence>[1]) ?? "";
+const sentence = (m: unknown): string => formatSentence("en", m as Parameters<typeof formatSentence>[1]) ?? "";
 
 describe("which queued implements wait for a choice", () => {
   test("an implement chained after the analyze waits, with the approach sentence", () => {

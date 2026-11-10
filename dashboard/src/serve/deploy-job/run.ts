@@ -12,7 +12,7 @@ import { existsSync } from "node:fs";
 import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
-import { renderSentence, type Sentence } from "../../messages/render.ts";
+import { formatSentence, type Sentence } from "../../messages/format.ts";
 import { t } from "../../i18n";
 import type { QueueStore } from "../../queue/queue.ts";
 import { boardStep } from "../board-step.ts";
@@ -78,7 +78,7 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   };
 
   const fail = (sentence: Sentence, detail?: string): void => {
-    const error = [renderSentence("en", sentence) ?? "", detail ?? ""].filter(Boolean).join("\n");
+    const error = [formatSentence("en", sentence) ?? "", detail ?? ""].filter(Boolean).join("\n");
     output.failed("deploy-failed", error, sentence);
     mark(step, `stopped: ${error.split("\n")[0]}`);
     deps.setFailure(project, { step, sentence, ...(detail ? { detail } : {}) });

@@ -6,7 +6,7 @@
 
 import { t, type Language, type TranslationKey } from "../../i18n/index.ts";
 import type { BoardMessage, Message } from "../types.ts";
-import { renderMessage } from "../render.ts";
+import { formatMessage } from "../format.ts";
 import type { ProviderLimit } from "../../queue/queue.ts";
 import { stepLabel } from "../../format/step-label.ts";
 import { currentStep } from "../jobs/context.ts";
@@ -111,5 +111,5 @@ export function getUsageLimitMessage(
 }
 
 function getMessage(lang: Language, sentence: BoardMessage): Message {
-  return { variant: "info", text: renderMessage(lang, sentence), sentence };
+  return { variant: "info", text: formatMessage(lang, sentence), sentence };
 }

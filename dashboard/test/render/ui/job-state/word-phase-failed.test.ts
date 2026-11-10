@@ -3,9 +3,9 @@
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
-import { renderSentence } from "../../../../src/messages/render.ts";
+import { formatSentence } from "../../../../src/messages/format.ts";
 
-const said = (w: ReturnType<typeof wordPhase>): string | undefined => renderSentence("en", w.qualifier);
+const said = (w: ReturnType<typeof wordPhase>): string | undefined => formatSentence("en", w.qualifier);
 
 const attemptOf = (state: string, ok: boolean, extra: Record<string, unknown> = {}) =>
   ({ state, results: [{ step: "analyze", ok, costUsd: 0 }], ...extra }) as unknown as QueueRowView;

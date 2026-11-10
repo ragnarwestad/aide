@@ -10,7 +10,7 @@ import { afterEach } from "bun:test";
 import { rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
@@ -19,7 +19,7 @@ import { renderSentence } from "../../../src/messages/render.ts";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 
 export function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";

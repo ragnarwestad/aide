@@ -15,7 +15,7 @@
 import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
 import { withModelId } from "../../ui/components/model-label.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
-import { messageDetail, messageIdentity, renderSentence } from "../../../messages/render.ts";
+import { messageDetail, messageIdentity, formatSentence } from "../../../messages/format.ts";
 import { getUsageLimitMessage } from "../../../messages/usage-limit/get.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -105,7 +105,7 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   // A used-up usage limit says what happens next, with the time; any
   // other job says what it was stored with.
   const landingOwnsError = messageIdentity(job.error) !== undefined && messageIdentity(job.error) === messageIdentity(job.landingError);
-  const sentence = getUsageLimitMessage(job, lang, now)?.text ?? (landingOwnsError ? undefined : renderSentence(lang, job.error));
+  const sentence = getUsageLimitMessage(job, lang, now)?.text ?? (landingOwnsError ? undefined : formatSentence(lang, job.error));
   const detail = landingOwnsError ? undefined : messageDetail(job.error);
   const head = detail && sentence
     ? `<p class="pagehead">${stateChip(job, lang)}</p>` +

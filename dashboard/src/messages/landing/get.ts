@@ -1,5 +1,5 @@
 import type { Language } from "../../i18n/index.ts";
-import { renderSentence } from "../render.ts";
+import { formatSentence } from "../format.ts";
 import type { Message, Sentence } from "../types.ts";
 
 export function getLandingMessage(
@@ -9,6 +9,6 @@ export function getLandingMessage(
   if (!job.landingError) return undefined;
   return {
     variant: job.errorReason === "tests-red" ? "waiting" : "failed",
-    text: renderSentence(lang, job.landingError)!,
+    text: formatSentence(lang, job.landingError)!,
   };
 }

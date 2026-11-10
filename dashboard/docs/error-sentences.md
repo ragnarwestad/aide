@@ -46,7 +46,7 @@ Solution: Press Try again to open the form with what you typed, then press Creat
 
 `src/messages/catalog.ts` combines the catalogues under `src/messages/`, grouped by subject. Each entry keeps all
 languages together and holds the problem in its language texts and the fix in `solution`, one text per language; `solution: null` is a message with nothing to resolve, and `exempt` says why. The composer
-(`src/messages/render.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
+(`src/messages/format.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
 own texts stay lowercase. A test fails for an entry with neither.
 
 An entry that only informs, such as a check that passed, a run that finished or a wait that ends by itself, has no

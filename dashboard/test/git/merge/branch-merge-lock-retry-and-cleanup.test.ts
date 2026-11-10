@@ -7,13 +7,13 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 

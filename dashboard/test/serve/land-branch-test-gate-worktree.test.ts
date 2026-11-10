@@ -11,14 +11,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
-import { renderSentence } from "../../src/messages/render.ts";
+import { formatSentence } from "../../src/messages/format.ts";
 import { namingRecorder } from "../helpers/naming-recorder.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 

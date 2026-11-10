@@ -2,7 +2,7 @@
 // row, and starts on the first tick after the landing has settled.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { deployLandingHolds, type ScheduleContext } from "../../../src/serve/schedules";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
 
@@ -43,7 +43,7 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
     expect(store.get(d.id)?.state).toBe("queued");
     expect(store.get(d.id)?.errorReason).toBe("held-back");
-    expect(renderSentence("en", store.get(d.id)?.error)).toContain("aide:91");
+    expect(formatSentence("en", store.get(d.id)?.error)).toContain("aide:91");
     expect(spawns.map((s) => s.step)).not.toContain("deploy");
 
     store.update(l.id, { landing: undefined });

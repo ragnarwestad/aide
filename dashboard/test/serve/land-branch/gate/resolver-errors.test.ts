@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderSentence } from "../../../../src/messages/render.ts";
+import { formatSentence } from "../../../../src/messages/format.ts";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 
 const dirs: string[] = [];
@@ -37,14 +37,14 @@ describe("the merge test gate's resolver errors", () => {
   test("an unsuccessful answer uses the catalogue without raw output (AC-2)", async () => {
     const verdict = await verdictFor('{"ok":false,"error":"RAW RESOLVER OUTPUT"}');
     expect(verdict.error).toEqual({ key: "testGate.cannotResolveCommand", values: { root: expect.any(String) } });
-    expect(renderSentence("nb", verdict.error)).toContain("AIDE_TEST_CMD");
-    expect(renderSentence("nb", verdict.error)).not.toContain("RAW RESOLVER OUTPUT");
+    expect(formatSentence("nb", verdict.error)).toContain("AIDE_TEST_CMD");
+    expect(formatSentence("nb", verdict.error)).not.toContain("RAW RESOLVER OUTPUT");
     expect(verdict.detail).toContain("RAW RESOLVER OUTPUT");
   });
 
   test("an unreadable answer uses the translated catalogue sentence (AC-2)", async () => {
     const verdict = await verdictFor("not json");
     expect(verdict.error).toEqual({ key: "testGate.cannotReadResolverAnswer", values: { root: expect.any(String) } });
-    expect(renderSentence("nb", verdict.error)).toContain("testkommando");
+    expect(formatSentence("nb", verdict.error)).toContain("testkommando");
   });
 });

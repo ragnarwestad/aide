@@ -10,7 +10,7 @@
 
 import { stepButton, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n";
-import { renderMessage } from "../messages/render.ts";
+import { formatMessage } from "../messages/format.ts";
 import type { Job } from "../queue/queue.ts";
 import { scheduleRunPath } from "../render";
 import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
@@ -64,7 +64,7 @@ const BODY_MAX = 500;
 function payloadFor(a: Attention, job: Job, lang: Language): { title: string; body: string; url: string } {
   if (a.kind === "create-failed") {
     const r = failedCreateFrom(job);
-    const body = renderMessage(lang, { key: messageKeyFor(a), inner: r.reason });
+    const body = formatMessage(lang, { key: messageKeyFor(a), inner: r.reason });
     return {
       title: `${r.project} · ${r.title}`,
       body: body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body,
@@ -75,7 +75,7 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
     const name = scheduleNameOf(job.specFolder);
     return {
       title: `${job.project} · ${name}`,
-      body: renderMessage(lang, { key: messageKeyFor(a) }),
+      body: formatMessage(lang, { key: messageKeyFor(a) }),
       url: scheduleRunPath(job.project, name, job.id),
     };
   }
@@ -87,7 +87,7 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
   const spec = `${job.project}/${job.specFolder}`;
   return {
     title: `${job.project} · ${job.specFolder}`,
-    body: renderMessage(lang, { key: messageKeyFor(a), values }),
+    body: formatMessage(lang, { key: messageKeyFor(a), values }),
     url: `/?${fold}=${encodeURIComponent(spec)}#spec-${spec}`,
   };
 }

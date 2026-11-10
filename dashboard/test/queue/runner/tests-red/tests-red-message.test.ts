@@ -3,7 +3,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { getTestsRedMessage } from "../../../../src/messages/jobs/outcomes.ts";
-import { messageDetail, renderMessage } from "../../../../src/messages/render.ts";
+import { messageDetail, formatMessage } from "../../../../src/messages/format.ts";
 
 const said = (testsRed: unknown) => getTestsRedMessage("implement", { terminalReason: "tests-red", testsRed });
 const red = (over: Record<string, unknown> = {}) => ({
@@ -82,7 +82,7 @@ describe("getTestsRedMessage", () => {
   );
 
   test("the reasons that hold fill the sentence with each error (AC-2)", () => {
-    const text = renderMessage("nb", said(red({ passedAlone: ["e2e/c.spec.ts:3 › c works"], passedAloneCount: 1 })));
+    const text = formatMessage("nb", said(red({ passedAlone: ["e2e/c.spec.ts:3 › c works"], passedAloneCount: 1 })));
     expect(text).not.toMatch(/\{\w+\}/);
     expect(text).toContain("2 av 155 tester");
     expect(messageDetail(said(red()))).toContain("e2e/a.spec.ts:5 › a works — expected 3, received 0\ne2e/b.spec.ts:9 › b works — not found");

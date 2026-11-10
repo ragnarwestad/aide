@@ -2,7 +2,7 @@
 // in the words its row uses, so the reader can find it on the board.
 
 import { describe, expect, test } from "bun:test";
-import { renderMessage } from "../../../src/messages/render.ts";
+import { formatMessage } from "../../../src/messages/format.ts";
 import { gerund } from "../../../src/format/gerund.ts";
 import { deployHold } from "../../../src/serve/deploy-job/landing-hold.ts";
 import type { Job } from "../../../src/queue/queue.ts";
@@ -36,7 +36,7 @@ describe("deployHold", () => {
 
 describe("a {doing} value", () => {
   test("is drawn as the step's word on the row, not as the step's id", () => {
-    const text = renderMessage("nb", { key: "runner.landingRunning", values: { doing: "archive", spec: "aide:745" } });
+    const text = formatMessage("nb", { key: "runner.landingRunning", values: { doing: "archive", spec: "aide:745" } });
     expect(text.toLowerCase()).toContain(gerund("nb", "archive").toLowerCase());
     expect(text).toContain("aide:745");
   });

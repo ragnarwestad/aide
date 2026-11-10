@@ -6,7 +6,7 @@ export { durationLabel };
 
 import { badge, helpPopover, type BadgeVariant } from "../components";
 import { esc } from "../html.ts";
-import { renderSentence } from "../../../messages/render.ts";
+import { formatSentence } from "../../../messages/format.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { QueueRowView } from "./types.ts";
@@ -64,7 +64,7 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
   // Why it stopped is the popover's, not the badge's — and a stop with
   // no sentence of its own gets no popover at all.
-  const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
+  const detail = r.state === "stopped" ? formatSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }
 

@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { renderSentence } from "../../../../src/messages/render.ts";
+import { formatSentence } from "../../../../src/messages/format.ts";
 import { getCliErrorMessage } from "../../../../src/messages/jobs/outcomes.ts";
 
 beforeEach(resetHarness);
@@ -84,7 +84,7 @@ describe("a Codex step that was not logged in", () => {
   });
 
   test("reads in Norwegian as the tool not being logged in on the machine that runs Aide", () => {
-    const text = renderSentence("nb", notLoggedIn()?.error as Parameters<typeof renderSentence>[1]) ?? "";
+    const text = formatSentence("nb", notLoggedIn()?.error as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain("Codex er ikke logget inn på maskinen som kjører Aide");
     expect(text).toContain("trykk så Implement igjen");
   });

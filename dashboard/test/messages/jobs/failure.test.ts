@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { stepDetail, getStepFailureMessage, getToolFailureMessage } from "../../../src/messages/jobs/failure.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { getWrittenMessage } from "../../../src/messages/shared/written.ts";
 
 describe("getToolFailureMessage", () => {
@@ -121,7 +121,7 @@ describe("getStepFailureMessage", () => {
 
   test("with no board message the named sentence is the row's text", () => {
     const out = getStepFailureMessage(undefined, { error: "boom", tool: "opencode", terminalReason: "cli-error" }, "gemini-3.1-pro");
-    expect(renderSentence("en", out.error as never)).toContain("OpenCode on gemini-3.1-pro");
+    expect(formatSentence("en", out.error as never)).toContain("OpenCode on gemini-3.1-pro");
     expect(out.errorDetail).toBe("boom");
   });
 
@@ -138,8 +138,8 @@ describe("getStepFailureMessage", () => {
 
   test('"none" is the deterministic create path, not an AI that failed', () => {
     const out = getStepFailureMessage(undefined, { error: "boom", tool: "none", terminalReason: "cli-error" }, "Sonnet");
-    expect(renderSentence("en", out.error as never)).toContain("Sonnet");
-    expect(renderSentence("en", out.error as never)).not.toContain("none");
+    expect(formatSentence("en", out.error as never)).toContain("Sonnet");
+    expect(formatSentence("en", out.error as never)).not.toContain("none");
   });
 });
 
@@ -183,7 +183,7 @@ describe("getStepFailureMessage with an errorLog", () => {
 
   test("a cli-error whose words are in errorLog names the AI and the model with those words (AC-2)", () => {
     const out = getStepFailureMessage(undefined, { errorLog: "boom", tool: "opencode", terminalReason: "cli-error" }, "gemini-3.1-pro");
-    const sentence = renderSentence("en", out.error as never) ?? "";
+    const sentence = formatSentence("en", out.error as never) ?? "";
     expect(sentence).toContain("OpenCode on gemini-3.1-pro");
     expect(sentence).toContain("boom");
     expect(out.errorDetail).toBe("boom");

@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
 import { getCliErrorMessage, getCriteriaStopMessage, getNoProgressMessage, getRunStopMessage } from "../../../../src/messages/jobs/outcomes.ts";
-import { messageDetail } from "../../../../src/messages/render.ts";
+import { messageDetail } from "../../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);

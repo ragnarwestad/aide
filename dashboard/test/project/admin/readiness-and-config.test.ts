@@ -6,7 +6,7 @@ import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
-import { messageDetail } from "../../../src/messages/render.ts";
+import { messageDetail } from "../../../src/messages/format.ts";
 
 /** Where the dashboard keeps its settings files in these tests,
  *  under the projects root so the same cleanup removes it. */

@@ -22,7 +22,7 @@ export function sameRoot(a: string, b: string): boolean {
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
-import { renderSentence, type Sentence } from "../../messages/render.ts";
+import { formatSentence, type Sentence } from "../../messages/format.ts";
 import { deleteBranchOnly, LANDING_RETRIES, landingRepeats, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { STATUS_FILE } from "../../project/spec-names.ts";
@@ -225,14 +225,14 @@ export async function landBranch(
             // Storage, point 3).
             if (result.installError) {
               console.error(
-                `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.installError)}`,
+                `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${formatSentence("en", result.installError)}`,
               );
             }
           }
         }
         if (result.branchDeleteError) {
           console.error(
-            `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${renderSentence("en", result.branchDeleteError)}`,
+            `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${formatSentence("en", result.branchDeleteError)}`,
           );
           leftBehindRoots.add(repo.root);
           // The ROOT is folded into the message's own template here —
@@ -361,7 +361,7 @@ export async function landBranch(
       // goes behind it as detail, in the catalog's source language,
       // rather than joined onto the sentence with a semicolon.
       const [first, ...rest] = failures as [Sentence, ...Sentence[]];
-      const detail = [...rest.map((f) => renderSentence("en", f) ?? ""), ...failureDetails].filter(Boolean);
+      const detail = [...rest.map((f) => formatSentence("en", f) ?? ""), ...failureDetails].filter(Boolean);
       const patch = {
         error: first,
         errorDetail: detail.length ? detail.join("\n") : undefined,
@@ -370,7 +370,7 @@ export async function landBranch(
         landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
         landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: landingTerminalReason } : {}),
-      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && landingTerminalReason && retryArchiveLanding(ctx.queue, job.id, what.step, landingTerminalReason, [renderSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
+      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && landingTerminalReason && retryArchiveLanding(ctx.queue, job.id, what.step, landingTerminalReason, [formatSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
       const result = cancelled ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or
       // held it for a reason of its own, in the gap between this

@@ -6,14 +6,14 @@ import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
 function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 import { JOB, specHead, specControls, openQuery, setupQueueRoutesHarness } from "../fixtures.ts";

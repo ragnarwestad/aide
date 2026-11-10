@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -57,8 +57,8 @@ const rows = async (base: string, open = ""): Promise<string> =>
   await (await fetch(`${base}/?rows=1${open ? `&open=${encodeURIComponent(open)}` : ""}`)).text();
 
 /** The sentence as a row writes it: its first letter is a capital. */
-const sentence = (s: Parameters<typeof renderSentence>[1]): string => {
-  const text = renderSentence("en", s) ?? "";
+const sentence = (s: Parameters<typeof formatSentence>[1]): string => {
+  const text = formatSentence("en", s) ?? "";
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 

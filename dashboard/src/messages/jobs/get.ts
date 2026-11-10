@@ -1,5 +1,5 @@
 import { t, type Language, type TranslationKey } from "../../i18n/index.ts";
-import { renderSentence } from "../render.ts";
+import { formatSentence } from "../format.ts";
 import type { Message } from "../types.ts";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import { stepLabel } from "../../format/step-label.ts";
@@ -42,7 +42,7 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
     // provider the stop was on.
     const limit = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now());
     if (limit) return limit;
-    const own = renderSentence(lang, row.error) || t(lang, ended);
+    const own = formatSentence(lang, row.error) || t(lang, ended);
     const ranOn = ranOnSentence(row, lang);
     return {
       // The badge's own colour: a stop is amber, a failure red.
@@ -53,7 +53,7 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
     };
   }
   if (row.errorReason === "held-back") {
-    const text = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now())?.text ?? renderSentence(lang, row.error);
+    const text = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now())?.text ?? formatSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
   // A job names the provider its step runs on while it runs.

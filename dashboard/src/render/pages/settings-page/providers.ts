@@ -4,7 +4,7 @@
 // `provider-detail.ts`.
 
 import { capitalizeFirst } from "../../../messages/usage-limit/get.ts";
-import { renderSentence } from "../../../messages/render.ts";
+import { formatSentence } from "../../../messages/format.ts";
 import { t, type Language } from "../../../i18n";
 import { type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
@@ -64,7 +64,7 @@ export function providerStatusLines(status: ProviderStatus, provider: Provider, 
   if (login.ok === null || !login.answer) {
     lines.push(t(lang, "settings.providers.loginUnread"));
   } else {
-    lines.push(capitalizeFirst(renderSentence(lang, login.detail ? [login.answer, login.detail] : login.answer) ?? ""));
+    lines.push(capitalizeFirst(formatSentence(lang, login.detail ? [login.answer, login.detail] : login.answer) ?? ""));
   }
   if (login.ends) lines.push(t(lang, "settings.providers.loginEnds", { at: stamp(login.ends) }));
   return lines;

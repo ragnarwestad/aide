@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { capitalizeFirst, getErrorMessage, getWrittenMessage } from "../../../src/messages/shared/written.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 // The shared builder every render-facing sentence is
 // migrated to call. Its whole job is refusing to compose a sentence
@@ -68,12 +68,12 @@ describe("capitalizeFirst", () => {
 
 describe("getWrittenMessage", () => {
   test("a problem with a fix renders as a Problem line and a Solution line (AC-6)", () => {
-    expect(renderSentence("en", getWrittenMessage("the push failed", "push it by hand"))).toBe(
+    expect(formatSentence("en", getWrittenMessage("the push failed", "push it by hand"))).toBe(
       "Problem: The push failed\nSolution: Push it by hand",
     );
   });
 
   test("a problem without a fix renders as the Problem line alone (AC-6)", () => {
-    expect(renderSentence("en", getWrittenMessage("this spec is archived"))).toBe("Problem: This spec is archived");
+    expect(formatSentence("en", getWrittenMessage("this spec is archived"))).toBe("Problem: This spec is archived");
   });
 });

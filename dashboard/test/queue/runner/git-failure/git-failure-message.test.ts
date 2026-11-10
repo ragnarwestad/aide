@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { renderSentence } from "../../../../src/messages/render.ts";
+import { formatSentence } from "../../../../src/messages/format.ts";
 import { gitFailureMessage } from "../../../../src/queue/runner/git-failure.ts";
 
 beforeEach(resetHarness);
@@ -111,7 +111,7 @@ describe("a step whose push GitHub did not take the key for", () => {
   });
 
   test("reads in Norwegian as GitHub not taking the key of the machine that runs Aide", () => {
-    const text = renderSentence("nb", run()?.error as Parameters<typeof renderSentence>[1]) ?? "";
+    const text = formatSentence("nb", run()?.error as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain(BRANCH);
     expect(text).toContain("GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide");
   });
@@ -148,7 +148,7 @@ describe("a step refused because main could not be fetched", () => {
   });
 
   test("reads in Norwegian as GitHub not taking the key, naming the base", () => {
-    const text = renderSentence("nb", gitFailureMessage(refused({ repo: "code", branch: "main", kind: "auth" })) as Parameters<typeof renderSentence>[1]) ?? "";
+    const text = formatSentence("nb", gitFailureMessage(refused({ repo: "code", branch: "main", kind: "auth" })) as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain("main");
     expect(text).toContain("GitHub godtar ikke SSH-nøkkelen");
   });

@@ -1,6 +1,6 @@
 import { t, type Language } from "../../i18n/index.ts";
 import { MESSAGES } from "../catalog.ts";
-import { renderMessage } from "../render.ts";
+import { formatMessage } from "../format.ts";
 import type { BoardMessage, Sentence, Message } from "../types.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { FailedCreate } from "../../push/failed-creates.ts";
@@ -42,6 +42,6 @@ export function getCreateMessage(r: FailedCreate, lang: Language): Message {
     },
     inner: reasons,
   };
-  return { variant: "failed", text: renderMessage(lang, sentence), sentence };
+  return { variant: "failed", text: formatMessage(lang, sentence), sentence };
 }
 

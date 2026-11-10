@@ -10,7 +10,7 @@ import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
-import { renderMessage, renderSentence } from "../../../messages/render.ts";
+import { formatMessage, formatSentence } from "../../../messages/format.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
@@ -119,7 +119,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const errorLine = failure
     ? rowMessage(
         "failed",
-        renderMessage(lang, { key: "deploy.stepFailed", values: { step: t(lang, STEP_LABEL[failure.step]!) }, inner: failure.sentence }),
+        formatMessage(lang, { key: "deploy.stepFailed", values: { step: t(lang, STEP_LABEL[failure.step]!) }, inner: failure.sentence }),
         {
           hook: "refusal deploy-error",
           tag: "p",
@@ -293,7 +293,7 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
 
 /** A check's answer in the reader's language: its message, or its English
  *  text for an answer that carries none. */
-const checkSentence = (c: ReadinessCheck, lang: Language): string => renderSentence(lang, c.message ?? c.detail) ?? c.detail;
+const checkSentence = (c: ReadinessCheck, lang: Language): string => formatSentence(lang, c.message ?? c.detail) ?? c.detail;
 
 /** The checks no settings row owns that did NOT pass
  *  — a check that passed says nothing here; the summary line above

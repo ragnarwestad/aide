@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createPush } from "../../src/push";
-import { renderMessage } from "../../src/messages/render.ts";
+import { formatMessage } from "../../src/messages/format.ts";
 import {
   deviceKeys, fakeFetch, makeStore, openCall, result, runningJob, tempDir, SPEC, type Answer,
 } from "./fixtures.ts";
@@ -136,7 +136,7 @@ describe("what a notification says", () => {
     const byEndpoint = (e: string) => b.sent.calls.find((c) => c.url === e)!;
     const forNb = await openCall(byEndpoint(nb.endpoint), nb);
     const forEn = await openCall(byEndpoint(en.endpoint), en);
-    const want = renderMessage("nb", { key: "push.failed", values: { step: "Implementer", button: "Implement" } });
+    const want = formatMessage("nb", { key: "push.failed", values: { step: "Implementer", button: "Implement" } });
     expect(forNb.body).toBe(want);
     expect(forNb.body).not.toBe(forEn.body);
   });
@@ -247,15 +247,15 @@ describe("what a scheduled run's notification says", () => {
       const forNb = await openCall(b.sent.calls.find((c) => c.url.endsWith("/nb"))!, b.nb);
       expect(forEn.title).toBe("aide · nightly-report");
       expect(forEn.url).toBe(`/schedule/aide/nightly-report?run=${job.id}#report`);
-      expect(forEn.body).toBe(renderMessage("en", { key: KEYS[ending] }));
-      expect(forNb.body).toBe(renderMessage("nb", { key: KEYS[ending] }));
+      expect(forEn.body).toBe(formatMessage("en", { key: KEYS[ending] }));
+      expect(forNb.body).toBe(formatMessage("nb", { key: KEYS[ending] }));
       expect(forNb.body).not.toBe(forEn.body);
       expect(forEn.body).not.toContain("push.schedule");
     });
   }
 
   test("the four outcomes each have a sentence of their own", () => {
-    const bodies = Object.values(KEYS).map((key) => renderMessage("en", { key }));
+    const bodies = Object.values(KEYS).map((key) => formatMessage("en", { key }));
     expect(new Set(bodies).size).toBe(4);
   });
 });

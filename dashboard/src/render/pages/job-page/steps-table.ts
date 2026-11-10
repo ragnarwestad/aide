@@ -6,7 +6,7 @@
 // over.
 
 import { esc, usdOrTokens } from "../../ui/html.ts";
-import { messageDetail, renderSentence } from "../../../messages/render.ts";
+import { messageDetail, formatSentence } from "../../../messages/format.ts";
 import { t, type Language } from "../../../i18n";
 import { getHeldBackReasonMessage } from "../../../messages/specs/get.ts";
 import { facts, foldArrow, stepLabel } from "../../ui/components";
@@ -66,7 +66,7 @@ export function landingRefusal(
   if (!e || typeof e !== "object" || Array.isArray(e)) return undefined;
   const step = (e as { values?: Record<string, unknown> }).values?.step;
   if (typeof step !== "string" || !step) return undefined;
-  const sentence = renderSentence(lang, e as never) ?? "";
+  const sentence = formatSentence(lang, e as never) ?? "";
   return {
     step,
     // "stopped" is the landing's own word for a merge the project's

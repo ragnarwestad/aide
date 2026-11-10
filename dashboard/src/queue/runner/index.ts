@@ -30,7 +30,7 @@
 import { getCliErrorMessage, getNoProgressMessage, getRunnerMessage, getRunStopMessage } from "../../messages/jobs/outcomes.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import { renderSentence, type BoardMessage, type Sentence } from "../../messages/render.ts";
+import { formatSentence, type BoardMessage, type Sentence } from "../../messages/format.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
@@ -361,7 +361,7 @@ export class Runner {
         errorReason: outcome.errorReason,
       });
       // The notifier gets a sentence: the runner's own where it sent one, else the board's, in English.
-      const reason = outcome.error ?? renderSentence("en", failure.error as Sentence | Sentence[] | undefined);
+      const reason = outcome.error ?? formatSentence("en", failure.error as Sentence | Sentence[] | undefined);
       this.announce(result.ok ? result.job : job, "failed", step, reason ?? outcome.terminalReason);
       return;
     }

@@ -1,6 +1,6 @@
 export { MESSAGES, type MessageKey } from "./catalog.ts";
 export type { BoardMessage, Sentence, Message, MessageEntry, MessageVariant } from "./types.ts";
-export { renderMessage, renderSentence, messageDetail, messageIdentity } from "./render.ts";
+export { formatMessage, formatSentence, messageDetail, messageIdentity } from "./format.ts";
 export { getJobMessage } from "./jobs/get.ts";
 export { getUsageLimitMessage, getProviderLimitMessage } from "./usage-limit/get.ts";
 export { getSpecMessage, getSharedFilesMessage, getHeldBackReasonMessage } from "./specs/get.ts";

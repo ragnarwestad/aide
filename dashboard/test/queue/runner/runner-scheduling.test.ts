@@ -3,13 +3,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 

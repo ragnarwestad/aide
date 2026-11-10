@@ -12,7 +12,7 @@ import {
 } from "../../../project/project-settings.ts";
 import { settingLabel } from "../../../project/setting-labels.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
-import { renderSentence } from "../../../messages/render.ts";
+import { formatSentence } from "../../../messages/format.ts";
 import { btn, btnLink, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { projectPagePath } from "./routes.ts";
@@ -209,7 +209,7 @@ function settingRowHtml(r: SettingRow, isEditingThis: boolean, opts: ProjectPage
   // as it does above the table, so the two never disagree about the same
   // fact's colour.
   const problem = r.problem
-    ? rowMessage(r.problem.blocking ? "failed" : "waiting", renderSentence(lang, r.problem.message ?? r.problem.text) ?? r.problem.text)
+    ? rowMessage(r.problem.blocking ? "failed" : "waiting", formatSentence(lang, r.problem.message ?? r.problem.text) ?? r.problem.text)
     : "";
   const unsetTest = r.key === "AIDE_TEST_CMD" && r.origin !== "configured";
   return (

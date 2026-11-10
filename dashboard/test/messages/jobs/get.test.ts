@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { getJobMessage } from "../../../src/messages/jobs/get.ts";
 import { t } from "../../../src/i18n/index.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { stepLabel } from "../../../src/format/step-label.ts";
 import type { QueueRowView } from "../../../src/render/ui/job-state/types.ts";
 
@@ -20,7 +20,7 @@ describe("the line under a job row's state", () => {
   const deploy = (o: Msg = {}): J => job({ specFolder: "deploy", steps: ["deploy"], ...o } as Partial<J>);
   const kinds: [string, (o?: Msg) => J][] = [["scheduled job", schedule], ["Close", close], ["Reopen", reopen], ["Deploy", deploy]];
   const said = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
-  const sentenceOf = renderSentence("en", said) as string;
+  const sentenceOf = formatSentence("en", said) as string;
   const message = (row: J) => getJobMessage(row as never, "en");
 
   test("a failed schedule's message carries its dismiss action", () => {
@@ -86,7 +86,7 @@ describe("the line under a job row's state", () => {
     const error = { key: "runner.landingPause" } as const;
     for (const state of ["queued", "running"] as const) {
       const m = message(deploy({ state, errorReason: "held-back", error }));
-      expect(m).toEqual({ variant: "info", text: renderSentence("en", error) as string });
+      expect(m).toEqual({ variant: "info", text: formatSentence("en", error) as string });
     }
   });
 
@@ -103,7 +103,7 @@ describe("the line under a job row's state", () => {
       id: "held", state: "queued", steps: ["schedule"], stepIndex: 0,
       errorReason: "held-back", error, provider: "Claude-Capra",
     } as never, "en");
-    expect(notice).toEqual({ variant: "info", text: renderSentence("en", error)! });
+    expect(notice).toEqual({ variant: "info", text: formatSentence("en", error)! });
   });
 
 

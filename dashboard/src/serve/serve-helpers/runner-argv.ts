@@ -2,7 +2,7 @@
 // building the argv `aide-run-spec` is started with from them. Split
 // out of serve-helpers.ts by theme (split serve-helpers.ts by theme).
 
-import { renderSentence } from "../../messages/render.ts";
+import { formatSentence } from "../../messages/format.ts";
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
 import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
@@ -333,7 +333,7 @@ export function archiveFailureContext(job: Job, jobs: readonly Job[]): string | 
     jobId: source.id,
     at: result?.at,
     branchUrls: source.branchUrls,
-    failure: renderSentence("en", currentFailure || source.landingError),
+    failure: formatSentence("en", currentFailure || source.landingError),
     detail: currentFailure ? source.errorDetail : source.landingErrorDetail,
     archiveStepRepos: result?.repos,
     failedTests: source.landingFailedTests,

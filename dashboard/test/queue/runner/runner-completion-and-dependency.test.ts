@@ -6,7 +6,7 @@ import { QueueStore } from "../../../src/queue/queue.ts";
 import {
   DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
 } from "./runner-fixtures.ts";
-import { renderSentence } from "../../../src/messages/render.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
@@ -16,7 +16,7 @@ import { getTestsNotStartedMessage } from "../../../src/messages/jobs/outcomes.t
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
-  return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
+  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
 

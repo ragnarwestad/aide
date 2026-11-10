@@ -10,7 +10,7 @@ import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ARCHIVE_RESULT, BRANCH, SPECS_REPO, gitFor, merges, runStep, sentence, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
-import { messageDetail, type Sentence } from "../../../src/messages/render.ts";
+import { messageDetail, type Sentence } from "../../../src/messages/format.ts";
 
 describe("code lands before specs for archive", () => {
   const CODE_REPO = "/repos/aide";
