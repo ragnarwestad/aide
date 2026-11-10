@@ -151,8 +151,8 @@ describe("the line under a job row's state", () => {
   });
 });
 
-test("a scheduled job running on a provider names it on its row (AC-10)", () => {
-  const m = getJobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0, provider: "Work" } as never, "en");
-  expect(m?.text).toContain("runs on Work");
-  expect(getJobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0 } as never, "en")).toBeUndefined();
+test("running schedules show no provider caption", () => {
+  const row = { id: "j", state: "running", steps: ["schedule"], stepIndex: 0, provider: "Work" };
+  expect(getJobMessage(row as never, "en")).toBeUndefined();
+  expect(getJobMessage({ ...row, steps: ["implement"] } as never, "en")?.variant).toBe("info");
 });

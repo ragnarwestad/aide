@@ -56,8 +56,8 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
     const text = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now())?.text ?? formatSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
-  // A job names the provider its step runs on while it runs.
-  if (row.provider && row.state !== "done" && row.state !== "cancelled") {
+  // Scheduled jobs use the state label alone; other jobs name their provider.
+  if (row.provider && row.state !== "done" && row.state !== "cancelled" && row.steps[row.stepIndex] !== "schedule") {
     const step = row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
     return {
       variant: "info",

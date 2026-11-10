@@ -4,6 +4,7 @@
 // and a Norwegian entry, so a future step added there fails this test
 // rather than silently falling back to English prose in Norwegian mode.
 import { describe, expect, test } from "bun:test";
+import { t } from "../../../../src/i18n";
 import { WORKFLOW_STEPS } from "../../../../src/queue/steps.ts";
 import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, specStateChip } from "../../../../src/render/ui/job-state/resting.ts";
 import { getSpecMessage } from "../../../../src/render/ui/job-state";
@@ -11,6 +12,9 @@ import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "
 import type { QueueRowView } from "../../../../src/render";
 
 describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR", () => {
+  test("a schedule uses the shared running state label", () => {
+    expect(GERUND_EN.schedule).toBe(t("en", "list.state.running"));
+  });
   test("every WORKFLOW_STEPS member has an entry in every table", () => {
     for (const step of WORKFLOW_STEPS) {
       expect(GERUND_EN[step], `GERUND_EN is missing "${step}"`).toBeDefined();
