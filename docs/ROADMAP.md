@@ -30,6 +30,7 @@
   - [27. Asking for work where the conversation already is](#27-asking-for-work-where-the-conversation-already-is)
   - [28. A rule or skill is kept only while it helps](#28-a-rule-or-skill-is-kept-only-while-it-helps)
   - [29. A defect the review finds leaves a check behind](#29-a-defect-the-review-finds-leaves-a-check-behind)
+  - [30. Claude steps through Managed Agents](#30-claude-steps-through-managed-agents)
 
 ---
 
@@ -45,7 +46,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 30.
+same idea later. The next number is 31.
 
 ## To consider
 
@@ -581,3 +582,28 @@ Open questions:
 - Which defects deserve a check of their own, and which are one-off mistakes a test for the fix already covers.
 - Where a check that is not a test lives, so it runs in every project Aide is installed in and not only in Aide.
 - How the runner sees that the check was red before the fix, since the fix turn today only has to end green.
+
+### 30. Claude steps through Managed Agents
+
+From Anthropic's [Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview), a service
+that runs agent sessions and their tools in managed execution environments.
+
+The idea: offer Managed Agents as another way to run a Claude step. The board would still own the spec, the queue,
+acceptance checks and landing. It could reduce the work of keeping Claude processes and execution environments
+running on the serving host, and let long-running steps continue independently of that host.
+
+This is an option to investigate, not a decision to replace Claude Code. Its value depends on whether it reduces
+maintenance while preserving the results and controls the board needs.
+
+Open questions:
+
+- Whether the existing skills, repository rules and review turns can run with the same behaviour.
+- How repositories, dependencies, credentials and network access reach the environment, and how changes return
+  for testing and landing.
+- Whether tests that need local services can run there, or must still run on Aide's host.
+- Whether events report enough to show progress, costs, tokens, stop reasons and usage limits accurately.
+- How stopping, resuming and retrying sessions fits the queue without repeating work.
+- Availability, API billing and total cost compared with the Claude accounts used today.
+
+A first trial should use one archived spec and compare its result, cost and operational work with the existing
+runner before any live spec uses it.
