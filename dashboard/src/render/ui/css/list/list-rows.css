@@ -165,6 +165,11 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    caption moves with its select. */
 .aimodel { position: relative; display: flex; flex-wrap: nowrap; gap: var(--sp-1); }
 table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }
+/* A review or verify line draws its two selects straight in the cell,
+   with no `.aimodel` around them, so the cell's gap is the pair's gap:
+   it is the wrapper's, or its Model select stands 4px right of the
+   phase lines' above it. */
+table.list tr.subrow[data-side] .modelcell > .row { gap: var(--sp-1); }
 .aimodelopen, .aimodelnow { display: none; }
 .aimodelpanel, .aimodelfield { display: contents; }
 .aimodelfield > span { display: none; }
