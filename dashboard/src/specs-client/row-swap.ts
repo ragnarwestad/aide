@@ -436,9 +436,21 @@ export async function swapRows(): Promise<void> {
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
     const next = splitGroups(html);
+    const search = body.querySelector('input[name="q"]') as HTMLInputElement | null;
+    const draft = search && search.defaultValue === (params.get("q") ?? "")
+      ? { value: search.value, focused: document.activeElement === search, start: search.selectionStart, end: search.selectionEnd }
+      : undefined;
     // The open spec is not in the answer: it is held across the replace.
     const restore = holdSpecDetail(body);
     if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
+    const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
+    if (draft && nextSearch) {
+      nextSearch.value = draft.value;
+      if (draft.focused) {
+        nextSearch.focus();
+        nextSearch.setSelectionRange(draft.start, draft.end);
+      }
+    }
     restore();
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;

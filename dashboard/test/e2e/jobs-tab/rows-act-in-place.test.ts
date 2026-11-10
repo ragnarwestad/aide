@@ -56,6 +56,42 @@ afterAll(async () => {
   harness.cleanup();
 });
 
+test("a live row update preserves an unsubmitted search", async () => {
+  const { base } = harness.start({});
+  const page = await browser.newPage();
+  const waiting = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  try {
+    await page.goto(`${base}/?open=aide/${SPEC}`);
+    await page.locator(SPEC_ROW).waitFor();
+    await page.route((url) => url.searchParams.get("rows") === "1", async (route) => {
+      const response = await route.fetch();
+      waiting.resolve();
+      await release.promise;
+      await route.fulfill({ response });
+    });
+    const id = await queueAnalyze(base);
+    await waiting.promise;
+    await page.getByRole("searchbox").fill("missing");
+    release.resolve();
+    await page.locator(`form[action="/api/queue/${id}/cancel"]`).waitFor({ state: "attached" });
+    expect(await page.getByRole("searchbox").inputValue()).toBe("missing");
+    expect(await page.getByRole("searchbox").evaluate((input) => document.activeElement === input)).toBe(true);
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.get("q") === "missing", { waitUntil: "commit" }),
+      page.getByRole("button", { name: "Search", exact: true }).click(),
+    ]);
+    await page.getByRole("link", { name: t("en", "list.searchClearTitle"), exact: true }).click();
+    await page.waitForFunction(() => {
+      const input = document.querySelector('input[name="q"]') as HTMLInputElement | null;
+      return !new URL(location.href).searchParams.has("q") && input?.value === "";
+    });
+  } finally {
+    release.resolve();
+    await page.close();
+  }
+});
+
 describe("a spec's row on the Jobs tab acts in place", () => {
   test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel ends the job, the row staying, with no page load", async () => {
     const { base } = harness.start({});
@@ -209,8 +245,10 @@ test("the first job arrives and the last leaves without a reload, then search st
     await page.getByText("Nothing is running.", { exact: true }).waitFor();
     expect(loads.n).toBe(0);
     await page.getByRole("searchbox").fill("missing");
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    await page.waitForURL((url) => url.searchParams.get("q") === "missing");
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.get("q") === "missing", { waitUntil: "commit" }),
+      page.getByRole("button", { name: "Search", exact: true }).click(),
+    ]);
     await page.getByText("Nothing is running.", { exact: true }).waitFor();
     expect(await page.getByRole("searchbox").inputValue()).toBe("missing");
   } finally {
@@ -226,6 +264,7 @@ test("the first job arrives and the last leaves without a reload, then search st
 // the standard word alone.
 test("a description changed since the analysis is in the analysis log, opened with a click, and stays there through a live update to Running", async () => {
   const own = mkdtempSync(join(tmpdir(), "aide-stale-log-"));
+  const staleHarness = queueHarness("aide-stale-log-board-");
   const go = join(own, "go");
   const fakeRunner = join(own, "fake-run-spec");
   writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
@@ -239,8 +278,9 @@ test("a description changed since the analysis is in the analysis log, opened wi
   });
   const explanation = t("en", "list.descriptionChangedSince");
   const page = await browser.newPage();
+  let cancelJob: (() => Promise<Response>) | undefined;
   try {
-    const { base } = harness.start({
+    const { base } = staleHarness.start({
       extra: { gitRun: git.run, queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
     });
     const analyzeLine = page.locator(`${SPEC_ROW} ~ tr.subrow[data-step="analyze"]`);
@@ -259,14 +299,20 @@ test("a description changed since the analysis is in the analysis log, opened wi
     await log.getByText(explanation).waitFor({ timeout: 10_000 });
     expect(await state.innerText()).not.toContain(explanation);
 
-    await queueAnalyze(base);
+    const id = await queueAnalyze(base);
+    cancelJob = () => fetch(`${base}/api/queue/${id}/cancel`, { method: "POST" });
     await state.getByText(t("en", "list.state.running"), { exact: true }).waitFor({ timeout: 10_000 });
     expect((await state.innerText()).trim()).toBe(t("en", "list.state.running"));
     await log.getByText(explanation).waitFor({ timeout: 10_000 });
     expect(loads.n).toBe(0);
   } finally {
-    writeFileSync(go, "");
-    await page.close();
-    rmSync(own, { recursive: true, force: true });
+    try {
+      if (cancelJob) await cancelJob();
+      await page.close();
+    } finally {
+      staleHarness.cleanup();
+      writeFileSync(go, "");
+      rmSync(own, { recursive: true, force: true });
+    }
   }
 });
