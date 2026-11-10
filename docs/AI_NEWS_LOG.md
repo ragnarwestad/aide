@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-10](#2026-11-10)
   - [2026-11-09](#2026-11-09)
   - [2026-11-08](#2026-11-08)
   - [2026-11-07](#2026-11-07)
@@ -124,6 +125,96 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-10
+
+Nov 10. All sources were fetched. Nothing new in the Codex changelog (newest entry Nov 6) or the OpenAI developer blog
+(newest post Nov 9, a game-building example). Artificial Analysis shows no figures for the harnesses. Of the watched
+pages, `agents.md` changed in a star count only, and `opencode.ai/docs/rules` in page navigation and copy buttons only.
+The X list digest of Nov 10 could not be read: the machine's Chrome was not connected (the only connected browser
+showed "aide -board — not reachable"). The digest of Nov 9 was read in the previous review.
+
+**Claude Code (v2.1.322):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                        | Source                                                         |
+|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 10 | v2.1.322 | Added fast mode on Vertex in the global, us and eu regions, falling back to standard speed if Vertex refuses it                                                                                                                                                                                                                                             | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Added Claude Fable 5.2 (`claude-fable-5-2`), now the default Fable model: 1M context, $8/$40 per Mtok, $0.20/Mtok cache reads                                                                                                                                                                                                                               | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Added `--settings <file>` to `claude remote-control`, applied to every session it starts                                                                                                                                                                                                                                                                    | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Security fixes: MCP OAuth requests no longer send refresh tokens to another host on a redirect; a read-only Bash command no longer runs outside the sandbox without a prompt; Bash permission checks no longer judge a file write from the wrong folder; deny rules and protected-file prompts now apply to the file a `cp` or `mv` into a directory writes | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Fixed hooks: a PreToolUse hook's `ask` is no longer lost when another hook's `defer` finishes first; a large hook output no longer points Claude to another hook's output file                                                                                                                                                                              | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Fixed project skills, commands and agents staying missing after their folder was removed and came back mid-session (for example with `git stash`), and disappearing from the menu after entering a worktree                                                                                                                                                 | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Fixed the git status given to Claude at session start reading as clean when `git status` failed, and showing the first file as staged when it was not                                                                                                                                                                                                       | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 9  | v2.1.321 | Fixed `claude -p` telling Claude that background commands get 30 minutes when they are stopped after 10; fixed fast mode losing replies when fast serving is rate-limited (it now tries standard speed on the same model first)                                                                                                                             | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 10 | —        | Anthropic news: "Introducing Claude Fable 5.2 and Claude Mythos 5.2", "Our most capable models for daunting technical work"                                                                                                                                                                                                                                 | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (v1.0.108 stable; v1.0.109-1 the newest pre-release):**
+
+| Date   | Version    | News                                                                                                                                                                                                                                                                                                                                                               | Source                                                     |
+|--------|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 10 | v1.0.109-1 | Added Claude Fable 5.2 to the model picker; IPv4/IPv6 CIDR support for sandbox host allow and deny rules; sandbox path settings accept environment variables; in ACP mode a preToolUse hook that answers ask now asks the client instead of denying                                                                                                                | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 9  | v1.0.109-0 | Read-only shell scripts ask less often, while scripts that change git refs or read files through hidden paths are always reviewed; text typed after `/init` now reaches the model as guidance                                                                                                                                                                      | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 9  | v1.0.108   | `disabledSkills`, `skills.disable` and `skills.enable` now match a skill name in any letter case; a path in a prompt such as `/docs/setup.md` no longer loads a skill named `docs`; `copilot help config` now names the `.claude/rules` files and `.claude/settings.json` the CLI reads; a `.github/mcp.json` is ignored when the same directory has a `.mcp.json` | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 9  | —          | Changelog: "Claude Fable 5.2 in GitHub Copilot"                                                                                                                                                                                                                                                                                                                    | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.7 pre-release):**
+
+| Date | Version | News                                                                                                                                                 | Source                                               |
+|------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No release since Nov 9 other than pre-releases (v0.169.0-alpha.6 and alpha.7, v0.167.0-alpha.4.1); the changelog's newest entry is v0.167.0 of Nov 6 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.7):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Source                                                     |
+|--------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 10 | v2.2.7  | GitHub Copilot **Auto** in the model picker; remote MCP servers that rotate refresh tokens no longer sign you out; `read` takes a negative `offset` and suggests close file names; shell results end with `Exit code: N`; Markdown agents whose description starts with a bracketed tag now load, and agent discovery skips `node_modules`. Breaking: `ImageResponse.image` removed from `@opencode/ai`; fewer SDK endpoints wait for plugins to load | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ Claude Fable 5.2 (`claude-fable-5-2`) is out and is the default Fable model in Claude Code from v2.1.321; Copilot
+  CLI lists it in its model picker from v1.0.109-1. `docs/AI_SUPPORT_MATRIX.md` names Fable 5.1 as the default Fable
+  in its models table and in the Copilot row, and the dashboard tests and `docs/ROADMAP.md` (context window table)
+  still name Fable 5.1. Check what the dashboard's settings page and model discovery do with the new id.
+  [Claude Code](https://github.com/anthropics/claude-code/releases),
+  [Anthropic](https://www.anthropic.com/news),
+  [Copilot](https://github.blog/changelog/label/copilot/)
+- ⭐ Prompting Claude Fable 5.2 (new watched page): the model sometimes ends a long turn before the work is done, more
+  at low and medium effort, and the page gives a "Finishing work" system prompt text for it; it also says to keep
+  approval rules and instructions written for Fable 5.1 or Opus 5.5 under review, to state who owns the code, to set
+  expectations for subagents, and that Fable 5.2 enforces the thinking-block prefix check on every account, so
+  prompt changes belong in new conversations or the newest turn. Touches the step skills' prompts and the runner's
+  resume of a session. [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)
+- ⚠️ Claude Code v2.1.321 fixes several permission and sandbox bypasses (a read-only Bash command outside the sandbox
+  without a prompt, a wrongly judged write folder, deny rules not applied to `cp` and `mv` into a directory) and a
+  PreToolUse `ask` lost to another hook's `defer`. The runner runs unattended with hooks and a sandbox; verify the
+  installed version is at least v2.1.321. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.321: project skills, commands and agents that vanished when their folder was removed and came
+  back (`git stash`) or after entering a worktree now return. Aide's steps run in worktrees. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.321: `claude -p` no longer says background commands get 30 minutes when they stop after 10; the
+  git status given at session start reads as unavailable when `git status` fails. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ `code.claude.com/docs/en/best-practices` (watched, changed): Claude Fable 5.2, Opus 5.5, Sonnet 5.5 and Haiku 5.5
+  default to medium effort; Fable is selected with `/model fable`, now pointing at 5.2.
+  [Page](https://code.claude.com/docs/en/best-practices)
+- ✅ Claude prompting best practices and the Fable 5.1 page (watched, changed): Fable 5.2 and Mythos 5.2 added to the
+  model list; the 5.1 page now says a request that sends back an invalid thinking block gets a 400 error on every
+  account on 5.2. [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
+- ✅ Copilot CLI v1.0.108: skill names in `disabledSkills`, `skills.disable` and `skills.enable` match in any letter
+  case, and `copilot help config` names the `.claude/rules` instruction files and `.claude/settings.json` the CLI
+  reads, which fits how Aide's Claude rules are shared with Copilot. [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ Copilot CLI v1.0.109-1: in ACP mode a preToolUse hook that answers ask now asks the client instead of denying;
+  sandbox host rules accept CIDR ranges. [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ Anthropic, Nov 9, "Safely scaling multi-agent teams with Claude Fable 5.2": 1,000 agents with a shared database
+  and layered safety controls; not read in full, touches the loops and subagent use in `docs/AGENTS_AND_LOOPS.md`.
+  [Page](https://claude.com/resources/articles)
+- ✅ Hooks guide (watched, changed): a mod can approve a call a PreToolUse hook blocked only on a machine without managed
+  settings and without a `managed-mcp.json`; wording of the condition changed, the rule did not.
+  [Page](https://code.claude.com/docs/en/hooks-guide)
+- ℹ OpenCode v2.2.7: Copilot Auto in the model picker, MCP login stability, `read` with a negative offset, Markdown agents
+  with a bracketed description tag load. The `@opencode/ai` `ImageResponse.image` removal does not touch Aide.
+  [Releases](https://github.com/anomalyco/opencode/releases)
+- ℹ Claude Code v2.1.322 fast mode on Vertex; GitHub blog and Anthropic posts on Xcode, JetBrains Air and drug
+  development have no bearing on Aide.
+- ℹ X list: the digest of Nov 10 could not be read (Chrome not connected), so the day has a gap.
+
 ### 2026-11-09
 
 Nov 8 – Nov 9. All sources were fetched. Nothing new on the OpenAI developer blog (newest post Oct 14); Artificial
