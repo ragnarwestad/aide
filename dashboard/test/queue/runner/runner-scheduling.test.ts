@@ -318,7 +318,7 @@ describe("a schedule job holds while other work runs in its project", () => {
     expect(store.get(a.id)?.state).toBe("running");
     const held = store.get(b.id)!;
     expect(held.state).toBe("queued");
-    expect(sentence(held.error)).toContain("another job");
+    expect(held.error).toEqual({ key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:81" } });
   });
 
   test("waits while another job's landing is in flight", () => {

@@ -440,12 +440,15 @@ describe("the line under a job row's state", () => {
     expect(m?.log).toBeUndefined();
   });
 
-  test("a held-back scheduled job, Close or Reopen has no line: the waiting line is a deploy's", () => {
-    const error = { key: "runner.landingPause" } as const;
-    for (const make of [schedule, close, reopen]) {
-      expect(message(make({ state: "queued", errorReason: "held-back", error }))).toBeUndefined();
-    }
+  test("a held-back job shows its reason instead of its provider", () => {
+    const error = { key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:756" } } as const;
+    const notice = jobMessage({
+      id: "held", state: "queued", steps: ["schedule"], stepIndex: 0,
+      errorReason: "held-back", error, provider: "Claude-Capra",
+    } as never, "en");
+    expect(notice).toEqual({ variant: "info", text: renderSentence("en", error)! });
   });
+
 
   describe("the provider a step ran on", () => {
     const ranOn = (step: string, who: string): string =>
@@ -485,7 +488,8 @@ describe("the line under a job row's state", () => {
       const m = message(row);
       expect(m?.text.split("Work").length).toBe(2);
       expect(m?.text).not.toContain(ranOn("implement", "Work"));
-      expect(m?.log).toBe("/jobs/u1?tab=steps");
+      expect(m?.variant).toBe("info");
+      expect(m?.log).toBeUndefined();
     });
   });
 });

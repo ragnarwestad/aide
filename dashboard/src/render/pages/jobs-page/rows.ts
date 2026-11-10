@@ -149,7 +149,7 @@ export function scheduleStreamKey(key: string): string | undefined {
 /** The line under a job row's state, or none. A job that failed, stopped or
  *  was interrupted says why, in its own sentence or, with none, in one saying
  *  how it ended, and the line carries the address of the job's own page for
- *  its Log link. A deploy held back says why it waits, with no link. A job
+ *  its Log link. A held-back job says why it waits, with no link. A job
  *  whose step ran on another Claude account names it: after its own sentence
  *  when it has one, on a line of its own once it is done or cancelled. Every
  *  other row has no line. */
@@ -187,8 +187,9 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
     // A usage-limit stop is told in its own sentence, which names the
     // provider the stop was on.
     const limitText = row.state === "stopped" ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) : undefined;
-    const own = limitText ?? (renderSentence(lang, row.error) || t(lang, ended));
-    const ranOn = limitText === undefined ? ranOnSentence(row, lang) : undefined;
+    if (limitText !== undefined) return { variant: "info", text: limitText };
+    const own = renderSentence(lang, row.error) || t(lang, ended);
+    const ranOn = ranOnSentence(row, lang);
     return {
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
@@ -196,8 +197,8 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
       log: `/jobs/${row.id}?tab=steps`,
     };
   }
-  if (row.steps[row.stepIndex] === "deploy" && row.errorReason === "held-back") {
-    const text = renderSentence(lang, row.error);
+  if (row.errorReason === "held-back") {
+    const text = usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) ?? renderSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
   // A job names the provider its step runs on while it runs.

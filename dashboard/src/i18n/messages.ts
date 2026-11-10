@@ -1256,6 +1256,14 @@ export const MESSAGES = {
   // running or merging — the same shape as
   // `runner.archiveRunning` above, but one-directional: only the
   // schedule job itself ever waits for this.
+  "runner.scheduleWaitsOnJob": {
+    en: "held back: {doing} is running on {spec} — this starts when the other jobs in this project have finished",
+    nb: "holdt tilbake: {doing} på {spec} — jobben starter når de andre jobbene i prosjektet er ferdige",
+    es: "retenido: {doing} en {spec} — empieza cuando terminen los otros trabajos de este proyecto",
+    de: "zurückgehalten: {doing} für {spec} — startet, wenn die anderen Jobs in diesem Projekt fertig sind",
+    fr: "retenu : {doing} pour {spec} — démarre quand les autres tâches de ce projet sont terminées",
+    statement: "the schedule starts by itself when the project's other work finishes",
+  },
   "runner.scheduleWaitsOnProject": {
     en: "held back: another job is running or merging in this project",
     nb: "holdt tilbake: en annen jobb kjører eller merges i dette prosjektet",

@@ -326,7 +326,9 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
 export const jobDismissible = (job: {
   steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
   results?: readonly { terminalReason?: string }[];
-}): boolean => jobKind(job) === "schedule" && !inFlight(job) && waitsForPerson(job);
+  stopReason?: string; usageLimitWait?: { until: string; resetKnown: boolean };
+}): boolean => jobKind(job) === "schedule" && !inFlight(job) && waitsForPerson(job)
+  && !(job.state === "stopped" && job.stopReason === "provider-limit" && job.usageLimitWait);
 
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a

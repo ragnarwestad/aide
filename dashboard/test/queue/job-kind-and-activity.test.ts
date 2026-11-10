@@ -33,6 +33,12 @@ test("one function decides job activity and both questions read it (AC-2)", () =
 });
 
 describe("dismissible jobs use the queue rule", () => {
+  test("a scheduled job restarting after a usage limit cannot be dismissed", () => {
+    const stopped = job({ steps: ["schedule"], specFolder: "schedule-nightly", state: "stopped", stopReason: "provider-limit" });
+    expect(jobDismissible({ ...stopped, usageLimitWait: { until: "2026-11-10T11:10:00Z", resetKnown: true } })).toBe(false);
+    expect(jobDismissible(stopped)).toBe(true);
+  });
+
   test("only a scheduled job waiting for a person is dismissible", () => {
     for (const state of ["failed", "stopped", "interrupted"]) {
       expect(jobDismissible(job({ steps: ["schedule"], specFolder: "schedule-nightly", state }))).toBe(true);

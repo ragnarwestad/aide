@@ -5,6 +5,7 @@
 import type { BoardMessage } from "../../i18n/message.ts";
 import type { Job, QueueStore } from "../queue.ts";
 import { specReference } from "../../project/spec-folder.ts";
+import { landingStepIndex } from "../../format/gerund.ts";
 import { takesSlot, writing } from "../steps.ts";
 import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 
@@ -70,9 +71,16 @@ export const HOLDS: readonly Hold[] = [
   { name: "archive-running", check: (job, at) => stepOf(job) === "archive" && at.jobs().some((candidate) =>
     candidate.id !== job.id && candidate.project === job.project && stepOf(candidate) === "archive" && writing(candidate))
     ? { key: "runner.archiveRunning" } : undefined },
-  { name: "schedule-waits-on-project", check: (job, at) => stepOf(job) === "schedule" && at.jobs().some((candidate) =>
-    candidate.id !== job.id && candidate.project === job.project && writing(candidate))
-    ? { key: "runner.scheduleWaitsOnProject" } : undefined },
+  { name: "schedule-waits-on-project", check: (job, at) => {
+    if (stepOf(job) !== "schedule") return undefined;
+    const blocking = at.jobs().find((candidate) =>
+      candidate.id !== job.id && candidate.project === job.project && writing(candidate));
+    if (!blocking) return undefined;
+    const index = blocking.landing ? landingStepIndex(blocking.state, blocking.stepIndex) : blocking.stepIndex;
+    return { key: "runner.scheduleWaitsOnJob", values: {
+      doing: blocking.steps[index]!, spec: specReference(blocking.project, blocking.specFolder),
+    } };
+  } },
   { name: "deploy-waits-for-landing", check: (job, at) => answer(at.answers.deployWaitsForLanding, job.id) },
   { name: "not-analyzed", check: (job, at) => answer(at.answers.notAnalyzed, job.id) },
   { name: "approach-choice", check: (job, at) => answer(at.answers.approachChoice, job.id) },

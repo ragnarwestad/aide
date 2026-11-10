@@ -24,6 +24,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.usageLimitHeld",
   "runner.usageLimitHeldNoReset",
   "runner.usageLimitHeldProbe",
+  "runner.scheduleWaitsOnJob",
 ]);
 
 /** Whether a queued job's own hold resolves on its own, read off the
