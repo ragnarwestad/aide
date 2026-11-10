@@ -101,7 +101,7 @@ record_branch_url() {
 }
 
 # Bounded, and the same bound the TypeScript
-# side (`PUSH_RETRY_WAITS_MS` in dashboard/src/git/branch-merge/retry.ts) uses — long enough to
+# side (`LANDING_RETRIES.pushWaitsMs` in dashboard/src/git/branch-merge/retry.ts) uses — long enough to
 # ride out a momentary GitHub blip, short enough that a run
 # that is really offline still finishes in seconds.
 PUSH_RETRY_WAITS=(1)

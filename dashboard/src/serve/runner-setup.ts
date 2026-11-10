@@ -30,6 +30,7 @@ import { analysisSessionToResume, archiveFailureContext, previousAttemptContext,
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
+import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./land-branch/policy/index.ts";
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
 import type { TestServerStore } from "./test-servers/store.ts";
 
@@ -387,88 +388,57 @@ export function stepDoneHandler(
       });
   }
 
+  function proposeScheduledSpecs(job: Job): void {
+    proposeSpecs({
+      store: ctx.store,
+      outputRoot: ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
+      specsRoot: ctx.machinerySpecsRoot,
+      reportPath: (name, runId) => scheduleRunPath(job.project, name, runId),
+      now: () => new Date().toISOString(),
+      log: logRefusal,
+    }, job);
+  }
+
+  /** Starts the landing a step's policy names (`land-branch/policy/`). */
+  function startLanding(kind: LandingKind, job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>): Promise<unknown> {
+    switch (kind) {
+      case "new-spec": return ctx.landNewSpec(job, outcome);
+      case "step": return ctx.landStepBranch(job, step, outcome);
+      case "archive": return ctx.landArchivedSpec(job, outcome);
+      case "close": return ctx.landClosedSpec(job, outcome);
+      case "schedule": return ctx.landScheduleRun(job, outcome);
+    }
+  }
+
   function landingFor(job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>): Promise<unknown> | undefined {
+    const policy = landingPolicy(step);
     if (outcome.ok) {
-      if (step === "create") return ctx.landNewSpec(job, outcome);
-      // `reopen` lands for exactly the reason `analyze` does, and
-      // for it the argument is not an improvement but the whole
-      // feature: the un-archived folder is what makes
-      // the spec active again, this page reads the MAIN checkout,
-      // and a reopen left on its branch would show nowhere at all
-      // — "reopening is one action" would then still end with
-      // somebody in a terminal.
       // A reopen that reset the files discarded the round, and the phases
       // ticked for it go with it: the row's boxes and button start over
       // from Analyze rather than from whatever was ticked for the round
       // just discarded. A reopen that kept the files keeps the choice.
       if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);
-      if (step === "analyze" || step === "reopen") {
-        return ctx.landStepBranch(job, step, outcome);
-      }
-      // `archive` lands on `completed` alone. A refusal from
-      // `aide-archive-spec` (not implemented yet, an acceptance row
-      // unticked) is ok — the row reads the hold-back from
-      // 4-status.md — but nothing was archived, and landing it merged
-      // implement's code branch into main with the spec still active.
-      // `already-landed` has nothing left to land either.
-      if (step === "archive") {
-        return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
-      }
-      // `close` lands on `closed` alone, the same rule
-      // `archive` follows for `completed` — every other terminalReason
-      // (`already-closed`, `already-archived`, `conflict-open`,
-      // `refused`) moved nothing, so there is nothing to land.
-      if (step === "close") {
-        return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
-      }
       // A green scheduled run may have left proposed specs beside its
       // report: queue a Create job for each. Independent of landing —
       // the report and any proposed specs live outside every repository
       // ($AIDE_SCHEDULE_OUTPUT_DIR), so this runs whether or not the
       // same job also committed anything.
-      if (step === "schedule") {
-        proposeSpecs({
-          store: ctx.store,
-          outputRoot: ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
-          specsRoot: ctx.machinerySpecsRoot,
-          reportPath: (name, runId) => scheduleRunPath(job.project, name, runId),
-          now: () => new Date().toISOString(),
-          log: logRefusal,
-        }, job);
-        const pushed = outcome.branchUrls ?? [];
-        return pushed.length > 0 ? ctx.landScheduleRun(job, outcome) : undefined;
-      }
-      // `implement` and `explore` fall through: the first
-      // by design, the other because it leaves no spec branch
-      // for anyone to land.
+      if (step === "schedule") proposeScheduledSpecs(job);
+      const ok = policy.onOk;
+      if (!step || !ok) return undefined;
+      if (ok.endings !== "any" && !ok.endings.includes(outcome.terminalReason ?? "")) return undefined;
+      if (ok.onlyWhenPushed && (outcome.branchUrls ?? []).length === 0) return undefined;
+      return startLanding(ok.landing, job, step, outcome);
+    }
+    // A step stopped after the runner committed and pushed its work lands
+    // what it wrote: left on the branch, that work is readable only by
+    // checking it out by hand. Only where no code root was pushed, since
+    // code waits on its branch for `archive` — unless the ending is one
+    // the policy lands past the code root, where the specs live inside it:
+    // the landing then copies the spec's folder and leaves the code.
+    if (!step || !policy.landsWhenStopped || !STOPPED_ENDINGS_THAT_LAND.includes(outcome.terminalReason ?? "")) {
       return undefined;
     }
-    // A step stopped by its own clock still committed and pushed
-    // whatever it had written before the deadline — `aide-run-spec`'s
-    // commit loop runs on every path and the push is gated on the
-    // push mode, not on `ok`. Left on the branch, that
-    // work is readable only by checking it out by hand: an analyze
-    // once stopped with a finished analysis nothing on this page
-    // mentioned.
-    //
-    // A stopped archive never lands: its pre-check already moved the
-    // folder on the branch, and that move must wait for a completed archive.
-    // Other stopped steps land only when no code root was pushed;
-    // code waits on its branch for `archive`. An implement sent back is the
-    // one that lands past a code root, and only where the specs live inside
-    // it: the landing then copies the spec's folder and leaves the code.
-    //
-    // The wall clock, a provider limit, a shared-files stop, an
-    // implement sent back to a full analysis and a short analysis over a
-    // limit all stop after the runner has committed the work. A CLI error
-    // has no such safe landing promise.
-    if (
-      !step ||
-      !["timeout", "provider-limit", "shared-files", "sent-back", "short-analysis-over-limit"].includes(
-        outcome.terminalReason ?? "",
-      )
-    ) return undefined;
-    if (step === "archive") return undefined;
     // The line the over-limit analyze recorded must reach the main checkout
     // the next prompt is read from, also where the specs live inside the code
     // root: `landStepBranch` lands the spec's own folder there and no code.
@@ -476,9 +446,9 @@ export function stepDoneHandler(
     const codeRoot = ctx.machineryProjectDir(job.project);
     const pushed = outcome.branchUrls ?? [];
     if (pushed.length === 0) return undefined;
-    const sentBackWithSpecsInside = step === "implement" && outcome.terminalReason === "sent-back"
+    const pastCode = policy.stoppedPastCode.includes(outcome.terminalReason ?? "")
       && specsLiveInside(codeRoot, ctx.machinerySpecsRoot(job.project));
-    if (pushed.some((r) => r.root === codeRoot) && !sentBackWithSpecsInside) return undefined;
+    if (pushed.some((r) => r.root === codeRoot) && !pastCode) return undefined;
     return ctx.landStoppedStepBranch(job, step, outcome);
   }
 }

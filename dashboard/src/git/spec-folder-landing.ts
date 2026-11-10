@@ -11,7 +11,7 @@
 // — unless the landing is a `close`, where it is deleted.
 
 import {
-  mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep, type RepoMergeResult, type Wait,
+  LANDING_RETRIES, mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep, type RepoMergeResult, type Wait,
 } from "./branch-merge/index.ts";
 import { withCheckoutLock } from "./checkout-lock/index.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "./branch-status.ts";
@@ -81,7 +81,7 @@ export async function landSpecFolderOnly(
       if (!pushed.moved) {
         return pushRefusal(root, branch, base, pushed);
       }
-      if (attempt >= 1) return refuse(root, branch, { key: "landing.baseMovedTwice", values: { base } }, pushed.error);
+      if (attempt >= LANDING_RETRIES.baseMovedRebuilds) return refuse(root, branch, { key: "landing.baseMovedTwice", values: { base } }, pushed.error);
       await run(work, ["fetch", "--quiet", "origin", base]);
       await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
     }

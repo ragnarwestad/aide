@@ -1,9 +1,9 @@
 // A scheduled job's commits reach main the way create/archive's do: the
 // same shared `landBranch`, with no `repos` filter — whichever root (or
 // both) the run pushed lands — and, since a schedule run has no spec
-// folder of its own to scope to, `schedule` is kept out of
-// `SPEC_ONLY_STEPS` so the whole branch lands even where the specs live
-// inside the code repo.
+// folder of its own to scope to, `schedule`'s landing policy does not
+// land the spec's folder alone, so the whole branch lands even where the
+// specs live inside the code repo.
 
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
@@ -109,7 +109,7 @@ describe("landScheduleRun", () => {
     expect(transitioned?.patch.errorReason).toBe("conflict");
   });
 
-  test("with the specs inside the code repo, the whole branch lands — schedule is not a SPEC_ONLY_STEP", async () => {
+  test("with the specs inside the code repo, the whole branch lands — schedule does not land a spec's folder alone", async () => {
     const code = mkdtempSync(join(tmpdir(), "aide-schedule-land-inproject-"));
     mkdirSync(join(code, "specs"), { recursive: true });
     const git = landingGit();

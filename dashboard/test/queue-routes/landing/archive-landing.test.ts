@@ -162,8 +162,9 @@ describe("landing an archived spec", () => {
     // The gone repo contributes nothing to the sentence a person reads.
     expect(sentence(failed.error)).not.toContain("nothing left to merge");
     expect(failed.errorReason).toBe("conflict");
-    // Two repos, each running the landing's three tries with a pause
-    // between them, so this one is genuinely slower than the default.
+    // Two repos, each merged once: a conflict is not repeated
+    // (`LANDING_RETRIES.repeats`). Two landings through a served board
+    // still take longer than the default allows.
   }, 20000);
 
   // --- Code lands before specs, and a code failure stops the ------

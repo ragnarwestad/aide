@@ -56,8 +56,10 @@ export interface LandContext {
    *  never restarts it. */
   dashboardRoot?: string;
   /** Runs the project's suite on the merged result before the push;
-   *  a code root's landing only. Absent means no gate (tests). */
-  landingGate?: (root: string, job: Job, branch: string) => Promise<GateVerdict>;
+   *  a code root's landing only. `button` is the one the landing step's
+   *  row offers, named when the tests refuse the merge. Absent means no
+   *  gate (tests). */
+  landingGate?: (root: string, job: Job, branch: string, button: string) => Promise<GateVerdict>;
   /** Landing's own finalize step for a `create` job: renames
    *  the folder off its literal provisional key to its real `NN-slug`
    *  inside the merge worktree, under the specs repo's own merge lock.
@@ -104,11 +106,12 @@ export interface Landing {
    *  is right for every landing but archive's — see
    *  `landArchivedSpec` for why that one has to look further. */
   repos?: BranchRef[];
-  /** Which step's landing this is. Only the merge event reads it
-   *  and it is taken from the call site rather than
-   *  derived: `landStepBranch` already HAS the step as a parameter,
-   *  and a second value worked out from the outcome would be a second
-   *  thing that could be wrong. */
+  /** Which step's landing this is: it names the landing policy
+   *  (`policy/index.ts`) the landing reads, and the button a refusal
+   *  names. Taken from the call site rather than derived:
+   *  `landStepBranch` already HAS the step as a parameter, and a second
+   *  value worked out from the outcome would be a second thing that
+   *  could be wrong. */
   step: WorkflowStep;
   /** What to do once the merge has actually landed — after the job
    *  has been updated and the scan invalidated, and only then.

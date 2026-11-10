@@ -70,9 +70,9 @@ reads what a landing left.
   reaches main through `archive` alone.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
-  a landing that did not finish. The check is `archive`'s alone, by the
-  literal step name; a failed landing moves the job to `failed` and ONLY
-  from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
+  a landing that did not finish. The check is `archive`'s alone, by its
+  landing policy (`land-branch/policy/`); a failed landing moves the job
+  to `failed` and ONLY from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
   the "not landed" row is filtered on the BRANCH and on git's merged
   answer (`peekMerged`), never on `errorReason` or a job record — an open
   branch merged in every root that holds it is an archived row with
@@ -84,8 +84,8 @@ reads what a landing left.
   reads "tests red": the step ran and the merge was built, and what is
   missing is a green suite. Every other landing failure stays red.
 - **`codeLanding: pr` keeps the CODE root's branch open** on an `archive`
-  landing and runs every step with `--push pr`; the two halves are never
-  separated. The manifest is a DEFAULT for `--push`, never an override;
+  landing (`codeRoot: "merge-unless-pr"` in its landing policy) and runs
+  every step with `--push pr`; the two halves are never separated. The manifest is a DEFAULT for `--push`, never an override;
   the specs root keeps auto-merging; `errorReason` has no member for it —
   `prOpen` splits the wording instead.
 - **`StepResult.at` is absent until a landing step's merge settles**, not

@@ -86,7 +86,7 @@ describe("the landing skips a run a step has already made", () => {
     const root = project();
     const { ran, log } = scripts();
 
-    const verdict = await runProjectSuiteBeforePush(root, job({ tree: hashOf(root), commands: ["true"] }), "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(root, job({ tree: hashOf(root), commands: ["true"] }), "aide/81-x", { button: "Archive" });
 
     expect(verdict.ok).toBe(true);
     expect(existsSync(ran)).toBe(false);
@@ -97,7 +97,7 @@ describe("the landing skips a run a step has already made", () => {
     const root = project();
     const { ran } = scripts();
 
-    await runProjectSuiteBeforePush(root, job({ tree: "0".repeat(40), commands: ["true"] }), "aide/81-x");
+    await runProjectSuiteBeforePush(root, job({ tree: "0".repeat(40), commands: ["true"] }), "aide/81-x", { button: "Archive" });
 
     expect(existsSync(ran)).toBe(true);
   });
@@ -106,7 +106,7 @@ describe("the landing skips a run a step has already made", () => {
     const root = project();
     const { ran } = scripts();
 
-    await runProjectSuiteBeforePush(root, job({ tree: hashOf(root), commands: ["make test"] }), "aide/81-x");
+    await runProjectSuiteBeforePush(root, job({ tree: hashOf(root), commands: ["make test"] }), "aide/81-x", { button: "Archive" });
 
     expect(existsSync(ran)).toBe(true);
   });
@@ -115,7 +115,7 @@ describe("the landing skips a run a step has already made", () => {
     const root = project();
     const { ran } = scripts();
 
-    await runProjectSuiteBeforePush(root, job(), "aide/81-x");
+    await runProjectSuiteBeforePush(root, job(), "aide/81-x", { button: "Archive" });
 
     expect(existsSync(ran)).toBe(true);
   });

@@ -103,7 +103,7 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x", { button: "Archive" });
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -131,7 +131,7 @@ describe("the landing's test gate", () => {
     dirs.push(record);
     fakeScripts(record);
 
-    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(landing, { project: "aide", specFolder: "81-x" }, "aide/81-x", { button: "Archive" });
     expect(verdict.ok).toBe(true);
 
     const lines = readFileSync(record, "utf-8").trim().split("\n");
@@ -158,7 +158,7 @@ describe("the landing's test gate", () => {
       { mode: 0o755 },
     );
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x", { button: "Archive" });
 
     expect(verdict.ok).toBe(false);
     expect(verdict.error).toEqual({
@@ -192,7 +192,7 @@ describe("the landing's test gate", () => {
       { mode: 0o755 },
     );
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x", { button: "Archive" });
 
     expect(verdict.ok).toBe(true);
     expect(verdict.retriedAfter).toContain("(fail) flaky > times out");
@@ -209,7 +209,7 @@ describe("the landing's test gate", () => {
     dirs.push(count);
     writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, `#!/bin/sh\necho run >> ${count}\necho 'FAILED test_x'\nexit 1\n`, { mode: 0o755 });
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
+    const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x", { button: "Archive" });
 
     expect(verdict.ok).toBe(false);
     expect(verdict.retriedAfter).toBeUndefined();

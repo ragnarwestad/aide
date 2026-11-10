@@ -13,10 +13,15 @@ import type { GateVerdict } from "../../../src/serve/land-branch/test-gate.ts";
 
 const job = { id: "j1", project: "aide", specFolder: "81-x" } as Job;
 
-function gateWith(verdict: Partial<GateVerdict>, listed: Job[] = [], step: "archive" | "schedule" = "archive") {
+function gateWith(
+  verdict: Partial<GateVerdict> | ((button: string) => Partial<GateVerdict>),
+  listed: Job[] = [],
+  step: "archive" | "schedule" = "archive",
+) {
   const updates: Array<Partial<Job>> = [];
   const ctx = {
-    landingGate: async () => verdict,
+    landingGate: async (_root: string, _job: Job, _branch: string, button: string) =>
+      typeof verdict === "function" ? verdict(button) : verdict,
     queue: { update: (_id: string, patch: Partial<Job>) => updates.push(patch), list: () => listed },
     machinerySpecsRoot: () => undefined,
   } as unknown as LandContext;
@@ -77,5 +82,25 @@ describe("the tests a red landing failed", () => {
     const { gate, updates } = gateWith({ ok: false, error, failedTests }, [{ ...job, landingFailedTests: failedTests }], "schedule");
     await gate("/work");
     expect(updates).toEqual([]);
+  });
+});
+
+describe("the button a refused landing names", () => {
+  const refusedNaming = (button: string): Partial<GateVerdict> => ({
+    ok: false,
+    error: { key: "landing.testsRedOnMergeUnnamed", values: { branch: "aide/81-x", button } },
+  });
+
+  const buttonIn = ({ error }: { error?: unknown }): unknown =>
+    typeof error === "object" && error !== null ? (error as { values?: Record<string, unknown> }).values?.button : undefined;
+
+  test("a scheduled job's red landing names Run now (AC-2)", async () => {
+    const { gate } = gateWith(refusedNaming, [], "schedule");
+    expect(buttonIn(await gate("/work"))).toBe("Run now");
+  });
+
+  test("an archive's red landing names Archive (AC-2)", async () => {
+    const { gate } = gateWith(refusedNaming, [], "archive");
+    expect(buttonIn(await gate("/work"))).toBe("Archive");
   });
 });

@@ -2,6 +2,7 @@
 
 import type { GitRunner } from "../process/index.ts";
 import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.ts";
+import type { RepoMergeResult } from "./result.ts";
 
 /** Every lock git can lose a race for, not only the index's. Read by
  *  one place alone: the merge in a landing's own worktree
@@ -10,20 +11,48 @@ import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.
  *  lock. Every move of a shared checkout runs under that lock
  *  (`checkout-lock/`) and is tried once. */
 export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
-/** Five retries, two seconds at most: a run's ref writes take well under
- *  that, and a lock that is genuinely stuck still refuses in seconds. */
-export const LOCK_RETRIES = 5;
-export const LOCK_WAIT_MS = 400;
+/** Every retry a landing makes and the waits between them: the one place
+ *  their bounds are written. The late retry, which queues the step again,
+ *  spends the step's own retry allowance (`queue/runner/retry.ts`) and is
+ *  no bound of the landing's. */
+export const LANDING_RETRIES = {
+  /** A merge in the landing's own worktree that lost a git lock: five
+   *  retries, two seconds at most. A run's ref writes take well under
+   *  that, and a lock that is genuinely stuck still refuses in seconds. */
+  lockRetries: 5,
+  lockWaitMs: 400,
+  /** One more push per wait after an unreachable origin — the same bound
+   *  `aide-run-spec`'s `push_with_retry` uses (`PUSH_RETRY_WAITS`). Longer
+   *  than the lock wait, since a network blip takes longer to clear than
+   *  a lock held by a sibling git process on the same machine. */
+  pushWaitsMs: [1000],
+  /** Main moved on origin under the landing: the merge is rebuilt on the
+   *  new base this often, and a further move is refused. */
+  baseMovedRebuilds: 1,
+  /** The whole per-root operation repeated after a refusal: a folder
+   *  landed alone twice, a number that could not be assigned once, any
+   *  other refusal not at all. A red suite is never repeated here. */
+  repeats: { specFolderOnly: 2, createNumber: 1, other: 0 },
+  /** The wait before repeat n (from 0) is `repeatWaitMs * (n + 1)`. */
+  repeatWaitMs: 700,
+  /** A red suite on the merge is run this many more times, unless it
+   *  timed out. */
+  gateReruns: 1,
+  /** `archive`'s origin check merges a root that still holds the branch
+   *  this many more times before it calls it unlanded. */
+  originRechecks: 1,
+} as const;
+
+/** How often the per-root operation is repeated after `first`. */
+export function landingRepeats(first: RepoMergeResult, specFolderOnly: boolean): number {
+  if (first.ok || first.reason === "tests-red") return 0;
+  if (specFolderOnly) return LANDING_RETRIES.repeats.specFolderOnly;
+  return first.reason === "create-number" ? LANDING_RETRIES.repeats.createNumber : LANDING_RETRIES.repeats.other;
+}
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 export type Wait = (ms: number) => Promise<void>;
 
-/** The same bound `aide-run-spec`'s
- *  `push_with_retry` uses (`PUSH_RETRY_WAITS`) — two extra tries,
- *  waiting longer between them than the lock retry above, since a
- *  network blip takes longer to clear than a lock held by a
- *  sibling git process on the same machine. */
-const PUSH_RETRY_WAITS_MS = [1000];
 /** A push and the question to origin that follows a failed one get a
  *  minute, not the runner's four-second default: a push to GitHub over
  *  SSH takes longer than that, and a killed one says nothing at all. */
@@ -90,7 +119,7 @@ export async function pushWithRetry(
     firstCause.kind,
   );
   if (retryAllowed && (reachable.code !== 0 || transient)) {
-    for (const ms of PUSH_RETRY_WAITS_MS) {
+    for (const ms of LANDING_RETRIES.pushWaitsMs) {
       await wait(ms);
       pushed = await push();
       if (pushed.code === 0) return { ok: true };

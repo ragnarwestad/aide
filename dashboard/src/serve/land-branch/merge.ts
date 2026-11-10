@@ -23,7 +23,7 @@ export function sameRoot(a: string, b: string): boolean {
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
-import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
+import { deleteBranchOnly, LANDING_RETRIES, landingRepeats, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { STATUS_FILE } from "../../project/spec-names.ts";
 import { specFileText } from "../../project/discover";
@@ -32,9 +32,10 @@ import { installAfterMerge } from "./install.ts";
 import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
-import { clearsLandingError, createNumberRetryLimit, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
+import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
 import { retryArchiveLanding } from "./retry";
+import { landingPolicy } from "./policy/index.ts";
 import { isJobStop } from "../../step-endings.ts";
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
@@ -82,46 +83,29 @@ export async function landBranch(
     firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step, held);
   try {
     const branch = outcome.branch;
-    // Code roots last. `sort` is stable, so two repos of the same kind
-    // keep the order the run recorded them in.
-    //
-    // `archive` reverses this: its specs root is the one
-    // carrying the `Result: completed` / `Workflow steps completed`
-    // stamp, and that stamp must never reach `main` before the code
-    // root's own landing is confirmed — so for `archive` specifically,
-    // code is attempted FIRST, and the loop below stops on a failed
-    // code root before the specs root is ever attempted.
-    //
-    // `schedule` needs the same guarantee, for the same reason: a schedule
-    // run that pushed to both roots must never
-    // have its specs-root commit land while the code root's own gated
-    // merge can still fail — nothing may reach main out of a landing
-    // that as a whole did not succeed.
+    // What this step's landing does is its policy's (`policy/index.ts`):
+    // the order of the roots, what the code root gets, the origin check.
+    // `sort` is stable, so two repos of the same kind keep the order the
+    // run recorded them in.
+    const policy = landingPolicy(what.step);
     const codeRoot = ctx.machineryProjectDir(job.project);
     const codeRoots = { has: (root: string) => sameRoot(root, codeRoot) };
-    const codeFirst = what.step === "archive" || what.step === "schedule";
+    const codeFirst = policy.codeFirst;
     const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort((a, b) => {
       const av = Number(codeRoots.has(a.root));
       const bv = Number(codeRoots.has(b.root));
       return codeFirst ? bv - av : av - bv;
     });
-    /** Roots this landing deliberately does not merge: a
-     *  project whose manifest says `codeLanding: pr` has its CODE
-     *  reviewed before it reaches the default branch, and the run has
-     *  already opened the pull request.
-     *
-     *  `archive` alone, by the literal step name, and the code root
-     *  alone. `create` and `analyze` never reach a code root in a
-     *  gated position, and the specs root is bookkeeping — an archive
-     *  commit moving a folder is not a change anyone reviews, and the
-     *  description scopes this to the code. */
+    /** Roots this landing deliberately does not merge: a project whose
+     *  manifest says `codeLanding: pr` has its CODE reviewed before it
+     *  reaches the default branch, and the run has already opened the
+     *  pull request. The code root alone: the specs root is bookkeeping. */
     const leaveOpen = (root: string): boolean =>
-      what.step === "archive" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
-    /** The code root's branch on a `close` landing: deleted,
-     *  never merged — the specs root merges normally, carrying the move
-     *  and the `**Closed:**` stamp. Specs inside the code root land
-     *  their folder alone first (`handed.specOnly`). */
-    const discard = (root: string): boolean => what.step === "close" && codeRoots.has(root);
+      policy.codeRoot === "merge-unless-pr" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
+    /** A code root whose branch is deleted, never merged; the specs root
+     *  merges normally. Specs inside the code root land their folder
+     *  alone first (`handed.specOnly`). */
+    const discard = (root: string): boolean => policy.codeRoot === "discard" && codeRoots.has(root);
     if (!branch || repos.length === 0) {
       if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
       return;
@@ -165,10 +149,8 @@ export async function landBranch(
         failures.push({ key: "landing.cannotWorkOutDefaultBranch", values: { root: repo.root } });
         continue;
       }
-      // Up to three tries with a pause, for any refusal but red tests:
-      // a briefly stale main, or a checkout lock a run held past the
-      // wait, settles by the next try. A real conflict fails all three
-      // the same way and is reported as before.
+      // Repeated after a refusal as often as `landingRepeats` says
+      // (`LANDING_RETRIES`, the one place every landing bound is written).
       //
       // The lock goes around the git-mutating call and nothing else:
       // `defaultBranch` above only asks a question, and holding the
@@ -187,13 +169,13 @@ export async function landBranch(
       let result = await merge();
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
-      const retryLimit = handed.specOnly ? 2 : createNumberRetryLimit(result);
+      const repeats = landingRepeats(first, !!handed.specOnly);
       for (
         let retry = 0;
-        !result.ok && result.reason !== "tests-red" && retry < retryLimit;
+        !result.ok && result.reason !== "tests-red" && retry < repeats;
         retry++
       ) {
-        await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
+        await new Promise((r) => setTimeout(r, LANDING_RETRIES.repeatWaitMs * (retry + 1)));
         result = await merge();
       }
       if (!result.ok) result = pickRefusal(first, result);
@@ -285,10 +267,8 @@ export async function landBranch(
         if (result.reason === "conflict") reason = "conflict";
         if (result.reason === "tests-red") reason = landingTerminalReason = "tests-red";
         if (result.reason === "timeout") landingTerminalReason = "timeout";
-        // For archive and schedule alike: a code root that
-        // fails to land stops the loop here — the specs root's own
-        // merge has not run yet (code-first order, above) and must
-        // never run now that the code side failed.
+        // Code first: a code root that fails to land stops the loop
+        // here, before the specs root's own merge has run.
         if (codeFirst && codeRoots.has(repo.root)) break;
       }
     }
@@ -304,10 +284,9 @@ export async function landBranch(
     // branch on origin and a cached answer would report every
     // successful landing as unlanded.
     //
-    // ARCHIVE's alone, by name and never by a denylist of the others:
-    // an `analyze` landing runs while implement's code branch is
-    // legitimately open, and the same check there would call a
-    // healthy landing failed.
+    // Only where the policy asks for it: an `analyze` landing runs while
+    // implement's code branch is legitimately open, and the same check
+    // there would call a healthy landing failed.
     // The gate stopping the landing is its own case: nothing was merged
     // and nothing was pushed, so of course the branch is still on
     // origin. The gate's own verdict says so, and names the branch the
@@ -317,14 +296,12 @@ export async function landBranch(
     // exists for the landing that reported ok while a branch stayed on
     // origin, and beside a conflict its "run archive again" — once per
     // root — contradicted the sentence the reader had just been given.
-    if (what.step === "archive" && reason !== "tests-red" && failures.length === 0) {
-      const firstHolding = await ctx.rootsStillHolding(job.project, branch, true);
-      for (const root of firstHolding) {
-        if (leaveOpen(root) || leftBehindRoots.has(root)) continue;
-        const retry = retryUnlanded.get(root);
-        if (!retry) continue;
-        const retried = await retry();
-        if (retried.ok) ctx.branchStatus.invalidate(root, branch);
+    if (policy.checksOrigin && reason !== "tests-red" && failures.length === 0) {
+      for (let n = 0; n < LANDING_RETRIES.originRechecks; n++) {
+        for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
+          const retry = leaveOpen(root) || leftBehindRoots.has(root) ? undefined : retryUnlanded.get(root);
+          if (retry && (await retry()).ok) ctx.branchStatus.invalidate(root, branch);
+        }
       }
       const holding: string[] = [];
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
