@@ -25,7 +25,7 @@ test("no store write sets or clears the landing flag outside its helper (AC-6)",
 });
 
 test("the retry allowance is worked out in one function (AC-7)", () => {
-  const allowance = /retry\?\.action\s*===[^?\n]*\?\s*[\w.?]*\.attempts\s*:\s*1\b/g;
+  const allowance = /retry(?:\?\.)?\.action\s*===[^?\n]*\?\s*[\w.?]*\.attempts\s*:\s*1\b/g;
   const found = sources.flatMap(({ file, text }) => [...text.matchAll(allowance)].map(() => file));
   expect(found).toEqual(["src/queue/runner/retry.ts"]);
 });

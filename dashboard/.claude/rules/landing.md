@@ -38,8 +38,8 @@ reads what a landing left.
   reads (`archiveHeldBackApplies`). Asking `done` alone would drop the
   acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
-  cleared.** `Runner.complete()` starts the landing work, sets `landing`
-  on the job's row, and clears it only when the whole landing promise
+  cleared.** `holdLanding` owns the flag for both an uninterrupted landing
+  and one resumed after a restart, and clears it only when the whole landing promise
   settles, `onLanded` included. A callback that reads `queue.list()` sees
   its triggering job still marked `landing: true`, and treats that one row
   as settled by hand; every other row's flag is trustworthy.
@@ -89,8 +89,9 @@ reads what a landing left.
   the specs root keeps auto-merging; `errorReason` has no member for it —
   `prOpen` splits the wording instead.
 - **`StepResult.at` is absent until a landing step's merge settles**, not
-  from the moment its own process exits — `Runner.complete()` defers the
-  stamp so a phase's own duration keeps counting through the merge. Any
+  from the moment its own process exits — `holdLanding` stamps both an
+  uninterrupted landing and one resumed after a restart, so a phase's own
+  duration keeps counting through the merge. Any
   new reader of `Job.results[]` has to treat `at` as optional; a
   standalone type that copies `StepResult`'s shape by hand (rather than
   reusing it) needs the same optionality, or `tsc --noEmit` only catches

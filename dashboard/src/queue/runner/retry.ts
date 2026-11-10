@@ -12,7 +12,8 @@ export const MAX_ATTEMPTS = 2;
 /** Which attempt of `step` the job is on: the retry's count when the retry
  *  is for this step, else the first. */
 export function attemptOf(job: Pick<Job, "retry">, step: string | undefined): number {
-  return job.retry?.action === step ? job.retry.attempts : 1;
+  const retry = job.retry;
+  return retry && retry.action === step ? retry.attempts : 1;
 }
 
 /** How many more attempts are allowed after attempt `attempt`. */

@@ -381,7 +381,7 @@ describe("quick steps before slow ones", () => {
     const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 1 });
     const blocked = new Map([[archive.id, "80-some-dependency"]]);
-    runner.tick(blocked);
+    runner.tick({ dependencies: blocked });
     expect(spawns.length).toBe(1);
     expect(spawns[0]?.step).toBe("analyze");
     expect(store.get(analyze.id)?.state).toBe("running");
@@ -708,7 +708,7 @@ describe("a job held for a usage limit", () => {
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
     expect(spawns).toHaveLength(1);
-    runner.tick(undefined, undefined, undefined, limitHold(held.id));
+    runner.tick({ usageLimit: limitHold(held.id) });
     expect(store.get(held.id)?.state).toBe("queued");
     expect(store.get(held.id)?.errorReason).toBe("held-back");
     expect((store.get(held.id)?.error as { key: string }).key).toBe("runner.usageLimitHeld");
@@ -720,14 +720,14 @@ describe("a job held for a usage limit", () => {
     const waiting = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
-    runner.tick(undefined, new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]));
+    runner.tick({ notAnalyzed: new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]) });
     expect(store.get(waiting.id)?.error).toBeUndefined();
   });
 
   test("starts on the first tick that no longer holds it, and the sentence is taken off (AC-3)", () => {
     const held = enqueue({ steps: ["implement"] });
     const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick(undefined, undefined, undefined, limitHold(held.id));
+    runner.tick({ usageLimit: limitHold(held.id) });
     expect(spawns).toHaveLength(0);
     runner.tick();
     expect(store.get(held.id)?.state).toBe("running");

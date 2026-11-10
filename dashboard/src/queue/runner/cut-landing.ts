@@ -8,24 +8,31 @@
 
 import type { WorkflowStep } from "../queue.ts";
 import type { RunnerOptions, StepOutcome } from "./types.ts";
+import { holdLanding, stampStep } from "./landing.ts";
 
-export function resumeCutLandings(o: Pick<RunnerOptions, "store" | "readResult" | "onStepDone">): void {
+export function resumeCutLandings(
+  o: Pick<RunnerOptions, "store" | "readResult" | "onStepDone"> & { now?: () => string },
+): void {
+  const now = o.now ?? (() => new Date().toISOString());
   for (const job of o.store.list()) {
     if (!job.landingCut) continue;
-    o.store.update(job.id, { landingCut: undefined });
     const step = job.results.at(-1)?.step as WorkflowStep | undefined;
+    const landed = step ? { index: job.results.length - 1, step, now } : undefined;
     const raw = job.resultFile ? o.readResult(job.resultFile) : null;
     if (!step || !raw) {
+      o.store.update(job.id, { landingCut: undefined });
+      if (landed) stampStep(o.store, job.id, landed);
       console.error(`queue: ${job.project}/${job.specFolder}'s landing was cut short and has no result to land from`);
       continue;
     }
     const work = o.onStepDone?.(job, step, raw as Partial<StepOutcome>);
-    if (!work) continue;
+    if (!work) {
+      o.store.update(job.id, { landingCut: undefined });
+      stampStep(o.store, job.id, landed!);
+      continue;
+    }
     // Held the way `Runner.complete` holds it: the job's next step waits.
-    o.store.update(job.id, { landing: true });
-    const clear = (): void => {
-      o.store.update(job.id, { landing: undefined });
-    };
-    void Promise.resolve(work).then(clear, clear);
+    const hold = holdLanding(o.store, job.id, work, landed);
+    o.store.update(job.id, { landingCut: undefined, ...hold.patch });
   }
 }

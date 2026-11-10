@@ -28,7 +28,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | State         | Meaning                                                                                                                                                                                                     |
 |---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `queued`      | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                     |
-| `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId` and `streamFile` are set.                                                                                                             |
+| `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                            |
 | `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
 | `stopped`     | A step reached its own time limit, a provider limit ended it, an analyze stopped on its acceptance criteria, or a landing's test run went red. `stopReason` says which.                                     |
 | `failed`      | A step reported failure, or a landing after a successful step did not finish.                                                                                                                               |
@@ -66,13 +66,18 @@ and the Deploy button on the board's own project page.
 
 **The runner's tick**, every two seconds, takes the queued jobs in the order of `queuePriorityOrder()`: `create`,
 `archive` and `close` first, since they do no model work, then `analyze` and `implement`, oldest first within each
-group. For each queued job it:
+group. For each queued job it uses this ordered list; the first hold that applies wins:
 
+- Waits until an automatic retry is due.
+- Leaves a job queued with a reason while its provider is switched off.
+- Leaves a job queued with a reason while its provider's usage limit is still in force.
+- Waits when every slot is in use. A board step and Create need no slot.
 - Skips a job that has `landing` set: its next step waits for its own merge.
 - Skips a job whose spec already has a running job.
 - Leaves an `archive` queued, with the reason on it, while another `archive` in the same project is running or
   landing.
 - Leaves a `schedule` job queued, with a reason, while anything else in its project is running or landing.
+- Leaves a deploy queued, with a reason, while a landing is in flight.
 - Leaves a job queued with "held back: not analyzed yet — run /aide-analyze first" until its spec's `analyze` has
   completed.
 - Leaves an `implement` queued with "held back: choose the approach to build, then press Save" when its spec asked to
@@ -89,6 +94,9 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
 
 **When a step ends:**
 
+- Every ending, including Cancel, clears `pid`, `pgid`, `sessionId` and `stepStartedAt`. It keeps `resultFile` for
+  a landing that must resume after a restart and `streamFile` for the finished step's log; the next start replaces
+  both.
 - `timeout` or `provider-limit` gives `stopped`, with that `stopReason`. A `provider-limit` step also carries
   `providerLimit`: which window ran out, when it resets, the other windows' figures, and the plan or refused credit
   where the tool names them ([how the runner tells](the-runner.md#when-a-provider-limit-ends-a-step)). The row and
@@ -143,8 +151,9 @@ the last of them.
 
 - **`landing`** is set on a job while its finished step's branch is merged. It holds back that job's own next step
   and nothing else on the board. It is not restored on a restart: the job is read back with `landingCut`, and the
-  boot runs that landing again from the step's result file. The step's badge reads "Running", and its duration keeps
-  counting, until the landing settles. A chained job's next step reads "Queued", never "Running". A session writing an
+  boot runs that landing again from the step's result file. Both an uninterrupted and a resumed landing stamp the
+  step when the landing settles. The step's badge reads "Running", and its duration keeps counting until then. A
+  chained job's next step reads "Queued", never "Running". A session writing an
   `onLanded` callback reads the caveat in [the landing rule](../.claude/rules/landing.md).
 
   A row also reads the spec's files and git history; how they are cached is in

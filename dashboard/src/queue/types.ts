@@ -276,8 +276,8 @@ export interface Job {
     leaving?: string;
     restartAttempts?: number;
   };
-  /** Set while a finished step's work is being landed on a default
-   *  branch — a merge that runs AFTER the step reported success, in this
+  /** Set by `holdLanding` while a finished step's work is being landed on
+   *  a default branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The
    *  scheduler starts nothing at all while it is true; see
    *  `Runner.tick()`. Never restored from the mirror: a flag belongs to
@@ -285,8 +285,8 @@ export interface Job {
    *  whole queue shut with nothing left to clear it. */
   landing?: boolean;
   /** Set when the job is read back with `landing` on: the last process
-   *  stopped with this job's landing in flight. `Runner.resumeCutLandings`
-   *  runs it again at boot and clears this. */
+   *  stopped with this job's landing in flight. Boot runs it again;
+   *  `holdLanding` clears it and stamps the step when the work settles. */
   landingCut?: boolean;
   createdAt: string;
   /** The serving host's local date for a cleanup created by the nightly timer. */
@@ -298,21 +298,21 @@ export interface Job {
   dismissedAt?: string;
   /** The instant the step now in flight was actually spawned,
    *  set fresh on every `startOne()` call — unlike `startedAt` above, which
-   *  is set once for the whole job and kept. Transient like `sessionId`/
-   *  `streamFile`/`pid`/`pgid` beside it: cleared the moment the step ends,
-   *  since its value has by then moved onto that step's own
-   *  `StepResult.startedAt`. */
+   *  is set once for the whole job and kept. Cleared with `sessionId`, `pid`
+   *  and `pgid` when the step ends, since its value has by then moved onto
+   *  that step's own `StepResult.startedAt`. */
   stepStartedAt?: string;
   pid?: number;
   pgid?: number;
+  /** Kept when a step ends so a landing resumed at boot can read it; the next start replaces it. */
   resultFile?: string;
   /** The session of the step running RIGHT NOW, generated before the
    *  spawn rather than read out of the result afterwards. Cleared the
    *  moment the step ends: a finished job that still advertises a live
    *  session is a lie the page would render as "running somewhere". */
   sessionId?: string;
-  /** Where that step's transcript is being written, alongside
-   *  `resultFile` and from the same source of truth. */
+  /** Where that step's transcript is written beside `resultFile`. Kept when the step
+   *  ends so a vanished step still has a log; the next start replaces it. */
   streamFile?: string;
   results: StepResult[];
   spentUsd: number;

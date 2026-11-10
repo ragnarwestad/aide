@@ -27,7 +27,6 @@
 // theme); the Runner class itself — the only stateful piece — stays
 // here, re-exporting them for every existing importer.
 
-import { specReference } from "../../project/spec-folder.ts";
 import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage } from "./cross-check-message.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
@@ -35,13 +34,12 @@ import { renderSentence, type BoardMessage, type Sentence } from "../../i18n/mes
 import { stepButton } from "../../format/step-label.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { isRunStop, takesSlot } from "../steps.ts";
+import { isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepDetail, stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
-import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
-import { projectHold } from "./project-holds.ts";
-import { clearStaleHolds, holdJob } from "./holds.ts";
+import { clearStaleHolds, holdFor, holdJob, type HoldAnswers } from "./holds.ts";
+import { holdLanding } from "./landing.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, endStep, stepResultEntry } from "./step-result.ts";
 import { aiWorkRetryDecision, attemptOf, attemptsLeft, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
@@ -106,31 +104,10 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
-  /** Fill every free slot, oldest queued job first.
-   *
-   *  `blocked` maps a job id to the folder of the dependency it is
-   *  waiting for. The Runner takes the answer rather than
-   *  working it out: whether a dependency is archived is a
-   *  live git question, and `serve.ts` — which owns the git runner and
-   *  knows which steps a dependency holds back — computes it fresh
-   *  immediately before every call. Asking here would make `tick()`
-   *  async, and with it every call site and every test that has
-   *  nothing to do with dependencies.
-   *
-   *  `held` is `blocked`'s sibling: job id → the fixed sentence it is
-   *  held with — not analyzed yet, or an implement chained
-   *  after the analyze whose approaches wait for a choice
-   *  (`fixedSentenceHolds`). `acceptanceOpen` names the queued archives
-   *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`).
-   *  `usageLimitHeld` is the jobs a used-up usage limit holds (`usageLimitHolds`):
-   *  checked before the slot check, so a held job says why it waits even while
-   *  every slot is busy. */
-  tick(
-    blocked?: DependencyHolds,
-    held?: Map<string, BoardMessage>,
-    acceptanceOpen?: Set<string>,
-    usageLimitHeld?: Map<string, BoardMessage>,
-  ): void {
+  /** Fill every free slot, oldest queued job first. Answers that need git,
+   * provider state or spec files are computed by serve immediately before
+   * this call; the runner asks every hold through one ordered list. */
+  tick(answers: HoldAnswers = {}): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -160,84 +137,21 @@ export class Runner {
     // rather than held behind another archive with two reasons on one
     // row. Never started later by a tick: a person presses Archive.
     for (const job of this.o.store.list()) {
-      if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id)) endUntickedArchive(this.o.store, job, this.o.now());
+      if (job.state === "queued" && !job.landing && answers.acceptanceOpen?.has(job.id)) {
+        endUntickedArchive(this.o.store, job, this.o.now());
+      }
     }
     // Quick steps first, oldest first within each group; list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (job.state !== "queued") continue;
-      if (job.retry?.dueAt && Date.parse(job.retry.dueAt) > Date.parse(this.o.now()))
-        continue;
-      if (usageLimitHeld?.has(job.id)) {
-        hold(job, usageLimitHeld.get(job.id)!);
-        continue;
-      }
-      // Every slot is busy. The row says so by its queue position, not
-      // by a sentence — a sentence left from an earlier pass goes with
-      // the other stale holds after the loop. A board step (a deploy)
-      // and a create take no slot and wait for none (`takesSlot`).
-      if (takesSlot(job) && this.runningJobs().filter(takesSlot).length >= this.maxConcurrent) continue;
-      // A job whose OWN landing is in flight is still not restarted:
-      // its own next step waits for its merge, which is what `landing`
-      // means. That is one row's own ordering, not a pause on the
-      // board.
-      if (job.landing) continue;
-      // Two jobs for the SAME spec are never both started: analyze and
-      // implement for one spec are ordered by nature, and git would
-      // refuse the second worktree on that branch anyway — which is a
-      // refusal mid-run, not a scheduling decision.
-      if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
-        continue;
-      }
-      // Two `archive` steps never run at once in the SAME project: both
-      // branch from the code root's main and both land into it, and the
-      // second one's landing finds a main the first moved under it. Held
-      // back with the reason on the row, the same shape as the two
-      // hold-backs below; the next tick tries again.
-      //
-      // And not while another ARCHIVE's landing is still in flight
-      // either (2026-09-11): a job whose archive step has ended reads
-      // "done" with `landing` set while its branch is merged into the
-      // code root's main, and an archive started in that window brings
-      // its branch up to a main the merge has not reached yet — its own
-      // landing then finds the conflict the step should have resolved.
-      // The round's fixture 02 failed one run in three on exactly this.
-      // An analyze or implement landing moves the specs repository
-      // alone and holds nothing, as before.
-      if (
-        job.steps[job.stepIndex] === "archive" &&
-        this.o.store
-          .list()
-          .some(
-            (r) =>
-              r.project === job.project &&
-              r.id !== job.id &&
-              r.steps[r.stepIndex] === "archive" &&
-              (r.state === "running" || r.landing === true),
-          )
-      ) {
-        hold(job, { key: "runner.archiveRunning" });
-        continue;
-      }
-      // The schedule hold (runner/project-holds.ts): other work of
-      // the project is in flight.
-      const projectReason = projectHold(this.o.store.list(), job);
-      if (projectReason) {
-        hold(job, projectReason);
-        continue;
-      }
-      // Cheaper and more fundamental than the dependency question below —
-      // checked first, and it needs no network call.
-      if (held?.has(job.id)) {
-        hold(job, held.get(job.id)!);
-        continue;
-      }
-      // Held back, not failed: the reason is written, the state is left alone, no slot is
-      // taken, and the next tick tries again — as does a job the answer never looked at.
-      const dependency = dependencyHold(blocked, job.id);
-      if (dependency === NOT_CHECKED) continue;
-      if (dependency !== undefined) {
-        // Include the project so a dependency number is unambiguous across projects.
-        hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specReference(job.project, dependency) } });
+      const held = holdFor(job, {
+        jobs: () => this.o.store.list(),
+        maxConcurrent: this.maxConcurrent,
+        now: this.o.now(),
+        answers,
+      });
+      if (held) {
+        if (held.reason) hold(job, held.reason);
         continue;
       }
       this.startOne(job);
@@ -375,7 +289,6 @@ export class Runner {
     // merely `done` and start something else against the checkout the
     // landing is writing to.
     const landingWork = this.o.onStepDone?.(job, step, outcome);
-    const landing = landingWork ? true : undefined;
     // The index this step's own entry will occupy — captured so the
     // settle callback below can find it again without searching by
     // name, which a re-run of the same step later in this job's life
@@ -385,29 +298,10 @@ export class Runner {
     const results = [...job.results, stepResultEntry(job, step, outcome, measures, this.o.store.defaults)];
     // Against the choice the step ran on: what the pickers say an alias gives today.
     if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
-    if (landingWork) {
-      // Runs once, whichever way the landing settles — the same
-      // "always clear the flag" shape already used below, extended to
-      // also close out this step's own duration at the instant its
-      // work is actually done. Nothing else can extend `job.results`
-      // for THIS job before this fires: `Runner.tick()` skips a job
-      // that has `landing` set (`docs/job-states.md`), so it cannot
-      // start its next step and `resultIndex` still names the entry.
-      const settleDuration = (): void => {
-        const current = this.o.store.get(job.id);
-        const entry = current?.results[resultIndex];
-        if (!entry || entry.step !== step || entry.at !== undefined) return;
-        const patched = [...current!.results];
-        patched[resultIndex] = { ...entry, at: this.o.now() };
-        this.o.store.update(job.id, { results: patched });
-      };
-      const settled = () => {
-        settleDuration();
-        this.o.store.update(job.id, { landing: undefined });
-      };
-      void Promise.resolve(landingWork).then(settled, settled);
-    }
-    const base = afterStep(job, outcome, results, landing, measures);
+    const landing = landingWork
+      ? holdLanding(this.o.store, job.id, landingWork, { index: resultIndex, step, now: this.o.now })
+      : undefined;
+    const base = { ...afterStep(job, outcome, results, measures), ...landing?.patch };
 
     const retryAttempts = attemptOf(job, step);
     const retry = stepRetryRecord(job, step, outcome, Date.parse(this.o.now()));

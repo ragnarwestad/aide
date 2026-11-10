@@ -82,12 +82,10 @@ export function afterStep(
   job: Job,
   outcome: Partial<StepOutcome>,
   results: StepResult[],
-  landing: true | undefined,
   m: Pick<StepMeasures, "cost" | "tokens">,
 ): Partial<Job> {
   return {
     results,
-    landing,
     spentUsd: job.spentUsd + m.cost,
     // Undefined until something measures one: a job of steps that all
     // predate token measurement shows a dash, not a zero.

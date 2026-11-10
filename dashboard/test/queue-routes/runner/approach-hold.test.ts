@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/process/index.ts";
-import { fixedSentenceHolds, type ScheduleContext } from "../../../src/serve/schedules";
+import { approachChoiceHolds, notAnalyzedHolds, type ScheduleContext } from "../../../src/serve/schedules";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
 
@@ -97,43 +97,43 @@ const sentence = (m: unknown): string => renderSentence("en", m as Parameters<ty
 describe("which queued implements wait for a choice", () => {
   test("an implement chained after the analyze waits, with the approach sentence", () => {
     const { root } = projectsRoot();
-    const holds = fixedSentenceHolds(ctxFor(root, [chained]));
+    const holds = approachChoiceHolds(ctxFor(root, [chained]));
     expect(holds.get("chained")).toEqual({ key: "runner.approachChoice" });
   });
 
   test("an implement started on its own is never held for a choice", () => {
     const { root } = projectsRoot();
-    expect(fixedSentenceHolds(ctxFor(root, [alone])).has("alone")).toBe(false);
+    expect(approachChoiceHolds(ctxFor(root, [alone])).has("alone")).toBe(false);
   });
 
   test("fewer than two real alternatives hold nothing", () => {
     const { root } = projectsRoot({
       solution: solutionText("**Approach A: One (recommended).** a\n\n**Approach B: Two (considered and rejected).** b\n"),
     });
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(approachChoiceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
 
   test("a chosen approach written to 3-solution.md releases the hold", () => {
     const { root, specDir } = projectsRoot();
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(true);
+    expect(approachChoiceHolds(ctxFor(root, [chained])).has("chained")).toBe(true);
     writeFileSync(join(specDir, "3-solution.md"), solutionText(APPROACHES, "A"));
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(approachChoiceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
 
   test("the branch copy decides when it has been read: a choice saved there releases the hold", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await branchChecker(specDir, solutionText(APPROACHES, "A"));
-    expect(fixedSentenceHolds(ctxFor(root, [chained], checker)).has("chained")).toBe(false);
+    expect(approachChoiceHolds(ctxFor(root, [chained], checker)).has("chained")).toBe(false);
   });
 
   test("a spec that did not ask to choose holds nothing, whatever its plan says", () => {
     const { root } = projectsRoot({ optedIn: false });
-    expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
+    expect(approachChoiceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
 
   test("an implement whose spec is not analyzed is still held for that", () => {
     const { root } = projectsRoot({ analyzed: false });
-    expect(fixedSentenceHolds(ctxFor(root, [alone])).get("alone")).toEqual({ key: "runner.notAnalyzed" });
+    expect(notAnalyzedHolds(ctxFor(root, [alone])).get("alone")).toEqual({ key: "runner.notAnalyzed" });
   });
 });
 
@@ -144,7 +144,7 @@ describe("the runner holds what the map names", () => {
   test("a held chained implement stays queued with the approach sentence and is not started", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
-    makeRunner().tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
+    makeRunner().tick({ approachChoice: new Map([[job.id, { key: "runner.approachChoice" }]]) });
     expect(spawns).toHaveLength(0);
     expect(store.get(job.id)?.state).toBe("queued");
     expect(sentence(store.get(job.id)?.error)).toContain("hoose the approach");
@@ -154,8 +154,8 @@ describe("the runner holds what the map names", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
     const runner = makeRunner();
-    runner.tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
-    runner.tick(undefined, new Map());
+    runner.tick({ approachChoice: new Map([[job.id, { key: "runner.approachChoice" }]]) });
+    runner.tick({ approachChoice: new Map() });
     expect(spawns).toHaveLength(1);
     expect(store.get(job.id)?.error).toBeUndefined();
   });
