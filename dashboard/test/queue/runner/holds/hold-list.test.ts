@@ -52,12 +52,9 @@ describe("the hold list", () => {
 });
 
 
-test("a schedule names the step and spec it waits for", () => {
+test("a schedule is not held by another spec's running step", () => {
   const scheduled = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-  const blocking = enqueue({ steps: ["implement"] });
-  store.update(blocking.id, { state: "running" });
-  expect(holdFor(scheduled, { ...context({}), maxConcurrent: 2 })).toEqual({
-    name: "schedule-waits-on-project",
-    reason: { key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:81" } },
-  });
+  const running = enqueue({ steps: ["implement"] });
+  store.update(running.id, { state: "running" });
+  expect(holdFor(scheduled, { ...context({}), maxConcurrent: 2 })).toBeUndefined();
 });

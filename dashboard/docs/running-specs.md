@@ -420,7 +420,9 @@ Each entry is:
 A background poll enqueues a `schedule` step through the same queue and runner whenever an entry is due and nothing is
 already queued or running for it. **A scheduled job may commit to the project repository and the specs root.** Its report
 is written separately (below). Once the run ends, the board lands what it pushed: the project repository's commit only
-once that repository's own test command is green on the merge, the specs root directly.
+once that repository's own test command is green on the merge, the specs root directly. A scheduled job can run
+alongside a spec's steps when the queue has a free slot. Each run uses its own worktrees; repository locks serialize
+shared checkout changes and landings. Usage limits and an existing run of the same schedule still hold it back.
 
 `/schedule` lists every allowed project's entries (`?q=`, `?sort=` and `?dir=` filter and sort it). It changes nothing:
 a click on a row opens the project's Schedule tab, which lists its entries by Name, Next run, the Enabled switch, Run now

@@ -305,51 +305,57 @@ describe("several jobs at once", () => {
 
 });
 
-// A schedule job never starts while anything else for its
-// project is running or landing — the same shape as the `archiveRunning`
-// hold above, but wider (any step, not only archive) and one-directional
-// (only the schedule job itself ever waits).
-describe("a schedule job holds while other work runs in its project", () => {
-  test("waits while a spec's own step is running", () => {
-    const a = enqueue({ steps: ["implement"] });
-    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(store.get(a.id)?.state).toBe("running");
-    const held = store.get(b.id)!;
-    expect(held.state).toBe("queued");
-    expect(held.error).toEqual({ key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:81" } });
+describe("schedule jobs share the queue with spec work", () => {
+  test("a queued or running schedule refuses another run of the same entry", () => {
+    const request = { specFolder: "schedule-nightly", steps: ["schedule"] };
+    const first = enqueue(request);
+    expect(() => enqueue(request)).toThrow("already queued");
+    makeRunner({ maxConcurrent: 2 }).tick();
+    expect(store.get(first.id)?.state).toBe("running");
+    expect(() => enqueue(request)).toThrow("already running");
+    expect(spawns).toHaveLength(1);
   });
 
-  test("waits while another job's landing is in flight", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    store.update(a.id, { state: "done", landing: true });
-    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(0);
-    expect(store.get(b.id)?.state).toBe("queued");
+  test("starts alongside implement and clears a previous project hold", () => {
+    const spec = enqueue({ steps: ["implement"] });
+    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    store.update(schedule.id, { errorReason: "held-back", error: { key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:81" } } });
+    makeRunner({ maxConcurrent: 2 }).tick();
+    expect(store.get(spec.id)?.state).toBe("running");
+    expect(store.get(schedule.id)?.state).toBe("running");
+    expect(store.get(schedule.id)?.error).toBeUndefined();
+    expect(store.get(schedule.id)?.errorReason).toBeUndefined();
   });
 
-  test("starts on a later tick once the project is free, the same night", () => {
-    const a = enqueue({ steps: ["implement"] });
-    const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+  test("starts while another job's landing holds its own repository locks", () => {
+    const spec = enqueue({ steps: ["analyze"] });
+    store.update(spec.id, { state: "done", landing: true });
+    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    makeRunner({ maxConcurrent: 2 }).tick();
+    expect(store.get(schedule.id)?.state).toBe("running");
+    expect(spawns).toHaveLength(1);
+  });
+
+  test("still waits for a free slot and starts when it becomes available", () => {
+    const spec = enqueue({ steps: ["implement"] });
+    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+    const runner = makeRunner({ maxConcurrent: 1, readResult: () => okResult(1) });
     runner.tick();
+    expect(store.get(spec.id)?.state).toBe("running");
+    expect(store.get(schedule.id)?.state).toBe("queued");
     runner.poll();
-    expect(store.get(a.id)?.state).toBe("done");
     runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(schedule.id)?.state).toBe("running");
   });
 
-  test("one-directional: a spec's own step is never held back for a queued schedule job", () => {
-    const a = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
+  test("a spec starts alongside a running schedule", () => {
+    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
-    expect(store.get(a.id)?.state).toBe("running");
-    const b = enqueue({ steps: ["analyze"] });
+    const spec = enqueue({ steps: ["analyze"] });
     runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(schedule.id)?.state).toBe("running");
+    expect(store.get(spec.id)?.state).toBe("running");
   });
 });
 
