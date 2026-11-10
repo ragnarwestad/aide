@@ -405,7 +405,7 @@ describe("parked on a dependency", () => {
   test("a job named in the blocked map is not spawned and stays queued with a reason", async () => {
     const job = enqueue({ project: "other-project", steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
@@ -419,9 +419,9 @@ describe("parked on a dependency", () => {
   test("the same job starts once the map no longer names it", async () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(spawns.length).toBe(0);
-    runner.tick(new Map());
+    runner.tick({ dependencies: new Map() });
     expect(spawns.length).toBe(1);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("running");
@@ -439,7 +439,7 @@ describe("parked on a dependency", () => {
     const parked = enqueue({ steps: ["implement"] });
     const other = enqueue({ specFolder: "91-parallel-spec-runs" });
     const runner = makeRunner({ maxConcurrent: 1 });
-    runner.tick(new Map([[parked.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[parked.id, "80-dependency"]]) });
     expect(spawns.length).toBe(1);
     expect(spawns[0].jobId).toBe(other.id);
     expect(store.get(parked.id)?.state).toBe("queued");
@@ -453,11 +453,11 @@ describe("parked on a dependency", () => {
     const late = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     const answer = Object.assign(new Map<string, string>(), { checked: new Set([earlier.id]) });
-    runner.tick(answer);
+    runner.tick({ dependencies: answer });
     expect(spawns.map((s) => s.jobId)).toEqual([earlier.id]);
     expect(store.get(late.id)?.state).toBe("queued");
     expect(store.get(late.id)?.error).toBeUndefined();
-    runner.tick(Object.assign(new Map<string, string>(), { checked: new Set([late.id]) }));
+    runner.tick({ dependencies: Object.assign(new Map<string, string>(), { checked: new Set([late.id]) }) });
     expect(spawns.map((s) => s.jobId)).toEqual([earlier.id, late.id]);
   });
 
@@ -474,7 +474,7 @@ describe("parked on a dependency", () => {
     const runner = makeRunner();
     runner.tick();
     expect(store.get(job.id)?.state).toBe("running");
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(store.get(job.id)?.state).toBe("running");
     expect(store.get(job.id)?.error).toBeUndefined();
   });
@@ -492,7 +492,7 @@ describe("parked on a dependency", () => {
 
     const fresh = enqueue({ steps: ["implement"] });
     const spawnsBefore = spawns.length;
-    runner.tick(new Map([[fresh.id, "80-dependency"], [chained.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[fresh.id, "80-dependency"], [chained.id, "80-dependency"]]) });
     expect(spawns.length).toBe(spawnsBefore); // neither started
     expect(store.get(fresh.id)?.state).toBe("queued");
     expect(store.get(chained.id)?.state).toBe("queued");
@@ -510,7 +510,7 @@ describe("parked on its own missing analyze step", () => {
   test("a job held as not analyzed is not spawned and stays queued with a reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(undefined, new Map([[job.id, { key: "runner.notAnalyzed" }]]));
+    runner.tick({ notAnalyzed: new Map([[job.id, { key: "runner.notAnalyzed" }]]) });
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
@@ -520,9 +520,9 @@ describe("parked on its own missing analyze step", () => {
   test("the same job starts once the holds no longer name it", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(undefined, new Map([[job.id, { key: "runner.notAnalyzed" }]]));
+    runner.tick({ notAnalyzed: new Map([[job.id, { key: "runner.notAnalyzed" }]]) });
     expect(spawns.length).toBe(0);
-    runner.tick(undefined, new Map());
+    runner.tick({ notAnalyzed: new Map() });
     expect(spawns.length).toBe(1);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("running");
@@ -532,7 +532,10 @@ describe("parked on its own missing analyze step", () => {
   test("checked before the dependency map: a job in both is held back for the analyze reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]), new Map([[job.id, { key: "runner.notAnalyzed" }]]));
+    runner.tick({
+      dependencies: new Map([[job.id, "80-dependency"]]),
+      notAnalyzed: new Map([[job.id, { key: "runner.notAnalyzed" }]]),
+    });
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
   });
@@ -588,7 +591,7 @@ describe("a step appended to a running job's tail", () => {
     expect(store.editTailStep(job.id, "archive", true).ok).toBe(true);
     runner.poll();
     // Now archive is the current step, and its dependency has not landed.
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
@@ -615,7 +618,7 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
   test("a dependency still holds the same job", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner();
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on aide:80,");
   });
@@ -667,7 +670,7 @@ describe("the queue records when each STEP started", () => {
     // Held back on an unmerged dependency for an hour — a real hold-back
     // window, checked at tick() and never spawned.
     setNow(Date.parse("2026-08-16T11:00:00Z"));
-    runner.tick(new Map([[job.id, "80-dependency"]]));
+    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
     expect(spawns.length).toBe(1);
     expect(store.get(job.id)?.state).toBe("queued");
 

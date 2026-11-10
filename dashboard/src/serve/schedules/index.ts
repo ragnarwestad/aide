@@ -30,12 +30,17 @@ import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usag
 import { switchedOffHolds } from "../../queue/runner/switched-off.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
-import { archiveWithOpenAcceptance, blockedDependencies, fixedSentenceHolds } from "./blocked.ts";
+import {
+  approachChoiceHolds, archiveWithOpenAcceptance, blockedDependencies, deployLandingHolds, notAnalyzedHolds,
+} from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import { logRefusal } from "../serve-helpers";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
-export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze, fixedSentenceHolds } from "./blocked.ts";
+export {
+  approachChoiceHolds, archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze,
+  deployLandingHolds, notAnalyzedHolds,
+} from "./blocked.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
@@ -439,13 +444,13 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     const queued = ctx.queue.list().filter((j) => j.state === "queued");
     await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
   }
-  runner.tick(
-    await blockedDependencies(ctx),
-    fixedSentenceHolds(ctx),
-    archiveWithOpenAcceptance(ctx),
-    new Map([
-      ...usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
-      ...switchedOffHolds(ctx.queue.list(), providerOf, ctx.queue.defaults.providers),
-    ]),
-  );
+  runner.tick({
+    dependencies: await blockedDependencies(ctx),
+    notAnalyzed: notAnalyzedHolds(ctx),
+    approachChoice: approachChoiceHolds(ctx),
+    deployWaitsForLanding: deployLandingHolds(ctx),
+    acceptanceOpen: archiveWithOpenAcceptance(ctx),
+    usageLimit: usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
+    switchedOff: switchedOffHolds(ctx.queue.list(), providerOf, ctx.queue.defaults.providers),
+  });
 }

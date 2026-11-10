@@ -404,3 +404,52 @@ describe("which stop decides an AI's time", () => {
     expect(store.get(older.id)?.usageLimitWait).toEqual({ until: iso("14:00"), resetKnown: true });
   });
 });
+
+describe("a step that ran on the AI since the stop", () => {
+  /** A job that ran `step` on claude from `started`, ending as `reason`. */
+  function ran(step: string, started: string, reason: string): Job {
+    const made = job({ steps: [step], ...(step === "deploy" ? { specFolder: "deploy" } : {}) });
+    return store.update(made.id, {
+      state: "done", pressed: true, createdAt: iso(started),
+      results: [{ step, ok: true, terminalReason: reason, startedAt: iso(started), at: iso(started) } as never],
+    })!;
+  }
+
+  test("ends the wait of every stop made before it started, so nothing queued is held by it", () => {
+    const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
+    const queued = job({ steps: ["implement"] });
+    ran("implement", "11:00", "completed");
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(old.id)?.state).toBe("queued");
+    expect(usageLimitHolds(store.list(), toolOf).has(queued.id)).toBe(false);
+  });
+
+  test("a step that stopped on the limit again ends nothing", () => {
+    const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
+    ran("implement", "11:00", "provider-limit");
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(old.id)?.state).toBe("stopped");
+  });
+
+  test("a step that started before the stop ends nothing", () => {
+    const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
+    ran("implement", "09:00", "completed");
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(old.id)?.state).toBe("stopped");
+  });
+
+  test("a deploy, which uses no AI, ends nothing", () => {
+    const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
+    ran("deploy", "11:00", "completed");
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(old.id)?.state).toBe("stopped");
+  });
+
+  test("a step that ran on another AI ends nothing", () => {
+    const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
+    const other = ran("implement", "11:00", "completed");
+    tools.set(other.id, "codex");
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(old.id)?.state).toBe("stopped");
+  });
+});

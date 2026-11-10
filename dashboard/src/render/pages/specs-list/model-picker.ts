@@ -417,7 +417,7 @@ export function sidePickers(
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
   const disabled = locked || !g.named ? " disabled" : "";
-  const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
+  const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
     offeredProviders(providers, resting?.key).map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;
@@ -425,7 +425,7 @@ export function sidePickers(
     const tool = choice.tool ?? "claude";
     return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
   }).join("");
-  const model = `<select name="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
+  const model = `<select name="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
     `${options}</select>`;
   return `${ai}${model}`;
 }

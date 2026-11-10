@@ -13,7 +13,7 @@ afterEach(cleanupHarness);
 describe("an archive whose acceptance rows are open", () => {
   test("ends done with the acceptance refusal, without being started", () => {
     const job = enqueue({ steps: ["archive"] });
-    makeRunner({}).tick(undefined, undefined, new Set([job.id]));
+    makeRunner({}).tick({ acceptanceOpen: new Set([job.id]) });
     const after = store.get(job.id)!;
     expect(spawns).toHaveLength(0);
     expect(after.state).toBe("done");
@@ -29,7 +29,7 @@ describe("an archive whose acceptance rows are open", () => {
     runner.tick();
     expect(store.get(other.id)?.state).toBe("running");
     const job = enqueue({ steps: ["archive"] });
-    runner.tick(undefined, undefined, new Set([job.id]));
+    runner.tick({ acceptanceOpen: new Set([job.id]) });
     expect(store.get(job.id)?.state).toBe("done");
     expect(store.get(job.id)?.error).toBeUndefined();
   });
@@ -40,7 +40,7 @@ describe("an archive whose acceptance rows are open", () => {
       stepIndex: 1,
       results: [{ step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed" }],
     });
-    makeRunner({}).tick(undefined, undefined, new Set([job.id]));
+    makeRunner({}).tick({ acceptanceOpen: new Set([job.id]) });
     const after = store.get(job.id)!;
     expect(after.state).toBe("done");
     expect(after.results.map((r) => r.step)).toEqual(["implement", "archive"]);
@@ -48,7 +48,7 @@ describe("an archive whose acceptance rows are open", () => {
 
   test("an archive not in the set starts as before", () => {
     const job = enqueue({ steps: ["archive"] });
-    makeRunner({}).tick(undefined, undefined, new Set());
+    makeRunner({}).tick({ acceptanceOpen: new Set() });
     expect(store.get(job.id)?.state).toBe("running");
   });
 });

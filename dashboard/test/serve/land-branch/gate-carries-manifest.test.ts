@@ -64,7 +64,7 @@ async function gate(row: (typeof ROWS)[number]): Promise<{ ran: boolean; manifes
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
 
-  const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x");
+  const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { button: "Archive" });
   expect(verdict.ok).toBe(true);
   if (!existsSync(record)) return { ran: false, manifest: "", deps: "" };
   const lines = readFileSync(record, "utf-8").trim().split("\n");

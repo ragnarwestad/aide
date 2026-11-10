@@ -12,6 +12,7 @@ import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
 import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
 import { writing } from "../../../queue/queue.ts";
+import { endStep } from "../../../queue/runner/step-result.ts";
 import { followOnJob } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
@@ -73,7 +74,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   // find the choice recorded, release the hold, and start implement on
   // the plan that was not chosen.
   if (held) {
-    const cancelled = ctx.queue.transition(held.id, "cancel", {
+    const cancelled = endStep(ctx.queue, held.id, "cancel", {
       finishedAt: new Date().toISOString(),
       error: undefined,
       errorReason: undefined,

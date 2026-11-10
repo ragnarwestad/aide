@@ -1,6 +1,6 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, expect, spyOn, test, type Mock } from "bun:test";
 import { IMPLEMENTED } from "../../helpers/queue-server.ts";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -9,6 +9,11 @@ const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
+
+// The fixtures' pids are made up: no signal leaves this file.
+let killSpy: Mock<typeof process.kill>;
+beforeAll(() => { killSpy = spyOn(process, "kill").mockImplementation((() => true) as typeof process.kill); });
+afterAll(() => killSpy.mockRestore());
 
 afterEach(() => {
   harness.cleanup();
@@ -136,4 +141,25 @@ test("cancel refuses a running deploy and leaves it running; a queued deploy, he
   expect(after["dep-queued"]).toBe("cancelled");
   expect(after["dep-held"]).toBe("cancelled");
   expect(after["dep-running"]).toBe("running");
+});
+
+test("cancel ends a running step the way every ending does, and signals the group the job had (AC-1)", async () => {
+  const headers = { "content-type": "application/json", accept: "application/json" };
+  const site = mkdtempSync(join(tmpdir(), "aide-cancel-running-"));
+  ownDirs.push(site);
+  const mirror = join(site, "queue.json");
+  writeFileSync(mirror, JSON.stringify([{
+    id: "run-1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0, state: "running",
+    timeoutSec: { default: 1200 }, permissionMode: {}, model: {}, results: [], createdAt: "2026-11-10T08:00:00Z",
+    startedAt: "2026-11-10T08:00:01Z", stepStartedAt: "2026-11-10T08:00:01Z", pid: process.pid, pgid: 424242,
+    sessionId: "sess-run-1", resultFile: join(site, "run-1.json"), streamFile: join(site, "run-1.analyze.stream.jsonl"),
+  }]));
+  const { base } = start({ queueMirrorPath: mirror });
+  killSpy.mockClear();
+  expect((await fetch(`${base}/api/queue/run-1/cancel`, { method: "POST", headers })).status).toBe(200);
+  const job = (JSON.parse(readFileSync(mirror, "utf8")) as Record<string, unknown>[]).find((j) => j.id === "run-1")!;
+  expect(job.state).toBe("cancelled");
+  expect([job.pid, job.pgid, job.sessionId, job.stepStartedAt]).toEqual([undefined, undefined, undefined, undefined]);
+  expect([job.resultFile, job.streamFile]).toEqual([join(site, "run-1.json"), join(site, "run-1.analyze.stream.jsonl")]);
+  expect(killSpy).toHaveBeenCalledWith(-424242, "SIGTERM");
 });

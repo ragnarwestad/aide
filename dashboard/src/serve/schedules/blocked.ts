@@ -200,15 +200,19 @@ export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
   return new Set(ctx.queue.list().filter((job) => job.state === "queued" && jobKind(job) === "deploy").map((job) => job.id));
 }
 
-/** Every queued job held with a fixed sentence this tick, by id: not
- *  analyzed yet first, then waiting for a choice of approach, and a deploy
- *  waiting for a landing. */
-export function fixedSentenceHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
-  const holds = new Map<string, BoardMessage>();
-  for (const id of blockedForMissingAnalyze(ctx)) holds.set(id, { key: "runner.notAnalyzed" });
-  for (const id of waitingForApproachChoice(ctx)) if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
-  for (const id of deployWaitingForLanding(ctx)) holds.set(id, deployHold(ctx.queue.list(), id));
-  return holds;
+/** Queued jobs held because Analyze has not run. */
+export function notAnalyzedHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
+  return new Map([...blockedForMissingAnalyze(ctx)].map((id) => [id, { key: "runner.notAnalyzed" }]));
+}
+
+/** Queued implement jobs waiting for the chosen approach. */
+export function approachChoiceHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
+  return new Map([...waitingForApproachChoice(ctx)].map((id) => [id, { key: "runner.approachChoice" }]));
+}
+
+/** Queued deploy jobs waiting for a landing to settle. */
+export function deployLandingHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
+  return new Map([...deployWaitingForLanding(ctx)].map((id) => [id, deployHold(ctx.queue.list(), id)]));
 }
 
 /** Which queued `archive` jobs `aide-archive-spec` would only refuse,

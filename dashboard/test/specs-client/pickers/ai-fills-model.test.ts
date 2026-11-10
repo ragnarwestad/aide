@@ -6,24 +6,23 @@ import {
   flush,
 } from "../fixtures.ts";
 import { Window } from "happy-dom";
-import { syncSidePickers } from "../../../src/specs-client/ai-sync.ts";
+import { offerEachToItsTool } from "../../../src/specs-client/ai-sync.ts";
 
-test("Review and Verify keep every configured model when Implement's tool changes (AC-2)", () => {
+test.each(["review", "verify"])("%s offers its own tool's models independently of Implement", (part) => {
   const window = new Window();
   window.document.body.innerHTML = `<form id="f"></form>
     <select name="model.implement" form="f"><option value="sonnet" data-tool="claude">sonnet</option><option value="pickle" data-tool="opencode">pickle</option></select>
-    <select name="model.review" form="f" data-side-picker><option value=""></option><option value="sonnet" data-tool="claude">sonnet</option><option value="codex" data-tool="codex">codex</option><option value="pickle" data-tool="opencode">pickle</option></select>`;
+    <select name="model.${part}" form="f" data-side-picker><option value="sonnet" data-tool="claude">sonnet</option><option value="codex" data-tool="codex" selected>codex</option><option value="pickle" data-tool="opencode">pickle</option></select>`;
   const implement = window.document.querySelector('select[name="model.implement"]') as unknown as HTMLSelectElement;
-  const review = window.document.querySelector('select[name="model.review"]') as unknown as HTMLSelectElement;
-  const option = (value: string) => Array.from(review.options).find((entry) => entry.value === value)!;
+  const model = window.document.querySelector(`select[name="model.${part}"]`) as unknown as HTMLSelectElement;
+  const available = () => Array.from(model.options).filter((option) => !option.hidden && !option.disabled).map((option) => option.value);
 
-  syncSidePickers(window.document as unknown as ParentNode);
-  for (const value of ["sonnet", "codex", "pickle"]) expect(option(value).disabled).toBe(false);
+  offerEachToItsTool(window.document as unknown as ParentNode);
+  expect(available()).toEqual(["codex"]);
   implement.value = "pickle";
-  syncSidePickers(window.document as unknown as ParentNode, "f");
-  for (const value of ["sonnet", "codex", "pickle"]) {
-    expect([option(value).hidden, option(value).disabled]).toEqual([false, false]);
-  }
+  offerEachToItsTool(window.document as unknown as ParentNode);
+  expect(available()).toEqual(["codex"]);
+  expect(model.value).toBe("codex");
 });
 
 // --- One action sets every phase still ahead ----------------------

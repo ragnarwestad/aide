@@ -21,9 +21,9 @@ const MODELS = [
 const TIMEOUT_SEC = { default: 1200, implement: 5400 };
 
 describe("Settings page", () => {
-  test("Review and Verify offer every model and select their setting or the default (AC-1, AC-2)", () => {
+  test("Review and Verify use the same model choices and labels as the other phases with independent defaults", () => {
     const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      modelChoices: [...MODELS, { name: "pickle", tool: "opencode" as const }],
+      modelChoices: [...MODELS.map((model) => ({ ...model, ...(model.name === "opus" ? { ranAs: "claude-opus-5-5" } : {}) })), { name: "pickle", tool: "opencode" as const }],
       providerChoices: [
         { key: "Claude", name: "Claude", tool: "claude" },
         { key: "Codex", name: "Codex", tool: "codex" },
@@ -31,6 +31,11 @@ describe("Settings page", () => {
       ],
       defaultModels: { default: "sonnet", review: "codex-fast" }, timeoutSec: TIMEOUT_SEC,
     });
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    const choices = (part: string) => Array.from(window.document.querySelectorAll(`select[name="model.${part}"] option`),
+      (option) => ({ value: option.getAttribute("value"), label: option.textContent }));
+    for (const part of ["review", "verify"]) expect(choices(part)).toEqual(choices("implement"));
     for (const part of ["review", "verify"]) {
       expect(html).toContain(`name="provider.${part}"`);
       expect(html).toContain(`name="model.${part}"`);

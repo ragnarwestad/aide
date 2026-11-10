@@ -20,6 +20,8 @@ import type { SpecFolderLanding } from "../../git/spec-folder-landing.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { LandContext, Landing } from "./types.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
+import { stepButton } from "../../format/step-label.ts";
+import { landingPolicy } from "./policy/index.ts";
 
 /** The roots the open-branch cache is keyed by that this repo holds:
  *  the cache is asked per spec root — the project dir, and the specs
@@ -71,16 +73,17 @@ export function handedToMerge(
   branch: string,
   codeRoots: Pick<Set<string>, "has">,
 ): { gate?: LandingGate; finalizeCreate?: CreateFinalizer; hooks: MergeHooks; specOnly?: SpecFolderLanding } {
+  const policy = landingPolicy(what.step);
   const gate = codeRoots.has(root) && ctx.landingGate
     ? async (r: string) => {
-        const verdict = await ctx.landingGate!(r, job, branch);
+        const verdict = await ctx.landingGate!(r, job, branch, stepButton(what.step));
         // Green only on a second run: the archived row says so, and the
         // lines the first run failed on are kept with it.
         if (verdict.ok && verdict.retriedAfter) ctx.queue.update(job.id, { testsGreenOnRetry: verdict.retriedAfter });
         // The tests the merge failed, handed to the spec's next implement;
         // a green landing, or a red one that names no such list, keeps none.
-        // An archive's alone: a schedule landing is no spec's.
-        if (what.step === "archive") keepLandingFailedTests(ctx.queue, job, verdict.ok ? undefined : verdict.failedTests);
+        // Not for a landing that is no spec's, such as a schedule's.
+        if (policy.keepsFailedTests) keepLandingFailedTests(ctx.queue, job, verdict.ok ? undefined : verdict.failedTests);
         return verdict;
       }
     : undefined;
@@ -88,7 +91,7 @@ export function handedToMerge(
   // provisional key until this runs, under the SAME per-repo lock the
   // merge takes — the one place two landings for this repo cannot both
   // be renaming a folder at once.
-  const specsRootAbs = what.step === "create" ? ctx.machinerySpecsRoot(job.project) : undefined;
+  const specsRootAbs = policy.numbersSpec ? ctx.machinerySpecsRoot(job.project) : undefined;
   const finalizeCreate = ctx.finalizeCreateSpec && specsRootAbs
     ? (work: string) => ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
     : undefined;
@@ -112,27 +115,19 @@ export function handedToMerge(
       for (const r of cacheRootsWithin(ctx, job.project, root)) ctx.branchStatus.forgetOpenSpecBranch(r, branch);
     },
   };
-  const paths = SPEC_ONLY_STEPS.has(what.step) && codeRoots.has(root)
+  const paths = policy.specFolderOnly && codeRoots.has(root)
     ? specPathsIn(root, ctx.machinerySpecsRoot(job.project), job.specFolder)
     : undefined;
   const specOnly = paths
     ? {
         paths,
         message: `Land ${job.specFolder}'s spec files from ${branch}`,
-        deleteBranch: what.step === "close",
+        deleteBranch: policy.codeRoot === "discard",
         hooks,
       }
     : undefined;
   return { gate, finalizeCreate, hooks, specOnly };
 }
-
-/** Steps whose landing carries no code. Where the specs live inside the
- *  code repo, their branch is also the code's, and merging it whole
- *  would put an earlier `implement`'s code on the default branch before
- *  `archive` — so these land the spec's own folder alone. `implement`
- *  lands only when it is sent back to a full analysis, and then it is
- *  its Sent back line that lands, not its code. */
-const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close", "implement"]);
 
 /** Whether the specs root lies inside `root`, by the very test that makes
  *  a landing from `root` carry the spec's folder alone. */

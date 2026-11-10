@@ -7,6 +7,7 @@ import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { jobDismissible, jobKind } from "../../queue/queue.ts";
+import { endStep } from "../../queue/runner/step-result.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { errorSentence } from "../../format/error-sentence.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
@@ -176,7 +177,7 @@ export async function handleJobActionRoutes(
     // "cancelled" over it would say someone ended a run that had
     // already ended on its own. The table's own `queued`/`running`
     // entries for `cancel` are what draws that line now.
-    const result = ctx.queue.transition(id, "cancel", {
+    const result = endStep(ctx.queue, id, "cancel", {
       finishedAt: new Date().toISOString(),
       // A held-back `error`/`errorReason` describes why the job was NOT
       // running a moment ago; cancelling answers that question a different

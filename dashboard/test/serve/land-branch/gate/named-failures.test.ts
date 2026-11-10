@@ -62,7 +62,7 @@ const job = { project: "aide", specFolder: "81-x" };
 
 test("the same test on both runs is named with its latest error (AC-2)", async () => {
   recorder("test_one", "test_one");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
     values: { count: 1, branch: "aide/81-x", button: "Archive" },
@@ -72,7 +72,7 @@ test("the same test on both runs is named with its latest error (AC-2)", async (
 
 test("a test shared by both runs is the merge's even when the first run named another test (AC-3)", async () => {
   recorder("test_one - first error'; echo 'FAILED t/test_a.py::test_two", "test_one");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
     values: { count: 1, branch: "aide/81-x", button: "Archive" },
@@ -82,7 +82,7 @@ test("a test shared by both runs is the merge's even when the first run named an
 
 test("an unnamed first run does not claim that a named failure repeated (AC-5)", async () => {
   recorder("", "test_one");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeUnnamed",
     values: { branch: "aide/81-x", button: "Archive" },
@@ -91,7 +91,7 @@ test("an unnamed first run does not claim that a named failure repeated (AC-5)",
 
 test("different tests stay as separate detail items (AC-3, AC-5)", async () => {
   recorder("test_one", "test_two");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeVaried",
     values: { count: 2, branch: "aide/81-x", button: "Archive" },
@@ -101,7 +101,7 @@ test("different tests stay as separate detail items (AC-3, AC-5)", async () => {
 
 test("a repeated failure stays the merge's when the retry adds another failure (AC-3)", async () => {
   recorder("test_one", "test_one - second error'; echo 'FAILED t/test_a.py::test_two");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
     values: { count: 1, branch: "aide/81-x", button: "Archive" },
@@ -112,7 +112,7 @@ test("a repeated failure stays the merge's when the retry adds another failure (
 test("the sentence counts every repeated failure when detail is shortened (AC-3)", async () => {
   const names = Array.from({ length: 10 }, (_, index) => `test_${index + 1}`).join(" - error'; echo 'FAILED t/test_a.py::");
   recorder(names, names);
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toMatchObject({ key: "landing.testsRedOnMerge", values: { count: 10 } });
   expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
 }, 30_000);
@@ -120,7 +120,7 @@ test("the sentence counts every repeated failure when detail is shortened (AC-3)
 test("the tests the merge failed twice are kept with their file and error, all of them (AC-1)", async () => {
   const names = Array.from({ length: 10 }, (_, index) => `test_${index + 1}`).join(" - error'; echo 'FAILED t/test_a.py::");
   recorder(names, names);
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.failedTests).toHaveLength(10);
   expect(verdict.failedTests?.[9]).toEqual({ name: "t/test_a.py::test_10", file: "t/test_a.py", error: "second error" });
   expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
@@ -128,9 +128,9 @@ test("the tests the merge failed twice are kept with their file and error, all o
 
 test("a merge that failed different tests, or named none first, keeps no list (AC-7)", async () => {
   recorder("test_one", "test_two");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
   recorder("", "test_one");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x")).failedTests).toBeUndefined();
+  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
 }, 60_000);
 
 describe("failingLines", () => {

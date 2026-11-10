@@ -189,13 +189,10 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const ai = offeredProviders(providers, resting?.key).map((provider) =>
       `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
     ).join("");
-    const sideOptions = models.map((choice) => {
-      const tool = choice.tool ?? "claude";
-      return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
-    }).join("");
+    const sideOptions = modelOptions(models, chosen);
     return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: label }))}" form="settings-form" name="provider.${part}" data-ai="model.${part}" data-side-picker>${ai}</select></td>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}" data-side-picker>${sideOptions}</select></td><td></td></tr>`;
+      `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: label }))}" form="settings-form" name="provider.${part}" data-ai="model.${part}">${ai}</select></td>` +
+      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}">${sideOptions}</select></td><td></td></tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything

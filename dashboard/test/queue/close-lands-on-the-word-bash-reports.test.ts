@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { landingPolicy } from "../../src/serve/land-branch/policy/index.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 // The runner as it runs: aide-run-spec, then the library it sources last,
@@ -21,18 +22,14 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
     expect(RUN_SPEC).toContain("aide-close-spec");
   });
 
-  test("the dashboard lands a close on that same word", () => {
-    const branch = /if \(step === "close"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ?? "";
-    expect(branch).toContain("landClosedSpec");
-    expect(branch).toContain('terminalReason === "closed"');
+  test("the dashboard lands a close on that same word (AC-1)", () => {
+    expect(landingPolicy("close").onOk).toEqual({ landing: "close", endings: ["closed"] });
   });
 
   // The other half of the pair, unchanged and pinned here beside it:
   // archive lands on `completed`, which is a session's own word.
-  test("archive still lands on completed, and the two are not confused", () => {
-    const branch = /if \(step === "archive"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ?? "";
-    expect(branch).toContain('terminalReason === "completed"');
-    expect(branch).toContain("landArchivedSpec");
+  test("archive still lands on completed, and the two are not confused (AC-1)", () => {
+    expect(landingPolicy("archive").onOk).toEqual({ landing: "archive", endings: ["completed"] });
   });
 
   // A close whose branch never reached origin must not report `closed`:
@@ -41,11 +38,11 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
   // ticked for it go with it: the wiring drops the spec's recorded choice
   // before the step's own landing, and only on a finished one.
   test("a finished reopen with reset forgets the spec's phase choice, and nothing else does", () => {
-    const okBranch = /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
+    const okBranch = /\n( *)if \(outcome\.ok\) \{([\s\S]*?)\n\1\}/.exec(RUNNER_SETUP)?.[2] ?? "";
     expect(okBranch).toContain(
       'if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);',
     );
-    expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("landStepBranch"));
+    expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("startLanding("));
     expect(RUNNER_SETUP.split("forgetPendingSteps").length - 1).toBe(1);
   });
 

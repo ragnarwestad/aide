@@ -3,7 +3,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { renderSentence } from "../../../src/i18n/message.ts";
-import { fixedSentenceHolds, type ScheduleContext } from "../../../src/serve/schedules";
+import { deployLandingHolds, type ScheduleContext } from "../../../src/serve/schedules";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
 
 beforeEach(resetHarness);
@@ -26,28 +26,28 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     const d = deploy();
     const other = enqueue({ steps: ["implement"] });
     landing();
-    const holds = fixedSentenceHolds(ctx());
+    const holds = deployLandingHolds(ctx());
     expect(holds.get(d.id)?.inner).toEqual([{ key: "runner.landingRunning", values: { doing: "analyze", spec: "aide:91" } }]);
     expect(holds.has(other.id)).toBe(false);
   });
 
   test("with no landing the deploy is not held", () => {
     const d = deploy();
-    expect(fixedSentenceHolds(ctx()).has(d.id)).toBe(false);
+    expect(deployLandingHolds(ctx()).has(d.id)).toBe(false);
   });
 
   test("a tick leaves it queued with the sentence on the row, and starts it once the landing has cleared", () => {
     const d = deploy();
     const l = landing();
     const runner = makeRunner({ maxConcurrent: 3 });
-    runner.tick(undefined, fixedSentenceHolds(ctx()));
+    runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
     expect(store.get(d.id)?.state).toBe("queued");
     expect(store.get(d.id)?.errorReason).toBe("held-back");
     expect(renderSentence("en", store.get(d.id)?.error)).toContain("aide:91");
     expect(spawns.map((s) => s.step)).not.toContain("deploy");
 
     store.update(l.id, { landing: undefined });
-    runner.tick(undefined, fixedSentenceHolds(ctx()));
+    runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
     expect(store.get(d.id)?.state).toBe("running");
     expect(store.get(d.id)?.error).toBeUndefined();
     expect(spawns.map((s) => s.step)).toContain("deploy");
@@ -55,7 +55,7 @@ describe("a queued deploy is held back while a landing is in flight", () => {
 
   test("with no landing in flight the next tick starts the deploy at once", () => {
     const d = deploy();
-    makeRunner().tick(undefined, fixedSentenceHolds(ctx()));
+    makeRunner().tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
     expect(store.get(d.id)?.state).toBe("running");
     expect(spawns).toHaveLength(1);
   });

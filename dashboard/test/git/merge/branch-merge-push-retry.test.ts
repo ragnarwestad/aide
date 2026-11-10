@@ -12,9 +12,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { runSpecSource } from "../../helpers/run-spec-source.ts";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
+import { LANDING_RETRIES, mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
@@ -271,24 +269,17 @@ describe("pushWithRetry: a second merge that hits a real conflict", () => {
 });
 
 // The "same bound": `aide-run-spec`'s `PUSH_RETRY_WAITS` (bash) and
-// this file's `PUSH_RETRY_WAITS_MS` (TypeScript) are two literals
-// expressing the same rule with nothing else pinning them together —
-// read as TEXT, the same idea `parsing-schedule-and-errors.test.ts`
-// already uses for `errorReason`, since neither side has a runtime
-// value the other could import.
+// `LANDING_RETRIES.pushWaitsMs` (TypeScript) are two literals expressing
+// the same rule with nothing else pinning them together. The bash side is
+// read as TEXT, since it has no runtime value the TypeScript could import.
 describe("the bash and TypeScript retry bounds agree", () => {
-  test("PUSH_RETRY_WAITS (bash) matches PUSH_RETRY_WAITS_MS (TypeScript)", () => {
+  test("PUSH_RETRY_WAITS (bash) matches LANDING_RETRIES.pushWaitsMs (TypeScript) (AC-3)", () => {
     const bashSrc = runSpecSource();
     const bashMatch = bashSrc.match(/^PUSH_RETRY_WAITS=\(([^)]*)\)/m);
     expect(bashMatch).not.toBeNull();
     const bashWaitsMs = bashMatch![1]!.trim().split(/\s+/).map((n) => Number(n) * 1000);
 
-    const tsSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "src", "git", "branch-merge", "retry.ts"), "utf-8");
-    const tsMatch = tsSrc.match(/const PUSH_RETRY_WAITS_MS = \[([^\]]*)\];/);
-    expect(tsMatch).not.toBeNull();
-    const tsWaitsMs = tsMatch![1]!.split(",").map((n) => Number(n.trim()));
-
-    expect(tsWaitsMs).toEqual(bashWaitsMs);
+    expect(bashWaitsMs).toEqual([...LANDING_RETRIES.pushWaitsMs]);
   });
 });
 

@@ -1,9 +1,13 @@
 // What a finished step writes onto its job: the entry it adds to
-// `results`, and the fields every ending shares, whichever transition
-// follows. Both are read from the result file another process left, so
-// every field of `outcome` is a question rather than a promise.
+// `results`, the fields every completed step shares, whichever transition
+// follows, and `endStep`, the one way any step ends. The first two are read
+// from the result file another process left, so every field of `outcome` is
+// a question rather than a promise.
 
-import { mergeBranchRefs, type Job, type QueueDefaults, type StepResult, type TokenUsage, type WorkflowStep } from "../queue.ts";
+import {
+  mergeBranchRefs, type Job, type QueueDefaults, type QueueStore, type StepResult, type TokenUsage, type TransitionEvent,
+  type TransitionResult, type WorkflowStep,
+} from "../queue.ts";
 import { asResultTool } from "../steps.ts";
 import { resolveStepProvider } from "../providers/index.ts";
 import { sideRun } from "./side-run.ts";
@@ -78,12 +82,10 @@ export function afterStep(
   job: Job,
   outcome: Partial<StepOutcome>,
   results: StepResult[],
-  landing: true | undefined,
   m: Pick<StepMeasures, "cost" | "tokens">,
 ): Partial<Job> {
   return {
     results,
-    landing,
     spentUsd: job.spentUsd + m.cost,
     // Undefined until something measures one: a job of steps that all
     // predate token measurement shows a dash, not a zero.
@@ -100,14 +102,37 @@ export function afterStep(
     // Accumulated BY ROOT, never replaced: a step that pushed to one repo
     // must not erase the repo an earlier step pushed to.
     branchUrls: mergeBranchRefs(job.branchUrls, outcome.branchUrls),
-    pid: undefined,
-    pgid: undefined,
-    // The step is over: nothing is live under this id any more, and a page
-    // that kept showing it would say the job is still working.
-    sessionId: undefined,
-    // Its value just moved onto the result; left set, a job merely
-    // `queued` for its NEXT step would read as still ticking from the step
-    // that already finished.
-    stepStartedAt: undefined,
   };
+}
+
+/** The fields a step's ending clears, whichever way it ends. `resultFile`
+ *  and `streamFile` stay: a vanished step's transcript is named nowhere
+ *  else, and a landing resumed at boot reads the result file. The next
+ *  start overwrites both. */
+export const STEP_ENDED = {
+  pid: undefined,
+  pgid: undefined,
+  // Nothing is live under this id any more, and a page that kept showing
+  // it would say the job is still working.
+  sessionId: undefined,
+  // Its value has moved onto the result, if the step wrote one; left set, a
+  // job merely `queued` for its NEXT step would read as still ticking.
+  stepStartedAt: undefined,
+} as const satisfies Partial<Job>;
+
+/** The events that end a step: the runner's, and a person's Cancel. */
+export type StepEndEvent = Extract<
+  TransitionEvent,
+  "retry" | "run-stopped" | "step-failed" | "step-succeeded-last" | "step-succeeded" | "process-gone" | "cancel"
+>;
+
+/** End a job's step: the transition with `patch`, and the per-step fields
+ *  cleared after it, so no caller can keep one. */
+export function endStep(
+  store: Pick<QueueStore, "transition">,
+  jobId: string,
+  event: StepEndEvent,
+  patch: Partial<Job> = {},
+): TransitionResult {
+  return store.transition(jobId, event, { ...patch, ...STEP_ENDED });
 }

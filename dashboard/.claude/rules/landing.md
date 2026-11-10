@@ -38,8 +38,8 @@ reads what a landing left.
   reads (`archiveHeldBackApplies`). Asking `done` alone would drop the
   acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
-  cleared.** `Runner.complete()` starts the landing work, sets `landing`
-  on the job's row, and clears it only when the whole landing promise
+  cleared.** `holdLanding` owns the flag for both an uninterrupted landing
+  and one resumed after a restart, and clears it only when the whole landing promise
   settles, `onLanded` included. A callback that reads `queue.list()` sees
   its triggering job still marked `landing: true`, and treats that one row
   as settled by hand; every other row's flag is trustworthy.
@@ -70,9 +70,9 @@ reads what a landing left.
   reaches main through `archive` alone.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
-  a landing that did not finish. The check is `archive`'s alone, by the
-  literal step name; a failed landing moves the job to `failed` and ONLY
-  from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
+  a landing that did not finish. The check is `archive`'s alone, by its
+  landing policy (`land-branch/policy/`); a failed landing moves the job
+  to `failed` and ONLY from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
   the "not landed" row is filtered on the BRANCH and on git's merged
   answer (`peekMerged`), never on `errorReason` or a job record — an open
   branch merged in every root that holds it is an archived row with
@@ -84,13 +84,14 @@ reads what a landing left.
   reads "tests red": the step ran and the merge was built, and what is
   missing is a green suite. Every other landing failure stays red.
 - **`codeLanding: pr` keeps the CODE root's branch open** on an `archive`
-  landing and runs every step with `--push pr`; the two halves are never
-  separated. The manifest is a DEFAULT for `--push`, never an override;
+  landing (`codeRoot: "merge-unless-pr"` in its landing policy) and runs
+  every step with `--push pr`; the two halves are never separated. The manifest is a DEFAULT for `--push`, never an override;
   the specs root keeps auto-merging; `errorReason` has no member for it —
   `prOpen` splits the wording instead.
 - **`StepResult.at` is absent until a landing step's merge settles**, not
-  from the moment its own process exits — `Runner.complete()` defers the
-  stamp so a phase's own duration keeps counting through the merge. Any
+  from the moment its own process exits — `holdLanding` stamps both an
+  uninterrupted landing and one resumed after a restart, so a phase's own
+  duration keeps counting through the merge. Any
   new reader of `Job.results[]` has to treat `at` as optional; a
   standalone type that copies `StepResult`'s shape by hand (rather than
   reusing it) needs the same optionality, or `tsc --noEmit` only catches

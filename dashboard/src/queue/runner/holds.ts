@@ -4,6 +4,97 @@
 
 import type { BoardMessage } from "../../i18n/message.ts";
 import type { Job, QueueStore } from "../queue.ts";
+import { specReference } from "../../project/spec-folder.ts";
+import { takesSlot, writing } from "../steps.ts";
+import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
+
+export interface HoldAnswers {
+  dependencies?: DependencyHolds;
+  notAnalyzed?: Map<string, BoardMessage>;
+  approachChoice?: Map<string, BoardMessage>;
+  deployWaitsForLanding?: Map<string, BoardMessage>;
+  usageLimit?: Map<string, BoardMessage>;
+  switchedOff?: Map<string, BoardMessage>;
+  /** Not a hold: these archives end before the hold loop. */
+  acceptanceOpen?: Set<string>;
+}
+
+export const HOLD_NAMES = [
+  "retry-not-due",
+  "provider-switched-off",
+  "usage-limit",
+  "no-free-slot",
+  "own-landing",
+  "same-spec-running",
+  "archive-running",
+  "schedule-waits-on-project",
+  "deploy-waits-for-landing",
+  "not-analyzed",
+  "approach-choice",
+  "dependency",
+] as const;
+export type HoldName = (typeof HOLD_NAMES)[number];
+
+/** Skip this tick without putting a sentence on the row. */
+export const WAIT = Symbol("wait");
+type HoldAnswer = BoardMessage | typeof WAIT | undefined;
+
+export interface HoldContext {
+  jobs: () => readonly Job[];
+  maxConcurrent: number;
+  now: string;
+  answers: HoldAnswers;
+}
+
+interface Hold {
+  name: HoldName;
+  check: (job: Job, at: HoldContext) => HoldAnswer;
+}
+
+const answer = (answers: Map<string, BoardMessage> | undefined, id: string): BoardMessage | undefined => answers?.get(id);
+const stepOf = (job: Job) => job.steps[job.stepIndex];
+
+/** Every hold in the order a queued job is checked. */
+export const HOLDS: readonly Hold[] = [
+  { name: "retry-not-due", check: (job, at) =>
+    job.retry?.dueAt && Date.parse(job.retry.dueAt) > Date.parse(at.now) ? WAIT : undefined },
+  { name: "provider-switched-off", check: (job, at) => answer(at.answers.switchedOff, job.id) },
+  { name: "usage-limit", check: (job, at) => answer(at.answers.usageLimit, job.id) },
+  { name: "no-free-slot", check: (job, at) => takesSlot(job) &&
+    at.jobs().filter((candidate) => candidate.state === "running" && takesSlot(candidate)).length >= at.maxConcurrent
+    ? WAIT : undefined },
+  { name: "own-landing", check: (job) => job.landing ? WAIT : undefined },
+  { name: "same-spec-running", check: (job, at) => at.jobs().some((candidate) =>
+    candidate.state === "running" && candidate.project === job.project && candidate.specFolder === job.specFolder)
+    ? WAIT : undefined },
+  { name: "archive-running", check: (job, at) => stepOf(job) === "archive" && at.jobs().some((candidate) =>
+    candidate.id !== job.id && candidate.project === job.project && stepOf(candidate) === "archive" && writing(candidate))
+    ? { key: "runner.archiveRunning" } : undefined },
+  { name: "schedule-waits-on-project", check: (job, at) => stepOf(job) === "schedule" && at.jobs().some((candidate) =>
+    candidate.id !== job.id && candidate.project === job.project && writing(candidate))
+    ? { key: "runner.scheduleWaitsOnProject" } : undefined },
+  { name: "deploy-waits-for-landing", check: (job, at) => answer(at.answers.deployWaitsForLanding, job.id) },
+  { name: "not-analyzed", check: (job, at) => answer(at.answers.notAnalyzed, job.id) },
+  { name: "approach-choice", check: (job, at) => answer(at.answers.approachChoice, job.id) },
+  { name: "dependency", check: (job, at) => {
+    const dependency = dependencyHold(at.answers.dependencies, job.id);
+    if (dependency === NOT_CHECKED) return WAIT;
+    return dependency === undefined ? undefined : {
+      key: "runner.dependencyNotArchived",
+      values: { dependency: specReference(job.project, dependency) },
+    };
+  } },
+];
+
+/** The first hold that applies, with a sentence when the row has one. */
+export function holdFor(job: Job, at: HoldContext): { name: HoldName; reason?: BoardMessage } | undefined {
+  for (const hold of HOLDS) {
+    const result = hold.check(job, at);
+    if (result === WAIT) return { name: hold.name };
+    if (result) return { name: hold.name, reason: result };
+  }
+  return undefined;
+}
 
 /** Hold one job with the reason it is held for RIGHT NOW. Written
  *  only when it changed: an unconditional update would rewrite the
