@@ -210,3 +210,39 @@ test("a dependency whose archive is landing counts as archived, though its open 
   expect(h.job.error).toBeUndefined();
   expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toContain("`2-b`");
 });
+
+test("the job is marked landing while the dependency line is saved, and no longer when its follow-on job is queued (AC-6)", async () => {
+  const h = setup();
+  const seen: { during?: boolean; atEnqueue?: boolean } = {};
+  const run = h.ctx.gitRun;
+  h.ctx.gitRun = (cwd, args) => {
+    if (args[0] === "push") seen.during = h.job.landing;
+    return run(cwd, args);
+  };
+  const enqueue = h.ctx.queue.enqueue.bind(h.ctx.queue);
+  h.ctx.queue.enqueue = ((request: Parameters<typeof enqueue>[0]) => {
+    seen.atEnqueue = h.job.landing;
+    return enqueue(request);
+  }) as typeof enqueue;
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(seen).toEqual({ during: true, atEnqueue: undefined });
+  expect(h.queued).toHaveLength(1);
+  expect(h.job.landing).toBeUndefined();
+});
+
+test("a refused save clears the landing mark and queues nothing (AC-6)", async () => {
+  const h = setup();
+  let during: boolean | undefined;
+  const run = h.ctx.gitRun;
+  h.ctx.gitRun = (cwd, args) => {
+    if (args[0] === "push") {
+      during = h.job.landing;
+      return Promise.resolve({ code: 1, stdout: "", stderr: "push refused" });
+    }
+    return run(cwd, args);
+  };
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(during).toBe(true);
+  expect(h.queued).toEqual([]);
+  expect(h.job.landing).toBeUndefined();
+});

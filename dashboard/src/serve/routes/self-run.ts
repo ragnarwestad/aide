@@ -25,6 +25,7 @@ import type { RoutesContext } from "./";
 import { json } from "../serve-helpers";
 import { inFlight, writing } from "../../queue/queue.ts";
 import type { Job } from "../../queue/queue.ts";
+import { endStep } from "../../queue/runner/step-result.ts";
 import { isProvisionalKey } from "../../project/spec-names.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock/index.ts";
 
@@ -212,7 +213,7 @@ async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void
   for (const job of ctx.queue.list()) {
     if (job.project !== project) continue;
     if (job.state !== "queued" && job.state !== "running") continue;
-    const result = ctx.queue.transition(job.id, "cancel", {
+    const result = endStep(ctx.queue, job.id, "cancel", {
       finishedAt: new Date().toISOString(),
       error: undefined,
       errorReason: undefined,

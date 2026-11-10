@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { aiWorkRetryDecision, retryDecision } from "../../../../src/queue/runner/retry.ts";
+import { MAX_ATTEMPTS, aiWorkRetryDecision, attemptOf, attemptsLeft, retryDecision } from "../../../../src/queue/runner/retry.ts";
 
 describe("retryDecision", () => {
   test("retries vanished runs and eligible provider failures once (AC-1, AC-3, AC-10)", () => {
@@ -48,5 +48,17 @@ describe("aiWorkRetryDecision", () => {
   test("does not retry failures that require a person or the machinery first (AC-9)", () => {
     expect(aiWorkRetryDecision({ terminalReason: "tests-not-started" }, 1)).toBeUndefined();
     expect(aiWorkRetryDecision({ terminalReason: "cli-error" }, 1)).toBeUndefined();
+  });
+});
+
+describe("attemptOf and attemptsLeft", () => {
+  test("a retry for another step is the first attempt, and one for this step at the bound leaves none (AC-7)", () => {
+    const other = { retry: { action: "analyze" as const, attempts: MAX_ATTEMPTS } };
+    expect(attemptOf(other, "implement")).toBe(1);
+    expect(attemptsLeft(attemptOf(other, "implement"))).toBe(MAX_ATTEMPTS - 1);
+    expect(attemptOf({}, "implement")).toBe(1);
+    const same = { retry: { action: "implement" as const, attempts: MAX_ATTEMPTS } };
+    expect(attemptOf(same, "implement")).toBe(MAX_ATTEMPTS);
+    expect(attemptsLeft(attemptOf(same, "implement"))).toBe(0);
   });
 });

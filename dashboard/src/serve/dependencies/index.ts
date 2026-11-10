@@ -13,7 +13,7 @@ import { afterTick } from "../routes/spec-edit/checks.ts";
 import { followOnJob } from "../routes/spec-edit/shared.ts";
 import { landingErrorOfStep } from "../land-branch/stopped-reason.ts";
 import { planDependencies } from "./plan.ts";
-import { aiWorkRetryDecision, aiWorkRetryRecord } from "../../queue/runner/retry.ts";
+import { aiWorkRetryDecision, aiWorkRetryRecord, attemptOf, attemptsLeft } from "../../queue/runner/retry.ts";
 import { DESCRIPTION_FILE } from "../../project/spec-names.ts";
 
 async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<string, string>> {
@@ -58,7 +58,7 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
   if (!source || source.state !== "stopped" || source.stopReason !== "shared-files" || source.dependencyNotice || source.landing || landingErrorOfStep(source, "analyze")) return;
   const missing = required.filter((entry) => !entry.reason);
   if (missing.length) {
-    const attempts = source.retry?.action === "analyze" ? source.retry.attempts : 1;
+    const attempts = attemptOf(source, "analyze");
     const retry = aiWorkRetryDecision({ terminalReason: "overlap-decision-missing" }, attempts);
     const record = retry ? aiWorkRetryRecord(source, "analyze", {
       terminalReason: "overlap-decision-missing",
@@ -79,7 +79,7 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
     const message = { key: "runner.overlapDecisionMissing" as const, values: {
       specs: missing.map((entry) => specReference(job.project, entry.spec)),
     } };
-    ctx.queue.update(job.id, { error: attempts >= 2
+    ctx.queue.update(job.id, { error: attemptsLeft(attempts) === 0
       ? { key: "runner.afterTwoAttempts", inner: message }
       : message });
     return;

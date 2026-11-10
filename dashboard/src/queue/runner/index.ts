@@ -43,8 +43,8 @@ import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-
 import { projectHold } from "./project-holds.ts";
 import { clearStaleHolds, holdJob } from "./holds.ts";
 import { usageLimitWait } from "./usage-limit.ts";
-import { afterStep, stepResultEntry } from "./step-result.ts";
-import { aiWorkRetryDecision, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
+import { afterStep, endStep, stepResultEntry } from "./step-result.ts";
+import { aiWorkRetryDecision, attemptOf, attemptsLeft, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -270,7 +270,7 @@ export class Runner {
     // the same step in this job, and keeps the earlier attempt's log.
     const attempt = Math.max(
       job.results.filter((r) => r.step === step).length + 1,
-      job.retry?.action === step ? job.retry.attempts : 1,
+      attemptOf(job, step),
     );
     const streamFile = `${this.o.resultDir}/${job.id}.${step}${attempt > 1 ? `.${attempt}` : ""}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
@@ -310,9 +310,8 @@ export class Runner {
       // leaving one — see reconcile().
       if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
         if (queueVanishedRetry(this.o, job)) continue;
-        this.o.store.transition(job.id, "process-gone", {
+        endStep(this.o.store, job.id, "process-gone", {
           finishedAt: this.o.now(),
-          sessionId: undefined,
           error: { key: "runner.runVanished", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
@@ -329,9 +328,8 @@ export class Runner {
         this.complete(job, raw as Partial<StepOutcome>);
       } else {
         if (queueVanishedRetry(this.o, job)) continue;
-        this.o.store.transition(job.id, "process-gone", {
+        endStep(this.o.store, job.id, "process-gone", {
           finishedAt: this.o.now(),
-          sessionId: undefined,
           error: { key: "runner.serverRestarted", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
@@ -411,13 +409,12 @@ export class Runner {
     }
     const base = afterStep(job, outcome, results, landing, measures);
 
-    const retryAttempts = job.retry?.action === step ? job.retry.attempts : 1;
+    const retryAttempts = attemptOf(job, step);
     const retry = stepRetryRecord(job, step, outcome, Date.parse(this.o.now()));
     if (retry) {
-      this.o.store.transition(job.id, "retry", {
+      endStep(this.o.store, job.id, "retry", {
         ...base,
         retry,
-        resultFile: undefined,
         finishedAt: undefined,
         error: undefined,
         errorReason: undefined,
@@ -431,10 +428,10 @@ export class Runner {
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
       const stopMessage = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
-      const worded = stopMessage && retryAttempts >= 2 && outcome.terminalReason === "timeout"
+      const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
         ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
         : stopMessage;
-      const result = this.o.store.transition(job.id, "run-stopped", {
+      const result = endStep(this.o.store, job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
         ...usageLimitWait(outcome, stoppedAt),
@@ -447,7 +444,7 @@ export class Runner {
     }
     if (!outcome.ok) {
       const baseMessage = noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
-      const finalMessage = retryAttempts >= 2 && aiWorkRetryDecision(
+      const finalMessage = attemptsLeft(retryAttempts) === 0 && aiWorkRetryDecision(
         { terminalReason: outcome.terminalReason ?? "", scopeViolation: outcome.scopeViolation }, retryAttempts - 1,
       ) && baseMessage && !Array.isArray(baseMessage) && typeof baseMessage !== "string"
         ? { key: "runner.afterTwoAttempts" as const, inner: baseMessage }
@@ -457,7 +454,7 @@ export class Runner {
         outcome,
         job.model[step] ?? job.modelChoice,
       );
-      const result = this.o.store.transition(job.id, "step-failed", {
+      const result = endStep(this.o.store, job.id, "step-failed", {
         ...base,
         finishedAt: this.o.now(),
         error: failure.error,
@@ -477,7 +474,7 @@ export class Runner {
 
     const nextIndex = job.stepIndex + 1;
     if (nextIndex >= job.steps.length) {
-      const result = this.o.store.transition(job.id, "step-succeeded-last", {
+      const result = endStep(this.o.store, job.id, "step-succeeded-last", {
         ...base,
         retry: landingWork ? job.retry : undefined,
         stepIndex: nextIndex - 1,
@@ -490,7 +487,7 @@ export class Runner {
     // to press Approve. There is no such stop: every step lands the
     // work it produced, so there is nothing between two steps for anyone
     // to weigh, and the next step is simply queued.
-    this.o.store.transition(job.id, "step-succeeded", {
+    endStep(this.o.store, job.id, "step-succeeded", {
       ...base,
       retry: undefined,
       stepIndex: nextIndex,

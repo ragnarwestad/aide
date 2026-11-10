@@ -3,7 +3,6 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { analysisSessionToResume } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 const DEFAULTS: QueueDefaults = { timeoutSec: { default: 1200 }, permissionMode: {}, model: {} };
 const resolve = () => ({ specFolders: ["544-model-ids"] });
@@ -45,25 +44,11 @@ function mirrorWithLandingInFlight(extra: Record<string, unknown> = {}): void {
 }
 
 describe("a step whose landing was in flight when the board stopped", () => {
-  test("ends when its job did", () => {
+  test("is read back unstamped, with the landing marked as cut, for the boot to resume (AC-2)", () => {
     mirrorWithLandingInFlight({ finishedAt: "2026-09-26T19:09:06.000Z" });
     const job = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get("j1")!;
-    expect(job.results.map((r) => r.at)).toEqual(["2026-09-26T18:41:45.000Z", "2026-09-26T19:09:06.000Z"]);
-  });
-
-  test("its implement continues the analysis's session", () => {
-    mirrorWithLandingInFlight({ finishedAt: "2026-09-26T19:09:06.000Z" });
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const implement = { ...store.get("j1")!, id: "j2", steps: ["implement" as const], results: [] };
-    expect(analysisSessionToResume(implement, store.list(), "claude", Date.parse("2026-09-26T19:12:47.000Z"))).toBe(
-      "s-analyze",
-    );
-  });
-
-  test("ends at the boot that reads it back when the job had not finished", () => {
-    mirrorWithLandingInFlight({ state: "running" });
-    const before = new Date().toISOString();
-    const at = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get("j1")!.results[1].at!;
-    expect(at >= before).toBe(true);
+    expect(job.results.map((r) => r.at)).toEqual(["2026-09-26T18:41:45.000Z", undefined]);
+    expect(job.landingCut).toBe(true);
+    expect(job.landing).toBeUndefined();
   });
 });

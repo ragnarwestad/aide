@@ -1,6 +1,6 @@
 // The board runs a landing the last process never finished when it comes
 // back: `serve.ts` calls it once, after resolving the jobs left running.
-// The rule itself is proven in `test/queue/runner/cut-landing.test.ts`;
+// The rule itself is proven in `test/queue/runner/landing/landing.test.ts`;
 // this is the one check that the boot reaches it.
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

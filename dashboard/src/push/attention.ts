@@ -8,6 +8,7 @@ import type { MessageKey } from "../i18n/messages.ts";
 import { specNumber } from "../project/spec-folder.ts";
 import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import { jobKind, type Job } from "../queue/queue.ts";
+import { MAX_ATTEMPTS } from "../queue/runner/retry.ts";
 import type { ScheduleNotify } from "../queue/schedule.ts";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, waitsForPerson, type JobState, type StopReason,
@@ -124,12 +125,12 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "archive-held-back") return "push.archiveHeldBack";
   if (a.kind === "create-failed") return "push.createFailed";
   if (a.kind === "interrupted") return "push.interrupted";
-  if (a.kind === "failed") return a.attempts === 2 ? "push.failedAfterTwoAttempts" : "push.failed";
+  if (a.kind === "failed") return a.attempts === MAX_ATTEMPTS ? "push.failedAfterTwoAttempts" : "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
   if (a.reason === "sent-back") return "push.stoppedSentBack";
-  return a.attempts === 2 ? "push.stoppedTimeoutAfterTwoAttempts" : "push.stoppedTimeout";
+  return a.attempts === MAX_ATTEMPTS ? "push.stoppedTimeoutAfterTwoAttempts" : "push.stoppedTimeout";
 }

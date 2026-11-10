@@ -2,8 +2,23 @@ import type { Job, StepRepoRange, WorkflowStep } from "../queue.ts";
 import { providerError, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { endingMayRetry } from "../../step-endings.ts";
+import { endStep } from "./step-result.ts";
 
 export const CAPACITY_RETRY_DELAY_MS = 3 * 60_000;
+
+/** How many attempts one press gets: the first and one automatic retry. */
+export const MAX_ATTEMPTS = 2;
+
+/** Which attempt of `step` the job is on: the retry's count when the retry
+ *  is for this step, else the first. */
+export function attemptOf(job: Pick<Job, "retry">, step: string | undefined): number {
+  return job.retry?.action === step ? job.retry.attempts : 1;
+}
+
+/** How many more attempts are allowed after attempt `attempt`. */
+export function attemptsLeft(attempt: number): number {
+  return Math.max(0, MAX_ATTEMPTS - attempt);
+}
 
 type RetryInput =
   | { kind: "vanished" | "model-at-capacity" | "other"; attempts: number; now: number }
@@ -20,7 +35,7 @@ export function aiWorkRetryDecision(
   input: AiWorkRetryInput,
   attempts: number,
 ): { retry: true } | undefined {
-  if (attempts >= 2) return undefined;
+  if (attemptsLeft(attempts) === 0) return undefined;
   if (!endingMayRetry(input.terminalReason)) return undefined;
   if (input.terminalReason === "tests-red") return undefined;
   if (input.terminalReason === "scope-violation")
@@ -34,8 +49,8 @@ export function aiWorkRetryRecord(
   action: WorkflowStep,
   evidence: { terminalReason: string; detail?: string; repos?: StepRepoRange[] },
 ): Job["retry"] | undefined {
-  const attempts = job.retry?.action === action ? job.retry.attempts : 1;
-  if (attempts >= 2) return undefined;
+  const attempts = attemptOf(job, action);
+  if (attemptsLeft(attempts) === 0) return undefined;
   return { action, attempts: attempts + 1, previousAttempt: evidence };
 }
 
@@ -45,7 +60,7 @@ export function stepRetryRecord(
   outcome: Partial<StepOutcome>,
   now: number,
 ): Job["retry"] | undefined {
-  const attempts = job.retry?.action === action ? job.retry.attempts : 1;
+  const attempts = attemptOf(job, action);
   const transient = outcomeRetryDecision(outcome, attempts, now);
   const aiWork = outcome.terminalReason
     ? aiWorkRetryDecision({ terminalReason: outcome.terminalReason, scopeViolation: outcome.scopeViolation }, attempts)
@@ -64,7 +79,7 @@ export function stepRetryRecord(
 }
 
 export function retryDecision(input: RetryInput): { retryAt: number } | undefined {
-  if (input.attempts >= 2) return undefined;
+  if (attemptsLeft(input.attempts) === 0) return undefined;
   if (input.kind === "vanished") return { retryAt: input.now };
   if (input.kind === "model-at-capacity")
     return { retryAt: input.now + CAPACITY_RETRY_DELAY_MS };
@@ -96,14 +111,14 @@ export function outcomeRetryDecision(
 export function queueVanishedRetry(o: RunnerOptions, job: Job): boolean {
   const step = job.steps[job.stepIndex];
   if (!step || requireWorkflowStep(step).runBy === "board") return false;
-  const attempts = job.retry?.action === step ? job.retry.attempts : 1;
+  const attempts = attemptOf(job, step);
   const decision = retryDecision({
     kind: "vanished",
     attempts,
     now: Date.parse(o.now()),
   });
   if (!decision) return false;
-  o.store.transition(job.id, "retry", {
+  endStep(o.store, job.id, "retry", {
     retry: {
       action: step,
       attempts: attempts + 1,
@@ -111,12 +126,6 @@ export function queueVanishedRetry(o: RunnerOptions, job: Job): boolean {
         ? { dueAt: new Date(decision.retryAt).toISOString() }
         : {}),
     },
-    pid: undefined,
-    pgid: undefined,
-    resultFile: undefined,
-    sessionId: undefined,
-    streamFile: undefined,
-    stepStartedAt: undefined,
     error: undefined,
     errorReason: undefined,
     finishedAt: undefined,
