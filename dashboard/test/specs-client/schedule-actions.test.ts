@@ -4,8 +4,9 @@
 // document harness (`fixtures.ts`): none of these controls live inside
 // `#jobrows`, so this page has no row-swap machinery to exercise.
 import { describe, expect, test } from "bun:test";
+import { Window } from "happy-dom";
 import {
-  followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
+  followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, reconcileScheduleRuns, runCronPreview, scheduleCronPreview,
   submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
@@ -67,10 +68,11 @@ function fakeSlot(): HTMLElement {
 
 /** Answers `closest("main")` by selector, and `querySelector` by what is asked for. */
 function fakeRunForm(action: string, slot: HTMLElement = fakeSlot()): HTMLFormElement {
-  const button = { disabled: false };
+  const button = { disabled: false, textContent: "Run now", dataset: {} as Record<string, string> };
   const main = { querySelector: (sel: string) => (sel === ".refused" ? slot : null) };
   return {
     action,
+    dataset: { idle: "Run now", queued: "Queued", running: "Running" },
     querySelector: () => button,
     closest: (sel: string) => (sel === "main" ? main : null),
   } as unknown as HTMLFormElement;
@@ -98,6 +100,67 @@ describe("postScheduleRun", () => {
     const form = fakeRunForm("/x", slot);
     await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
     expect(slot.textContent).toBe("Problem: The request failed");
+  });
+
+  test("an older queued POST answer does not replace a newer running queue state (AC-2)", async () => {
+    const form = fakeRunForm("/api/queue/schedule/aide/nightly/run");
+    const button = form.querySelector("button") as HTMLButtonElement;
+    let answer: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => { answer = resolve; });
+    const posted = postScheduleRun(form, (async () => {
+      await held;
+      return { ok: true, json: async () => ({ ok: true, job: { state: "queued" } }) } as Response;
+    }) as unknown as typeof fetch);
+    button.dataset.scheduleState = "running";
+    button.textContent = "Running";
+    answer!();
+    await posted;
+    expect([button.disabled, button.textContent, button.dataset.scheduleState]).toEqual([true, "Running", "running"]);
+  });
+});
+
+describe("reconcileScheduleRuns", () => {
+  function runPage(): { doc: Document; button: HTMLButtonElement; next: HTMLElement } {
+    const window = new Window();
+    window.document.body.innerHTML = `<table><tr><td class="next">2030-01-02</td><td><form class="schedulerun" data-project="aide" data-entry="nightly" data-idle="Run now" data-queued="Queued" data-running="Running"><button>Run now</button></form></td></tr></table>`;
+    return {
+      doc: window.document as unknown as Document,
+      button: window.document.querySelector("button") as unknown as HTMLButtonElement,
+      next: window.document.querySelector(".next") as unknown as HTMLElement,
+    };
+  }
+
+  test("shows exact queued and running schedule jobs without changing Next run (AC-1, AC-2, AC-4)", async () => {
+    const page = runPage();
+    let state = "queued";
+    const fetchImpl = fakeFetch(() => ({ ok: true, body: { jobs: [{ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], state }] } }));
+    await reconcileScheduleRuns(page.doc, fetchImpl);
+    expect([page.button.disabled, page.button.textContent, page.next.textContent]).toEqual([true, "Queued", "2030-01-02"]);
+    state = "running";
+    await reconcileScheduleRuns(page.doc, fetchImpl);
+    expect([page.button.disabled, page.button.textContent, page.next.textContent]).toEqual([true, "Running", "2030-01-02"]);
+  });
+
+  test("restores Run now when a job ends and ignores other schedule jobs (AC-3)", async () => {
+    const page = runPage();
+    page.button.disabled = true;
+    page.button.textContent = "Running";
+    await reconcileScheduleRuns(page.doc, fakeFetch(() => ({
+      ok: true,
+      body: { jobs: [
+        { project: "other", specFolder: "schedule-nightly", steps: ["schedule"], state: "running" },
+        { project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], state: "done" },
+      ] },
+    })));
+    expect([page.button.disabled, page.button.textContent]).toEqual([false, "Run now"]);
+  });
+
+  test("leaves the last known state alone when the queue cannot be read (AC-3)", async () => {
+    const page = runPage();
+    page.button.disabled = true;
+    page.button.textContent = "Running";
+    await reconcileScheduleRuns(page.doc, fakeFetch(() => ({ ok: false })));
+    expect([page.button.disabled, page.button.textContent]).toEqual([true, "Running"]);
   });
 });
 

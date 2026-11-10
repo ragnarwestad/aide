@@ -6,9 +6,9 @@ import { scheduleControlCells } from "../../../../src/render/pages/schedule-page
 
 const ENTRY = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true };
 
-function cells(): HTMLElement {
+function cells(lang: "en" | "nb" | "es" | "de" | "fr" = "en"): HTMLElement {
   const window = new Window();
-  window.document.body.innerHTML = `<table><tbody><tr>${scheduleControlCells("aide", ENTRY)}</tr></tbody></table>`;
+  window.document.body.innerHTML = `<table><tbody><tr>${scheduleControlCells("aide", ENTRY, lang)}</tr></tbody></table>`;
   return window.document.body as unknown as HTMLElement;
 }
 
@@ -22,5 +22,14 @@ describe("scheduleControlCells()", () => {
     expect(body.querySelector(`dialog[id="${ask}"] form[action="${base}/delete"]`) !== null).toBe(true);
     const hrefs = [...body.querySelectorAll("a")].map((a) => a.getAttribute("href")!);
     expect(hrefs.filter((h) => h.endsWith("/edit"))).toEqual([]);
+  });
+
+  test("exposes the entry identity and translated button states (AC-5)", () => {
+    const forms = [cells("en"), cells("nb"), cells("es"), cells("de"), cells("fr")]
+      .map((body) => body.querySelector("form.schedulerun") as HTMLFormElement);
+    expect(forms.map((form) => form.dataset.project)).toEqual(Array(5).fill("aide"));
+    expect(forms.map((form) => form.dataset.entry)).toEqual(Array(5).fill("nightly"));
+    expect(forms.map((form) => form.dataset.queued)).toEqual(["Queued", "I kø", "En cola", "In Warteschlange", "En attente"]);
+    expect(forms.map((form) => form.dataset.running)).toEqual(["Running", "Kjører", "Ejecutando", "Läuft", "En cours"]);
   });
 });

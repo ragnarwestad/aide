@@ -41,6 +41,13 @@ export function runNowForm(project: string, name: string, lang: Language = "en")
     action: `${entryApi(project, name)}/run`,
     hook: "actionform schedulerun",
     button: { label: t(lang, "schedule.runNow"), pending: t(lang, "schedule.running") },
+    data: {
+      project,
+      entry: name,
+      idle: t(lang, "schedule.runNow"),
+      queued: t(lang, "schedule.queued"),
+      running: t(lang, "schedule.running"),
+    },
   });
 }
 

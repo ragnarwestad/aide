@@ -152,6 +152,13 @@ describe("the rows are redrawn on a push, not on a timer", () => {
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
   });
 
+  test("a `changed` event announces page-specific queue controls (AC-3)", () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    expect(h.dispatchedEvents.filter((event) => event.type === "aide:queue-changed")).toHaveLength(1);
+  });
+
   // `open` fires on the first connect AND on every reconnect the
   // browser makes on its own — after a dropped network, after the
   // server was restarted under the page. Resyncing there is what makes

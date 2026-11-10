@@ -50,6 +50,28 @@ test("mounts Settings, Notifications, Deploy and Schedule controls after a page 
   await GlobalRegistrator.unregister();
 });
 
+test("reconciles Schedule controls on mount and stops after unmount (AC-1, AC-2, AC-3)", async () => {
+  GlobalRegistrator.register({ url: "http://board.test/projects/aide?tab=schedule&live=0" });
+  let queueReads = 0;
+  globalThis.fetch = (async () => {
+    queueReads += 1;
+    return new Response(JSON.stringify({ jobs: [{ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued" }] }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const { mountPage } = await import("../../../src/specs-client/page-mount");
+  document.body.innerHTML = `<form class="schedulerun" data-project="aide" data-entry="nightly" data-idle="Run now" data-queued="Queued" data-running="Running"><button>Run now</button></form>`;
+  const unmount = mountPage(document, { referrer: "" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(queueReads).toBe(1);
+  expect((document.querySelector("button") as HTMLButtonElement).textContent).toBe("Queued");
+  document.dispatchEvent(new Event("aide:queue-changed"));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(queueReads).toBe(2);
+  unmount();
+  document.dispatchEvent(new Event("aide:queue-changed"));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(queueReads).toBe(2);
+});
+
 // A failed expectation must not leave the next test unable to register.
 afterEach(async () => {
   if (GlobalRegistrator.isRegistered) await GlobalRegistrator.unregister();

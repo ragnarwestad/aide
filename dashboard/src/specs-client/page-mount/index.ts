@@ -18,7 +18,7 @@ import { bindProviderAdd } from "../provider-add";
 import { bindPushPanel } from "../push";
 import { startReloadWhileIdle } from "../reload-while-idle";
 import { bindReportFrame } from "../report-frame";
-import { postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm } from "../schedule-actions";
+import { bindScheduleRuns, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm } from "../schedule-actions";
 import { placeNamedRow } from "../spec-detail";
 import { NEW_SPEC_FORM } from "../state";
 import { bindLists } from "./lists.ts";
@@ -97,6 +97,7 @@ export function mountPage(doc: Document, options: { referrer: string }): () => v
       return postScheduleRun(form);
     }) as EventListener);
   }
+  if (doc.querySelector("form.schedulerun[data-project][data-entry]")) cleanups.push(bindScheduleRuns(doc));
   for (const el of doc.querySelectorAll("form.scheduleform")) {
     const form = el as HTMLFormElement;
     const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;

@@ -8,6 +8,70 @@
 import { isThisPage, type Here } from "./back-link";
 import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
 import { swapPage } from "./page-swap";
+import { jobActivity } from "../queue/job-rules/activity.ts";
+import { scheduleTrackingKey } from "../project/spec-names.ts";
+
+type ScheduleJob = {
+  project?: string;
+  specFolder?: string;
+  steps?: string[];
+  state?: string;
+  landing?: boolean;
+};
+
+type QueueAnswer = { jobs?: ScheduleJob[] };
+
+const reconcileGeneration = new WeakMap<Document, number>();
+
+function applyScheduleJob(form: HTMLFormElement, job?: ScheduleJob, preserveNewerState = false): void {
+  const button = form.querySelector("button") as HTMLButtonElement | null;
+  if (!button) return;
+  const activity = job ? jobActivity({ state: job.state ?? "", landing: job.landing }) : "idle";
+  const state = activity === "queued" || activity === "running" ? activity : "idle";
+  if (preserveNewerState && state === "queued" && button.dataset.scheduleState === "running") return;
+  button.disabled = state !== "idle";
+  button.textContent = form.dataset[state] ?? button.textContent;
+  button.dataset.scheduleState = state;
+}
+
+function matchingScheduleJob(form: HTMLFormElement, jobs: ScheduleJob[]): ScheduleJob | undefined {
+  const key = scheduleTrackingKey(form.dataset.entry ?? "");
+  return jobs.find((job) => {
+    const activity = jobActivity({ state: job.state ?? "", landing: job.landing });
+    return job.project === form.dataset.project &&
+      job.specFolder === key &&
+      job.steps?.includes("schedule") &&
+      (activity === "queued" || activity === "running");
+  });
+}
+
+/** Bring every Run-now button on the mounted Schedule page in step with
+ * the queue. A failed or superseded read leaves the last known state alone. */
+export async function reconcileScheduleRuns(doc: Document, fetchImpl: typeof fetch = fetch): Promise<void> {
+  const generation = (reconcileGeneration.get(doc) ?? 0) + 1;
+  reconcileGeneration.set(doc, generation);
+  try {
+    const res = await fetchImpl("/api/queue", { headers: { accept: "application/json" } });
+    if (!res.ok) return;
+    const body = (await res.json().catch(() => null)) as QueueAnswer | null;
+    if (!Array.isArray(body?.jobs) || reconcileGeneration.get(doc) !== generation) return;
+    for (const el of doc.querySelectorAll("form.schedulerun[data-project][data-entry]")) {
+      const form = el as HTMLFormElement;
+      applyScheduleJob(form, matchingScheduleJob(form, body.jobs));
+    }
+  } catch {
+    // The next queue event or reconnect tries again; stale state is safer
+    // than enabling a control whose job may still be running.
+  }
+}
+
+/** Reconcile once now and after every queue signal, until this page is replaced. */
+export function bindScheduleRuns(doc: Document): () => void {
+  const reconcile = (): void => { void reconcileScheduleRuns(doc); };
+  reconcile();
+  doc.addEventListener("aide:queue-changed", reconcile);
+  return () => doc.removeEventListener("aide:queue-changed", reconcile);
+}
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
  *  itself is the press, the same shape
@@ -43,10 +107,13 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   const slot = form.closest("main")?.querySelector(".refused") as HTMLElement | null;
   const say = (text: string): void => writeLine(slot, text);
   if (button) button.disabled = true;
+  let accepted = false;
   try {
     const res = await fetchImpl(form.action, { method: "POST", headers: { accept: "application/json" } });
     const body = (await res.json().catch(() => null)) as ActionResult | null;
     if (res.ok && body?.ok) {
+      accepted = true;
+      applyScheduleJob(form, body.job as ScheduleJob | undefined, true);
       say("");
     } else {
       say(refusalText(body));
@@ -54,7 +121,7 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   } catch {
     say(refusalText(null));
   } finally {
-    if (button) button.disabled = false;
+    if (button && !accepted) button.disabled = false;
   }
 }
 

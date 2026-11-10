@@ -56,6 +56,7 @@ function clearReconnectTimer(): void {
 // untouched button back over the "merging…" the press just showed —
 // the click looked unregistered, and then the row jumped.
 export function onChanged(): void {
+  document.dispatchEvent(new Event("aide:queue-changed"));
   if (press.inFlight === 0) {
     void swapRows();
     follow.request();
@@ -103,6 +104,7 @@ export function connect(): void {
   // to reload.
   source.addEventListener("open", () => {
     backoffMs = RECONNECT_BASE_MS;
+    document.dispatchEvent(new Event("aide:queue-changed"));
     void swapRows();
     follow.request();
   });
@@ -149,6 +151,7 @@ export function onVisibility(): void {
   // to read a list that had moved on minutes ago (2026-09-20). The first
   // paint is not this: the server has just drawn the page.
   if (wasHidden && press.inFlight === 0) {
+    document.dispatchEvent(new Event("aide:queue-changed"));
     void swapRows();
     follow.request();
   }

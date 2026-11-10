@@ -6,6 +6,8 @@ import type { Job } from "./types.ts";
 import { RESULT_TOOLS, RUNNABLE_TOOLS, type ResultTool, type RunnableTool } from "./providers/tools.ts";
 import { WORKFLOW_STEP_RECORDS, requireWorkflowStep, workflowControls } from "../workflow-steps.ts";
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
+import { inFlight } from "./job-rules/activity.ts";
+export { inFlight, jobActivity, writing, type JobActivity } from "./job-rules/activity.ts";
 import {
   ACCEPTANCE_CRITERIA_UNTICKED,
   isRunStop,
@@ -320,20 +322,6 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
   if (step === "deploy" || step === "cleanup" || step === "close" || step === "reopen") return step;
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
-
-export type JobActivity = "queued" | "running" | "landing" | "idle";
-
-export function jobActivity(job: { state: string; landing?: boolean }): JobActivity {
-  if (job.landing) return "landing";
-  return job.state === "running" || job.state === "queued" ? job.state : "idle";
-}
-
-export const inFlight = (job: { state: string; landing?: boolean }): boolean => jobActivity(job) !== "idle";
-
-export const writing = (job: { state: string; landing?: boolean }): boolean => {
-  const activity = jobActivity(job);
-  return activity === "running" || activity === "landing";
-};
 
 export const jobDismissible = (job: {
   steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
