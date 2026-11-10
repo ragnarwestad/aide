@@ -202,9 +202,9 @@ export function createServer(opts: ServerOptions) {
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
     landingGate:
       opts.landingGate ??
-      ((root, job, branch) =>
+      ((root, job, branch, button) =>
         runProjectSuiteBeforePush(root, job, branch, {
-          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(),
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(), button,
         })),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers

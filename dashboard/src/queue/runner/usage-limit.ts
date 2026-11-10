@@ -147,6 +147,25 @@ function probedProvider(job: Job, providerOf: ProviderOf): string {
   return providerOf(index >= 0 ? { ...job, stepIndex: index } : job);
 }
 
+/** When the latest step on a provider started that then completed: proof
+ *  the limit has reset for every stop made before it, whatever time those
+ *  stops were given. A step the board runs itself (a deploy) uses no AI and
+ *  proves nothing. */
+function latestRunWithoutLimit(jobs: readonly Job[], key: string, providerOf: ProviderOf): number {
+  let latest = Number.NEGATIVE_INFINITY;
+  for (const job of jobs) {
+    for (const result of job.results) {
+      if (result.terminalReason !== "completed") continue;
+      if (requireWorkflowStep(result.step).runBy === "board") continue;
+      const started = ms(result.startedAt);
+      if (!(started > latest)) continue;
+      const index = job.steps.indexOf(result.step);
+      if (providerOf(index >= 0 ? { ...job, stepIndex: index } : job) === key) latest = started;
+    }
+  }
+  return latest;
+}
+
 /** Queue a stopped step again. Only the step sent ahead of the others
  *  gets a probe record. */
 function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
@@ -170,8 +189,9 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  - a waiting job whose spec has had a job queued for its step since the
  *    stop stands down at that time, and is not started again;
  *  - a job whose landing is in flight is left for the next tick;
- *  - after a probe of that AI has ended without a usage-limit stop, every
- *    job that stopped before the probe is queued again at once;
+ *  - after a probe of that AI, or any step that started on it after a
+ *    stop, has ended without a usage-limit stop, every job that stopped
+ *    before it is queued again at once;
  *  - otherwise, at the AI's time, all are queued again when the reset
  *    time was known, and when it was not only the oldest is, as the
  *    probe, while the others wait an hour from now. */
@@ -200,7 +220,10 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
         j.results[j.usageLimitProbe.results]?.terminalReason !== "provider-limit" &&
         probedProvider(j, providerOf) === key,
     );
-    const released = waiting.filter((w) => probes.some((p) => ms(p.usageLimitProbe!.at) > ms(w.finishedAt)));
+    const ranSince = latestRunWithoutLimit(jobs, key, providerOf);
+    const released = waiting.filter(
+      (w) => ranSince > ms(w.finishedAt) || probes.some((p) => ms(p.usageLimitProbe!.at) > ms(w.finishedAt)),
+    );
     if (released.length > 0) {
       for (const w of released) {
         if (handled(w)) store.update(w.id, { usageLimitWait: undefined });

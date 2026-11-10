@@ -30,7 +30,7 @@ async function verdictFor(answer: string) {
   const resolver = join(bin, "resolver");
   writeFileSync(resolver, `#!/bin/sh\nprintf '%s\\n' '${answer}'\n`, { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = resolver;
-  return runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x");
+  return runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { button: "Archive" });
 }
 
 describe("the merge test gate's resolver errors", () => {

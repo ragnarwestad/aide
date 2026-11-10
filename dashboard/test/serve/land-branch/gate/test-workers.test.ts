@@ -57,7 +57,7 @@ describe("the landing's test run", () => {
       { state: "done", landing: true },
       ...Array.from({ length: availableParallelism() - 1 }, () => ({ state: "running", landing: false })),
     ] as { state: "running" | "done"; landing: boolean }[];
-    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { jobs });
+    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { jobs, button: "Archive" });
     expect(verdict.ok).toBe(true);
     expect(readFileSync(seen, "utf-8").trim()).toBe("1");
   });

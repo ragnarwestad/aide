@@ -10,7 +10,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { landBranch } from "../../../src/serve/land-branch";
-import { clearsLandingError, createNumberRetryLimit, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
+import { clearsLandingError, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
@@ -85,15 +85,6 @@ test("a legacy landing error without landingErrorStep still clears for its own s
     landingErrorStep: undefined,
   });
   expect(clearsLandingError(legacy, "archive")).toEqual({});
-});
-
-test("create-number retry reads the semantic reason, not the message key (AC-4)", () => {
-  expect(createNumberRetryLimit({ ok: false, root: "/repo", reason: "create-number", error: "changed words" })).toBe(1);
-  expect(createNumberRetryLimit({
-    ok: false,
-    root: "/repo",
-    error: { key: "landing.createAssignNumberFailed" },
-  })).toBe(0);
 });
 
 /** A queue holding `jobs`, and which of them keep a list afterwards. */

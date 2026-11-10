@@ -21,7 +21,7 @@ import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { formatRunLogLine } from "../../queue/parse-stream/step-log.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
-import { stepButton } from "../../format/step-label.ts";
+import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { Job } from "../../queue/queue.ts";
 
@@ -94,13 +94,16 @@ export interface GateVerdict {
 export interface GateOpts {
   scriptDir?: string;
   jobs?: () => readonly BusyJob[];
+  /** The button the landing step's row offers, named by every sentence
+   *  that refuses the merge for its tests. */
+  button: string;
 }
 
 export async function runProjectSuiteBeforePush(
   root: string,
   job: GatedJob,
   branch: string,
-  opts: GateOpts = {},
+  opts: GateOpts,
 ): Promise<GateVerdict> {
   // The suite runs in a throwaway worktree of the merge commit, never in
   // the live checkout: a run's own git and a fast-forward of main moved
@@ -391,17 +394,19 @@ async function runSuiteIn(
       return out;
     };
     stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
-    const button = stepButton("archive");
+    const button = opts.button;
     let gate = await runOnce("");
     const firstResult = recordedFailures(gate.stdout);
-    // A red run gets the WHOLE command once more: a test that lost to a
-    // busy host passes the second time, and a real failure fails twice.
-    // A run that timed out is not retried — a second one would hold the
-    // landing for as long again.
+    // A red run gets the WHOLE command again (`LANDING_RETRIES.gateReruns`):
+    // a test that lost to a busy host passes the second time, and a real
+    // failure fails twice. A run that timed out is not retried — a second
+    // one would hold the landing for as long again.
     if (gate.code !== 0 && !gate.timedOut) {
       const first = failingLines(gate.stdout, gate.stderr);
-      stepLogLine(job, "the landing's tests are red — running them once more", true);
-      gate = await runOnce(" (retry)");
+      for (let n = 0; n < LANDING_RETRIES.gateReruns && gate.code !== 0 && !gate.timedOut; n++) {
+        stepLogLine(job, "the landing's tests are red — running them once more", true);
+        gate = await runOnce(" (retry)");
+      }
       if (gate.code === 0) {
         stepLogLine(job, "the landing's tests are green on the second run");
         return { ok: true, retriedAfter: first };

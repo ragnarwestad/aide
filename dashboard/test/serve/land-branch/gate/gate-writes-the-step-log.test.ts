@@ -62,7 +62,7 @@ test("a green run says when it started, with how many commands, and that it ende
   const root = repo();
   scripts("exit 0");
   const { job: j, runLog, implementLog } = job(root);
-  await runProjectSuiteBeforePush(root, j, "aide/81-x");
+  await runProjectSuiteBeforePush(root, j, "aide/81-x", { button: "Archive" });
   const log = readFileSync(runLog, "utf-8");
   expect(readFileSync(implementLog, "utf-8")).toBe("");
   expect(log).toMatch(/^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing runs the project's tests on the merge \(2 command\(s\)\)$/m);
@@ -73,7 +73,7 @@ test("a red run says so as an error, and says it runs them once more", async () 
   const root = repo();
   scripts("echo '(fail) x'\nexit 1");
   const { job: j, runLog } = job(root);
-  await runProjectSuiteBeforePush(root, j, "aide/81-x");
+  await runProjectSuiteBeforePush(root, j, "aide/81-x", { button: "Archive" });
   const log = readFileSync(runLog, "utf-8");
   expect(log).toMatch(/\+\d+s error: the landing's tests are red — running them once more$/m);
   expect(log).toMatch(/\+\d+s error: the landing's tests are red again$/m);
@@ -86,7 +86,7 @@ test("the run's progress is in the Log between its start and its end, and its wh
       'echo "running make test" >> "$p"\necho "pytest 50%" >> "$p"\necho "the whole output"\nexit 0',
   );
   const { job: j, runLog } = job(root);
-  await runProjectSuiteBeforePush(root, j, "aide/81-x");
+  await runProjectSuiteBeforePush(root, j, "aide/81-x", { button: "Archive" });
   const lines = readFileSync(runLog, "utf-8").split("\n").map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, ""));
   const start = lines.findIndex((l) => l.startsWith("the landing runs the project's tests"));
   const end = lines.indexOf("the landing's tests are green");

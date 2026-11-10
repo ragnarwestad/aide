@@ -5,4 +5,4 @@ export { deleteBranchOnly } from "./delete-branch.ts";
 export { fastForwardToOrigin } from "./fast-forward.ts";
 export { type LandingGate, mergeBranchIntoDefault, mergeWorktreePath } from "./merge.ts";
 export { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
-export { pushWithRetry, sleep, type Wait } from "./retry.ts";
+export { LANDING_RETRIES, landingRepeats, pushWithRetry, sleep, type Wait } from "./retry.ts";

@@ -190,7 +190,9 @@ restart of the board keeps it.
 - A hold belongs to one provider, by its key: a step on another provider of the same tool is held only by that
   provider's own wait.
 - At the provider's time (the `until` of its newest stop, written onto every stopped step of that provider until then)
-  `limit-reset` moves the stopped steps to `queued`, clearing `usageLimitWait`, `stopReason`, `finishedAt` and `error`. A step that stops on the limit again gets a new
+  `limit-reset` moves the stopped steps to `queued`, clearing `usageLimitWait`, `stopReason`, `finishedAt` and `error`.
+  A step on that provider that started after a stop and ended `completed` does the same at once for every stop made
+  before it; a step the board runs itself, such as a deploy, counts for nothing. A step that stops on the limit again gets a new
   wait, with no limit on how many times.
 - With no reset time (`resetKnown: false`) only the oldest stopped step is queued again, as the probe; the others
   wait another hour. The provider stays held until the probe's step has ended. When it ends without a usage-limit stop,

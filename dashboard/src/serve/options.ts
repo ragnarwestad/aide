@@ -141,6 +141,7 @@ export interface ServerOptions {
     root: string,
     job: { project: string; specFolder: string },
     branch: string,
+    button: string,
   ) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
   /** Landing's own finalize step for a `create` job; the real
    *  one calls `aide-create-spec --assign-number`. Tests pass a stub. */

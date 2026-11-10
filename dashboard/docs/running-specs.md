@@ -499,7 +499,8 @@ the board itself once the limit has reset. Nobody presses anything.
 
 - **The hold.** From the stop until the reset time the newest stop on that provider recorded, the board starts no
   queued step on that provider. A newer stop is the AI's latest word, so it moves the time for every stopped step on
-  that provider, earlier or later.
+  that provider, earlier or later. A step on that provider that started after a stop and completed shows the limit has
+  reset, and every stop made before it ends there, whatever time it was given.
   Those jobs stay `queued` and say so on their row and on their job page. Steps on other providers start as before, and
   OpenCode and Copilot, which report no usage limit, behave as always.
 - **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —

@@ -29,7 +29,7 @@ import { type GitRunner } from "../process/index.ts";
 import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
 import type { MergeHooks } from "../merge-hooks.ts";
 import { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
-import { GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, pushWithRetry, sleep, type Wait } from "./retry.ts";
+import { GIT_LOCKED, LANDING_RETRIES, pushWithRetry, sleep, type Wait } from "./retry.ts";
 import { withCheckoutLock } from "../checkout-lock/index.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
@@ -186,8 +186,8 @@ export async function mergeBranchIntoDefault(
       let merged = false;
       let lastStderr = "";
       let conflicted: string[] = [];
-      for (let n = 0; !merged && n <= LOCK_RETRIES; n++) {
-        if (n > 0) await wait(LOCK_WAIT_MS);
+      for (let n = 0; !merged && n <= LANDING_RETRIES.lockRetries; n++) {
+        if (n > 0) await wait(LANDING_RETRIES.lockWaitMs);
         const ff = await run(work, ["merge", "-q", "--ff-only", ref]);
         if (ff.code === 0) {
           merged = true;
@@ -284,7 +284,7 @@ export async function mergeBranchIntoDefault(
       if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
       await run(work, ["fetch", "--quiet", "origin", base]);
       await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-      if (attempt >= 1) {
+      if (attempt >= LANDING_RETRIES.baseMovedRebuilds) {
         return refuse(
           root,
           branch,

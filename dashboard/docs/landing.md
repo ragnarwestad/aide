@@ -74,7 +74,10 @@ never fatal: it is reported beside the merge.
 
 ### What is refused, and what is tried again
 
-A landing merges the spec branch into each repo's default branch and pushes, one repo at a time:
+A landing merges the spec branch into each repo's default branch and pushes, one repo at a time. What a step's
+landing does — which endings land, which root goes first, what the code root gets, whether origin is asked
+afterwards — is that step's entry in the landing policy (`src/serve/land-branch/policy/index.ts`), never a test of
+its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/git/branch-merge/retry.ts`:
 
 - **A conflict refuses and names the repo and the files.** The files in conflict are read before the failed merge is
   aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
@@ -86,8 +89,9 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   logged, and the landing stays landed.
 - **A lost lock is not a conflict.** When the merge in the landing's own worktree fails and git's stderr names a lock
   (`index.lock`, `packed-refs.lock`, a ref lock), it is retried up to five times, 400 ms apart.
-- **A failed merge is tried again twice**, 700 ms and then 1400 ms after the first. A red test gate is not retried
-  this way. Git's own words are kept as the row's detail.
+- **A refused merge is repeated by what it was.** A spec's folder landed alone is tried again twice, 700 ms and then
+  1400 ms after the first; a number that could not be assigned, once; any other refusal, a conflict included, not at
+  all. A red test gate is never repeated this way. Git's own words are kept as the row's detail.
 - **A push that fails says why.** The push and the question to origin that follows a failed one get a minute each,
   not the four seconds every other git command gets, since a push killed at four seconds leaves no words at all. What
   git said is sorted as a run's own push is ([When a push fails or the base conflicts](the-runner.md#when-a-push-fails-or-the-base-conflicts),
