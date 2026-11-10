@@ -39,23 +39,6 @@ export function offerEachToItsTool(root: ParentNode): void {
     const tool = model.selectedOptions[0]?.dataset.tool;
     if (tool) offerOnly(model, tool);
   }
-  syncSidePickers(root);
-}
-
-/** Review and Verify are independent of Implement. Restore every configured
- * option after the ordinary per-phase setup has filtered model selects. */
-export function syncSidePickers(root: ParentNode, formId?: string): void {
-  for (const el of root.querySelectorAll("select[data-side-picker]")) {
-    const select = el as HTMLSelectElement;
-    const form = select.getAttribute("form") ?? "";
-    if (formId && form !== formId) continue;
-    for (const option of Array.from(select.options)) {
-      option.hidden = false;
-      option.disabled = false;
-      const group = option.parentElement as HTMLOptGroupElement | null;
-      if (group?.tagName === "OPTGROUP") group.hidden = false;
-    }
-  }
 }
 
 export function offerOnly(model: HTMLSelectElement, tool: string): void {
