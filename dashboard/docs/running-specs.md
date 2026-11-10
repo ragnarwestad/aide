@@ -497,7 +497,9 @@ in `git worktree` checkouts of its own.
 A step that stops because its AI's usage limit is used up (`provider-limit`: Claude Code or Codex) is started again by
 the board itself once the limit has reset. Nobody presses anything.
 
-- **The hold.** From the stop until the reset time the stop recorded, the board starts no queued step on that provider.
+- **The hold.** From the stop until the reset time the newest stop on that provider recorded, the board starts no
+  queued step on that provider. A newer stop is the AI's latest word, so it moves the time for every stopped step on
+  that provider, earlier or later.
   Those jobs stay `queued` and say so on their row and on their job page. Steps on other providers start as before, and
   OpenCode and Copilot, which report no usage limit, behave as always.
 - **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —

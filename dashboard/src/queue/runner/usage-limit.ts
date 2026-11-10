@@ -67,10 +67,14 @@ const probeStoppedAgain = (job: Job): boolean =>
   ms(job.finishedAt) >= ms(job.usageLimitProbe.at);
 
 /** The wait that decides when a provider's stopped steps start again: the
- *  latest of their waits. */
+ *  newest stop's, since that is the AI's latest word on its limit. Stops
+ *  made at the same moment take the latest of their waits. */
 function decidingWait(waiting: readonly Job[]): { until: number; known: boolean } {
   const again = waiting.filter(probeStoppedAgain);
-  const waits = (again.length > 0 ? again : waiting).map((w) => w.usageLimitWait!);
+  const pool = again.length > 0 ? again : waiting;
+  const newest = Math.max(...pool.map((w) => ms(w.finishedAt)).filter(Number.isFinite));
+  const latest = Number.isFinite(newest) ? pool.filter((w) => ms(w.finishedAt) === newest) : pool;
+  const waits = latest.map((w) => w.usageLimitWait!);
   return { until: Math.max(...waits.map((w) => ms(w.until))), known: waits.every((w) => w.resetKnown) };
 }
 
@@ -161,32 +165,32 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  every tick, so a job moved back to `queued` is started by the same one.
  *
  *  For each provider with waiting jobs and no probe running:
- *  - a waiting job a person has pressed a step for since its stop stands
- *    down at its time, and is not started again;
+ *  - every waiting job carries the provider's time, so its row says when it
+ *    starts;
+ *  - a waiting job whose spec has had a job queued for its step since the
+ *    stop stands down at that time, and is not started again;
  *  - a job whose landing is in flight is left for the next tick;
  *  - after a probe of that AI has ended without a usage-limit stop, every
  *    job that stopped before the probe is queued again at once;
- *  - otherwise, at the AI's time, all are queued again when every reset
- *    time was known, and when one was not only the oldest is, as the
+ *  - otherwise, at the AI's time, all are queued again when the reset
+ *    time was known, and when it was not only the oldest is, as the
  *    probe, while the others wait an hour from now. */
 export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf, now: number): void {
   const jobs = store.list();
   const nowIso = isoOf(now);
+  const handled = (w: Job): boolean => {
+    const stopped = ms(w.finishedAt);
+    const step = w.steps[w.stepIndex];
+    return jobs.some(
+      (j) =>
+        j.id !== w.id && j.project === w.project && j.specFolder === w.specFolder && ms(j.createdAt) > stopped &&
+        j.steps.includes(step!),
+    );
+  };
   for (const [key, hold] of heldAis(jobs, providerOf)) {
     if (hold.probe) continue;
-    let waiting = hold.waiting.filter((w) => {
-      if (ms(w.usageLimitWait!.until) > now) return true;
-      const stopped = ms(w.finishedAt);
-      const step = w.steps[w.stepIndex];
-      const handled = jobs.some(
-        (j) =>
-          j.id !== w.id && j.project === w.project && j.specFolder === w.specFolder && ms(j.createdAt) > stopped &&
-          j.steps.includes(step!),
-      );
-      if (handled) store.update(w.id, { usageLimitWait: undefined });
-      return !handled;
-    });
-    waiting = waiting.filter((w) => !w.landing);
+    const deciding = decidingWait(hold.waiting);
+    const waiting = hold.waiting.filter((w) => !w.landing);
     if (waiting.length === 0) continue;
 
     const probes = jobs.filter(
@@ -198,17 +202,34 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
     );
     const released = waiting.filter((w) => probes.some((p) => ms(p.usageLimitProbe!.at) > ms(w.finishedAt)));
     if (released.length > 0) {
-      for (const w of released) queueAgain(store, w);
+      for (const w of released) {
+        if (handled(w)) store.update(w.id, { usageLimitWait: undefined });
+        else queueAgain(store, w);
+      }
       continue;
     }
 
-    const deciding = decidingWait(waiting);
-    if (now < deciding.until) continue;
-    if (deciding.known) {
-      for (const w of waiting) queueAgain(store, w);
+    if (now < deciding.until) {
+      const until = isoOf(deciding.until);
+      for (const w of waiting) {
+        const own = w.usageLimitWait!;
+        if (own.until !== until || own.resetKnown !== deciding.known) {
+          store.update(w.id, { usageLimitWait: { until, resetKnown: deciding.known } });
+        }
+      }
       continue;
     }
-    const [oldest, ...rest] = [...waiting].sort((a, b) => ms(a.createdAt) - ms(b.createdAt));
+    const starting = waiting.filter((w) => {
+      if (!handled(w)) return true;
+      store.update(w.id, { usageLimitWait: undefined });
+      return false;
+    });
+    if (starting.length === 0) continue;
+    if (deciding.known) {
+      for (const w of starting) queueAgain(store, w);
+      continue;
+    }
+    const [oldest, ...rest] = [...starting].sort((a, b) => ms(a.createdAt) - ms(b.createdAt));
     queueAgain(store, oldest!, nowIso);
     for (const w of rest) {
       store.update(w.id, { usageLimitWait: { until: isoOf(now + USAGE_LIMIT_RETRY_MS), resetKnown: false } });
