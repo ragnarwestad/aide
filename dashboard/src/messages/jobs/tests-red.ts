@@ -184,11 +184,11 @@ export const JOBS_TESTS_RED = {
     de: "Archive meldete Erfolg, aber die Tests des Projekts sind nach dem Merge mit main rot — der Runner hat sie selbst ausgeführt, und die fehlschlagenden Tests stehen darunter",
     fr: "archive a signalé un succès, mais les tests du projet sont au rouge après le merge avec main — le runner les a lancés lui-même, et les tests en échec sont listés ci-dessous",
     solution: {
-      en: "press {button} again; the step ends only on a green run",
-      nb: "trykk {button} igjen; steget ender bare på en grønn kjøring",
-      es: "pulsa {button} de nuevo; el paso solo termina con una ejecución en verde",
-      de: "klicke erneut auf {button}; der Schritt endet erst bei einem grünen Lauf",
-      fr: "cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert",
+      en: "if the fault is in the code, press {button} again; if something on the machine stopped the tests, such as a port in use or a service that is down, fix that first",
+      nb: "er feilen i koden, trykk {button} igjen; stoppet noe på maskinen testene, som en port i bruk eller en tjeneste som er nede, rett det først",
+      es: "si el fallo está en el código, pulsa {button} de nuevo; si algo en la máquina detuvo los tests, como un puerto en uso o un servicio caído, arréglalo primero",
+      de: "liegt der Fehler im Code, klicke erneut auf {button}; hat etwas auf der Maschine die Tests gestoppt, etwa ein belegter Port oder ein ausgefallener Dienst, behebe das zuerst",
+      fr: "si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté les tests, comme un port occupé ou un service arrêté, corrigez-le d'abord",
     },
   },
 } as const satisfies Record<string, MessageEntry>;
