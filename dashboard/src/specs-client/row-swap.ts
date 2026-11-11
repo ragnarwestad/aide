@@ -231,6 +231,24 @@ function groupRange(key: string): Element[] | null {
   return rowsFrom(head);
 }
 
+const phaseLogDetails = (root: Element, selector: string): Element[] => {
+  const query = (root as Element & { querySelectorAll?: (selector: string) => Iterable<Element> }).querySelectorAll;
+  return query ? Array.from(query.call(root, selector)) : [];
+};
+
+const openPhaseAttemptLogs = (roots: Element[]): Set<string> =>
+  new Set(
+    roots.flatMap((root) => phaseLogDetails(root, "details[data-phase-attempt-log][open]"))
+      .map((details) => details.getAttribute("data-phase-attempt-log"))
+      .filter((key): key is string => key !== null),
+  );
+
+function reopenPhaseAttemptLogs(roots: Element[], open: ReadonlySet<string>): void {
+  for (const details of roots.flatMap((root) => phaseLogDetails(root, "details[data-phase-attempt-log]"))) {
+    if (open.has(details.getAttribute("data-phase-attempt-log") ?? "")) details.setAttribute("open", "");
+  }
+}
+
 /** The rows of the spec `el` sits in, reached from inside rather than by
  *  its anchor: the row it is in, climbed out of any table the open spec
  *  holds of its own, then back to that spec's head row. `null` for an
@@ -249,8 +267,12 @@ export function specRowsOf(el: Element): Element[] | null {
 function replaceGroup(g: RowGroup): boolean {
   const range = groupRange(g.key);
   if (!range) return false;
+  const openPhaseLogs = openPhaseAttemptLogs(range);
   range[0]!.insertAdjacentHTML("beforebegin", g.html);
   for (const el of range) el.remove();
+  const fresh = groupRange(g.key);
+  if (!fresh) return false;
+  reopenPhaseAttemptLogs(fresh, openPhaseLogs);
   return true;
 }
 
@@ -436,6 +458,7 @@ export async function swapRows(): Promise<void> {
     // is exactly that.
     const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     const open = openTestFiles(body);
+    const openPhaseLogs = openPhaseAttemptLogs([body]);
     // The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
@@ -461,6 +484,7 @@ export async function swapRows(): Promise<void> {
       }
     }
     restore();
+    reopenPhaseAttemptLogs([body], openPhaseLogs);
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
