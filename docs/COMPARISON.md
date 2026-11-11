@@ -17,6 +17,7 @@
 - [Augment Code](#augment-code)
 - [Claude Projects](#claude-projects)
 - [T3 Code](#t3-code)
+- [Threadbear](#threadbear)
 - [PDD Kit](#pdd-kit)
 - [Aide's design choices](#aides-design-choices)
 
@@ -26,7 +27,7 @@ Aide compared with two kinds of tool, on the same seven criteria:
 
 - **Tools for spec-driven development:** writing down what is to be built, and how, before an AI writes the code.
 - **Agent runners:** tools that start AI coding agents, give each its own workspace and follow their work, with or
-  without a spec. Aide's dashboard is one, and Claude Projects and T3 Code are compared with it as such.
+  without a spec. Aide's dashboard is one, and Claude Projects, T3 Code and Threadbear are compared with it as such.
 
 The criteria are the same for both kinds. The criteria are defined first, five
 of them are summarised in a table, and then all seven are answered one tool at a time. The last chapter lists Aide's own design
@@ -81,6 +82,7 @@ tool.
 | Augment Code       | None; it supplies context to other tools               | Its own service                                                 | Not applicable                                  | Not applicable                               | Nothing                                                                    |
 | Claude Projects    | Threads in a project, with a shared memory             | Claude only, as Claude Code cloud sessions                      | Unattended: a coordinator hands work to threads | Opens pull requests; runs tests              | Nothing required in the repo; branches and pull requests                   |
 | T3 Code            | None; a thread per task, kept as its events            | 6 agent CLIs, through their server protocols                    | By hand, one thread per task, in parallel       | Opens pull requests; tests not stated        | An optional `t3.json`; branches, worktrees and hidden checkpoint refs      |
+| Threadbear         | Threads and events; no prescribed spec files           | Claude Code and Codex; experimental ACP agents                  | Interactive threads, schedules and subagents    | Opt-in worktrees and checked local landing   | Optional `.threadbear/patches/`; worktrees, branches and commits           |
 | PDD Kit            | A formal spec in Verus, approved before the code       | Not stated; works with Chopin, GitHub Next's planning tool      | Not stated                                      | Proves the code meets the spec; ends in a PR | Not stated                                                                 |
 
 ## Aide
@@ -476,6 +478,56 @@ straight to the default branch is refused. Whether tests run before the pull req
 
 **Invasiveness.** An optional `t3.json` in the project, naming scripts to run, such as on a new worktree. The work
 shows as branches, worktrees and the hidden checkpoint refs.
+
+## Threadbear
+
+**What it is.** [Threadbear](https://github.com/mikecann/threadbear), open source under MIT, runs AI conversations
+through a background runner, with a Mac app, an iPhone app and web access. The runner owns the agent processes;
+closing or updating the app does not stop their work. Phone and web access use a Convex deployment in the user's
+own account. Its [guide](https://github.com/mikecann/threadbear/blob/main/docs/guide.md) describes the user-facing
+behaviour, and its [protocol](https://github.com/mikecann/threadbear/blob/main/docs/protocol.md) defines the shared
+state and actions.
+
+**Document structure.** No prescribed spec files. A thread keeps its conversation and execution state outside the
+project. Its numbered events are appended to a log; the store drops an incomplete final line after a crash and
+rejects an append with an unexpected sequence number
+([event store](https://github.com/mikecann/threadbear/blob/main/runner/src/store.ts)). Archiving puts away a thread,
+rather than completing a spec workflow.
+
+**Workflow.** A person asks for work in a thread, reads the answer and supplies the next instruction. There is no
+required create–analyze–implement–archive sequence. Questions and approvals have their own state and answer
+controls. Running work is distinguished from work that needs the user's answer; a provider-limit wait can resume
+automatically. The agent's conversational archive and a repository's checked landing are separate operations.
+
+**AI tool support.** Claude Code and Codex use the user's existing logins. OpenCode and Cursor through ACP are an
+experiment, off by default. Account pools can choose another login when a usage limit is reached, while a thread
+pinned to one account waits for that account. An automatic continuation that hits a limit again waits instead of
+repeatedly switching. Moving between providers changes the session and model settings, so it is more than changing
+an account label ([pool handling](https://github.com/mikecann/threadbear/blob/main/runner/src/runner/pools.ts)).
+
+**Execution.** Interactive threads can run concurrently, start subagents or receive scheduled messages. A schedule
+can message an existing thread or create a new one. The runner supports handing threads to a replacement runner
+during an update: busy threads can finish on the old process while idle ones move to the new process
+([handovers](https://github.com/mikecann/threadbear/blob/main/runner/src/runner/handovers.ts)). This is a conversation
+runner with automation, rather than a mandatory spec lifecycle.
+
+**Code handling.** Repositories can opt into one worktree per thread and name setup and check commands in a patch.
+`tb land` holds a per-repository lock, brings the branch up to date with local main, runs the configured check when
+one exists, and fast-forwards main only after it succeeds. It refuses changes made to the checked tree during the
+check. The command does not push; without a configured check it does not require a test run
+([worktrees and landing](https://github.com/mikecann/threadbear/blob/main/docs/thread-worktrees.md#landing)).
+
+**Invasiveness.** Conversation data lives in the runner's own storage. A repository can add
+`.threadbear/patches/` configuration, including its worktree and check settings. Opted-in work creates worktrees,
+branches and commits. No spec directory is required.
+
+**Relevant to Aide.** The strongest ideas to examine are explicit user-action state, actions that cease to be
+available once resolved, and the event log already considered in [the roadmap](ROADMAP.md#4-an-append-only-event-log-for-runs).
+Its experimental `looseEnds` check looks for work left behind even after an agent reports that nothing remains,
+including worktree changes, unpushed commits and unfinished child work
+([implementation](https://github.com/mikecann/threadbear/blob/main/runner/src/runner/loose-ends.ts)). That is a useful
+reference for distinguishing a finished agent turn from finished delivery. Aide already has worktree isolation,
+controlled landing and steps that outlive a dashboard restart; those are overlaps, not missing features.
 
 ## PDD Kit
 
