@@ -25,11 +25,12 @@ beforeAll(async () => {
     },
   });
   base = started.base;
-  const response = await fetch(`${base}/api/queue/groups/aide/Release`, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: "action=start",
-  });
+  await page.goto(`${base}/?live=0`);
+  const answered = page.waitForResponse((response) =>
+    response.request().method() === "POST");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  const response = await answered;
+  expect(response.status()).toBe(200);
   const body = await response.json() as { job: { specFolder: string } };
   startedMember = body.job.specFolder;
 });
