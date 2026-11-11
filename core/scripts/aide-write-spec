@@ -23,6 +23,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
 ALLOWED_FILES="0-README.md 1-description.md 2-analysis.md 3-solution.md 4-status.md"
 specs_root=""; folder=""; file=""; result_file=""
@@ -40,7 +41,7 @@ USAGE
     --folder) folder="${2:-}"; shift 2 ;;
     --file) file="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
-    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) aide_spec_refuse "unknown argument: $1" ;;
   esac
 done
 
@@ -51,7 +52,6 @@ done
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/spec-result.sh"
 
 [ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
 [ -n "$folder" ] || aide_spec_refuse "missing --folder"
