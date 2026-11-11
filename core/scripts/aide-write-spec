@@ -21,8 +21,34 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bootstrap_result_file=""
+bootstrap_value=""
+for arg in "$@"; do
+  if [ -n "$bootstrap_value" ]; then
+    [ "$bootstrap_value" = "result" ] && bootstrap_result_file="$arg"
+    bootstrap_value=""
+    continue
+  fi
+  case "$arg" in
+    -h|--help) printf '%s\n' 'Usage:' \
+      '  aide-write-spec --specs-root <path> --folder <NN-slug> --file <name>' \
+      '                   [--result-file <path>]   # content on stdin'; exit 0 ;;
+    --result-file) bootstrap_value="result" ;;
+    --specs-root|--folder|--file) bootstrap_value="value" ;;
+  esac
+done
+require_library() {
+  [ -f "$SCRIPT_DIR/$1" ] && return 0
+  payload="$(printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"%s is missing beside aide-write-spec — reinstall aide"}' "$1")"
+  printf '%s\n' "$payload"
+  [ -z "$bootstrap_result_file" ] || printf '%s\n' "$payload" > "$bootstrap_result_file"
+  exit 2
+}
+for library in lib/spec-state.sh lib/status-progress.sh lib/spec-result.sh; do
+  require_library "$library"
+done
 # shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
+source "$SCRIPT_DIR/lib/spec-state.sh"
 source "$SCRIPT_DIR/lib/spec-result.sh"
 
 ALLOWED_FILES="0-README.md 1-description.md 2-analysis.md 3-solution.md 4-status.md"
