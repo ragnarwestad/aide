@@ -266,5 +266,6 @@ describe("the group field", () => {
     remove.checked = true;
     pickSetting(remove);
     expect(save(rows, A).disabled).toBe(false);
+    expect(remove.checked).toBe(true);
   });
 });

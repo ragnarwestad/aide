@@ -7,7 +7,7 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, groupIn, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, groupIn, manifestInside, nextGroupPosition, parseCriteriaChecks, specFileText, withAcceptanceLine,
   withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine, withGroupLines,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
@@ -65,6 +65,7 @@ export async function trackingRoutes(
     ? await readStatusFromBranch(ctx.gitRun, statusTarget.root, statusTarget.branch, statusTarget.relPath)
     : null;
   const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
+  const completedSteps = parseStatus(statusText).workflowSteps;
 
   // What can be changed is the card's to say (`project/spec-card.ts`), the
   // same answer the Running row is drawn from. The job-state gate `/save`
@@ -78,8 +79,8 @@ export async function trackingRoutes(
     facts: {
       place: "running-row",
       jobInFlight,
-      analyzeRun: parseStatus(statusText).workflowSteps.includes("analyze"),
-      started: parseStatus(statusText).workflowSteps.length > 0,
+      analyzeRun: completedSteps.includes("analyze"),
+      started: completedSteps.some((step) => step !== "create"),
     },
     saved: { dependsOn: dependsOnIn(currentText ?? ""), group: groupIn(currentText ?? "") ?? null, ...createChoicesIn(currentText ?? "") },
   });
@@ -136,11 +137,14 @@ export async function trackingRoutes(
     } else if (askedGroup && askedGroup !== currentGroup?.name) {
       const name = askedGroup;
       const discovered = ctx.opts.projectRoot
-        ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
+        ? discoverProjects(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
         : undefined;
       if (!discovered) return refuse("unknown project — nothing was saved");
-      const positions = discovered.specs.filter((s) => s.group?.name === name).map((s) => s.group!.position);
-      text = withGroupLines(currentText, { name, position: Math.max(0, ...positions) + 1 });
+      const position = nextGroupPosition(name, [
+        ...discovered.specs.map((s) => s.group),
+        ...ctx.targets().filter((s) => s.project === project).map((s) => s.group),
+      ]);
+      text = withGroupLines(currentText, { name, position });
       if (text === null) return refuse(`nowhere to put "Group" — Tracking info has no Created line — nothing was saved`);
     }
   }

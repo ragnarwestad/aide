@@ -270,6 +270,7 @@ function groupRows(
   opts: SpecsPageOptions,
   now: number,
   opened: Set<string>,
+  allGroups: SpecGroup[] = groups,
 ): string {
   const emitted = new Set<string>();
   return groups.map((g) => {
@@ -280,9 +281,10 @@ function groupRows(
     const children = groups
       .filter((candidate) => candidate.project === g.project && candidate.group?.name === g.group!.name)
       .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
-    const done = children.filter((child) => child.state === "archived" || child.state === "closed").length;
-    const waiting = children.find((child) => child.state !== "archived" && child.state !== "closed" && child.state !== "not-started");
-    const status = t(opts.lang ?? "en", "list.groupDone", { done: String(done), total: String(children.length) });
+    const wholeGroup = allGroups.filter((candidate) => candidate.project === g.project && candidate.group?.name === g.group!.name);
+    const done = wholeGroup.filter((child) => child.state === "archived" || child.state === "closed").length;
+    const waiting = wholeGroup.find((child) => child.state !== "archived" && child.state !== "closed" && child.state !== "not-started");
+    const status = t(opts.lang ?? "en", "list.groupDone", { done: String(done), total: String(wholeGroup.length) });
     const waitingText = waiting ? ` · ${t(opts.lang ?? "en", "list.groupWaiting", { spec: waiting.specFolder })}` : "";
     const parent = `<tr class="specstate" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
       `<strong>${esc(g.group.name)}</strong> · ${esc(status + waitingText)} ` +
@@ -390,7 +392,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
-      groupRows(matched, opts, now, openedKeys(opts))
+      groupRows(matched, opts, now, openedKeys(opts), groups)
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
@@ -421,7 +423,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
 export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
-  return `<table><tbody>${groupRows(one, opts, now, openedKeys(opts))}</tbody></table>`;
+  return `<table><tbody>${groupRows(one, opts, now, openedKeys(opts), groups)}</tbody></table>`;
 }
 
 /** The page's body: the notices, then the one container the script swaps. */

@@ -107,7 +107,7 @@ function show(form: Element, view: CardView): void {
     const groupInput = groupInputOf(form);
     if (groupInput) groupInput.value = view.shown.group?.name ?? "";
     const removeGroup = removeGroupOf(form);
-    if (removeGroup) removeGroup.checked = false;
+    if (removeGroup) removeGroup.checked = view.shown.group === null && view.restore.group !== null;
     for (const [attr, on] of [
       ["data-acceptance", view.shown.acceptanceRequired],
       ["data-ai-formulate", view.shown.aiFormulate],

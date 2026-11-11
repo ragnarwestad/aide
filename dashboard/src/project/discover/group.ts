@@ -9,6 +9,10 @@ const POSITION_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Group position:\*\*[ \t]*.*(
 
 export interface SpecGroupMembership { name: string; position: number }
 
+export function nextGroupPosition(name: string, groups: Array<SpecGroupMembership | undefined>): number {
+  return Math.max(0, ...groups.filter((group) => group?.name === name).map((group) => group!.position)) + 1;
+}
+
 export function groupIn(text: string): SpecGroupMembership | undefined {
   const name = text.match(GROUP_LINE)?.[1]?.replace(/`/g, "").trim();
   const rawPosition = text.match(POSITION_LINE)?.[1]?.trim();

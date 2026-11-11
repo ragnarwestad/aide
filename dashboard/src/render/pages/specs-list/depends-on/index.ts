@@ -66,7 +66,12 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
-  const facts = { place: "running-row", jobInFlight: specBusy(g), analyzeRun: g.done.includes("analyze"), started: g.done.length > 0 } as const;
+  const facts = {
+    place: "running-row",
+    jobInFlight: specBusy(g),
+    analyzeRun: g.done.includes("analyze"),
+    started: g.done.some((step) => step !== "create"),
+  } as const;
   const { view } = cardStep(undefined, { type: "opened", facts, saved: cardValuesOf(g) });
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,

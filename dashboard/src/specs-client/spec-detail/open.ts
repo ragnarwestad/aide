@@ -109,6 +109,7 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   }
   if (failed) await showFailure(body, key);
   await shutPrevious;
+  keepInPlace(head, before);
 
   if (current?.controller === controller) {
     current = null;
@@ -117,7 +118,11 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   press.inFlight--;
   // The links that depend on the address (the Reopen dialogs' way back) are
   // drawn for the new one, the open row held across it.
-  if (press.pressGen === gen) void swapRows();
+  if (press.pressGen === gen) {
+    await swapRows();
+    const redrawnHead = specHead(key);
+    if (redrawnHead) keepInPlace(redrawnHead, before);
+  }
 }
 
 /** The row the spec will be drawn in, copied from the template the page
