@@ -69,3 +69,25 @@ def test_command_writes_a_timestamped_report_and_reports_failure(tmp_path, monke
     assert report["complete"] is False
     assert report["posts"] == []
     assert report["error"] == "upstream unavailable"
+
+
+@pytest.mark.parametrize("failures", [1, 3])
+def test_incomplete_http_response_is_retried_or_recorded(tmp_path, monkeypatch, failures):
+    import http.client
+    import json
+    calls = []
+    def fetch(params):
+        calls.append(params.copy())
+        if len(calls) <= failures:
+            raise http.client.IncompleteRead(b"partial", 100)
+        return {"code": 200, "results": [], "cursor": {}}
+    monkeypatch.setattr(reader, "fetch_page", fetch)
+    output = tmp_path / "posts.json"
+    assert reader.main(["--output", str(output)]) == (0 if failures == 1 else 1)
+    report = json.loads(output.read_text())
+    assert len(calls) == (2 if failures == 1 else 3)
+    assert all(p == calls[0] for p in calls)
+    assert report["complete"] is (failures == 1)
+    if failures == 3:
+        assert "IncompleteRead" in report["error"]
+        assert report["posts"] == []

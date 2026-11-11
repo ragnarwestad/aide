@@ -2,6 +2,7 @@
 """Collect public X list posts through FxTwitter without a browser."""
 
 import argparse
+import http.client
 import json
 import sys
 import time
@@ -53,12 +54,17 @@ def main(argv=None):
               "source": "https://api.fxtwitter.com/2/search"}
     deadline = time.monotonic() + 180
     def fetch(params):
-        if time.monotonic() >= deadline:
-            raise ValueError("Collection time limit reached before the time range was covered")
-        return fetch_page(params)
+        for attempt in range(3):
+            if time.monotonic() >= deadline:
+                raise ValueError("Collection time limit reached before the time range was covered")
+            try:
+                return fetch_page(params)
+            except (OSError, http.client.HTTPException):
+                if attempt == 2:
+                    raise
     try:
         report.update(collect(report["list_id"], report["since"], until, fetch))
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, http.client.HTTPException, ValueError, KeyError, TypeError) as error:
         report.update(complete=False, posts=[], error=str(error))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

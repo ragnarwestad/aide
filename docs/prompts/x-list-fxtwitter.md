@@ -26,7 +26,8 @@ python3 scripts/fetch-x-list.py --output "$AIDE_SCHEDULE_OUTPUT_DIR/posts.json"
 The script uses FxTwitter search with `list:1992629307080929379` and follows cursors until it reaches older posts
 or exhausts the results. It filters timestamps itself, removes duplicate IDs and preserves each returned post
 whole, including article and quoted-post data when supplied. It allows at most 100 pages and checks a three-minute
-deadline before each request; an in-flight request can add up to 20 seconds.
+deadline before each request; an in-flight request can add up to 20 seconds. Interrupted HTTP responses and
+network errors are retried up to three attempts per page, within the same deadline.
 
 Read `complete` before using the report. A failed response, missing timestamps, a broken pagination cursor or a
 limit reached produces exit code 1 and a report with `complete: false`, an error and no posts. Do not turn that
