@@ -50,6 +50,15 @@
 # The run's progress (aide-record-test-run --progress-file) into the Log
 # as it comes: every line written since the last call, stamped.
 step_tests_progress_seen=0
+step_test_active_log=""
+preserve_step_test_log() {
+  [ -n "${stream_file:-}" ] || return 0
+  [ -n "$step_test_active_log" ] || return 0
+  [ -f "$step_test_active_log" ] || return 0
+  cat "$step_test_active_log" >> "${stream_file%.stream.jsonl}.tests.log" 2>/dev/null || true
+  step_test_active_log=""
+}
+
 stage_test_progress() {
   local file="$work_dir/step-test-progress" total
   [ -f "$file" ] || return 0
@@ -69,6 +78,7 @@ run_step_tests_within_time() {
   # The recorder's own answer, read after the run (recorder_failure): a
   # file left by an earlier round must not speak for this one.
   rm -f "$work_dir/step-test-run.json"
+  step_test_active_log="$work_dir/step-test-run.log"
   set -m
   # The host's cores divided among the steps and landings running now
   # (run-spec/turn/test-workers.sh): taken as the run starts, since the
@@ -86,28 +96,20 @@ run_step_tests_within_time() {
   while kill -0 "$tests_pid" 2>/dev/null; do
     stage_test_progress
     if [ "$(date +%s)" -ge "$deadline" ]; then
-      kill -TERM "-$tests_pid" 2>/dev/null || kill -TERM "$tests_pid" 2>/dev/null
-      sleep 2
-      kill -KILL "-$tests_pid" 2>/dev/null || true
-      wait "$tests_pid" 2>/dev/null
-      child=""
+      cleanup_owned_process "$child" terminate
+      preserve_step_test_log
       step_tests_seconds=$(( step_tests_seconds + $(date +%s) - run_started ))
       return 124
     fi
     sleep 1
   done
-  wait "$tests_pid"
-  local rc=$?
+  cleanup_owned_process "$child" reap
+  local rc=$cleanup_exit_code
   step_tests_seconds=$(( step_tests_seconds + $(date +%s) - run_started ))
   stage_test_progress
   # The whole output, kept beside the step's own run log: the Log shows
   # its progress, this file what the tests actually said.
-  if [ -n "${stream_file:-}" ]; then
-    cat "$work_dir/step-test-run.log" >> "${stream_file%.stream.jsonl}.tests.log" 2>/dev/null || true
-  fi
-  # What the suite left running goes with it (see run_model_turn).
-  kill -TERM "-$tests_pid" 2>/dev/null || true
-  child=""
+  preserve_step_test_log
   return "$rc"
 }
 
@@ -115,7 +117,7 @@ run_step_tests_within_time() {
 # file command. The check stays inside one test run's limit and `child`
 # points at it so Cancel stops it too. $1 is failing_tests JSON, $2 output.
 run_red_files_again() {
-  local named="$1" out="$2" cmd deadline file pid rc log rows
+  local named="$1" out="$2" cmd deadline file pid rc log rows interrupted
   cmd="$(printf '%s' "$step_tests_resolved" | jq -r '.filesCommand // empty')"
   rows="$work_dir/red-files-again.ndjson"
   : > "$rows"
@@ -128,6 +130,8 @@ run_red_files_again() {
   while IFS= read -r file; do
     [ "$(date +%s)" -lt "$deadline" ] || { stage "no time left to run the remaining red test files again"; break; }
     log="$work_dir/red-again-$(wc -l < "$rows" | tr -d ' ').log"
+    step_test_active_log="$log"
+    interrupted="false"
     stage "running $file again alone"
     set -m
     ( cd "$project_wt" && export AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-1}" && \
@@ -137,19 +141,21 @@ run_red_files_again() {
     child="$pid"
     while kill -0 "$pid" 2>/dev/null; do
       if [ "$(date +%s)" -ge "$deadline" ]; then
-        kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
-        sleep 2
-        kill -KILL "-$pid" 2>/dev/null || true
+        interrupted="true"
+        cleanup_owned_process "$child" terminate
         break
       fi
       sleep 1
     done
-    wait "$pid" 2>/dev/null; rc=$?
-    child=""
+    if [ -n "$child" ]; then
+      cleanup_owned_process "$child" reap
+    fi
+    rc=$cleanup_exit_code
+    [ "$interrupted" = "true" ] && rc=1
     if [ -n "${stream_file:-}" ]; then
       printf '\n--- %s, run again alone:\n' "$file" >> "${stream_file%.stream.jsonl}.tests.log"
-      cat "$log" >> "${stream_file%.stream.jsonl}.tests.log"
     fi
+    preserve_step_test_log
     results="$(test_results "$log")"
     jq -cn --arg file "$file" --argjson passed "$([ "$rc" -eq 0 ] && echo true || echo false)" \
       --argjson results "$results" '{file:$file, passed:$passed} + $results' >> "$rows"

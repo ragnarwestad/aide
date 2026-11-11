@@ -92,8 +92,40 @@ created_wt=()
 created_wt_root=()
 child=""
 
-kill_group() {
-  kill "-$1" "-$child" 2>/dev/null || kill "-$1" "$child" 2>/dev/null || true
+kill_group() {  # <signal> [owned-pid]
+  local signal="$1" owned="${2:-$child}"
+  [ -n "$owned" ] || return 0
+  kill "-$signal" "-$owned" 2>/dev/null || kill "-$signal" "$owned" 2>/dev/null || true
+}
+
+# Reap one runner-owned process and clear its live record. Timeout and
+# cancellation additionally stop its whole process group, wait only while
+# that group still has members, and force down only the members left after
+# the configured grace. The exit status is returned through
+# cleanup_exit_code because callers must preserve it while doing more work.
+cleanup_exit_code=0
+cleanup_owned_process() {  # <owned-pid> <reap|terminate>
+  local owned="$1" mode="$2" grace_end
+  cleanup_exit_code=0
+  if [ "$mode" = "terminate" ]; then
+    kill_group TERM "$owned"
+    grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
+    while kill -0 "-$owned" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
+    kill -0 "-$owned" 2>/dev/null && kill_group KILL "$owned"
+  fi
+  wait "$owned" 2>/dev/null
+  cleanup_exit_code=$?
+  # A model or test command may exit while a server it started remains in
+  # the owned group. Reaping the parent must not make that descendant
+  # unreachable to a later cancellation.
+  if [ "$mode" = "reap" ] && kill -0 "-$owned" 2>/dev/null; then
+    kill_group TERM "$owned"
+    grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
+    while kill -0 "-$owned" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
+    kill -0 "-$owned" 2>/dev/null && kill_group KILL "$owned"
+  fi
+  [ "$child" = "$owned" ] && child=""
+  return 0
 }
 
 remove_worktrees() {
@@ -213,13 +245,10 @@ abort_unfinished_merges() {
 # exit the deadline loop below would simply resume.
 on_signal() {
   trap '' TERM INT
-  local grace_end
   if [ -n "$child" ]; then
-    kill_group TERM
-    grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
-    while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
-    kill -0 "$child" 2>/dev/null && kill_group KILL
+    cleanup_owned_process "$child" terminate
   fi
+  preserve_step_test_log
   # Cancel keeps what the step wrote: committed and pushed to its branch
   # before the EXIT trap removes the worktree with --force, so the next
   # run of the step finds it there. Once the worktrees exist, that is —

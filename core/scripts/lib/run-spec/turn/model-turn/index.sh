@@ -73,24 +73,18 @@ run_model_turn() {  # <prompt-file> [<result-variable>]
   while kill -0 "$child" 2>/dev/null; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
       stopped="timeout"
-      # SIGTERM first, always: a run being asked to stop is exactly when a
-      # few extra seconds are cheapest.
-      kill_group TERM
-      grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
-      while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
-      kill -0 "$child" 2>/dev/null && kill_group KILL
       break
     fi
     model_marks_record
     sleep 0.2
   done
-  wait "$child" 2>/dev/null
-  exit_code=$?
+  if [ -n "$stopped" ]; then
+    cleanup_owned_process "$child" terminate
+  else
+    cleanup_owned_process "$child" reap
+  fi
+  exit_code=$cleanup_exit_code
   model_marks_record final
-  # The turn is over; whatever it started and left running — a suite's
-  # board, a decoy server — is stopped with its group, not left to hold
-  # ports and slow every later run (2026-09-19).
-  kill_group TERM
   sandbox_restore_git_links
   duration=$(( $(date +%s) - started_at ))
 
