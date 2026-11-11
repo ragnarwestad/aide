@@ -8,7 +8,7 @@
 // read it among what the AI offers.
 
 import { trimmedText as text } from "../serve-helpers/http.ts";
-import { persistQueueSettings, type QueueStore } from "../../queue/queue.ts";
+import { type QueueStore } from "../../queue/queue.ts";
 import type { ModelChoice } from "../../queue/types.ts";
 import { NAME_RE } from "../../queue/parse-request.ts";
 import { asProviderTool, type ProviderTool } from "../../queue/providers/index.ts";
@@ -22,6 +22,7 @@ import {
 import { isClaudeFamily, lastModels } from "../tool-models";
 import { json, parseBody } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { saveQueueSettings } from "./settings-save/index.ts";
 
 /** Records, for each Claude choice the reading names, the id Claude Code
  *  resolves it to — exactly as a run records the id it ran on, so the
@@ -80,9 +81,8 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
   const key = keyFor(tool, model, Object.keys(choices));
   if (!key) return refuse(`another model choice already has the name ${model} — rename it in queue-config.json on the serving host first`);
   const entry: ModelChoice = tool === "claude" ? { model } : { tool, model };
-  const error = persistQueueSettings(ctx.opts.queueConfigFile, { modelChoices: { [key]: entry } });
+  const error = saveQueueSettings(ctx, { modelChoices: { [key]: entry } });
   if (error) return refuse(error);
-  ctx.queue.defaults.modelChoices = { ...choices, [key]: entry };
   // The name Claude Code gave it is what it is shown by, kept with the id
   // it gave it for (the model itself when the reading named none).
   if (tool === "claude" && read.name) {
@@ -116,11 +116,8 @@ function removeModel(ctx: RoutesContext, asked: Record<string, unknown>): Respon
         "in queue-config.json on the serving host",
     );
   }
-  const error = persistQueueSettings(ctx.opts.queueConfigFile, { modelChoices: { [name]: null } });
+  const error = saveQueueSettings(ctx, { modelChoices: { [name]: null } });
   if (error) return refuse(error);
-  const rest = Object.fromEntries(Object.entries(choices).filter(([key]) => key !== name));
-  // Left empty, the table is absent, as the config reader leaves it.
-  ctx.queue.defaults.modelChoices = Object.keys(rest).length ? rest : undefined;
   return json({ ok: true, name });
 }
 

@@ -73,6 +73,8 @@ export {
   persistPendingModels,
   persistQueueProjects,
   persistQueueSettings,
+  persistQueueSettingsResult,
+  type PersistQueueSettingsResult,
   type QueueSettingsUpdate,
 } from "./persist.ts";
 

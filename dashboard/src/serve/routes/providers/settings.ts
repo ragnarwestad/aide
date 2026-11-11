@@ -7,7 +7,6 @@
 import { trimmedText as text } from "../../serve-helpers/http.ts";
 import { accessSync, constants, existsSync, mkdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { persistQueueSettings } from "../../../queue/queue.ts";
 import {
   NORMAL_CLAUDE_DIR, NORMAL_CODEX_HOME, asProviderTool, autoCompactError, expandDir, providerFields, providerKeyFrom,
   providerNameError, providerUses, type Provider, type ProviderField,
@@ -19,6 +18,7 @@ import { readProviderStatus } from "../../providers/status.ts";
 import { json, parseBody } from "../../serve-helpers";
 import { prepareShadowHome } from "../../providers/shadow-home.ts";
 import type { RoutesContext } from "../";
+import { saveQueueSettings } from "../settings-save/index.ts";
 
 const refuse = (error: string): Response => json({ error }, 400);
 
@@ -173,9 +173,8 @@ async function saveChecked(
 }
 
 function save(ctx: RoutesContext, key: string, provider: Provider, extra: Record<string, unknown> = {}): Response {
-  const error = persistQueueSettings(ctx.opts.queueConfigFile!, { providers: { [key]: provider } });
+  const error = saveQueueSettings(ctx, { providers: { [key]: provider } });
   if (error) return refuse(error);
-  ctx.queue.defaults.providers = { ...ctx.queue.defaults.providers, [key]: provider };
   return json({ ok: true, key, ...extra });
 }
 
@@ -212,10 +211,8 @@ function removeProvider(ctx: RoutesContext, asked: Record<string, unknown>): Res
   if (uses.length) {
     return refuse(`${current.name} is in use and cannot be removed: ${uses.join(", ")} — choose another provider there first`);
   }
-  const error = persistQueueSettings(ctx.opts.queueConfigFile!, { providers: { [key]: null } });
+  const error = saveQueueSettings(ctx, { providers: { [key]: null } });
   if (error) return refuse(error);
-  const { [key]: _gone, ...rest } = providers;
-  ctx.queue.defaults.providers = rest;
   return json({ ok: true, key });
 }
 

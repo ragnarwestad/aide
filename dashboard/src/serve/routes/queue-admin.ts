@@ -8,7 +8,7 @@ import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../gi
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
-import { CLEANUP_KEY, jobKind, persistQueueSettings, inFlight } from "../../queue/queue.ts";
+import { CLEANUP_KEY, jobKind, inFlight } from "../../queue/queue.ts";
 import { cleanupProject } from "../process-cleanup/schedule.ts";
 import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
@@ -16,6 +16,7 @@ import { SETTINGS_STEPS } from "../../render";
 import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { saveQueueSettings } from "./settings-save/index.ts";
 
 export async function handleQueueAdminRoutes(
   ctx: RoutesContext,
@@ -135,17 +136,8 @@ export async function handleQueueAdminRoutes(
     }
 
     const modelUpdate = { ...next, ...sideModels };
-    const merged = { ...ctx.queue.defaults.model, ...next };
-    for (const part of SIDE_PARTS) {
-      const value = sideModels[part];
-      if (value === null) delete merged[part];
-      else if (value) merged[part] = value;
-    }
-    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: modelUpdate, timeoutSec, provider: nextProvider });
+    const error = saveQueueSettings(ctx, { model: modelUpdate, timeoutSec, provider: nextProvider });
     if (error) return refuse(error);
-    ctx.queue.defaults.model = merged;
-    if (Object.keys(nextProvider).length) ctx.queue.defaults.provider = { ...ctx.queue.defaults.provider, ...nextProvider };
-    ctx.queue.defaults.timeoutSec = { ...ctx.queue.defaults.timeoutSec, ...timeoutSec };
     return json({ ok: true, model: next, timeoutSec });
   }
 

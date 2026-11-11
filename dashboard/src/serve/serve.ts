@@ -124,7 +124,7 @@ export function createServer(opts: ServerOptions) {
     mirrorPath: opts.queueMirrorPath,
     pendingModelsPath: opts.pendingModelsPath, modelIdsPath: opts.modelIdsPath,
     pendingStepsPath: opts.pendingStepsPath,
-    defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
+    defaults: opts.queueDefaults ?? structuredClone(QUEUE_DEFAULTS),
     resolve: resolveProject,
     allowCreateProject: (project) => allowed.has(project),
     onChange: () => {

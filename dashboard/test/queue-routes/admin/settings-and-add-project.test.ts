@@ -46,14 +46,14 @@ describe("Settings routes", () => {
   const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
   test("the old Phases link still serves the models form", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS) });
     const html = await (await fetch(`${base}/settings?tab=phases`)).text();
     expect(html).toContain("data-settings-form");
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
-    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file });
     const accepted = await fetch(`${base}/api/queue`, {
       method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
@@ -82,15 +82,15 @@ describe("Settings routes", () => {
   // a `default` posted beside them is an unknown step, and nothing on
   // disk changes; the step rows alone save.
   test("a save naming model.default is refused and changes nothing", async () => {
-    const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
+    const file = ownConfig({ model: { default: "sonnet" }, modelChoices: DEFAULTS.modelChoices, providers: DEFAULTS.providers });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file });
     const refused = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" } }),
     });
     expect(refused.status).toBe(400);
     expect(((await refused.json()) as { error: string }).error).toContain("unknown workflow step: default");
-    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
+    expect(JSON.parse(readFileSync(file, "utf-8")).model).toEqual({ default: "sonnet" });
     const saved = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
@@ -99,13 +99,17 @@ describe("Settings routes", () => {
 
   // A model typed in a different case is stored as listed.
   test("a differently-cased model is saved under the listed spelling", async () => {
-    const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
+    const file = ownConfig({ model: { default: "sonnet" }, modelChoices: DEFAULTS.modelChoices, providers: DEFAULTS.providers });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ ...validBody, model: { ...validModel, analyze: "CODEX-FAST" } }),
     });
-    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      ok: true,
+      model: { ...validModel, analyze: "codex-fast" },
+      timeoutSec: Object.fromEntries(SETTINGS_STEPS.map((step) => [step, 1800])),
+    });
     const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string> };
     expect(saved.model.analyze).toBe("codex-fast");
   });
@@ -116,8 +120,8 @@ describe("Settings routes", () => {
       Claude: { name: "Claude", tool: "claude" as const },
       Codex: { name: "Codex", tool: "codex" as const },
     };
-    const file = ownConfig({ model: { default: "sonnet" } });
-    const defaults = { ...DEFAULTS, providers };
+    const file = ownConfig({ model: { default: "sonnet" }, modelChoices: DEFAULTS.modelChoices, providers });
+    const defaults = { ...structuredClone(DEFAULTS), providers };
     const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
     const body = (analyze: string) => JSON.stringify({
       ...validBody,
@@ -152,7 +156,7 @@ describe("Settings routes", () => {
 
   test("invalid input and missing config leave live defaults unchanged", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
-    const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file });
     for (const model of [
       { analyze: "sonnet" },
       { ...Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
@@ -176,7 +180,7 @@ describe("Settings routes", () => {
     }
     expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
 
-    const without = start({ queueDefaults: DEFAULTS });
+    const without = start({ queueDefaults: structuredClone(DEFAULTS) });
     const res = await fetch(`${without.base}/api/queue/settings`, {
       method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });

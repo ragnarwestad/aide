@@ -26,7 +26,15 @@ const CHOICES = { Opus: { model: "opus" }, Fable: { model: "fable" }, "gpt-5.5":
  *  the page's own reads stubbed so no CLI starts. */
 function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof modelsProbe>) {
   forgetChecks();
-  const { file, modelIdsPath } = ownFiles(`{ "model": { "default": "Opus" } }\n`, ownDirs);
+  const { file, modelIdsPath } = ownFiles(JSON.stringify({
+    model: { default: "Opus" },
+    modelChoices: CHOICES,
+    providers: {
+      Claude: { name: "Claude", tool: "claude" },
+      Codex: { name: "Codex", tool: "codex" },
+      OpenCode: { name: "OpenCode", tool: "opencode" },
+    },
+  }, null, 2), ownDirs);
   const { base } = startServer({
     ...stubReads, queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
     queueConfigFile: file, modelIdsPath, toolProbe: probe,
