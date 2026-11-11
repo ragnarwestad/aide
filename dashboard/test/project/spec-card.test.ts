@@ -13,15 +13,16 @@ import {
 
 const SAVED: CardValues = {
   dependsOn: ["81-first-spec"],
+  group: { name: "Release", position: 1 },
   acceptanceRequired: true,
   aiFormulate: true,
   criteriaChecks: "off",
   chooseApproach: false,
 };
-const FIELDS: CardField[] = ["dependsOn", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
+const FIELDS: CardField[] = ["dependsOn", "group", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
 const SETTINGS_ANALYZE_READS: CardField[] = ["acceptanceRequired", "criteriaChecks", "chooseApproach"];
 
-const row = (jobInFlight = false, analyzeRun = false): CardFacts => ({ place: "running-row", jobInFlight, analyzeRun });
+const row = (jobInFlight = false, analyzeRun = false, started = analyzeRun): CardFacts => ({ place: "running-row", jobInFlight, analyzeRun, started });
 const open = (facts: CardFacts, saved: CardValues = SAVED) => cardStep(undefined, { type: "opened", facts, saved });
 
 /** The changes a reader makes by hand: the card as shown, with these fields moved. */
@@ -37,6 +38,7 @@ describe("the card on the Running row", () => {
     const { view } = open(row());
     expect(view.locks).toEqual({
       dependsOn: null,
+      group: null,
       acceptanceRequired: null,
       aiFormulate: "create-used",
       criteriaChecks: null,
@@ -72,6 +74,11 @@ describe("the card on the Running row", () => {
     for (const field of SETTINGS_ANALYZE_READS) expect(view.locks[field]).toBe("analyze-run");
     expect(view.locks.dependsOn).toBeNull();
     expect(view.saveCancel).toBe(true);
+  });
+
+  test("group membership is editable before work starts and permanently locked after an attempt (A757 AC-1, A757 AC-11, A757 AC-12)", () => {
+    expect(open(row()).view.locks.group).toBeNull();
+    expect(open(row(false, false, true)).view.locks.group).toBe("spec-started");
   });
 
   test("before analyze has run, the three settings are open", () => {

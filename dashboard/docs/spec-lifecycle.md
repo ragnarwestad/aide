@@ -103,6 +103,10 @@ A spec for a change to the dashboard, run on the board, with nothing going wrong
    landing merges the code into the default branch once the project's tests pass on the merged result. The state is
    `archived`, and the row leaves the active list.
 
+When the spec belongs to a group, a successful archive landing queues the next member by the stored group position.
+Every member still completes this lifecycle on its own branch. A member that fails or stops leaves the later members
+waiting until its stopped step is run again and the member archives.
+
 Anything that goes differently is one of the rows in [When a spec stops, and what moves it on](#when-a-spec-stops-and-what-moves-it-on).
 
 ## When a spec stops, and what moves it on

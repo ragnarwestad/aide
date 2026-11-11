@@ -17,6 +17,7 @@ import type { NewSpecPageOptions } from ".";
  *  before anything is chosen, and no dependency. */
 export const NEW_SPEC_VALUES: CardValues = {
   dependsOn: [],
+  group: null,
   acceptanceRequired: true,
   aiFormulate: true,
   criteriaChecks: "off",

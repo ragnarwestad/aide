@@ -575,4 +575,10 @@ export const en = {
   "settings.notifications.msgFailed": "Notifications could not be turned on. Try again.",
   "message.problem": "Problem",
   "message.solution": "Solution",
+  "list.groupField": "Group",
+  "list.groupNew": "New group name",
+  "list.groupRemove": "Remove from group",
+  "list.groupStart": "Start",
+  "list.groupDone": "{done} of {total} done",
+  "list.groupWaiting": "Waiting for {spec}",
 } as const;

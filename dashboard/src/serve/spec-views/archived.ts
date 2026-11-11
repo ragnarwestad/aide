@@ -150,6 +150,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       folder: ref.folder,
       title: ref.title ?? undefined,
       description: ref.description ?? undefined,
+      group: ref.group,
       createdAt: created.createdAt ?? undefined,
       notLanded,
       notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,

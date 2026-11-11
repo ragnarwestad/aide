@@ -62,6 +62,17 @@ export async function handleJobActionRoutes(
         const row = ctx.withFreshness(
           ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
         )[0];
+        if (row?.group) {
+          const earlier = ctx.withFreshness(ctx.targets())
+            .filter((target) => target.project === askedFor.project && target.group?.name === row.group!.name)
+            .find((target) => target.group!.position < row.group!.position);
+          if (earlier) {
+            const spec = `${askedFor.project}/${askedFor.specFolder}`;
+            const reason = `${earlier.specFolder} must archive before this grouped spec can start`;
+            logRefusal("run", spec, reason);
+            return json({ error: reason, spec }, 409);
+          }
+        }
         const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];
         // ctx.specRef, not a fresh **Archived:** prose scan: the one
         // resolved answer for this request's own project/specFolder.

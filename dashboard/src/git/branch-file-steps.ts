@@ -10,6 +10,7 @@ import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
 import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import { dependsOnIn } from "../project/discover/depends-on.ts";
+import { groupIn, type SpecGroupMembership } from "../project/discover/group.ts";
 import { createChoicesIn, type CreateChoices } from "../project/discover/create-choices.ts";
 import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 import { DESCRIPTION_FILE, SOLUTION_FILE, STATE_FILE } from "../project/spec-names.ts";
@@ -47,6 +48,7 @@ export interface FileStepsAnswer {
    *  it is written onto the branch, as a tick is. Absent when the
    *  description could not be read there; empty when the branch has no line. */
   dependsOn?: string[];
+  group?: SpecGroupMembership;
   /** The four settings the branch's `1-description.md` records, saved there
    *  as Depends on is; absent when the description could not be read there. */
   createChoices?: CreateChoices;
@@ -127,7 +129,7 @@ export class BranchFileStepsChecker {
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
             ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
-            ...(description ? { dependsOn: dependsOnIn(description.text), createChoices: createChoicesIn(description.text) } : {}),
+            ...(description ? { dependsOn: dependsOnIn(description.text), group: groupIn(description.text), createChoices: createChoicesIn(description.text) } : {}),
           };
           break;
         }

@@ -3,19 +3,21 @@
 // nothing at run time: the page script bundles it, and the server runs it.
 
 export type CardPlace = "running-row" | "new-spec";
-export type CardField = "dependsOn" | "acceptanceRequired" | "aiFormulate" | "criteriaChecks" | "chooseApproach";
+export type CardField = "dependsOn" | "group" | "acceptanceRequired" | "aiFormulate" | "criteriaChecks" | "chooseApproach";
 export type CardSetting = Exclude<CardField, "dependsOn">;
-export type CardLock = "job-in-flight" | "analyze-run" | "create-used";
+export type CardLock = "job-in-flight" | "analyze-run" | "create-used" | "spec-started";
 
 export interface CardFacts {
   place: CardPlace;
   /** A job of the spec is queued, running or landing. */
   jobInFlight: boolean;
   analyzeRun: boolean;
+  started?: boolean;
 }
 
 export interface CardValues {
   dependsOn: string[];
+  group: { name: string; position: number } | null;
   acceptanceRequired: boolean;
   aiFormulate: boolean;
   criteriaChecks: string;
@@ -52,7 +54,7 @@ export interface CardView {
   restore: CardValues;
 }
 
-const FIELDS: readonly CardField[] = ["dependsOn", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
+const FIELDS: readonly CardField[] = ["dependsOn", "group", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
 
 /** The three settings analyze reads: open until it has run. */
 const ANALYZE_READS: readonly CardField[] = ["acceptanceRequired", "criteriaChecks", "chooseApproach"];
@@ -64,6 +66,7 @@ function locksOf(facts: CardFacts): Record<CardField, CardLock | null> {
   locks.aiFormulate = "create-used";
   const reason: CardLock | null = facts.jobInFlight ? "job-in-flight" : null;
   locks.dependsOn = reason;
+  locks.group = reason ?? (facts.started ? "spec-started" : null);
   for (const f of ANALYZE_READS) locks[f] = reason ?? (facts.analyzeRun ? "analyze-run" : null);
   return locks;
 }

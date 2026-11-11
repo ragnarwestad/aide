@@ -56,6 +56,7 @@ function fromTarget(
   | "description"
   | "phase"
   | "dependsOn"
+  | "group"
   | "createChoices"
   | "analyzeStale"
   | "createdAt"
@@ -73,6 +74,7 @@ function fromTarget(
     description: t?.description,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
+    group: t?.group,
     createChoices: t?.createChoices,
     analyzeStale: t?.analyzeStale ?? false,
     // From the TARGET and from nowhere else. There is
@@ -271,6 +273,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     acceptance: s.acceptance,
     title: s.title,
     description: s.description,
+    group: s.group,
     dependsOn: [],
     analyzeStale: false,
     // Copied onto the same top-level fields `fromTarget()` populates for

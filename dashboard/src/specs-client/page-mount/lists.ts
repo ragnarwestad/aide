@@ -44,7 +44,9 @@ const onRowsChange = ((event: Event) => {
     | HTMLInputElement
     | HTMLSelectElement
     | null;
-  if (setting && ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
+  if (setting && ["removeGroup", "acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
+  const group = target?.closest?.('form.dependsform input[name="group"]') as HTMLInputElement | null;
+  if (group?.name === "group") return pickSetting(group);
   // A tail box's tick is a press, not something to remember for the
   // next redraw: it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather

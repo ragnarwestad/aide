@@ -10,6 +10,7 @@ import type { StatusCheck } from "../../../../project/parse-status";
 import type { HasNotVerified } from "./not-verified.ts";
 import type { HasApproachChoice, HasCreateChoices } from "./approach-choice.ts";
 import type { Phase } from "./phase.ts";
+import type { SpecGroupMembership } from "../../../../project/discover/group.ts";
 
 export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
@@ -29,6 +30,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
    *  Named by folder, the way `aide-run-spec`'s own dependency
    *  refusal names it. Empty or absent when it names none. */
   dependsOn?: string[];
+  group?: SpecGroupMembership;
   /** Steps this spec has already had, from the runner's own commits
    *  Marked, never forbidden. */
   done?: string[];
@@ -118,6 +120,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
  *  `reopen` (`ARCHIVE_ONLY_STEP`, queue.ts). Two shapes, because they
  *  answer two questions. */
 export interface ArchivedSpecView extends HasNotVerified {
+  group?: SpecGroupMembership;
   /** The Acceptance rows an archived row unfolds, read only for a spec that
    *  has a row marked Not verified or Failed. */
   acceptance?: StatusCheck[];
@@ -397,6 +400,7 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   /** The specs this one builds on, by folder — from its own
    *  1-description.md, not from anything the queue ran. */
   dependsOn: string[];
+  group?: SpecGroupMembership;
   /** This spec's description has moved on since its last analysis. The
    *  analyze line says so; nothing is blocked by it. */
   analyzeStale: boolean;

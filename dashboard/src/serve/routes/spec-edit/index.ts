@@ -8,6 +8,7 @@ import { branchControlRoutes } from "./branch-controls.ts";
 import { runControlRoutes } from "./run-controls.ts";
 import { specPageRoutes } from "./spec-page.ts";
 import { trackingRoutes } from "./tracking.ts";
+import { handleSpecGroupRoute } from "./group.ts";
 import type { RoutesContext } from "..";
 
 /** The spec's own pages and their edit routes, asked family by family.
@@ -26,6 +27,7 @@ export async function handleSpecEditRoutes(
     (await testServerControlRoutes(ctx, req, path)) ??
     (await specPageRoutes(ctx, req, url, path)) ??
     (await trackingRoutes(ctx, req, path)) ??
+    (await handleSpecGroupRoute(ctx, req, path)) ??
     (await checkRoutes(ctx, req, url, path)) ??
     (await approachRoutes(ctx, req, path))
   );

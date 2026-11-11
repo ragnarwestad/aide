@@ -622,7 +622,9 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
 
   /** The Jobs tab's open row less what only it draws: the caption line, the phase lines and their messages. */
   const withoutPhaseLines = (html: string): string =>
-    html.replace(/<tr class="(?:subrow|phasemsgs)\b[\s\S]*?<\/tr>/g, "");
+    html
+      .replace(/<tr class="subrow"[^>]*(?:data-caption|data-step=)[\s\S]*?<\/tr>/g, "")
+      .replace(/<tr class="phasemsgs\b[\s\S]*?<\/tr>/g, "");
 
   test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines", async () => {
     const base = await settled();

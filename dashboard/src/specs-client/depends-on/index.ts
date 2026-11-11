@@ -27,6 +27,16 @@ const settingBox = (form: Element, attr: string): HTMLInputElement | null =>
   form.querySelector(`label[${attr}] input[type=checkbox]`);
 
 const checksOf = (form: Element): HTMLSelectElement | null => form.querySelector("select");
+const groupInputOf = (form: Element): HTMLInputElement | null => form.querySelector('input[name="group"]');
+const removeGroupOf = (form: Element): HTMLInputElement | null => form.querySelector('input[name="removeGroup"]');
+
+const groupOf = (form: Element, drawn: boolean): CardValues["group"] => {
+  if (!drawn && removeGroupOf(form)?.checked) return null;
+  const input = groupInputOf(form);
+  const name = (drawn ? input?.defaultValue : input?.value)?.trim() ?? "";
+  if (!name) return null;
+  return { name, position: Number(input?.dataset.groupPosition ?? 0) };
+};
 
 const cancelOf = (form: Element): HTMLButtonElement | undefined =>
   (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-cancel`);
@@ -49,6 +59,7 @@ const factsOf = (form: Element): CardFacts => ({
   place: "running-row",
   jobInFlight: form.hasAttribute("data-job-in-flight"),
   analyzeRun: form.hasAttribute("data-analyze-run"),
+  started: form.hasAttribute("data-spec-started"),
 });
 
 /** What the server drew: the boxes as marked checked and the level as marked selected. */
@@ -56,6 +67,7 @@ function savedOf(form: Element): CardValues {
   const select = checksOf(form);
   return {
     dependsOn: boxesOf(form).filter((b) => b.defaultChecked).map((b) => b.value),
+    group: groupOf(form, true),
     acceptanceRequired: settingBox(form, "data-acceptance")?.defaultChecked ?? false,
     aiFormulate: settingBox(form, "data-ai-formulate")?.defaultChecked ?? false,
     criteriaChecks: select ? drawnLevel(select) : "off",
@@ -68,6 +80,7 @@ function shownOf(form: Element): CardValues {
   const select = checksOf(form);
   return {
     dependsOn: boxesOf(form).filter((b) => b.checked).map((b) => b.value),
+    group: groupOf(form, false),
     acceptanceRequired: settingBox(form, "data-acceptance")?.checked ?? false,
     aiFormulate: settingBox(form, "data-ai-formulate")?.checked ?? false,
     criteriaChecks: select?.value ?? "off",
@@ -91,6 +104,10 @@ function show(form: Element, view: CardView): void {
       box.checked = on;
       announce(box);
     }
+    const groupInput = groupInputOf(form);
+    if (groupInput) groupInput.value = view.shown.group?.name ?? "";
+    const removeGroup = removeGroupOf(form);
+    if (removeGroup) removeGroup.checked = false;
     for (const [attr, on] of [
       ["data-acceptance", view.shown.acceptanceRequired],
       ["data-ai-formulate", view.shown.aiFormulate],

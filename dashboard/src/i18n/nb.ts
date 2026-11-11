@@ -567,4 +567,10 @@ export const nb: Record<TranslationKey, string> = {
   "settings.notifications.msgFailed": "Varsler kunne ikke slås på. Prøv igjen.",
   "message.problem": "Problem",
   "message.solution": "Løsning",
+  "list.groupField": "Gruppe",
+  "list.groupNew": "Navn på ny gruppe",
+  "list.groupRemove": "Ta ut av gruppen",
+  "list.groupStart": "Start",
+  "list.groupDone": "{done} av {total} ferdige",
+  "list.groupWaiting": "Venter på {spec}",
 };

@@ -7,8 +7,8 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
-  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine,
+  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, groupIn, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine, withGroupLines,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { cardStep } from "../../../project/spec-card.ts";
@@ -79,8 +79,9 @@ export async function trackingRoutes(
       place: "running-row",
       jobInFlight,
       analyzeRun: parseStatus(statusText).workflowSteps.includes("analyze"),
+      started: parseStatus(statusText).workflowSteps.length > 0,
     },
-    saved: { dependsOn: dependsOnIn(currentText ?? ""), ...createChoicesIn(currentText ?? "") },
+    saved: { dependsOn: dependsOnIn(currentText ?? ""), group: groupIn(currentText ?? "") ?? null, ...createChoicesIn(currentText ?? "") },
   });
   if (view.locks.dependsOn === "job-in-flight") {
     const reason = "another job for this spec is still running — nothing was saved";
@@ -125,6 +126,24 @@ export async function trackingRoutes(
   // silently is a dead gate nobody is told about.
   const depFolders: string[] = [];
   let text: string | null = currentText;
+  if (body.group !== undefined || body.removeGroup === "1") {
+    const currentGroup = groupIn(currentText);
+    const askedGroup = String(body.group ?? "").trim();
+    const changesGroup = body.removeGroup === "1" || (!!askedGroup && askedGroup !== currentGroup?.name);
+    if (changesGroup && view.locks.group === "spec-started") return refuse("this spec has already started — its group cannot change");
+    if (body.removeGroup === "1") {
+      text = withGroupLines(currentText, undefined);
+    } else if (askedGroup && askedGroup !== currentGroup?.name) {
+      const name = askedGroup;
+      const discovered = ctx.opts.projectRoot
+        ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
+        : undefined;
+      if (!discovered) return refuse("unknown project — nothing was saved");
+      const positions = discovered.specs.filter((s) => s.group?.name === name).map((s) => s.group!.position);
+      text = withGroupLines(currentText, { name, position: Math.max(0, ...positions) + 1 });
+      if (text === null) return refuse(`nowhere to put "Group" — Tracking info has no Created line — nothing was saved`);
+    }
+  }
   if (body.dependsOn !== undefined) {
     const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
       .filter((v): v is string => typeof v === "string")
@@ -147,7 +166,7 @@ export async function trackingRoutes(
         depFolders.push(dep.folder);
       }
     }
-    text = withDependsOnLine(currentText, ids);
+    text = withDependsOnLine(text!, ids);
     if (text === null) {
       return refuse(`nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`);
     }
@@ -171,7 +190,7 @@ export async function trackingRoutes(
     // nothing either.
     const acceptanceRequired = body.acceptanceRequired === "1" || body.acceptanceRequired === true;
     const acceptanceNotRequired = !acceptanceRequired;
-    const withAccept = withAcceptanceLine(text, acceptanceNotRequired);
+    const withAccept = withAcceptanceLine(text!, acceptanceNotRequired);
     if (withAccept === null) {
       return refuse(`nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved`);
     }

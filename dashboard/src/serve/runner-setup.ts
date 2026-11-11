@@ -24,7 +24,7 @@ import { scheduleRunPath } from "../render";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
-import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
+import { specAcceptanceNotRequired, specFolders, type CodeLanding } from "../project/discover";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
@@ -351,8 +351,25 @@ export function stepDoneHandler(
     if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(job)) {
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
+    if (step === "archive" && landing) {
+      void Promise.resolve(landing).then(() => queueNextGroupMember(job), () => undefined);
+    }
     return landing;
   };
+
+  function queueNextGroupMember(job: Job): void {
+    if (!ctx.machinerySpecsRoot) return;
+    const root = ctx.machinerySpecsRoot(job.project);
+    if (!root) return;
+    const archived = specFolders(join(root, "archive"), true).find((spec) => spec.folder === job.specFolder);
+    if (!archived?.group) return;
+    const next = specFolders(root, false)
+      .filter((spec) => spec.group?.name === archived.group!.name && spec.group.position > archived.group!.position)
+      .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
+    if (!next) return;
+    const made = ctx.store.enqueue(followOnJob(job.project, next.folder, ["analyze", "implement", "archive"], job));
+    if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
+  }
 
   /** Whether another job for the spec already has an analyze that ended
    *  `short-analysis-over-limit`: the analyze after it was not offered a short

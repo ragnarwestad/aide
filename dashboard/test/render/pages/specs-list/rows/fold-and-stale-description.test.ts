@@ -161,12 +161,12 @@ describe("an open row on the Specs list is the spec alone", () => {
   const onJobsTab = (key: string): string =>
     group(renderSpecsRows(list, { ...base, filter: { open: key, phases: "aide/81-queue-x:create" } }, NOW), key);
 
-  test("no caption line, phase line, message, select, Select box, Run, Cancel or row Reopen", () => {
+  test("no caption line, phase line, message, Select box, Run, Cancel or row Reopen", () => {
     for (const key of specs) {
       const html = onList(key);
       expect(html).toContain("THE-SPEC");
       for (const absent of [
-        "data-caption", "tr class=\"subrow", "data-step", "phasemsgs", "<select", "data-phase", 'name="steps"',
+        "data-caption", "data-step", "phasemsgs", "data-phase", 'name="steps"',
         'class="rowrun"', 'data-ask="cancelask-run82"', 'data-ask="reopenask-aide/50-archived"',
       ]) {
         expect([key, absent, html.includes(absent)]).toEqual([key, absent, false]);
@@ -174,10 +174,13 @@ describe("an open row on the Specs list is the spec alone", () => {
     }
   });
 
-  test("the rows are the title line, the state line, the messages if any, the spec, then the gap", () => {
+  test("the rows are the title line, the state line, the settings for an active spec, the spec, then the gap", () => {
     for (const key of specs) {
       const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map((m) => m[1]);
-      expect(classes.filter((c) => c !== "specnotice")).toEqual(["spechead", "specstate", "specdetail", "specgap"]);
+      const expected = key === "aide/50-archived"
+        ? ["spechead", "specstate", "specdetail", "specgap"]
+        : ["spechead", "specstate", "subrow", "specdetail", "specgap"];
+      expect(classes.filter((c) => c !== "specnotice")).toEqual(expected);
       expect(classes.indexOf("specdetail")).toBeGreaterThan(classes.lastIndexOf("specnotice"));
     }
   });
@@ -198,7 +201,7 @@ describe("an open row on the Specs list is the spec alone", () => {
     expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("/approach");
   });
 
-  test("the Depends on picker is on the Running tab's open row, not on a shut row or the Specs list's open row", () => {
+  test("the Depends on picker is on an open row, including the Specs list's open row", () => {
     const withSiblings: SpecTarget[] = [
       { project: "aide", specFolder: "81-queue-x", dependsOn: ["82-queue-y"] },
       { project: "aide", specFolder: "82-queue-y" },
@@ -208,7 +211,7 @@ describe("an open row on the Specs list is the spec alone", () => {
     const key = "aide/81-queue-x";
     expect(draw({})).not.toContain("dependsform");
     expect(draw({ filter: { open: key } })).toContain("dependsform");
-    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("dependsform");
+    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).toContain("dependsform");
   });
 
   test("drawn the Running tab's way, an open row has its caption line and its phase lines", () => {

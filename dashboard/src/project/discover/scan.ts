@@ -11,6 +11,7 @@ import { isSpecFolder, STATUS_FILE } from "../spec-names.ts";
 import { configSpecsPath } from "./config.ts";
 import { specCreateChoices, type CreateChoices } from "./create-choices.ts";
 import { specDependsOn } from "./depends-on.ts";
+import { specGroup, type SpecGroupMembership } from "./group.ts";
 import { specClosed, specDescription, specTitle } from "./spec-files.ts";
 
 export interface SpecRef {
@@ -36,6 +37,7 @@ export interface SpecRef {
   /** Folder names from 1-description.md's `Depends on:` line,
    *  in the order written. Empty when the spec names none. */
   dependsOn: string[];
+  group?: SpecGroupMembership;
   /** The four choices it was created with, off the same file; absent for
    *  an archived spec, whose choices nothing can change any more. */
   createChoices?: CreateChoices;
@@ -85,6 +87,7 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
       title: specTitle(dir),
       description: specDescription(dir),
       dependsOn: specDependsOn(dir),
+      ...(specGroup(dir) ? { group: specGroup(dir) } : {}),
       ...(archived ? {} : { createChoices: specCreateChoices(dir) }),
     });
   }

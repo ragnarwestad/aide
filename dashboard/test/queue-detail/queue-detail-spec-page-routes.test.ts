@@ -237,7 +237,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     // The spec's own phase table sits inside its detail row; the list row
     // around it has no phase line of its own.
     const row = open.replace(/<tr class="specdetail"[\s\S]*?(?=<tr class="specgap")/, "");
-    for (const absent of ['class="subrow"', '<tr class="subrow" data-caption', 'class="rowrun"']) {
+    for (const absent of ['<tr class="subrow" data-caption', '<tr class="subrow" data-step=', 'class="rowrun"']) {
       expect([absent, row.includes(absent)]).toEqual([absent, false]);
     }
     const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();

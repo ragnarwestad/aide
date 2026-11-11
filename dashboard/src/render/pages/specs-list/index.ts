@@ -34,7 +34,7 @@ import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
-import type { ProgressStepState } from "../../ui/components";
+import { buttonForm, type ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
@@ -89,6 +89,7 @@ export {
   type SpecGroup,
 };
 import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { dependsOnLine } from "./depends-on";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
@@ -270,7 +271,28 @@ function groupRows(
   now: number,
   opened: Set<string>,
 ): string {
-  return groups.map((g) => groupRow(g, opts, now, opened)).join("");
+  const emitted = new Set<string>();
+  return groups.map((g) => {
+    if (!g.group) return groupRow(g, opts, now, opened);
+    const key = `${g.project}\n${g.group.name}`;
+    if (emitted.has(key)) return "";
+    emitted.add(key);
+    const children = groups
+      .filter((candidate) => candidate.project === g.project && candidate.group?.name === g.group!.name)
+      .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
+    const done = children.filter((child) => child.state === "archived" || child.state === "closed").length;
+    const waiting = children.find((child) => child.state !== "archived" && child.state !== "closed" && child.state !== "not-started");
+    const status = t(opts.lang ?? "en", "list.groupDone", { done: String(done), total: String(children.length) });
+    const waitingText = waiting ? ` · ${t(opts.lang ?? "en", "list.groupWaiting", { spec: waiting.specFolder })}` : "";
+    const parent = `<tr class="specstate" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
+      `<strong>${esc(g.group.name)}</strong> · ${esc(status + waitingText)} ` +
+      buttonForm({
+        action: `/api/queue/groups/${g.project}/${encodeURIComponent(g.group.name)}`,
+        hook: "actionform",
+        button: { label: t(opts.lang ?? "en", "list.groupStart") },
+      }) + `</td></tr>`;
+    return parent + children.map((child) => groupRow(child, opts, now, opened)).join("");
+  }).join("");
 }
 
 /** The specs the list's Active entry shows, each with its group and its rows
@@ -333,7 +355,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
       (opts.openSpec.detail?.() ?? "") +
       `</td></tr>`
     : "";
-  const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
+  const runs = opts.openSpec ? dependsOnLine(g, opts) : phaseSubRows(g, opts, now);
   return opened.has(key)
     ? head + runs + notice + detail + gap
     : head + notice + gap;

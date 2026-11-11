@@ -33,7 +33,7 @@ describe("the settings under Depends on", () => {
 
   test("post the three analyze reads, with the sentinel, before analyze has run and with no job of the spec", () => {
     expect(posted(lineOf(spec(FOLDER, { createChoices: CHOICES }))).sort()).toEqual(
-      ["acceptanceRequired", "chooseApproach", "criteriaChecks", "settingsEditable"],
+      ["acceptanceRequired", "chooseApproach", "criteriaChecks", "group", "settingsEditable"],
     );
   });
 

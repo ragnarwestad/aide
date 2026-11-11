@@ -75,9 +75,9 @@ describe("the Depends on field", () => {
     expect(ticked(await openRowOf(base), OTHER)).toBe(true);
   });
 
-  test("the spec's own page draws no Depends on field", async () => {
+  test("the spec's own page draws the Depends on field on its open row", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    expect(await (await fetch(`${base}${PAGE}`)).text()).not.toContain('name="dependsOn"');
+    expect(await (await fetch(`${base}${PAGE}`)).text()).toContain('name="dependsOn"');
   });
 
   // --- what a save writes ---------------------------------------------------
@@ -145,6 +145,14 @@ describe("the Depends on field", () => {
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+  });
+
+  test("saving an unchanged group name preserves its position (A757 AC-2)", async () => {
+    const grouped = TRACKED("- **Group:** `Release`\n- **Group position:** 1");
+    const { base, dir } = startTracked(savable("/host"), grouped);
+    const { status } = await answer(await track(base, { group: "Release", baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(grouped);
   });
 
   // The picker's form is the only writer of the line, and a browser

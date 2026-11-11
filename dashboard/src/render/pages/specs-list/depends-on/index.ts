@@ -6,6 +6,7 @@
 
 import { saveCancelActions } from "../../../ui/components";
 import { createChoicesIn, type CriteriaChecks } from "../../../../project/discover";
+import { t } from "../../../../i18n";
 import { cardStep, type CardValues, type CardView } from "../../../../project/spec-card.ts";
 import { optionsGroup } from "../../new-spec-page/options-tab.ts";
 import { esc } from "../../../ui/html.ts";
@@ -38,7 +39,7 @@ export function dependsOnOffer(
 /** What the card holds as saved: the spec's dependencies and the four
  *  settings it was created with. */
 function cardValuesOf(g: SpecGroup): CardValues {
-  return { dependsOn: g.dependsOn, ...(g.createChoices ?? createChoicesIn("")) };
+  return { dependsOn: g.dependsOn, group: g.group ?? null, ...(g.createChoices ?? createChoicesIn("")) };
 }
 
 /** The four settings the spec was created with, as New spec's Options tab
@@ -65,7 +66,7 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
   if (isArchivedRow(g) || !g.named) return "";
   const offer = dependsOnOffer(g, opts);
   const id = dependsOnFormId(g);
-  const facts = { place: "running-row", jobInFlight: specBusy(g), analyzeRun: g.done.includes("analyze") } as const;
+  const facts = { place: "running-row", jobInFlight: specBusy(g), analyzeRun: g.done.includes("analyze"), started: g.done.length > 0 } as const;
   const { view } = cardStep(undefined, { type: "opened", facts, saved: cardValuesOf(g) });
   const field = dependsOnField(offer.options, new Set(offer.ticked), {
     wide: true,
@@ -77,12 +78,25 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
     lang: opts.lang,
   });
   const settings = settingsGroup(id, view, opts.lang);
-  const body = field + settings;
+  const lang = opts.lang ?? "en";
+  const groupListId = `${id}-groups`;
+  const groupNames = [...new Set(opts.targets
+    .filter((target) => target.project === g.project && target.group?.name)
+    .map((target) => target.group!.name))].sort((a, b) => a.localeCompare(b));
+  const group = `<label>${esc(t(lang, "list.groupField"))}` +
+    `<input${view.locks.group ? "" : ` name="group"`} value="${esc(view.shown.group?.name ?? "")}" data-group-position="${view.shown.group?.position ?? 0}" list="${esc(groupListId)}" placeholder="${esc(t(lang, "list.groupNew"))}"` +
+    (view.locks.group ? " disabled" : "") + `></label>` +
+    `<datalist id="${esc(groupListId)}">${groupNames.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>` +
+    (view.shown.group && !view.locks.group
+      ? `<label><input type="checkbox" name="removeGroup" value="1">${esc(t(lang, "list.groupRemove"))}</label>`
+      : "");
+  const body = field + group + settings;
   return (
     `<tr class="subrow" data-depends-line="1"><td colspan="${LIST_COLUMNS}">` +
     `<form class="actionform dependsform" id="${esc(id)}" method="post" ` +
     (facts.jobInFlight ? `data-job-in-flight="1" ` : "") +
     (facts.analyzeRun ? `data-analyze-run="1" ` : "") +
+    (facts.started ? `data-spec-started="1" ` : "") +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/tracking">` +
     `<input type="hidden" name="dependsOn" value="">` +
     body +

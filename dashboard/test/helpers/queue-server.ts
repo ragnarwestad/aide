@@ -15,6 +15,8 @@ export interface StartOptions {
   alsoProjects?: string[];
   /** Further spec folders in `aide`, for jobs that run side by side. */
   alsoSpecs?: string[];
+  /** Description text for additional specs that need persisted metadata. */
+  alsoDescriptions?: Record<string, string>;
   /** Start with no live specs, before the server scans the project. */
   emptySpecs?: boolean;
   /** Archived spec folders — written under `specs/archive/<folder>`,
@@ -75,6 +77,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       extra = {},
       alsoProjects = [],
       alsoSpecs = [],
+      alsoDescriptions = {},
       emptySpecs = false,
       archivedSpecs = {},
       description = "# Queue - Description\n",
@@ -91,7 +94,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
-        writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
+        writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), alsoDescriptions[folder] ?? `# ${folder}\n`);
         writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
       }
       for (const name of alsoProjects) {

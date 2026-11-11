@@ -564,4 +564,10 @@ export const de: Record<TranslationKey, string> = {
   "settings.notifications.msgFailed": "Benachrichtigungen konnten nicht eingeschaltet werden. Versuche es erneut.",
   "message.problem": "Problem",
   "message.solution": "Lösung",
+  "list.groupField": "Gruppe",
+  "list.groupNew": "Name der neuen Gruppe",
+  "list.groupRemove": "Aus der Gruppe entfernen",
+  "list.groupStart": "Starten",
+  "list.groupDone": "{done} von {total} erledigt",
+  "list.groupWaiting": "Wartet auf {spec}",
 };

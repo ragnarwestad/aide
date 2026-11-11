@@ -84,6 +84,11 @@ project whose specs the server cannot read this time keeps the rows it already h
 A job survives a restart: the result file is the contract, and a job left `running` is reconciled from the pid and the
 file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
 
+A group Start queues the first group member that is not done. Each member remains an ordinary spec with its own
+branch and runs analyze, implement and archive before the next member starts. The next member is queued only after
+the preceding archive has landed. A failed or stopped member keeps later members waiting, and its own row offers the
+same step again.
+
 An implement on a short analysis that finds its spec is not small ends `stopped` with the reason `sent-back`. The board
 lands the step's specs branch when it pushed no code (where the specs live inside the code repository, the spec's own
 folder alone), then queues one job for the same spec with the steps Analyze and Implement, on the models and effort the

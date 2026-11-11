@@ -39,6 +39,7 @@ export interface Scene {
   liveState?: string;
   queueMirror?: unknown;
   alsoSpecs?: string[];
+  alsoDescriptions?: Record<string, string>;
   alsoProjects?: string[];
   archivedSpecs?: StartOptions["archivedSpecs"];
   queueConfig?: Record<string, unknown>;

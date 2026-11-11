@@ -180,6 +180,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // by the folder it resolves to, as the Running tab's picker
           // ticks by folder; one nothing matches stays as written.
           dependsOn: (branchAnswer?.dependsOn ?? s.dependsOn).map((id) => resolveDependencyFolder(p, id)?.folder ?? id),
+          group: branchAnswer?.group ?? s.group,
           // The four settings it was created with, for its open row on the
           // Running tab: the branch's first, as Depends on above, since a
           // save is written there.
