@@ -2,11 +2,11 @@ import type { MessageEntry } from "../types.ts";
 
 export const JOBS_PROVIDER = {
   "runner.modelRefused": {
-    en: "{button} stopped: the model declined to continue",
-    nb: "{button} stoppet: modellen ville ikke fortsette",
-    es: "{button} se detuvo: el modelo se negó a continuar",
-    de: "{button} angehalten: das Modell hat sich geweigert fortzufahren",
-    fr: "{button} interrompu : le modèle a refusé de continuer",
+    en: "the model declined to continue",
+    nb: "modellen ville ikke fortsette",
+    es: "el modelo se negó a continuar",
+    de: "das Modell hat sich geweigert fortzufahren",
+    fr: "le modèle a refusé de continuer",
     solution: {
       en: "choose another model for this step, then press {button}",
       nb: "velg en annen modell for dette steget, og trykk så {button}",
@@ -128,11 +128,11 @@ export const JOBS_PROVIDER = {
     },
   },
   "runner.cliErrorOther": {
-    en: "The step failed on {tool} after two attempts: {cause}",
-    nb: "Steget feilet på {tool} etter to forsøk: {cause}",
-    es: "El paso falló en {tool} después de dos intentos: {cause}",
-    de: "Der Schritt ist nach zwei Versuchen auf {tool} fehlgeschlagen: {cause}",
-    fr: "L'étape a échoué sur {tool} après deux tentatives : {cause}",
+    en: "after two attempts on {tool}: {cause}",
+    nb: "etter to forsøk på {tool}: {cause}",
+    es: "en {tool}, después de dos intentos: {cause}",
+    de: "nach zwei Versuchen auf {tool}: {cause}",
+    fr: "sur {tool}, après deux tentatives : {cause}",
     solution: {
       en: "open Settings, the Providers tab, the provider the step ran on, and its Installation tab",
       nb: "åpne Innstillinger, fanen Providere, leverandøren steget kjørte på, og fanen Installasjon",

@@ -1,6 +1,15 @@
 import type { MessageEntry } from "../types.ts";
 
 export const JOBS_CATALOG = {
+  "runner.stepFailed": {
+    en: "{step} failed: {message}",
+    nb: "{step} feilet: {message}",
+    es: "{step} falló: {message}",
+    de: "{step} fehlgeschlagen: {message}",
+    fr: "{step} a échoué : {message}",
+    solution: null,
+    exempt: "the resolution is the message it carries",
+  },
   "runner.afterTwoAttempts": {
     en: "the step was run twice; {message}",
     nb: "steget ble kjørt to ganger; {message}",
@@ -126,11 +135,11 @@ export const JOBS_CATALOG = {
     },
   },
   "runner.noProgressImplement": {
-    en: "implement reported success but left no real progress — nothing changed in the project",
-    nb: "implementering meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet",
-    es: "implement informó de éxito pero no dejó ningún progreso real — nada cambió en el proyecto",
-    de: "Implement meldete Erfolg, hat aber keinen echten Fortschritt hinterlassen — im Projekt hat sich nichts geändert",
-    fr: "implement a signalé un succès mais n'a laissé aucun progrès réel — rien n'a changé dans le projet",
+    en: "it reported success but left no real progress — nothing changed in the project",
+    nb: "steget meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet",
+    es: "informó de éxito pero no dejó ningún progreso real — nada cambió en el proyecto",
+    de: "der Schritt meldete Erfolg, hat aber keinen echten Fortschritt hinterlassen — im Projekt hat sich nichts geändert",
+    fr: "l'étape a signalé un succès mais n'a laissé aucun progrès réel — rien n'a changé dans le projet",
     solution: {
       en: "press {button} again",
       nb: "trykk {button} igjen",
@@ -140,11 +149,11 @@ export const JOBS_CATALOG = {
     },
   },
   "runner.noProgressArchive": {
-    en: "archive reported success but left no real progress — the spec folder was never moved to archive/",
-    nb: "arkivering meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/",
-    es: "archive informó de éxito pero no dejó ningún progreso real — la carpeta de la spec nunca se movió a archive/",
-    de: "Archive meldete Erfolg, hat aber keinen echten Fortschritt hinterlassen — der Spec-Ordner wurde nie nach archive/ verschoben",
-    fr: "archive a signalé un succès mais n'a laissé aucun progrès réel — le dossier de la spec n'a jamais été déplacé vers archive/",
+    en: "it reported success but left no real progress — the spec folder was never moved to archive/",
+    nb: "steget meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/",
+    es: "informó de éxito pero no dejó ningún progreso real — la carpeta de la spec nunca se movió a archive/",
+    de: "der Schritt meldete Erfolg, hat aber keinen echten Fortschritt hinterlassen — der Spec-Ordner wurde nie nach archive/ verschoben",
+    fr: "l'étape a signalé un succès mais n'a laissé aucun progrès réel — le dossier de la spec n'a jamais été déplacé vers archive/",
     solution: {
       en: "press {button} again",
       nb: "trykk {button} igjen",
@@ -154,11 +163,11 @@ export const JOBS_CATALOG = {
     },
   },
   "runner.noProgressCreate": {
-    en: "{button} reported success, but the spec folder it should have made was not found where Aide looks for it",
-    nb: "{button} meldte at det gikk bra, men spec-mappen den skulle lage, ble ikke funnet der Aide ser etter den",
-    es: "{button} informó de éxito, pero la carpeta de spec que debía crear no se encontró donde Aide la busca",
-    de: "{button} meldete Erfolg, aber der Spec-Ordner, den es anlegen sollte, wurde nicht dort gefunden, wo Aide sucht",
-    fr: "{button} a signalé un succès, mais le dossier de spec qu'il devait créer est introuvable là où Aide le cherche",
+    en: "it reported success, but the spec folder it should have made was not found where Aide looks for it",
+    nb: "steget meldte at det gikk bra, men spec-mappen det skulle lage, ble ikke funnet der Aide ser etter den",
+    es: "informó de éxito, pero la carpeta de spec que debía crear no se encontró donde Aide la busca",
+    de: "der Schritt meldete Erfolg, aber der Spec-Ordner, den er anlegen sollte, wurde nicht dort gefunden, wo Aide sucht",
+    fr: "l'étape a signalé un succès, mais le dossier de spec qu'elle devait créer est introuvable là où Aide le cherche",
     solution: {
       en: "press {button} again",
       nb: "trykk {button} igjen",
@@ -254,11 +263,11 @@ export const JOBS_CATALOG = {
     },
   },
   "runner.mergeUnfinishedArchive": {
-    en: "archive reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge",
-    nb: "arkivering meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge",
-    es: "archive informó de éxito, pero abandonó el merge con main que se le entregó abierto — la branch sigue por detrás de main, y el mismo conflicto espera en el próximo merge",
-    de: "Archive meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — der Branch liegt weiterhin hinter main zurück, und derselbe Konflikt wartet beim nächsten Merge",
-    fr: "archive a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — la branch est toujours en retard sur main, et le même conflit attend au prochain merge",
+    en: "it reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge",
+    nb: "steget meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge",
+    es: "informó de éxito, pero abandonó el merge con main que se le entregó abierto — la branch sigue por detrás de main, y el mismo conflicto espera en el próximo merge",
+    de: "der Schritt meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — der Branch liegt weiterhin hinter main zurück, und derselbe Konflikt wartet beim nächsten Merge",
+    fr: "l'étape a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — la branch est toujours en retard sur main, et le même conflit attend au prochain merge",
     solution: {
       en: "press {button} again; the session has to finish that merge",
       nb: "trykk {button} igjen; økta må fullføre mergen",
@@ -268,11 +277,11 @@ export const JOBS_CATALOG = {
     },
   },
   "runner.mergeUnfinishedImplement": {
-    en: "implement reported success, but dropped the merge with main it was handed open — its work sits on the old main, and the same conflict waits at the next merge",
-    nb: "implementering meldte ferdig, men kastet mergen med main den fikk åpen — arbeidet ligger på den gamle main, og den samme konflikten venter ved neste merge",
-    es: "implement informó de éxito, pero abandonó el merge con main que se le entregó abierto — su trabajo está sobre el main antiguo, y el mismo conflicto espera en el próximo merge",
-    de: "Implement meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — die Arbeit liegt auf dem alten main, und derselbe Konflikt wartet beim nächsten Merge",
-    fr: "implement a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — son travail repose sur l'ancien main, et le même conflit attend au prochain merge",
+    en: "it reported success, but dropped the merge with main it was handed open — its work sits on the old main, and the same conflict waits at the next merge",
+    nb: "steget meldte ferdig, men kastet mergen med main den fikk åpen — arbeidet ligger på den gamle main, og den samme konflikten venter ved neste merge",
+    es: "informó de éxito, pero abandonó el merge con main que se le entregó abierto — su trabajo está sobre el main antiguo, y el mismo conflicto espera en el próximo merge",
+    de: "der Schritt meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — die Arbeit liegt auf dem alten main, und derselbe Konflikt wartet beim nächsten Merge",
+    fr: "l'étape a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — son travail repose sur l'ancien main, et le même conflit attend au prochain merge",
     solution: {
       en: "press {button} again; the session has to finish that merge",
       nb: "trykk {button} igjen; økta må fullføre mergen",

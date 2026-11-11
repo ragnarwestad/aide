@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
 import { formatSentence } from "../../../src/messages/format.ts";
+import { withoutStepFailed } from "../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -25,7 +26,7 @@ describe("a step the model refused", () => {
   test("ends failed with the board's message for the step, and keeps the script's sentence as detail", () => {
     const after = refused();
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.modelRefused", values: { button: "Analyze" } });
+    expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.modelRefused", values: { button: "Analyze" } });
     expect(after?.errorDetail).toBe(SCRIPT_SENTENCE);
   });
 

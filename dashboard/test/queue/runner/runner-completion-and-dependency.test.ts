@@ -11,6 +11,7 @@ import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
 import { getTestsNotStartedMessage } from "../../../src/messages/jobs/outcomes.ts";
+import { withoutStepFailed } from "../../../src/messages/format.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -222,7 +223,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressArchive" } });
+    expect(withoutStepFailed(after?.error)).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressArchive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -236,7 +237,7 @@ describe("the completion hook and the landing window", () => {
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressImplement" } });
+    expect(withoutStepFailed(after?.error)).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressImplement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -249,7 +250,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
+    expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -271,7 +272,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({
+    expect(withoutStepFailed(after?.error)).toEqual({
       key: "runner.testsNotStartedPortSpec",
       values: { port: "8806", spec: "58", button: "Implement" },
     });
@@ -289,7 +290,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedArchive" } });
+    expect(withoutStepFailed(after?.error)).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedArchive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -303,7 +304,7 @@ describe("the completion hook and the landing window", () => {
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedImplement" } });
+    expect(withoutStepFailed(after?.error)).toMatchObject({ key: "runner.afterTwoAttempts", inner: { key: "runner.mergeUnfinishedImplement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -333,7 +334,7 @@ describe("the completion hook and the landing window", () => {
     });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.error).toBe("no");
+    expect(withoutStepFailed(store.get(job.id)?.error)).toBe("no");
     expect(store.get(job.id)?.errorDetail).toBeUndefined();
   });
 
@@ -372,7 +373,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const row = store.get(job.id);
     expect(row?.state).toBe("failed");
-    expect(sentence(row?.error)).toBe("the step's own work did not reach origin: /path/to/project");
+    expect(sentence(withoutStepFailed(row?.error))).toBe("the step's own work did not reach origin: /path/to/project");
   });
 
   test("a landing flag left behind by a restart never wedges the queue", () => {

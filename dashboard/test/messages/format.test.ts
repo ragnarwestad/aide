@@ -62,7 +62,7 @@ describe("formatSentence", () => {
   });
   test("a list filling a sentence is never drawn as a bare count", () => {
     const red: BoardMessage = { key: "runner.testsRedFailing", values: { n: "2", total: "9", tests: ["a › one", "b › two"], button: "Implement" } };
-    expect(formatSentence("en", red)).toBe("Problem: Implement is done, but 2 of 9 tests fail on its result\nSolution: Press Implement again");
+    expect(formatSentence("en", red)).toBe("Problem: 2 of 9 tests fail on its result\nSolution: Press Implement again");
     expect(messageDetail(red)).toBe("a › one\nb › two");
   });
 

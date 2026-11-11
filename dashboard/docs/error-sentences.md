@@ -41,6 +41,10 @@ Solution: Press Try again to open the form with what you typed, then press Creat
   (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/edit-sentences.ts` is the model case: editing an archived spec is
   intentionally impossible, not a gap).
 - **The labels are in the reader's language**, as the rest of the board is: "Problem" and "Løsning" in Norwegian.
+- **A fix that is to try again names the button**: "press Archive again", never "try again".
+- **A failed step's problem starts with the step**: "Archive failed: …", as a failed landing's starts "Archive merge
+  failed: …". The sentence after it does not name the step a second time. A stop, which is amber and not a failure,
+  has no such opening.
 
 ### In the message catalog
 
@@ -61,7 +65,8 @@ the result without deciding the actions again. Producers that have no reader yet
 
 A message whose text has a `{message}` blank takes only the problem of the message inside it, and the message shows one
 Solution line: the outer message's own fix when it has one, and otherwise the fix of the message inside it. An outer
-message whose inner message knows the better fix carries no fix of its own.
+message whose inner message knows the better fix carries no fix of its own. The inner message's fix takes the button
+from the outer message when it names none of its own, since only the outer message's writer knows which step it was.
 
 ### Several messages on one row
 

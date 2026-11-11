@@ -11,7 +11,14 @@ import { MESSAGES, type MessageEntry, type MessageKey } from "./catalog.ts";
 import type { BoardMessage, Sentence } from "./types.ts";
 export type { BoardMessage, Sentence } from "./types.ts";
 
-const PRESENTATION_WRAPPERS = new Set<MessageKey>(["message.lead", "landing.stepStopped", "landing.stepFailed"]);
+const PRESENTATION_WRAPPERS = new Set<MessageKey>(["message.lead", "landing.stepStopped", "landing.stepFailed", "runner.stepFailed"]);
+
+/** A failed step's message without the "{step} failed:" in front of it:
+ *  what a reader that asks which failure it was looks at. */
+export function withoutStepFailed(sentence: Sentence | Sentence[] | undefined): Sentence | Sentence[] | undefined {
+  if (sentence === undefined || typeof sentence === "string" || Array.isArray(sentence)) return sentence;
+  return sentence.key === "runner.stepFailed" && sentence.inner !== undefined ? sentence.inner : sentence;
+}
 
 /** A language-independent identity for one underlying board event. */
 export function messageIdentity(sentence: Sentence | Sentence[] | undefined): string | undefined {
@@ -83,11 +90,18 @@ function joined(texts: string[]): string {
  *  and its fix, the way a message not yet in that shape reads. */
 const flat = (p: Parts): string => (p.lines && p.solution ? `${p.problem} — ${p.solution}` : p.problem);
 
-function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts {
+/** The blanks a message inside another one may take from the one around
+ *  it: the button its fix names, which only the outer message's writer
+ *  knows. */
+type Inherited = { button?: string | number | string[] };
+
+function messageParts(lang: Language, m: BoardMessage, catalog: Catalog, inherited: Inherited = {}): Parts {
   const entry = catalog[m.key]!;
+  const values = { ...inherited, ...m.values };
   const fill = (text: string): string => {
     let out = text;
-    if (m.values) for (const [k, v] of Object.entries(m.values)) {
+    for (const [k, v] of Object.entries(values)) {
+      if (v === undefined) continue;
       const value = k === "doing" && typeof v === "string" ? gerund(lang, v).toLowerCase() : v;
       out = out.replaceAll(`{${k}}`, () => String(Array.isArray(value) ? value.length : value));
     }
@@ -102,7 +116,7 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
   let problem = fill(entry[lang]);
   let innerSolution: string | undefined;
   if (m.inner !== undefined) {
-    const inner = sentenceParts(lang, m.inner, catalog);
+    const inner = sentenceParts(lang, m.inner, catalog, values.button === undefined ? {} : { button: values.button });
     if (m.key === "message.lead" && inner.information) {
       lines = false;
       information = true;
@@ -116,9 +130,9 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
   return { problem, solution: entry.solution ? fill(entry.solution[lang]) : innerSolution, lines };
 }
 
-function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalog): Parts {
+function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalog, inherited: Inherited = {}): Parts {
   if (Array.isArray(s)) {
-    const parts = s.map((one) => sentenceParts(lang, one, catalog)).filter((p) => p.problem);
+    const parts = s.map((one) => sentenceParts(lang, one, catalog, inherited)).filter((p) => p.problem);
     const lines = parts.some((p) => p.lines);
     return {
       problem: joined(parts.map((p) => (lines ? p.problem : flat(p)))),
@@ -127,7 +141,7 @@ function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalo
       information: parts.every((p) => p.information),
     };
   }
-  return typeof s === "string" ? { problem: s, lines: false } : messageParts(lang, s, catalog);
+  return typeof s === "string" ? { problem: s, lines: false } : messageParts(lang, s, catalog, inherited);
 }
 
 /** The Problem line and, when there is a fix, the Solution line under it. */

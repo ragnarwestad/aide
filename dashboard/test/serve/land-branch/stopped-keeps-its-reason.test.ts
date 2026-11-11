@@ -10,7 +10,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { landBranch } from "../../../src/serve/land-branch";
-import { clearsLandingError, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
+import { clearsLandingError, firstLandingError, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
+import { pushRefusal } from "../../../src/git/branch-merge/result.ts";
+import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
@@ -138,5 +140,14 @@ describe("the tests a spec's last landing failed", () => {
     const queue = queueOf([], false);
     keepLandingFailedTests(queue, A, NEW);
     expect(queue.update("a", {}).landingFailedTests).toEqual(NEW);
+  });
+});
+
+describe("a landing whose push failed", () => {
+  test("names the step's button in the fix of the git sentence inside it", () => {
+    const refused = pushRefusal("/x/code", BRANCH, "main", { cause: { kind: "none" } });
+    const text = formatSentence("en", firstLandingError(undefined, refused.error!, "archive", false)) ?? "";
+    expect(text).toContain("Press Archive again");
+    expect(text).not.toContain("{");
   });
 });

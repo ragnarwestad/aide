@@ -3,7 +3,7 @@
 import { stepLabel } from "../../format/step-label.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { t, type Language } from "../../i18n/index.ts";
-import { messageDetail, messageIdentity, formatMessage, formatSentence } from "../format.ts";
+import { messageDetail, messageIdentity, formatMessage, formatSentence, withoutStepFailed, type Sentence } from "../format.ts";
 import { heldBackResolvesOnItsOwn } from "../jobs/holds.ts";
 import type { Message, MessageVariant } from "../types.ts";
 import type { OpenOverlap } from "../../project/overlapping-specs.ts";
@@ -67,8 +67,10 @@ export function detailBeyond(text: string, ...details: (string | undefined)[]): 
   return lines.length ? lines.join("\n").trim() : undefined;
 }
 
-const isArchiveTestsRed = (error: unknown): boolean =>
-  typeof error === "object" && error !== null && (error as { key?: unknown }).key === "runner.testsRedArchive";
+const isArchiveTestsRed = (error: Sentence | Sentence[] | undefined): boolean => {
+  const own = withoutStepFailed(error);
+  return typeof own === "object" && !Array.isArray(own) && own.key === "runner.testsRedArchive";
+};
 
 /** The sentence for a spec whose analyze stands stopped on files other open
  *  specs change: its lead job stopped so, or the analyze phase's own history

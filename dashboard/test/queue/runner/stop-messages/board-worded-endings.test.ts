@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
 import { aiWorkRetryDecision } from "../../../../src/queue/runner/retry.ts";
+import { withoutStepFailed } from "../../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -37,7 +38,7 @@ describe("a result with no sentence of the runner's own", () => {
       const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ok: false, ...c.result }) });
       runner.tick();
       runner.poll();
-      const error = store.get(job.id)?.error;
+      const error = withoutStepFailed(store.get(job.id)?.error);
       const worded = typeof error === "object" && error !== null;
       expect(worded).toBe(c.boardWords);
     });

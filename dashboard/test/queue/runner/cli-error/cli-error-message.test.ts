@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
 import { formatSentence } from "../../../../src/messages/format.ts";
 import { getCliErrorMessage } from "../../../../src/messages/jobs/outcomes.ts";
+import { withoutStepFailed } from "../../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -79,7 +80,7 @@ describe("a Codex step that was not logged in", () => {
   test("ends failed saying to log in, with the tool's own words behind the (?)", () => {
     const after = notLoggedIn();
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "unexpected status 401", button: "Implement" } });
+    expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "unexpected status 401", button: "Implement" } });
     expect(after?.errorDetail).toBe(CODEX_401);
   });
 

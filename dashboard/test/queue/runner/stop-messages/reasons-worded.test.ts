@@ -108,6 +108,18 @@ describe("the detail behind a sentence the board words", () => {
     expect(stored(result("tests-not-started", { errorLog: log }))?.errorDetail).toBe(log);
   });
 
+  test("a failed step's sentence starts with the step, naming its button for the fix inside", () => {
+    expect(stored(result("tests-red"))?.error).toMatchObject({
+      key: "runner.stepFailed",
+      values: { step: "implement", button: "Implement" },
+      inner: { key: "runner.testsRedImplement" },
+    });
+  });
+
+  test("a stop is not worded as a failure", () => {
+    expect(stored(result("timeout", { timeLimit: { seconds: 10, during: "session" } }))?.error).toMatchObject({ key: "runner.afterTwoTimeouts", inner: { key: "runner.timeLimitSession" } });
+  });
+
   test("a stop that carries no errorLog leaves no detail (AC-2)", () => {
     expect(stored(result("timeout", { timeLimit: { seconds: 10, during: "session" } }))?.errorDetail).toBeUndefined();
     expect(stored(result("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md"] }))?.errorDetail).toBeUndefined();

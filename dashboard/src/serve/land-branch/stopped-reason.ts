@@ -3,6 +3,7 @@
 
 import type { Job, QueueStore } from "../../queue/queue.ts";
 import type { Sentence } from "../../messages/types.ts";
+import { stepButton } from "../../format/step-label.ts";
 
 /** A step that STOPPED — at its own time limit, or on a provider's
  *  usage limit — lands what it did, and its error is the reason it
@@ -43,7 +44,7 @@ export function firstLandingError(
   step: string,
   held: boolean,
 ): Sentence | Sentence[] {
-  return existing ?? { key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const), values: { step }, inner: msg };
+  return existing ?? { key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const), values: { step, button: stepButton(step) }, inner: msg };
 }
 
 /** Whether the landing failure a job carries belongs to `step`. */

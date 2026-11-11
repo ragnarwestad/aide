@@ -32,6 +32,7 @@ import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import { formatSentence, type BoardMessage, type Sentence } from "../../messages/format.ts";
 import { stepButton } from "../../format/step-label.ts";
+import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop } from "../steps.ts";
@@ -348,10 +349,16 @@ export class Runner {
         outcome,
         job.model[step] ?? job.modelChoice,
       );
+      // The step's name goes in front, as a landing's does ("{step} merge
+      // failed"), so the sentence says which step failed wherever it is
+      // read. A deploy is worded by the board's own process, step and all.
+      const error = failure.error !== undefined && requireWorkflowStep(step).runBy !== "board"
+        ? { key: "runner.stepFailed" as const, values: { step, button: stepButton(step) }, inner: failure.error as Sentence | Sentence[] }
+        : failure.error;
       const result = endStep(this.o.store, job.id, "step-failed", {
         ...base,
         finishedAt: this.o.now(),
-        error: failure.error,
+        error,
         errorDetail: failure.errorDetail,
         // A conflict found HERE — at step start, by the runner — has to
         // reach the job the same way a landing's conflict does, so the
