@@ -17,18 +17,42 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
-import { executionGroupAction, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { ExecutionGroupStore, executionGroupAction, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import type { SpecTarget } from "../../render";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
 const PHASE_STEPS = new Set(workflowArc().map((step) => step.name));
+
+export function executionGroupForAction(
+  store: ExecutionGroupStore,
+  id: string,
+  targets: Pick<SpecTarget, "project" | "specFolder" | "group">[],
+): ExecutionGroup | undefined {
+  const registered = store.get(id);
+  if (registered) return registered;
+  if (!id.startsWith("membership:")) return undefined;
+  const rest = id.slice("membership:".length);
+  const split = rest.indexOf(":");
+  if (split < 1) return undefined;
+  const project = rest.slice(0, split);
+  const name = rest.slice(split + 1);
+  const members = targets
+    .filter((target) => target.project === project && target.group?.name === name)
+    .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
+  if (members.length < 2) return undefined;
+  return store.prepare({
+    project, name, members: members.map((member) => member.specFolder),
+    branch: groupBranch(members[0]!.specFolder, name),
+  });
+}
 
 export async function handleJobActionRoutes(
   ctx: RoutesContext,
   req: Request,
   path: string,
 ): Promise<Response | null> {
-  const groupAction = path.match(/^\/api\/queue\/groups\/([A-Za-z0-9_-]+)\/(.+)$/);
+  const groupAction = path.match(/^\/api\/queue\/groups\/([^/]+)\/action$/);
   if (groupAction) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const sent = await readBounded(req);
@@ -38,9 +62,11 @@ export async function handleJobActionRoutes(
       const body = sent.text ? bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown> : {};
       if (body.action === "start" || body.action === "stop" || body.action === "archive") askedAction = body.action;
     } catch { return json({ error: "malformed body" }, 400); }
-    const [, project, encodedName] = groupAction;
-    let name: string;
-    try { name = decodeURIComponent(encodedName!); } catch { return json({ error: "invalid group" }, 400); }
+    let groupId: string;
+    try { groupId = decodeURIComponent(groupAction[1]!); } catch { return json({ error: "invalid group" }, 400); }
+    const execution = executionGroupForAction(ctx.queue.executionGroups, groupId, ctx.withFreshness(ctx.targets()));
+    if (!execution) return json({ error: "the group no longer exists" }, 409);
+    const { project, name } = execution;
     const members = ctx.withFreshness(ctx.targets())
       .filter((target) => target.project === project && target.group?.name === name)
       .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
@@ -53,11 +79,6 @@ export async function handleJobActionRoutes(
       branch: groupBranch(members[0]!.specFolder, name),
     };
     const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
-    const execution = ctx.queue.executionGroups.findUnfinished(project, name)
-      ?? (historical.length ? ctx.queue.executionGroups.reconcile({
-        ...input,
-        completedMembers: members.filter((member) => member.done?.includes("implement")).map((member) => member.specFolder),
-      }, historical) : ctx.queue.executionGroups.prepare(input));
     const available = executionGroupAction(execution, members.map((member) => ({
       implemented: (member.done ?? []).includes("implement"),
       archived: false,

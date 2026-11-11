@@ -33,18 +33,6 @@ test("Specs renders group members as independent rows without a group fold (AC-1
   expect(html).toContain("2-second");
 });
 
-test("the Specs list's open row contains the group editor (A757 AC-1, A757 AC-11)", () => {
-  const html = renderSpecsRows([], {
-    targets: [{ project: "p", specFolder: "1-first", group: { name: "Release", position: 1 }, done: ["create"] }],
-    providers: [],
-    archived: [],
-    openSpec: { key: "p/1-first" },
-  } as never);
-  expect(html).toContain('name="group" value="Release"');
-  expect(html).toContain('<option value="Release"></option>');
-  expect(html).toContain('name="removeGroup"');
-});
-
 test("grouped children have no Archive action (AC-5)", () => {
   const html = renderSpecsRows([], {
     targets: [{ project: "p", specFolder: "1-first", group: { name: "Release", position: 1 }, done: ["create", "analyze", "implement"] }],

@@ -50,16 +50,26 @@ export class ExecutionGroupStore {
   findUnfinished(project: string, name: string): ExecutionGroup | undefined {
     return this.list().find((group) => group.project === project && group.name === name && group.state !== "completed");
   }
+  create(input: PrepareExecutionGroup): ExecutionGroup {
+    if (this.findUnfinished(input.project, input.name)) throw new Error(`execution group ${input.name} already exists`);
+    const group: ExecutionGroup = { ...input, members: [...input.members], id: this.id(), createdAt: this.now(), state: "prepared", completedMembers: [], jobs: [] };
+    this.groups.set(group.id, group);
+    this.write();
+    return structuredClone(group);
+  }
   prepare(input: PrepareExecutionGroup): ExecutionGroup {
     const existing = this.findUnfinished(input.project, input.name);
     if (existing) {
       if (!existing.startedAt) return this.update(existing.id, { members: [...input.members], branch: input.branch });
       return existing;
     }
-    const group: ExecutionGroup = { ...input, members: [...input.members], id: this.id(), createdAt: this.now(), state: "prepared", completedMembers: [], jobs: [] };
-    this.groups.set(group.id, group);
-    this.write();
-    return structuredClone(group);
+    return this.create(input);
+  }
+  editPrepared(id: string, members: string[], branch: string): ExecutionGroup {
+    const current = this.groups.get(id);
+    if (!current) throw new Error(`no such execution group: ${id}`);
+    if (current.startedAt || current.state !== "prepared") throw new Error(`execution group ${id} has already started`);
+    return this.update(id, { members: [...members], branch });
   }
   reconcile(
     input: PrepareExecutionGroup & Pick<ExecutionGroup, "completedMembers">,

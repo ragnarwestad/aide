@@ -7,8 +7,8 @@ import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, groupIn, manifestInside, nextGroupPosition, parseCriteriaChecks, specFileText, withAcceptanceLine,
-  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine, withGroupLines,
+  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, groupIn, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { cardStep } from "../../../project/spec-card.ts";
@@ -22,24 +22,8 @@ import {
 
 import { afterTick } from "./checks.ts";
 import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
-import { groupBranch } from "../../../project/spec-names.ts";
 
 import type { RoutesContext } from "..";
-import type { QueueStore } from "../../../queue/queue.ts";
-import type { SpecGroupMembership } from "../../../project/discover";
-
-export function prepareSavedExecutionGroup(
-  queue: QueueStore,
-  targets: { project: string; specFolder: string; group?: SpecGroupMembership }[],
-  project: string,
-  specFolder: string,
-  savedGroup: SpecGroupMembership,
-): void {
-  const others = targets.filter((target) => target.project === project && target.specFolder !== specFolder && target.group?.name === savedGroup.name)
-    .map((target) => ({ folder: target.specFolder, position: target.group!.position }));
-  const members = [{ folder: specFolder, position: savedGroup.position }, ...others].sort((a, b) => a.position - b.position || a.folder.localeCompare(b.folder));
-  queue.executionGroups.prepare({ project, name: savedGroup.name, members: members.map((member) => member.folder), branch: groupBranch(members[0]!.folder, savedGroup.name) });
-}
 
 export async function trackingRoutes(
   ctx: RoutesContext,
@@ -143,27 +127,6 @@ export async function trackingRoutes(
   // silently is a dead gate nobody is told about.
   const depFolders: string[] = [];
   let text: string | null = currentText;
-  if (body.group !== undefined || body.removeGroup === "1") {
-    const currentGroup = groupIn(currentText);
-    const askedGroup = String(body.group ?? "").trim();
-    const changesGroup = body.removeGroup === "1" || (!!askedGroup && askedGroup !== currentGroup?.name);
-    if (changesGroup && view.locks.group === "spec-started") return refuse("this spec has already started — its group cannot change");
-    if (body.removeGroup === "1") {
-      text = withGroupLines(currentText, undefined);
-    } else if (askedGroup && askedGroup !== currentGroup?.name) {
-      const name = askedGroup;
-      const discovered = ctx.opts.projectRoot
-        ? discoverProjects(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
-        : undefined;
-      if (!discovered) return refuse("unknown project — nothing was saved");
-      const position = nextGroupPosition(name, [
-        ...discovered.specs.map((s) => s.group),
-        ...ctx.targets().filter((s) => s.project === project).map((s) => s.group),
-      ]);
-      text = withGroupLines(currentText, { name, position });
-      if (text === null) return refuse(`nowhere to put "Group" — Tracking info has no Created line — nothing was saved`);
-    }
-  }
   if (body.dependsOn !== undefined) {
     const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
       .filter((v): v is string => typeof v === "string")
@@ -260,8 +223,6 @@ export async function trackingRoutes(
   }
   // The row's own line reads the same copy this save wrote.
   await afterTick(ctx, dir, specFolder!);
-  const savedGroup = groupIn(text!);
-  if (savedGroup) prepareSavedExecutionGroup(ctx.queue, ctx.targets(), project!, specFolder!, savedGroup);
 
   // An analyze that stopped on files another open spec changes goes on
   // once Depends on names one of the specs it named: Analyze is queued

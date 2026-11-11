@@ -7,6 +7,7 @@
 // presses them as it does the list's.
 
 import { t } from "../../../i18n";
+import type { Language } from "../../../i18n";
 import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
@@ -20,6 +21,8 @@ import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
+import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
+import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
@@ -119,10 +122,23 @@ export function renderJobsRows(v: JobsView): string {
     ? shown.map((r) => r.html).join("")
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
-    notices +
+    notices + executionGroupEditors(v, lang) +
     jobsFilterBar(all.map((e) => e.facts), f, lang, v.list) +
     `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
+}
+
+function executionGroupEditors(v: JobsView, lang: Language): string {
+  const groups = v.executionGroups ?? [];
+  const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
+  const jobs = [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
+  const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
+  return executionGroupEditor({ projects, candidates, lang }) + groups
+    .filter((group) => group.state === "prepared" && !group.startedAt)
+    .map((group) => executionGroupEditor({
+      projects, group, lang,
+      candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups, jobs, editingGroupId: group.id }),
+    })).join("");
 }
 
 /** One spec's rows alone, for a fold: an empty body when the spec has no row
