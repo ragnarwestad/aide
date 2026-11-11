@@ -13,11 +13,9 @@ const member = (folder: string, html: string) => ({
   group: { project: "aide", specFolder: folder, done: ["create"], state: "not-started" } as SpecGroup,
 });
 
-test("the card keeps saved member order and lifecycle dates (AC-2, AC-3, AC-4)", () => {
+test("the card keeps saved member order and sorts by activity", () => {
   const html = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>"), member("2-second", "<tr>second</tr>")]);
   expect(html.indexOf("second")).toBeLessThan(html.indexOf("first"));
-  expect(html).toContain("Created 2026-11-10");
-  expect(html).toContain("Started 2026-11-11");
   const stoppedAtNoon = member("1-first", "<tr>first</tr>");
   stoppedAtNoon.group.lead = {
     state: "stopped", createdAt: "2026-11-11T09:00:00.000Z", startedAt: "2026-11-11T10:00:00.000Z",

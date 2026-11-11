@@ -119,6 +119,22 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 });
 
+describe("groups contribute their member count", () => {
+  test("state counts include group members instead of counting each group as one", () => {
+    const facts = factsOf([
+      spec("first", { specFolder: "first-group", state: "running", itemCount: 3 }),
+      spec("second", { specFolder: "second-group", state: "queued", itemCount: 3 }),
+      spec("ordinary", { specFolder: "ordinary", state: "not-started" }),
+      failedReport,
+    ]);
+    const count = (key: string, q?: string) => jobsStateOptions(facts, { q }).find((option) => option.key === key)?.count;
+    expect(count("all")).toBe(8);
+    expect(count("active:all")).toBe(3);
+    expect(count("waiting")).toBe(3);
+    expect(count("all", "first-group")).toBe(3);
+  });
+});
+
 describe("a scheduled job is matched on its title and its project", () => {
   test("a word of a scheduled job's title finds it and not another; its folder's prefix is not the title", () => {
     expect(failedReport.facts.title).toBe("report");
