@@ -10,6 +10,7 @@ export interface FakeRow {
   readonly className: string;
   readonly nextElementSibling: FakeRow | null;
   readonly parentNode: { insertAdjacentHTML(where: string, html: string): void };
+  hasAttribute(name: string): boolean;
   remove(): void;
   insertAdjacentHTML(where: string, html: string): void;
 }
@@ -39,6 +40,9 @@ export function fakeTbody(onMutate: () => void) {
       },
       get className(): string {
         return attr(row.html, "class");
+      },
+      hasAttribute(name: string): boolean {
+        return new RegExp(`\\s${name}(?:=|\\s|>)`).test(row.html.slice(0, row.html.indexOf(">") + 1));
       },
       get nextElementSibling(): FakeRow | null {
         const at = list.indexOf(row);

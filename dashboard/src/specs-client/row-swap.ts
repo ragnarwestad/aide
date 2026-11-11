@@ -11,6 +11,7 @@ import { openTestFiles, reopenTestFiles } from "./test-files";
 import { holdSpecDetail } from "./spec-detail";
 import { runButton } from "../render/pages/specs-list/data-model/phase.ts";
 import { SPEC_HEAD_CLASS } from "../page-contract.ts";
+import { syncSpecGroups } from "./spec-groups";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -184,7 +185,7 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
   const parsed = new Parser().parseFromString(html, "text/html");
   const bodies = parsed.querySelectorAll("tbody");
   if (!bodies.length || (!holdsSpec && bodies.length !== 1)) return null;
-  const heads = Array.from(bodies[0]!.children).filter((row) => row.classList.contains(SPEC_HEAD_CLASS));
+  const heads = Array.from(bodies[0]!.children).filter(isRowHead);
   const at: { key: string; index: number }[] = [];
   const tags = Array.from(content.matchAll(/<tr\b[^>]*>/g));
   for (const head of heads) {
@@ -194,8 +195,8 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
     if (!match) return null;
     at.push({ key, index: match.index! });
   }
-  // The invariant: every row inside the table belongs to exactly one
-  // spec. The first spec starting anywhere but the very beginning means
+  // Every row belongs to a spec or a group heading. The first heading
+  // starting anywhere but the very beginning means
   // something else is in there.
   if (!at.length || at[0]!.index !== 0) return null;
   const groups: RowGroup[] = [];
@@ -211,11 +212,12 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
 
 const isSpecHead = (el: Element): boolean =>
   ` ${el.className} `.indexOf(` ${SPEC_HEAD_CLASS} `) !== -1;
+const isRowHead = (el: Element): boolean => isSpecHead(el) || el.hasAttribute("data-spec-group");
 
-/** A head row and every row after it up to the next spec's. */
+/** A head row and every row after it up to the next spec or group heading. */
 function rowsFrom(head: Element): Element[] {
   const range: Element[] = [head];
-  for (let el = head.nextElementSibling; el && !isSpecHead(el); el = el.nextElementSibling) range.push(el);
+  for (let el = head.nextElementSibling; el && !isRowHead(el); el = el.nextElementSibling) range.push(el);
   return range;
 }
 
@@ -224,7 +226,7 @@ function rowsFrom(head: Element): Element[] {
  *  diff giving up and letting the caller redraw wholesale. */
 function groupRange(key: string): Element[] | null {
   const head = document.getElementById(key);
-  if (!head || !isSpecHead(head)) return null;
+  if (!head || !isRowHead(head)) return null;
   return rowsFrom(head);
 }
 
@@ -236,8 +238,8 @@ export function specRowsOf(el: Element): Element[] | null {
   let row = el.closest("tr");
   for (let up = row?.parentElement?.closest("tr"); up; up = up.parentElement?.closest("tr")) row = up;
   let head: Element | null = row;
-  while (head && !isSpecHead(head)) head = head.previousElementSibling;
-  return head ? rowsFrom(head) : null;
+  while (head && !isRowHead(head)) head = head.previousElementSibling;
+  return head && isSpecHead(head) ? rowsFrom(head) : null;
 }
 
 /** Put a group's fresh markup where its old rows are, then take the old
@@ -331,6 +333,7 @@ let lastRows: RowSplit | null = null;
  *  again, each AI's own models offered, and a refusal the page is holding
  *  written under its row again. `open` was read before the rows were replaced. */
 function redrawn(body: Element, open: ReadonlySet<string>): void {
+  syncSpecGroups(body);
   drawLimits(body);
   restoreChosen(body);
   reopenTestFiles(body, open);

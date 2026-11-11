@@ -31,11 +31,21 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a group row contains its specs in their saved order (A757 AC-4)", async () => {
+test("a group can be unfolded and its specs opened in place", async () => {
   await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-  await page.getByText("Release", { exact: true }).waitFor({ state: "visible" });
-  const text = await page.locator("table.speclist").innerText();
-  expect(text.indexOf("82-first")).toBeLessThan(text.indexOf("81-queue-and-runner"));
+  const group = page.getByRole("button", { name: "Release", exact: true });
+  const spec = page.locator('tr.spechead[data-folder="82-first"]');
+  await group.waitFor();
+  await spec.waitFor({ state: "hidden" });
+  await group.click();
+  await spec.waitFor({ state: "visible" });
+  await spec.locator("a.fold").click();
+  await page.locator('[data-spec-detail="aide/82-first"] .spec-editor-mount[data-mounted]').waitFor();
+  expect(await group.count()).toBe(1);
+  await group.click();
+  await spec.waitFor({ state: "hidden" });
+  await group.click();
+  await spec.waitFor({ state: "visible" });
 });
 
 test("group Start queues only the first member (A757 AC-7, A757 AC-9)", async () => {
@@ -59,4 +69,6 @@ test("group Start queues only the first member (A757 AC-7, A757 AC-9)", async ()
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
   });
   expect(ordinaryLater.status).toBe(409);
+  await page.goto(`${base}/specs?live=0`);
+  expect(await page.getByRole("button", { name: "Start", exact: true }).isDisabled()).toBe(true);
 });

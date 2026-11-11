@@ -38,7 +38,7 @@ export { progressDialog, type ProgressParts, type ProgressStepState } from "./pr
 
 // --- fold arrow ------------------------------------------------------------------
 
-export { foldArrow, foldDisclosure, type FoldTitle } from "./fold-arrow.ts";
+export { foldArrow, foldButton, foldDisclosure, type FoldTitle } from "./fold-arrow.ts";
 
 // --- table of facts ----------------------------------------------------------------
 
