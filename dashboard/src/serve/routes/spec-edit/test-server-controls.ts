@@ -5,6 +5,7 @@
 import { startTestServer, stopTestServer } from "../../test-servers/lifecycle.ts";
 import { ARCHIVED_REFUSAL, json, logRefusal, readBounded } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { branchForSpec } from "../../../project/discover/group.ts";
 
 export async function testServerControlRoutes(
   ctx: RoutesContext,
@@ -24,7 +25,8 @@ export async function testServerControlRoutes(
       logRefusal("test-server", spec, ARCHIVED_REFUSAL);
       return json({ error: ARCHIVED_REFUSAL, spec }, 400);
     }
-    const result = await startTestServer(ctx.testServers, project!, specFolder!);
+    const dir = ctx.specDir(project!, specFolder!);
+    const result = await startTestServer(ctx.testServers, project!, specFolder!, dir ? { branch: branchForSpec(dir, specFolder!) } : {});
     if (!result.ok) {
       logRefusal("test-server", spec, result.error);
       return json({ error: result.error, spec }, 400);

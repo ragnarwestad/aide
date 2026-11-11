@@ -2,6 +2,7 @@
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
 import { proseSteps } from "../../project/discover/spec-files.ts";
+import { previousGroupMember } from "../../project/discover/group.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { readSpecState } from "../../project/parse-spec-state.ts";
@@ -14,6 +15,7 @@ import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-h
 import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
+import { groupBranch } from "../../project/spec-names.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
@@ -24,6 +26,38 @@ export async function handleJobActionRoutes(
   req: Request,
   path: string,
 ): Promise<Response | null> {
+  const groupAction = path.match(/^\/api\/queue\/groups\/([A-Za-z0-9_-]+)\/(.+)$/);
+  if (groupAction) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const sent = await readBounded(req);
+    if ("refusal" in sent) return sent.refusal;
+    const [, project, encodedName] = groupAction;
+    let name: string;
+    try { name = decodeURIComponent(encodedName!); } catch { return json({ error: "invalid group" }, 400); }
+    const members = ctx.withFreshness(ctx.targets())
+      .filter((target) => target.project === project && target.group?.name === name)
+      .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
+    if (members.length < 2) return json({ error: "the group no longer exists" }, 409);
+    const next = members.find((member) => !(member.done ?? []).includes("implement"));
+    const raw = next
+      ? { project, specFolder: next.specFolder, steps: ["analyze", "implement"] }
+      : members.some((member) => member.acceptanceOpen)
+        ? null
+        : {
+            project,
+            specFolder: members[0]!.specFolder,
+            steps: ["archive"],
+            groupMembers: members.map((member) => member.specFolder),
+            groupBranch: groupBranch(members[0]!.specFolder, name),
+          };
+    if (!raw) return json({ error: "every acceptance criterion in the group must be ticked before Archive" }, 409);
+    const result = ctx.queue.enqueue(raw);
+    if (!result.ok) return refusal(result, { spec: `${project}/${raw.specFolder}` });
+    ctx.queue.update(result.job.id, { pressed: true });
+    await ctx.tickRunner();
+    return json({ ok: true, job: result.job });
+  }
+
   if (path === "/api/queue") {
     if (req.method === "GET") {
       return json({ generatedAt: new Date().toISOString(), jobs: ctx.queue.list() });
@@ -63,14 +97,17 @@ export async function handleJobActionRoutes(
           ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
         )[0];
         if (row?.group) {
-          const earlier = ctx.withFreshness(ctx.targets())
-            .filter((target) => target.project === askedFor.project && target.group?.name === row.group!.name)
-            .find((target) => target.group!.position < row.group!.position);
+          const earlier = previousGroupMember(
+            ctx.withFreshness(ctx.targets()).filter((target) => target.project === askedFor.project), row,
+          );
           if (earlier) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const reason = `${earlier.specFolder} must archive before this grouped spec can start`;
-            logRefusal("run", spec, reason);
-            return json({ error: reason, spec }, 409);
+            const implemented = earlier.done?.includes("implement");
+            if (!implemented) {
+              const reason = `${earlier.specFolder} must finish Implement before this grouped spec can start`;
+              logRefusal("run", spec, reason);
+              return json({ error: reason, spec }, 409);
+            }
           }
         }
         const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];

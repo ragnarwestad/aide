@@ -18,6 +18,7 @@ import type { BranchStatusChecker } from "../git/branch-status.ts";
 import type { GitRunner } from "../git/process/index.ts";
 import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
 import { specBranch, STATUS_FILE } from "../project/spec-names.ts";
+import { branchForSpec } from "../project/discover/group.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   discoverProjects, manifestInside, type CodeLanding, type SpecRef,
@@ -312,7 +313,8 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
       }
     }
     for (const folder of folders) {
-      const branch = specBranch(folder);
+      const archivedDir = join(ctx.machinerySpecsRoot(project) ?? "", "archive", folder);
+      const branch = existsSync(archivedDir) ? branchForSpec(archivedDir, folder) : specBranch(folder);
       if (!open.has(branch)) continue;
       found.push(`${project}/${folder}`);
       if (pr && !elsewhere.has(branch)) reviewing.push(`${project}/${folder}`);
@@ -342,7 +344,8 @@ export function mergedPullRequest(
  *  leaves the branch outside the default branch for good, so a project
  *  that reviews its code also counts a merged pull request. */
 export function peekMergedOnOrigin(ctx: SpecLookupContext, project: string, folder: string): boolean {
-  const branch = specBranch(folder);
+  const archivedDir = join(ctx.machinerySpecsRoot(project) ?? "", "archive", folder);
+  const branch = existsSync(archivedDir) ? branchForSpec(archivedDir, folder) : specBranch(folder);
   const holding = specRoots(ctx, project).filter((r) => ctx.branchStatus.peekOpenSpecBranches(r).open?.has(branch));
   return (
     holding.length > 0 &&

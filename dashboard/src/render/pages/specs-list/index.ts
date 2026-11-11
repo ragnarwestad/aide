@@ -34,13 +34,15 @@ import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
-import { buttonForm, type ProgressStepState } from "../../ui/components";
+import { buttonForm, stepLabel, type ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
+import { formatSentence } from "../../../messages/format.ts";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
+import { specBusy } from "./row-state.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page/` and `settings-page.ts` — so the split
 // between this file and `specs-list/model-picker.ts` is invisible to
@@ -282,17 +284,20 @@ function groupRows(
       .filter((candidate) => candidate.project === g.project && candidate.group?.name === g.group!.name)
       .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
     const wholeGroup = allGroups.filter((candidate) => candidate.project === g.project && candidate.group?.name === g.group!.name);
-    const done = wholeGroup.filter((child) => child.state === "archived" || child.state === "closed").length;
+    const done = wholeGroup.filter((child) => child.done.includes("implement") || child.state === "archived" || child.state === "closed").length;
     const waiting = wholeGroup.find((child) => child.state !== "archived" && child.state !== "closed" && child.state !== "not-started");
     const status = t(opts.lang ?? "en", "list.groupDone", { done: String(done), total: String(wholeGroup.length) });
     const waitingText = waiting ? ` · ${t(opts.lang ?? "en", "list.groupWaiting", { spec: waiting.specFolder })}` : "";
+    const readyToArchive = wholeGroup.length > 0 && wholeGroup.every((child) =>
+      child.done.includes("implement") && !child.acceptanceOpen && !specBusy(child));
+    const failedLanding = wholeGroup.find((child) => child.landingError)?.landingError;
     const parent = `<tr class="specstate" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
       `<strong>${esc(g.group.name)}</strong> · ${esc(status + waitingText)} ` +
       buttonForm({
         action: `/api/queue/groups/${g.project}/${encodeURIComponent(g.group.name)}`,
         hook: "actionform",
-        button: { label: t(opts.lang ?? "en", "list.groupStart") },
-      }) + `</td></tr>`;
+        button: { label: readyToArchive ? stepLabel("archive", opts.lang ?? "en") : t(opts.lang ?? "en", "list.groupStart") },
+      }) + (failedLanding ? `<br>${esc(formatSentence(opts.lang ?? "en", failedLanding) ?? "")}` : "") + `</td></tr>`;
     return parent + children.map((child) => groupRow(child, opts, now, opened)).join("");
   }).join("");
 }

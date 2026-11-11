@@ -113,6 +113,7 @@ if [ -n "$status_file" ]; then
         ;;
       *)
         archive_args=(--project-dir "$project_wt" --spec "$commit_label")
+        [ -n "$group_members" ] && archive_args+=(--group-members "$group_members")
         [ "$specs_root_wt" != "$project_wt" ] && archive_args+=(--specs-dir "$specs_root_wt")
         archive_verdict="$("$SCRIPT_DIR/aide-archive-spec" "${archive_args[@]}" 2>/dev/null || true)"
         archive_reason="$(jq -r '.terminalReason // "refused"' <<<"$archive_verdict" 2>/dev/null || echo refused)"

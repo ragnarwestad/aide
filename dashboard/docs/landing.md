@@ -24,6 +24,11 @@ A job that touches two repositories makes a branch of the same name in both — 
 exists in the project and in the specs repo, with different contents and two separate compare pages. Merging one
 does nothing for the other: each repo's branch is landed on its own, asked of that repo's own checkout.
 
+Specs in one group share `aide/group-<first-member-folder>` in every repository. Their Implement steps leave code on
+that branch. The group Archive validates and moves every member before it lands the branch once. Merge mode runs one
+test gate and makes one merge; pull-request mode opens one request for the shared code branch. A refusal or failed
+landing leaves every member active on the default branch.
+
 A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
 `analyze`, `reopen`, `close`, and an `implement` sent back to a full analysis — copies the spec's own folder, and its `archive/` twin, from the branch onto the
 default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,

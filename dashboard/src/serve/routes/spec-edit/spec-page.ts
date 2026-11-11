@@ -17,6 +17,7 @@ import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
 import { writing } from "../../../queue/queue.ts";
+import { branchForSpec } from "../../../project/discover/group.ts";
 
 type SpecView = NonNullable<Awaited<ReturnType<RoutesContext["specPageView"]>>>;
 
@@ -112,7 +113,8 @@ export async function specPageRoutes(
         return new Response(null, { status: 303, headers: { location: specTabPath(project!, specFolder!, "steps") } });
       }
       if (!already || (already.status === "failed" && retry)) {
-        const result = await startTestServer(ctx.testServers, project!, specFolder!);
+        const dir = ctx.specDir(project!, specFolder!);
+        const result = await startTestServer(ctx.testServers, project!, specFolder!, dir ? { branch: branchForSpec(dir, specFolder!) } : {});
         if (!result.ok) return testServerFailedPage(project!, specFolder!, result.error, retryHref);
       }
       // Never at a URL still carrying `retryTestServer=1` — the

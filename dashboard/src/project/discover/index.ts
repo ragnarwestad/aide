@@ -26,7 +26,7 @@ export {
 } from "./spec-files.ts";
 
 export { dependsOnIn, specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-on.ts";
-export { groupIn, nextGroupPosition, specGroup, stripGroupLines, withGroupLines, type SpecGroupMembership } from "./group.ts";
+export { groupIn, nextGroupPosition, previousGroupMember, specGroup, stripGroupLines, withGroupLines, type SpecGroupMembership } from "./group.ts";
 
 export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 

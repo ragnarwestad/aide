@@ -51,6 +51,8 @@ SHORT_ANALYSIS_GRADE="LOW"
 SHORT_ANALYSIS_MAX_FILES=3
 
 project_dir=""; project_name=""; command_name=""; spec_arg=""; timeout_sec=""
+branch_arg=""
+group_members=""
 # Where the caller says this project's spec folders live. The dashboard
 # passes it, so the run makes a folder in the same place the landing
 # looks for it: the two used to work it out separately — the run from
@@ -170,6 +172,8 @@ while [ $# -gt 0 ]; do
     --specs-root) specs_root_arg="${2:-}"; shift 2 ;;
     --command) command_name="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
+    --branch) branch_arg="${2:-}"; shift 2 ;;
+    --group-members) group_members="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; shift 2 ;;
@@ -275,6 +279,10 @@ is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && [[ "$1" =~ [1-9] ]]
 # whoever starts the run, or the run does not start.
 [ -n "$permission_mode" ] || refuse "missing --permission-mode"
 [ -n "$result_file" ] || refuse "missing --result-file"
+
+if [ -n "$branch_arg" ] && [[ ! "$branch_arg" =~ ^aide/[A-Za-z0-9._/-]+$ ]]; then
+  refuse "invalid --branch: $branch_arg"
+fi
 
 is_positive_number "$timeout_sec" || refuse "invalid --timeout-sec: $timeout_sec"
 

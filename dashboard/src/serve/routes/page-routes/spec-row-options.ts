@@ -14,6 +14,7 @@ import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messag
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { RoutesContext } from "..";
+import { branchForSpec } from "../../../project/discover/group.ts";
 
 export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): SpecsPageOptions {
   return {
@@ -38,15 +39,19 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
     // checkout the start route asks.
-    testServerAvailable: (project: string, specFolder: string) =>
-      ctx.testServers.previewAvailable(project) &&
-      codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder),
+    testServerAvailable: (project: string, specFolder: string) => {
+      const dir = ctx.specDir(project, specFolder);
+      return ctx.testServers.previewAvailable(project) &&
+        codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder, dir ? branchForSpec(dir, specFolder) : undefined);
+    },
     // The address the sweep holds for a branch Cloudflare has built; only
     // while origin still holds the branch it was built from.
-    branchPreview: (project: string, specFolder: string) =>
-      codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder)
+    branchPreview: (project: string, specFolder: string) => {
+      const dir = ctx.specDir(project, specFolder);
+      return codeBranchOnOrigin(ctx.branchStatus, ctx.testServers.aideCheckout(project), specFolder, dir ? branchForSpec(dir, specFolder) : undefined)
         ? ctx.readBranchPreview(project, specFolder)
-        : undefined,
+        : undefined;
+    },
     // The specs a stopped analysis recorded as sharing its files, less those
     // archived since. Called only for a row whose analyze stopped on them.
     overlappingSpecs: (project: string, specFolder: string) =>

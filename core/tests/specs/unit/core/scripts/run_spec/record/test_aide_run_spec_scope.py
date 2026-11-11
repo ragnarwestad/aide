@@ -112,6 +112,32 @@ def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, 
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
 
+
+def test_group_archive_may_move_every_named_member_without_a_scope_violation(
+    runner, workspace, fake_claude
+):
+    folder = workspace["folder"]
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    other = workspace["specs"] / "82-second"
+    other.mkdir()
+    (other / "1-description.md").write_text("# Second\n")
+    (other / "4-status.md").write_text(
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add grouped member")
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(
+        runner, workspace, claude, command="archive",
+        group_members=f"{folder},82-second",
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert out.get("scopeViolation") is None, out
+    tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", f"aide/{folder}")
+    assert f"archive/{folder}/4-status.md" in tree
+    assert "archive/82-second/4-status.md" in tree
+
 def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation_when_specs_are_tracked_inside_the_project(
     runner, fake_claude, tmp_path
 ):

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { groupIn, nextGroupPosition, stripGroupLines, withGroupLines } from "../../../src/project/discover";
+import { groupIn, nextGroupPosition, previousGroupMember, stripGroupLines, withGroupLines } from "../../../src/project/discover";
 
 const description = (lines = "") =>
   `# X\n\n## Tracking info\n\n- **Task:** \`1-x/\`\n- **Created:** \`2026-11-11\`\n${lines ? `${lines}\n` : ""}\n---\n`;
@@ -22,5 +22,14 @@ describe("spec group metadata", () => {
     const staleCheckout = [undefined, { name: "Another", position: 4 }];
     const branchFirst = [{ name: "Release", position: 1 }];
     expect(nextGroupPosition("Release", [...staleCheckout, ...branchFirst])).toBe(2);
+  });
+
+  test("the member immediately before the requested one is the start gate (AC-3)", () => {
+    const members = [
+      { specFolder: "1-first", group: { name: "Release", position: 1 }, done: ["implement"] },
+      { specFolder: "2-second", group: { name: "Release", position: 2 }, done: [] },
+      { specFolder: "3-third", group: { name: "Release", position: 3 }, done: [] },
+    ];
+    expect(previousGroupMember(members, members[2]!)).toBe(members[1]);
   });
 });

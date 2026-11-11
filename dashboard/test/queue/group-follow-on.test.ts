@@ -24,8 +24,8 @@ const member = (folder: string, position: number, archived = false) => {
   writeFileSync(join(dir, "4-status.md"), "# Status\n");
 };
 
-test("a successful archive landing queues exactly the next group member (A757 AC-2, A757 AC-8, A757 AC-9)", async () => {
-  member("1-first", 1, true);
+test("a verified Implement queues exactly the next group member (AC-3)", async () => {
+  member("1-first", 1);
   member("2-next", 2);
   const handle = stepDoneHandler({
     store,
@@ -36,11 +36,26 @@ test("a successful archive landing queues exactly the next group member (A757 AC
     rereadSpecCaches: () => {},
     landArchivedSpec: async () => {},
   } as unknown as Parameters<typeof stepDoneHandler>[0]);
-  await handle({ project: "aide", specFolder: "1-first" } as Job, "archive", {
+  await handle({ project: "aide", specFolder: "1-first" } as Job, "implement", {
     ok: true,
     terminalReason: "completed",
     branchUrls: [{ root: "/specs", url: "https://example.test/specs" }],
   });
   await Promise.resolve();
-  expect(store.list().map((job) => [job.specFolder, job.steps])).toEqual([["2-next", ["analyze", "implement", "archive"]]]);
+  expect(store.list().map((job) => [job.specFolder, job.steps])).toEqual([["2-next", ["analyze", "implement"]]]);
+});
+
+test("a red Implement does not queue the next group member (AC-3)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {},
+    rereadSpecCaches: () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first" } as Job, "implement", { ok: false, terminalReason: "tests-red" });
+  expect(store.list()).toHaveLength(0);
 });

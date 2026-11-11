@@ -125,7 +125,7 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
     let branch: string;
     const branchFolder = specFolderOfBranch(wt.branch);
     if (branchFolder !== undefined) {
-      specFolder = branchFolder;
+      specFolder = branchFolder.startsWith("group-") ? branchFolder.slice("group-".length) : branchFolder;
       branch = wt.branch;
     } else if (wt.branch === "") {
       specFolder = MAIN_TEST_SERVER_KEY;

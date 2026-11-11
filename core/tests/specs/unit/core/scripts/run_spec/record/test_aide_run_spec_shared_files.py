@@ -32,11 +32,12 @@ def _commit(workspace, message):
     git(workspace["specs"], "commit", "-qm", message)
 
 
-def _open_spec(workspace, folder, files, steps="create, analyze"):
+def _open_spec(workspace, folder, files, steps="create, analyze", group=None, position=1):
     """Another spec of the project, on the specs repo's default branch."""
     d = workspace["specs"] / folder
     d.mkdir()
-    (d / "1-description.md").write_text(f"# {folder} - Description\n")
+    group_lines = f"\n- **Group:** `{group}`\n- **Group position:** {position}\n" if group else ""
+    (d / "1-description.md").write_text(f"# {folder} - Description\n\n## Tracking info\n{group_lines}")
     (d / "2-analysis.md").write_text(_analysis(files))
     (d / "4-status.md").write_text(
         f"# {folder} - Status\n\n## Tracking info\n\n- **Task:** `{folder}/`\n"
@@ -154,6 +155,15 @@ def test_no_shared_file_completes_the_step_and_says_so(runner, workspace, fake_c
     assert out["terminalReason"] == "completed", out
     assert "sharedFiles" not in out
     assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s shared files: ", err, re.M), err
+
+
+def test_overlap_with_a_member_of_the_same_group_does_not_stop_analysis_ac_4(runner, workspace, fake_claude):
+    _open_spec(workspace, OTHER, ["shared.ts"], group="Release", position=1)
+    description = workspace["specs"] / workspace["folder"] / "1-description.md"
+    description.write_text(description.read_text() + "\n- **Group:** `Release`\n- **Group position:** 2\n")
+    out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"])
+    assert out["terminalReason"] == "completed", out
+    assert "sharedFiles" not in out
 
 
 def test_a_reviewed_independent_overlap_does_not_stop_analysis(runner, workspace, fake_claude):

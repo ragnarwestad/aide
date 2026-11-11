@@ -47,7 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
-project_dir=""; spec_arg=""; specs_dir=""; result_file=""
+project_dir=""; spec_arg=""; specs_dir=""; result_file=""; group_members=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -62,6 +62,7 @@ USAGE
     --spec) spec_arg="${2:-}"; shift 2 ;;
     --specs-dir) specs_dir="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
+    --group-members) group_members="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -97,6 +98,27 @@ else
   specs_root="$project_dir/specs"
 fi
 [ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
+
+# A group is validated whole before the first move. The ordinary single-spec
+# path below then moves the owner; the tail moves the remaining members.
+group_member_list=()
+if [ -n "$group_members" ]; then
+  IFS=',' read -r -a group_member_list <<<"$group_members"
+  [ "${#group_member_list[@]}" -gt 1 ] || aide_spec_refuse "a group archive needs at least two members"
+  for member in "${group_member_list[@]}"; do
+    [ -d "$specs_root/$member" ] || aide_spec_refuse "group member is not active: $member"
+    member_status="$specs_root/$member/4-status.md"
+    if [ ! -f "$member_status" ] || ! may_apply_spec_transition "$member_status" "archive"; then
+      aide_spec_emit_ok "$(jq -cn --arg m "$member" '{terminalReason:"not-implemented-yet",note:("group member " + $m + " has not reached implement yet") }')"
+    fi
+    read_spec_state "$member_status"
+    member_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json")"
+    member_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json")"
+    if [ "$member_total" -gt 0 ] && [ "$member_done" -lt "$member_total" ]; then
+      aide_spec_emit_ok "$(jq -cn --arg m "$member" '{terminalReason:"acceptance-criteria-unticked",note:("group member " + $m + " has unticked acceptance criteria") }')"
+    fi
+  done
+fi
 
 spec_folder=""
 if declare -f aide_resolve_spec >/dev/null 2>&1; then
@@ -253,6 +275,23 @@ if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$specs_root" mv "$spec_folder" "archive/$spec_folder"
 else
   mv "$specs_root/$spec_folder" "$specs_root/archive/$spec_folder"
+fi
+
+if [ "${#group_member_list[@]}" -gt 1 ]; then
+  for member in "${group_member_list[@]}"; do
+    [ "$member" = "$spec_folder" ] && continue
+    member_status="$specs_root/$member/4-status.md"
+    write_phase_stamp "$member_status" "archived"
+    if [ "$specs_root_is_git" = "yes" ]; then
+      git -C "$specs_root" mv "$member" "archive/$member"
+    else
+      mv "$specs_root/$member" "$specs_root/archive/$member"
+    fi
+    if declare -f write_spec_state >/dev/null 2>&1; then
+      write_spec_state "$specs_root/archive/$member/4-status.md"
+      [ "$specs_root_is_git" = "yes" ] && git -C "$specs_root" add -- "archive/$member/4-status.json" 2>/dev/null
+    fi
+  done
 fi
 
 # Re-derives at the NEW (archived) location, so the state file

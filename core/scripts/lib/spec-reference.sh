@@ -27,6 +27,9 @@ aide_is_spec_folder() { [[ "$1" =~ ^[0-9]+- ]]; }
 # The branch a step pushes to, named for the spec's folder.
 aide_spec_branch() { printf 'aide/%s' "$1"; }
 
+# A group's branch, named for its immutable first member folder.
+aide_group_branch() { printf 'aide/group-%s' "$1"; }
+
 # The key a create job carries until its merge names the spec. The dashboard
 # makes it; the runner only recognises it.
 aide_is_provisional_key() { [[ "$1" =~ ^new-[0-9a-f]{8}$ ]]; }

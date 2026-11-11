@@ -262,6 +262,21 @@ export function parseJobRequest(
     steps.length === 1 && steps[0] === "reopen" &&
     (r.resetFiles === true || r.resetFiles === "1" || r.resetFiles === "on");
 
+  let groupMembers: string[] | undefined;
+  let groupBranch: string | undefined;
+  if (r.groupMembers !== undefined || r.groupBranch !== undefined) {
+    if (steps.length !== 1 || steps[0] !== "archive") return { ok: false, ...invalidRequest("group fields are for archive only") };
+    if (!Array.isArray(r.groupMembers) || r.groupMembers.length < 2 ||
+        r.groupMembers.some((member) => typeof member !== "string" || !FOLDER_RE.test(member))) {
+      return { ok: false, ...invalidRequest("invalid groupMembers") };
+    }
+    if (typeof r.groupBranch !== "string" || !/^aide\/group-[A-Za-z0-9._/-]+$/.test(r.groupBranch)) {
+      return { ok: false, ...invalidRequest("invalid groupBranch") };
+    }
+    groupMembers = [...new Set(r.groupMembers as string[])]; groupBranch = r.groupBranch;
+    if (!groupMembers.includes(r.specFolder)) return { ok: false, ...invalidRequest("the archive owner must be a group member") };
+  }
+
   // Per step, each against its OWN ceiling: an override that would be a
   // tightening for implement can be a loosening for analyze, and the
   // job holding both may not buy the one by naming the other.
@@ -279,6 +294,8 @@ export function parseJobRequest(
       id: crypto.randomUUID(),
       project: r.project,
       specFolder: r.specFolder,
+      groupMembers,
+      groupBranch,
       steps,
       stepIndex: 0,
       state: "queued",

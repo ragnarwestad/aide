@@ -25,6 +25,7 @@ import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, specFolders, type CodeLanding } from "../project/discover";
+import { groupBranch } from "../project/spec-names.ts";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
@@ -239,6 +240,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             // afterwards (`machinerySpecsRoot`), so the two cannot
             // disagree about where a spec belongs.
             specsRoot: ctx.machinerySpecsRoot(job.project),
+            branch: groupBranchForJob(ctx, job),
             worktreeBase: join(dirname(ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs")), "worktrees"),
             scriptsDir: dirname(runnerBin),
             // The global setting speaks for every project
@@ -328,6 +330,20 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
   });
 }
 
+/** Resolve one shared branch from persisted membership before bash starts.
+ * The isolated worktree is deliberately not asked to discover siblings. */
+function groupBranchForJob(ctx: Pick<RunnerSetupContext, "machinerySpecsRoot">, job: Pick<Job, "project" | "specFolder">): string | undefined {
+  const root = ctx.machinerySpecsRoot(job.project);
+  if (!root) return undefined;
+  const members = specFolders(root, false);
+  const current = members.find((spec) => spec.folder === job.specFolder);
+  if (!current?.group) return undefined;
+  const first = members
+    .filter((spec) => spec.group?.name === current.group!.name)
+    .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
+  return first ? groupBranch(first.folder, current.group.name) : undefined;
+}
+
 /** What the runner does the moment a step ends: mark the spec's cached
  *  answers due, start the landing the step needs, and — for a step that
  *  needs none — read those answers again, since nothing else will until
@@ -351,8 +367,8 @@ export function stepDoneHandler(
     if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(job)) {
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
-    if (step === "archive" && landing) {
-      void Promise.resolve(landing).then(() => queueNextGroupMember(job), () => undefined);
+    if (step === "implement" && outcome.ok && outcome.terminalReason === "completed") {
+      queueNextGroupMember(job);
     }
     return landing;
   };
@@ -361,13 +377,13 @@ export function stepDoneHandler(
     if (!ctx.machinerySpecsRoot) return;
     const root = ctx.machinerySpecsRoot(job.project);
     if (!root) return;
-    const archived = specFolders(join(root, "archive"), true).find((spec) => spec.folder === job.specFolder);
-    if (!archived?.group) return;
+    const current = specFolders(root, false).find((spec) => spec.folder === job.specFolder);
+    if (!current?.group) return;
     const next = specFolders(root, false)
-      .filter((spec) => spec.group?.name === archived.group!.name && spec.group.position > archived.group!.position)
+      .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
       .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
     if (!next) return;
-    const made = ctx.store.enqueue(followOnJob(job.project, next.folder, ["analyze", "implement", "archive"], job));
+    const made = ctx.store.enqueue(followOnJob(job.project, next.folder, ["analyze", "implement"], job));
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
   }
 

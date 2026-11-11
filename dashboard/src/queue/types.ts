@@ -193,7 +193,7 @@ export function mergeBranchRefs(prev: BranchRef[] | undefined, next: BranchRef[]
 export interface Job {
   id: string;
   project: string;
-  specFolder: string;
+  specFolder: string; groupMembers?: string[]; groupBranch?: string;
   steps: WorkflowStep[];
   stepIndex: number;
   state: JobState;

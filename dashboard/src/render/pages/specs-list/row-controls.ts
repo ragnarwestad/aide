@@ -17,7 +17,7 @@ import {
 } from "./data-model";
 import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
-import { actionState, archivingAgain, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
+import { actionState, archivingAgain, nextPhase, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
 import { specPagePath } from "../spec-page/tabs.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
@@ -208,6 +208,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `</form>`;
+  if (g.group && nextPhase(g.done) === "archive") return runForm;
   const primary = (() => {
     // Not while `create` is the step running. Every other step can be
     // cancelled and run again from the spec it already made; `create`

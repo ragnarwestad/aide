@@ -27,7 +27,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker } from "./branch-status.ts";
 import type { GitRunner } from "./process/index.ts";
-import { specBranch } from "../project/spec-names.ts";
+import { branchForSpec } from "../project/discover/group.ts";
 
 export interface BranchFileRead {
   text: string;
@@ -276,7 +276,7 @@ export async function resolveOpenBranchTarget(
   fresh: boolean,
 ): Promise<OpenBranchTarget | null> {
   const root = await ctx.specsRoot(dir);
-  const branch = specBranch(specFolder);
+  const branch = branchForSpec(dir, specFolder);
   const open = await ctx.branchStatus.openSpecBranches(root, fresh);
   if (!open?.has(branch)) return null;
   // Both sides through `realpathSync` before the subtraction. `root` is

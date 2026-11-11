@@ -168,7 +168,9 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     onLanded: async () => {
       onMerged();
       keepLandingFailedTests(ctx.queue, job, undefined);
-      stopTestServer(ctx.testServers, job.project, job.specFolder, "its archive landed");
+      for (const folder of job.groupMembers ?? [job.specFolder]) {
+        stopTestServer(ctx.testServers, job.project, folder, "its archive landed");
+      }
     },
   }));
 }

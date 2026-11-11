@@ -15,6 +15,12 @@ const BRANCH_PREFIX = "aide/";
  *  the name is not stored on a job. */
 export const specBranch = (folder: string): string => `${BRANCH_PREFIX}${folder}`;
 
+/** The branch shared by a persisted group. The first member folder is
+ * immutable once work starts; the editable display name is deliberately
+ * not part of the git name. */
+export const groupBranch = (firstFolder: string, _displayName?: string): string =>
+  `${BRANCH_PREFIX}group-${firstFolder}`;
+
 /** The folder a spec's branch is named for; undefined for any other branch. */
 export const specFolderOfBranch = (branch: string): string | undefined =>
   branch.startsWith(BRANCH_PREFIX) && branch.length > BRANCH_PREFIX.length

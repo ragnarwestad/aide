@@ -23,6 +23,19 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   own_prefix="${specs_root_rel:+$specs_root_rel/}$spec_folder/"
   archive_prefix="${specs_root_rel:+$specs_root_rel/}archive/$spec_folder/"
   root_prefix="${specs_root_rel:+$specs_root_rel/}"
+  specs_guard_allowed() {
+    local path="$1" member member_prefix member_archive_prefix old_ifs
+    case "$path" in "$own_prefix"*|"$archive_prefix"*) return 0 ;; esac
+    [ "$command_name" = "archive" ] && [ -n "${group_members:-}" ] || return 1
+    old_ifs="$IFS"; IFS=','
+    for member in $group_members; do
+      member_prefix="${specs_root_rel:+$specs_root_rel/}$member/"
+      member_archive_prefix="${specs_root_rel:+$specs_root_rel/}archive/$member/"
+      case "$path" in "$member_prefix"*|"$member_archive_prefix"*) IFS="$old_ifs"; return 0 ;; esac
+    done
+    IFS="$old_ifs"
+    return 1
+  }
   # A path the default branch already holds as HEAD has it came in with a
   # merge of that branch — another spec archived meanwhile —
   # and is not this step's own write.
@@ -39,10 +52,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   foreign_paths=""
   while IFS= read -r changed_path; do
     [ -z "$changed_path" ] && continue
-    case "$changed_path" in
-      "$own_prefix"*|"$archive_prefix"*) ;;
-      "$root_prefix"*) foreign_paths="${foreign_paths}${changed_path}"$'\n' ;;
-    esac
+    specs_guard_allowed "$changed_path" && continue
+    case "$changed_path" in "$root_prefix"*) foreign_paths="${foreign_paths}${changed_path}"$'\n' ;; esac
   done <<EOF_PATHS
 $( { git -C "$specs_repo_wt" status --porcelain --untracked-files=all -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null \
       | cut -c4- | sed 's/^.* -> //'; \

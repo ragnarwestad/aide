@@ -3,7 +3,8 @@
 // manifest says `deployment.previewFrom: cloudflare-pages`, and kept for
 // the specs list to read. Nothing here runs while a page is drawn.
 
-import { specBranch } from "../../project/spec-names.ts";
+import { groupBranch, specBranch } from "../../project/spec-names.ts";
+import type { SpecGroupMembership } from "../../project/discover/group.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import { askBranchPreview } from "../../integrations/branch-previews.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
@@ -17,7 +18,7 @@ export const BRANCH_PREVIEW_POLL_MS = 60_000;
  *  the tick's own single-flight flag, held on the context so that two
  *  servers in one process never share it. */
 export interface BranchPreviewContext {
-  targets: () => { project: string; specFolder: string }[];
+  targets: () => { project: string; specFolder: string; group?: SpecGroupMembership }[];
   machineryProjectDir: (project: string) => string;
   branchStatus: Pick<BranchStatusChecker, "peekOpenSpecBranches">;
   previewFrom: (project: string) => PreviewFrom | undefined;
@@ -47,13 +48,18 @@ export async function refreshBranchPreviews(ctx: BranchPreviewContext): Promise<
   try {
     const projectAsks = new Map<string, boolean>();
     const asks: { key: string; root: string; branch: string }[] = [];
-    for (const t of ctx.targets()) {
+    const targets = ctx.targets();
+    for (const t of targets) {
       if (!projectAsks.has(t.project)) projectAsks.set(t.project, ctx.previewFrom(t.project) === "cloudflare-pages");
       if (!projectAsks.get(t.project)) continue;
       const root = ctx.machineryProjectDir(t.project);
-      if (!codeBranchOnOrigin(ctx.branchStatus, root, t.specFolder)) continue;
+      const first = t.group ? targets
+        .filter((candidate) => candidate.project === t.project && candidate.group?.name === t.group!.name)
+        .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder))[0] : undefined;
+      const branch = first ? groupBranch(first.specFolder, t.group!.name) : specBranch(t.specFolder);
+      if (!codeBranchOnOrigin(ctx.branchStatus, root, t.specFolder, branch)) continue;
       if (ctx.stepRunning(t.project, t.specFolder)) continue;
-      asks.push({ key: `${t.project}/${t.specFolder}`, root, branch: specBranch(t.specFolder) });
+      asks.push({ key: `${t.project}/${t.specFolder}`, root, branch });
     }
     let moved = false;
     for (const key of [...ctx.branchPreviews.keys()]) {

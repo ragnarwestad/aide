@@ -115,12 +115,14 @@ def status_md(claims="", body=""):
     return text
 
 
-def run(script, project, spec, specs_dir=None, result_file=None):
+def run(script, project, spec, specs_dir=None, result_file=None, group_members=None):
     args = [str(script), "--project-dir", str(project), "--spec", spec]
     if specs_dir:
         args += ["--specs-dir", str(specs_dir)]
     if result_file:
         args += ["--result-file", str(result_file)]
+    if group_members:
+        args += ["--group-members", ",".join(group_members)]
     proc = subprocess.run(args, capture_output=True, text=True)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     return proc.returncode, json.loads(line), proc.stdout
@@ -277,6 +279,33 @@ def test_every_row_done_archives_the_spec(script, project, specs):
     assert (specs / "archive" / "81-x").exists()
     text = (specs / "archive" / "81-x" / "4-status.md").read_text()
     assert "**Archived:**" in text, text
+
+
+def test_group_archive_moves_every_member_in_order_after_whole_group_preflight(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-first", body)
+    add_spec(specs, "82-second", body)
+    rc, out, _ = run(script, project, "81-first", group_members=["81-first", "82-second"])
+    assert rc == 0, out
+    assert out["terminalReason"] == "archived"
+    assert not (specs / "81-first").exists()
+    assert not (specs / "82-second").exists()
+    assert (specs / "archive" / "81-first").exists()
+    assert (specs / "archive" / "82-second").exists()
+
+
+def test_group_archive_refusal_moves_no_member(script, project, specs):
+    configure(project, specs)
+    done = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    waiting = status_md("create, analyze", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-first", done)
+    add_spec(specs, "82-second", waiting)
+    rc, out, _ = run(script, project, "81-first", group_members=["81-first", "82-second"])
+    assert rc == 0, out
+    assert out["terminalReason"] == "not-implemented-yet"
+    assert (specs / "81-first").exists()
+    assert (specs / "82-second").exists()
 
 
 # --- the status-table read, through a ## Checklist heading ----

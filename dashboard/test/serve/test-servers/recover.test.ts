@@ -93,6 +93,19 @@ describe("finding a test server again", () => {
     expect(entry?.url).toBe("http://127.0.0.1:8801/");
   });
 
+  test("a recovered group branch is registered under its first member (AC-12)", async () => {
+    const work = roundWorkDir();
+    const store = new TestServerStore();
+    const ctx = makeCtx({
+      store,
+      worktrees: porcelain(work, "aide/group-1-first", "b67707e"),
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
+    });
+    expect(await recoverTestServers(ctx, ["aide"])).toHaveLength(1);
+    expect(store.get("aide", "1-first")?.branch).toBe("aide/group-1-first");
+    expect(store.get("aide", "group-1-first")).toBeUndefined();
+  });
+
   // The Deploy tab's own test server serves the serving
   // checkout's branch from a DETACHED worktree, and a restart forgot it:
   // the next press then failed to start a second one on a port the

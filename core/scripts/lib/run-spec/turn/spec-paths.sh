@@ -279,6 +279,7 @@ started_at="$(date +%s)"
 skip_ai=""; archive_terminal_reason=""; archive_note=""
 if [ "$command_name" = "archive" ]; then
   archive_args=(--project-dir "$project_wt" --spec "$spec_folder")
+  [ -n "$group_members" ] && archive_args+=(--group-members "$group_members")
   # specs_root_wt, not specs_wt: the former is the resolved SPECS ROOT
   # (project-name subdirectory already applied, same as aide_specs_root
   # would give), the latter is the bare specs REPO's worktree root one

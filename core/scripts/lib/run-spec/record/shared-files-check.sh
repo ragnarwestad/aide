@@ -19,6 +19,23 @@ shared_files_json=""
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ -f "$SCRIPT_DIR/aide-spec-overlap" ]; then
   shared_after="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --record --project-dir "$project_root" 2>/dev/null | tail -1)"
   shared_new="$(jq -c '(.required // []) + (.unreviewed // .warned // [])' <<<"${shared_after:-null}" 2>/dev/null)" || shared_new=""
+  # Members of one persisted group deliberately build on one another's
+  # branch, so their overlap is not an ordering problem.
+  current_group="$(sed -n 's/^[[:space:]]*-[[:space:]]*\*\*Group:\*\*[[:space:]]*`\{0,1\}\([^`]*\)`\{0,1\}[[:space:]]*$/\1/p' "$specs_root_wt/$spec_label/$AIDE_DESCRIPTION_FILE" 2>/dev/null | head -1)"
+  if [ -n "$shared_new" ] && [ -n "$current_group" ]; then
+    kept='[]'
+    shared_index=0
+    shared_count="$(jq 'length' <<<"$shared_new")"
+    while [ "$shared_index" -lt "$shared_count" ]; do
+      shared_spec="$(jq -r ".[${shared_index}].spec" <<<"$shared_new")"
+      other_group="$(sed -n 's/^[[:space:]]*-[[:space:]]*\*\*Group:\*\*[[:space:]]*`\{0,1\}\([^`]*\)`\{0,1\}[[:space:]]*$/\1/p' "$specs_root_wt/$shared_spec/$AIDE_DESCRIPTION_FILE" 2>/dev/null | head -1)"
+      if [ "$other_group" != "$current_group" ]; then
+        kept="$(jq -c --argjson item "$(jq ".[${shared_index}]" <<<"$shared_new")" '. + [$item]' <<<"$kept")"
+      fi
+      shared_index=$((shared_index + 1))
+    done
+    shared_new="$kept"
+  fi
   if [ -z "$shared_new" ] || [ "$(jq -r '.ok // false' <<<"${shared_after:-null}" 2>/dev/null)" != "true" ]; then
     stage "shared files: the comparison with the other open specs could not be made — the step completes"
   elif [ "$shared_new" = "[]" ]; then

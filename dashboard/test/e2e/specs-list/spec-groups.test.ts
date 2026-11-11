@@ -17,8 +17,11 @@ beforeAll(async () => {
   page = await browser.newPage();
   const started = harness.start({
     description: description("81-queue-and-runner", 2),
-    alsoSpecs: ["82-first"],
-    alsoDescriptions: { "82-first": description("82-first", 1) },
+    alsoSpecs: ["82-first", "83-third"],
+    alsoDescriptions: {
+      "82-first": description("82-first", 1),
+      "83-third": description("83-third", 3),
+    },
   });
   base = started.base;
 });
@@ -42,6 +45,13 @@ test("group Start queues only the first member (A757 AC-7, A757 AC-9)", async ()
   expect(body.job.specFolder).toBe("82-first");
   const queue = await (await fetch(`${base}/api/queue`)).json() as { jobs: Array<{ specFolder: string }> };
   expect(queue.jobs.filter((job) => job.specFolder === "81-queue-and-runner")).toHaveLength(0);
+
+  const thirdBeforeSecond = await fetch(`${base}/api/queue`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ project: "aide", specFolder: "83-third", steps: ["analyze"] }),
+  });
+  expect(thirdBeforeSecond.status).toBe(409);
 
   const ordinaryLater = await fetch(`${base}/api/queue`, {
     method: "POST",

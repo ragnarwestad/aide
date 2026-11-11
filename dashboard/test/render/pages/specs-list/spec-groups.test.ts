@@ -56,3 +56,11 @@ test("Active keeps archived members in the group progress while hiding their row
   expect(html).toContain("1 of 2 done");
   expect(html).not.toContain("data-folder=\"1-first\"");
 });
+
+test("grouped children have no Archive action (AC-5)", () => {
+  const html = renderSpecsRows([], {
+    targets: [{ project: "p", specFolder: "1-first", group: { name: "Release", position: 1 }, done: ["create", "analyze", "implement"] }],
+    providers: [], archived: [],
+  } as never);
+  expect(html).not.toContain('value="archive"');
+});

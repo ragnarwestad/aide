@@ -8,6 +8,7 @@ export function codeBranchOnOrigin(
   branchStatus: Pick<BranchStatusChecker, "peekOpenSpecBranches">,
   aideCheckout: string,
   specFolder: string,
+  branch = specBranch(specFolder),
 ): boolean {
-  return branchStatus.peekOpenSpecBranches(aideCheckout).open?.has(specBranch(specFolder)) === true;
+  return branchStatus.peekOpenSpecBranches(aideCheckout).open?.has(branch) === true;
 }

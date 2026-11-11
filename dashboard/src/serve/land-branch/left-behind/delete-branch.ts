@@ -6,6 +6,9 @@
 // it only has to match the tip origin has just given.
 
 import { specBranch } from "../../../project/spec-names.ts";
+import { branchForSpec } from "../../../project/discover/group.ts";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../../git/branch-status.ts";
 import { deleteBranchOnly } from "../../../git/branch-merge/index.ts";
 import { mergedPullRequest, specRoots } from "../../spec-lookup.ts";
@@ -24,7 +27,8 @@ export async function deleteLeftBehindBranch(
   project: string,
   folder: string,
 ): Promise<DeleteLeftBehindResult> {
-  const branch = specBranch(folder);
+  const archivedDir = join(ctx.machinerySpecsRoot(project) ?? "", "archive", folder);
+  const branch = existsSync(archivedDir) ? branchForSpec(archivedDir, folder) : specBranch(folder);
   // Asked per root with the branch's own `ls-remote`, not through the
   // open set: an unanswerable ask there would blank the cached set, and
   // the row would lose its note although nothing was deleted.

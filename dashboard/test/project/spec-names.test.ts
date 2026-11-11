@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   AC_COVERAGE_FILE, ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATE_FILE, STATUS_FILE,
   isProvisionalKey, isScheduleKey, isSpecFolder, newProvisionalKey, scheduleNameOf, scheduleTrackingKey,
-  specBranch, specFolderOfBranch,
+  groupBranch, specBranch, specFolderOfBranch,
 } from "../../src/project/spec-names.ts";
 
 const LIB = join(import.meta.dir, "..", "..", "..", "core", "scripts", "lib", "spec-reference.sh");
@@ -36,6 +36,12 @@ describe("a spec's branch", () => {
     expect(specBranch("742-x")).toBe("aide/742-x");
     expect(specFolderOfBranch(specBranch("742-x"))).toBe("742-x");
     expect(bash('aide_spec_branch "$1"', "742-x").out).toBe(specBranch("742-x"));
+  });
+
+  test("a group uses its immutable first member on both sides (AC-1, AC-2, AC-12)", () => {
+    expect(groupBranch("742-first")).toBe("aide/group-742-first");
+    expect(groupBranch("742-first", "Release / unsafe name")).toBe("aide/group-742-first");
+    expect(bash('aide_group_branch "$1"', "742-first").out).toBe(groupBranch("742-first"));
   });
 
   test.each(["main", "aide/", "refs/heads/aide/742-x", ""])("%p names no spec (AC-2)", (branch) => {

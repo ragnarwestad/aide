@@ -435,5 +435,5 @@ fi
 # step changes only the specs repo, and branching just the project left
 # that work committed on main and pushed there — the one thing `push
 # branch` exists to prevent. Measured 2026-08-16.
-branch="$(aide_spec_branch "$spec_label")"
+branch="${branch_arg:-$(aide_spec_branch "$spec_label")}"
 

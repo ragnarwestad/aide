@@ -158,6 +158,9 @@ export function runnerArgv(
      *  Undefined for a project whose specs the dashboard cannot resolve,
      *  where the script's own answer is still the best one available. */
     specsRoot?: string;
+    /** A grouped spec's validated shared branch. Absent keeps the runner's
+     *  ordinary per-spec branch. */
+    branch?: string;
     worktreeBase?: string;
     scriptsDir?: string;
     push: string;
@@ -220,6 +223,8 @@ export function runnerArgv(
     ...(o.scriptsDir ? ["--scripts-dir", o.scriptsDir] : []),
     "--command", step,
     "--spec", job.specFolder,
+    ...(o.branch || job.groupBranch ? ["--branch", job.groupBranch ?? o.branch!] : []),
+    ...(job.groupMembers?.length ? ["--group-members", job.groupMembers.join(",")] : []),
     "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),
     "--permission-mode", resolveStepPermissionMode(job, step, o.permissionMode ?? {}),
     "--result-file", resultFile,
