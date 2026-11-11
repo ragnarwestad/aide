@@ -122,6 +122,7 @@ export function createServer(opts: ServerOptions) {
   const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore, served: allowed });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
+    executionGroupsPath: opts.executionGroupsPath,
     pendingModelsPath: opts.pendingModelsPath, modelIdsPath: opts.modelIdsPath,
     pendingStepsPath: opts.pendingStepsPath,
     defaults: opts.queueDefaults ?? structuredClone(QUEUE_DEFAULTS),
@@ -254,6 +255,7 @@ export function createServer(opts: ServerOptions) {
     rereadSpecCaches: (dir, folder) => {
       setTimeout(() => void schedules.rereadSpec(dir, folder, { askOrigin: true }).catch(() => {}), 0);
     },
+    groupHasOpenAcceptance: (project, name) => targets().some((target) => target.project === project && target.group?.name === name && target.acceptanceOpen),
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

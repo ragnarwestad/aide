@@ -40,8 +40,20 @@ export async function handleJobActionRoutes(
       .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
     if (members.length < 2) return json({ error: "the group no longer exists" }, 409);
     const next = members.find((member) => !(member.done ?? []).includes("implement"));
+    const input = {
+      project,
+      name,
+      members: members.map((member) => member.specFolder),
+      branch: groupBranch(members[0]!.specFolder, name),
+    };
+    const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
+    const execution = ctx.queue.executionGroups.findUnfinished(project, name)
+      ?? (historical.length ? ctx.queue.executionGroups.reconcile({
+        ...input,
+        completedMembers: members.filter((member) => member.done?.includes("implement")).map((member) => member.specFolder),
+      }, historical) : ctx.queue.executionGroups.prepare(input));
     const raw = next
-      ? { project, specFolder: next.specFolder, steps: ["analyze", "implement"] }
+      ? { project, specFolder: next.specFolder, steps: ["analyze", "implement"], executionGroupId: execution.id }
       : members.some((member) => member.acceptanceOpen)
         ? null
         : {
@@ -50,10 +62,12 @@ export async function handleJobActionRoutes(
             steps: ["archive"],
             groupMembers: members.map((member) => member.specFolder),
             groupBranch: groupBranch(members[0]!.specFolder, name),
+            executionGroupId: execution.id,
           };
     if (!raw) return json({ error: "every acceptance criterion in the group must be ticked before Archive" }, 409);
     const result = enqueueRequest(ctx.queue, raw, "manual");
     if (!result.ok) return refusal(result, { spec: `${project}/${raw.specFolder}` });
+    ctx.queue.executionGroups.update(execution.id, { state: next ? "queued" : "archiving", currentMember: raw.specFolder, error: undefined });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

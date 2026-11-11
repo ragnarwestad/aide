@@ -8,7 +8,6 @@
 // polling `runner.tick()` timer, long after `Bun.serve()` has returned,
 // so the read is never a TDZ error; a plain value captured at
 // construction time would be.
-
 import { resumeCutLandings } from "../queue/runner/cut-landing.ts";
 import { NORMAL_CODEX_HOME, expandDir, providerFolders, resolveStepProvider } from "../queue/providers/index.ts";
 import { prepareShadowHome } from "./providers/shadow-home.ts";
@@ -89,7 +88,7 @@ export interface RunnerSetupContext {
   forgetSpecCaches: (dir: string, specFolder: string) => void;
   /** Reads those answers again once the step's own result is written,
    *  and tells the page — for a step with no landing to do it. */
-  rereadSpecCaches: (dir: string, specFolder: string) => void;
+  rereadSpecCaches: (dir: string, specFolder: string) => void; groupHasOpenAcceptance?: (project: string, name: string) => boolean;
 }
 
 /** A step that just ended rewrote the spec's files and pushed its
@@ -368,28 +367,34 @@ export function stepDoneHandler(
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
     if (step === "implement" && outcome.ok && outcome.terminalReason === "completed") {
-      queueNextGroupMember(job);
+      const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
+      if (group) ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
+      const hasNext = queueNextGroupMember(job);
+      if (!hasNext && group && ctx.groupHasOpenAcceptance?.(job.project, group.name)) ctx.store.executionGroups.waitForAcceptance(group.id);
     }
+    if (step === "archive" && job.executionGroupId && landing) void Promise.resolve(landing).then(() => {
+        const settled = ctx.store.get(job.id);
+        if (settled && !settled.error && !settled.landingError) ctx.store.executionGroups.complete(job.executionGroupId!, { prUrl: settled.prUrl });
+        else ctx.store.executionGroups.archiveFailed(job.executionGroupId!, "Archive did not land");
+      });
     return landing;
   };
-
-  function queueNextGroupMember(job: Job): void {
-    if (!ctx.machinerySpecsRoot) return;
+  function queueNextGroupMember(job: Job): boolean { if (!ctx.machinerySpecsRoot) return false;
     const root = ctx.machinerySpecsRoot(job.project);
-    if (!root) return;
+    if (!root) return false;
     const current = specFolders(root, false).find((spec) => spec.folder === job.specFolder);
-    if (!current?.group) return;
+    if (!current?.group) return false;
     const next = specFolders(root, false)
       .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
       .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
-    if (!next) return;
+    if (!next) return false;
     const made = enqueueRequest(
       ctx.store,
       followOnRequest(job.project, next.folder, ["analyze", "implement"], job),
       "automatic",
     );
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
-  }
+    return made.ok; }
 
   /** Whether another job for the spec already has an analyze that ended
    *  `short-analysis-over-limit`: the analyze after it was not offered a short

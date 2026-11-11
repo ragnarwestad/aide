@@ -7,7 +7,6 @@ import type { CriteriaChecks } from "../project/discover";
 import type { Provider } from "./providers/index.ts";
 import type { ResultTool, RunnableTool } from "./providers/tools.ts";
 import type { SideRun } from "./runner/side-run.ts";
-
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event. `total` is the sum of the other
  *  four: cached or not, every one of those tokens was processed, and
@@ -192,6 +191,7 @@ export function mergeBranchRefs(prev: BranchRef[] | undefined, next: BranchRef[]
 
 export interface Job {
   id: string;
+  executionGroupId?: string;
   project: string;
   specFolder: string; groupMembers?: string[]; groupBranch?: string;
   steps: WorkflowStep[];

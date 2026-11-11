@@ -32,8 +32,10 @@ import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingT
 import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
+import { ExecutionGroupStore } from "../execution-groups/index.ts";
 
 export class QueueStore {
+  readonly executionGroups: ExecutionGroupStore;
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
   private readonly cap: number;
   private readonly mirrorPath?: string;
@@ -66,6 +68,7 @@ export class QueueStore {
   private readonly onChange: () => void;
 
   constructor(opts: QueueOptions) {
+    this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
@@ -191,6 +194,7 @@ export class QueueStore {
       this.jobs.delete(this.jobs.keys().next().value as string);
     }
     this.mirror();
+    this.syncExecutionGroup(parsed.job);
     this.changed();
     return parsed;
   }
@@ -399,6 +403,7 @@ export class QueueStore {
     const next = { ...job, ...patch };
     this.jobs.set(id, next);
     this.mirror();
+    this.syncExecutionGroup(next);
     this.changed();
     return next;
   }
@@ -417,12 +422,29 @@ export class QueueStore {
     const next = { ...job, ...patch, state: to };
     this.jobs.set(id, next);
     this.mirror();
+    this.syncExecutionGroup(next);
     this.changed();
     return { ok: true, job: next };
   }
 
   private mirror(): void {
     writeJobs(this.mirrorPath, this.jobs.values());
+  }
+
+  private syncExecutionGroup(job: Job): void {
+    if (!job.executionGroupId || !this.executionGroups.get(job.executionGroupId)) return;
+    const group = this.executionGroups.get(job.executionGroupId)!;
+    const history = {
+      id: job.id,
+      specFolder: job.specFolder,
+      logs: job.results.map((result) => ({ step: result.step, sessionId: result.sessionId, streamFile: result.streamFile })),
+    };
+    const jobs = [...group.jobs.filter((entry) => entry.id !== job.id), history];
+    const state = job.state === "running" ? "running"
+      : job.state === "queued" ? "queued"
+        : job.state === "stopped" || job.state === "failed" || job.state === "interrupted" ? "stopped"
+          : group.state;
+    this.executionGroups.update(group.id, { jobs, state, currentMember: job.specFolder });
   }
 
   /** The newest run of a choice wins; see `model-ids.ts`. */

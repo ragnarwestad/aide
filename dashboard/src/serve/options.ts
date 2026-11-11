@@ -29,6 +29,7 @@ export interface ServerOptions {
    *  it. Only `cli.ts` sets it, so no test spawns a process. */
   tailscaleName?: () => Promise<string | undefined>;
   queueMirrorPath?: string;
+  executionGroupsPath?: string;
   /** Where a model picked for a phase before any job exists survives to
    *  the `pending-models.json` sibling of the queue
    *  mirror. Absent means such a pick is never durable, exactly as

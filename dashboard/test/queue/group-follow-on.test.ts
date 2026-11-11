@@ -45,6 +45,26 @@ test("a verified Implement queues exactly the next group member (AC-3)", async (
   expect(store.list().map((job) => [job.specFolder, job.steps])).toEqual([["2-next", ["analyze", "implement"]]]);
 });
 
+test("a follow-on keeps the execution identity and shared branch (AC-5, AC-10)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {},
+    rereadSpecCaches: () => {},
+    landArchivedSpec: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: "group-1", groupBranch: "group/1-first" } as Job, "implement", {
+    ok: true,
+    terminalReason: "completed",
+  });
+  await Promise.resolve();
+  expect(store.list()[0]).toMatchObject({ executionGroupId: "group-1" });
+});
+
 test("a red Implement does not queue the next group member (AC-3)", async () => {
   member("1-first", 1);
   member("2-next", 2);
@@ -58,4 +78,19 @@ test("a red Implement does not queue the next group member (AC-3)", async () => 
   } as unknown as Parameters<typeof stepDoneHandler>[0]);
   await handle({ project: "aide", specFolder: "1-first" } as Job, "implement", { ok: false, terminalReason: "tests-red" });
   expect(store.list()).toHaveLength(0);
+});
+
+test("the last Implement with open acceptance leaves the execution waiting (AC-3)", async () => {
+  member("1-first", 1);
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: ["1-first"], branch: "aide/group-1-first" });
+  const handle = stepDoneHandler({
+    store,
+    groupHasOpenAcceptance: () => true,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landArchivedSpec: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id } as Job, "implement", { ok: true, terminalReason: "completed" });
+  expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
 });

@@ -261,9 +261,9 @@ export function parseJobRequest(
   const resetFiles =
     steps.length === 1 && steps[0] === "reopen" &&
     (r.resetFiles === true || r.resetFiles === "1" || r.resetFiles === "on");
-
-  let groupMembers: string[] | undefined;
-  let groupBranch: string | undefined;
+  let groupMembers: string[] | undefined; let groupBranch: string | undefined;
+  const executionGroupId = typeof r.executionGroupId === "string" && /^[A-Za-z0-9-]+$/.test(r.executionGroupId) ? r.executionGroupId : undefined;
+  if (r.executionGroupId !== undefined && !executionGroupId) return { ok: false, ...invalidRequest("invalid executionGroupId") };
   if (r.groupMembers !== undefined || r.groupBranch !== undefined) {
     if (steps.length !== 1 || steps[0] !== "archive") return { ok: false, ...invalidRequest("group fields are for archive only") };
     if (!Array.isArray(r.groupMembers) || r.groupMembers.length < 2 ||
@@ -292,7 +292,7 @@ export function parseJobRequest(
     ok: true,
     job: {
       id: crypto.randomUUID(),
-      project: r.project,
+      executionGroupId, project: r.project,
       specFolder: r.specFolder,
       groupMembers,
       groupBranch,

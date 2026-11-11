@@ -22,8 +22,24 @@ import {
 
 import { afterTick } from "./checks.ts";
 import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
+import { groupBranch } from "../../../project/spec-names.ts";
 
 import type { RoutesContext } from "..";
+import type { QueueStore } from "../../../queue/queue.ts";
+import type { SpecGroupMembership } from "../../../project/discover";
+
+export function prepareSavedExecutionGroup(
+  queue: QueueStore,
+  targets: { project: string; specFolder: string; group?: SpecGroupMembership }[],
+  project: string,
+  specFolder: string,
+  savedGroup: SpecGroupMembership,
+): void {
+  const others = targets.filter((target) => target.project === project && target.specFolder !== specFolder && target.group?.name === savedGroup.name)
+    .map((target) => ({ folder: target.specFolder, position: target.group!.position }));
+  const members = [{ folder: specFolder, position: savedGroup.position }, ...others].sort((a, b) => a.position - b.position || a.folder.localeCompare(b.folder));
+  queue.executionGroups.prepare({ project, name: savedGroup.name, members: members.map((member) => member.folder), branch: groupBranch(members[0]!.folder, savedGroup.name) });
+}
 
 export async function trackingRoutes(
   ctx: RoutesContext,
@@ -244,6 +260,8 @@ export async function trackingRoutes(
   }
   // The row's own line reads the same copy this save wrote.
   await afterTick(ctx, dir, specFolder!);
+  const savedGroup = groupIn(text!);
+  if (savedGroup) prepareSavedExecutionGroup(ctx.queue, ctx.targets(), project!, specFolder!, savedGroup);
 
   // An analyze that stopped on files another open spec changes goes on
   // once Depends on names one of the specs it named: Analyze is queued

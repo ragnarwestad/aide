@@ -40,5 +40,6 @@ export function followOnRequest(
     model: forSteps(from.model),
     provider: forSteps(from.provider),
     effort: forSteps(from.effort),
+    executionGroupId: from.executionGroupId,
   };
 }

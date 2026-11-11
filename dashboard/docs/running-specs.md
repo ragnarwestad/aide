@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
+  - [Execution group records](#execution-group-records)
 - [Queueing from a terminal](#queueing-from-a-terminal)
 - [Which requests the dashboard answers](#which-requests-the-dashboard-answers)
 - [The queue config](#the-queue-config)
@@ -92,6 +93,19 @@ Grouped child rows offer no Archive. When every member has finished Implement an
 ticked, the group row offers Archive. That press validates and moves every member together, runs the project's test
 gate once and lands the shared branch once. A failed landing leaves every member active and shows the reason on the
 group.
+
+### Execution group records
+
+An execution group has its own durable identity beside the queue history. The record keeps its ordered members,
+shared branch, creation time, optional first-start time, current state, progress, jobs, log references and pull
+request. Creating or displaying a group does not set its first-start time. The runner sets that time once, when the
+first process actually starts, and later starts reuse both the identity and the original time.
+
+The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
+Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
+the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
+that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
+start date. Reading them never substitutes the current scan time.
 
 An implement on a short analysis that finds its spec is not small ends `stopped` with the reason `sent-back`. The board
 lands the step's specs branch when it pushed no code (where the specs live inside the code repository, the spec's own

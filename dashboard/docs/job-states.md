@@ -4,6 +4,7 @@
 
 - [The seven states](#the-seven-states)
 - [The transitions](#the-transitions)
+- [Execution group states](#execution-group-states)
 - [Beside the state](#beside-the-state)
 - [What the page makes of it](#what-the-page-makes-of-it)
 
@@ -143,6 +144,17 @@ merged result, and a red suite pushes nothing: `landing-held` moves the job to `
 
 Cancel works while a finished step's work is being merged and tested, though the job already reads `done`: nothing is
 pushed, and `landing-cancelled` moves the job to `cancelled`.
+
+## Execution group states
+
+An execution group's state is separate from any one job. `prepared` has durable membership but has not been queued;
+`queued` waits for a member job; `running` has started work; `stopped` keeps an error and can continue;
+`waiting-acceptance` has finished member work but still has open acceptance criteria; `archiving` is attempting the
+single group landing; and `completed` means that landing succeeded and the shared pull request, when required, was
+opened. A failed Archive remains `archiving` or becomes `stopped`; it never becomes `completed` from a process result
+alone.
+
+---
 
 ## Beside the state
 

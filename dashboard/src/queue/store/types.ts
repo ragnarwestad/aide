@@ -33,6 +33,7 @@ export interface QueueOptions {
   defaults: QueueDefaults;
   resolve: ProjectResolver;
   mirrorPath?: string;
+  executionGroupsPath?: string;
   /** Where a model picked for a phase before any job exists survives to
    *  the `pending-models.json` sibling of the queue mirror.
    *  Absent means the table is in-memory only, for the tests and any
