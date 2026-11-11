@@ -185,7 +185,9 @@ export async function postForm(
     primary.insertAdjacentHTML("afterbegin", SPINNER);
   };
   try {
-    const url = new URL(form.action, location.href);
+    // A control named "action" shadows the form's action property in browsers.
+    const action = form.getAttribute?.("action") ?? (typeof form.action === "string" ? form.action : "");
+    const url = new URL(action, location.href);
     const body = new URLSearchParams();
     new FormData(form).forEach((value, key) => {
       if (typeof value === "string") body.append(key, value);
