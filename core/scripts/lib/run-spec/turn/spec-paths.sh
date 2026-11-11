@@ -407,6 +407,18 @@ ok="false"
 # keeps the dashboard from landing it.
 [ -n "$skip_ai" ] && ok="true"
 
+# A scheduled program's result is independent of the model's exit status.
+if [ "$command_name" = "schedule" ] && [ "$ok" = "true" ] \
+   && [ -n "${AIDE_SCHEDULE_OUTPUT_DIR:-}" ] && [ -f "$AIDE_SCHEDULE_OUTPUT_DIR/job-result.json" ]; then
+  schedule_result="$AIDE_SCHEDULE_OUTPUT_DIR/job-result.json"
+  if ! jq -e '.ok == true' "$schedule_result" >/dev/null 2>&1; then
+    schedule_error="$(jq -r '.error | select(type == "string")' "$schedule_result" 2>/dev/null)"
+    [ -n "$schedule_error" ] || schedule_error="missing or invalid task result"
+    stop_step no-progress "the scheduled task reported failure: $schedule_error" \
+      "check the task report and correct the failure before running it again"
+  fi
+fi
+
 # Exactly one new folder is an answer; zero or several is not, and is
 # left unreported rather than guessed at. The spec still lands either
 # way — what a wrong guess would cost is the job's history being attached

@@ -128,11 +128,12 @@ Relevance markers in each review's `Relevance for aide` section:
 ## News log
 ### 2026-11-11
 
-Nov 11. All sources were fetched. The OpenAI developer blog's newest posts are Nov 10 (voice agents) and Nov 9 (a
-game example), and Artificial Analysis shows no figures for the harnesses. Of the watched pages, `agents.md` changed in
-star counts only. The X list digest of Nov 11 could not be read: the collection script failed with
-`IncompleteRead` while reading an FxTwitter page, so no posts were assessed. The digest of Nov 10 was also unreadable
-(Chrome not connected).
+Nov 11. All sources were fetched again at 20:15. Since the earlier fetch the only new releases are Codex
+pre-releases (v0.169.0-alpha.10 and alpha.11, v0.167.0-alpha.4.2); no Claude Code, Copilot CLI or OpenCode release
+came. The OpenAI developer blog's newest posts are Nov 10 (voice agents) and Nov 9 (a game example), and Artificial
+Analysis shows no figures for the harnesses. Of the watched pages, `agents.md` changed in star counts only. The X
+list digest of Nov 11 was read (posts from 20:02 on Nov 10 to 17:00 on Nov 11); a second collection that morning
+failed with `IncompleteRead`, and the digest of Nov 10 was unreadable (Chrome not connected).
 
 **Claude Code (v2.1.322):**
 
@@ -170,6 +171,23 @@ star counts only. The X list digest of Nov 11 could not be read: the collection 
   "No drive-by refactors, renames or cleanups" does not cancel that sentence (the model still consolidated in more than
   half of runs). Aide's rule `llm-discipline.md` ("Surgical changes") and the step skills' prompts push the other
   way: leave adjacent code alone. [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)
+- ⭐ X list, @Voxyz_ai (Nov 11, 15:00): Anthropic's one-sentence test in AGENTS.md or CLAUDE.md ("This codebase is
+  yours…") made Fable 5.2 merge duplicate code about half the time against under 1 in 10, at about 1.5x output tokens,
+  with changes left out of its summary. It pulls against the surgical-changes rule in `llm-discipline.md`; the same
+  finding is in the Fable 5.2 prompting page above. [Post](https://x.com/Voxyz_ai/status/2120532001098813530)
+- ⚠️ X list, @Voxyz_ai (Nov 11, 13:00): the Fable 5.2 guide warns that rules written for earlier models (delegate to
+  subagents, think less, hard-coded "never", vague approval rules) now backfire; one "never retry" note cut retries
+  from nearly every time to about 4 in 10. Aide's rules and skills carry such lines and should be gone through.
+  [Post](https://x.com/Voxyz_ai/status/2120501801313267818)
+- ✅ X list: Fable 5.2 found more real issues on high effort (12) than xhigh (10) in two PR reviews, only two PRs
+  [Post](https://x.com/Voxyz_ai/status/2120562255632781662); Anthropic's guide for choosing between Fable 5.2 and
+  Opus 5.5 orders the steps as add a check, raise effort, then switch model
+  [Post](https://x.com/alex_prompter/status/2120547371411251252); ChatGPT Business plans can now sign in to OpenCode
+  [Post](https://x.com/BHolmesDev/status/2120277070723076215); Meta's AutoRefine checks LLM code judges against test
+  and merge outcomes [Post](https://x.com/omarsar0/status/2120253922933956644).
+- ℹ X list: a short AGENTS.md cut tokens 36 percent across 18 runs; review before a PR is opened; shared team skills;
+  Expo's Exact controls the clock for UI tests; open the test file first in an agent's PR; a "home repo" of skills
+  across repos; a "software factory" as workflows in code.
 - ✅ Same page: a token budget shown to the model in the prompt raises cost at high and xhigh with no gain; "answer
   directly without deliberating" no longer lowers thinking on Fable 5.2 (lower the effort instead); a "never"
   instruction is read as absolute, so write "ask before deleting files"; standing "delegate" lines in skills and agent

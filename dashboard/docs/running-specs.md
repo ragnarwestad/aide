@@ -478,6 +478,12 @@ specs under it. A run that wrote no report shows a sentence with how it ended. T
 event attributes are removed and the board's tokens put in their place. The file is served under
 `/schedule-output/<project>/<key>/runs/<jobId>/index.html`.
 
+**A program's result.** A scheduled program can write `job-result.json` in `AIDE_SCHEDULE_OUTPUT_DIR` with
+`{"ok": true}`, or `{"ok": false, "error": "reason"}`. The runner checks this file after a normally completed AI
+session. A negative or malformed result ends the job as failed (`no-progress`), even if the AI says it is done.
+With no such file, the session's result decides as before. Programs should write a negative result before starting
+work and replace it with a positive result only after their output is complete.
+
 **A run's proposed specs.** A run may leave `proposed-specs.json` beside its report: a JSON list of objects with a
 `title` and a `description`. When the run ends green, and only then, the board queues one Create job per proposal for the
 entry's own project, with no step after Create. A proposal is skipped, with the reason on the run's page, when its title

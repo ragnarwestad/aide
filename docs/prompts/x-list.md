@@ -11,7 +11,8 @@ in the repository: commit nothing and push nothing.
    Run from the project directory:
 
    ```bash
-   python3 scripts/fetch-x-list.py --output "$AIDE_SCHEDULE_OUTPUT_DIR/posts.json"
+   python3 scripts/fetch-x-list.py --output "$AIDE_SCHEDULE_OUTPUT_DIR/posts.json" \
+     --job-result "$AIDE_SCHEDULE_OUTPUT_DIR/job-result.json"
    ```
 
    Wait for the command to finish. It follows pagination, removes duplicate post IDs, filters timestamps and

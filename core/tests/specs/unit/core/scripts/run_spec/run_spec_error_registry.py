@@ -13,6 +13,7 @@ TOOL = "the tool's own words, with the fix put beside them by provider_error_end
 PROGRAM = "another program's own words"
 
 RUNNER_ERROR_REGISTRY: list[dict] = [
+    {"pattern": r"the scheduled task reported failure:", "solution": "check the task report"},
     # --- a fix given apart -------------------------------------------------
     {"pattern": r'reinstall aide', "solution": "reinstall aide"},
     {"pattern": r'refuse_fix "cannot create the worktree (directory|base)', "solution": "fix its parent directory"},

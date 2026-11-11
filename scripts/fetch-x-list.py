@@ -5,6 +5,7 @@ import argparse
 import http.client
 import json
 import sys
+import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -13,8 +14,17 @@ from pathlib import Path
 
 def fetch_page(params):
     url = "https://api.fxtwitter.com/2/search?" + urllib.parse.urlencode(params)
-    with urllib.request.urlopen(url, timeout=20) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(url, timeout=20) as response:
+            return json.load(response)
+    except http.client.IncompleteRead:
+        response = subprocess.run(
+            ["curl", "--fail", "--silent", "--show-error", "--location", "--max-time", "20", url],
+            capture_output=True, text=True, timeout=25,
+        )
+        if response.returncode != 0:
+            raise OSError(f"FxTwitter transfer failed: {response.stderr[-300:]}")
+        return json.loads(response.stdout)
 
 
 def collect(list_id, since, until, fetch):
@@ -48,7 +58,11 @@ def collect(list_id, since, until, fetch):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--job-result", type=Path)
     args = parser.parse_args(argv)
+    if args.job_result:
+        args.job_result.parent.mkdir(parents=True, exist_ok=True)
+        args.job_result.write_text(json.dumps({"ok": False, "error": "collection did not complete"}) + "\n")
     until = int(time.time())
     report = {"list_id": "1992629307080929379", "since": until - 86400, "until": until,
               "source": "https://api.fxtwitter.com/2/search"}
@@ -59,15 +73,20 @@ def main(argv=None):
                 raise ValueError("Collection time limit reached before the time range was covered")
             try:
                 return fetch_page(params)
-            except (OSError, http.client.HTTPException):
+            except (OSError, http.client.HTTPException, subprocess.TimeoutExpired):
                 if attempt == 2:
                     raise
     try:
         report.update(collect(report["list_id"], report["since"], until, fetch))
-    except (OSError, http.client.HTTPException, ValueError, KeyError, TypeError) as error:
+    except (OSError, http.client.HTTPException, subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as error:
         report.update(complete=False, posts=[], error=str(error))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    if args.job_result:
+        outcome = {"ok": report["complete"]}
+        if not report["complete"]:
+            outcome["error"] = report.get("error", "collection incomplete")
+        args.job_result.write_text(json.dumps(outcome, ensure_ascii=False) + "\n")
     print(json.dumps({k: v for k, v in report.items() if k != "posts"}))
     print(f"{len(report['posts'])} posts saved to {args.output}")
     return 0 if report["complete"] else 1

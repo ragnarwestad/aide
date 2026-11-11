@@ -91,3 +91,33 @@ def test_incomplete_http_response_is_retried_or_recorded(tmp_path, monkeypatch, 
     if failures == 3:
         assert "IncompleteRead" in report["error"]
         assert report["posts"] == []
+
+
+def test_interrupted_urllib_response_uses_a_complete_curl_response(monkeypatch):
+    import http.client
+    import json
+    import subprocess
+    def broken(*args, **kwargs):
+        raise http.client.IncompleteRead(b"partial", 10)
+    monkeypatch.setattr(reader.urllib.request, "urlopen", broken)
+    calls = []
+    def curl(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, json.dumps({"code": 200, "results": []}), "")
+    monkeypatch.setattr(subprocess, "run", curl)
+    assert reader.fetch_page({"q": "list:123"}) == {"code": 200, "results": []}
+    assert calls[0][0] == "curl"
+    assert "list%3A123" in calls[0][-1]
+
+
+@pytest.mark.parametrize("complete", [True, False])
+def test_collector_writes_a_machine_readable_job_result(tmp_path, monkeypatch, complete):
+    import json
+    monkeypatch.setattr(reader, "collect", lambda *args: {"posts": [], "complete": complete, **({} if complete else {"error": "transfer interrupted"})})
+    result = tmp_path / "job-result.json"
+    rc = reader.main(["--output", str(tmp_path / "posts.json"), "--job-result", str(result)])
+    assert rc == (0 if complete else 1)
+    data = json.loads(result.read_text())
+    assert data["ok"] is complete
+    if not complete:
+        assert data["error"] == "transfer interrupted"

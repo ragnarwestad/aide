@@ -253,3 +253,20 @@ def test_chrome_is_refused_outside_a_scheduled_claude_job(runner, workspace, fak
     assert rc == 2, out
     assert "--chrome" in out["error"]
     assert not fake_claude.calls.exists()
+
+
+@pytest.mark.parametrize("content", ['{"ok":false,"error":"transfer interrupted"}', '{broken', '{"ok":true}'])
+def test_a_failed_task_result_overrides_the_sessions_success(
+    runner, workspace, fake_claude, tmp_path, monkeypatch, content
+):
+    with_prompt(workspace)
+    report = tmp_path / "schedule-output"
+    report.mkdir()
+    monkeypatch.setenv("AIDE_SCHEDULE_OUTPUT_DIR", str(report))
+    claude = job(fake_claude, f"printf '%s' '{content}' > '{report}/job-result.json'\n{FINISHED}")
+    rc, out, _ = schedule(runner, workspace, claude)
+    succeeded = content == '{"ok":true}'
+    assert out["ok"] is succeeded, out
+    assert out["terminalReason"] == ("completed" if succeeded else "no-progress"), out
+    if not succeeded:
+        assert out.get("error"), out
