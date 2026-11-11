@@ -7,7 +7,7 @@
 
 import { homedir } from "node:os";
 import { expandDir, providerLoginEnv, type Provider } from "../../queue/providers/index.ts";
-import { runScript, scriptFor } from "../land-branch/run-script.ts";
+import { runScript, scriptFor } from "../process";
 import { askLogin, CHECK_TIMEOUT_MS, stripAnsi, type CheckOptions } from "../tool-check.ts";
 import { readUsage, type UsageOptions } from "../tool-usage";
 import type { ProviderStatus, ToolUsage } from "../../render";

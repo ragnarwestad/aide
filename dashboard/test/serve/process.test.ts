@@ -8,7 +8,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runScript } from "../../../src/serve/land-branch/run-script.ts";
+import { runScript } from "../../src/serve/process";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -24,7 +24,7 @@ const alive = (pid: number): boolean => {
   }
 };
 
-test("what the script left running is stopped, and its output still comes back", async () => {
+test("what the script left running is stopped, and its output still comes back (AC-4)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "aide-run-script-"));
   dirs.push(dir);
   const script = join(dir, "leaves-a-server.sh");

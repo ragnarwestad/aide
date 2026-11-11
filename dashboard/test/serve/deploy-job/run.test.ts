@@ -76,7 +76,7 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     mergeLock: lock,
     installCheckout: async () => {
       calls.install += 1;
-      return false;
+      return { ok: true };
     },
     restartRegistered: async () => false,
     restartWhenSettled: async () => {
@@ -114,8 +114,14 @@ const sentenceKey = (s: Setup): unknown => (s.result()?.sentence as { key?: stri
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe("a deploy with nothing to restart", () => {
-  test("marks its five steps, records the commit it fetched and ends done when the service runs it", async () => {
-    const s = setup();
+  test("installs its checkout through the deployment interface and ends done when the service runs it (AC-1)", async () => {
+    let installedRoot: string | undefined;
+    const s = setup({
+      installCheckout: async (root) => {
+        installedRoot = root;
+        return { ok: true };
+      },
+    });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toMatchObject({ ok: true, terminalReason: "completed", tool: "none", costMeasured: false });
     expect(s.marks().map((m) => m.replace(/^--- Step (\d) of 5: .* — /, "$1 "))).toEqual([
@@ -123,7 +129,7 @@ describe("a deploy with nothing to restart", () => {
     ]);
     expect(store.get(s.id)?.deploy).toMatchObject({ root: ROOT, commit: HEAD });
     expect(s.git).toContain("merge -q --ff-only origin/master");
-    expect(s.calls.install).toBe(1);
+    expect(installedRoot).toBe(ROOT);
     expect(s.calls.restartWhenSettled).toBe(0);
   });
 
@@ -155,15 +161,15 @@ describe("a deploy that fails stops where it failed", () => {
     expect(s.failures.at(-1)).toMatchObject({ step: "fetch" });
   });
 
-  test("an install that fails ends failed with its sentence and what it printed, and restarts nothing", async () => {
+  test("an install that fails ends failed with its sentence and what it printed, and restarts nothing (AC-6)", async () => {
     const said = "make: *** [install] Error 1";
     const s = setup({
       restartRegistered: async () => true,
-      installCheckout: async (r) => {
-        r.installError = { key: "landing.installCommandFailed", values: { command: "make install", code: 2 } };
-        r.installDetail = said;
-        return false;
-      },
+      installCheckout: async () => ({
+        ok: false,
+        error: { key: "landing.installCommandFailed", values: { command: "make install", code: 2 } },
+        detail: said,
+      }),
     });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toMatchObject({ ok: false, sentence: { key: "landing.installCommandFailed" } });

@@ -16,7 +16,7 @@
 // start and before waiting jobs.
 
 import { homedir } from "node:os";
-import { runScript, scriptFor } from "./land-branch/run-script.ts";
+import { runScript, scriptFor } from "./process";
 import { expandDir, providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
 import { TOOLS, type ProviderTool } from "../queue/providers/tools.ts";
 import { TOOL_READERS } from "./tool-readers/index.ts";

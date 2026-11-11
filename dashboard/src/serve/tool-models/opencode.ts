@@ -1,4 +1,4 @@
-import type { runScript } from "../land-branch/run-script.ts";
+import type { runScript } from "../process";
 import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { OfferedModel, ToolModels } from "../../render";
 

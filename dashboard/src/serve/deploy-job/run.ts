@@ -9,15 +9,14 @@
 
 import { deployHold } from "./landing-hold.ts";
 import { existsSync } from "node:fs";
-import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
+import { fastForwardToOrigin } from "../../git/branch-merge/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
 import { formatSentence, type Sentence } from "../../messages/format.ts";
 import { t } from "../../i18n";
 import type { QueueStore } from "../../queue/queue.ts";
 import { boardStep } from "../board-step.ts";
-import { servedOlder } from "../routes/deploy-steps.ts";
-import type { RoutesContext } from "../routes";
+import { servedOlder, type InstallResult } from "../deployment";
 import { DEPLOY_RESTART_WAIT_MS } from "../serve-helpers";
 import { DEPLOY_STEPS, type DeployMark, type DeployStep } from "./plan.ts";
 import { STEP_LABEL } from "../../render/pages/projects-page/deploy-dialog.ts";
@@ -35,10 +34,10 @@ export interface DeployRunDeps {
   branchStatus: Pick<BranchStatusChecker, "defaultBranch" | "commitsBehindOrigin">;
   /** A landing holds its checkout's root here for as long as it merges. */
   mergeLock: { run<T>(root: string, fn: () => Promise<T>): Promise<T>; roots(): string[] };
-  installCheckout: (result: RepoMergeResult) => Promise<boolean>;
+  installCheckout: (root: string) => Promise<InstallResult>;
   restartRegistered: () => Promise<boolean>;
   restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void }) => Promise<boolean>;
-  readServing: RoutesContext["readServing"];
+  readServing: () => { sha: string | null; repoRoot: string | null };
   setFailure: (project: string, failure: DeployFailure | null) => void;
   setFault: (fault: Sentence | null) => void;
   /** When this process booted: who fired the restart. */
@@ -113,14 +112,13 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
 
     // --- install.
     at("install", "started");
-    const installed: RepoMergeResult = { root, ok: true };
-    await deps.installCheckout(installed);
+    const installed = await deps.installCheckout(root);
     // Fresh, also after a failed install: the checkout has moved.
     await deps.branchStatus.commitsBehindOrigin(root, true);
-    if (installed.installError) {
+    if (!installed.ok) {
       const older = await servedOlder(deps, root);
       if (typeof older === "object") deps.setFault({ key: "landing.deployServiceOlder", values: older });
-      return fail(installed.installError, installed.installDetail);
+      return fail(installed.error, installed.detail);
     }
     mark("install", "done");
 

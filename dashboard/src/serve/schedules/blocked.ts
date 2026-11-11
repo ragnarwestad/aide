@@ -10,7 +10,7 @@ import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
 import { deployHold } from "../deploy-job/landing-hold.ts";
-import { landingJobNames } from "../land-branch";
+import { landingJobNames } from "../deployment";
 import { jobKind, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";

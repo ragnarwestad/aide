@@ -3,7 +3,7 @@
 // call `checkTool()`, which reads none of it. Each reader asks the tool in
 // a way that runs no model, with the provider's folders in the environment.
 
-import { runScript, scriptFor } from "../land-branch/run-script.ts";
+import { runScript, scriptFor } from "../process";
 import { TOOLS } from "../../queue/providers/tools.ts";
 import { TOOL_READERS } from "../tool-readers/index.ts";
 import { CHECK_TIMEOUT_MS } from "../tool-readers/run.ts";

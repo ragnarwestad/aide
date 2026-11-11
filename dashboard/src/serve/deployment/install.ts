@@ -3,11 +3,14 @@
 
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
-import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
-import type { LandContext } from "./types.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 import { outputTail } from "../../format/output-tail.ts";
+import type { Sentence } from "../../messages/types.ts";
+
+export type InstallResult =
+  | { ok: true }
+  | { ok: false; error: Sentence; detail?: string };
 
 /** Run the project's own install, once its code has landed. Bounded by
  *  a timeout of its own — never trusting the server's idle timeout to
@@ -21,8 +24,8 @@ import { outputTail } from "../../format/output-tail.ts";
  *  specs root was never merged and nothing was left alive to say so.
  *  `landBranch` owns the restart now and fires it once the whole
  *  landing is reported. */
-export async function installAfterMerge(ctx: LandContext, result: RepoMergeResult): Promise<boolean> {
-  const cmd = resolveInstallCmd(result.root).value;
+export async function installCheckout(root: string, timeoutMs = INSTALL_TIMEOUT_MS): Promise<InstallResult> {
+  const cmd = resolveInstallCmd(root).value;
   if (!cmd) {
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing
@@ -30,15 +33,12 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     // not the raw env-var key; the sentence also says
     // where that setting lives, in the same plain words.
     const label = SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase();
-    result.installError = { key: "landing.noInstallCommand", values: { label } };
-    return false;
+    return { ok: false, error: { key: "landing.noInstallCommand", values: { label } } };
   }
-  const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;
-  let failed = false;
   try {
     // argv, no shell — the same shape the notify command already has,
     // so nothing here has to get quoting right on someone's behalf.
-    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: result.root, stdout: "pipe", stderr: "pipe" });
+    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: root, stdout: "pipe", stderr: "pipe" });
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
@@ -57,20 +57,19 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     // installers say why.
     const tail = outputTail(err) || outputTail(out);
     if (timedOut) {
-      result.installError = { key: "landing.installCommandTimedOut", values: { command: cmd, seconds: timeoutMs / 1000 } };
-      failed = true;
-    } else if (code !== 0) {
-      result.installError = { key: "landing.installCommandFailed", values: { command: cmd, code } };
-      failed = true;
+      const result: InstallResult = { ok: false, error: { key: "landing.installCommandTimedOut", values: { command: cmd, seconds: timeoutMs / 1000 } }, ...(tail ? { detail: tail } : {}) };
+      console.error(`deployment: install (${cmd}) failed${tail ? `:\n${tail}` : ""}`);
+      return result;
     }
-    if (failed && tail) result.installDetail = tail;
+    if (code !== 0) {
+      const result: InstallResult = { ok: false, error: { key: "landing.installCommandFailed", values: { command: cmd, code } }, ...(tail ? { detail: tail } : {}) };
+      console.error(`deployment: install (${cmd}) failed${tail ? `:\n${tail}` : ""}`);
+      return result;
+    }
   } catch (err) {
-    result.installError = { key: "landing.installCommandNotRun", values: { command: cmd } };
-    result.installDetail = err instanceof Error ? err.message : String(err);
-    failed = true;
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(`deployment: install (${cmd}) failed:\n${detail}`);
+    return { ok: false, error: { key: "landing.installCommandNotRun", values: { command: cmd } }, detail };
   }
-  if (failed) console.error(`land-branch: install (${cmd}) failed${result.installDetail ? `:\n${result.installDetail}` : ""}`);
-  // A failed install wants no restart, exactly as `set -e` used to skip
-  // install-after-merge.sh's own restart block on any earlier failure.
-  return !failed;
+  return { ok: true };
 }

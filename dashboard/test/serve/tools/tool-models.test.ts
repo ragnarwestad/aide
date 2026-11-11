@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { askClaudeModel, readModels } from "../../../src/serve/tool-models";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
-type Run = typeof import("../../../src/serve/land-branch/run-script.ts").runScript;
+type Run = typeof import("../../../src/serve/process").runScript;
 
 const AT = new Date("2026-10-03T13:30:00.000Z");
 

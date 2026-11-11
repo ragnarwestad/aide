@@ -2,8 +2,6 @@
 // `serve/deploy-job/`). And the read-only origin check the Deploy tab makes
 // when it is opened, for every project.
 
-import { resolve } from "node:path";
-import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { DEPLOY_KEY, jobKind, inFlight } from "../../queue/queue.ts";
@@ -11,39 +9,12 @@ import { json, logRefusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
 /** What a Deploy press asks of the landing code. */
-export interface DeployHooks {
-  /** The install alone: writes `result.installError` and answers whether
-   *  a restart should follow. */
-  installCheckout: (result: RepoMergeResult) => Promise<boolean>;
-  /** Whether anything on this machine restarts the service. */
-  restartRegistered: () => Promise<boolean>;
-  /** Whether `root` is the checkout the board runs from: the one project
-   *  whose Deploy is a job. */
-  isBoard: (root: string) => boolean;
-  /** The deploy job's restart: waits for landings with no deadline, tells
-   *  `onWait` which are in flight, calls `beforeFire` right before the
-   *  service restarts, and answers whether it did. */
-  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void }) => Promise<boolean>;
-}
-
 const DEPLOY_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/deploy$/;
 const DRIFT_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/drift$/;
 
 /** The commit the dashboard's own checkout is on when the running
  *  service is on another one — for the dashboard's own project only,
  *  and only once the served commit is known (until it is, no claim). */
-export async function servedOlder(
-  ctx: Pick<RoutesContext, "readServing" | "gitRun">,
-  root: string,
-): Promise<{ served: string; head: string } | "equal" | "unknown"> {
-  const { sha, repoRoot } = ctx.readServing();
-  if (!sha || !repoRoot || resolve(root) !== resolve(repoRoot)) return "unknown";
-  const head = await ctx.gitRun(root, ["rev-parse", "HEAD"]).catch(() => null);
-  if (!head || head.code !== 0) return "unknown";
-  const checkout = head.stdout.trim();
-  return checkout === sha ? "equal" : { served: sha.slice(0, 7), head: checkout.slice(0, 7) };
-}
-
 /** The Deploy tab's own check, made when the tab is opened, for every
  *  project: a fresh count against origin and nothing else — no pull, no
  *  install, no restart, and no failure kept for the tab. An answer origin

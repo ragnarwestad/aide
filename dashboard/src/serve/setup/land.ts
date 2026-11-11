@@ -28,15 +28,11 @@ import {
   landArchivedSpec as landArchivedSpecImpl,
   landClosedSpec as landClosedSpecImpl,
   landScheduleRun as landScheduleRunImpl,
-  installAfterMerge as installAfterMergeImpl,
-  restartAfterLanding,
-  isDashboardRoot,
   withFreshness as withFreshnessImpl,
   deleteLeftBehindBranch as deleteLeftBehindBranchImpl,
   type LandContext,
-  type RestartHook,
 } from "../land-branch";
-import type { DeployHooks } from "../routes/deploy-steps.ts";
+import { installCheckout, isDashboardRoot, restartAfterLanding, type DeployHooks, type RestartHook } from "../deployment";
 import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { createDeployJob } from "../deploy-job/index.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
@@ -102,10 +98,6 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
       state.scan = null;
     },
     queueInstallTimeoutMs: inputs.queueInstallTimeoutMs,
-    restart: inputs.restart,
-    restartPollMs: inputs.restartPollMs,
-    restartDeferTimeoutMs: inputs.restartDeferTimeoutMs,
-    onJobsWaitChange: (jobs) => setPendingRestart(state, jobs),
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
     finalizeCreateSpec: inputs.finalizeCreateSpec,
@@ -133,15 +125,18 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   /** What the deploy routes and the deploy job ask of the landing code:
    *  the install, the restart check and the restart itself. */
   const deploy: DeployHooks = {
-    installCheckout: (result) => installAfterMergeImpl(landCtx, result),
+    installCheckout: (root) => installCheckout(root, inputs.queueInstallTimeoutMs),
     restartRegistered: () => inputs.restart.registered(),
     isBoard: (root) => isDashboardRoot(landCtx, root),
     // The deploy job's restart waits as long as landings take: nothing may
     // be cut short, so no deadline.
     restartWhenSettled: ({ onWait, beforeFire }) =>
       restartAfterLanding({
-        ...landCtx,
+        mergeLock: inputs.mergeLock,
+        restart: inputs.restart,
+        restartPollMs: inputs.restartPollMs,
         restartDeferTimeoutMs: Infinity,
+        queue: inputs.queue,
         onJobsWaitChange: (jobs) => {
           setPendingRestart(state, jobs);
           onWait(jobs);

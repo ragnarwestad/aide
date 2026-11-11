@@ -11,7 +11,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runScript } from "../../../src/serve/land-branch/run-script.ts";
+import { runScript } from "../../../src/serve/process";
 import { extraPathDirs, pathWithToolDirs, spawnEnv } from "../../../src/serve/tool-path.ts";
 
 const dirs: string[] = [];

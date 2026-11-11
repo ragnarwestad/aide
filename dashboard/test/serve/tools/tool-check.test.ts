@@ -28,7 +28,7 @@ function fakeRun(answers: Record<string, Partial<RunResult>>) {
     const answer = key ? answers[key]! : {};
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...answer };
   };
-  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls, envs });
+  return Object.assign(run as never as typeof import("../../../src/serve/process").runScript, { calls, envs });
 }
 
 const opts = (run: ReturnType<typeof fakeRun>, extra: Record<string, unknown> = {}) => ({

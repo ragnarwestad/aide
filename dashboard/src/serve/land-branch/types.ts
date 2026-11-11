@@ -10,7 +10,6 @@ import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../gi
 import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { CodeLanding } from "../../project/discover";
 import type { createRootLock } from "../serve-helpers";
-import type { RestartHook } from "./restart.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import type { GateVerdict } from "./test-gate.ts";
 
@@ -42,16 +41,7 @@ export interface LandContext {
   branchFileSteps: BranchFileStepsChecker;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   invalidateScan: () => void;
-  queueInstallTimeoutMs: number | undefined;
-  /** What restarts the dashboard server once a code-root install has
-   *  succeeded, and how long that restart may wait for other landings
-   *  to clear first. */
-  restart: RestartHook;
-  restartPollMs?: number;
-  restartDeferTimeoutMs?: number;
-  /** Told whenever the jobs-wait's own answer changes — wired
-   *  to the Deploy tab's server-held state. */
-  onJobsWaitChange?: (jobs: string[]) => void;
+  queueInstallTimeoutMs?: number;
   /** The checkout this dashboard runs from; a landing anywhere else
    *  never restarts it. */
   dashboardRoot?: string;

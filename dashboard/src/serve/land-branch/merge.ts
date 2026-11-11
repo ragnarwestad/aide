@@ -28,9 +28,9 @@ import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { STATUS_FILE } from "../../project/spec-names.ts";
 import { specFileText } from "../../project/discover";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
-import { installAfterMerge } from "./install.ts";
+import { installCheckout } from "../deployment";
 import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
-import { isDashboardRoot } from "./restart.ts";
+import { isDashboardRoot } from "../deployment";
 import type { LandContext, Landing } from "./types.ts";
 import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
@@ -213,7 +213,13 @@ export async function landBranch(
             // job's process), and in its own checkout never installs either:
             // a runner newer than the served page refuses its calls. Deploy
             // installs and restarts together, when the person chooses.
-            if (!isDashboardRoot(ctx, repo.root)) await installAfterMerge(ctx, result);
+            if (!isDashboardRoot(ctx, repo.root)) {
+              const installed = await installCheckout(repo.root, ctx.queueInstallTimeoutMs);
+              if (!installed.ok) {
+                result.installError = installed.error;
+                result.installDetail = installed.detail;
+              }
+            }
             else console.error(
               `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page and the installed scripts still run the older code; install and restart it with Deploy when it suits`,
             );

@@ -33,7 +33,7 @@ import {
   type ScheduleContext,
 } from "../schedules";
 import { BRANCH_PREVIEW_POLL_MS, dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../schedules/branch-previews.ts";
-import { runScript } from "../land-branch/run-script.ts";
+import { runScript } from "../process";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";

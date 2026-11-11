@@ -6,7 +6,7 @@ import { afterEach, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createLaunchdRestart } from "../../../src/serve/land-branch";
+import { createLaunchdRestart } from "../../../src/serve/deployment";
 
 const savedPath = process.env.PATH;
 const empty = mkdtempSync(join(tmpdir(), "no-launchctl-"));
@@ -15,7 +15,7 @@ afterEach(() => {
   process.env.PATH = savedPath;
 });
 
-test("with no launchctl, nothing is registered and the log says to restart by hand", async () => {
+test("with no launchctl, nothing is registered and the log says to restart by hand (AC-5)", async () => {
   const errors = spyOn(console, "error").mockImplementation(() => {});
   process.env.PATH = empty;
   try {

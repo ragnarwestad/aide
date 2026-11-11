@@ -12,8 +12,7 @@ import { join } from "node:path";
 import {
   createRootLock,
 } from "../../../src/serve/serve-helpers";
-import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
-import type { RepoMergeResult } from "../../../src/git/branch-merge/index.ts";
+import { installCheckout, landingJobNames, restartAfterLanding, type RestartHook } from "../../../src/serve/deployment";
 
 /** The message a landing carries, as text: it is
  *  stored as WHICH message and what fills its blanks, and the
@@ -267,69 +266,37 @@ describe("the restart waits for landings elsewhere to clear", () => {
   // on an earlier failure. It says so by ANSWERING "no restart" — the
   // firing itself belongs to the caller now, so that the loop landing
   // several repos is not killed between two of them.
-  test("installAfterMerge answers no-restart when the install itself fails", async () => {
+  test("a failed install answers with its failure and fires no restart (AC-2, AC-6)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-fail-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/false\n");
-    const lock = createRootLock();
-    const { hook, count } = restartSpy();
-    const ctx = {
-      mergeLock: lock,
-      restart: hook,
-      restartPollMs: 5,
-      restartDeferTimeoutMs: 500,
-      queueInstallTimeoutMs: undefined,
-    } as unknown as LandContext;
-    const result: RepoMergeResult = { root: dir, ok: true };
+    const { count } = restartSpy();
+    const result = await installCheckout(dir);
 
-    const wantsRestart = await installAfterMerge(ctx, result);
-
-    expect(result.installError).toBeTruthy();
-    expect(wantsRestart).toBe(false);
+    expect(result.ok).toBe(false);
     expect(count()).toBe(0);
   });
 
   // The post-merge note names the setting in plain
   // words, not the raw env-var key.
-  test("installAfterMerge names the setting in plain words when none is configured", async () => {
+  test("an install names the setting in plain words when none is configured (AC-6)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-318-install-unset-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    const lock = createRootLock();
-    const { hook } = restartSpy();
-    const ctx = {
-      mergeLock: lock,
-      restart: hook,
-      restartPollMs: 5,
-      restartDeferTimeoutMs: 500,
-      queueInstallTimeoutMs: undefined,
-    } as unknown as LandContext;
-    const result: RepoMergeResult = { root: dir, ok: true };
+    const result = await installCheckout(dir);
 
-    await installAfterMerge(ctx, result);
-
-    expect(sentence(result.installError)).toContain("install command");
-    expect(sentence(result.installError)).not.toContain("AIDE_INSTALL_CMD");
+    expect(sentence(!result.ok ? result.error : undefined)).toContain("install command");
+    expect(sentence(!result.ok ? result.error : undefined)).not.toContain("AIDE_INSTALL_CMD");
   });
 
   // The install gets two minutes. The kill timer's delay is captured and
   // fired at once, so the test does not wait for it.
-  test("installAfterMerge stops a hung install at 120 seconds and names that limit", async () => {
+  test("an install stops a hung command at 120 seconds and names that limit (AC-6)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-663-install-timeout-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/sleep 30\n");
-    const lock = createRootLock();
-    const { hook } = restartSpy();
-    const ctx = {
-      mergeLock: lock,
-      restart: hook,
-      restartPollMs: 5,
-      restartDeferTimeoutMs: 500,
-      queueInstallTimeoutMs: undefined,
-    } as unknown as LandContext;
-    const result: RepoMergeResult = { root: dir, ok: true };
 
     const realSetTimeout = globalThis.setTimeout;
     const longDelays: number[] = [];
@@ -340,41 +307,30 @@ describe("the restart waits for landings elsewhere to clear", () => {
       }
       return realSetTimeout(cb, ms, ...rest);
     }) as unknown as typeof setTimeout;
-    let wantsRestart: boolean;
+    let result: Awaited<ReturnType<typeof installCheckout>>;
     try {
-      wantsRestart = await installAfterMerge(ctx, result);
+      result = await installCheckout(dir);
     } finally {
       globalThis.setTimeout = realSetTimeout;
     }
 
     expect(longDelays).toEqual([120_000]);
-    expect(wantsRestart).toBe(false);
-    expect(sentence(result.installError)).toContain("120 seconds");
+    expect(result.ok).toBe(false);
+    expect(sentence(!result.ok ? result.error : undefined)).toContain("120 seconds");
   });
 
   // A successful install ASKS for the restart and never fires one: a
   // restart fired from inside `landBranch`'s per-repo loop would kill
   // the process before archive's specs root was merged.
-  test("installAfterMerge asks for a restart on success, and fires none itself", async () => {
+  test("a successful install reports success and fires no restart (AC-2)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/usr/bin/true\n");
-    const lock = createRootLock();
-    const { hook, count } = restartSpy();
-    const ctx = {
-      mergeLock: lock,
-      restart: hook,
-      restartPollMs: 5,
-      restartDeferTimeoutMs: 500,
-      queueInstallTimeoutMs: undefined,
-    } as unknown as LandContext;
-    const result: RepoMergeResult = { root: dir, ok: true };
+    const { count } = restartSpy();
+    const result = await installCheckout(dir);
 
-    const wantsRestart = await installAfterMerge(ctx, result);
-
-    expect(result.installError).toBeUndefined();
-    expect(wantsRestart).toBe(true);
+    expect(result.ok).toBe(true);
     expect(count()).toBe(0);
   });
 });

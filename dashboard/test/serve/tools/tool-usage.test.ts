@@ -22,7 +22,7 @@ function fakeRun(answer: Partial<RunResult> = {}) {
     envs.push(extraEnv ?? {});
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...answer };
   };
-  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls, envs });
+  return Object.assign(run as never as typeof import("../../../src/serve/process").runScript, { calls, envs });
 }
 
 /** A stand-in for the app-server exchange: records what it was sent. */

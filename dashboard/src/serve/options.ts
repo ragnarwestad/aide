@@ -8,7 +8,7 @@ import type { Sentence } from "../messages/types.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/process/index.ts";
 import type { GhRunner } from "../integrations/pull-requests.ts";
-import type { RestartHook } from "./land-branch";
+import type { RestartHook } from "./deployment";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
 import type { watch } from "node:fs";
 

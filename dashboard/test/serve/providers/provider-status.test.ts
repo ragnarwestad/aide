@@ -18,7 +18,7 @@ function fakeRun(answers: Record<string, Partial<RunResult>>, missing = false) {
     const key = Object.keys(answers).find((k) => argv.join(" ").includes(k));
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...(key ? answers[key] : {}) };
   };
-  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls });
+  return Object.assign(run as never as typeof import("../../../src/serve/process").runScript, { calls });
 }
 
 const CLAUDE_2: Provider = { name: "Claude-2", tool: "claude", configDir: "~/.claude-2" };

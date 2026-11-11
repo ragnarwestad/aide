@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderPlist } from "../../deploy/render-plist.ts";
-import { reloadScript } from "../../src/serve/land-branch/restart.ts";
+import { reloadScript } from "../../src/serve/deployment";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const REPAIR = join(ROOT, "deploy", "repair-serve-plist.sh");

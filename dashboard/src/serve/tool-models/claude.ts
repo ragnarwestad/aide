@@ -4,7 +4,7 @@
 // the model resolves to; the result's text names it as Claude Code shows
 // it, and an unknown model is answered with the asked string itself.
 
-import type { runScript } from "../land-branch/run-script.ts";
+import type { runScript } from "../process";
 import { events } from "../../queue/parse-stream/shared.ts";
 import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { OfferedModel, ToolModels } from "../../render";

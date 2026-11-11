@@ -4,7 +4,7 @@
 // terminal, not a contract, so what cannot be read as windows is kept as
 // the tool printed it rather than guessed at.
 
-import type { runScript } from "../land-branch/run-script.ts";
+import type { runScript } from "../process";
 import { CHECK_TIMEOUT_MS, stripAnsi } from "../tool-readers/run.ts";
 import type { ToolUsage, UsageWindow } from "../../render";
 

@@ -44,7 +44,7 @@ import { setupTestServers } from "./setup/test-servers.ts";
 import { createProjectResolver } from "./setup/resolve-project.ts";
 import { setupSpecViews } from "./setup/spec-views.ts";
 import { setupQueueContext } from "./setup/queue-context.ts";
-import { createLaunchdRestart } from "./land-branch";
+import { createLaunchdRestart } from "./deployment";
 import { applyOverlapDependencies } from "./dependencies";
 import { createQueueRunner, resumeCutLandingsAtBoot, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";

@@ -4,7 +4,7 @@
 // round would be too many for either. Each reader asks the tool in a way
 // that runs no model.
 
-import { runScript, scriptFor } from "../land-branch/run-script.ts";
+import { runScript, scriptFor } from "../process";
 import { lastModels, recordModels } from "../../render/ui/tool-checks.ts";
 import { TOOLS } from "../../queue/providers/tools.ts";
 import { TOOL_READERS } from "../tool-readers/index.ts";
