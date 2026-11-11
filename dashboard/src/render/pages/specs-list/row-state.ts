@@ -3,7 +3,7 @@
 // run.
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
+import { groupKey, isArchivedRow, offersArchiveAgain, type SpecGroup } from "./data-model";
 import { nextPhase, phasesAhead, runButton } from "./data-model/phase.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../step-endings.ts";
@@ -18,6 +18,12 @@ import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../step-endings.ts";
  *  THIS, so a control added later has one question to ask rather than a
  *  rule to remember. */
 export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
+
+export function groupActionState(members: SpecGroup[]): "start" | "archive" | undefined {
+  if (members.every(isArchivedRow)) return undefined;
+  return members.length > 0 && members.every((child) =>
+    child.done.includes("implement") && !child.acceptanceOpen && !specBusy(child)) ? "archive" : "start";
+}
 
 /** An archived row whose code never landed, with its archive running
  *  again: it reads and acts as a live row does until the run is over. */

@@ -42,7 +42,7 @@ import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
-import { specBusy } from "./row-state.ts";
+import { groupActionState, specBusy } from "./row-state.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page/` and `settings-page.ts` — so the split
 // between this file and `specs-list/model-picker.ts` is invisible to
@@ -288,17 +288,16 @@ function groupRows(
     const waiting = wholeGroup.find((child) => child.state !== "archived" && child.state !== "closed" && child.state !== "not-started");
     const status = t(opts.lang ?? "en", "list.groupDone", { done: String(done), total: String(wholeGroup.length) });
     const waitingText = waiting ? ` · ${t(opts.lang ?? "en", "list.groupWaiting", { spec: waiting.specFolder })}` : "";
-    const readyToArchive = wholeGroup.length > 0 && wholeGroup.every((child) =>
-      child.done.includes("implement") && !child.acceptanceOpen && !specBusy(child));
+    const action = groupActionState(wholeGroup);
     const failedLanding = wholeGroup.find((child) => child.landingError)?.landingError;
     const parent = `<tr class="specstate" id="spec-group-${encodeURIComponent(key)}" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
       foldButton({ label: g.group.name, open: false, data: { "group-toggle": key } }) +
       `<strong>${esc(g.group.name)}</strong> · ${esc(status + waitingText)} ` +
-      buttonForm({
+      (action ? buttonForm({
         action: `/api/queue/groups/${g.project}/${encodeURIComponent(g.group.name)}`,
         hook: "actionform",
-        button: { label: readyToArchive ? stepLabel("archive", opts.lang ?? "en") : t(opts.lang ?? "en", "list.groupStart"), disabled: wholeGroup.some(specBusy) },
-      }) + (failedLanding ? `<br>${esc(formatSentence(opts.lang ?? "en", failedLanding) ?? "")}` : "") + `</td></tr>`;
+        button: { label: action === "archive" ? stepLabel("archive", opts.lang ?? "en") : t(opts.lang ?? "en", "list.groupStart"), disabled: wholeGroup.some(specBusy) },
+      }) : "") + (failedLanding ? `<br>${esc(formatSentence(opts.lang ?? "en", failedLanding) ?? "")}` : "") + `</td></tr>`;
     return parent + children.map((child) => groupRow(child, opts, now, opened)).join("");
   }).join("");
 }
