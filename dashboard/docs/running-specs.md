@@ -791,6 +791,11 @@ unfolds to the phase lines, the Depends on picker, steps, logs and acceptance cr
 shows the spec. A spec's title leads to `/specs/<project>/<spec>#spec-<project>/<spec>`: the Specs list with that row open
 and scrolled to it. The folds lead to `/`, not `/specs`.
 
+An opened phase follows the phase's current attempt, or the latest attempt that produced a log. It names the phase,
+attempt and execution time. Each opened work step is an excerpt from that same attempt and uses the same log display as
+the Logs tab. The entire phase-attempt log is a separate closed choice; it covers that phase attempt, not the spec's
+whole history. The Logs tab keeps every attempt in the current work round, including retries within one job.
+
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.
 

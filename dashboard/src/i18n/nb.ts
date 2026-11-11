@@ -114,6 +114,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.phaseModel": "Modell: {model}",
   "list.descriptionChangedSince": "Beskrivelsen er endret siden forrige analyse.",
   "list.phaseOpenLog": "Åpne loggen for dette steget",
+  "list.phaseEntireLog": "Hele loggen for {phase}-forsøket",
   "list.cancel": "Avbryt",
   "list.cancelling": "avbryter…",
   "list.cancelConfirmTitle": "Avbryt {step}?",

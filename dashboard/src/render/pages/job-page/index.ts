@@ -26,7 +26,7 @@ import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
 
-export type { JobStepResultView, SpecFileView, JobDetailView } from "./types.ts";
+export type { JobStepResultView, SpecFileView, JobDetailView, PhaseAttemptIdentity } from "./types.ts";
 export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./steps-table.ts";
 export { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 

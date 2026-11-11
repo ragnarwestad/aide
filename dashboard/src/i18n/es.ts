@@ -114,6 +114,7 @@ export const es: Record<TranslationKey, string> = {
   "list.phaseModel": "Modelo: {model}",
   "list.descriptionChangedSince": "La descripción ha cambiado desde el último análisis.",
   "list.phaseOpenLog": "Abrir el registro de este paso",
+  "list.phaseEntireLog": "Registro completo del intento de {phase}",
   "list.cancel": "Cancelar",
   "list.cancelling": "cancelando…",
   "list.cancelConfirmTitle": "¿Cancelar {step}?",

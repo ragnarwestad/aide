@@ -98,6 +98,16 @@ function errorsTab(r: StepPanelData, lang: Language): string {
     : `<p class="muted">${esc(t(lang, "job.noErrors"))}</p>`;
 }
 
+/** The log content shared by Logs, Running and standalone work-step excerpts. */
+export function logAndErrorDisplay(
+  r: Pick<StepPanelData, "logs" | "errors" | "aiModel" | "screenshots"> & Partial<Pick<StepPanelData, "terminalReason">>,
+  lang: Language,
+): string {
+  const data: StepPanelData = { ...r, terminalReason: r.terminalReason ?? "" };
+  const log = logTab(data, lang);
+  return `<div class="logbox"><div>${log}</div></div>`;
+}
+
 /** The strip and the box. `refusal` is the merge's own refusal: it is the
  *  newest thing that happened to the step, and the transcript below it is
  *  of the run that succeeded, so it stands above everything else. The

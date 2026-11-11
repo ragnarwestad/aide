@@ -46,6 +46,18 @@ describe("what a side line takes from the newest implement attempt", () => {
     const newer = { ...implemented({}, "new"), startedAt: "2026-09-19T11:00:00Z" };
     expect(sideRunOf(implementPhase([older, newer]), "review")).toBeUndefined();
   });
+
+  test("the newest repeated Implement result in one job owns the side-session figures (AC-6)", () => {
+    const job = row({
+      id: "same-job", specFolder: FOLDER, steps: ["implement"], stepIndex: 0, state: "done",
+      startedAt: "2026-09-19T10:00:00Z",
+      results: [
+        { step: "implement", ok: true, costUsd: 0, review: { ...REVIEW, costUsd: 1 } },
+        { step: "implement", ok: true, costUsd: 0, review: { ...REVIEW, costUsd: 2 } },
+      ],
+    });
+    expect(sideRunOf(implementPhase([job]), "review")?.costUsd).toBe(2);
+  });
 });
 
 describe("the fold on a side line", () => {

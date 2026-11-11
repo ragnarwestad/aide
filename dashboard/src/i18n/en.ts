@@ -115,6 +115,7 @@ export const en = {
   "list.phaseModel": "Model: {model}",
   "list.descriptionChangedSince": "The description has changed since the last analysis.",
   "list.phaseOpenLog": "Open this step's log",
+  "list.phaseEntireLog": "Entire {phase} attempt log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",

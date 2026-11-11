@@ -101,6 +101,16 @@ describe("the open spec survives a redraw of the rows", () => {
     expect(box.value).toBe("typed after the page opened");
   });
 
+  test("a live row redraw keeps an opened complete phase-attempt log open (AC-7)", async () => {
+    const phase = (text: string) =>
+      `<details data-phase-attempt-log="${KEY}:implement" open><summary>Entire Implement attempt log</summary>${text}</details>`;
+    win.document.body.innerHTML = `<div id="jobrows">${table(group(KEY, phase("first")) + group(OTHER, "phase v1"))}</div>`;
+    answer = table(group(KEY, phase("second")) + group(OTHER, "phase v1"));
+    await mod.swapRows();
+    expect(win.document.querySelector("details[data-phase-attempt-log]")?.hasAttribute("open")).toBe(true);
+    expect(win.document.body.innerHTML).toContain("second");
+  });
+
   test("a redraw of that one spec alone keeps it", async () => {
     const box = load();
     answer = table(group(KEY, "phase v1", standIn) + group(OTHER, "phase v1"));

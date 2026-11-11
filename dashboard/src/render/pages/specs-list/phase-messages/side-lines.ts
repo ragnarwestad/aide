@@ -19,7 +19,7 @@ import { parsePhaseKeys, phaseKey } from "./keys.ts";
 /** What the newest implement attempt reports of one of its side sessions, or
  *  nothing when it ran without that session or has no result yet. */
 export function sideRunOf(p: Phase, part: SidePart): SideRunView | undefined {
-  return (p.attempts[0]?.results ?? []).find((r) => r.step === "implement")?.[part];
+  return (p.attempts[0]?.results ?? []).findLast((r) => r.step === "implement")?.[part];
 }
 
 /** A side session that completed is done; any other ending failed. */

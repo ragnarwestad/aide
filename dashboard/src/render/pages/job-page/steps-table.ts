@@ -179,7 +179,7 @@ export function stepResults(
       const key = String(i);
       const isOpen = open === key;
       const main =
-        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: r.attempt })}</span> `}` +
+        `<tr><td>${r.phaseAttempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: r.phaseAttempt.attempt })}</span> `}` +
         `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack, opts.landingRefused, lang)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
@@ -205,7 +205,7 @@ export function stepResults(
     const key = runningKey!;
     const isOpen = open === key;
     const main =
-      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.attempt })}</span> `}` +
+      `<tr><td>${opts.runningStep.phaseAttempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.phaseAttempt.attempt })}</span> `}` +
       `${stepCell(stepLabel(opts.runningStep.step), key, isOpen)}</td>` +
       `<td>${t(lang, "state.running")}</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
