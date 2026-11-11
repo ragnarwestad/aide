@@ -57,7 +57,7 @@ const save = (base: string, approach: string) =>
     body: new URLSearchParams({ approach }).toString(),
   });
 
-const jobs = async (base: string): Promise<{ id: string; state: string; steps: string[]; model: Record<string, string> }[]> =>
+const jobs = async (base: string): Promise<{ id: string; state: string; steps: string[]; model: Record<string, string>; pressed?: boolean }[]> =>
   (await (await fetch(`${base}/api/queue`, { headers: { accept: "application/json" } })).json()).jobs;
 
 const solutionOf = (dir: string): string => readFileSync(specFilePath(dir, "3-solution.md"), "utf-8");
@@ -75,7 +75,7 @@ describe("saving the recommended approach", () => {
 });
 
 describe("saving another approach", () => {
-  test("cancels the held job, records the choice, and queues analyze with the held job's later steps and models", async () => {
+  test("cancels the held job and manually queues analyze with its later steps and models (AC-1, AC-4)", async () => {
     const { base, dir } = startWith({ jobs: [heldJob()] });
     const res = await save(base, "B");
     expect(res.status).toBe(200);
@@ -84,6 +84,7 @@ describe("saving another approach", () => {
     expect(after.find((j) => j.id === "held")?.state).toBe("cancelled");
     const fresh = after.find((j) => j.id !== "held");
     expect(fresh?.state).toBe("queued");
+    expect(fresh?.pressed).toBe(true);
     expect(fresh?.steps).toEqual(["analyze", "implement", "archive"]);
     expect(fresh?.model).toMatchObject({ analyze: "sonnet", implement: "fable", archive: "sonnet" });
   });

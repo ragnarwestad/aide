@@ -10,7 +10,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-
 import { dependsOnIn, withDependsOnLine } from "../../project/discover/depends-on.ts";
 import { specReference } from "../../project/spec-folder.ts";
 import { afterTick } from "../routes/spec-edit/checks.ts";
-import { followOnJob } from "../routes/spec-edit/shared.ts";
+import { enqueueRequest, followOnRequest } from "../../queue/request/index.ts";
 import { landingErrorOfStep } from "../land-branch/stopped-reason.ts";
 import { planDependencies } from "./plan.ts";
 import { aiWorkRetryDecision, aiWorkRetryRecord, attemptOf, attemptsLeft } from "../../queue/runner/retry.ts";
@@ -136,7 +136,11 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
           .map((entry) => `${specReference(job.project, entry.spec)} — ${entry.reason}`),
       } };
       if (added.length) ctx.queue.update(job.id, { dependencyNotice: notice });
-      const queued = ctx.queue.enqueue(followOnJob(job.project, job.specFolder, job.steps.slice(job.stepIndex), job));
+      const queued = enqueueRequest(
+        ctx.queue,
+        followOnRequest(job.project, job.specFolder, job.steps.slice(job.stepIndex), job),
+        "automatic",
+      );
       if (!queued.ok) throw new Error(`Dependencies were saved, but Analyze could not be queued: ${queued.error}`);
       if (added.length) {
         ctx.queue.update(queued.job.id, { dependencyNotice: notice });
