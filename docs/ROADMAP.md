@@ -471,6 +471,32 @@ Where it stands (2026-10-31): parked until a feature is split into several specs
 - **The next try writes the shared description first:** when a feature is next split into specs, its goal and
   decisions are written before the specs run, rather than reconstructed afterwards.
 
+**A first step (2026-11-11): a group of specs on one branch, with no shared description.** Each spec in the group
+keeps its own description and is analysed and implemented as today, but all of them work on one branch, and the
+group lands once. What it is for is fewer landings, not time:
+
+- **CI runs once per landing.** A row of small specs runs the full CI on main once each, where one run for the whole
+  change would do. It costs machine time, and in a project with a CI quota it also costs money.
+- **A project that lands its code through a pull request gets one for the group,** one connected change to review
+  rather than several parts that make little sense on their own.
+
+The specs in a group run one at a time, in the order the group lists them, which takes the place of Depends on
+between them. The next spec starts when the one before it has run its last step before the archive, so its
+analysis builds on code that has been reviewed and verified.
+
+What the board would have to learn:
+
+1. **A branch that belongs to the group, not to one spec.** The landing, the clean-up, the check for unlanded work
+   and the test server all assume one `aide/<folder>` branch per spec.
+2. **The order within the group,** run one spec at a time, since they share one checkout.
+3. **No `shared-files` stop between specs in the same group,** where changing the same files is expected.
+4. **When the group lands:** once every spec in it is done and its criteria are ticked.
+5. **A spec that fails partway:** the specs after it wait, and the ones before it are done on the branch but not in
+   use, which the board has to show plainly.
+
+What it proves for the rest of the idea: the mechanics of several specs on one branch with one landing, which one
+spec in sections needs as well.
+
 ### 25. A plain way to run agents Aide has no support of its own for
 
 From looking at [T3 Code](https://github.com/pingdotgg/t3code) (2026-10-29), which adds agents such as Devin, Cline
