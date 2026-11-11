@@ -31,6 +31,7 @@
   - [28. A rule or skill is kept only while it helps](#28-a-rule-or-skill-is-kept-only-while-it-helps)
   - [29. A defect the review finds leaves a check behind](#29-a-defect-the-review-finds-leaves-a-check-behind)
   - [30. Claude steps through Managed Agents](#30-claude-steps-through-managed-agents)
+  - [31. Try Modern Web Guidance on a web task](#31-try-modern-web-guidance-on-a-web-task)
 
 ---
 
@@ -46,7 +47,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 31.
+same idea later. The next number is 32.
 
 ## To consider
 
@@ -633,3 +634,23 @@ Open questions:
 
 A first trial should use one archived spec and compare its result, cost and operational work with the existing
 runner before any live spec uses it.
+
+### 31. Try Modern Web Guidance on a web task
+
+From Google's [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance), skills that fetch
+web platform guidance for the task at hand, including browser compatibility, accessibility and performance.
+
+The idea: try the guidance on one concrete web task before deciding whether to make it available more widely in
+Aide projects. Dialogs, menus, tooltips, keyboard focus and forms are useful candidates: native HTML and CSS may
+simplify an implementation while keeping it usable in the browsers the project supports.
+
+Compare the same task with and without the guidance, checking behaviour, accessibility, code complexity and the
+extra time and tokens. Guides can be searched and retrieved without installation, so the first trial need not
+change the shared setup. This is a specific candidate for the skill evaluation in idea 28.
+
+Open questions:
+
+- Which task exposes a real weakness in the current implementation rather than just an opportunity to use a newer API.
+- Which browsers and versions the project must support, and what fallbacks are needed.
+- Whether the guidance improves the result while respecting the project's design and testing rules.
+- Whether useful guidance should be consulted on request or installed as a shared skill.
