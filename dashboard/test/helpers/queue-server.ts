@@ -43,6 +43,8 @@ export interface StartOptions {
   /** `queue.json` as the last process left it, written before the server
    *  starts. Absent starts an empty queue. */
   queueMirror?: string;
+  /** Persisted execution-group registry, for pages that render group cards. */
+  executionGroups?: unknown;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The live spec's 2-analysis.md, verbatim. Absent writes none. */
@@ -84,6 +86,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       status = defaultStatus ?? statusSaying(["create"]),
       liveState,
       queueMirror,
+      executionGroups,
       analysis,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -112,10 +115,12 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       if (emptySpecs) rmSync(join(root, "aide", "specs", "81-queue-and-runner"), { recursive: true });
       // The queue as the last process left it: a board read back after a restart.
       if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
+      if (executionGroups !== undefined) writeFileSync(join(dir, "execution-groups.json"), JSON.stringify(executionGroups));
       const server = createServer({
         port: 0,
         mirrorPath: join(dir, "runs.json"),
         queueMirrorPath: join(dir, "queue.json"),
+        executionGroupsPath: join(dir, "execution-groups.json"),
         projectRoot: root,
         // The same tree, named as the MACHINERY's root too:
         // left unset, `machineryProjectDir` falls back to a bare

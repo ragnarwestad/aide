@@ -112,6 +112,15 @@ table.list td[data-col="setting-value"] textarea {
   font: inherit;
   color: inherit;
 }
+
+.execution-group-card > td {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+
+.execution-group-card ~ tr[data-spec-group-member] > td:first-child { border-left: 1px solid var(--line); }
+.execution-group-card ~ tr[data-spec-group-member] > td:last-child { border-right: 1px solid var(--line); }
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */

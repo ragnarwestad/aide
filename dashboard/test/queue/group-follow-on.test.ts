@@ -94,3 +94,20 @@ test("the last Implement with open acceptance leaves the execution waiting (AC-3
   await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id } as Job, "implement", { ok: true, terminalReason: "completed" });
   expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
 });
+
+test("a stopped execution does not queue its next member (AC-7, AC-13, AC-15)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.stop(group.id);
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landArchivedSpec: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id } as Job, "implement", { ok: true, terminalReason: "completed" });
+  expect(store.list()).toHaveLength(0);
+  expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
+});

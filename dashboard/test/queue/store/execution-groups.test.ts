@@ -38,6 +38,14 @@ describe("ExecutionGroupStore", () => {
     expect(store.findUnfinished("aide", "Release")?.id).toBe("group-1");
   });
 
+  test("stops a running execution without losing its first start (AC-7)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.prepare({ project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first" });
+    store.start(made.id, "2026-11-11T18:01:00.000Z");
+    const stopped = store.stop(made.id);
+    expect(stopped).toMatchObject({ state: "stopped", startedAt: "2026-11-11T18:01:00.000Z" });
+  });
+
   test("keeps Archive failures unfinished and completes only after landing and PR (AC-6, AC-7)", () => {
     const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
     const made = store.prepare({ project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first" });

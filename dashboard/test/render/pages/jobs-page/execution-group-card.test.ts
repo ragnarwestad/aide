@@ -1,0 +1,38 @@
+import { expect, test } from "bun:test";
+import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
+import { executionGroupCard, executionGroupPlace } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import type { SpecGroup } from "../../../../src/render/pages/specs-list";
+
+const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
+  id: "group-1", project: "aide", name: "Release", members: ["2-second", "1-first"], branch: "group/1-first",
+  state, createdAt: "2026-11-10T12:00:00.000Z", startedAt: "2026-11-11T12:00:00.000Z",
+  completedMembers: ["2-second"], jobs: [],
+});
+const member = (folder: string, html: string) => ({
+  key: `aide/${folder}`, html,
+  group: { project: "aide", specFolder: folder, done: ["create"], state: "not-started" } as SpecGroup,
+});
+
+test("the card keeps saved member order and lifecycle dates (AC-2, AC-3, AC-4)", () => {
+  const html = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>"), member("2-second", "<tr>second</tr>")]);
+  expect(html.indexOf("second")).toBeLessThan(html.indexOf("first"));
+  expect(html).toContain("Created 2026-11-10");
+  expect(html).toContain("Started 2026-11-11");
+  const stoppedAtNoon = member("1-first", "<tr>first</tr>");
+  stoppedAtNoon.group.lead = {
+    state: "stopped", createdAt: "2026-11-11T09:00:00.000Z", startedAt: "2026-11-11T10:00:00.000Z",
+    finishedAt: "2026-11-11T12:00:00.000Z",
+  } as never;
+  expect(executionGroupPlace({ ...group("stopped"), startedAt: "2026-11-11T10:00:00.000Z" }, [stoppedAtNoon])).toEqual({ band: 2, changedAt: Date.parse("2026-11-11T12:00:00.000Z") });
+});
+
+test("a running card offers Stop and retains member content (AC-1, AC-5, AC-8, AC-11)", () => {
+  const html = executionGroupCard(group("running"), [member("2-second", "<tr>recovery</tr>"), member("1-first", "<tr>detail</tr>")]);
+  expect(html).toContain('name="action" value="stop"');
+  expect(html).not.toContain('value="start"');
+  expect(html).toContain("recovery");
+});
+
+test("completed groups have no card action (AC-12, AC-14)", () => {
+  expect(executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")])).not.toContain('name="action"');
+});

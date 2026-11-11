@@ -85,12 +85,12 @@ project whose specs the server cannot read this time keeps the rows it already h
 A job survives a restart: the result file is the contract, and a job left `running` is reconciled from the pid and the
 file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
 
-A group Start queues the first group member that is not done. Every member uses the branch named for the group's first
-member. The next member starts after the preceding member's reviewed Implement and test run are green. A failed or
-stopped member keeps later members waiting, and its own row offers the same step again.
+A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
+that is not done. Every member uses the branch named for the group's first member. Stop ends the current job and keeps
+later members waiting until Start resumes the same execution. A failed member keeps its own recovery controls.
 
-Grouped child rows offer no Archive. When every member has finished Implement and every required acceptance row is
-ticked, the group row offers Archive. That press validates and moves every member together, runs the project's test
+Grouped member rows offer no Archive. When every member has finished Implement and every required acceptance row is
+ticked, the group card offers Archive. That press validates and moves every member together, runs the project's test
 gate once and lands the shared branch once. A failed landing leaves every member active and shows the reason on the
 group.
 
@@ -749,7 +749,7 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 ## The Running tab
 
-The Running tab is the board's first page, at `/`. It lists every spec the Specs list shows under Active, and the
+The Running tab is the board's first page, at `/`. It lists unfinished execution groups as cards, ordinary active specs, and the
 scheduled jobs, the Close and Reopen jobs and the board's own deploy that are running or wait for the user, in every
 project.
 
@@ -763,7 +763,11 @@ The tab offers **New**, as the Specs list does ([Making a spec from the page](#m
 With no rows, the search field, State filter and column headings stay visible, and the table has one row saying "Nothing
 is running." Failed-create messages stay above the search row. The first job appears without a page reload.
 
-A spec has a row for as long as the Specs list shows it under Active, whatever its jobs did and whether or not it has one
+A grouped spec appears inside its execution group's card instead of as a second ordinary Running row. The card shows
+the group's creation date, its first start date when present, progress and the one action allowed by its current state.
+Completed groups leave Running; their archived specs, job pages, logs and pull-request marks remain available.
+
+An ordinary spec has a row for as long as the Specs list shows it under Active, whatever its jobs did and whether or not it has one
 in the queue. The tab draws the rows from the same jobs and archived rows as the list's Active entry, so the two cannot
 show different specs; an archived spec whose branch has not merged is on both, marked that its branch is still on origin.
 An archived or closed spec whose work is finished has no row. A job of a spec in a project off the allowlist, of a spec

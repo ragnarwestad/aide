@@ -55,6 +55,7 @@ export async function jobsPage(
   const view = {
     shown: shown.map((j) => built.get(j.id)!),
     specJobs: specJobs.map((j) => built.get(j.id)!),
+    executionGroups: ctx.queue.executionGroups.list(),
     list: {
       ...rowOptions,
       // The view travels in the rows' fold links, as the Specs list's filter does.

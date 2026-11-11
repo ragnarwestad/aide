@@ -17,6 +17,9 @@ import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobKey, jobPlace, specPlace, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
+import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
+import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
+import { groupBranch } from "../../../project/spec-names.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
@@ -31,6 +34,7 @@ export interface JobsView {
   /** The options a spec's row is drawn with, `listPath` set to this page;
    *  `archivedSpecs` holds the archived rows the Active entry shows. */
   list: SpecsPageOptions;
+  executionGroups?: ExecutionGroup[];
   /** The moment the page is drawn at, for the time of a job still going. */
   now?: number;
 }
@@ -42,16 +46,57 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const now = v.now ?? Date.now();
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
-  const specs = activeSpecRows(v.specJobs, v.list, now).filter((s) => !moving.has(s.key)).map((s) => ({
+  const specRows = activeSpecRows(v.specJobs, v.list, now);
+  const registered = (v.executionGroups ?? []).filter((group) => group.state !== "completed");
+  const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
+  const legacy = new Map<string, typeof specRows>();
+  for (const row of specRows) {
+    if (!row.group.group) continue;
+    const key = `${row.group.project}\n${row.group.group.name}`;
+    if (!known.has(key)) legacy.set(key, [...(legacy.get(key) ?? []), row]);
+  }
+  const prepared = [...legacy.entries()].flatMap(([key, rows]) => {
+    if (rows.length < 2) return [];
+    const ordered = [...rows].sort((a, b) => a.group.group!.position - b.group.group!.position || a.group.specFolder.localeCompare(b.group.specFolder));
+    const [project, name] = key.split("\n") as [string, string];
+    return [{
+      id: `membership:${project}:${name}`, project, name,
+      members: ordered.map((row) => row.group.specFolder),
+      branch: groupBranch(ordered[0]!.group.specFolder, name),
+      state: "prepared" as const,
+      createdAt: ordered.map((row) => row.group.createdAt).filter((date): date is string => !!date).sort()[0],
+      completedMembers: ordered.filter((row) => row.group.done.includes("implement")).map((row) => row.group.specFolder),
+      jobs: [],
+    }];
+  });
+  const activeGroups = [...registered, ...prepared];
+  const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
+  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
   }));
+  const groups = activeGroups.map((group) => {
+    const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
+    const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
+    const activity = executionGroupActivity(group.state);
+    return {
+      key: `execution-group:${group.id}`,
+      html: executionGroupCard(group, specRows, lang),
+      place: executionGroupPlace(group, members),
+      facts: {
+        project: group.project, specFolder: group.name,
+        state: failed ? "failed" : activity === "idle" ? "stopped" : activity,
+        failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
+        title: group.name, createdAt: group.createdAt,
+      } as RowFacts,
+    };
+  });
   const jobs = v.shown.map((job) => ({
     key: jobKey(job),
     html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
     place: jobPlace(job),
     facts: jobFacts(job, now),
   }));
-  return [...specs, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
+  return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
 /** Whether the tab has a row to draw once its view has cut them: what the

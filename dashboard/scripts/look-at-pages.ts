@@ -38,6 +38,7 @@ export interface Scene {
   analysis?: string;
   liveState?: string;
   queueMirror?: unknown;
+  executionGroups?: unknown;
   alsoSpecs?: string[];
   alsoDescriptions?: Record<string, string>;
   alsoProjects?: string[];

@@ -369,7 +369,7 @@ export function stepDoneHandler(
     if (step === "implement" && outcome.ok && outcome.terminalReason === "completed") {
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
       if (group) ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
-      const hasNext = queueNextGroupMember(job);
+      const hasNext = group?.state === "stopped" ? false : queueNextGroupMember(job);
       if (!hasNext && group && ctx.groupHasOpenAcceptance?.(job.project, group.name)) ctx.store.executionGroups.waitForAcceptance(group.id);
     }
     if (step === "archive" && job.executionGroupId && landing) void Promise.resolve(landing).then(() => {

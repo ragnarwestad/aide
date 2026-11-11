@@ -5,7 +5,7 @@ const description = (lines = "") =>
   `# X\n\n## Tracking info\n\n- **Task:** \`1-x/\`\n- **Created:** \`2026-11-11\`\n${lines ? `${lines}\n` : ""}\n---\n`;
 
 describe("spec group metadata", () => {
-  test("reads a complete pair and rejects incomplete or invalid pairs (A757 AC-3)", () => {
+  test("reads only the existing membership pair without a parent document shape (A757 AC-3, AC-17)", () => {
     expect(groupIn(description("- **Group:** `Release`\n- **Group position:** 2"))).toEqual({ name: "Release", position: 2 });
     expect(groupIn(description("- **Group:** `Release`"))).toBeUndefined();
     expect(groupIn(description("- **Group:** `Release`\n- **Group position:** 0"))).toBeUndefined();

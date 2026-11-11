@@ -122,10 +122,10 @@ archived nor closed and whose folder exists. It offers the specs the New spec fo
 itself, with the ones the spec depends on ticked; a dependency since archived or closed is no longer offered but stays
 ticked until it is removed. The scan resolves each entry of the `Depends on:` line to its folder, so a bare number ticks
 
-The same line can put a spec in an existing group in the project or name a new group. A group is shown as one parent
-row with its specs beneath it in the order they were added. The parent row shows the group name, how many specs are
-done and, when work has stopped, which spec it is waiting for. A spec can leave its group only before its first phase
-has run.
+The same line can put a spec in an existing group in the project or name a new group. Membership does not change how
+Specs sorts or draws the row: every member remains an ordinary independent spec here. The execution group's combined
+card, progress and Start, Stop or Archive action are on Running. A spec can leave its group only before its first phase
+has run, and an active grouped member has no individual Archive action.
 the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
 the others. While a job of the spec is queued, running or landing the picker shows only what the spec depends on, with

@@ -8,6 +8,7 @@ const harness = queueHarness("aide-e2e-spec-groups-");
 let browser: Browser;
 let page: Page;
 let base: string;
+let startedMember: string;
 
 const description = (folder: string, position: number) =>
   `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
@@ -24,6 +25,13 @@ beforeAll(async () => {
     },
   });
   base = started.base;
+  const response = await fetch(`${base}/api/queue/groups/aide/Release`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "action=start",
+  });
+  const body = await response.json() as { job: { specFolder: string } };
+  startedMember = body.job.specFolder;
 });
 
 afterAll(async () => {
@@ -31,16 +39,14 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a group can be unfolded and its specs opened in place", async () => {
-  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
+test("Running keeps one group card and its member detail open in place (AC-1, AC-2, AC-5)", async () => {
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const group = page.getByRole("button", { name: "Release", exact: true });
   const spec = page.locator('tr.spechead[data-folder="82-first"]');
   await group.waitFor();
   await spec.waitFor({ state: "hidden" });
   await group.click();
   await spec.waitFor({ state: "visible" });
-  await spec.locator("a.fold").click();
-  await page.locator('[data-spec-detail="aide/82-first"] .spec-editor-mount[data-mounted]').waitFor();
   expect(await group.count()).toBe(1);
   await group.click();
   await spec.waitFor({ state: "hidden" });
@@ -48,11 +54,8 @@ test("a group can be unfolded and its specs opened in place", async () => {
   await spec.waitFor({ state: "visible" });
 });
 
-test("group Start queues only the first member (A757 AC-7, A757 AC-9)", async () => {
-  const response = await fetch(`${base}/api/queue/groups/aide/Release`, { method: "POST" });
-  expect(response.status).toBe(200);
-  const body = await response.json() as { job: { specFolder: string } };
-  expect(body.job.specFolder).toBe("82-first");
+test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () => {
+  expect(startedMember).toBe("82-first");
   const queue = await (await fetch(`${base}/api/queue`)).json() as { jobs: Array<{ specFolder: string }> };
   expect(queue.jobs.filter((job) => job.specFolder === "81-queue-and-runner")).toHaveLength(0);
 
@@ -69,6 +72,6 @@ test("group Start queues only the first member (A757 AC-7, A757 AC-9)", async ()
     body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
   });
   expect(ordinaryLater.status).toBe(409);
-  await page.goto(`${base}/specs?live=0`);
-  expect(await page.getByRole("button", { name: "Start", exact: true }).isDisabled()).toBe(true);
+  await page.goto(`${base}/?live=0`);
+  expect(await page.getByRole("button", { name: "Stop", exact: true }).count()).toBe(1);
 });

@@ -93,6 +93,7 @@ export class ExecutionGroupStore {
     if (!current) throw new Error(`no such execution group: ${id}`);
     return this.update(id, { state: "running", startedAt: current.startedAt ?? at, error: undefined });
   }
+  stop(id: string): ExecutionGroup { return this.update(id, { state: "stopped", error: undefined }); }
   complete(id: string, result: { completedAt?: string; prUrl?: string }): ExecutionGroup {
     return this.update(id, { state: "completed", completedAt: result.completedAt ?? this.now(), prUrl: result.prUrl, error: undefined });
   }
