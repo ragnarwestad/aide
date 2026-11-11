@@ -34,7 +34,7 @@ import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
-import { buttonForm, stepLabel, type ProgressStepState } from "../../ui/components";
+import { buttonForm, foldButton, stepLabel, type ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { formatSentence } from "../../../messages/format.ts";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
@@ -291,12 +291,13 @@ function groupRows(
     const readyToArchive = wholeGroup.length > 0 && wholeGroup.every((child) =>
       child.done.includes("implement") && !child.acceptanceOpen && !specBusy(child));
     const failedLanding = wholeGroup.find((child) => child.landingError)?.landingError;
-    const parent = `<tr class="specstate" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
+    const parent = `<tr class="specstate" id="spec-group-${encodeURIComponent(key)}" data-spec-group="${esc(key)}"><td colspan="${LIST_COLUMNS}">` +
+      foldButton({ label: g.group.name, open: false, data: { "group-toggle": key } }) +
       `<strong>${esc(g.group.name)}</strong> · ${esc(status + waitingText)} ` +
       buttonForm({
         action: `/api/queue/groups/${g.project}/${encodeURIComponent(g.group.name)}`,
         hook: "actionform",
-        button: { label: readyToArchive ? stepLabel("archive", opts.lang ?? "en") : t(opts.lang ?? "en", "list.groupStart") },
+        button: { label: readyToArchive ? stepLabel("archive", opts.lang ?? "en") : t(opts.lang ?? "en", "list.groupStart"), disabled: wholeGroup.some(specBusy) },
       }) + (failedLanding ? `<br>${esc(formatSentence(opts.lang ?? "en", failedLanding) ?? "")}` : "") + `</td></tr>`;
     return parent + children.map((child) => groupRow(child, opts, now, opened)).join("");
   }).join("");
@@ -428,7 +429,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
 export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
-  return `<table><tbody>${groupRows(one, opts, now, openedKeys(opts), groups)}</tbody></table>`;
+  return `<table><tbody>${one.map((g) => groupRow(g, opts, now, openedKeys(opts))).join("")}</tbody></table>`;
 }
 
 /** The page's body: the notices, then the one container the script swaps. */

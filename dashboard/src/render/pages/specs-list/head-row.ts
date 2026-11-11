@@ -172,7 +172,9 @@ export function specHeadRow(
     // and a test looking for a spec by name would find the markup.
     // `data-run` sits BEFORE `data-folder`: about twenty test helpers read a
     // head row by `data-folder="…">` with the `>` directly after it.
-    `<tr class="${SPEC_HEAD_CLASS}" id="${esc(rowAnchorId(g))}" data-run="${runState}" data-folder="${esc(g.specFolder)}">` +
+    `<tr class="${SPEC_HEAD_CLASS}" id="${esc(rowAnchorId(g))}" data-run="${runState}"` +
+    (g.group ? ` data-spec-group-member="${esc(`${g.project}\n${g.group.name}`)}"` : "") +
+    ` data-folder="${esc(g.specFolder)}">` +
     // The whole row wide, since 2026-09-22. It spanned the Spec and
     // Phase columns until then, and a long project name ate the line: a
     // spec on `woodstack-climate` started its title nearly halfway

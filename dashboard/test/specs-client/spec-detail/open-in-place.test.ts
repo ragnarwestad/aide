@@ -138,6 +138,40 @@ const unsavedIn = (key: string): void => {
 const detailRowOf = (key: string) => details().find((d) => d.getAttribute("data-spec-detail") === key)!;
 
 describe("a press on a shut › opens the row in place", () => {
+  test("a grouped spec opens from the server's single-spec response", async () => {
+    const { renderSpecGroupRows } = await import("../../../src/render/pages/specs-list");
+    press(B);
+    const [project, specFolder] = B.split("/") as [string, string];
+    const html = renderSpecGroupRows([], {
+      targets: [{ project, specFolder, group: { name: "Release", position: 1 }, done: ["create"] }],
+      providers: [], archived: [],
+      openSpec: { key: B, detail: () => '<button id="group-spec-action">Spec action</button>' },
+    } as never, B);
+    held[0]!.resolve(answer(html));
+    await settle();
+    expect(detailRowOf(B).querySelector("#group-spec-action")).not.toBeNull();
+    expect(inert()).toBe(false);
+  });
+
+  test("refreshing the spec before a group leaves the group's controls on the page", async () => {
+    const parent = win.document.createElement("tr");
+    parent.id = "group-release";
+    parent.setAttribute("data-spec-group", "Release");
+    headRow(B).before(parent as unknown as Element);
+    const { placeSpecRows } = await import("../../../src/specs-client/row-swap.ts");
+    expect(placeSpecRows(table(shutGroup(A)), true)).toBe(true);
+    expect(win.document.getElementById("group-release") === parent).toBe(true);
+  });
+
+  test("a group action does not belong to the preceding spec's controls", async () => {
+    const parent = win.document.createElement("tr");
+    parent.setAttribute("data-spec-group", "Release");
+    parent.innerHTML = "<td><button>Start</button></td>";
+    headRow(B).before(parent as unknown as Element);
+    const { specRowsOf } = await import("../../../src/specs-client/row-swap.ts");
+    expect(specRowsOf(parent.querySelector("button") as unknown as Element) === null).toBe(true);
+  });
+
   test("the press is taken, nothing else on the page is replaced, and the address pushed is the chevron's href", () => {
     const others = [headRow(A), headRow(C), win.document.querySelector(".tablewrap")];
     const href = chevron(B).getAttribute("href")!;
