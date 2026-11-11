@@ -208,19 +208,20 @@ When the step ends, the same line ending in one of these:
 — stopped: <why> (the run ends here)
 N, X and the title come from the step's heading. A step whose text says Aide writes its marks is not yours
 to mark: leave it out."
-# A schedule prompt is free text, with no numbered steps for step_log_note
-# to name: the model is asked to name a few itself, so the job's row on the
-# Running page has steps to unfold into.
-schedule_step_note="Split this work into a few steps, named before you start, and mark each one in your output so
-whoever reads the log can see how far the run has come. Each mark is a line of its own — a line break before it and
-after it, never joined to other text, never written into a file — as plain text with no backticks or other
-formatting. Before a step's first action:
+# Fixed prompt headings are announced before the session. A free-form prompt
+# instead asks the model to declare its complete plan before taking action.
+schedule_step_note="Use the prompt's Step N of X headings as the complete progress plan when present.
+Do not add a second set of progress steps for a skill used inside one of those steps.
+When the prompt has no such headings, name the complete plan before your first tool call, one line per step:
+--- Step N of X: <title> — planned
+All planned lines must appear before you start any step. Keep their numbers and titles throughout the run.
+Mark each step before its first action, on a line of its own, as plain text:
 --- Step N of X: <title> — started
-When the step ends, the same line ending in one of these:
+When the step ends, write the same line ending in one of these:
 — done
 — skipped: <why> (the step does not apply to this run)
 — stopped: <why> (the run ends here)
-N is the step's number, X how many steps there are, and the title says what the step does."
+Never write progress marks into a file."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
   # id, nothing invented on either side. Read as committed at
@@ -229,6 +230,14 @@ if [ "$command_name" = "schedule" ]; then
   # schedule entry may run without the sandbox.
   prompt_text="$(git -C "$project_root" show "HEAD:$prompt_file" 2>/dev/null)" \
     || refuse "no such --prompt-file: $prompt_file (not committed in $project_root)"
+  while IFS=$'\t' read -r place title; do
+    [ -n "$place" ] && stage_line "$(aide_step_mark "$place" "$title" planned)"
+  done < <(printf '%s\n' "$prompt_text" | awk '
+    /^##+ Step [0-9]+ of [0-9]+: / {
+      line=$0; sub(/^##+ Step /, "", line)
+      place=line; sub(/:.*/, "", place); sub(/^[^:]+: /, "", line)
+      printf "%s\t%s\n", place, line
+    }')
   prompt="$prompt_text
 $schedule_step_note
 $headless_note"

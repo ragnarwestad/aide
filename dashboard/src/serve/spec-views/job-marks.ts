@@ -4,7 +4,7 @@
 // it stopped at and why.
 import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
-import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
+import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, schedulePlan, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
 import { jobKind, writing, type Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
@@ -95,10 +95,11 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
   return jobSteps(job, deployPlan(lang), lang);
 }
 
-/** A scheduled job's steps: only those its log has marked, since its prompt
- *  plans none in advance. */
+/** Every declared schedule step waits until the run marks it. */
 export function scheduleSteps(job: Job, lang: Language): CloseOrReopenStep[] {
-  return jobSteps(job, jobKind(job) === "cleanup" ? cleanupPlan(lang) : [], lang);
+  if (jobKind(job) === "cleanup") return jobSteps(job, cleanupPlan(lang), lang);
+  const { marks, logs } = jobMarks(job, lang);
+  return stepLinesOf(marks, logs, schedulePlan(logs), Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
 }
 
 export function jobStepLines(job: Job, lang: Language): CloseOrReopenStep[] {

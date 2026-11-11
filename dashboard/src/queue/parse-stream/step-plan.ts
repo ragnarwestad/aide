@@ -9,7 +9,8 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
-import { stepKey } from "./step-marks.ts";
+import type { LogPart } from "./step-log.ts";
+import { stepKey, stepDeclarations } from "./step-marks.ts";
 
 /** The parts aide-run-spec marks itself: `aide_part_open "preparing"` (aide-run-spec), and
  *  `aide_part_open "tests and commit"` once the session is over (run-spec/turn/spec-paths.sh). */
@@ -53,6 +54,12 @@ export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
   const plan = planFrom(text, !NO_MODEL_TURN.has(step));
   kept.set(file, { mtimeMs, plan });
   return plan;
+}
+
+/** A schedule declares its steps before starting them; older logs keep their marked-only view. */
+export function schedulePlan(logs: LogPart[]): PlannedStep[] {
+  const declared = stepDeclarations(logs);
+  return declared.length ? [part(AIDE_PARTS.before), ...declared, part(AIDE_PARTS.after)] : [];
 }
 
 function planFrom(text: string, hasModelTurn: boolean): PlannedStep[] {

@@ -386,3 +386,20 @@ describe("scheduleSteps", () => {
     expect(emptyLine.logs?.flatMap((part) => part.lines).join("\n")).toContain("— skipped: nothing to stop");
   });
 });
+
+test("a scheduled plan shows waiting steps before their actions start", () => {
+  const file = stamped([], [
+    [0, "--- Step Aide: preparing — started"],
+    [1, "--- Step Aide: preparing — done"],
+    [1, "--- Step 1 of 2: Collect sources — planned"],
+    [1, "--- Step 2 of 2: Write report — planned"],
+    [2, "--- Step 1 of 2: Collect sources — started"],
+  ]);
+  const got = scheduleSteps(job({ specFolder: "schedule-news", steps: ["schedule"], streamFile: file }), "en");
+  expect(got.map(({ label, state }) => [label, state])).toEqual([
+    ["Preparing", "done"], ["Collect sources", "running"], ["Write report", undefined], ["Tests and commit", undefined],
+  ]);
+  expect(got[2]!.seconds).toBeUndefined();
+  expect(got[2]!.since).toBeUndefined();
+  expect(got[2]!.tokens).toBeUndefined();
+});

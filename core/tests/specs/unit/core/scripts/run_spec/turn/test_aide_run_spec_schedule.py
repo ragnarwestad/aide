@@ -270,3 +270,14 @@ def test_a_failed_task_result_overrides_the_sessions_success(
     assert out["terminalReason"] == ("completed" if succeeded else "no-progress"), out
     if not succeeded:
         assert out.get("error"), out
+
+
+def test_prompt_steps_are_declared_before_the_model_turn(runner, workspace, fake_claude):
+    with_prompt(workspace)
+    prompt = workspace["project"] / "docs/nightly-report.md"
+    prompt.write_text("## Step 1 of 2: Collect sources\nRead.\n\n## Step 2 of 2: Write report\nWrite.\n")
+    git(workspace["project"], "add", "docs/nightly-report.md")
+    git(workspace["project"], "commit", "-qm", "name the scheduled steps")
+    _, out, _, err = schedule(runner, workspace, job(fake_claude, FINISHED), return_stderr=True)
+    assert out["ok"] is True, out
+    assert err.index("--- Step 2 of 2: Write report — planned") < err.index("model turn started"), err

@@ -4,7 +4,7 @@
 # The model's own step marks, dated as they appear. While a model turn runs,
 # run_model_turn (run-spec/turn/model-turn.sh) calls model_marks_record each
 # time it polls; it reads the transcript's new bytes, picks out the lines
-# the model wrote as marks (`--- Step N of X: <title> — started|done|skipped|stopped`)
+# the model wrote as marks (`--- Step N of X: <title> — planned|started|done|skipped|stopped`)
 # and writes each into the run log through stage_line, so it carries the run's
 # clock like every other line there. The stream of the three tools has no clock
 # of its own that they share; the moment the runner sees the line is the one.
@@ -31,7 +31,7 @@ MODEL_MARKS_JQ='
      end)
   | strings | split("\n")[]
   | gsub("^\\s+|\\s+$"; "") | gsub("^[`*]+|[`*]+$"; "")
-  | select(test("^--- Step [0-9]+ of [0-9]+: .+ — (started|done|skipped|stopped)\\b"))'
+  | select(test("^--- Step [0-9]+ of [0-9]+: .+ — (planned|started|done|skipped|stopped)\\b"))'
 
 # A turn starts reading at the transcript's size when it started, so a second
 # or third turn of one step never records the first turn's marks again.

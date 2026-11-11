@@ -91,6 +91,18 @@ export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMa
   return [...byKey.values()];
 }
 
+/** Steps declared before execution, without changing a running step's state or timing. */
+export function stepDeclarations(logs: LogPart[]): { key: string; label: string }[] {
+  const plan = new Map<string, { key: string; label: string }>();
+  for (const line of logs.flatMap((part) => part.lines)) {
+    const match = /^--- Step (\d+ of \d+): (.+?) — planned$/.exec(unescape(line).replace(PREFIX, ""));
+    if (!match) continue;
+    const key = stepKey(match[1]!, match[2]!);
+    if (!plan.has(key)) plan.set(key, { key, label: capitalizeFirst(match[2]!) });
+  }
+  return [...plan.values()];
+}
+
 /** The step a line marks and whether the mark ends it, or undefined for any other line. */
 export function markOf(line: string): { key: string; ends: boolean } | undefined {
   const match = MARK.exec(unescape(line).replace(PREFIX, ""));

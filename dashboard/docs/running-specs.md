@@ -469,6 +469,12 @@ are refused: Run now writes the queue's reason above the project's Schedule tab 
 per fire window and reason. The step sends the named file's contents to the model verbatim, with no Aide skill or spec
 folder involved.
 
+**A run's steps.** A prompt can define its complete plan with `## Step N of X: Title` headings. The runner
+announces these steps before the AI turn so the expanded row shows them waiting from the outset. Without fixed
+headings, the AI is asked to declare every step as `--- Step N of X: Title — planned` before its first action.
+Declarations name waiting steps; only a `started` mark starts timing or token accounting. The same numbers and
+titles are used for started, done, skipped and stopped marks. Older logs without a plan keep their marked-only view.
+
 **A run's report.** Each `schedule` run writes into `<output root>/<project>/<key>/runs/<jobId>/`, named in
 `AIDE_SCHEDULE_OUTPUT_DIR`. The report is its `index.html` there; a missing file, an empty one, or one with neither text nor an `<img>` counts as no report.
 An entry's Report tab lists every run by Started, State and Duration, newest first, and a click on a run opens the same
