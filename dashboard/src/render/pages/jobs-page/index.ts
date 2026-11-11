@@ -86,7 +86,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
         project: group.project, specFolder: group.name,
         state: failed ? "failed" : activity === "idle" ? "stopped" : activity,
         failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
-        title: group.name, createdAt: group.createdAt,
+        title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
       } as RowFacts,
     };
   });
