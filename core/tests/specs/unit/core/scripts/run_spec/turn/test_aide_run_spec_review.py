@@ -109,6 +109,7 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 3, calls
     assert "--resume" in calls[2] and IMPLEMENT_SESSION in calls[2], calls[2]
+    assert "--add-dir" in calls[2] and calls[2].endswith("/specs"), calls[2]
     assert REVIEW_SESSION not in calls[2], calls[2]
     assert abs(out["costUsd"] - 0.35) < 1e-6, out
     stages = _stamped(err)
@@ -260,7 +261,7 @@ def _codex_review_stream(text, thread=REVIEW_THREAD_ID):
     )
 
 
-def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed(runner, workspace, fake_codex):
+def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed_ac_2_ac_5_ac_8(runner, workspace, fake_codex):
     """Codex's own twin: the review runs as `codex exec --json` (fresh),
     never `exec resume`, and the step's own sessionId still names the
     implement thread, not the review's own."""
@@ -282,7 +283,7 @@ def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed(run
     assert "resume" not in calls[1], calls[1]
 
 
-def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_own(runner, workspace, fake_codex):
+def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_own_ac_2_ac_5(runner, workspace, fake_codex):
     with_status(workspace, ["create", "analyze"])
     codex = fake_codex(
         "prompt=\"$(cat)\"\n"

@@ -80,6 +80,17 @@ Each of those is a section below, except the step's own turn, which is
 
 ## How a run names its Claude sessions
 
+Ordinary turns, Review and Verify use the same provider invocation contract.
+The caller still chooses the model, effort, permissions and whether the turn is
+fresh or resumed. Review and Verify always start fresh sessions; a later fix
+turn resumes the original Implement session.
+
+Before a process starts, the contract carries only a requested Claude session
+id and an explicit id to resume. After it starts, the provider output supplies
+the actual session or thread id. Follow-up turns pass that id back explicitly,
+and cumulative cost and token accounting uses it without reading argument
+positions.
+
 Every Claude session a run starts gets a display name, so `claude --resume` on the serving host and the session lists of
 a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
 it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.

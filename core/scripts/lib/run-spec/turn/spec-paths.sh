@@ -384,7 +384,7 @@ else
   # the tool: the implement starts afresh, as it would have without it.
   if [ -n "$resume_session" ] && { [ "$terminal_reason" = "cli-error" ] || [ "$terminal_reason" = "model-refused" ]; }; then
     echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
-    argv=("${fresh_argv[@]}"); resume_session=""
+    argv=("${fresh_argv[@]}"); resume_session=""; invocation_resume_id=""
     session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""; error_log=""
     # The refused attempt was not the step's session.
     context_fullest=""; context_window=""

@@ -6,6 +6,7 @@ same session already counted.
 """
 
 import json
+import subprocess
 
 import pytest
 
@@ -15,6 +16,24 @@ from ...run_spec_status_files import with_status
 TURN_COST = 0.10
 TURN_TOKENS = {"input": 10, "output": 100, "cacheRead": 1000, "cacheCreation": 50}
 ANALYSIS = "analysis-session-1"
+
+
+def test_accounting_reads_the_explicit_resume_identity_not_argv_ac_3_ac_4(tmp_path):
+    script = tmp_path / "probe.sh"
+    source = (
+        __file__.replace(
+            "core/tests/specs/unit/core/scripts/run_spec/turn/session_totals/test_aide_run_spec_session_totals.py",
+            "core/scripts/lib/run-spec/turn/session-totals.sh",
+        )
+    )
+    script.write_text(
+        f'source "{source}"\n'
+        'argv=(unrelated --option "value with spaces" moved)\n'
+        'invocation_resume_id="explicit-session"\n'
+        'resumed_session\n'
+    )
+    result = subprocess.run(["/bin/bash", str(script)], text=True, capture_output=True, check=True)
+    assert result.stdout == "explicit-session"
 
 
 def _one_turn(turns=1):
