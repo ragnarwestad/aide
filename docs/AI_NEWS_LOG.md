@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-11](#2026-11-11)
   - [2026-11-10](#2026-11-10)
   - [2026-11-09](#2026-11-09)
   - [2026-11-08](#2026-11-08)
@@ -125,6 +126,69 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-11
+
+Nov 11. All sources were fetched. The OpenAI developer blog's newest posts are Nov 10 (voice agents) and Nov 9 (a
+game example), and Artificial Analysis shows no figures for the harnesses. Of the watched pages, `agents.md` changed in
+star counts only. The X list digest of Nov 11 could not be read: the collection script failed with
+`IncompleteRead` while reading an FxTwitter page, so no posts were assessed. The digest of Nov 10 was also unreadable
+(Chrome not connected).
+
+**Claude Code (v2.1.322):**
+
+| Date   | Version | News                                                                                                                                                                               | Source                                                         |
+|--------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 10 | —       | Claude Code v2.1.322 is the newest release; nothing newer than the previous review's rows                                                                                          | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 11 | —       | Anthropic news: "Introducing Claude Fable 5.2 and Claude Mythos 5.2" (now dated Nov 11), also the Claude blog's Nov 10 posts on Whiteboards, Sheets and apps opening inside Claude | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (v1.0.109 stable; v1.0.110-1 the newest pre-release):**
+
+| Date   | Version    | News                                                                                                                                                                                                                                                          | Source                                                     |
+|--------|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 10 | v1.0.109   | Stable: Claude Fable 5.2 in the model picker; CIDR ranges in sandbox host rules; in ACP mode a preToolUse hook's `ask` now asks the client                                                                                                                    | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 10 | v1.0.110-0 | Pre-release: experimental masked dialog for git, ssh and sudo password prompts from agent commands (`/experimental on`); `copilot -p` honors a trusted repository's `includeCoAuthoredBy` setting; hook changes saved in `/settings` apply to the next prompt | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 10 | v1.0.110-1 | Pre-release: a session reopened with `--resume` is marked in use at once, so `copilot -p --resume` and a second window no longer write into it; plugin settings kept when settings.json is invalid                                                            | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 10 | —          | Changelog: "Gemini 4 Carbon in GitHub Copilot"                                                                                                                                                                                                                | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (v0.167.1 stable; v0.169.0-alpha.11 pre-release):**
+
+| Date   | Version  | News                                                                                                         | Source                                               |
+|--------|----------|--------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 10 | v0.167.1 | Stable patch release with no notes besides the changelog link; v0.169.0-alpha.9 to alpha.11 are pre-releases | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.7):**
+
+| Date | Version | News                                                 | Source                                                     |
+|------|---------|------------------------------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.7 of Nov 10 (already reviewed) | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ Prompting Claude Fable 5.2 (watched, changed; the page was rewritten and expanded): a sentence saying the model
+  owns the codebase made it consolidate duplicated code in about 75 percent of runs against under 10 percent without
+  it, but output tokens rose 70 to 80 percent with changes nobody asked for. The page also says a scope rule such as
+  "No drive-by refactors, renames or cleanups" does not cancel that sentence (the model still consolidated in more than
+  half of runs). Aide's rule `llm-discipline.md` ("Surgical changes") and the step skills' prompts push the other
+  way: leave adjacent code alone. [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)
+- ✅ Same page: a token budget shown to the model in the prompt raises cost at high and xhigh with no gain; "answer
+  directly without deliberating" no longer lowers thinking on Fable 5.2 (lower the effort instead); a "never"
+  instruction is read as absolute, so write "ask before deleting files"; standing "delegate" lines in skills and agent
+  files should be reviewed, since subagents can be a large part of a session's cost; effort `high` is the API default
+  and gives most of the gain. Touches the runner's effort settings and the step skills.
+  [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)
+- ✅ Copilot CLI v1.0.110-1: a resumed session is marked in use at once, so `copilot -p --resume` and a second window
+  no longer write into the same session. Relevant if the runner resumes a Copilot session.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ GitHub, "Beyond code generation: A developer's guide to agentic engineering": plan, write, review and investigate
+  with Copilot, and what still needs human judgment. Listed on the blog; not read in full, touches the phases of a spec.
+  [Page](https://github.blog/ai-and-ml/github-copilot/)
+- ℹ Copilot CLI v1.0.109 (stable): Claude Fable 5.2 in the model picker, CIDR sandbox host rules. v1.0.110-0:
+  `includeCoAuthoredBy` is honored by `copilot -p`; an experimental masked dialog answers password prompts.
+  "Gemini 4 Carbon" is in Copilot. [Releases](https://github.com/github/copilot-cli/releases)
+- ℹ Codex v0.167.1 patch without notes; no OpenCode release. The prompting pages for Fable 5.1, Haiku 5.5, Opus 5.5,
+  Sonnet 5.5 and the general best-practices page changed in wording and links to migration guides only.
+  [Codex](https://github.com/openai/codex/releases)
+
 ### 2026-11-10
 
 Nov 10. All sources were fetched. Nothing new in the Codex changelog (newest entry Nov 6) or the OpenAI developer blog
