@@ -59,6 +59,17 @@ export interface ScheduleEntry {
   sandbox?: false;
 }
 
+/** The queue request shared by a timed fire and Run now. */
+export function scheduleRequest(project: string, entry: Pick<ScheduleEntry, "name" | "model" | "provider">): Record<string, unknown> {
+  return {
+    project,
+    specFolder: scheduleTrackingKey(entry.name),
+    steps: ["schedule"],
+    ...(entry.model ? { model: entry.model } : {}),
+    ...(entry.provider ? { provider: entry.provider } : {}),
+  };
+}
+
 /** What the form posts for the browser choice: `yes` asks for Chrome,
  *  `no` clears it. */
 export const isScheduleChrome = (v: unknown): v is "yes" | "no" => v === "yes" || v === "no";

@@ -4,8 +4,8 @@
 // refuse before any write, then a JSON answer. A saved create or edit
 // names the page the reader came from, for the page script to go to.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
-import { scheduleTrackingKey } from "../../project/spec-names.ts";
-import { nextFireTime } from "../../queue/schedule.ts";
+import { nextFireTime, scheduleRequest } from "../../queue/schedule.ts";
+import { enqueueRequest } from "../../queue/request/index.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { projectScheduleTab, renamedBack, scheduleBackPath } from "./page-routes/schedule-edit-page.ts";
@@ -79,11 +79,7 @@ export async function handleScheduleAdminRoutes(
     // now" is this entry firing early, not a different job, and it may
     // not quietly run on a different model than the schedule does.
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
-    const result = ctx.queue.enqueue({
-      project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
-      ...(entry?.model ? { model: entry.model } : {}),
-      ...(entry?.provider ? { provider: entry.provider } : {}),
-    });
+    const result = enqueueRequest(ctx.queue, scheduleRequest(project, entry ?? { name }), "manual");
     if (!result.ok) {
       logRefusal("run now", `${project}/${name}`, result.error);
       return refusal({
@@ -91,7 +87,6 @@ export async function handleScheduleAdminRoutes(
         solution: result.solution,
       });
     }
-    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

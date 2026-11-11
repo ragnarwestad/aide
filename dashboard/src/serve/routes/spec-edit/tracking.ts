@@ -21,7 +21,7 @@ import {
 } from "../../serve-helpers";
 
 import { afterTick } from "./checks.ts";
-import { followOnJob } from "./shared.ts";
+import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
 
 import type { RoutesContext } from "..";
 
@@ -255,7 +255,11 @@ export async function trackingRoutes(
       .map((s) => s.spec),
   );
   if (lead && depFolders.some((folder) => named.has(folder))) {
-    const queued = ctx.queue.enqueue(followOnJob(project!, specFolder!, lead.steps.slice(lead.stepIndex), lead));
+    const queued = enqueueRequest(
+      ctx.queue,
+      followOnRequest(project!, specFolder!, lead.steps.slice(lead.stepIndex), lead),
+      "manual",
+    );
     if (!queued.ok) {
       logRefusal("tracking", `${project}/${specFolder}`, queued.error);
       return refuse(`Depends on was saved, but analyze could not be queued: ${queued.error}`);

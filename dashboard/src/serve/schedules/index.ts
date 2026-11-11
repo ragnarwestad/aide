@@ -23,7 +23,8 @@ import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
   SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
 } from "../../project/discover";
-import { isDue, mostRecentFireTime, type ScheduleJobRef } from "../../queue/schedule.ts";
+import { isDue, mostRecentFireTime, scheduleRequest, type ScheduleJobRef } from "../../queue/schedule.ts";
+import { enqueueRequest } from "../../queue/request/index.ts";
 import type { Job, QueueStore } from "../../queue/queue.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
@@ -394,11 +395,7 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
       // a scheduled job has exactly one. An entry that names none is
       // enqueued byte for byte as before, and the config's own `schedule`
       // default decides.
-      const result = ctx.queue.enqueue({
-        project, specFolder: key, steps: ["schedule"],
-        ...(entry.model ? { model: entry.model } : {}),
-        ...(entry.provider ? { provider: entry.provider } : {}),
-      });
+      const result = enqueueRequest(ctx.queue, scheduleRequest(project, entry), "automatic");
       if (result.ok) {
         refused.delete(memoKey);
         continue;

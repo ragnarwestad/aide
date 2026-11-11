@@ -16,6 +16,7 @@ import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
+import { enqueueRequest } from "../../queue/request/index.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
@@ -51,9 +52,8 @@ export async function handleJobActionRoutes(
             groupBranch: groupBranch(members[0]!.specFolder, name),
           };
     if (!raw) return json({ error: "every acceptance criterion in the group must be ticked before Archive" }, 409);
-    const result = ctx.queue.enqueue(raw);
+    const result = enqueueRequest(ctx.queue, raw, "manual");
     if (!result.ok) return refusal(result, { spec: `${project}/${raw.specFolder}` });
-    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
@@ -168,19 +168,15 @@ export async function handleJobActionRoutes(
       }
     }
 
-    const result = ctx.queue.enqueue(raw);
+    const result = enqueueRequest(ctx.queue, raw, "manual");
     // The row's own Run form is the one HTTP route a reader's
     // phase-checkbox tick actually reaches after create, so it is the
     // ordinary-run counterpart to `enqueueCreate()`'s own seeding
-    // (`store.ts`) — only on a SUCCESSFUL enqueue, and only here: `reset`
-    // (`run-controls.ts`), `close` (`close-controls.ts`) and the
-    // scheduler each call `ctx.queue.enqueue()` too, with synthetic step
-    // lists that carry no reader's own tick, and must never overwrite a
-    // recorded choice with one.
+    // (`store.ts`) — only on a SUCCESSFUL enqueue, and only here. Other
+    // request paths carry synthetic step lists with no reader's own tick,
+    // and must never overwrite a recorded choice with one.
     if (result.ok) {
       ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
-      // A person's press: not held by a used-up usage limit.
-      ctx.queue.update(result.job.id, { pressed: true });
     }
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two

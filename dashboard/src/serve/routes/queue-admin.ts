@@ -17,6 +17,7 @@ import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
+import { enqueueCreateRequest, enqueueRequest } from "../../queue/request/index.ts";
 
 export async function handleQueueAdminRoutes(
   ctx: RoutesContext,
@@ -29,7 +30,7 @@ export async function handleQueueAdminRoutes(
     if (existing) return json({ ok: true, job: existing });
     const project = cleanupProject(ctx.allowed);
     if (!project) return json({ ok: false, error: "this board has no project for the cleanup job" }, 400);
-    const result = ctx.queue.enqueue({ project, specFolder: CLEANUP_KEY, steps: ["cleanup"] });
+    const result = enqueueRequest(ctx.queue, { project, specFolder: CLEANUP_KEY, steps: ["cleanup"] }, "manual");
     if (!result.ok) return json({ ok: false, error: result.error }, 400);
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
@@ -44,9 +45,8 @@ export async function handleQueueAdminRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    const result = ctx.queue.enqueueCreate(raw);
+    const result = enqueueCreateRequest(ctx.queue, raw, "manual");
     if (!result.ok) return refusal(result);
-    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

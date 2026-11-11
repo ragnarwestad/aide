@@ -9,6 +9,7 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { DEPLOY_KEY, jobKind, inFlight } from "../../queue/queue.ts";
 import { json, logRefusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { enqueueRequest } from "../../queue/request/index.ts";
 
 /** What a Deploy press asks of the landing code. */
 export interface DeployHooks {
@@ -81,7 +82,7 @@ async function queueDeploy(ctx: RoutesContext, name: string): Promise<Response> 
   }
   const running = ctx.queue.list().find((j) => j.project === name && jobKind(j) === "deploy" && inFlight(j));
   if (running) return refuse(`a deploy is already ${running.state} — follow it on the Running tab`);
-  const result = ctx.queue.enqueue({ project: name, specFolder: DEPLOY_KEY, steps: ["deploy"] });
+  const result = enqueueRequest(ctx.queue, { project: name, specFolder: DEPLOY_KEY, steps: ["deploy"] }, "manual");
   if (!result.ok) return refuse(result.error);
   await ctx.tickRunner();
   return json({ ok: true, job: result.job });

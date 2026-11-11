@@ -29,7 +29,7 @@ import { groupBranch } from "../project/spec-names.ts";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
-import { followOnJob } from "./routes/spec-edit/shared.ts";
+import { enqueueRequest, followOnRequest } from "../queue/request/index.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./land-branch/policy/index.ts";
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
@@ -383,7 +383,11 @@ export function stepDoneHandler(
       .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
       .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
     if (!next) return;
-    const made = ctx.store.enqueue(followOnJob(job.project, next.folder, ["analyze", "implement"], job));
+    const made = enqueueRequest(
+      ctx.store,
+      followOnRequest(job.project, next.folder, ["analyze", "implement"], job),
+      "automatic",
+    );
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
   }
 
@@ -415,7 +419,11 @@ export function stepDoneHandler(
       .catch(() => undefined)
       .then(() => {
         setTimeout(() => {
-          const made = ctx.store.enqueue(followOnJob(job.project, job.specFolder, steps, job));
+          const made = enqueueRequest(
+            ctx.store,
+            followOnRequest(job.project, job.specFolder, steps, job),
+            "automatic",
+          );
           if (!made.ok) logRefusal(label, `${job.project}/${job.specFolder}`, made.error);
         }, 0);
       });

@@ -14,6 +14,7 @@ import { scheduleNameOf } from "../project/spec-names.ts";
 import { scheduleRunOutputDir } from "./schedule.ts";
 import type { QueueStore } from "./queue.ts";
 import type { Job } from "./types.ts";
+import { enqueueCreateRequest } from "./request/index.ts";
 import {
   PROPOSALS_RESULT_FILE,
   checkProposal,
@@ -29,7 +30,7 @@ import {
 } from "./spec-proposals.ts";
 
 export interface ProposeDeps {
-  store: Pick<QueueStore, "list" | "enqueueCreate">;
+  store: Pick<QueueStore, "list" | "enqueueCreate"> & Partial<Pick<QueueStore, "update">>;
   /** Where every run's output directory lives. */
   outputRoot: string;
   /** The project's specs checkout, or undefined when there is none. */
@@ -106,13 +107,13 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
       const { title, description } = checked.proposal;
       // The defaults of an untouched New spec form: a model formulates the
       // acceptance criteria, and ticking them is required.
-      const made = deps.store.enqueueCreate({
+      const made = enqueueCreateRequest(deps.store, {
         project: job.project,
         title,
         description: `${description}\n\n${block}`,
         acceptanceRequired: true,
         aiFormulateAcceptance: true,
-      });
+      }, "automatic");
       if (made.ok) {
         proposals.push({ title, result: "created", jobId: made.job.id });
       } else {

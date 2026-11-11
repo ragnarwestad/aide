@@ -7,6 +7,8 @@
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
 
+source "$SCRIPT_DIR/lib/spec-result.sh"
+
 # The workflow's own vocabulary: one file, read here and
 # imported by the dashboard — see core/scripts/lib/workflow-steps.json's
 # own comment for what each list is and why it is shaped the way it is
@@ -215,7 +217,7 @@ while [ $# -gt 0 ]; do
     --scripts-dir) scripts_dir="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
-    *) early_refusal "$(printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}' "$1")" ;;
+    *) early_refusal "$(aide_spec_refusal_json "unknown argument: $1")" ;;
   esac
 done
 
