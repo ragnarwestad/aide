@@ -15,6 +15,15 @@ test("offers only current same-project members without conflicting work (AC-4)",
   expect(offered.map((item) => item.specFolder)).toEqual(["1-ready"]);
 });
 
+test("excludes specs whose work already started outside a group (AC-4, AC-7)", () => {
+  const offered = eligibleGroupMembers({
+    project: "aide",
+    targets: [target("1-ready"), target("2-analyzed", { done: ["create", "analyze"] }), target("3-implemented", { done: ["create", "analyze", "implement"] })],
+    groups: [], jobs: [],
+  });
+  expect(offered.map((item) => item.specFolder)).toEqual(["1-ready"]);
+});
+
 test("refuses duplicates, missing positions and dependency-incompatible order before save (AC-5)", () => {
   const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "1-first"], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });

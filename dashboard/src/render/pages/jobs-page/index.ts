@@ -50,6 +50,37 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
   const specRows = activeSpecRows(v.specJobs, v.list, now);
+  const activeGroups = activeExecutionGroups(v, specRows);
+  const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
+  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
+    key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
+  }));
+  const groups = activeGroups.map((group) => {
+    const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
+    const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
+    const activity = executionGroupActivity(group.state);
+    return {
+      key: `execution-group:${group.id}`,
+      html: executionGroupCard(group, specRows, lang),
+      place: executionGroupPlace(group, members),
+      facts: {
+        project: group.project, specFolder: group.name,
+        state: failed ? "failed" : activity === "idle" ? "stopped" : activity,
+        failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
+        title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
+      } as RowFacts,
+    };
+  });
+  const jobs = v.shown.map((job) => ({
+    key: jobKey(job),
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
+    place: jobPlace(job),
+    facts: jobFacts(job, now),
+  }));
+  return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
+}
+
+function activeExecutionGroups(v: JobsView, specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now())): ExecutionGroup[] {
   const registered = (v.executionGroups ?? []).filter((group) => group.state !== "completed");
   const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
   const legacy = new Map<string, typeof specRows>();
@@ -72,34 +103,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
       jobs: [],
     }];
   });
-  const activeGroups = [...registered, ...prepared];
-  const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
-  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
-    key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
-  }));
-  const groups = activeGroups.map((group) => {
-    const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
-    const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
-    const activity = executionGroupActivity(group.state);
-    return {
-      key: `execution-group:${group.id}`,
-      html: executionGroupCard(group, specRows, lang),
-      place: executionGroupPlace(group, members),
-      facts: {
-        project: group.project, specFolder: group.name,
-        state: failed ? "failed" : activity === "idle" ? "stopped" : activity,
-        failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
-        title: group.name, createdAt: group.createdAt,
-      } as RowFacts,
-    };
-  });
-  const jobs = v.shown.map((job) => ({
-    key: jobKey(job),
-    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
-    place: jobPlace(job),
-    facts: jobFacts(job, now),
-  }));
-  return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
+  return [...registered, ...prepared];
 }
 
 /** Whether the tab has a row to draw once its view has cut them: what the
@@ -129,7 +133,7 @@ export function renderJobsRows(v: JobsView): string {
 }
 
 function executionGroupEditors(v: JobsView, lang: Language): string {
-  const groups = v.executionGroups ?? [];
+  const groups = activeExecutionGroups(v);
   const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
   const jobs = [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
   const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));

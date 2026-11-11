@@ -21,7 +21,7 @@ export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
   return input.targets.filter((target) => {
     const key = `${target.project}/${target.specFolder}`;
     return target.project === input.project && (!target.group || target.group.name === editingName) && !owned.has(key) && !busy.has(key) &&
-      !(target.done ?? []).includes("archive") && !target.acceptancePhase;
+      !(target.done ?? []).some((step) => step === "analyze" || step === "implement" || step === "archive") && !target.acceptancePhase;
   });
 }
 

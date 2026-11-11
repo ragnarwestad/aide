@@ -5,6 +5,7 @@ import { btn, buttonForm, foldButton, stepLabel } from "../../ui/components";
 import type { SpecGroup } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
+import { createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { t } from "../../../i18n";
 
@@ -32,7 +33,7 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     busy: specBusy(member),
   })));
   const key = `${group.project}\n${group.name}`;
-  const dates = [group.createdAt ? `Created ${group.createdAt.slice(0, 10)}` : "", group.startedAt ? `Started ${group.startedAt.slice(0, 10)}` : ""].filter(Boolean).join(" · ");
+  const created = createdLabel(group.createdAt);
   const control = action ? buttonForm({
     action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`,
     hook: "actionform",
@@ -44,8 +45,9 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     : "";
   const archiveLabel = action === "archive" ? " Group Archive" : "";
   const head = `<tr class="execution-group-card" data-spec-group="${esc(key)}"><td colspan="6">` +
+    (created ? `<span class="muted small">${esc(created)}</span> ` : "") +
     foldButton({ label: group.name, open: false, data: { "group-toggle": key } }) +
     `<strong>${esc(group.name)}</strong> · ${esc(group.state)} · ${group.completedMembers.length} of ${group.members.length} done` +
-    (dates ? `<br><span class="muted">${esc(dates)}</span>` : "") + edit + control + archiveLabel + `</td></tr>`;
+    edit + control + archiveLabel + `</td></tr>`;
   return head + members.map((member) => member.html).join("");
 }

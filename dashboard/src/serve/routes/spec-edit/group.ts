@@ -7,13 +7,14 @@ import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
 import { validateExecutionGroupRequest } from "../../../queue/execution-groups/eligibility.ts";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { executionGroupForAction } from "../job-actions.ts";
 
 const values = (value: unknown): string[] =>
   (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
 
 export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   const collection = path === "/api/queue/groups";
-  const edit = path.match(/^\/api\/queue\/groups\/([A-Za-z0-9_-]+)$/);
+  const edit = path.match(/^\/api\/queue\/groups\/([^/]+)$/);
   if (!collection && !edit) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const sent = await readBounded(req);
@@ -21,7 +22,11 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   let body: Record<string, unknown>;
   try { body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>; }
   catch { return json({ error: "malformed body" }, 400); }
-  const existing = edit ? ctx.queue.executionGroups.get(edit[1]!) : undefined;
+  const targets = ctx.withFreshness(ctx.targets());
+  let editId: string | undefined;
+  try { editId = edit ? decodeURIComponent(edit[1]!) : undefined; }
+  catch { return json({ error: "invalid group" }, 400); }
+  const existing = editId ? executionGroupForAction(ctx.queue.executionGroups, editId, targets) : undefined;
   if (edit && !existing) return json({ error: "the group no longer exists" }, 404);
   if (existing && (existing.startedAt || existing.state !== "prepared")) {
     return json({ error: "this execution group has already started" }, 409);
@@ -29,7 +34,6 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   const project = existing?.project ?? String(body.project ?? "");
   const name = existing?.name ?? String(body.name ?? "").trim();
   if (!project || !name) return json({ error: "project and name are required" }, 400);
-  const targets = ctx.withFreshness(ctx.targets());
   if (collection && (ctx.queue.executionGroups.findUnfinished(project, name) ||
     targets.some((target) => target.project === project && target.group?.name === name))) {
     return json({ error: `an unfinished execution group named ${name} already exists` }, 409);

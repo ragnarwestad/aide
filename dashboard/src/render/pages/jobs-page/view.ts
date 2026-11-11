@@ -39,7 +39,10 @@ export type RowFacts = Pick<
   SpecGroup,
   | "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed"
   | "spentUsd" | "createdAt" | "totalDurationMs" | "lead"
->;
+> & {
+  /** Group members represented by this row; an ordinary spec or job counts as one. */
+  itemCount?: number;
+};
 
 /** When a job that is not going ended, in milliseconds; NaN when the queue
  *  recorded no end. */
@@ -89,13 +92,13 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
 }
 
 /** What the state dropdown offers: the six entries, the chosen one marked,
- *  each counted over the rows the search lets through. */
+ *  each counted over the specs and jobs represented by matching rows. */
 export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean }[] {
   const chosen = jobsStateFilter(f.state).key;
   const counted = facts.filter((g) => matchesSearch(g, f));
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
-    count: counted.filter((g) => matchesStateFilter(s, g)).length,
+    count: counted.filter((g) => matchesStateFilter(s, g)).reduce((sum, g) => sum + (g.itemCount ?? 1), 0),
     on: s.key === chosen,
   }));
 }
