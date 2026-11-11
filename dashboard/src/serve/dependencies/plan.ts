@@ -1,15 +1,10 @@
 import { dependsOnIn } from "../../project/discover/depends-on.ts";
-import { specNumber } from "../../project/spec-folder.ts";
-import { isSpecFolder } from "../../project/spec-names.ts";
+import { resolveDependencyFolderName } from "../../project/spec-folder.ts";
 
 export type DependencyChange = { dependencies: string[]; added: string[] } | { cycle: string[] } | { error: string };
 
 export function planDependencies(source: string, additions: string[], descriptions: ReadonlyMap<string, string>): DependencyChange {
-  const resolve = (id: string): string | undefined => {
-    if (descriptions.has(id)) return id;
-    const matches = [...descriptions.keys()].filter((folder) => isSpecFolder(folder) && specNumber(folder) === id);
-    return matches.length === 1 ? matches[0] : undefined;
-  };
+  const resolve = (id: string): string | undefined => resolveDependencyFolderName(descriptions.keys(), id);
   const own = descriptions.get(source);
   if (own === undefined) return { error: `No description for ${source}` };
   const dependencies = dependsOnIn(own);

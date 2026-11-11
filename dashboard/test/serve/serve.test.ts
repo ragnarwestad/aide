@@ -208,10 +208,18 @@ describe("resolveDependencyFolder", () => {
     expect(found?.archived).toBe(true);
   });
 
-  test("a live spec wins over an archived one with the same number", async () => {
+  test("a number shared by active and archived specs is unresolved (AC-1, AC-2, AC-3)", async () => {
     const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
     const both = { ...project, specs: [...project.specs, spec("77-still-here")] };
-    expect(resolveDependencyFolder(both, "77")?.folder).toBe("77-still-here");
+    expect(resolveDependencyFolder(both, "77")).toBeUndefined();
+    expect(resolveDependencyFolder(both, "77-old")?.folder).toBe("77-old");
+    expect(resolveDependencyFolder(both, "77-still-here")?.folder).toBe("77-still-here");
+  });
+
+  test("a number shared by two active specs is unresolved (AC-1, AC-2, AC-3)", async () => {
+    const { resolveDependencyFolder } = await import("../../src/serve/serve-helpers");
+    const both = { ...project, specs: [...project.specs, spec("80-another-dependency")] };
+    expect(resolveDependencyFolder(both, "80")).toBeUndefined();
   });
 
   test("an unknown id resolves to nothing — that refusal belongs to the run", async () => {

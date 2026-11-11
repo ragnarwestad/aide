@@ -136,6 +136,20 @@ def test_refuses_an_unknown_dependency(runner, workspace, fake_claude, local_ori
     assert "unknown" in out["error"]
     assert not fake_claude.calls.exists()
 
+def test_refuses_an_ambiguous_dependency_before_the_ai_tool_runs_ac_1_ac_2_ac_3(
+    runner, workspace, fake_claude, local_origins
+):
+    add_spec(workspace, "77-first")
+    add_spec(workspace, "77-second", archived=True)
+    set_depends_on(workspace, "77")
+
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "77" in out["error"]
+    assert "unknown" in out["error"]
+    assert not fake_claude.calls.exists()
+
 def test_refuses_a_spec_that_depends_on_itself(
     runner, workspace, fake_claude, local_origins
 ):

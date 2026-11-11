@@ -26,7 +26,7 @@ test("shared downstream dependencies are not cycles", () => {
   expect(planDependencies("1-a", ["3-c"], graph)).toEqual({ dependencies: ["2", "3-c"], added: ["3-c"] });
 });
 
-test("does not guess when a dependency is missing or its number is ambiguous", () => {
+test("does not guess when a dependency is missing or its number is ambiguous (AC-1, AC-3)", () => {
   const graph = new Map([["1-a", description()], ["2-b", description()], ["2-c", description()]]);
   expect(planDependencies("1-a", ["2"], graph)).toHaveProperty("error");
   expect(planDependencies("1-a", ["missing"], graph)).toHaveProperty("error");

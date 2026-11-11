@@ -18,6 +18,14 @@ export function specNumber(folder: string): string {
   return isSpecFolder(folder) ? folder.slice(0, folder.indexOf("-")) : folder;
 }
 
+/** Resolve an exact spec folder, or a number that identifies one folder. */
+export function resolveDependencyFolderName(folders: Iterable<string>, id: string): string | undefined {
+  const candidates = [...folders];
+  if (candidates.includes(id)) return id;
+  const matches = candidates.filter((folder) => isSpecFolder(folder) && specNumber(folder) === id);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 /** A dependency is identified by its project and short spec number. */
 export function specReference(project: string, folder: string): string {
   return `${project}:${specNumber(folder)}`;

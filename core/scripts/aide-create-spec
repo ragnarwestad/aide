@@ -82,12 +82,14 @@ require_library() {
 require_library "_aide-spec-lib.sh"
 require_library "lib/config/aide-config.sh"
 require_library "lib/spec-result.sh"
+require_library "lib/spec-reference.sh"
 require_library "lib/tracking-info.sh"
 # `aide_next_spec_number` — the one place that answers "what is the next
 # number", shared with every other caller so two answers cannot drift.
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
 source "$SCRIPT_DIR/lib/spec-result.sh"
+source "$SCRIPT_DIR/lib/spec-reference.sh"
 
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
@@ -254,6 +256,18 @@ fi
 [ -n "$folder_name" ] || [ -n "$slug" ] || aide_spec_refuse "missing --slug"
 [ -n "$title" ] || aide_spec_refuse "missing --title"
 [ -n "$description" ] || aide_spec_refuse "missing --description"
+
+if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
+  resolved_dependencies=()
+  while IFS= read -r dependency; do
+    dependency="$(printf '%s' "$dependency" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -n "$dependency" ] || continue
+    resolved="$(aide_resolve_dependency_folder "$specs_root" "$dependency")"
+    [ -n "$resolved" ] || aide_spec_refuse "unknown or ambiguous dependency: $dependency"
+    resolved_dependencies+=("$resolved")
+  done < <(printf '%s\n' "$depends_on" | tr ',' '\n')
+  depends_on="$(printf '%s\n' "${resolved_dependencies[@]}" | paste -sd, -)"
+fi
 
 # The rule's own definition of an acceptance-criteria line
 # (core/rules/spec-structure.md § 1-description) is
