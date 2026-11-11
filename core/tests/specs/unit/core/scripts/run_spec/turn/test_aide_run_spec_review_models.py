@@ -9,7 +9,7 @@ import re
 
 from ...conftest import run
 from ..run_spec_result_fields import assert_written_as_in_fixture
-from ..run_spec_results import CODEX_STREAM_OK, CODEX_USAGE, OPENCODE_STREAM_OK, emits
+from ..run_spec_results import CODEX_STREAM_OK, CODEX_USAGE, OPENCODE_SESSION_ID, OPENCODE_STREAM_OK, emits
 from ..run_spec_status_files import with_status
 
 REVIEW_MARKER = "Read this spec's own description"
@@ -164,6 +164,33 @@ def test_an_opencode_review_beside_a_claude_step_runs_read_only(
     assert rc == 0, out
     (review,) = fake_opencode.calls.read_text().splitlines()
     assert review.startswith("run --format json --agent plan --model openai/gpt-5"), review
+
+
+def test_an_opencode_review_keeps_its_own_session_id_ac_1(
+    runner, workspace, fake_opencode
+):
+    with_status(workspace, ["create", "analyze"])
+    main_stream = OPENCODE_STREAM_OK.replace(OPENCODE_SESSION_ID, "implement-opencode-session")
+    review_stream = OPENCODE_STREAM_OK.replace(OPENCODE_SESSION_ID, "review-opencode-session").replace(
+        '"text": "done"', '"text": "review: no defects found"'
+    )
+    opencode = fake_opencode(
+        f'if [ "$(wc -l < {fake_opencode.calls})" -eq 1 ]; then\n'
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  printf '%s\\n' '{main_stream}'\n"
+        "else\n"
+        f"  printf '%s\\n' '{review_stream}'\n"
+        "fi"
+    )
+
+    rc, out, _ = run(
+        runner, workspace, tool="opencode", opencode=opencode, command="implement",
+        review_tool="opencode", review_model="openai/gpt-5",
+    )
+
+    assert rc == 0, out
+    assert out["sessionId"] == "implement-opencode-session", out
+    assert out["review"]["sessionId"] == "review-opencode-session", out
 
 
 def test_a_wrapped_defect_reaches_the_fix_turn_whole(runner, workspace, fake_claude, tmp_path):

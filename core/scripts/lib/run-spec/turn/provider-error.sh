@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # What the AI's provider said when a turn ended `cli-error`, sorted for the
-# board. `run_model_turn` (run-spec/turn/model-turn.sh) calls it on the
+# board. `run_model_turn` (run-spec/turn/model-turn/index.sh) calls it on the
 # tool's own words, and the result carries the answer as `providerError`:
 #   {kind, message}
 # `kind` is `login` when the tool is not logged in on this machine (a 401

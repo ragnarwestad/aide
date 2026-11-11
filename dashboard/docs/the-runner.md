@@ -41,7 +41,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Reading and writing Tracking info bullets           | `lib/tracking-info.sh`                    |
 | The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`             |
 | Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`             |
-| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`             |
+| The model turn, and reading what came back          | `run-spec/turn/model-turn/`               |
 | What the run reports, and the result JSON           | `run-spec/publish/result.sh`              |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
@@ -114,7 +114,7 @@ code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/tu
 
 A turn whose tool exits without a result, before the model has done anything, ends the step as `cli-error`. The
 job's `error` is the last 400 characters the tool wrote to stderr, followed by "press <step> again"
-(`run-spec/turn/model-turn.sh`), so the tool's own explanation reaches the board.
+(`run-spec/turn/model-turn/index.sh`), so the tool's own explanation reaches the board.
 
 A damaged `~/.claude.json` on the serving host is such a case. When the file is not valid JSON, `claude -p` exits 1
 without starting: it names the file, says to fix the JSON or move the file aside, and leaves it unchanged (Claude Code

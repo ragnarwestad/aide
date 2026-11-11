@@ -371,7 +371,7 @@ $step_tests_failing"
         # The same argv, resumed: the session the step's own turns ran in.
         resume_argv "$session_out"
         argv=("${resumed_argv[@]}")
-        run_model_turn "$work_dir/prompt-fix-$step_fix_round"
+        run_model_turn "$work_dir/prompt-fix-$step_fix_round" step_fix_result
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"
         sides_priced_again

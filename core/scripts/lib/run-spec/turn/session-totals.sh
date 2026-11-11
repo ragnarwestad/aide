@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/turn/session-totals.sh — sourced by aide-run-spec before run-spec/turn/model-turn.sh.
+# run-spec/turn/session-totals.sh — sourced before run-spec/turn/model-turn/index.sh.
 #
 # A Claude result reports the SESSION's totals: after `--resume`, its
 # `total_cost_usd` and `modelUsage` include every earlier turn of that

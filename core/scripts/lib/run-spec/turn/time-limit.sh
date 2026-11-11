@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/turn/time-limit.sh — sourced by aide-run-spec before run-spec/turn/model-turn.sh.
+# run-spec/turn/time-limit.sh — sourced before run-spec/turn/model-turn/index.sh.
 #
 # A step's time limit as its stop sentence says it: in minutes, the unit the
 # Settings page sets it in ("40-minute"). A limit that is not whole minutes,

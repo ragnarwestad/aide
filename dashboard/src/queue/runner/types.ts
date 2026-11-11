@@ -103,7 +103,7 @@ export interface StepOutcome {
   providerError?: unknown;
   /** On a step stopped at its time limit: the limit in seconds, and whether
    *  it ran out in the session or in the runner's own test run
-   *  (`run-spec/turn/model-turn.sh`, `step-tests.sh`); read by `timeLimit()`. */
+   *  (`run-spec/turn/model-turn/index.sh`, `step-tests.sh`); read by `timeLimit()`. */
   timeLimit?: unknown;
   /** Which check a `scope-violation` tripped: `specs`, a write outside the
    *  spec folder, or `analyze`, a change an analysis may not make

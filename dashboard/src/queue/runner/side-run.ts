@@ -5,9 +5,9 @@
 // is dropped alone.
 
 import type { ResultTool } from "../providers/tools.ts";
-import type { TokenUsage } from "../queue.ts";
+import type { ProviderLimit, TokenUsage } from "../queue.ts";
 import { asResultTool } from "../steps.ts";
-import { tokenUsage } from "./types.ts";
+import { providerError, providerLimit, timeLimit, tokenUsage, type ProviderError, type TimeLimit } from "./types.ts";
 
 export interface SideRun {
   /** How the session ended, in the runner's own words (`completed`, `cli-error`, …). */
@@ -17,6 +17,14 @@ export interface SideRun {
   /** Only when the tool reports a dollar figure and measured one. */
   costUsd?: number;
   tokens?: TokenUsage;
+  sessionId?: string;
+  modelId?: string;
+  error?: string;
+  errorSolution?: string;
+  atCapacity?: string;
+  providerLimit?: ProviderLimit;
+  providerError?: ProviderError;
+  timeLimit?: TimeLimit;
   /** Where the session's bytes begin and end in the step's transcript. */
   transcript?: { from: number; to: number };
 }
@@ -37,6 +45,23 @@ export function sideRun(raw: unknown): SideRun | undefined {
   if (costUsd !== undefined) out.costUsd = costUsd;
   const tokens = tokenUsage(r.tokens);
   if (tokens) out.tokens = tokens;
+  const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  const sessionId = text(r.sessionId);
+  if (sessionId) out.sessionId = sessionId;
+  const modelId = text(r.modelId);
+  if (modelId) out.modelId = modelId;
+  const error = text(r.error);
+  if (error) out.error = error;
+  const errorSolution = text(r.errorSolution);
+  if (errorSolution) out.errorSolution = errorSolution;
+  const atCapacity = text(r.atCapacity);
+  if (atCapacity) out.atCapacity = atCapacity;
+  const limit = providerLimit(r.providerLimit);
+  if (limit) out.providerLimit = limit;
+  const pError = providerError(r.providerError);
+  if (pError) out.providerError = pError;
+  const limitTime = timeLimit(r.timeLimit);
+  if (limitTime) out.timeLimit = limitTime;
   const span = r.transcript;
   if (span !== null && typeof span === "object") {
     const { from, to } = span as Record<string, unknown>;

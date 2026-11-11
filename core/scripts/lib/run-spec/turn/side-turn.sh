@@ -4,8 +4,8 @@
 # (run-spec/turn/review.sh). Each may run on another model than the step,
 # on any supported AI (--review-tool, --verify-tool).
 #
-# Everything the turn leaves in the step's globals is put back afterwards:
-# the step's outcome, session, tokens, model id and limits stay the step's,
+# The step's complete result is retained as one value and put back afterwards:
+# its outcome, session, tokens, model id and limits stay the step's,
 # so a review stopped by Codex's usage limit never reads as the step's own
 # limit. What the turn itself came to is in $side_reason, $side_message
 # and $side_cost, and its tokens, whether its tool reports dollars, how
@@ -64,31 +64,33 @@ side_argv_for() {  # <tool> <model> <name> [<bin>]
 # Run <prompt-file> through $side_argv as <tool>, and put the step's own
 # globals back afterwards.
 side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
-  local saved_tool="$tool" saved_session="$session_out" saved_subtype="$subtype" \
-    saved_cost="$cost" saved_measured="$cost_measured" saved_known="$cost_known" saved_reason="$terminal_reason" \
-    saved_error="$error_msg" saved_fix="${error_solution:-}" saved_log="${error_log:-}" saved_limit="${provider_limit_out:-}" saved_capacity="${at_capacity_out:-}" \
-    saved_provider_error="${provider_error_out:-}" saved_time_limit="${time_limit_json:-}" \
-    saved_tokens="${tokens_json:-}" saved_model_id="${model_id_out:-}" saved_exit="${exit_code:-0}" \
+  local saved_tool="$tool" main_result side_result \
     saved_claude_dir="${claude_config_dir:-}" saved_codex_home="${CODEX_HOME:-}" saved_opencode_config="${opencode_config:-}" \
     saved_requested="${invocation_requested_id:-}" saved_resume="${invocation_resume_id:-}"
   local -a saved_argv=("${argv[@]}")
+  turn_result_capture main_result
   tool="$1"; argv=("${side_argv[@]}"); claude_config_dir="$3"
   invocation_requested_id="${side_requested_id:-}"; invocation_resume_id="${side_resume_id:-}"
   if [ -n "$4" ]; then export CODEX_HOME="$4"; else unset CODEX_HOME; fi
   # A session of its own: how full its window got is not the step's.
   context_use_skip="yes"
   side_from="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"; side_clock="$(date +%s)"
-  run_model_turn "$2"
+  run_model_turn "$2" side_result
   context_use_skip=""
   side_to="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"; side_seconds=$(( $(date +%s) - side_clock ))
-  side_tokens="${tokens_json:-}"; side_cost_known="$cost_known"; side_measured="$cost_measured"
-  side_reason="$terminal_reason"; side_message="$turn_message"; side_cost="${cost:-0}"; side_error="$error_msg"
-  side_limit="${provider_limit_out:-}"; side_capacity="${at_capacity_out:-}"; side_provider_error="${provider_error_out:-}"
+  side_tokens="$(jq -c '.tokens // empty' <<<"$side_result")"
+  side_cost_known="$(turn_result_field "$side_result" costKnown)"; side_measured="$(turn_result_field "$side_result" costMeasured)"
+  side_reason="$(turn_result_field "$side_result" outcome)"; side_message="$(turn_result_field "$side_result" message)"
+  side_cost="$(turn_result_field "$side_result" cost)"; side_error="$(turn_result_field "$side_result" error)"
+  side_error_solution="$(turn_result_field "$side_result" errorSolution)"
+  side_session="$(turn_result_field "$side_result" sessionId)"
+  side_model_id="$(turn_result_field "$side_result" modelId)"
+  side_limit="$(jq -c '.providerLimit // empty' <<<"$side_result")"
+  side_capacity="$(turn_result_field "$side_result" atCapacity)"
+  side_provider_error="$(jq -c '.providerError // empty' <<<"$side_result")"
+  side_time_limit="$(jq -c '.timeLimit // empty' <<<"$side_result")"
   tool="$saved_tool"; argv=("${saved_argv[@]}")
-  session_out="$saved_session"; subtype="$saved_subtype"; cost="$saved_cost"; cost_measured="$saved_measured"; cost_known="$saved_known"
-  terminal_reason="$saved_reason"; error_msg="$saved_error"; error_solution="$saved_fix"; error_log="$saved_log"; provider_limit_out="$saved_limit"
-  at_capacity_out="$saved_capacity"; provider_error_out="$saved_provider_error"; time_limit_json="$saved_time_limit"
-  tokens_json="$saved_tokens"; model_id_out="$saved_model_id"; exit_code="$saved_exit"
+  turn_result_apply "$main_result"
   claude_config_dir="$saved_claude_dir"
   opencode_config="$saved_opencode_config"
   invocation_requested_id="$saved_requested"; invocation_resume_id="$saved_resume"
@@ -103,7 +105,20 @@ side_json() {  # <tool>
     --argjson from "${side_from:-0}" --argjson to "${side_to:-0}" \
     --argjson costKnown "${side_cost_known:-false}" --argjson measured "${side_measured:-false}" \
     --argjson cost "${side_cost:-0}" --argjson tokens "${side_tokens:-null}" \
+    --arg sessionId "${side_session:-}" --arg modelId "${side_model_id:-}" \
+    --arg error "${side_error:-}" --arg errorSolution "${side_error_solution:-}" \
+    --arg atCapacity "${side_capacity:-}" \
+    --argjson providerLimit "${side_limit:-null}" --argjson providerError "${side_provider_error:-null}" \
+    --argjson timeLimit "${side_time_limit:-null}" \
     '{outcome:$outcome, tool:$tool, durationSec:$seconds, transcript:{from:$from, to:$to}}
      + (if $costKnown and $measured then {costUsd:$cost} else {} end)
-     + (if $tokens == null then {} else {tokens:$tokens} end)'
+     + (if $tokens == null then {} else {tokens:$tokens} end)
+     + (if $sessionId == "" then {} else {sessionId:$sessionId} end)
+     + (if $modelId == "" then {} else {modelId:$modelId} end)
+     + (if $error == "" then {} else {error:$error} end)
+     + (if $errorSolution == "" then {} else {errorSolution:$errorSolution} end)
+     + (if $atCapacity == "" then {} else {atCapacity:$atCapacity} end)
+     + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)
+     + (if $providerError == null then {} else {providerError:$providerError} end)
+     + (if $timeLimit == null then {} else {timeLimit:$timeLimit} end)'
 }
