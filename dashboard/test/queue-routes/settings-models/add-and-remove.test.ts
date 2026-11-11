@@ -74,12 +74,16 @@ describe("adding a model the AI offers", () => {
   test("a key another AI's choice holds gets the provider in front", async () => {
     forgetChecks();
     const choices = { ...CHOICES, "gpt-5.5": { tool: "codex" as const } };
-    const { base, file } = serve(modelsProbe({ opencode: OPENCODE_READING }), choices);
+    const configured = CONFIG.replace(
+      '"Opus": { "model": "opus" }',
+      '"Opus": { "model": "opus" }, "gpt-5.5": { "tool": "codex" }',
+    );
+    const { base, file } = serve(modelsProbe({ opencode: OPENCODE_READING }), choices, MODEL, configured);
     await openModelsTab(base, "OpenCode");
     const res = await post(base, ADD, { tool: "opencode", model: "opencode/gpt-5.5" });
     expect(await res.json()).toEqual({ ok: true, name: "opencode-gpt-5.5" });
     expect(choicesIn(file)["opencode-gpt-5.5"]).toEqual({ tool: "opencode", model: "opencode/gpt-5.5" });
-    expect(choicesIn(file)["gpt-5.5"]).toBeUndefined();
+    expect(choicesIn(file)["gpt-5.5"]).toEqual({ tool: "codex" });
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
   });
 

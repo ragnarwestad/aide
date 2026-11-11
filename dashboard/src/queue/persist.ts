@@ -228,16 +228,18 @@ export interface QueueSettingsUpdate {
   removeKeys?: string[];
 }
 
+export type PersistQueueSettingsResult = { value: Record<string, unknown> } | { error: string };
+
 /** Atomically replace the dashboard-owned workflow defaults while leaving
  * comments, formatting, the fallback and future model keys intact. */
-export function persistQueueSettings(file: string, next: QueueSettingsUpdate): string | null {
+export function persistQueueSettingsResult(file: string, next: QueueSettingsUpdate): PersistQueueSettingsResult {
   try {
-    if (!existsSync(file)) return `could not write ${file}: file does not exist`;
+    if (!existsSync(file)) return { error: `could not write ${file}: file does not exist` };
     let source = readFileSync(file, "utf-8");
     const errors: { error: number; offset: number; length: number }[] = [];
     const raw = parse(source, errors, { allowTrailingComma: true }) as unknown;
     if (errors.length || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-      return `could not write ${file}: invalid JSONC configuration`;
+      return { error: `could not write ${file}: invalid JSONC configuration` };
     }
     const opts = { formattingOptions: { insertSpaces: true, tabSize: 2 } };
     for (const [step, model] of Object.entries(next.model ?? {})) {
@@ -263,14 +265,25 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     for (const key of next.removeKeys ?? []) {
       source = applyEdits(source, modify(source, [key], undefined, opts));
     }
+    const finalErrors: { error: number; offset: number; length: number }[] = [];
+    const value = parse(source, finalErrors, { allowTrailingComma: true }) as unknown;
+    if (finalErrors.length || value === null || typeof value !== "object" || Array.isArray(value)) {
+      return { error: `could not write ${file}: invalid JSONC configuration` };
+    }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
     writeFileSync(tmp, source);
     renameSync(tmp, file);
-    return null;
+    return { value: value as Record<string, unknown> };
   } catch (err) {
-    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
+    return { error: `could not write ${file}: ${err instanceof Error ? err.message : String(err)}` };
   }
+}
+
+/** The error-only form used before a live queue exists. */
+export function persistQueueSettings(file: string, next: QueueSettingsUpdate): string | null {
+  const result = persistQueueSettingsResult(file, next);
+  return "error" in result ? result.error : null;
 }
 
 // Caps and per-step policy belong in a file on the machine that runs

@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "jsonc-parser";
+import { persistQueueSettings } from "../../../src/queue/queue.ts";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
 import type { ProviderStatus, ToolUsage } from "../../../src/render";
@@ -53,6 +54,13 @@ function serve(
     providers: { Claude: { name: "Claude", tool: "claude" }, Codex: { name: "Codex", tool: "codex" } },
     ...extra,
   } as QueueDefaults;
+  const raw = parse(readFileSync(file, "utf-8")) as Record<string, unknown>;
+  const seeded = persistQueueSettings(file, {
+    ...(raw.modelChoices === undefined ? { modelChoices: queueDefaults.modelChoices } : {}),
+    ...(raw.providers === undefined ? { providers: queueDefaults.providers } : {}),
+    ...(raw.provider === undefined && queueDefaults.provider ? { provider: queueDefaults.provider } : {}),
+  });
+  if (seeded) throw new Error(seeded);
   const { base } = start({ queueDefaults, queueConfigFile: file, modelIdsPath, providerProbe, usageProbe, toolProbe });
   return { base, file, queueDefaults };
 }

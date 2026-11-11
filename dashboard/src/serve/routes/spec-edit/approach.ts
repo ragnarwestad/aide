@@ -13,7 +13,7 @@ import { parseApproaches, pendingChoice, withChosenApproach } from "../../../pro
 import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
 import { writing } from "../../../queue/queue.ts";
 import { endStep } from "../../../queue/runner/step-result.ts";
-import { followOnJob } from "./shared.ts";
+import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
 import { afterTick } from "./checks.ts";
 
 import type { RoutesContext } from "..";
@@ -111,12 +111,12 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   }
 
   if (!recommended) {
-    const queued = ctx.queue.enqueue(followOnJob(
+    const queued = enqueueRequest(ctx.queue, followOnRequest(
       project!,
       specFolder!,
       held ? ["analyze", ...held.steps.slice(held.stepIndex)] : ["analyze"],
       held,
-    ));
+    ), "manual");
     if (!queued.ok) return refuse(`the choice was saved, but analyze could not be queued: ${queued.error}`);
   }
   await afterTick(ctx, dir, specFolder!);

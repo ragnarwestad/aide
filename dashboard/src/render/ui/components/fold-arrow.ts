@@ -51,3 +51,8 @@ export function foldArrow(o: {
 export function foldDisclosure(o: { summary: string; body: string; data?: Record<string, string> }): string {
   return `<details class="foldbox"${dataAttrs(o.data)}><summary>${ICON_CHEVRON}${o.summary}</summary>${o.body}</details>`;
 }
+
+export function foldButton(o: { label: string; open: boolean; data: Record<string, string> }): string {
+  return `<button type="button" class="fold${o.open ? "" : " shut"}"${dataAttrs(o.data)} ` +
+    `aria-expanded="${o.open}" aria-label="${esc(o.label)}">${ICON_CHEVRON}</button>`;
+}

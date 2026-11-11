@@ -23,6 +23,7 @@ function fakeForm(action: string) {
   };
   let removed = false;
   const tr = {
+    hasAttribute: () => false,
     remove: () => {
       removed = true;
       button.isConnected = false;

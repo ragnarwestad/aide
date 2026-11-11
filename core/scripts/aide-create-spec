@@ -49,6 +49,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # number", shared with every other caller so two answers cannot drift.
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
@@ -98,7 +99,7 @@ USAGE
     --model) model="${2:-}"; shift 2 ;;
     --folder-name) folder_name="${2:-}"; shift 2 ;;
     --assign-number) assign_number="yes"; shift ;;
-    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) aide_spec_refuse "unknown argument: $1" ;;
   esac
 done
 
@@ -108,7 +109,6 @@ done
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/spec-result.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/tracking-info.sh"
 

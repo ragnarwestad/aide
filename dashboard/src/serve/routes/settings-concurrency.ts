@@ -5,11 +5,11 @@
 // the first to use it. No tick is run from here: one waits on a fetch
 // per project with a queued job, which would hold the Save press, and
 // the runner's own timer ticks anyway.
-import { persistQueueSettings } from "../../queue/queue.ts";
 import {
   QUEUE_CONCURRENCY_MAX, QUEUE_CONCURRENCY_MIN, bodyToObject, isQueueConcurrency, json, readBounded,
 } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { saveQueueSettings } from "./settings-save/index.ts";
 
 export const SETTINGS_CONCURRENCY_ROUTE = "/api/queue/settings/concurrency";
 
@@ -34,8 +34,7 @@ export async function handleSettingsConcurrencyRoute(
       `How many steps may run at once must be a whole number from ${QUEUE_CONCURRENCY_MIN} to ${QUEUE_CONCURRENCY_MAX}`,
     );
   }
-  const error = persistQueueSettings(ctx.opts.queueConfigFile, { concurrency: asked });
+  const error = saveQueueSettings(ctx, { concurrency: asked });
   if (error) return refuse(error);
-  ctx.runner.setConcurrency(asked);
   return json({ ok: true, concurrency: asked });
 }

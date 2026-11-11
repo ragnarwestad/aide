@@ -9,6 +9,7 @@ import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers
 import { inFlight, landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 import { specReference } from "../../../project/spec-folder.ts";
+import { enqueueRequest } from "../../../queue/request/index.ts";
 
 export async function closeControlRoutes(
   ctx: RoutesContext,
@@ -41,12 +42,11 @@ export async function closeControlRoutes(
       job.project === project && job.specFolder === specFolder &&
       inFlight(job)
     )) return refuseClose("another job for this spec is still running");
-    const result = ctx.queue.enqueue({ project, specFolder, steps: ["close"], closeReason: reason });
+    const result = enqueueRequest(ctx.queue, { project, specFolder, steps: ["close"], closeReason: reason }, "manual");
     if (!result.ok) {
       logRefusal("close", `${project}/${specFolder}`, result.error);
       return refuseClose(result.error);
     }
-    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

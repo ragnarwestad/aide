@@ -1,4 +1,5 @@
 import { CLEANUP_KEY, jobKind, inFlight, type QueueStore } from "../../queue/queue.ts";
+import { enqueueRequest } from "../../queue/request/index.ts";
 
 export const CLEANUP_HOUR = 3;
 
@@ -14,7 +15,7 @@ export function enqueueNightlyCleanup(queue: Pick<QueueStore, "list" | "enqueue"
   if (jobs.some(inFlight)) return false;
   const date = localDate(now);
   if (jobs.some((job) => job.nightlyCleanupDate === date)) return false;
-  const result = queue.enqueue({ project, specFolder: CLEANUP_KEY, steps: ["cleanup"] });
+  const result = enqueueRequest(queue, { project, specFolder: CLEANUP_KEY, steps: ["cleanup"] }, "automatic");
   if (!result.ok) return false;
   queue.update(result.job.id, { nightlyCleanupDate: date });
   return true;

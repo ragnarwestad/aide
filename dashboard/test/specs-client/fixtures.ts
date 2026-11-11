@@ -117,6 +117,7 @@ export function harness(
   const rowQueries: string[] = [];
   const row = {
     className: "subrow",
+    hasAttribute: () => false,
     // Declared before `spechead`, so a getter. A form on no spec's rows
     // has no head row to walk back to.
     get previousElementSibling(): unknown {
