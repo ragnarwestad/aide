@@ -16,7 +16,7 @@ export function executionGroupEditor(options: EditorOptions): string {
   const candidates = [...options.candidates]
     .filter((candidate) => !group || candidate.project === group.project)
     .sort((a, b) => (selected.get(a.specFolder) ?? Number.MAX_SAFE_INTEGER) - (selected.get(b.specFolder) ?? Number.MAX_SAFE_INTEGER));
-  return `<details class="execution-group-editor"${group ? "" : " open"}>` +
+  return `<details class="execution-group-editor">` +
     `<summary>${t(lang, group ? "list.groupEdit" : "list.groupCreate")}</summary>` +
     `<form method="post" action="${action}" class="actionform" data-execution-group-editor>` +
     `<label class="field">${t(lang, "list.groupProject")}<select name="project"${group ? " disabled" : ""}>${projects.map((project) => `<option value="${esc(project)}">${esc(project)}</option>`).join("")}</select></label>` +
