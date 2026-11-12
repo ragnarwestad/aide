@@ -73,11 +73,11 @@ export function jobStepPipKind(state: ProgressStepState | undefined): PipKind {
   return state ? PIP_OF[state] : "todo";
 }
 
-/** One pip per step, numbered in the job's order, as a group's members are. */
+/** One pip per step, its first letter above it, as a spec draws its phases. */
 function stepPips(row: QueueRowView, o: JobRowOptions): string {
   const steps = o.pips?.(row.id) ?? [];
   return steps.length
-    ? `<span class="pipslot">${pips(steps.map((s, i) => ({ kind: jobStepPipKind(s.state), title: s.label, label: String(i + 1) })))}</span>`
+    ? `<span class="pipslot">${pips(steps.map((s) => ({ kind: jobStepPipKind(s.state), title: s.label })))}</span>`
     : "";
 }
 

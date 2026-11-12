@@ -830,7 +830,8 @@ in flight, a queued deploy waits, and a running one waits before its fetch and b
 back" with the reason.
 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads
-with the project: "<project>:<name>". It is shut by default, and its › opens it to show Stop or Cancel and a line per
+with the project: "<project>:<name>". Every job row's second line holds when the job was made and one pip per step, the
+step's first letter above it, coloured done, running, failed or not started; a phone shows the pips alone. It is shut by default, and its › opens it to show Stop or Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed, stopped or was interrupted says why in a line
 under its state, ending with a Log link. A queued job offers Cancel and a running or landing one Stop, each asking first;
