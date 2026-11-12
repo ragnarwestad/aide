@@ -2,7 +2,7 @@
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
 
-import { askButton, btn, buttonForm, confirmDialog, foldArrow, stepLabel } from "../../ui/components";
+import { askButton, btn, buttonForm, confirmDialog, foldArrow, foldArrowDisabled, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { currentStep, type QueueRowView } from "../../ui/job-state";
@@ -40,6 +40,8 @@ export function foldControl(
   const key = groupKey(g.project, g.specFolder);
   const shut = !opened.has(key);
   if (pageLoad) {
+    // A spec being created has no folder, so no page to load.
+    if (!g.named) return foldArrowDisabled();
     const { open: _fold, ...view } = f;
     return foldArrow({
       href: `${queuePath(view, {}, shut ? specPagePath(g.project, g.specFolder) : undefined)}#${rowAnchorId(g)}`,

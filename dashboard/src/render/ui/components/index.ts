@@ -47,7 +47,7 @@ export { formDialog, type FormDialogParts } from "./form-dialog.ts";
 
 // --- fold arrow ------------------------------------------------------------------
 
-export { foldArrow, foldButton, foldDisclosure, type FoldTitle } from "./fold-arrow.ts";
+export { foldArrow, foldArrowDisabled, foldButton, foldDisclosure, type FoldTitle } from "./fold-arrow.ts";
 
 // --- table of facts ----------------------------------------------------------------
 

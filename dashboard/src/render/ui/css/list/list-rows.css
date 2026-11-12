@@ -183,6 +183,10 @@ table.list tr.subrow[data-side] .modelcell > .row { gap: var(--sp-1); }
 /* The same arrow as a button, for a fold the page opens itself. */
 button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 .fold:hover { background: var(--surface-2); color: var(--text); }
+/* Nothing to open yet: the arrow keeps its place, dimmed as a disabled
+   icon link is, and does not answer the pointer. */
+.fold[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+.fold[aria-disabled="true"]:hover { background: none; color: var(--muted); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }
 /* A fold inside a row that opens in the browser itself (`foldDisclosure`):

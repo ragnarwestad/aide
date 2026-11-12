@@ -43,6 +43,12 @@ export function foldArrow(o: {
   );
 }
 
+/** The arrow where there is nothing to open yet: drawn shut in the same
+ *  place, with no address and nothing to press. */
+export function foldArrowDisabled(): string {
+  return `<span class="fold shut" aria-disabled="true">${ICON_CHEVRON}</span>`;
+}
+
 /** A fold that opens and shuts in the browser itself: a `<details>` whose
  *  `<summary>` is the chevron and `summary`, holding `body`. For a fold
  *  inside a row, where a click must not load the page or ask the server.
