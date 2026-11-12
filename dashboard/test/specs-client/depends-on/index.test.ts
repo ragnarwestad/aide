@@ -11,7 +11,7 @@ import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
 import { cancelDependsOn, cardAnswered, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
-import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
+import { restoreChosen } from "../../../src/specs-client/row-swap/index.ts";
 import { row as jobRow } from "../../render/pages/fixtures.ts";
 
 const A = "81-first-spec";

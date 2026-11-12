@@ -1,18 +1,19 @@
+import { openPhaseAttemptLogs, reopenPhaseAttemptLogs } from "./phase-attempt-logs.ts";
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
 
-import { drawLimits } from "./limits";
-import { applyRefusal } from "./row-refusal";
-import { offerEachToItsTool } from "./ai-sync.ts";
-import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
-import { syncApproachCancels } from "./approach-choice";
-import { syncDependsOnForms } from "./depends-on";
-import { openTestFiles, reopenTestFiles } from "./test-files";
-import { holdSpecDetail } from "./spec-detail";
-import { runButton } from "../render/pages/specs-list/data-model/phase.ts";
-import { SPEC_HEAD_CLASS } from "../page-contract.ts";
-import { syncSpecGroups } from "./spec-groups";
-import { captureExecutionGroupEditors, restoreExecutionGroupEditors } from "./execution-groups/editor.ts";
+import { drawLimits } from "../limits";
+import { applyRefusal } from "../row-refusal";
+import { offerEachToItsTool } from "../ai-sync.ts";
+import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "../state.ts";
+import { syncApproachCancels } from "../approach-choice";
+import { syncDependsOnForms } from "../depends-on";
+import { openTestFiles, reopenTestFiles } from "../test-files";
+import { holdSpecDetail } from "../spec-detail";
+import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
+import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
+import { syncSpecGroups } from "../spec-groups";
+import { captureExecutionGroupEditors, restoreExecutionGroupEditors } from "../execution-groups/editor.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -229,24 +230,6 @@ function groupRange(key: string): Element[] | null {
   const head = document.getElementById(key);
   if (!head || !isRowHead(head)) return null;
   return rowsFrom(head);
-}
-
-const phaseLogDetails = (root: Element, selector: string): Element[] => {
-  const query = (root as Element & { querySelectorAll?: (selector: string) => Iterable<Element> }).querySelectorAll;
-  return query ? Array.from(query.call(root, selector)) : [];
-};
-
-const openPhaseAttemptLogs = (roots: Element[]): Set<string> =>
-  new Set(
-    roots.flatMap((root) => phaseLogDetails(root, "details[data-phase-attempt-log][open]"))
-      .map((details) => details.getAttribute("data-phase-attempt-log"))
-      .filter((key): key is string => key !== null),
-  );
-
-function reopenPhaseAttemptLogs(roots: Element[], open: ReadonlySet<string>): void {
-  for (const details of roots.flatMap((root) => phaseLogDetails(root, "details[data-phase-attempt-log]"))) {
-    if (open.has(details.getAttribute("data-phase-attempt-log") ?? "")) details.setAttribute("open", "");
-  }
 }
 
 /** The rows of the spec `el` sits in, reached from inside rather than by

@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { swapRows } from "../../../src/specs-client/row-swap.ts";
+import { swapRows } from "../../../src/specs-client/row-swap/index.ts";
 import { confirmDialog } from "../../../src/render/ui/components";
 import { reopenAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
 

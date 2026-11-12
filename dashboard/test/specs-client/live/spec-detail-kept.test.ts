@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import type * as RowSwap from "../../../src/specs-client/row-swap.ts";
+import type * as RowSwap from "../../../src/specs-client/row-swap/index.ts";
 
 const KEY = "aide/81-x";
 const OTHER = "aide/82-y";
@@ -22,7 +22,7 @@ const group = (key: string, phase: string, detail = "") => head(key, phase) + de
 /** The module afresh for each test: it remembers the last rows it drew, and
  *  the first redraw after a load is the case under test. */
 let loads = 0;
-const rowSwap = (): Promise<typeof RowSwap> => import(`../../../src/specs-client/row-swap.ts?load=${++loads}`);
+const rowSwap = (): Promise<typeof RowSwap> => import(`../../../src/specs-client/row-swap/index.ts?load=${++loads}`);
 
 let win: Window;
 let mod: typeof RowSwap;

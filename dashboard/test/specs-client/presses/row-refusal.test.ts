@@ -10,7 +10,7 @@ import { listRefusalLine, refusalRowTemplate } from "../../../src/render/pages/s
 import { clearRefusal } from "../../../src/specs-client/row-refusal";
 import { showRefusal } from "../../../src/specs-client/tail-actions.ts";
 import { submitAction } from "../../../src/specs-client/forms.ts";
-import { swapRows } from "../../../src/specs-client/row-swap.ts";
+import { swapRows } from "../../../src/specs-client/row-swap/index.ts";
 import { confirmDialog } from "../../../src/render/ui/components";
 
 const real = {

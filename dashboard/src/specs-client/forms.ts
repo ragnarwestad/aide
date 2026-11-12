@@ -11,7 +11,7 @@
 
 import { ACTIONS, postForm, writeLine } from "./press.ts";
 import { coverWhile } from "./progress-dialog";
-import { swapRows } from "./row-swap.ts";
+import { swapRows } from "./row-swap/index.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { cardAnswered } from "./depends-on";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";

@@ -8,7 +8,7 @@ import { onDependsOnCancel, pickSetting } from "../depends-on";
 import { submitAction, submitTestServerStop } from "../forms.ts";
 import { navigate } from "../navigation.ts";
 import { postPendingModel } from "../pending-model.ts";
-import { relabelRunButton } from "../row-swap.ts";
+import { relabelRunButton } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";

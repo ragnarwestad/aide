@@ -158,7 +158,7 @@ describe("a press on a shut › opens the row in place", () => {
     parent.id = "group-release";
     parent.setAttribute("data-spec-group", "Release");
     headRow(B).before(parent as unknown as Element);
-    const { placeSpecRows } = await import("../../../src/specs-client/row-swap.ts");
+    const { placeSpecRows } = await import("../../../src/specs-client/row-swap/index.ts");
     expect(placeSpecRows(table(shutGroup(A)), true)).toBe(true);
     expect(win.document.getElementById("group-release") === parent).toBe(true);
   });
@@ -168,7 +168,7 @@ describe("a press on a shut › opens the row in place", () => {
     parent.setAttribute("data-spec-group", "Release");
     parent.innerHTML = "<td><button>Start</button></td>";
     headRow(B).before(parent as unknown as Element);
-    const { specRowsOf } = await import("../../../src/specs-client/row-swap.ts");
+    const { specRowsOf } = await import("../../../src/specs-client/row-swap/index.ts");
     expect(specRowsOf(parent.querySelector("button") as unknown as Element) === null).toBe(true);
   });
 
