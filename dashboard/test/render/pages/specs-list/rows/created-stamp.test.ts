@@ -20,7 +20,7 @@ describe("the created stamp", () => {
   });
 });
 
-// The Specs list says when; the Running tab keeps its pips instead.
+// Both say when; the Running tab adds its pips.
 describe("the cell under a spec's title", () => {
   const createdAt = new Date(2026, 9, 11, 14, 42).toISOString();
   const draw = (specsList: boolean) =>
@@ -34,7 +34,8 @@ describe("the cell under a spec's title", () => {
     expect(draw(true)).toContain("2026-10-11 14:42");
   });
 
-  test("on the Running tab it does not", () => {
-    expect(draw(false)).not.toContain("2026-10-11 14:42");
+  test("on the Running tab it holds the created stamp and the pips", () => {
+    expect(draw(false)).toContain("2026-10-11 14:42");
+    expect(draw(false)).toContain('class="pipslot"');
   });
 });

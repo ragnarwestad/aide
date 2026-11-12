@@ -26,6 +26,9 @@
    their own. The sum is the fold's 24px and the gap `.spec-name` puts
    after it — measured 36px at every width the fold is drawn. */
 table.list tr.specstate .pipslot { display: flex; justify-content: flex-start; margin: 0; padding-left: 0; }
+/* On Running the created stamp stands at the left and the pips at the
+   cell's right edge, next to the state. */
+.createdpips { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 /* The chevron's cell, spanning the header's two lines: centred in them,
    and the whole cell is the target. `line-height: 0` keeps the cell from
    reserving a text line's height under the icon. */

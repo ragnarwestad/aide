@@ -215,13 +215,14 @@ export function specHeadRow(
     // the anchor id, `data-run` and the `spechead` class stay on the
     // title's row, which is the row every other reader looks for.
     `<tr class="specstate" data-folder="${esc(g.specFolder)}">` +
-    // At the left, in the columns the title no longer needs: on the Specs
-    // list, when the spec was created, which is what its Created sort
-    // orders by; on the Running tab, the pips, which say how far a spec
-    // that is being run has come.
+    // At the left, in the columns the title no longer needs, when the spec
+    // was created, which is what the Created sort orders by. The Running tab
+    // adds the pips at the cell's right edge, which say how far a spec that
+    // is being run has come; a phone has room for the pips alone.
     `<td colspan="2">${opts.openSpec
       ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
-      : `<span class="pipslot">${phasePips(g.phases, g.done)}</span>`}</td>` +
+      : `<span class="createdpips"><span class="muted small">${esc(createdLabel(g.createdAt))}</span>` +
+        `<span class="pipslot">${phasePips(g.phases, g.done)}</span></span>`}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next. No sentence
     // under it says what to press: the control names the

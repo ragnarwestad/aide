@@ -32,6 +32,8 @@
      adds up, less the row's own gap, which lands the badge on that
      edge. The pips themselves stand under the title rather than at the
      line's left edge, which is what the fold control's width leaves. */
+  /* No room for the created stamp beside the pips: the pips stay. */
+  .createdpips > .muted { display: none; }
   table.list tr.specstate > td:first-child { box-sizing: border-box;
     flex: 0 0 calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2));
