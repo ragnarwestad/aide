@@ -43,11 +43,10 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   const edit = group.state === "prepared" && !group.startedAt
     ? btn({ label: t(lang as never, "list.groupEdit"), type: "button", data: { "edit-execution-group": group.id } })
     : "";
-  const archiveLabel = action === "archive" ? " Group Archive" : "";
   const head = `<tr class="execution-group-card" data-spec-group="${esc(key)}"><td colspan="6">` +
     foldButton({ label: group.name, open: false, data: { "group-toggle": key } }) +
     `<strong>${esc(group.name)}</strong> · ${esc(group.state)} · ${group.completedMembers.length} of ${group.members.length} done` +
     (created ? `<br><span class="muted small">${esc(created)}</span>` : "") +
-    edit + control + archiveLabel + `</td></tr>`;
+    edit + control + `</td></tr>`;
   return head + members.map((member) => member.html).join("");
 }
