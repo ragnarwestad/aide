@@ -111,3 +111,24 @@ test("a stopped execution does not queue its next member (AC-7, AC-13, AC-15)", 
   expect(store.list()).toHaveLength(0);
   expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
 });
+
+test("an archive the runner's check stopped hands the group back to wait for Archive", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.start(group.id);
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {},
+    rereadSpecCaches: () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id } as Job, "archive", {
+    ok: true,
+    terminalReason: "not-implemented-yet",
+  });
+  await Promise.resolve();
+  expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+});

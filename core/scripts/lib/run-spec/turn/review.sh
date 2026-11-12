@@ -166,9 +166,11 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
   fi
   cost="$running_cost"
 
-  if [ "$side_reason" != "completed" ]; then
+  if [ "$side_reason" != "completed" ] && [ "$side_reason" != "provider-limit" ]; then
     side_failure "Review" "$review_on" "$review_model"
   else
+    [ "$side_reason" != "provider-limit" ] \
+      || stage_error "Review on ${review_model:-$review_on} reached its provider limit — its findings still go through while the implement result stays completed"
     review_verdict="$(printf '%s\n' "$side_message" | grep -iE '^review: ' | tail -n 1)"
     review_defects=""
     if [ -z "$review_verdict" ]; then
@@ -221,6 +223,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
           done <<<"$verify_decided"
           [ -n "$review_defects" ] || stage "the verification dropped every defect — nothing goes back to the session"
         fi
+      elif [ "$side_reason" = "provider-limit" ]; then
+        stage_error "Verify on ${verify_model:-$verify_on} reached its provider limit — every review defect goes back to the implement session"
       else
         side_failure "Verify" "$verify_on" "$verify_model"
         review_defects=""
@@ -244,7 +248,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
       resume_argv "$implement_session"
       argv=("${resumed_argv[@]}")
       running_tokens="${tokens_json:-}"
-      run_model_turn "$work_dir/prompt-review-fix"
+      run_model_turn "$work_dir/prompt-review-fix" review_fix_result
       cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
       sides_priced_again
       tokens_json="$(turn_tokens_add "$running_tokens" "${tokens_json:-}")"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/turn/test-workers.sh — sourced by aide-run-spec before run-spec/turn/model-turn.sh.
+# run-spec/turn/test-workers.sh — sourced before run-spec/turn/model-turn/index.sh.
 #
 # How many test workers a run may use: the host's cores divided among the
 # steps and landings running on the board at this moment, rounded down and

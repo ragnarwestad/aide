@@ -81,6 +81,51 @@ def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still
     assert WENT_BACK not in stages, stages
 
 
+def test_a_review_provider_limit_keeps_the_implement_result_completed_ac_3_ac_5_ac_6(
+    runner, workspace, fake_claude
+):
+    with_status(workspace, ["create", "analyze"])
+    limit = {
+        "type": "rate_limit_event",
+        "rate_limit_info": {
+            "status": "rejected",
+            "isUsingOverage": False,
+            "rateLimitType": "seven_day",
+            "resetsAt": 1893456000,
+        },
+    }
+    findings = "review: 1 defect(s) found\n1. REVIEW-LIMIT-FINDING"
+    claude = fake_claude(
+        'prompt="$(cat)"\n'
+        f'if printf \'%s\' "$prompt" | grep -q "{REVIEW_MARKER}"; then\n'
+        f"  echo '{json.dumps(_result(REVIEW_SESSION, findings, 0.05))}'\n"
+        f"  echo '{json.dumps(limit)}'\n"
+        "  exit 1\n"
+        f'elif printf \'%s\' "$prompt" | grep -q "{FIX_MARKER}"; then\n'
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'fixed', 0.20))}'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
+        "fi\n"
+    )
+
+    rc, out, _ = run(
+        runner, workspace, claude, command="implement", review_model="claude-sonnet-4"
+    )
+
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert out["sessionId"] == IMPLEMENT_SESSION, out
+    assert out["review"]["outcome"] == "provider-limit", out
+    assert out["review"]["tool"] == "claude", out
+    assert out["review"]["sessionId"] == REVIEW_SESSION, out
+    assert out["review"]["providerLimit"] == {
+        "tool": "claude", "window": "seven_day", "resetsAt": "2030-01-01T00:00:00Z"
+    }, out
+    assert len(fake_claude.calls.read_text().splitlines()) == 3
+
+
 def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_second_review(
     runner, workspace, fake_claude
 ):
@@ -109,6 +154,7 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 3, calls
     assert "--resume" in calls[2] and IMPLEMENT_SESSION in calls[2], calls[2]
+    assert "--add-dir" in calls[2] and calls[2].endswith("/specs"), calls[2]
     assert REVIEW_SESSION not in calls[2], calls[2]
     assert abs(out["costUsd"] - 0.35) < 1e-6, out
     stages = _stamped(err)
@@ -260,7 +306,7 @@ def _codex_review_stream(text, thread=REVIEW_THREAD_ID):
     )
 
 
-def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed(runner, workspace, fake_codex):
+def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed_ac_2_ac_5_ac_8(runner, workspace, fake_codex):
     """Codex's own twin: the review runs as `codex exec --json` (fresh),
     never `exec resume`, and the step's own sessionId still names the
     implement thread, not the review's own."""
@@ -282,7 +328,7 @@ def test_a_review_with_no_defects_in_codex_gets_a_fresh_thread_never_resumed(run
     assert "resume" not in calls[1], calls[1]
 
 
-def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_own(runner, workspace, fake_codex):
+def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_own_ac_2_ac_5(runner, workspace, fake_codex):
     with_status(workspace, ["create", "analyze"])
     codex = fake_codex(
         "prompt=\"$(cat)\"\n"

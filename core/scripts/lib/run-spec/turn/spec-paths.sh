@@ -379,16 +379,16 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ] || [ -n
     terminal_reason="$archive_terminal_reason"; error_msg=""; error_solution=""; error_log=""
   fi
 else
-  run_model_turn "$work_dir/prompt"
+  run_model_turn "$work_dir/prompt" main_turn_result
   # The analysis's session could not be continued — gone, or refused by
   # the tool: the implement starts afresh, as it would have without it.
   if [ -n "$resume_session" ] && { [ "$terminal_reason" = "cli-error" ] || [ "$terminal_reason" = "model-refused" ]; }; then
     echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
-    argv=("${fresh_argv[@]}"); resume_session=""
+    argv=("${fresh_argv[@]}"); resume_session=""; invocation_resume_id=""
     session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""; error_log=""
     # The refused attempt was not the step's session.
     context_fullest=""; context_window=""
-    run_model_turn "$work_dir/prompt"
+    run_model_turn "$work_dir/prompt" main_turn_result
   fi
 fi
 # The window's use so far is the step's own turn; what the review's fix turn

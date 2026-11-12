@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# run-spec/turn/model-marks.sh — sourced by aide-run-spec before run-spec/turn/model-turn.sh.
+# run-spec/turn/model-marks.sh — sourced before run-spec/turn/model-turn/index.sh.
 #
 # The model's own step marks, dated as they appear. While a model turn runs,
-# run_model_turn (run-spec/turn/model-turn.sh) calls model_marks_record each
+# run_model_turn (run-spec/turn/model-turn/index.sh) calls model_marks_record each
 # time it polls; it reads the transcript's new bytes, picks out the lines
 # the model wrote as marks (`--- Step N of X: <title> — planned|started|done|skipped|stopped`)
 # and writes each into the run log through stage_line, so it carries the run's

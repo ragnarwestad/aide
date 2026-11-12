@@ -19,28 +19,6 @@ from ..run_spec_project_state import (
 from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 from ..run_spec_result_fields import assert_written_as_in_fixture
 
-def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
-    claude = fake_claude("exit 1")  # dry run: must not be called
-    cfg = workspace["project"] / ".aide" / "config"
-    cfg.write_text(cfg.read_text() + f"AIDE_CLAUDE_BIN={claude}\n")
-    env_before = os.environ.pop("AIDE_CLAUDE_BIN", None)
-    try:
-        rc, out, _ = run(runner, workspace, dry_run=True)
-    finally:
-        if env_before is not None:
-            os.environ["AIDE_CLAUDE_BIN"] = env_before
-    assert rc == 0, out
-    assert out["argv"][0] == str(claude)
-    assert not fake_claude.calls.exists()
-
-def test_the_environment_outranks_the_projects_config_for_the_claude_binary(runner, workspace, fake_claude):
-    from_env = fake_claude("exit 1")
-    cfg = workspace["project"] / ".aide" / "config"
-    cfg.write_text(cfg.read_text() + "AIDE_CLAUDE_BIN=/nowhere/from-config\n")
-    rc, out, _ = run(runner, workspace, from_env, dry_run=True)
-    assert rc == 0, out
-    assert out["argv"][0] == str(from_env)
-
 def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # would fail loudly if it were called
     rc, out, _ = run(

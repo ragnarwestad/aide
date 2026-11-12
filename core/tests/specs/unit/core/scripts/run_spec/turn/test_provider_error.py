@@ -132,6 +132,6 @@ def test_every_kind_the_runner_writes_is_one_the_dashboard_reads():
     tested on."""
     sorter = LIB.read_text()
     written = set(re.findall(r'(?:then|else) "([a-z]+)"', sorter))
-    written |= set(re.findall(r'"kind":"([a-z]+)"', (LIB.parent / "model-turn.sh").read_text()))
+    written |= set(re.findall(r'"kind":"([a-z]+)"', (LIB.parent / "model-turn" / "index.sh").read_text()))
     assert written, "no kind found in provider-error.sh"
     assert written == {c["written"]["kind"] for c in FIELDS["providerError"]}

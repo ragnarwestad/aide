@@ -10,7 +10,7 @@
 //
 // A step ends where the time line ends it (`stepMarks`): at its own ending mark and at the mark of any other step.
 // A step no usage can be attributed to has no entry. The sum is the four-way sum the runner
-// reports for a whole step (`tokens_json` in core/scripts/lib/run-spec/turn/model-turn.sh).
+// reports for a whole step (`tokens_json` in core/scripts/lib/run-spec/turn/model-turn/index.sh).
 import { summarizeEntries } from "./entries.ts";
 import { transcriptFormat, type SummarizeOptions } from "./shared.ts";
 import { markOf } from "./step-marks.ts";

@@ -41,7 +41,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Reading and writing Tracking info bullets           | `lib/tracking-info.sh`                    |
 | The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`             |
 | Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`             |
-| The model turn, and reading what came back          | `run-spec/turn/model-turn.sh`             |
+| The model turn, and reading what came back          | `run-spec/turn/model-turn/`               |
 | What the run reports, and the result JSON           | `run-spec/publish/result.sh`              |
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
@@ -80,6 +80,17 @@ Each of those is a section below, except the step's own turn, which is
 
 ## How a run names its Claude sessions
 
+Ordinary turns, Review and Verify use the same provider invocation contract.
+The caller still chooses the model, effort, permissions and whether the turn is
+fresh or resumed. Review and Verify always start fresh sessions; a later fix
+turn resumes the original Implement session.
+
+Before a process starts, the contract carries only a requested Claude session
+id and an explicit id to resume. After it starts, the provider output supplies
+the actual session or thread id. Follow-up turns pass that id back explicitly,
+and cumulative cost and token accounting uses it without reading argument
+positions.
+
 Every Claude session a run starts gets a display name, so `claude --resume` on the serving host and the session lists of
 a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
 it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.
@@ -103,7 +114,7 @@ code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/tu
 
 A turn whose tool exits without a result, before the model has done anything, ends the step as `cli-error`. The
 job's `error` is the last 400 characters the tool wrote to stderr, followed by "press <step> again"
-(`run-spec/turn/model-turn.sh`), so the tool's own explanation reaches the board.
+(`run-spec/turn/model-turn/index.sh`), so the tool's own explanation reaches the board.
 
 A damaged `~/.claude.json` on the serving host is such a case. When the file is not valid JSON, `claude -p` exits 1
 without starting: it names the file, says to fix the JSON or move the file aside, and leaves it unchanged (Claude Code
@@ -602,8 +613,12 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
 and some of them need one more flag: `--title` and `--description` for a `create` whose `--spec` names no existing
 folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `--tool claude|codex|opencode`
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,
-`--kill-grace-sec` (30) how long the step has between SIGTERM and SIGKILL, `--worktree-base` where the
-worktrees go, and `--chrome` starts Claude with the logged-in Chrome — for `schedule` with `--tool claude` only,
+`--kill-grace-sec` (30) is the grace period shared by runner-owned model turns and test commands. A timeout or
+cancel sends SIGTERM only to the process group owned by the run, waits only while that group still has members,
+and sends SIGKILL only when members remain at the end of the grace period. Cleanup then reaps the child and clears
+the matching live-process record. A process that stops promptly does not wait out the grace period. Model turns
+keep the overall step deadline, while test commands keep their separate test allowance. `--worktree-base` says
+where the worktrees go, and `--chrome` starts Claude with the logged-in Chrome — for `schedule` with `--tool claude` only,
 refused anywhere else, and `--no-sandbox` runs Claude without its sandbox, for the same step and tool only.
 `run-spec/setup/arguments.sh` is the whole list.
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty

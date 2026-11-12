@@ -118,6 +118,16 @@ def test_archive_is_legal_from_implemented(tmp_path):
     assert result["RC"] == "0"
 
 
+def test_a_state_file_left_with_conflict_markers_is_read_from_the_prose(tmp_path):
+    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze, implement")
+    state = '{"completedPhases":["create","analyze","implement"]}'
+    (status_file.parent / "4-status.json").write_text(
+        f"<<<<<<< HEAD\n{state}\n=======\n{state}\n>>>>>>> origin/main\n"
+    )
+    result = may_apply(status_file, "archive")
+    assert result["RC"] == "0", result
+
+
 # --- Backward moves are refused, naming the way back ----------------
 
 

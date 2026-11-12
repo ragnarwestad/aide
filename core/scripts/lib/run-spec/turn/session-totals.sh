@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/turn/session-totals.sh — sourced by aide-run-spec before run-spec/turn/model-turn.sh.
+# run-spec/turn/session-totals.sh — sourced before run-spec/turn/model-turn/index.sh.
 #
 # A Claude result reports the SESSION's totals: after `--resume`, its
 # `total_cost_usd` and `modelUsage` include every earlier turn of that
@@ -15,17 +15,9 @@
 
 session_totals_dir="${AIDE_SESSION_TOTALS_DIR:-$HOME/.aide/run-spec/session-totals}"
 
-# The session the current argv resumes, or nothing: claude's `--resume <id>`,
-# codex's `exec resume ... <thread> -`.
+# The session the shared invocation contract says this turn resumes.
 resumed_session() {
-  local prev="" arg n=${#argv[@]}
-  if [ "${argv[1]:-}" = "exec" ] && [ "${argv[2]:-}" = "resume" ] && [ "$n" -ge 2 ]; then
-    printf '%s' "${argv[$((n - 2))]}"; return 0
-  fi
-  for arg in "${argv[@]}"; do
-    [ "$prev" = "--resume" ] && { printf '%s' "$arg"; return 0; }
-    prev="$arg"
-  done
+  printf '%s' "${invocation_resume_id:-}"
 }
 
 # Turn this turn's session totals into what the turn and the step used, and

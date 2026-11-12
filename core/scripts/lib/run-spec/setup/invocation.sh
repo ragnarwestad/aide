@@ -123,46 +123,65 @@ worktree_project_key() {
 # skill is NAMED in words instead, and the argument follows in the same
 # sentence. Verified 2026-09-16: a run told to use a skill by name
 # called `skill` with that name and answered from its contents.
-# `argv`, rewritten to continue the session $1 instead of starting one —
-# into $resumed_argv. Claude takes `--resume <id>` in place of
-# `--session-id`; Codex resumes through `codex exec resume <thread> -`
-# (the prompt on stdin, as before), and `resume` takes the bypass flag and
-# the model but neither `--sandbox` nor `--add-dir` (verified on 0.154.0)
-# — the thread keeps what it started with, so those pairs are dropped
-# rather than refused; opencode spells it `--session <id>` (`opencode run
-# --help`, 1.18.31), and its subcommand stays `run`. Used for a red
-# suite's fix turn and for an implement that continues its analysis.
-# Claude's `--name` goes too, with its value: a session is named once, by the
-# turn that starts it, and a name in a resumed turn's argv would rename it.
-# A Codex argv that already resumes a thread is resumed afresh: its
-# `resume` and its trailing `<thread> -` are dropped before they are
-# added again.
+# Build any provider invocation from explicit policy and identity inputs.
+# The actual identity minted by a provider still comes from its output; these
+# two values are only what the caller knows before the process starts.
+invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id> <resume-id> <name>
+  local invocation_tool="$1" invocation_bin="$2" invocation_permission="$3" \
+    invocation_model="$4" invocation_effort="$5" invocation_requested="$6" \
+    invocation_resume="$7" invocation_name="$8" invocation_dir
+  [ -n "$invocation_bin" ] && [ -x "$invocation_bin" ] || return 1
+  invocation_argv=()
+  invocation_requested_id="$invocation_requested"
+  invocation_resume_id="$invocation_resume"
+  case "$invocation_tool" in
+    codex)
+      if [ -n "$invocation_resume" ]; then
+        invocation_argv=("$invocation_bin" exec resume --json)
+        [ "$invocation_permission" = "bypassPermissions" ] \
+          && invocation_argv+=(--dangerously-bypass-approvals-and-sandbox)
+      else
+        codex_safety_flags "$invocation_permission" || return 1
+        invocation_argv=("$invocation_bin" exec --json "${safety_flags[@]}")
+      fi
+      [ -n "$invocation_model" ] && invocation_argv+=(--model "$invocation_model")
+      [ -z "$invocation_resume" ] || invocation_argv+=("$invocation_resume" -)
+      ;;
+    opencode)
+      opencode_safety_flags "$invocation_permission" || return 1
+      invocation_argv=("$invocation_bin" run --format json "${safety_flags[@]}")
+      [ -n "$invocation_model" ] && invocation_argv+=(--model "$invocation_model")
+      [ -z "$invocation_resume" ] || invocation_argv+=(--session "$invocation_resume")
+      ;;
+    claude|fake-claude)
+      invocation_argv=("$invocation_bin" -p --output-format stream-json --verbose
+        --permission-mode "$invocation_permission")
+      [ "$sandbox" = "no" ] || invocation_argv+=(--settings "$(sandbox_settings_json)")
+      [ -n "$invocation_model" ] && invocation_argv+=(--model "$invocation_model")
+      [ -n "$invocation_effort" ] && invocation_argv+=(--effort "$invocation_effort")
+      [ -n "${autocompact:-}" ] && invocation_argv+=(--autocompact "$autocompact")
+      [ "${chrome:-no}" = "yes" ] && invocation_argv+=(--chrome)
+      if [ -n "$invocation_resume" ]; then
+        invocation_argv+=(--resume "$invocation_resume")
+      else
+        [ -n "$invocation_requested" ] && invocation_argv+=(--session-id "$invocation_requested")
+        [ -n "$invocation_name" ] && invocation_argv+=(--name "$invocation_name")
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+  if { [ "$invocation_tool" != "codex" ] || [ -z "$invocation_resume" ]; } \
+    && [ "${#invocation_add_dirs[@]}" -gt 0 ]; then
+    for invocation_dir in "${invocation_add_dirs[@]}"; do
+      invocation_argv+=(--add-dir "$invocation_dir")
+    done
+  fi
+}
+
 resume_argv() {
-  local session="$1" arg skip="no" resumes="no" prev="" source_argv=("${argv[@]}")
-  local n=${#source_argv[@]}
-  if [ "$tool" = "codex" ] && [ "$n" -ge 2 ] && [ "${source_argv[$((n - 1))]}" = "-" ]; then
-    source_argv=("${source_argv[@]:0:$((n - 2))}")
-  fi
-  resumed_argv=()
-  for arg in "${source_argv[@]}"; do
-    if [ "$skip" = "yes" ]; then skip="no"; prev="$arg"; continue; fi
-    if [ "$prev" = "exec" ] && [ "$arg" = "resume" ]; then prev="$arg"; continue; fi
-    prev="$arg"
-    case "$arg" in
-      --session-id|--resume) resumed_argv+=(--resume "$session"); resumes="yes"; skip="yes" ;;
-      --name) skip="yes" ;;
-      --sandbox|--add-dir) if [ "$tool" = "codex" ]; then skip="yes"; else resumed_argv+=("$arg"); fi ;;
-      exec) resumed_argv+=(exec resume); resumes="yes" ;;
-      *) resumed_argv+=("$arg") ;;
-    esac
-  done
-  if [ "$tool" = "codex" ]; then
-    resumed_argv+=("$session" -)
-  elif [ "$tool" = "opencode" ]; then
-    resumed_argv+=(--session "$session")
-  else
-    [ "$resumes" = "yes" ] || resumed_argv+=(--resume "$session")
-  fi
+  invocation_build "$tool" "${argv[0]}" "$permission_mode" "$model" "$effort" "" "$1" "" \
+    || return 1
+  resumed_argv=("${invocation_argv[@]}")
 }
 
 skill_call() {
@@ -354,6 +373,17 @@ $AIDE_PREVIOUS_ATTEMPT_CONTEXT
 fi
 unset AIDE_PREVIOUS_ATTEMPT_CONTEXT
 
+session_name=""
+invocation_add_dirs=()
+if [ "$tool" != "codex" ] && [ "$tool" != "opencode" ]; then
+  session_project="$(worktree_project_key "$project_root")"
+  case "$command_name" in
+    create)   session_name="$session_project new create" ;;
+    schedule) session_name="$session_project schedule $(aide_schedule_name "$spec_arg")" ;;
+    *)        session_name="$session_project $spec_id $command_name" ;;
+  esac
+fi
+
 if [ "$tool" = "codex" ]; then
   # `codex exec --json` is the same idea one CLI over: JSONL on stdout,
   # one event per line as it happens, the prompt read from stdin. One
@@ -367,9 +397,7 @@ if [ "$tool" = "codex" ]; then
   # can see it).
   codex_safety_flags "$permission_mode" \
     || refuse "invalid --permission-mode for codex: $permission_mode"
-  argv=("$codex_bin" exec --json)
-  argv+=("${safety_flags[@]}")
-  [ -n "$model" ] && argv+=(--model "$model")
+  invocation_bin="$codex_bin"
 elif [ "$tool" = "opencode" ]; then
   # `opencode run --format json` is the same idea a third CLI over: one
   # JSON event per line on stdout, the prompt read from stdin (verified
@@ -384,9 +412,7 @@ elif [ "$tool" = "opencode" ]; then
   # configured name is passed through whole rather than split.
   opencode_safety_flags "$permission_mode" \
     || refuse "invalid --permission-mode for opencode: $permission_mode"
-  argv=("$opencode_bin" run --format json)
-  argv+=("${safety_flags[@]}")
-  [ -n "$model" ] && argv+=(--model "$model")
+  invocation_bin="$opencode_bin"
 else
   # stream-json, not json: `json` prints ONE object at the very end, so a
   # 25-minute run says nothing at all until it is over. stream-json emits
@@ -395,26 +421,17 @@ else
   # stream-json without --verbose ("When using --print,
   # --output-format=stream-json requires --verbose") — verified
   # 2026-08-16, version 2.1.233.
-  argv=("$claude_bin" -p --output-format stream-json --verbose
-        --permission-mode "$permission_mode")
-  [ "$sandbox" = "no" ] || argv+=(--settings "$(sandbox_settings_json)")
-  [ -n "$model" ] && argv+=(--model "$model")
-  [ -n "$effort" ] && argv+=(--effort "$effort")
-  [ -n "$autocompact" ] && argv+=(--autocompact "$autocompact")
-  [ -n "$session_id" ] && argv+=(--session-id "$session_id")
-  [ "$chrome" = "yes" ] && argv+=(--chrome)
+  invocation_bin="$claude_bin"
   # `--name` sets the session's display name: Claude Code writes it into
   # the session's file and `claude --resume <name>` finds the session by
   # it. Verified 2026-10-22 on 2.1.308 in -p stream-json mode. Codex and
   # opencode get none: `codex exec` has no way to name a session.
-  session_project="$(worktree_project_key "$project_root")"
-  case "$command_name" in
-    create)   session_name="$session_project new create" ;;
-    schedule) session_name="$session_project schedule $(aide_schedule_name "$spec_arg")" ;;
-    *)        session_name="$session_project $spec_id $command_name" ;;
-  esac
-  argv+=(--name "$session_name")
 fi
+
+invocation_build "$tool" "$invocation_bin" "$permission_mode" "$model" "$effort" \
+  "$session_id" "" "$session_name" \
+  || refuse "invalid invocation data for $tool" "check the tool binary and --permission-mode"
+argv=("${invocation_argv[@]}")
 
 # An implement that continues its analysis's own session (the board passes
 # --resume-session only when both ran with this tool and the analysis ended

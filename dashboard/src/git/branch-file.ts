@@ -27,6 +27,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker } from "./branch-status.ts";
 import type { GitRunner } from "./process/index.ts";
+import { asFileText } from "./specs-pull.ts";
 import { branchForSpec } from "../project/discover/group.ts";
 
 export interface BranchFileRead {
@@ -197,7 +198,7 @@ export async function writeStatusToBranch(
 
     for (const [i, edit] of edits.entries()) {
       const blobPath = join(scratchDir, `content-${i}`);
-      writeFileSync(blobPath, edit.text);
+      writeFileSync(blobPath, asFileText(edit.text));
       const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
       if (blobOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
       const blobSha = blobOut.stdout.trim();

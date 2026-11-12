@@ -125,6 +125,7 @@ codex_resumes="no"
 [ "$tool" = "codex" ] && [ "${argv[${#argv[@]}-1]}" = "-" ] && codex_resumes="yes"
 for wt in "${work_roots[@]}"; do
   [ "$wt" = "$project_wt" ] && continue
+  invocation_add_dirs+=("$wt")
   [ "$codex_resumes" = "yes" ] || argv+=(--add-dir "$wt")
   fresh_argv+=(--add-dir "$wt")
 done

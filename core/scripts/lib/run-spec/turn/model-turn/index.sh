@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-spec/turn/model-turn.sh — sourced by aide-run-spec before run-spec/turn/spec-paths.sh.
+# run-spec/turn/model-turn/index.sh — sourced by aide-run-spec before run-spec/turn/spec-paths.sh.
 #
 # The model's one turn, and the reading of what came back, for claude,
 # codex and opencode alike. A function, defined here and called from
@@ -25,7 +25,8 @@ turn_tokens_add() {  # <tokens-json> <tokens-json>
 # session resumed with the red suite's output — without a second copy of
 # any of this. The transcript is appended to, so every turn of one step
 # is in the one stream the dashboard shows.
-run_model_turn() {
+run_model_turn() {  # <prompt-file> [<result-variable>]
+  local result_name="${2:-turn_result}"
   # The transcript's size says where this turn's output begins: the dashboard
   # cuts the transcript there to put Aide's own lines between the turns.
   local turn_at resume_part="$aide_part"
@@ -72,24 +73,18 @@ run_model_turn() {
   while kill -0 "$child" 2>/dev/null; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
       stopped="timeout"
-      # SIGTERM first, always: a run being asked to stop is exactly when a
-      # few extra seconds are cheapest.
-      kill_group TERM
-      grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
-      while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
-      kill -0 "$child" 2>/dev/null && kill_group KILL
       break
     fi
     model_marks_record
     sleep 0.2
   done
-  wait "$child" 2>/dev/null
-  exit_code=$?
+  if [ -n "$stopped" ]; then
+    cleanup_owned_process "$child" terminate
+  else
+    cleanup_owned_process "$child" reap
+  fi
+  exit_code=$cleanup_exit_code
   model_marks_record final
-  # The turn is over; whatever it started and left running — a suite's
-  # board, a decoy server — is stopped with its group, not left to hold
-  # ports and slow every later run (2026-09-19).
-  kill_group TERM
   sandbox_restore_git_links
   duration=$(( $(date +%s) - started_at ))
 
@@ -229,20 +224,20 @@ elif [ "$tool" = "opencode" ]; then
   # event carries `.error.name` with the human sentence under
   # `.error.data.message`; opencode 2.2.6 carries `.error.type` with the
   # sentence under `.error.message`.
-  error_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "error")' \
-    "$transcript" 2>/dev/null | tail -n 1)"
+  error_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .type == "error")' 2>/dev/null | tail -n 1)"
   # Every event carries the session opencode named for itself, so the
   # first one that parses answers it — including for a run that failed
   # before any step finished.
-  session_out="$(jq -Rr 'fromjson? | select(type == "object") | .sessionID // empty' \
-    "$transcript" 2>/dev/null | head -n 1)"
+  session_out="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rr 'fromjson? | select(type == "object") | .sessionID // empty' 2>/dev/null | head -n 1)"
   # The turn's own final text: the last `text` part — a shape nothing
   # else in this branch reads today. Selected as a whole event first,
   # same reason as codex's own read above: the text can carry embedded
   # newlines that raw (`-r`) output would split across lines before
   # `tail -n 1` ever saw them.
-  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .part.type == "text")' \
-    "$transcript" 2>/dev/null | tail -n 1)"
+  turn_message_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .part.type == "text")' 2>/dev/null | tail -n 1)"
   turn_message=""
   [ -n "$turn_message_json" ] && turn_message="$(jq -r '.part.text // empty' <<<"$turn_message_json" 2>/dev/null)"
   # This turn's own bytes only: the transcript holds every turn of the step.
@@ -489,5 +484,7 @@ if [ "$terminal_reason" = "cli-error" ] && [ "$(jq -r '.kind // empty' <<<"${pro
   error_log="$error_msg"
 fi
 [ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"
+turn_to="$({ wc -c < "$transcript"; } 2>/dev/null | tr -d ' ')"
+turn_result_capture "$result_name"
 return 0
 }
