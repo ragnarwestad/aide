@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
-import { executionGroupCard, executionGroupPlace } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
 import { t } from "../../../../src/i18n";
@@ -12,7 +12,7 @@ const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
 });
 const member = (folder: string, html: string) => ({
   key: `aide/${folder}`, html,
-  group: { project: "aide", specFolder: folder, done: ["create"], state: "not-started" } as SpecGroup,
+  group: { project: "aide", specFolder: folder, done: ["create"], state: "not-started", phases: [] } as unknown as SpecGroup,
 });
 
 test("the card keeps saved member order and sorts by activity", () => {
@@ -62,10 +62,8 @@ test("a card names its group after its project, as a spec is named", () => {
   expect(executionGroupCard(group("prepared"), [])).toContain(projectLink("aide", { className: "muted" }));
 });
 
-test("a card's state and progress are read from the page's language", () => {
-  const html = executionGroupCard(group("prepared"), [], "nb");
-  expect(html).toContain(`>${t("nb", "list.groupState.prepared")}<`);
-  expect(html).toContain(t("nb", "list.groupDone", { done: "1", total: "2" }));
+test("a card's state is read from the page's language", () => {
+  expect(executionGroupCard(group("prepared"), [], "nb")).toContain(`>${t("nb", "list.groupState.prepared")}<`);
 });
 
 test("a group held back or done says so in a spec's own words", () => {
@@ -73,10 +71,28 @@ test("a group held back or done says so in a spec's own words", () => {
   expect(executionGroupCard(group("completed"), [], "nb")).toContain(`>${t("nb", "list.done")}<`);
 });
 
-test("a shut card still shows its progress, and only a card with an action has a line for it", () => {
+test("a shut card still shows its members' pips, and only a card with an action has a line for it", () => {
   const prepared = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
-  const progress = t("en", "list.groupDone", { done: "1", total: "2" });
-  expect(prepared.indexOf(progress)).toBeGreaterThan(-1);
-  expect(prepared.indexOf(progress)).toBeLessThan(prepared.indexOf("data-group-body"));
+  expect(prepared.indexOf('class="pip ')).toBeGreaterThan(-1);
+  expect(prepared.indexOf('class="pip ')).toBeLessThan(prepared.indexOf("data-group-body"));
   expect(executionGroupCard(group("completed"), [])).not.toContain("data-execution-group-actions");
+});
+
+test("a member's pip takes the colour of its own state", () => {
+  const spec = (o: Partial<SpecGroup>) => ({ project: "aide", specFolder: "1-first", done: ["create"], state: "not-started", phases: [], ...o }) as SpecGroup;
+  expect(memberPipKind(spec({}), true)).toBe("past");
+  expect(memberPipKind(spec({ state: "archived" }), false)).toBe("past");
+  expect(memberPipKind(spec({ lead: { state: "running" } as never }), false)).toBe("now");
+  expect(memberPipKind(spec({ state: "failed" }), false)).toBe("refused");
+  expect(memberPipKind(spec({ state: "stopped" }), false)).toBe("waiting");
+  expect(memberPipKind(spec({ phases: [{ step: "archive", heldBack: { reason: "x" } }] as never }), false)).toBe("waiting");
+  expect(memberPipKind(spec({}), false)).toBe("todo");
+  expect(memberPipKind(undefined, false)).toBe("todo");
+});
+
+test("a card numbers its members' pips in the group's order", () => {
+  const html = executionGroupCard(group("prepared"), [member("1-first", ""), member("2-second", "")]);
+  const marks = html.slice(html.indexOf('class="pipletters"'), html.indexOf('class="pips"'));
+  expect(marks.match(/>(\d)</g)).toEqual([">1<", ">2<"]);
+  expect(html.indexOf('title="2-second"')).toBeLessThan(html.indexOf('title="1-first"'));
 });

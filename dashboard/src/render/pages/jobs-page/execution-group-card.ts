@@ -1,7 +1,7 @@
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupAction, executionGroupActivity } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, buttonForm, foldButton, stepLabel, type BadgeVariant } from "../../ui/components";
+import { badge, buttonForm, foldButton, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
@@ -39,6 +39,17 @@ const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
   return state === "prepared" ? "ready" : "idle";
 };
 
+/** A member's pip, in the colour its own badge has: done, running, failed,
+ *  stopped or held back, or not started. */
+export function memberPipKind(member: SpecGroup | undefined, completed: boolean): PipKind {
+  if (completed || (member && isArchivedRow(member))) return "past";
+  if (!member) return "todo";
+  if (specBusy(member)) return "now";
+  if (["failed", "cancelled", "interrupted", "archived-unlanded"].includes(member.state)) return "refused";
+  const heldBack = !!member.phases.find((p) => p.step === "archive")?.heldBack;
+  return member.state === "stopped" || heldBack ? "waiting" : "todo";
+}
+
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
   const activity = executionGroupActivity(group.state);
   const band = activity === "running" ? 0 : activity === "queued" ? 1 : 2;
@@ -72,18 +83,21 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   // spec opens its group too.
   const open = members.some((member) => member.html.includes(" data-spec-detail="));
   const shut = open ? "" : " hidden";
-  // Two lines always, as a spec's card: the name and the state, then the
-  // date and the progress under them. The action takes a third line, shown
-  // only while the card is open.
-  const progress = t(lang as Language, "list.groupDone", { done: String(group.completedMembers.length), total: String(group.members.length) });
+  // Two lines always, as a spec's card: the name, then the date with a pip
+  // per member at its right, numbered in the group's order, and the state.
+  // The action takes a third line, shown only while the card is open.
+  const memberPips = pips(group.members.map((folder, index) => {
+    const row = members.find((member) => member.group.specFolder === folder);
+    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: String(index + 1) };
+  }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
-    `<td colspan="2"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
-    `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td>` +
+    `<td colspan="5"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
+    `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td></tr>` +
+    `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
+    `<span class="pipslot">${memberPips}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
     `<td></td><td></td></tr>` +
-    `<tr class="groupline"><td colspan="2">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</td>` +
-    `<td data-col="state" class="muted small">${esc(progress)}</td><td></td><td></td></tr>` +
     (control
       ? `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
         `<td></td><td colspan="2"></td><td data-col="state"><span class="actionslot">${control}</span></td><td></td><td></td></tr>`

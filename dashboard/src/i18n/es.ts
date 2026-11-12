@@ -569,7 +569,6 @@ export const es: Record<TranslationKey, string> = {
   "list.groupNew": "Nombre del grupo nuevo",
   "list.groupRemove": "Quitar del grupo",
   "list.groupStart": "Iniciar",
-  "list.groupDone": "{done} de {total} terminadas",
   "list.groupWaiting": "Esperando a {spec}",
   "list.groupState.prepared": "Listo",
   "list.groupState.queued": "En cola",

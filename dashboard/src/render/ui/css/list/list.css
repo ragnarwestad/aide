@@ -127,6 +127,7 @@ table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td { padding-top: 0; padding-bottom: var(--sp-3); }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
+table.speclist.groupcard > tbody > tr.groupline .pipslot { display: flex; margin: 0; padding-left: 0; }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td[data-col="state"] { text-align: center; }
 table.speclist.groupcard > tbody > tr.groupactions > td[data-col="state"] > .actionslot {
   display: flex; width: auto; justify-content: center; }
@@ -156,7 +157,8 @@ table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: var(--sp-3); }
   table.speclist.groupcard > tbody > tr.groupline > td:first-child { grid-column: 2; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
-  table.speclist.groupcard > tbody > tr.grouphead > td[data-col="state"] .badge { min-width: 100%; }
+  table.speclist.groupcard > tbody > tr.grouphead > td:nth-child(2) { grid-column: 2 / -1; }
+  table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] :is(.badgeslot, .badge) { width: 100%; box-sizing: border-box; }
   table.speclist.groupcard tr.specstate > td:first-child {
     flex-basis: calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2) - 2 * var(--sp-1) - 2px); }

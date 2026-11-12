@@ -253,10 +253,11 @@ export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 // tech per pip, and a screen reader spelling out four bare letters
 // beside four `title`s reading "Create"/"Analyze"/... would say the
 // same thing twice, worse the second time.
-export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): string =>
+/** `label`: the mark over the pip, when it is not the title's first letter. */
+export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label?: string }[]): string =>
   `<div class="pipwrap">` +
   `<div class="pipletters" aria-hidden="true">` +
-  items.map((p) => `<span class="${p.kind}">${esc(p.title.slice(0, 1))}</span>`).join("") +
+  items.map((p) => `<span class="${p.kind}">${esc(p.label ?? p.title.slice(0, 1))}</span>`).join("") +
   `</div>` +
   `<div class="pips">` +
   items

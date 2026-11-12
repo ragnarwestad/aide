@@ -580,7 +580,6 @@ export const en = {
   "list.groupNew": "New group name",
   "list.groupRemove": "Remove from group",
   "list.groupStart": "Start",
-  "list.groupDone": "{done} of {total} done",
   "list.groupWaiting": "Waiting for {spec}",
   "list.groupState.prepared": "Ready",
   "list.groupState.queued": "Queued",

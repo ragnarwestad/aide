@@ -784,10 +784,11 @@ With no rows, the search field, State filter and column headings stay visible, a
 is running." Failed-create messages stay above the search row. The first job appears without a page reload.
 
 A grouped spec appears inside its execution group's card instead of as a second ordinary Running row. The card shows
-the group's creation date, its first start date when present, progress and the one action allowed by its current state.
-The card opens with its own ›, or when a member's spec is opened from its address. Shut, it shows the group's name and state,
-with its creation date and progress on the line under them; open, a third line holds the action, and each member is
-drawn below as its own spec card.
+the group's creation date, its progress and the one action allowed by its current state.
+The card opens with its own ›, or when a member's spec is opened from its address. Shut, it shows the group's name, and under
+it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
+of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
+action, and each member is drawn below as its own spec card.
 Completed groups leave Running; their archived specs, job pages, logs and pull-request marks remain available.
 
 An ordinary spec has a row for as long as the Specs list shows it under Active, whatever its jobs did and whether or not it has one
