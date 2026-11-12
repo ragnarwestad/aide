@@ -72,3 +72,11 @@ test("a group held back or done says so in a spec's own words", () => {
   expect(executionGroupCard(group("waiting-acceptance"), [], "nb")).toContain(`>${t("nb", "wordPhase.badgeHeldBack")}<`);
   expect(executionGroupCard(group("completed"), [], "nb")).toContain(`>${t("nb", "list.done")}<`);
 });
+
+test("a shut card still shows its progress, and only a card with an action has a line for it", () => {
+  const prepared = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
+  const progress = t("en", "list.groupDone", { done: "1", total: "2" });
+  expect(prepared.indexOf(progress)).toBeGreaterThan(-1);
+  expect(prepared.indexOf(progress)).toBeLessThan(prepared.indexOf("data-group-body"));
+  expect(executionGroupCard(group("completed"), [])).not.toContain("data-execution-group-actions");
+});

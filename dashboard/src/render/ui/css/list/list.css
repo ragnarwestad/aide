@@ -121,15 +121,15 @@ table.speclist > tbody > tr.execution-group > td.groupcell {
 table.speclist.groupcard { width: 100%; }
 /* Specific enough to beat the spec cards' own edge rules, `:first-child`
    and `:last-child` included. */
-table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.specgap, .specstate) > td:nth-child(n) {
+table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.specgap, .specstate) > td:nth-child(n) {
   border: 0; border-radius: 0; background: none; }
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); }
-table.speclist.groupcard > tbody > tr.groupactions > td { padding-bottom: var(--sp-3); }
-table.speclist.groupcard > tbody > tr.groupactions > td[data-col="state"] { text-align: center; }
+table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td { padding-top: 0; padding-bottom: var(--sp-3); }
+table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td[data-col="state"] { text-align: center; }
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   vertical-align: middle; text-align: center; line-height: 0; padding: var(--sp-3) var(--sp-1) 0; }
 /* On a phone the table is blocks: the card is the cell's box alone, and the
-   group's two lines share one grid, so the action stands under the state. The `:not()`s outweigh
+   group's lines share one grid, so the action stands under the state. The `:not()`s outweigh
    the phone's own rules for the list's rows. A member's state line gives up
    the card's inset from its pips' cell, or its time wraps. */
 @media (max-width: 40rem) {
@@ -137,16 +137,17 @@ table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
     display: block; border: 0; background: none; }
   table.speclist > tbody > tr.execution-group > td.groupcell { display: block; padding: 0 var(--sp-1); }
   table.speclist.groupcard > tbody[hidden] { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) {
-    display: grid; grid-template-columns: 20px minmax(0, 1fr) var(--state-w) 6.5rem; align-items: center;
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow) {
+    display: grid; grid-template-columns: 20px minmax(0, 1fr) var(--state-w) var(--time-w); align-items: center;
     gap: var(--sp-2); border: 0; background: none; padding: 0 var(--sp-2); }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) > td {
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow) > td {
     display: block; padding-left: 0; padding-right: 0; }
-  table.speclist.groupcard > tbody > tr.groupactions:not(.spechead, .specstate, .subrow) > td:nth-child(n+5) { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions) > td[data-col="state"] { text-align: center; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow) > td:nth-child(n+5) { display: none; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions) > td[data-col="state"] { text-align: center; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: var(--sp-3); }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
+  table.speclist.groupcard > tbody > tr.grouphead > td[data-col="state"] .badge { min-width: 100%; }
   table.speclist.groupcard tr.specstate > td:first-child {
     flex-basis: calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2) - 2 * var(--sp-1) - 2px); }

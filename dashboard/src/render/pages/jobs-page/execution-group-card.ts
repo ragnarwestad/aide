@@ -72,16 +72,23 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   // spec opens its group too.
   const open = members.some((member) => member.html.includes(" data-spec-detail="));
   const shut = open ? "" : " hidden";
+  // Two lines always, as a spec's card: the name and the state, then the
+  // date and the progress under them. The action takes a third line, shown
+  // only while the card is open.
+  const progress = t(lang as Language, "list.groupDone", { done: String(group.completedMembers.length), total: String(group.members.length) });
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="2"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
     `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
-    `<td colspan="2">${esc(t(lang as Language, "list.groupDone", { done: String(group.completedMembers.length), total: String(group.members.length) }))}</td></tr>` +
-    `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
-    `<td></td><td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</span></td>` +
-    `<td data-col="state"><span class="actionslot">${control}</span></td>` +
-    `<td></td><td></td></tr></tbody>`;
+    `<td></td><td></td></tr>` +
+    `<tr class="groupline"><td></td><td colspan="2">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</td>` +
+    `<td data-col="state" class="muted small">${esc(progress)}</td><td></td><td></td></tr>` +
+    (control
+      ? `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
+        `<td></td><td colspan="2"></td><td data-col="state"><span class="actionslot">${control}</span></td><td></td><td></td></tr>`
+      : "") +
+    `</tbody>`;
   const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;
     return member.html.includes(" data-spec-group-member=")
