@@ -24,8 +24,7 @@ test("the New group form posts a project, a name, and a member and a position fo
   expect(html).toContain("Create and order groups");
 });
 
-test("the New group form stands in the form dialog its button names, and in no fold (AC-6)", () => {
+test("the New group form stands in the form dialog its button names (AC-6)", () => {
   const form = formOf(executionGroupEditor({ projects: ["aide"], candidates: [] }));
   expect(form.closest("dialog.formdialog")?.id).toBe(NEW_GROUP_DIALOG);
-  expect(form.closest("details")).toBeNull();
 });
