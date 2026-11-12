@@ -125,6 +125,20 @@ def test_the_create_skill_hands_the_given_description_to_aide_create_spec():
 
 
 @pytest.mark.validation
+def test_the_create_skills_call_carries_an_apostrophe_under_the_systems_bash():
+    """macOS ships bash 3.2, which cannot read a here-document holding an
+    apostrophe inside `$( )`: the call as the skill writes it has to
+    hand such a description over whole."""
+    skill = (CORE_SKILLS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
+    call = next(block for block in BASH_BLOCK.findall(skill)
+                if "aide-create-spec" in block and "--description" in block)
+    call = call.replace("<the description text, verbatim>", "the reader's row")
+    stub = 'aide-create-spec() { printf "[%s]\\n" "$@"; }\n'
+    ran = subprocess.run(["/bin/bash", "-c", stub + call], capture_output=True, text=True)
+    assert "[the reader's row]" in ran.stdout, ran.stderr
+
+
+@pytest.mark.validation
 def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_of_scope_heading():
     """`aide_out_of_scope_section` finds a section only under the exact
     heading, so the rule's skeleton, the create skill and the plan review

@@ -216,24 +216,28 @@ rewrite. It refuses a changed,
 dropped or added `## Out of scope` section as well. When it refuses, fix the line it names and call it again;
 never get past a refusal by dropping a line or the flag.
 
-Create the files with the script, through Bash:
+Create the files with the script, through Bash, as one command. The two
+texts go through files: the system's bash cannot read a here-document
+that holds an apostrophe inside `$( )`.
 
 ```bash
+desc="$(mktemp)"; given="$(mktemp)"
+cat > "$desc" <<'AIDE_DESC'
+<the description text, verbatim>
+AIDE_DESC
+cat > "$given" <<'AIDE_GIVEN'
+<the description exactly as it was given>
+AIDE_GIVEN
 aide-create-spec \
   --specs-root "<specs-root>" \
   --number "<NN>" \
   --slug "<slug>" \
   --title "<title>" \
-  --description "$(cat <<'AIDE_DESC'
-<the description text, verbatim>
-AIDE_DESC
-)" \
-  --given-description "$(cat <<'AIDE_GIVEN'
-<the description exactly as it was given>
-AIDE_GIVEN
-)" \
+  --description "$(cat "$desc")" \
+  --given-description "$(cat "$given")" \
   --depends-on "<value>"   # omit this flag entirely when the prompt states none
   --acceptance-not-required   # the default — see "Acceptance" below
+rm -f "$desc" "$given"
 ```
 
 Headless, with a literal folder name stated (Steps 2-3 skipped): the
