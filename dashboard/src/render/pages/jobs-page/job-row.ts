@@ -23,7 +23,7 @@ import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
-import { costCell } from "../specs-list/cell-helpers.ts";
+import { costCell, createdLabel } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
@@ -125,7 +125,9 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div></td></tr>` +
-    `<tr class="specstate"><td colspan="2"></td>` +
+    // When the job was made, where a spec's row says when the spec was; with
+    // no pips beside it, a phone shows nothing here, as it hides a spec's date.
+    `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +

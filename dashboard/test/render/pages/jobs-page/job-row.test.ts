@@ -4,6 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { jobRow, type JobStep } from "../../../../src/render/pages/jobs-page/job-row.ts";
 import type { QueueRowView } from "../../../../src/render";
+import { createdLabel } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 
 const close = {
   id: "c1", project: "aide", specFolder: "01-x", steps: ["close"], stepIndex: 0, state: "failed",
@@ -57,5 +58,11 @@ describe("a job step's Cost cell", () => {
   test("a step whose run reported tokens shows them, and one with none shows a dash", () => {
     expect(cost("Step 2 of 4")).toBe("12.3k");
     expect(cost("Step 1 of 4")).toBe("–");
+  });
+});
+
+describe("a job's created stamp", () => {
+  test("its row says when the job was made, as a spec's row says when the spec was", () => {
+    expect(draw()).toContain(createdLabel(close.createdAt));
   });
 });
