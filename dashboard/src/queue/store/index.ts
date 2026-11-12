@@ -69,7 +69,7 @@ export class QueueStore {
 
   constructor(opts: QueueOptions) {
     this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
-    this.cap = opts.cap ?? 200;
+    this.cap = opts.cap ?? 1000;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
     this.pendingProvidersPath = pendingProvidersPath(opts.pendingModelsPath);
@@ -83,6 +83,7 @@ export class QueueStore {
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
     loadJobs(this.mirrorPath, this.jobs);
+    while (this.jobs.size > this.cap) this.jobs.delete(this.jobs.keys().next().value as string);
     loadPendingModels(this.pendingModelsPath, this.pendingModels);
     loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
     loadModelIds(this.modelIdsPath, this.modelIds);

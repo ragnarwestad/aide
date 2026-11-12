@@ -14,7 +14,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.themeDark": "Sombre",
   "shell.themeLight": "Clair",
   "shell.themeAuto": "Auto",
-  "shell.tabRunning": "En cours",
+  "shell.tabRunning": "Tâches",
   "shell.tabSpecs": "Spécifications",
   "shell.tabProjects": "Projets",
   "shell.tabSchedule": "Planification",

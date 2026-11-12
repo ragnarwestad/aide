@@ -14,7 +14,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",
   "shell.themeAuto": "Auto",
-  "shell.tabRunning": "Kjører",
+  "shell.tabRunning": "Jobber",
   "shell.tabSpecs": "Spesifikasjoner",
   "shell.tabProjects": "Prosjekter",
   "shell.tabSchedule": "Kjøring",

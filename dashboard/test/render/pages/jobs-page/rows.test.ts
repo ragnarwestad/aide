@@ -14,6 +14,7 @@ import {
   scheduleStreamKey,
   specPlace,
   specsStoodForByJobs,
+  specRounds,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
 import { jobDismissible } from "../../../../src/queue/queue.ts";
 
@@ -44,6 +45,18 @@ const group = (o: { state: string; lead?: Partial<Lead>; createdAt?: string }): 
   ({ state: o.state, lead: o.lead ? job(o.lead as Partial<J>) : undefined, createdAt: o.createdAt }) as never;
 
 describe("where a row stands on the tab: running or landing, queued, the rest; the newest change first", () => {
+  test("uses four bands with finished work last and newest first in each (AC-4)", () => {
+    const ordered = [
+      ["finished-old", { band: 3, changedAt: ms(1) }],
+      ["waiting", { band: 2, changedAt: ms(4) }],
+      ["queued", { band: 1, changedAt: ms(3) }],
+      ["running", { band: 0, changedAt: ms(2) }],
+      ["finished-new", { band: 3, changedAt: ms(5) }],
+    ] as const;
+    expect([...ordered].sort((a, b) => byTabPlace(a[1], b[1])).map(([name]) => name))
+      .toEqual(["running", "queued", "waiting", "finished-new", "finished-old"]);
+  });
+
   test("running and landing specs come first, then the queued one, then the rest, newest first", () => {
     const places = [
       ["rest-t1", specPlace(group({ state: "not-started", createdAt: T(1) }))],
@@ -58,11 +71,12 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
     expect(ordered).toEqual(["landing-new", "running-old", "queued", "rest-t3", "rest-t2", "rest-t1"]);
   });
 
-  test("a job's band is its own state: running or landing, queued, else the rest", () => {
+  test("a job's band is running or landing, queued, waiting, or finished (AC-4)", () => {
     expect(jobPlace(job({ state: "running" })).band).toBe(0);
     expect(jobPlace(job({ state: "done", landing: true })).band).toBe(0);
     expect(jobPlace(job({ state: "queued" })).band).toBe(1);
     expect(jobPlace(job({ state: "failed" })).band).toBe(2);
+    expect(jobPlace(job({ state: "done" })).band).toBe(3);
   });
 
   test("a spec's change is its lead job's newest stamp: made, started or finished", () => {
@@ -100,10 +114,24 @@ describe("a scheduled job in flight has a row", () => {
     expect(new Set(ids(jobs))).toEqual(new Set(["sq", "sr", "sl"]));
   });
 
-  test("a finished one with nothing waiting, and a cancelled one, have none", () => {
+  test("finished and cancelled jobs remain as history (AC-3)", () => {
     const jobs = [sched({ id: "d", state: "done" }), sched({ id: "x", state: "cancelled", project: "other" })];
-    expect(ids(jobs)).toEqual([]);
+    expect(ids(jobs)).toEqual(["d", "x"]);
   });
+});
+
+test("successive successful Reopens make stable, dated spec rounds (AC-2, AC-7, AC-9)", () => {
+  const jobs = [
+    job({ id: "create", steps: ["create"], state: "done", createdAt: T(1) }),
+    job({ id: "first", steps: ["analyze"], state: "done", createdAt: T(2) }),
+    job({ id: "reopen", steps: ["reopen"], state: "done", createdAt: T(5), finishedAt: T(6) }),
+    job({ id: "second", steps: ["implement"], state: "done", createdAt: T(7) }),
+  ];
+  const rounds = specRounds(jobs, T(1));
+  expect(rounds.map((round) => ({ key: round.key, startedAt: round.startedAt, ids: round.jobs.map((j) => j.id) }))).toEqual([
+    { key: "aide/81-queue", startedAt: T(1), ids: ["create", "first"] },
+    { key: `aide/81-queue@${encodeURIComponent(T(6))}`, startedAt: T(6), ids: ["reopen", "second"] },
+  ]);
 });
 
 describe("a cleanup job has a row only while it runs or waits for a person", () => {
@@ -113,8 +141,8 @@ describe("a cleanup job has a row only while it runs or waits for a person", () 
     expect(ids([cleanup({ id: "running", state: "running" })])).toEqual(["running"]);
   });
 
-  test("removes a completed cleanup job (AC-2)", () => {
-    expect(ids([cleanup({ id: "done", state: "done" })])).toEqual([]);
+  test("keeps a completed cleanup job in history (AC-3)", () => {
+    expect(ids([cleanup({ id: "done", state: "done" })])).toEqual(["done"]);
   });
 
   test("keeps a cleanup job that waits for a person (AC-3)", () => {
@@ -163,29 +191,29 @@ describe("a finished scheduled job that waits for the user keeps its row", () =>
   }
 });
 
-describe("a newer job of the same project and key clears a waiting one", () => {
+describe("a newer scheduled job leaves the earlier one in history", () => {
   const failed = sched({ id: "old", state: "failed", createdAt: T(1) });
 
   for (const state of ["queued", "running", "done"] as const) {
     test(`a newer ${state} one`, () => {
       const newer = sched({ id: "new", state, createdAt: T(2) });
-      expect(ids([newer, failed])).not.toContain("old");
+      expect(ids([newer, failed])).toEqual(["new", "old"]);
     });
   }
 
   test("a newer cancelled run does not clear it", () => {
     const newer = sched({ id: "new", state: "cancelled", createdAt: T(2) });
-    expect(ids([newer, failed])).toEqual(["old"]);
+    expect(ids([newer, failed])).toEqual(["new", "old"]);
   });
 
   test("a newer one that itself waits keeps its own row, and the older goes", () => {
     const newer = sched({ id: "new", state: "failed", createdAt: T(2) });
-    expect(ids([newer, failed])).toEqual(["new"]);
+    expect(ids([newer, failed])).toEqual(["new", "old"]);
   });
 
   test("an older job after the failed one does not clear it", () => {
     const older = sched({ id: "before", state: "done", createdAt: T(0) });
-    expect(ids([failed, older])).toEqual(["old"]);
+    expect(ids([failed, older])).toEqual(["old", "before"]);
   });
 
   test("another project or another schedule key leave it", () => {
@@ -194,27 +222,37 @@ describe("a newer job of the same project and key clears a waiting one", () => {
 
     const s = sched({ id: "s", state: "failed", specFolder: "schedule-a", createdAt: T(1) });
     const sOther = sched({ id: "so", state: "done", specFolder: "schedule-b", createdAt: T(2) });
-    expect(ids([sOther, s])).toEqual(["s"]);
+    expect(ids([sOther, s])).toEqual(["so", "s"]);
   });
 });
 
 describe("a waiting scheduled job whose entry was deleted", () => {
   const waiting = sched({ id: "s", state: "failed" });
 
-  test("has a row while its entry exists, and none once it is gone", () => {
+  test("stays as finished history after its entry is deleted (AC-3, AC-11)", () => {
     const asked: [string, string][] = [];
     const exists = (project: string, name: string) => {
       asked.push([project, name]);
       return true;
     };
     expect(ids([waiting], { ...none, scheduleEntryExists: exists })).toEqual(["s"]);
-    expect(asked).toEqual([["aide", "nightly"]]);
-    expect(ids([waiting], { ...none, scheduleEntryExists: () => false })).toEqual([]);
+    expect(asked).toEqual([]);
+    expect(ids([waiting], { ...none, scheduleEntryExists: () => false })).toEqual(["s"]);
   });
 
   test("a running scheduled job does not ask whether its entry exists", () => {
     const running = sched({ id: "r", state: "running" });
     expect(ids([running], { ...none, scheduleEntryExists: () => false })).toEqual(["r"]);
+  });
+
+  test("is sorted as finished once its entry is gone (AC-11)", () => {
+    expect(jobPlace(waiting, [], () => false).band).toBe(3);
+  });
+
+  test("is sorted as finished after any newer run, including a cancelled one (AC-11)", () => {
+    const subject = { ...waiting, createdAt: T(1) };
+    const newer = sched({ id: "new", state: "cancelled", createdAt: T(2) });
+    expect(jobPlace(subject, [subject, newer], () => true).band).toBe(3);
   });
 });
 
@@ -233,12 +271,12 @@ describe("which jobs may be dismissed from the tab", () => {
   });
 });
 
-describe("a dismissed scheduled job has no row", () => {
+describe("an old dismissal stamp no longer removes scheduled-job history", () => {
   const failed = (o: Partial<J> = {}): J => sched({ id: "s", state: "failed", createdAt: T(1), startedAt: T(2), finishedAt: T(3), ...o });
 
-  test("it is left out while its dismissal is not older than its newest stamp (AC-3)", () => {
-    expect(ids([failed({ dismissedAt: T(4) })])).toEqual([]);
-    expect(ids([failed({ dismissedAt: T(3) })])).toEqual([]);
+  test("it remains regardless of the dismissal stamp (AC-3, AC-10)", () => {
+    expect(ids([failed({ dismissedAt: T(4) })])).toEqual(["s"]);
+    expect(ids([failed({ dismissedAt: T(3) })])).toEqual(["s"]);
   });
 
   test("it is returned again once it ended after the dismissal (AC-3)", () => {
@@ -261,10 +299,10 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     expect(ids(jobs)).toEqual(["q", "r", "l"]);
   });
 
-  test("a failed one keeps its row until a newer job of its spec, and a finished one has none", () => {
+  test("failed and finished jobs remain as their own history rows (AC-3)", () => {
     expect(ids([at("close", { id: "f", state: "failed" })])).toEqual(["f"]);
-    expect(ids([at("close", { id: "f", state: "failed", createdAt: T(1) }), job({ id: "a", state: "running", createdAt: T(2) })])).toEqual([]);
-    expect(ids([at("reopen", { id: "d", state: "done" })])).toEqual([]);
+    expect(ids([at("close", { id: "f", state: "failed", createdAt: T(1) }), job({ id: "a", state: "running", createdAt: T(2) })])).toEqual(["f"]);
+    expect(ids([at("reopen", { id: "d", state: "done" })])).toEqual(["d"]);
   });
 
   test("a reopen gone on to the spec's next step is the spec's again", () => {
@@ -332,15 +370,15 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
     expect(ids(jobs)).toEqual(["q", "h", "r"]);
   });
 
-  test("a failed or interrupted one keeps its row until a newer deploy of the project is queued", () => {
+  test("failed and interrupted deploys stay beside newer deploys (AC-3)", () => {
     for (const state of ["failed", "interrupted"] as const) {
       expect(ids([deploy({ id: "f", state, createdAt: T(1) })])).toEqual(["f"]);
-      expect(ids([deploy({ id: "f", state, createdAt: T(1) }), deploy({ id: "n", state: "queued", createdAt: T(2) })])).toEqual(["n"]);
+      expect(ids([deploy({ id: "f", state, createdAt: T(1) }), deploy({ id: "n", state: "queued", createdAt: T(2) })])).toEqual(["f", "n"]);
     }
   });
 
-  test("a done one has none", () => {
-    expect(ids([deploy({ id: "d", state: "done" })])).toEqual([]);
+  test("a done deploy stays in history (AC-3)", () => {
+    expect(ids([deploy({ id: "d", state: "done" })])).toEqual(["d"]);
   });
 
   test("its title is the deploy and its project, and its key is the project's own", () => {

@@ -12,11 +12,11 @@ import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
 import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
-import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
+import { activeSpecRows, type ArchivedSpecView, type SpecTarget, type SpecsPageOptions } from "../specs-list";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobKey, jobPlace, specPlace, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobKey, jobPlace, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -26,6 +26,12 @@ import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
+
+export function executionGroupRowState(group: ExecutionGroup, failed: boolean): RowFacts["state"] {
+  if (group.state === "completed") return "done";
+  const activity = executionGroupActivity(group.state);
+  return failed ? "failed" : activity === "idle" ? "stopped" : activity;
+}
 
 /** What the page draws: the scheduled jobs it shows, and the Specs
  *  list's options its spec rows are drawn with. */
@@ -38,6 +44,9 @@ export interface JobsView {
    *  `archivedSpecs` holds the archived rows the Active entry shows. */
   list: SpecsPageOptions;
   executionGroups?: ExecutionGroup[];
+  /** Archived and closed specs whose rounds remain in job history. */
+  historySpecs?: ArchivedSpecView[];
+  scheduleEntryExists?: (project: string, name: string) => boolean;
   /** The moment the page is drawn at, for the time of a job still going. */
   now?: number;
 }
@@ -49,7 +58,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const now = v.now ?? Date.now();
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
-  const specRows = activeSpecRows(v.specJobs, v.list, now);
+  const specRows = roundSpecRows(v, now);
   const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
@@ -58,14 +67,13 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const groups = activeGroups.map((group) => {
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
     const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
-    const activity = executionGroupActivity(group.state);
     return {
       key: `execution-group:${group.id}`,
       html: executionGroupCard(group, specRows, lang),
       place: executionGroupPlace(group, members),
       facts: {
         project: group.project, specFolder: group.name,
-        state: failed ? "failed" : activity === "idle" ? "stopped" : activity,
+        state: executionGroupRowState(group, !!failed),
         failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
         title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
       } as RowFacts,
@@ -74,14 +82,75 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const jobs = v.shown.map((job) => ({
     key: jobKey(job),
     html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
-    place: jobPlace(job),
+    place: jobPlace(job, v.shown, v.scheduleEntryExists),
     facts: jobFacts(job, now),
   }));
   return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
-function activeExecutionGroups(v: JobsView, specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now())): ExecutionGroup[] {
-  const registered = (v.executionGroups ?? []).filter((group) => group.state !== "completed");
+function roundSpecRows(v: JobsView, now: number) {
+  const bySpec = new Map<string, QueueRowView[]>();
+  for (const job of v.specJobs) {
+    const key = `${job.project}/${job.specFolder}`;
+    bySpec.set(key, [...(bySpec.get(key) ?? []), job]);
+  }
+  const rows = activeSpecRows(v.specJobs, v.list, now);
+  const targets = new Map<string, SpecTarget>();
+  for (const target of v.list.targets) targets.set(`${target.project}/${target.specFolder}`, target);
+  for (const archived of v.historySpecs ?? []) {
+    const key = `${archived.project}/${archived.folder}`;
+    if (!targets.has(key)) targets.set(key, {
+      project: archived.project,
+      specFolder: archived.folder,
+      title: archived.title,
+      description: archived.description,
+      createdAt: archived.createdAt,
+      done: archived.done,
+      notVerified: archived.notVerified,
+    });
+  }
+  for (const target of targets.values()) {
+    const baseKey = `${target.project}/${target.specFolder}`;
+    const history = bySpec.get(baseKey) ?? [];
+    const rounds = specRounds(history, target.createdAt);
+    const existing = rows.findIndex((row) => row.key === baseKey);
+    if (rounds.length <= 1 && existing >= 0) continue;
+    if (rounds.length > 1 && existing >= 0) rows.splice(existing, 1);
+    if (!rounds.length) {
+      const archived = (v.historySpecs ?? []).find((spec) => spec.project === target.project && spec.folder === target.specFolder);
+      rows.push(...activeSpecRows([], { ...v.list, targets: [target], archivedSpecs: [] }, now).map((row) => ({
+        ...row,
+        group: archived ? { ...row.group, state: archived.closed ? "closed" as const : "archived" as const } : row.group,
+      })));
+      continue;
+    }
+    for (const round of rounds) {
+      const open = (v.list.filter?.open ?? "").split(",").includes(round.key) ? baseKey : "";
+      const built = activeSpecRows(round.jobs, {
+        ...v.list,
+        targets: [{ ...target, createdAt: round.startedAt }],
+        archivedSpecs: [],
+        filter: { ...v.list.filter, open },
+      }, now)[0];
+      if (!built) continue;
+      const encodedBase = encodeURIComponent(baseKey);
+      const encodedRound = encodeURIComponent(round.key);
+      rows.push({
+        ...built,
+        key: round.key,
+        group: { ...built.group, createdAt: round.startedAt },
+        html: built.html
+          .replaceAll(`id="spec-${baseKey}"`, `id="spec-${round.key}"`)
+          .replaceAll(`data-key="${baseKey}"`, `data-key="${round.key}"`)
+          .replaceAll(`open=${encodedBase}`, `open=${encodedRound}`),
+      });
+    }
+  }
+  return rows;
+}
+
+function activeExecutionGroups(v: JobsView, specRows = roundSpecRows(v, v.now ?? Date.now())): ExecutionGroup[] {
+  const registered = v.executionGroups ?? [];
   const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
   const legacy = new Map<string, typeof specRows>();
   for (const row of specRows) {
@@ -163,7 +232,7 @@ export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: Nav
   // The refusal line and the row it is copied into sit outside `#jobrows`, so
   // no redraw of the rows replaces either.
   const body = listRefusalLine() + `<div id="jobrows">${renderJobsRows(v)}</div>` + refusalRowTemplate();
-  return pageShell("Running", entriesNav, "/", body, generatedAt, {
+  return pageShell("Jobs", entriesNav, "/", body, generatedAt, {
     hideHeading: true,
     script: v.list.script,
     lang,

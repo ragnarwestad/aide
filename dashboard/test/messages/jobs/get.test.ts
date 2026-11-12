@@ -23,24 +23,24 @@ describe("the line under a job row's state", () => {
   const sentenceOf = formatSentence("en", said) as string;
   const message = (row: J) => getJobMessage(row as never, "en");
 
-  test("a failed schedule's message carries its dismiss action", () => {
+  test("a failed schedule's message has no dismiss action", () => {
     const m = message(schedule({ id: "failed-schedule", specFolder: "schedule-nightly", state: "failed" }));
-    expect((m as { dismiss?: string })?.dismiss).toBe("/api/queue/failed-schedule/dismiss");
+    expect((m as { dismiss?: string })?.dismiss).toBeUndefined();
   });
 
   test("a failed job of any kind says why, in its own sentence, red, with its log's address", () => {
     for (const [, make] of kinds) {
       const row = make({ id: "f1", state: "failed", error: said });
-      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, log: "/jobs/f1?tab=steps", ...(make === schedule ? { dismiss: "/api/queue/f1/dismiss" } : {}) });
+      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, log: "/jobs/f1?tab=steps" });
     }
   });
 
   test("a stopped job says why in amber, an interrupted one in red, each with the log's address", () => {
     expect(message(schedule({ id: "s1", state: "stopped", error: said }))).toEqual({
-      variant: "waiting", text: sentenceOf, log: "/jobs/s1?tab=steps", dismiss: "/api/queue/s1/dismiss",
+      variant: "waiting", text: sentenceOf, log: "/jobs/s1?tab=steps",
     });
     expect(message(schedule({ id: "i1", state: "interrupted", error: said }))).toEqual({
-      variant: "failed", text: sentenceOf, log: "/jobs/i1?tab=steps", dismiss: "/api/queue/i1/dismiss",
+      variant: "failed", text: sentenceOf, log: "/jobs/i1?tab=steps",
     });
   });
 
@@ -122,7 +122,7 @@ describe("the line under a job row's state", () => {
     test("a failed job names the provider after its own sentence and keeps its log (AC-10)", () => {
       const row = schedule({ id: "f2", state: "failed", error: said, results: onWork } as never);
       expect(message(row)).toEqual({
-        variant: "failed", text: `${sentenceOf}\n${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps", dismiss: "/api/queue/f2/dismiss",
+        variant: "failed", text: `${sentenceOf}\n${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
       });
     });
 

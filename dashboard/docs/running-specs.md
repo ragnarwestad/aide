@@ -17,7 +17,7 @@
 - [Providers](#providers)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
-- [The Running tab](#the-running-tab)
+- [The Jobs tab](#the-jobs-tab)
 - [Live runs](#live-runs)
 
 ---
@@ -767,14 +767,13 @@ Microsoft) and is never in the clear there.
 
 The Slack `notifyCommand` above is separate and unchanged.
 
-## The Running tab
+## The Jobs tab
 
-The Running tab is the board's first page, at `/`. It lists unfinished execution groups as cards, ordinary active specs, and the
-scheduled jobs, the Close and Reopen jobs and the board's own deploy that are running or wait for the user, in every
-project.
+The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
+round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
 
-When the board starts with nothing running, the first page a browser tab loads, if it is the Running tab with no row left
-by its saved filter, replaces itself with the Specs list. Once the board has started in a tab, the Running tab shows,
+When the board starts with nothing running, the first page a browser tab loads, if it is the Jobs tab with no row left
+by its saved filter, replaces itself with the Specs list. Once the board has started in a tab, the Jobs tab shows,
 empty or not, on a click, a link or a reload. [Installing it as an app](hosting.md#installing-it-as-an-app) has the
 installed app's part.
 
@@ -783,20 +782,18 @@ The tab offers **New**, as the Specs list does ([Making a spec from the page](#m
 With no rows, the search field, State filter and column headings stay visible, and the table has one row saying "Nothing
 is running." Failed-create messages stay above the search row. The first job appears without a page reload.
 
-A grouped spec appears inside its execution group's card instead of as a second ordinary Running row. The card shows
+A grouped spec appears inside its execution group's card instead of as a second ordinary Jobs row. The card shows
 the group's creation date, its progress and the one action allowed by its current state.
 The card opens with its own ›, or when a member's spec is opened from its address. Shut, it shows the group's name, and under
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card.
-Completed groups leave Running; their archived specs, job pages, logs and pull-request marks remain available.
+Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available.
 
-An ordinary spec has a row for as long as the Specs list shows it under Active, whatever its jobs did and whether or not it has one
-in the queue. The tab draws the rows from the same jobs and archived rows as the list's Active entry, so the two cannot
-show different specs; an archived spec whose branch has not merged is on both, marked that its branch is still on origin.
-An archived or closed spec whose work is finished has no row. A job of a spec in a project off the allowlist, of a spec
-whose folder is gone, or of a finished archived or closed spec has no row either; its page `/jobs/<id>` still shows it
-with its Stop.
+An ordinary spec has one Jobs row for each round. The first round starts on the day the spec was made, and every later
+round starts when Reopen finished. Earlier rows stay when the spec is reopened, archived or closed. Each round has its
+own fold and redraw key, so opening one round does not open another round of the same spec. Search treats every round as
+its own row, so a search such as `aide:144` returns every retained round of that spec.
 
 A spec's row is the Specs list's row, drawn by the same builder: the same columns and buttons shut. Opened here it
 unfolds to the phase lines, the Depends on picker, steps, logs and acceptance criteria, where the Specs list's open row
@@ -811,16 +808,12 @@ whole history. The Logs tab keeps every attempt in the current work round, inclu
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.
 
-A scheduled job has a row while it is queued, running or landing. A finished one keeps its row while it waits for the
-user: it failed, was stopped (time limit, usage limit, red tests, unticked criteria, shared files) or was interrupted
-(`waitsForPerson()` in `src/queue/steps.ts`; push notifications read the same set). A waiting row leaves the tab when:
+A scheduled job keeps its own row after it finishes. A failed, stopped or interrupted run counts as waiting for the
+user until a newer job for the same schedule entry exists or the entry is deleted. The row then becomes finished but
+stays in the history. Push notifications keep their existing waiting rules.
 
-- a newer job of the same project and tracking key exists and was not cancelled;
-- a scheduled job's entry is deleted;
-- the user pressed Dismiss on a scheduled job's row. The job stays in the queue with its log and its page; only the row
-  goes. A job queued again after a usage limit that ends again has its row back.
-
-The queue keeps 200 jobs, so a waiting job older than that leaves with its history.
+Scheduled-job rows have no Dismiss action. A failed create is a separate message and still has Dismiss. The queue keeps
+the newest 1000 jobs.
 
 The board's own deploy is a job under the tracking key `deploy`, a step the server runs itself, so it takes no slot
 (`takesSlot`, `queue/steps.ts`). The Deploy button on the board's own project queues it
@@ -836,16 +829,17 @@ A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same col
 with the project: "<project>:<name>". It is shut by default, and its › opens it to show Stop or Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed, stopped or was interrupted says why in a line
-under its state, ending with a Log link and Dismiss. A queued job offers Cancel and a running or landing one Stop, each
-asking first; a finished one has Dismiss alone. Which scheduled jobs show is decided in
+under its state, ending with a Log link. A queued job offers Cancel and a running or landing one Stop, each asking first;
+a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
-The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then the rest, the
+The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then waiting for
+the user, then finished, the
 most recently changed first in each. A job's change is the newest of its made, started and finished times; a spec's is the
 same for its lead job, or the day the spec was made when no job of its round exists. A change made without a job, such as
 a description saved from another machine, does not move a spec.
 
-The tab has the Specs list's search box and a State dropdown (All, Running, Waiting, Stopped, Failed and Not verified,
+The tab has the Specs list's search box and a State dropdown (All, Running, Waiting, Done, Stopped, Failed and Not verified,
 All by default), each counted over the rows the search lets through; a job row is never Not verified. An old address
 naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's name, or `name:`, narrows
 the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's rules; a third press on a

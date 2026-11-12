@@ -113,11 +113,11 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
     expect(rows).toContain('id="spec-aide/81-queue-and-runner"');
   });
 
-  test("the tab for / reads Running and is current, and the document's title says Running", async () => {
+  test("the tab for / reads Jobs and is current, and the document's title says Jobs (AC-1)", async () => {
     const { base } = board([job({})]);
     const html = await (await fetch(`${base}/`)).text();
-    expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Running</a>');
-    expect(html).toContain("<title>aide -board · Running</title>");
+    expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Jobs</a>');
+    expect(html).toContain("<title>aide -board · Jobs</title>");
   });
 
   test("a method other than GET is refused", async () => {
@@ -224,17 +224,15 @@ describe("which kind of row a job gets", () => {
     expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link and Dismiss (AC-1, AC-5, AC-8)", async () => {
+  test("a failed scheduled job ends its message with Log and has no Dismiss (AC-10)", async () => {
     const { base } = scheduled([failedReport]);
     for (const query of ["", "open=aide/schedule-report"]) {
       const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
       const line = noticeOf(g);
       expect(text(line)).toContain(t("en", "jobs.endedFailed"));
-      expect(line).toMatch(
-        /<a [^>]*href="\/jobs\/reportf\?tab=steps"[^>]*>Log<\/a><form [^>]*action="\/api\/queue\/reportf\/dismiss"[\s\S]*<\/form>(<\/div>)?<\/td><\/tr>$/,
-      );
-      // Dismiss is the row's one form: no Run again, no Cancel.
-      expect(g.match(/<form\b/g)).toHaveLength(1);
+      expect(line).toContain('href="/jobs/reportf?tab=steps"');
+      expect(line).not.toContain("dismiss");
+      expect(g.match(/<form\b/g) ?? []).toHaveLength(0);
       expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
       expect(g).not.toContain("/api/queue/reportf/cancel");
       expect(g).not.toContain("data-ask");
@@ -447,15 +445,15 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     }
   }
 
-  test("the spec rows of both answers name the same <project>/<folder> keys", async () => {
+  test("the Jobs tab keeps the Active rows and adds finished archived and closed rows (AC-3, AC-8)", async () => {
     const { base } = everyKind();
     const list = await activeList(base);
     const tab = await rowsOf(base);
-    expect(specKeys(tab)).toEqual(specKeys(list));
+    for (const key of specKeys(list)) expect(specKeys(tab)).toContain(key);
     expect(specKeys(tab)).toContain("aide/81-queue-and-runner");
     expect(specKeys(tab)).toContain("aide/82-no-job");
-    expect(specKeys(tab)).not.toContain("aide/90-finished");
-    expect(specKeys(tab)).not.toContain("aide/91-closed");
+    expect(specKeys(tab)).toContain("aide/90-finished");
+    expect(specKeys(tab)).toContain("aide/91-closed");
     expect(specKeys(tab)).not.toContain("retired/07-old");
   });
 
@@ -527,8 +525,16 @@ describe("a spec's title on the Running tab", () => {
     expect(page).toContain(`data-spec-detail="aide/${FOLDER}"`);
     expect(page).toContain(`id="spec-aide/${FOLDER}"`);
   });
-});
 
+  test("a later round keeps the real spec address while its fold key names the round (AC-7)", async () => {
+    const html = await rowsOf(board([job({ id: "first", state: "done", finishedAt: "2026-10-08T10:05:00Z" }),
+      job({ id: "reopen-done", steps: ["reopen"], state: "done", createdAt: "2026-10-09T10:00:00Z", finishedAt: "2026-10-09T10:05:00Z" }), job({ id: "second", steps: ["implement"], state: "done", createdAt: "2026-10-10T10:00:00Z", finishedAt: "2026-10-10T10:05:00Z" })]).base);
+    const later = group(html, "spec-aide/81-queue-and-runner@2026-10-09T10%3A05%3A00Z");
+    expect(later).toContain('data-key="aide/81-queue-and-runner@2026-10-09T10%3A05%3A00Z"'); expect(later).toContain(
+      'href="/specs/aide/81-queue-and-runner#spec-aide/81-queue-and-runner"',
+    ); expect(later).not.toContain('href="/specs/aide/81-queue-and-runner@');
+  });
+});
 describe("the rows stand in the tab's order", () => {
   test("a running spec first, then the waiting scheduled jobs, the one that changed last first", async () => {
     const failedReport = (o: Record<string, unknown>) =>

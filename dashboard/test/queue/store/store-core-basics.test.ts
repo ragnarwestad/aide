@@ -68,6 +68,42 @@ describe("QueueStore", () => {
     expect(store.get(ids[3])).toBeDefined();
   });
 
+  test("the default store keeps the newest 1000 jobs after reload (AC-13)", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const raw = Array.from({ length: 1001 }, (_, i) => ({
+      id: `job-${i}`, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
+      state: "done", timeoutSec: {}, permissionMode: {}, model: {}, results: [], createdAt: new Date(1_700_000_000_000 + i).toISOString(),
+    }));
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    const loaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(loaded.list()).toHaveLength(1000);
+    expect(loaded.get("job-0")).toBeUndefined();
+    expect(loaded.get("job-1000")).toBeDefined();
+    void store;
+  });
+
+  test("saving 1000 jobs stays within the bounded 200-job baseline (AC-14)", () => {
+    const measure = (count: number): number => {
+      const path = join(dir, `queue-${count}.json`);
+      const raw = Array.from({ length: count }, (_, i) => ({
+        id: `job-${i}`, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
+        state: "done", timeoutSec: {}, permissionMode: {}, model: {}, results: [], createdAt: new Date(1_700_000_000_000 + i).toISOString(),
+      }));
+      writeFileSync(path, JSON.stringify(raw));
+      const store = new QueueStore({ mirrorPath: path, defaults: DEFAULTS, resolve });
+      const times = Array.from({ length: 21 }, (_, i) => {
+        const start = performance.now();
+        store.update(`job-${count - 1}`, { spentUsd: i });
+        return performance.now() - start;
+      }).slice(1).sort((a, b) => a - b);
+      return times[Math.floor(times.length / 2)]!;
+    };
+    const at200 = measure(200);
+    const at1000 = measure(1000);
+    expect(at1000).toBeLessThanOrEqual(25);
+    expect(at1000).toBeLessThanOrEqual(at200 * 8 + 5);
+  });
+
   test("update persists and survives a restart", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);

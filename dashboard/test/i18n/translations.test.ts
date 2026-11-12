@@ -24,4 +24,8 @@ describe("t()", () => {
   test("LANGUAGES names all five", () => {
     expect(LANGUAGES.sort()).toEqual(["de", "en", "es", "fr", "nb"]);
   });
+
+  test("the first tab is named Jobs in every language (AC-1)", () => {
+    expect(LANGUAGES.map((lang) => t(lang, "shell.tabRunning"))).toEqual(["Aufträge", "Jobs", "Trabajos", "Tâches", "Jobber"]);
+  });
 });

@@ -37,16 +37,19 @@ type TitleRow = { project: string; specFolder: string; steps: readonly string[];
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */
 const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
-const sameJob = (job: JobLike): string => `${job.project}\0${job.specFolder}`;
 
 /** 0 running or landing, 1 queued, 2 waiting for the user. */
-const BAND = { running: 0, landing: 0, queued: 1, idle: 2 } as const;
-const group = (job: JobLike): 0 | 1 | 2 => BAND[jobActivity(job)];
+const BAND = { running: 0, landing: 0, queued: 1, idle: 3 } as const;
+const group = (job: JobLike): 0 | 1 | 2 | 3 => {
+  const activity = jobActivity(job);
+  if (activity !== "idle") return BAND[activity];
+  return waitsForPerson(job) ? 2 : 3;
+};
 
 /** Where a row stands: its band (0 running or landing, 1 queued, 2 the rest)
  *  and when it last changed, in milliseconds. */
 export interface TabPlace {
-  band: 0 | 1 | 2;
+  band: 0 | 1 | 2 | 3;
   changedAt: number;
 }
 
@@ -55,22 +58,28 @@ export interface TabPlace {
 const lastStamp = (j: { createdAt: string; startedAt?: string; finishedAt?: string }): number =>
   Math.max(0, ...[j.createdAt, j.startedAt, j.finishedAt].map((s) => Date.parse(s ?? "")).filter(Number.isFinite));
 
-/** A dismissal holds for the ending it was pressed on: a job the board queues
- *  again after a usage limit and that ends again has a newer stamp. */
-const dismissed = (job: JobLike & { dismissedAt?: string }): boolean =>
-  !!job.dismissedAt && Date.parse(job.dismissedAt) >= lastStamp(job);
-
-export const jobPlace = (job: JobLike): TabPlace => ({
-  band: group(job),
-  changedAt: lastStamp(job),
-});
+export const jobPlace = (
+  job: JobLike,
+  history: readonly JobLike[] = [],
+  scheduleEntryExists?: (project: string, name: string) => boolean,
+): TabPlace => {
+  const band = group(job);
+  if (band !== 2) return { band, changedAt: lastStamp(job) };
+  const schedule = jobKind(job) === "schedule";
+  const superseded = history.some((later) =>
+    later.project === job.project && later.specFolder === job.specFolder &&
+    (schedule || later.state !== "cancelled") && at(later) > at(job));
+  const deleted = schedule && scheduleEntryExists !== undefined &&
+    !scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
+  return { band: superseded || deleted ? 3 : 2, changedAt: lastStamp(job) };
+};
 
 /** A spec's band is its row's state (a landing lead already reads `running`);
  *  its change is its lead job's newest stamp, or, with no job of its round,
  *  the day it was made. A spec git has not dated yet, with no job, was made
  *  moments ago: it is the newest, as the list's `sortGroups` treats it. */
 export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): TabPlace => ({
-  band: g.state === "running" ? 0 : g.state === "queued" ? 1 : 2,
+  band: g.state === "running" ? 0 : g.state === "queued" ? 1 : ["archived", "closed"].includes(g.state) ? 3 : 2,
   changedAt:
     !g.lead && !g.createdAt
       ? Number.MAX_SAFE_INTEGER
@@ -92,18 +101,40 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
     scheduleEntryExists: (project: string, name: string) => boolean;
   },
 ): T[] {
-  const newest = new Map<string, number>();
-  // A cancelled run is a person ending it, not a run that succeeded, so it
-  // does not deal with an earlier job's failure.
-  for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
+  void o;
   return jobs.filter((job) => {
-    const schedule = jobKind(job) === "schedule";
     if (!requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow) return false;
-    if (inFlight(job)) return true;
-    if (!waitsForPerson(job)) return false;
-    if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
-    return !schedule || (!dismissed(job) && o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder)));
+    return true;
   });
+}
+
+export interface SpecRound<T extends JobLike> {
+  key: string;
+  startedAt: string;
+  jobs: T[];
+}
+
+/** Successive runs of one spec. A successful Reopen starts the next round;
+ * the Reopen itself belongs to the round it started. */
+export function specRounds<T extends JobLike>(jobs: T[], createdAt?: string): SpecRound<T>[] {
+  if (!jobs.length) return [];
+  const ordered = [...jobs].sort((a, b) => at(a) - at(b));
+  const firstStart = createdAt ?? ordered[0]!.createdAt;
+  const rounds: SpecRound<T>[] = [{ key: "", startedAt: firstStart, jobs: [] }];
+  for (const job of ordered) {
+    const startsRound = jobKind(job) === "reopen" && job.state === "done" && !job.landing;
+    if (startsRound && rounds.at(-1)!.jobs.length) {
+      const startedAt = job.finishedAt ?? job.startedAt ?? job.createdAt;
+      rounds.push({ key: "", startedAt, jobs: [] });
+    }
+    rounds.at(-1)!.jobs.push(job);
+  }
+  return rounds.map((round, index) => ({
+    ...round,
+    key: index === 0
+      ? `${ordered[0]!.project}/${ordered[0]!.specFolder}`
+      : `${ordered[0]!.project}/${ordered[0]!.specFolder}@${encodeURIComponent(round.startedAt)}`,
+  }));
 }
 
 /** The `<project>/<folder>` keys of the specs a Close or Reopen in flight
@@ -129,7 +160,7 @@ export function jobTitle(row: TitleRow, lang: Language = "en"): string {
  *  Close, Reopen or deploy its spec's (the deploy's `deploy`) and its step's, so
  *  it never folds with the spec's own row and the page hears the job's log grow
  *  while the row is open. */
-export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
+export function jobKey(row: Pick<JobLike, "id" | "project" | "specFolder" | "steps" | "stepIndex">): string {
   const kind = jobKind(row);
   return kind === "spec" || kind === "schedule" ? `${row.project}/${row.specFolder}` : phaseKey(row.project, row.specFolder, kind);
 }

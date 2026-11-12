@@ -78,8 +78,23 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries are All, Running, Waiting, Stopped, Failed and Not verified, in that order", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "waiting", "stopped", "failed", "not-verified"]);
+  test("its entries include Done while All remains first and selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "waiting", "done", "stopped", "failed", "not-verified"]);
+    expect(jobsStateFilter(undefined).key).toBe("all");
+  });
+
+  test("search returns every round row for the same spec (AC-6)", () => {
+    const rounds = [
+      spec("round-1", { specFolder: "144-history", state: "done", createdAt: T(1) }),
+      spec("round-2", { specFolder: "144-history", state: "done", createdAt: T(5) }),
+    ];
+    expect(view(rounds, { q: "aide:144" })).toEqual(["round-2", "round-1"]);
+  });
+
+  test("Done shows only finished rows and remains the selected state (AC-5)", () => {
+    const done = spec("done", { specFolder: "145-done", state: "done", createdAt: T(6) });
+    expect(view([running, done, failedReport], { state: "done" })).toEqual(["done"]);
+    expect(jobsStateFilter("done").key).toBe("done");
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
@@ -94,7 +109,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["active:all", 0], ["waiting", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
+      ["all", 1], ["active:all", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
@@ -104,12 +119,12 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["active:all", 1], ["waiting", 1], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
+    expect(counts).toEqual([["all", 3], ["active:all", 1], ["waiting", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
     for (const q of [undefined, "", "   "]) {
-      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 1, 1, 0]);
+      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 0, 1, 1, 0]);
     }
   });
 

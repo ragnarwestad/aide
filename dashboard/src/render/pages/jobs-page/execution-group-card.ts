@@ -52,7 +52,7 @@ export function memberPipKind(member: SpecGroup | undefined, completed: boolean)
 
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
   const activity = executionGroupActivity(group.state);
-  const band = activity === "running" ? 0 : activity === "queued" ? 1 : 2;
+  const band = activity === "running" ? 0 : activity === "queued" ? 1 : group.state === "completed" ? 3 : 2;
   const memberChanges = rows
     .filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project)
     .map((row) => specPlace(row.group).changedAt);

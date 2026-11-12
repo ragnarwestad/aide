@@ -3,7 +3,6 @@ import { formatSentence } from "../format.ts";
 import type { Message } from "../types.ts";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import { stepLabel } from "../../format/step-label.ts";
-import { jobDismissible } from "../../queue/steps.ts";
 import { heldBackResolvesOnItsOwn } from "./holds.ts";
 import { getUsageLimitMessage } from "../usage-limit/get.ts";
 
@@ -49,7 +48,6 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
       variant: row.state === "stopped" ? "waiting" : "failed",
       text: ranOn ? `${own}\n${ranOn}` : own,
       log: `/jobs/${row.id}?tab=steps`,
-      ...(jobDismissible({ ...row, specFolder: row.specFolder ?? "" }) ? { dismiss: `/api/queue/${row.id}/dismiss` } : {}),
     };
   }
   if (row.errorReason === "held-back") {

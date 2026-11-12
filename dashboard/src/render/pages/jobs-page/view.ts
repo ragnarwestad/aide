@@ -15,7 +15,6 @@ import {
   matchesSearch,
   matchesStateFilter,
   sortGroups,
-  stateFilter,
   type SpecGroup,
   type SpecsFilter,
 } from "../specs-list/data-model";
@@ -26,12 +25,13 @@ import { byTabPlace, jobTitle, type TabPlace } from "./rows.ts";
  *  Waiting, Stopped, Failed, Not verified. Active, Archived and Closed say
  *  nothing about a tab that shows only Active specs. */
 const JOBS_STATE_KEYS = ["all", "active:all", "waiting", "stopped", "failed", NOT_VERIFIED_KEY];
-export const JOBS_STATE_FILTERS = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key));
+const doneState = { key: "done", label: "Done", states: ["done", "archived", "closed"] } as (typeof STATE_FILTERS)[number];
+const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key));
+export const JOBS_STATE_FILTERS = [...baseJobStates.slice(0, 3), doneState, ...baseJobStates.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export function jobsStateFilter(key: string | undefined): (typeof JOBS_STATE_FILTERS)[number] {
-  const entry = stateFilter(key);
-  return JOBS_STATE_FILTERS.includes(entry) ? entry : DEFAULT_STATE_FILTER;
+  return JOBS_STATE_FILTERS.find((entry) => entry.key === key) ?? DEFAULT_STATE_FILTER;
 }
 
 /** What the filter and the sort read off a row. */
@@ -86,7 +86,9 @@ const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
-  const kept = applyFilter(inOrder.map((e) => e.facts), onTab(f));
+  const tabFilter = jobsStateFilter(f.state);
+  const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
+  const kept = searched.filter((facts) => matchesStateFilter(tabFilter, facts));
   const shown = SORTS.includes(f.sort ?? "") ? sortGroups(kept, f) : kept;
   return shown.map((facts) => byFacts.get(facts)!);
 }

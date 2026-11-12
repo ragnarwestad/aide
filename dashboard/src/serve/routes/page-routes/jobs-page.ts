@@ -56,6 +56,9 @@ export async function jobsPage(
     shown: shown.map((j) => built.get(j.id)!),
     specJobs: specJobs.map((j) => built.get(j.id)!),
     executionGroups: ctx.queue.executionGroups.list(),
+    historySpecs: ctx.archivedSpecRows("all"),
+    scheduleEntryExists: (project: string, name: string) =>
+      ctx.scheduleStore.list(project).some((entry) => entry.name === name),
     list: {
       ...rowOptions,
       // The view travels in the rows' fold links, as the Specs list's filter does.

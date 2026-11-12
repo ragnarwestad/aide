@@ -4,6 +4,7 @@ import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../..
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
 import { t } from "../../../../src/i18n";
+import { executionGroupRowState } from "../../../../src/render/pages/jobs-page";
 
 const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
   id: "group-1", project: "aide", name: "Release", members: ["2-second", "1-first"], branch: "group/1-first",
@@ -41,6 +42,14 @@ test("a prepared card starts by durable id (AC-3, AC-10, AC-11)", () => {
 
 test("completed groups have no card action (AC-12, AC-14)", () => {
   expect(executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")])).not.toContain('name="action"');
+});
+
+test("a completed group is placed with finished work (AC-3, AC-4)", () => {
+  expect(executionGroupPlace(group("completed"))).toEqual({ band: 3, changedAt: Date.parse("2026-11-11T12:00:00.000Z") });
+});
+
+test("a completed group is counted under Done rather than Stopped (AC-3, AC-5)", () => {
+  expect(executionGroupRowState(group("completed"), false)).toBe("done");
 });
 
 test("a card ready to archive names Archive once, on its button", () => {

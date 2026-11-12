@@ -15,7 +15,7 @@ export const en = {
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
   "shell.themeAuto": "Auto",
-  "shell.tabRunning": "Running",
+  "shell.tabRunning": "Jobs",
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",
   "shell.tabSchedule": "Schedule",
