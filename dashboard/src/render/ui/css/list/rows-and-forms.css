@@ -271,19 +271,19 @@ td form { margin: 0; display: inline-block; }
    or a click on the backdrop. The panel carries the padding so a click
    inside it can never be mistaken for one outside (the script closes on
    clicks whose target is the dialog element itself). */
-dialog.about, dialog#usage-dialog { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+dialog.about { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
   background: var(--surface); color: var(--text); max-width: 34rem;
   box-shadow: var(--overlay-shadow); }
-dialog.about::backdrop, dialog#usage-dialog::backdrop { background: var(--backdrop); }
-dialog#usage-dialog { max-width: 90vw; }
-.aboutpanel, .usagepanel { position: relative; padding: var(--sp-5) var(--sp-6); }
+dialog.about::backdrop { background: var(--backdrop); }
+.aboutpanel { position: relative; padding: var(--sp-5) var(--sp-6); }
 .aboutpanel h2, .usagepanel h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-l); font-weight: 600; }
 .aboutclose { position: absolute; top: var(--sp-3); right: var(--sp-3);
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 999px; border: 0; background: none;
   color: var(--muted); cursor: pointer; }
 .aboutclose:hover { background: var(--surface-2); color: var(--text); }
-.usagepanel { box-sizing: border-box; width: min(42rem, 90vw); display: flex; flex-direction: column; gap: var(--sp-4); }
+.menupanel.usagepanel { box-sizing: border-box; width: min(42rem, 90vw); max-height: 75vh; overflow-y: auto; }
+.usagepanel > [data-usage-content] { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
 .usagegroup, .usagewindow { display: flex; flex-direction: column; gap: var(--sp-2); }
 .usagegroup h3, .usagewindow h4 { margin: 0; }
 

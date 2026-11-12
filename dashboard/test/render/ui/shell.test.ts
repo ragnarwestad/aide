@@ -71,9 +71,8 @@ describe("pageShell install warning banner", () => {
 });
 
 describe("pageShell language", () => {
-  test("every page carries the Usage opener and dialog (AC-1)", () => {
+  test("every page carries the Usage menu", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
-    expect(html).toContain("data-usage-open");
     expect(html).toContain('id="usage-dialog"');
   });
   // The link now targets the CALLER's own current address

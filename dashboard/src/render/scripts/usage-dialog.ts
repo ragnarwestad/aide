@@ -1,8 +1,8 @@
 (() => {
   let opening = 0;
-  const dialog = () => document.querySelector<HTMLDialogElement>("#usage-dialog");
+
   const pending = (root: ParentNode): string[] => [...root.querySelectorAll<HTMLElement>("[data-usage-pending]")].map((el) => el.dataset.usagePending!).filter(Boolean);
-  const load = async (box: HTMLDialogElement, url: string, generation: number): Promise<void> => {
+  const load = async (box: HTMLDetailsElement, url: string, generation: number): Promise<void> => {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error("request failed");
@@ -20,14 +20,10 @@
       location.reload();
     }
   };
-  document.addEventListener("click", (event) => {
-    const target = event.target as HTMLElement | null;
-    const box = dialog();
-    if (!box) return;
-    if (target?.closest?.("[data-usage-open]")) {
-      const generation = ++opening;
-      box.showModal();
-      void load(box, box.dataset.src!, generation);
-    } else if (target === box) box.close();
-  });
+  document.addEventListener("toggle", (event) => {
+    const box = event.target as HTMLDetailsElement;
+    if (!box?.matches?.("#usage-dialog")) return;
+    const generation = ++opening;
+    if (box.open) void load(box, box.dataset.src!, generation);
+  }, true);
 })();

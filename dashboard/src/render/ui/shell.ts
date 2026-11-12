@@ -10,7 +10,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
-import { buttonForm, confirmDialog, messageSlot } from "./components";
+import { buttonForm, confirmDialog, headerMenu, messageSlot } from "./components";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -21,7 +21,7 @@ import { isSpecFolder } from "../../project/spec-names.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
-import { usageButton, usageDialog } from "./usage-dialog/index.ts";
+import { usageButton } from "./usage-dialog/index.ts";
 
 export interface NavEntry {
   label: string;
@@ -56,10 +56,7 @@ function unitChoiceRows(scope: string): string {
 // need the trigger to track it.
 function unitControl(lang: Language): string {
   const unit = t(lang, "shell.unit");
-  return (
-    `<details class="menu unit"><summary aria-label="${unit}" title="${unit}">$</summary>` +
-    `<div class="menupanel">${unitChoiceRows("menu")}</div></details>`
-  );
+  return headerMenu({ label: unit, icon: "$", kind: "unit", content: unitChoiceRows("menu") });
 }
 
 // The mark on the left, the "…" menu on the right. The wordmark is
@@ -232,16 +229,14 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     `<div class="row">${usageButton(lang)}${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
-    `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
-    `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
-    `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
-    `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    // Settings, then the board-wide test-server overview,
-    // then About.
-    `<div class="menupanel">${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
-    `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
-    `<button type="button" data-about>${t(lang, "shell.about")}</button></div>` +
-    `</details></div></header>`
+    headerMenu({ label: t(lang, "shell.more"), icon:
+      `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
+      `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
+      `<circle cx="8" cy="13" r="1.4"></circle></svg>`,
+      content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
+        `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
+        `<button type="button" data-about>${t(lang, "shell.about")}</button>`,
+    }) + `</div></header>`
   );
 }
 
@@ -389,7 +384,6 @@ export function shellRest(
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
 ${aboutDialog()}
-${usageDialog(lang)}
 ${leaveAppDialog(lang)}
 ${tabs}
 <main>

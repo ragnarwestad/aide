@@ -313,10 +313,10 @@ provider saved since is read again. Claude Code's comes from
 `claude -p /usage`, and Codex's from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's
 text has no line the board can read as a window, the page shows the text as it came. OpenCode reports no usage windows.
 
-**The Usage button in every page's header opens all providers in one dialog.** Codex appears first, then Claude Code,
+**The Usage control beside Theme opens all providers in a header panel.** Codex appears first, then Claude Code,
 with one row for each window and one bar for each provider. Each bar shows the share left and when the window starts
 over. Readings from the last two minutes appear at once; the board reads every other provider together while the
-dialog says that its usage is being read. OpenCode and Copilot do not appear because they report no usage windows.
+panel says that its usage is being read. OpenCode and Copilot do not appear because they report no usage windows.
 
 **The Installation tab is a table of where Aide is installed for the tool**: one row per place in
 `core/scripts/lib/install-targets.txt`, with what the place holds (instructions, rules, skills, scripts or hooks) and its

@@ -89,15 +89,15 @@
     "toggle",
     (e) => {
       const details = e.target as Element | null;
-      if (!details?.matches?.("details.intro")) return;
+      if (!details?.matches?.("details.intro, details.menu")) return;
       const el = details as HTMLDetailsElement;
       el.classList.remove("intro-flip");
-      const p = el.querySelector(":scope > p") as HTMLElement | null;
+      const p = el.querySelector(el.matches("details.menu") ? ":scope > .menupanel" : ":scope > p") as HTMLElement | null;
       if (!p) return;
       p.style.removeProperty("transform");
       if (!el.open) return;
       let rect = p.getBoundingClientRect();
-      if (rect.left < 0 || rect.right > window.innerWidth) {
+      if (el.matches("details.intro") && (rect.left < 0 || rect.right > window.innerWidth)) {
         el.classList.add("intro-flip");
         rect = p.getBoundingClientRect();
       }

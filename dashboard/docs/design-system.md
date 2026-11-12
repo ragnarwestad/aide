@@ -81,6 +81,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*`, `aria-label` and icon when asked   |
+| `headerMenu()`        | the header controls: one round icon trigger and a panel; shared menu closing on Escape, outside click and another menu opening        |
 | `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
 | `buttonForm()`        | a form whose only control is one button — a `btn()` or a dialog's close cross: a post or its close, hooks, hidden fields, a (?) first |
 | `foldArrow()`         | open or shut, swapping rows in place or, with `goto`, loading a page; its title one of six catalogue sentences                        |
@@ -345,7 +346,7 @@ from the CLI flag it was started with (`--test-board`), and read directly by `pa
 threaded through every page renderer, the same way `lastInstallWarning()` already reads
 `AIDE_INSTALL_LOG` directly.
 
-The "…" menu is a `<details>`/`<summary>` disclosure, the same pattern `.intro` uses — not a JS-driven popover.
+Usage, theme, language, units and the "…" menu use `headerMenu()`, a `<details>`/`<summary>` disclosure, the same pattern `.intro` uses — not a JS-driven popover.
 Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 

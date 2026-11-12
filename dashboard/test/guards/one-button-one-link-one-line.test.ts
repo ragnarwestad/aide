@@ -41,4 +41,11 @@ describe("one button, one button link, one message line", () => {
   test("no file but the message component writes a message line", () => {
     expect(matching(all, /rowmsg|class=\\?"refused/, MESSAGE)).toEqual([]);
   });
+  test("header controls use the shared header menu instead of writing their own triggers", () => {
+    const files = ["src/render/ui/shell.ts", "src/render/ui/header-controls.ts", "src/render/ui/usage-dialog/index.ts"];
+    const sources = render.filter((source) => files.includes(source.file));
+    expect(sources).toHaveLength(files.length);
+    expect(sources.filter((source) => !source.text.includes("headerMenu(") || source.text.includes("<summary"))).toEqual([]);
+  });
+
 });

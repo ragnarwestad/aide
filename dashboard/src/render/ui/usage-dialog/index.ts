@@ -1,6 +1,6 @@
 import { t, type Language } from "../../../i18n";
 import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
-import { btn, buttonForm, shareBar } from "../components";
+import { headerMenu, shareBar } from "../components";
 import { ICON_USAGE } from "../components/icons.ts";
 import { esc } from "../html.ts";
 import type { UsageDialogEntry } from "./view.ts";
@@ -8,15 +8,11 @@ import { usageDialogView } from "./view.ts";
 
 export const USAGE_DIALOG_ROUTE = "/api/queue/settings/providers/usage";
 
-export const usageButton = (lang: Language): string => btn({
-  label: "", icon: ICON_USAGE, ariaLabel: t(lang, "shell.usage"), title: t(lang, "shell.usage"), type: "button", data: { "usage-open": "" },
+export const usageButton = (lang: Language): string => headerMenu({
+  label: t(lang, "shell.usage"), icon: ICON_USAGE, id: "usage-dialog",
+  data: { src: USAGE_DIALOG_ROUTE }, panelClass: "usagepanel",
+  content: `<div data-usage-content><h2>${esc(t(lang, "shell.usage"))}</h2><p>${esc(t(lang, "usage.reading"))}</p></div>`,
 });
-
-export function usageDialog(lang: Language): string {
-  return `<dialog id="usage-dialog" data-src="${USAGE_DIALOG_ROUTE}"><div class="usagepanel">` +
-    buttonForm({ method: "dialog", button: { cross: t(lang, "dialog.close") } }) +
-    `<div data-usage-content><h2>${esc(t(lang, "shell.usage"))}</h2><p>${esc(t(lang, "usage.reading"))}</p></div></div></dialog>`;
-}
 
 const stateLine = (entry: { key: string; name: string; state: string; text?: string }, lang: Language): string => {
   if (entry.state === "unread") return shareBar(entry.name, undefined, t(lang, "usage.reading"), { "usage-pending": entry.key });

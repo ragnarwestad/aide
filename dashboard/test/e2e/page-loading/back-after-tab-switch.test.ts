@@ -86,7 +86,7 @@ describe("← Back after switching tabs", () => {
 test("Settings opened from a spec page leads Back there after its Process tab", async () => {
   const page = await browser.newPage();
   await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec page)");
-  await page.locator("header details.menu:not(.theme):not(.lang):not(.unit) > summary").click();
+  await page.locator('header summary[aria-label="More"]').click();
   const settings = page.locator('header a[href="/settings"]');
   await withBrowser(Promise.all([page.waitForURL(/\/settings$/), settings.click()]), "the Settings link");
   await clickTab(page, "Process");

@@ -20,16 +20,27 @@ beforeAll(async () => {
 });
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
-test("the Usage button opens the dialog and Esc and its backdrop close it (AC-2, AC-3, AC-7)", async () => {
+test("Usage shares the header menus: toggle, switching, outside click and Escape", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/settings`);
-  await page.locator("[data-usage-open]").click();
-  const dialog = page.locator("#usage-dialog");
-  await dialog.waitFor({ state: "visible" });
-  await dialog.locator(".usagegroup", { hasText: "Claude" }).waitFor();
-  expect(await dialog.innerText()).toContain("Claude");
-  expect(await dialog.innerText()).toContain("Codex");
+  const trigger = page.locator("header summary[aria-label='Usage']");
+  const panel = page.locator("[data-usage-content]");
+  await trigger.click();
+  await panel.waitFor({ state: "visible" });
+  await panel.getByRole("heading", { name: "Claude Code", exact: true }).waitFor();
+  expect(await panel.innerText()).toContain("Codex");
+  await trigger.click();
+  await panel.waitFor({ state: "hidden" });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await panel.waitFor({ state: "visible" });
   await page.keyboard.press("Escape");
-  await dialog.waitFor({ state: "hidden" });
+  await panel.waitFor({ state: "hidden" });
+  await trigger.click();
+  await page.locator("header summary[aria-label='Theme']").click();
+  await panel.waitFor({ state: "hidden" });
+  await trigger.click();
+  await page.getByRole("heading", { name: "Settings", exact: true }).click();
+  await panel.waitFor({ state: "hidden" });
   await page.close();
 });

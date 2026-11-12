@@ -39,7 +39,7 @@ const PHONE = { width: 600, height: 900 };
 // No element name in it: the row holding the four menus has been a
 // `span` and is a `div`, and which one it is says nothing about the
 // behaviour these cases check.
-const MORE_MENU = "header .row > details.menu:not(.theme):not(.lang):not(.unit)";
+const MORE_MENU = 'header details.menu:has(a[href="/settings"])';
 
 // The nested-<details> hazard itself: a click on a flat mobile row must
 // apply the choice AND leave the "…" menu open — Approach A's whole

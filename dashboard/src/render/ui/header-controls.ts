@@ -4,7 +4,7 @@
 // checkmark and its heading.
 import { LANGUAGES, t, type Language, type TranslationKey } from "../../i18n";
 import { esc } from "./html.ts";
-import { ICON_CHECK, ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
+import { headerMenu, ICON_CHECK, ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -79,14 +79,10 @@ export function themeControl(lang: Language): string {
       `<span data-theme-icon="${choice}"${choice === "auto" ? "" : " hidden"}>${THEME_ICONS[choice]}</span>`,
   ).join("");
   const theme = t(lang, "shell.theme");
-  return (
-    `<details class="menu theme"><summary aria-label="${theme}" title="${theme}">${trigger}</summary>` +
-    // `.lbl`: the caption class already built for this
-    // ("Repos, Show, Theme, Units", text-roles.css) — first use of it
-    // for either word.
-    `<div class="menupanel"><span class="lbl">${theme}</span>${themeChoiceRows(lang)}</div>` +
-    `</details>`
-  );
+  return headerMenu({
+    label: theme, icon: trigger, kind: "theme",
+    content: `<span class="lbl">${theme}</span>${themeChoiceRows(lang)}`,
+  });
 }
 
 // The header-level language switch, beside the theme control
@@ -119,10 +115,10 @@ export function languageChoiceLinks(lang: Language, currentUrl: string): string 
 
 export function languageControl(lang: Language, currentUrl: string): string {
   const langLabel = t(lang, "shell.language");
-  return (
-    `<details class="menu lang"><summary aria-label="${langLabel}" title="${langLabel}">${LANGUAGE_FLAGS[lang]}</summary>` +
-    `<div class="menupanel"><span class="lbl">${langLabel}</span>${languageChoiceLinks(lang, currentUrl)}</div></details>`
-  );
+  return headerMenu({
+    label: langLabel, icon: LANGUAGE_FLAGS[lang], kind: "lang",
+    content: `<span class="lbl">${langLabel}</span>${languageChoiceLinks(lang, currentUrl)}`,
+  });
 }
 
 // The "…" menu's phone rows: one row per setting — the name
