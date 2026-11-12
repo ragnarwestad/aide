@@ -74,9 +74,9 @@ passes it in; nothing passes a colour or an icon:
 
 `src/render/ui/components/` builds the markup for every one of these but `.iconlink`, which is a class a caller puts
 on its own link; its `index.ts` exports them all. No page writes a button or a link with `.btn`, or a message line, by
-hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does — nor a fold arrow, a tab strip, a table
-of facts, a form holding one button or a checkbox with its words beside it, which
-`test/guards/five-shapes-one-component-each.test.ts` checks:
+hand — `test/guards/one-button-one-link-one-line.test.ts` fails when one does — nor a fold arrow, a `<details>`
+disclosure other than a menu, a tab strip, a table of facts, a form holding one button or a checkbox with its words
+beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|

@@ -6,7 +6,7 @@
   background: var(--surface);
 }
 
-.execution-group-editor > summary { cursor: pointer; font-weight: 600; }
+.execution-group-editor summary { font-weight: 600; }
 .execution-group-editor form { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: var(--sp-3); margin-top: var(--sp-3); }
 .execution-group-editor form > :is(ol, button) { grid-column: 1 / -1; }
 .execution-group-editor form > label { display: grid; gap: var(--sp-1); }

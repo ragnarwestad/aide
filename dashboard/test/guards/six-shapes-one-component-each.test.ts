@@ -1,5 +1,6 @@
-// A fold arrow, a tab strip, a table of facts, a form holding one button and
-// a checkbox with its words beside it each have one component. A copy written
+// A fold arrow, a fold that opens in the browser, a tab strip, a table of
+// facts, a form holding one button and a checkbox with its words beside it
+// each have one component. A copy written
 // out by hand beside it is how the two drift — the job page's step arrow had
 // an English title where every other arrow's was translated — so the sources
 // are scanned for markup only the component may write.
@@ -62,7 +63,11 @@ function writesOneButtonForm(text: string): boolean {
 const writesLabelledCheckbox = (text: string): boolean =>
   /<input\b[^>]*type=\\?"checkbox\\?"[^>]*>(?:`\s*\+\s*`)?<span>/.test(text);
 
-describe("one fold arrow, one tab strip, one table of facts, one one-button form, one labelled checkbox", () => {
+/** Whether a source writes a `<details>` that is not a menu: a menu is a
+ *  `<details class="menu">` of its own, with its own trigger. */
+const writesDisclosure = (text: string): boolean => /<details(?![^>]*class=\\?"menu\b)[\s>]/.test(text);
+
+describe("one fold arrow, one disclosure, one tab strip, one table of facts, one one-button form, one labelled checkbox", () => {
   const render = read("src/render/**/*.ts");
   const serve = read("src/serve/**/*.ts");
   const client = read("src/specs-client/**/*.ts");
@@ -77,6 +82,18 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
 
   test("no file but the fold-arrow component writes an element with the fold class", () => {
     expect(matching(all, (text) => /class=\\?"fold\b/.test(text), [FOLD])).toEqual([]);
+  });
+
+  test("no file but a component writes a disclosure", () => {
+    const pages = all.filter((f) => !f.file.startsWith("src/render/ui/components/"));
+    expect(matching(pages, writesDisclosure, [])).toEqual([]);
+  });
+
+  test("the disclosure rule flags a hand-written one and passes a menu", () => {
+    const hit = writesDisclosure;
+    expect(hit('`<details class="execution-group-editor"><summary>`')).toBe(true);
+    expect(hit('`<details data-log="x"><summary>`')).toBe(true);
+    expect(hit('`<details class="menu theme"><summary>`')).toBe(false);
   });
 
   test("no file but the tab strip writes an element with the tab class", () => {

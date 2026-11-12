@@ -3,7 +3,7 @@
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.
 
-import { badge, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../../ui/components";
+import { badge, foldArrow, foldDisclosure, rowMessage, stepLabel, type ProgressStepState } from "../../../ui/components";
 import { esc, tokens } from "../../../ui/html.ts";
 import { durationLabel } from "../../../ui/job-state";
 import { withModelId } from "../../../ui/components/model-label.ts";
@@ -123,10 +123,11 @@ export function phaseMessagesRow(
     ? `<p class="muted small">${esc(stepLabel(found.identity.phase, lang))} · ${esc(t(lang, "job.attempt", { n: found.identity.attempt }))}${found.identity.at ? ` · ${esc(found.identity.at)}` : ""}</p>`
     : "";
   const whole = found
-    ? `<details data-phase-attempt-log="${esc(key)}"><summary>${esc(t(lang, "list.phaseEntireLog", { phase: stepLabel(found.identity?.phase ?? p.step, lang) }))}</summary>${stepPanel(
-        { ...found, terminalReason: "" },
-        { tabHref: tab, key: found.step ?? "", lang },
-      )}</details>`
+    ? foldDisclosure({
+      summary: esc(t(lang, "list.phaseEntireLog", { phase: stepLabel(found.identity?.phase ?? p.step, lang) })),
+      body: stepPanel({ ...found, terminalReason: "" }, { tabHref: tab, key: found.step ?? "", lang }),
+      data: { "phase-attempt-log": key },
+    })
     : "";
   const body = modelLine + identity + explained + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`

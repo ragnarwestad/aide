@@ -13,5 +13,6 @@ test("New group shows project, name, eligible ids, titles and explicit order (AC
 
 test("New group is drawn closed until it is opened", () => {
   const html = executionGroupEditor({ projects: ["aide"], candidates: [] });
-  expect(html).toMatch(/^<details class="execution-group-editor">/);
+  expect(html).toContain("<details");
+  expect(html).not.toMatch(/<details[^>]*\sopen/);
 });

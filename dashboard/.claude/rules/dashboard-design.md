@@ -6,11 +6,23 @@ paths:
 
 # The dashboard's design rules
 
-Four things a change under `src/render/` has to keep. No test reads the
-markup or the stylesheet for them (`core/rules/testing.md`, "No layout
-tests"), so they hold only as long as each change keeps them.
+Five things a change under `src/render/` has to keep. No test reads the
+markup or the stylesheet for most of them (`core/rules/testing.md`, "No
+layout tests"), so they hold only as long as each change keeps them.
 `docs/design-system.md` says why, and holds the full component list and
 the class vocabulary.
+
+## A new piece of the page is built from the components
+
+Before adding or changing anything the page shows — a button, a fold, a
+form, a badge, a line of text — read "Components" and "What a button's
+variant means" in `docs/design-system.md`, and build it from the
+components listed there. Markup written by hand beside a component drifts
+from it: another arrow, another spacing, another word. Where no component
+fits, make one in `src/render/ui/components/` first and add it to that
+list. `test/guards/one-button-one-link-one-line.test.ts` and
+`test/guards/six-shapes-one-component-each.test.ts` catch the shapes they
+know.
 
 ## Colours, sizes and lengths come from tokens
 
