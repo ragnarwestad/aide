@@ -1,7 +1,8 @@
 /* The New group dialog's fields: Project and Name on one line, and under
    them the specs a group can be made of, each with its place in the order. */
 .execution-group-editor { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: var(--sp-3); }
-.execution-group-editor > ol { grid-column: 1 / -1; }
+.execution-group-editor > :is(ol, p) { grid-column: 1 / -1; }
+.execution-group-editor > p { margin: 0; }
 .execution-group-editor > label { display: grid; gap: var(--sp-1); }
 .execution-group-editor :is(input:not([type="checkbox"]), select) {
   box-sizing: border-box;

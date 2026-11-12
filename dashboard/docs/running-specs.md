@@ -91,7 +91,8 @@ later members waiting until Start resumes the same execution. A failed member ke
 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
-the execution order. Save creates a prepared card and does not start work; Cancel closes the dialog and saves nothing.
+the execution order. A project with fewer than two eligible specs shows a sentence saying so in the list's place, and
+Save is off. Save creates a prepared card and does not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
 reorder members until the first execution starts; after that, membership and order are fixed.
 

@@ -30,6 +30,8 @@ export function executionGroupEditor(options: EditorOptions): string {
         return `<li data-group-project="${esc(candidate.project)}"><label><input type="checkbox" name="member" value="${esc(candidate.specFolder)}">` +
           `<strong>${esc(candidate.specFolder)}</strong> ${esc(candidate.title ?? candidate.specFolder)}</label>` +
           `<label>${t(lang, "list.groupOrder")} <input type="number" name="position" min="1"></label></li>`;
-      }).join("")}</ol></div>`,
+      }).join("")}</ol>` +
+      // Shown by the page script while the chosen project has fewer than two.
+      `<p class="muted" data-group-none hidden>${esc(t(lang, "list.groupTooFew"))}</p></div>`,
   });
 }

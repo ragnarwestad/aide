@@ -1,6 +1,7 @@
 // The New group dialog's form on the Jobs tab (`executionGroupEditor()` draws
 // it): the list of specs is kept to the chosen project, the ticked ones are
-// numbered in order, and a dialog that closes starts over empty.
+// numbered in order, a project with fewer than two specs to group says so
+// with Save off, and a dialog that closes starts over empty.
 
 import { writeLine } from "../press.ts";
 
@@ -23,6 +24,12 @@ export function updateExecutionGroupEditor(form: HTMLFormElement): void {
     if (member.checked) order.value = String(++position);
     else order.value = "";
   }
+  // A group needs two members, so a project with fewer has nothing to save.
+  const enough = rows(form).filter((row) => !row.hidden).length >= 2;
+  const none = form.querySelector<HTMLElement>("[data-group-none]");
+  if (none) none.hidden = enough;
+  const save = form.querySelector<HTMLButtonElement>('button[id$="-save"]');
+  if (save) save.disabled = !enough;
 }
 
 export function changeExecutionGroupEditor(event: Event): boolean {

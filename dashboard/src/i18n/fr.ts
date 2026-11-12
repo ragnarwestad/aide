@@ -588,4 +588,5 @@ export const fr: Record<TranslationKey, string> = {
   "list.groupProject": "Projet",
   "list.groupName": "Nom",
   "list.groupOrder": "Ordre",
+  "list.groupTooFew": "Ce projet a moins de deux specs pouvant être regroupées. Une spec peut rejoindre un groupe tant qu'elle n'a pas été analysée.",
 };

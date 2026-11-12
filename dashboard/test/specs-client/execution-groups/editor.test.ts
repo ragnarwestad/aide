@@ -49,3 +49,26 @@ test("a closed New group dialog is empty: no name, no tick, no order and no reas
   expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => [input.value, input.disabled])).toEqual([["", true], ["", true]]);
   expect(reason.textContent).toBe("");
 });
+
+test("a project with fewer than two specs to group says so and cannot be saved; one with two can", () => {
+  const window = new Window();
+  window.document.body.innerHTML = executionGroupEditor({
+    projects: ["aide", "atlas"],
+    candidates: [
+      { project: "aide", specFolder: "1-first" },
+      { project: "atlas", specFolder: "2-second" },
+      { project: "atlas", specFolder: "3-third" },
+    ],
+  });
+  const form = window.document.querySelector("form[data-execution-group-editor]") as unknown as HTMLFormElement;
+  const project = form.querySelector('select[name="project"]') as unknown as HTMLSelectElement;
+  const save = form.querySelector('button[id$="-save"]') as unknown as HTMLButtonElement;
+  const none = form.querySelector("[data-group-none]") as unknown as HTMLElement;
+
+  updateExecutionGroupEditor(form);
+  expect([save.disabled, none.hidden]).toEqual([true, false]);
+
+  project.value = "atlas";
+  updateExecutionGroupEditor(form);
+  expect([save.disabled, none.hidden]).toEqual([false, true]);
+});
