@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
+import { askButton, buttonForm, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -45,6 +45,23 @@ export interface JobRowOptions {
   steps?: (jobId: string) => JobStep[];
   /** The row's key when it is not the job's own (`jobRowKeys`). */
   key?: string;
+  /** A job's steps as its pips draw them: each step's name and state. */
+  pips?: (jobId: string) => { label: string; state?: ProgressStepState }[];
+}
+
+const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", waiting: "todo" };
+
+/** A step's pip: done, running, failed, or not started yet. */
+export function jobStepPipKind(state: ProgressStepState | undefined): PipKind {
+  return state ? PIP_OF[state] : "todo";
+}
+
+/** One pip per step, numbered in the job's order, as a group's members are. */
+function stepPips(row: QueueRowView, o: JobRowOptions): string {
+  const steps = o.pips?.(row.id) ?? [];
+  return steps.length
+    ? `<span class="pipslot">${pips(steps.map((s, i) => ({ kind: jobStepPipKind(s.state), title: s.label, label: String(i + 1) })))}</span>`
+    : "";
 }
 
 const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
@@ -127,9 +144,9 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
     `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div></td></tr>` +
-    // When the job was made, where a spec's row says when the spec was; with
-    // no pips beside it, a phone shows nothing here, as it hides a spec's date.
-    `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span></span></td>` +
+    // When the job was made and a pip per step, where a spec's row has its
+    // date and its phases' pips; a phone shows the pips alone.
+    `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +

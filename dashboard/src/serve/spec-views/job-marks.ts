@@ -6,7 +6,7 @@ import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, schedulePlan, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
-import { jobKind, writing, type Job } from "../../queue/queue.ts";
+import { inFlight, jobKind, writing, type Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
 import { CLEANUP_OPERATIONS } from "../process-cleanup/engine.ts";
@@ -108,4 +108,26 @@ export function jobStepLines(job: Job, lang: Language): CloseOrReopenStep[] {
   if (kind === "cleanup" || kind === "schedule") return scheduleSteps(job, lang);
   if (kind === "close" || kind === "reopen") return closeOrReopenSteps(job, kind, lang);
   return [];
+}
+
+/** One step of a job as its pip draws it: the step's name and its state. */
+export interface JobStepPip { label: string; state?: StepMark["state"] }
+
+const PIPS_KEPT = 2000;
+const pipsRead = new Map<string, { stamp: string; pips: JobStepPip[] }>();
+
+/** A job's steps as its row's pips draw them. A finished job's log no longer
+ *  changes, so its steps are read once and kept; a queued, running or
+ *  landing job's are read every time. */
+export function jobStepPips(job: Job, lang: Language): JobStepPip[] {
+  const read = (): JobStepPip[] => jobStepLines(job, lang).map(({ label, state }) => ({ label, state }));
+  if (inFlight(job)) return read();
+  const stamp = `${job.state}|${job.finishedAt ?? ""}|${lang}`;
+  const kept = pipsRead.get(job.id);
+  if (kept?.stamp === stamp) return kept.pips;
+  const pips = read();
+  pipsRead.delete(job.id);
+  pipsRead.set(job.id, { stamp, pips });
+  if (pipsRead.size > PIPS_KEPT) pipsRead.delete(pipsRead.keys().next().value!);
+  return pips;
 }
