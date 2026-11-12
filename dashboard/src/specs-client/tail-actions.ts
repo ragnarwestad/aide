@@ -4,7 +4,7 @@
 
 import { attrValue, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
 import { clearRefusal, holdRefusal } from "./row-refusal";
-import { swapRows } from "./row-swap.ts";
+import { swapRows } from "./row-swap/index.ts";
 import { chosen, press, selectKey } from "./state.ts";
 
 // A refusal is written on the page at once and kept by the page script

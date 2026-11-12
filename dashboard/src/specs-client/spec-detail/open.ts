@@ -7,7 +7,7 @@
 
 import { writeLine } from "../press.ts";
 import { groupEnd } from "../row-refusal/index.ts";
-import { placeSpecRows, swapRows, swapSpec } from "../row-swap.ts";
+import { placeSpecRows, swapRows, swapSpec } from "../row-swap/index.ts";
 import { press } from "../state.ts";
 import { SPEC_DETAIL_DRAWN, SPEC_HEAD_CLASS, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";
 export { SPEC_DETAIL_DRAWN, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";

@@ -89,6 +89,10 @@ A group is one collapsed card on Running, with its members inside it in saved or
 that is not done. Every member uses the branch named for the group's first member. Stop ends the current job and keeps
 later members waiting until Start resumes the same execution. A failed member keeps its own recovery controls.
 
+New group on Running chooses one project, a display name and at least two eligible specs. The numbered member list is
+the execution order. Saving creates a prepared card and does not start work. Edit on a prepared card can add, remove or
+reorder members until the first execution starts; after that, membership and order are fixed.
+
 Grouped member rows offer no Archive. When every member has finished Implement and every required acceptance row is
 ticked, the group card offers Archive. That press validates and moves every member together, runs the project's test
 gate once and lands the shared branch once. A failed landing leaves every member active and shows the reason on the
@@ -100,6 +104,10 @@ An execution group has its own durable identity beside the queue history. The re
 shared branch, creation time, optional first-start time, current state, progress, jobs, log references and pull
 request. Creating or displaying a group does not set its first-start time. The runner sets that time once, when the
 first process actually starts, and later starts reuse both the identity and the original time.
+
+Creation and editing use the record's identity, not its display name. The save checks the current project, membership,
+queue state and dependency order before it writes any member. A removed member keeps its spec and work and returns to
+the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
@@ -790,6 +798,11 @@ A spec's row is the Specs list's row, drawn by the same builder: the same column
 unfolds to the phase lines, the Depends on picker, steps, logs and acceptance criteria, where the Specs list's open row
 shows the spec. A spec's title leads to `/specs/<project>/<spec>#spec-<project>/<spec>`: the Specs list with that row open
 and scrolled to it. The folds lead to `/`, not `/specs`.
+
+An opened phase follows the phase's current attempt, or the latest attempt that produced a log. It names the phase,
+attempt and execution time. Each opened work step is an excerpt from that same attempt and uses the same log display as
+the Logs tab. The entire phase-attempt log is a separate closed choice; it covers that phase attempt, not the spec's
+whole history. The Logs tab keeps every attempt in the current work round, including retries within one job.
 
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.

@@ -15,7 +15,8 @@ import type { SpecsFilter, SpecsPageOptions } from "../";
 import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import type { LogPart } from "../../../../queue/parse-stream";
-import { drawnParts } from "../../job-page/step-tabs.ts";
+import { logAndErrorDisplay, stepPanel } from "../../job-page/step-tabs.ts";
+import type { PhaseAttemptIdentity } from "../../job-page/types.ts";
 import { phaseExplanations } from "./explanations.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
@@ -39,6 +40,8 @@ export interface PhaseMessages {
    *  never escaped again. The same parts the step's Log on the Logs tab
    *  draws, with the same separator line before each. */
   logs: LogPart[];
+  errors?: string[];
+  identity?: PhaseAttemptIdentity;
   /** The steps the log has marked, in the order marked, listed above the Log. */
   steps: JobStep[];
   /** The model the AI's parts name in their separator, when known. */
@@ -116,9 +119,18 @@ export function phaseMessagesRow(
   // Plain text, escaped once here: a log part's lines are already escaped,
   // so these are never put among them.
   const explained = phaseExplanations(g, p, lang).map((s) => rowMessage("info", s, { tag: "p" })).join("");
-  const body = modelLine + explained + (!found
+  const identity = found?.identity
+    ? `<p class="muted small">${esc(stepLabel(found.identity.phase, lang))} · ${esc(t(lang, "job.attempt", { n: found.identity.attempt }))}${found.identity.at ? ` · ${esc(found.identity.at)}` : ""}</p>`
+    : "";
+  const whole = found
+    ? `<details data-phase-attempt-log="${esc(key)}"><summary>${esc(t(lang, "list.phaseEntireLog", { phase: stepLabel(found.identity?.phase ?? p.step, lang) }))}</summary>${stepPanel(
+        { ...found, terminalReason: "" },
+        { tabHref: tab, key: found.step ?? "", lang },
+      )}</details>`
+    : "";
+  const body = modelLine + identity + explained + (!found
     ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
-    : logBox(found.logs, found.aiModel, lang));
+    : whole);
   return [
     ...(found ? stepRows(found.steps, { prefix: key, filter: opts.filter ?? {}, listPath: opts.listPath, lang, now, underPhase: true }) : []),
     {
@@ -177,7 +189,7 @@ export function stepRows(
         `<td class="num" data-col="cost">${s.tokens !== undefined ? tokens(s.tokens) : "–"}</td>`,
     };
     return open && s.logs?.length
-      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}"${o.underPhase ? ' data-phasesteplog="1"' : ""}>`, cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>` }]
+      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}"${o.underPhase ? ' data-phasesteplog="1"' : ""}>`, cells: `<td colspan="${LIST_COLUMNS}">${logAndErrorDisplay({ logs: s.logs }, o.lang)}</td>` }]
       : [row];
   });
 }
@@ -185,9 +197,5 @@ export function stepRows(
 /** A step's Log in its box, part by part, or a line saying it has none. The
  *  box opens at its end, where the last thing the step did is. */
 export function logBox(logs: LogPart[], aiModel: string | undefined, lang: Language): string {
-  const parts = drawnParts(logs, aiModel, lang);
-  if (parts.length === 0) return `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`;
-  return `<div class="logbox"><ul class="phasemsglist">${parts
-    .map((part) => `<li class="muted">— ${esc(part.writer)} —</li>` + part.lines.map((m) => `<li>${m}</li>`).join(""))
-    .join("")}</ul></div>`;
+  return logAndErrorDisplay({ logs, aiModel }, lang);
 }

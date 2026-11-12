@@ -2,7 +2,7 @@
 // the one press mechanism every button and select on this page shares.
 
 import { clearRefusal } from "./row-refusal";
-import { specRowsOf } from "./row-swap.ts";
+import { specRowsOf } from "./row-swap/index.ts";
 import { press } from "./state.ts";
 import { ACTION_FORM_SELECTOR, SPINNER } from "../page-contract.ts";
 

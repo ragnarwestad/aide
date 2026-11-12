@@ -7,6 +7,7 @@
 // presses them as it does the list's.
 
 import { t } from "../../../i18n";
+import type { Language } from "../../../i18n";
 import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
@@ -20,6 +21,8 @@ import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
+import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
+import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
@@ -47,29 +50,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
   const specRows = activeSpecRows(v.specJobs, v.list, now);
-  const registered = (v.executionGroups ?? []).filter((group) => group.state !== "completed");
-  const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
-  const legacy = new Map<string, typeof specRows>();
-  for (const row of specRows) {
-    if (!row.group.group) continue;
-    const key = `${row.group.project}\n${row.group.group.name}`;
-    if (!known.has(key)) legacy.set(key, [...(legacy.get(key) ?? []), row]);
-  }
-  const prepared = [...legacy.entries()].flatMap(([key, rows]) => {
-    if (rows.length < 2) return [];
-    const ordered = [...rows].sort((a, b) => a.group.group!.position - b.group.group!.position || a.group.specFolder.localeCompare(b.group.specFolder));
-    const [project, name] = key.split("\n") as [string, string];
-    return [{
-      id: `membership:${project}:${name}`, project, name,
-      members: ordered.map((row) => row.group.specFolder),
-      branch: groupBranch(ordered[0]!.group.specFolder, name),
-      state: "prepared" as const,
-      createdAt: ordered.map((row) => row.group.createdAt).filter((date): date is string => !!date).sort()[0],
-      completedMembers: ordered.filter((row) => row.group.done.includes("implement")).map((row) => row.group.specFolder),
-      jobs: [],
-    }];
-  });
-  const activeGroups = [...registered, ...prepared];
+  const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
@@ -99,6 +80,32 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
+function activeExecutionGroups(v: JobsView, specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now())): ExecutionGroup[] {
+  const registered = (v.executionGroups ?? []).filter((group) => group.state !== "completed");
+  const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
+  const legacy = new Map<string, typeof specRows>();
+  for (const row of specRows) {
+    if (!row.group.group) continue;
+    const key = `${row.group.project}\n${row.group.group.name}`;
+    if (!known.has(key)) legacy.set(key, [...(legacy.get(key) ?? []), row]);
+  }
+  const prepared = [...legacy.entries()].flatMap(([key, rows]) => {
+    if (rows.length < 2) return [];
+    const ordered = [...rows].sort((a, b) => a.group.group!.position - b.group.group!.position || a.group.specFolder.localeCompare(b.group.specFolder));
+    const [project, name] = key.split("\n") as [string, string];
+    return [{
+      id: `membership:${project}:${name}`, project, name,
+      members: ordered.map((row) => row.group.specFolder),
+      branch: groupBranch(ordered[0]!.group.specFolder, name),
+      state: "prepared" as const,
+      createdAt: ordered.map((row) => row.group.createdAt).filter((date): date is string => !!date).sort()[0],
+      completedMembers: ordered.filter((row) => row.group.done.includes("implement")).map((row) => row.group.specFolder),
+      jobs: [],
+    }];
+  });
+  return [...registered, ...prepared];
+}
+
 /** Whether the tab has a row to draw once its view has cut them: what the
  *  installed app's start address chooses between this tab and the Specs
  *  list by, and what decides whether this tab names the Specs list as the
@@ -119,10 +126,23 @@ export function renderJobsRows(v: JobsView): string {
     ? shown.map((r) => r.html).join("")
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
-    notices +
+    notices + executionGroupEditors(v, lang) +
     jobsFilterBar(all.map((e) => e.facts), f, lang, v.list) +
     `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
+}
+
+function executionGroupEditors(v: JobsView, lang: Language): string {
+  const groups = activeExecutionGroups(v);
+  const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
+  const jobs = [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
+  const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
+  return executionGroupEditor({ projects, candidates, lang }) + groups
+    .filter((group) => group.state === "prepared" && !group.startedAt)
+    .map((group) => executionGroupEditor({
+      projects, group, lang,
+      candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups, jobs, editingGroupId: group.id }),
+    })).join("");
 }
 
 /** One spec's rows alone, for a fold: an empty body when the spec has no row

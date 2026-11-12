@@ -77,6 +77,33 @@ describe("the steps above the Log", () => {
     expect(draw()).not.toContain("READ-LINE");
   });
 
+  test("the phase identity is shown and its complete phase log is closed by default (AC-1, AC-3, AC-5)", () => {
+    const html = renderSpecsRows(
+      [finished("job", "analyze", "2026-09-19T10:00:00Z")],
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: FOLDER }],
+        filter: { open: KEY, phases: `${KEY}:analyze` },
+        phaseMessages: () => ({
+          logs: [{ by: "ai", lines: ["WHOLE-PHASE-LOG"] }],
+          errors: ["FAILED-COMMAND"],
+          steps,
+          running: false,
+          identity: { phase: "analyze", attempt: 2, at: "2026-09-19T10:00:00Z" },
+        }),
+      },
+      Date.parse("2026-09-19T12:00:00Z"),
+    );
+    expect(html).toContain("Analyze");
+    expect(html).toContain("Attempt 2");
+    expect(html).toContain("2026-09-19");
+    expect(html).toContain("Entire Analyze attempt log");
+    expect(html).toContain("<details");
+    expect(html).not.toContain("<details open");
+    expect(html).not.toContain("FAILED-COMMAND");
+    expect(html).toContain("steptab=errors");
+  });
+
   test("only open phase-step logs carry their shared indent marker", () => {
     const html = draw([`${KEY}:analyze.0`, `${KEY}:implement`, `${KEY}:implement.0`]);
     const logs = html.match(/<tr class="phasemsgs"[^>]*>/g) ?? [];

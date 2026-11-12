@@ -61,6 +61,11 @@ describe("phaseMessagesFor", () => {
     expect(got?.running).toBe(false);
   });
 
+  test("the phase log carries the same known model label as Logs (AC-1)", () => {
+    const j = job("a", { model: { analyze: "sonnet" }, results: [finishedStep("analyze", [said("modelled")])] });
+    expect(phaseMessagesFor(queueOf([j]), ["a"], "analyze")?.aiModel).toBe("Claude Sonnet");
+  });
+
   test("a file a step wrote is a line of its own", () => {
     const wrote = { type: "assistant", message: { content: [{ type: "tool_use", id: "w1", name: "Write", input: { file_path: "/x/2-analysis.md" } }] } };
     const j = job("a", { results: [finishedStep("analyze", [wrote])] });
@@ -74,6 +79,33 @@ describe("phaseMessagesFor", () => {
     const q = queueOf([older, newer, queued]);
     expect(lines(phaseMessagesFor(q, ["queued", "old"], "analyze"))).toEqual(["from old"]);
     expect(lines(phaseMessagesFor(q, ["queued", "new", "old"], "analyze"))).toEqual(["from new"]);
+  });
+
+  test("the latest repeated result in one job owns the log, key, identity and side sessions (AC-2, AC-3, AC-4, AC-6, AC-7, AC-9)", () => {
+    const first = finishedStep("implement", [said("FIRST-IMPLEMENT")]);
+    const secondFile = stream([said("SECOND-IMPLEMENT")]);
+    const second = {
+      step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude",
+      streamFile: secondFile,
+      at: "2026-09-19T10:30:00Z",
+      review: { outcome: "completed", tool: "claude", transcript: { from: 0, to: Buffer.byteLength(JSON.stringify(said("SECOND-IMPLEMENT")) + "\n") } },
+    } as never;
+    const older = job("old", {
+      createdAt: "2026-09-19T09:00:00Z",
+      startedAt: "2026-09-19T09:00:00Z",
+      results: [finishedStep("implement", [said("OLDER-IMPLEMENT")])],
+    });
+    const latest = job("latest", {
+      steps: ["implement"],
+      results: [first, second],
+    });
+    const queued = job("queued", { createdAt: "2026-09-19T11:00:00Z", state: "queued", steps: ["implement"] });
+    const got = phaseMessagesFor(queueOf([older, latest, queued]), ["queued", "latest", "old"], "implement");
+
+    expect(lines(got)).toContain("SECOND-IMPLEMENT");
+    expect(lines(got)).not.toContain("FIRST-IMPLEMENT");
+    expect(got?.step).toBe("2");
+    expect(got?.identity).toEqual({ phase: "implement", attempt: 3, at: "2026-09-19T10:30:00Z" });
   });
 
   test("nothing to read gives undefined", () => {
@@ -135,6 +167,21 @@ describe("phaseMessagesFor", () => {
     expect(got?.running).toBe(true);
     expect(lines(got)).toEqual(["working"]);
     expect(got?.step).toBe("live");
+  });
+
+  test("a live retry after a stored result gets the next phase occurrence (AC-2, AC-3, AC-6)", () => {
+    const live = stream([said("retrying")]);
+    const j = job("r", {
+      state: "running",
+      steps: ["analyze"],
+      stepIndex: 0,
+      streamFile: live,
+      stepStartedAt: "2026-09-19T11:00:00Z",
+      results: [finishedStep("analyze", [said("first attempt")])],
+    });
+    const got = phaseMessagesFor(queueOf([j]), ["r"], "analyze");
+    expect(lines(got)).toEqual(["retrying"]);
+    expect(got?.identity).toEqual({ phase: "analyze", attempt: 2, at: "2026-09-19T11:00:00Z" });
   });
 });
 
@@ -334,5 +381,19 @@ describe("sideMessagesFor", () => {
     const file = kept([segment([said("IMPLEMENT-TEXT")])]);
     expect(sideMessagesFor(queueOf([finishedWith(file, { review: { outcome: "completed", tool: "claude" } })]), ["a"], "review")).toBeUndefined();
     expect(sideMessagesFor(queueOf([finishedWith(file, {})]), ["a"], "verify")).toBeUndefined();
+  });
+
+  test("a repeated Implement uses the exact latest result's review (AC-6)", () => {
+    const old = segment([said("OLD-REVIEW")]);
+    const latest = segment([said("LATEST-REVIEW")]);
+    const file = kept([old, latest]);
+    const j = job("a", {
+      steps: ["implement"],
+      results: [
+        { step: "implement", streamFile: file, tool: "claude", review: { transcript: range([], old) } },
+        { step: "implement", streamFile: file, tool: "claude", review: { transcript: range([old], latest) } },
+      ] as never,
+    });
+    expect(lines(sideMessagesFor(queueOf([j]), ["a"], "review"))).toContain("LATEST-REVIEW");
   });
 });

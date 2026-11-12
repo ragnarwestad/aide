@@ -114,6 +114,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.phaseModel": "Modell: {model}",
   "list.descriptionChangedSince": "Beskrivelsen er endret siden forrige analyse.",
   "list.phaseOpenLog": "Åpne loggen for dette steget",
+  "list.phaseEntireLog": "Hele loggen for {phase}-forsøket",
   "list.cancel": "Avbryt",
   "list.cancelling": "avbryter…",
   "list.cancelConfirmTitle": "Avbryt {step}?",
@@ -573,4 +574,10 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupStart": "Start",
   "list.groupDone": "{done} av {total} ferdige",
   "list.groupWaiting": "Venter på {spec}",
+  "list.groupCreate": "Ny gruppe",
+  "list.groupEdit": "Rediger gruppe",
+  "list.groupProject": "Prosjekt",
+  "list.groupName": "Navn",
+  "list.groupOrder": "Rekkefølge",
+  "list.groupSave": "Lagre gruppe",
 };

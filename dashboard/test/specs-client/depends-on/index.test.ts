@@ -11,7 +11,7 @@ import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
 import { cancelDependsOn, cardAnswered, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
-import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
+import { restoreChosen } from "../../../src/specs-client/row-swap/index.ts";
 import { row as jobRow } from "../../render/pages/fixtures.ts";
 
 const A = "81-first-spec";
@@ -242,30 +242,5 @@ describe("the Depends on line's Save follows Cancel", () => {
     cardAnswered(form(rows, A), "saved");
     expect(together(rows)).toBe(true);
     expect(save(rows, A).disabled).toBe(true);
-  });
-});
-
-describe("the group field", () => {
-  const groupedTargets: SpecTarget[] = [
-    { project: "aide", specFolder: A, group: { name: "Release", position: 1 } },
-    { project: "aide", specFolder: B },
-  ];
-  const groupedLine = dependsOnLine(groupBySpec([], groupedTargets)[0]!, { targets: groupedTargets });
-
-  test("typing a group name and leaving a group enable Save, and Cancel restores the saved group (AC-1, AC-11)", () => {
-    const { rows, redraw } = list();
-    redraw(`<table><tbody>${groupedLine}</tbody></table>`);
-    const group = form(rows, A).querySelector('input[name="group"]') as HTMLInputElement;
-    group.value = "Another release";
-    pickSetting(group);
-    expect(save(rows, A).disabled).toBe(false);
-    cancelDependsOn(cancel(rows, A));
-    expect(group.value).toBe("Release");
-
-    const remove = form(rows, A).querySelector('input[name="removeGroup"]') as HTMLInputElement;
-    remove.checked = true;
-    pickSetting(remove);
-    expect(save(rows, A).disabled).toBe(false);
-    expect(remove.checked).toBe(true);
   });
 });

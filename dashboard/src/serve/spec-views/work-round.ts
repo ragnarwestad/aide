@@ -5,7 +5,27 @@
 // view and holds the keys to the same list.
 import { currentWorkRoundJobs } from "../../queue/steps.ts";
 import { inFlight, type Job, type QueueStore } from "../../queue/queue.ts";
-import type { JobDetailView, JobStepResultView } from "../../render";
+import type { JobDetailView, JobStepResultView, PhaseAttemptIdentity } from "../../render";
+
+/** Every stored occurrence of a phase in the current round, oldest first. */
+export function phaseAttempts(jobs: Job[], phase: string): { job: Job; resultIndex: number; identity: PhaseAttemptIdentity }[] {
+  let attempt = 0;
+  return [...jobs].reverse().flatMap((job) =>
+    job.results.flatMap((result, resultIndex) => {
+      if (result.step !== phase) return [];
+      attempt += 1;
+      return [{ job, resultIndex, identity: { phase, attempt, at: result.at ?? job.finishedAt ?? job.startedAt } }];
+    }),
+  );
+}
+
+/** The exact flat Logs key for one stored result. */
+export function resultKey(jobs: Job[], job: Job, resultIndex: number): string | undefined {
+  const oldestFirst = [...jobs].reverse();
+  const at = oldestFirst.indexOf(job);
+  if (at < 0 || !job.results[resultIndex]) return undefined;
+  return String(oldestFirst.slice(0, at).reduce((sum, item) => sum + item.results.length, 0) + resultIndex);
+}
 
 /** The spec's jobs in its current work round, newest first. */
 export function workRoundJobs(queue: Pick<QueueStore, "list">, project: string, specFolder: string): Job[] {
@@ -40,12 +60,27 @@ export async function stepsOfRound(
   const leadDetail = leadJob ? jobDetails[jobs.indexOf(leadJob)] : undefined;
   const lead = leadDetail && {
     ...leadDetail,
-    runningStep: leadDetail.runningStep && { ...leadDetail.runningStep, attempt: attemptNumber(leadJob!) },
+    runningStep: leadDetail.runningStep && {
+      ...leadDetail.runningStep,
+      attempt: attemptNumber(leadJob!),
+      phaseAttempt: {
+        phase: leadDetail.runningStep.step,
+        attempt: phaseAttempts(jobs, leadDetail.runningStep.step).length + 1,
+        at: leadJob?.stepStartedAt ?? leadJob?.startedAt,
+      },
+    },
   };
-  const steps = jobs
-    .map((j, i) => jobDetails[i]!.results.map((r) => ({ ...r, attempt: attemptNumber(j) })))
+  const phaseNumber = new Map<string, number>();
+  const steps = [...jobs]
     .reverse()
-    .flat();
+    .flatMap((j) => {
+      const detail = jobDetails[jobs.indexOf(j)]!;
+      return detail.results.map((r) => {
+      const next = (phaseNumber.get(r.step ?? "") ?? 0) + 1;
+      phaseNumber.set(r.step ?? "", next);
+      return { ...r, attempt: attemptNumber(j), phaseAttempt: r.step ? { phase: r.step, attempt: next, at: r.at ?? j.finishedAt ?? j.startedAt } : undefined };
+      });
+    });
   return { jobs, lead, steps };
 }
 
@@ -56,11 +91,7 @@ export async function stepsOfRound(
 export function stepKey(jobs: Job[], job: Job, step: string): string | undefined {
   const lead = jobs.find(inFlight) ?? jobs[0];
   if (job === lead && job.state === "running" && job.steps[job.stepIndex] === step) return "live";
-  const oldestFirst = [...jobs].reverse();
-  const at = oldestFirst.indexOf(job);
-  if (at < 0) return undefined;
-  const within = job.results.findIndex((r) => r.step === step);
+  const within = job.results.findLastIndex((r) => r.step === step);
   if (within < 0) return undefined;
-  const before = oldestFirst.slice(0, at).reduce((sum, j) => sum + j.results.length, 0);
-  return String(before + within);
+  return resultKey(jobs, job, within);
 }

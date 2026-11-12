@@ -1,17 +1,19 @@
+import { openPhaseAttemptLogs, reopenPhaseAttemptLogs } from "./phase-attempt-logs.ts";
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
 
-import { drawLimits } from "./limits";
-import { applyRefusal } from "./row-refusal";
-import { offerEachToItsTool } from "./ai-sync.ts";
-import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
-import { syncApproachCancels } from "./approach-choice";
-import { syncDependsOnForms } from "./depends-on";
-import { openTestFiles, reopenTestFiles } from "./test-files";
-import { holdSpecDetail } from "./spec-detail";
-import { runButton } from "../render/pages/specs-list/data-model/phase.ts";
-import { SPEC_HEAD_CLASS } from "../page-contract.ts";
-import { syncSpecGroups } from "./spec-groups";
+import { drawLimits } from "../limits";
+import { applyRefusal } from "../row-refusal";
+import { offerEachToItsTool } from "../ai-sync.ts";
+import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "../state.ts";
+import { syncApproachCancels } from "../approach-choice";
+import { syncDependsOnForms } from "../depends-on";
+import { openTestFiles, reopenTestFiles } from "../test-files";
+import { holdSpecDetail } from "../spec-detail";
+import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
+import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
+import { syncSpecGroups } from "../spec-groups";
+import { captureExecutionGroupEditors, restoreExecutionGroupEditors } from "../execution-groups/editor.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -248,8 +250,12 @@ export function specRowsOf(el: Element): Element[] | null {
 function replaceGroup(g: RowGroup): boolean {
   const range = groupRange(g.key);
   if (!range) return false;
+  const openPhaseLogs = openPhaseAttemptLogs(range);
   range[0]!.insertAdjacentHTML("beforebegin", g.html);
   for (const el of range) el.remove();
+  const fresh = groupRange(g.key);
+  if (!fresh) return false;
+  reopenPhaseAttemptLogs(fresh, openPhaseLogs);
   return true;
 }
 
@@ -435,6 +441,7 @@ export async function swapRows(): Promise<void> {
     // is exactly that.
     const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     const open = openTestFiles(body);
+    const openPhaseLogs = openPhaseAttemptLogs([body]);
     // The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
@@ -445,7 +452,12 @@ export async function swapRows(): Promise<void> {
       : undefined;
     // The open spec is not in the answer: it is held across the replace.
     const restore = holdSpecDetail(body);
-    if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
+    const editorDrafts = captureExecutionGroupEditors(body);
+    const replacedAll = !next || !lastRows || !applyGroupDiff(lastRows, next);
+    if (replacedAll) {
+      body.innerHTML = html;
+      restoreExecutionGroupEditors(body, editorDrafts);
+    }
     const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
     if (draft && nextSearch) {
       nextSearch.value = draft.value;
@@ -455,6 +467,7 @@ export async function swapRows(): Promise<void> {
       }
     }
     restore();
+    reopenPhaseAttemptLogs([body], openPhaseLogs);
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;

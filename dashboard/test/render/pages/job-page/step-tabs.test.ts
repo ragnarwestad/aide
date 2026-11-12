@@ -2,7 +2,7 @@
 // files and Errors, and Log for anything else.
 
 import { describe, expect, test } from "bun:test";
-import { drawnParts, logPartLines, logPartWriter, resolveStepTab } from "../../../../src/render/pages/job-page/step-tabs.ts";
+import { drawnParts, logAndErrorDisplay, logPartLines, logPartWriter, resolveStepTab, stepPanel } from "../../../../src/render/pages/job-page/step-tabs.ts";
 import type { LogPart, SubagentPart } from "../../../../src/queue/parse-stream";
 import { S } from "../../../helpers/codex-fixtures.ts";
 
@@ -14,6 +14,19 @@ describe("resolveStepTab", () => {
       expect(resolveStepTab(steptab)).toBe("log");
     }
   });
+});
+
+test("the shared log display keeps multiline content while errors use the same Errors tab (AC-1, AC-7, AC-8)", () => {
+  const html = logAndErrorDisplay({ logs: [{ by: "ai", lines: ["first\nsecond"] }], errors: ["failed\ncommand"] }, "en");
+  expect(html).toContain("first\nsecond");
+  expect(html).not.toContain("failed\ncommand");
+  expect(html).toContain("AI");
+  const errors = stepPanel(
+    { logs: [{ by: "ai", lines: ["first\nsecond"] }], errors: ["failed\ncommand"], terminalReason: "completed" },
+    { key: "2", steptab: "errors", lang: "en" },
+  );
+  expect(errors).toContain("failed\ncommand");
+  expect(errors).not.toContain("first\nsecond");
 });
 
 // A subagent's part as the Log draws it: the words are the catalogue's, the model's text arrives escaped once.

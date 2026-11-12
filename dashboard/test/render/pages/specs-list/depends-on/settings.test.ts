@@ -33,7 +33,7 @@ describe("the settings under Depends on", () => {
 
   test("post the three analyze reads, with the sentinel, before analyze has run and with no job of the spec", () => {
     expect(posted(lineOf(spec(FOLDER, { createChoices: CHOICES }))).sort()).toEqual(
-      ["acceptanceRequired", "chooseApproach", "criteriaChecks", "group", "settingsEditable"],
+      ["acceptanceRequired", "chooseApproach", "criteriaChecks", "settingsEditable"],
     );
   });
 
@@ -50,6 +50,14 @@ describe("the settings under Depends on", () => {
 
   test("never post the AI formulation, which create has already used", () => {
     expect(lineOf(spec(FOLDER, { createChoices: CHOICES }))).not.toContain('name="aiFormulateAcceptance"');
+  });
+
+  test("has no per-spec group name, suggestions or removal control (AC-9, AC-11)", () => {
+    const html = lineOf(spec(FOLDER, { group: { name: "Release", position: 1 }, createChoices: CHOICES }));
+    expect(html).not.toContain('name="group"');
+    expect(html).not.toContain("<datalist");
+    expect(html).not.toContain('name="removeGroup"');
+    expect(html).toContain('name="criteriaChecks"');
   });
 
   test("are tied to the row's own form, so two open rows do not share a control", () => {
