@@ -266,11 +266,11 @@ export interface Job {
    *  exactly `["reopen"]` has it. */
   resetFiles?: boolean;
   /** A deploy job's own record of the run (the board's `deploy` step): the
-   *  checkout it deployed, the commit its fetch reached, when the restart
-   *  was fired and the `STARTED_AT` of the process that fired it. The
-   *  process that starts after the restart reads it to finish the job. */
+   *  checkout, the commits before (`from`) and after its fetch, the restart and the
+   *  firing process's `STARTED_AT`, read by the next process to finish the job. */
   deploy?: {
     root: string;
+    from?: string;
     commit?: string;
     restartedAt?: string;
     leaving?: string;

@@ -175,6 +175,8 @@ export interface SpecsPageOptions {
   closeOrReopenSteps?: (jobId: string) => { key: string; label: string; state?: ProgressStepState; seconds?: number; since?: string; tokens?: number; logs?: LogPart[] }[];
   /** A Close's, Reopen's, deploy's or scheduled job's steps as its row's pips draw them. */
   jobStepPips?: (jobId: string) => { label: string; state?: ProgressStepState }[];
+  /** The commits a deploy took in, newest first: `[]` for none, undefined when not known. */
+  deployCommits?: (jobId: string) => { sha: string; subject: string; url?: string }[] | undefined;
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk yet, so it appears in no other list on

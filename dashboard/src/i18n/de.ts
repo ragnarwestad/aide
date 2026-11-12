@@ -119,6 +119,7 @@ export const de: Record<TranslationKey, string> = {
   "list.cancelConfirmTitle": "{step} abbrechen?",
   "list.cancelConfirmBody": "Das stoppt es sofort — es kann von derselben Spec aus erneut ausgeführt werden.",
   "jobs.nothingRunning": "Nichts läuft.",
+  "jobs.deployNoCommits": "Keine neuen Commits",
   "jobs.colTitle": "Titel",
   "jobs.noRowMatchesFilter": "Nichts auf diesem Tab passt zu diesem Filter.",
   "jobs.foldTitle": "{action} die Details von {name}",

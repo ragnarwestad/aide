@@ -16,7 +16,7 @@ export interface DeployJobInputs extends Omit<DeployRunDeps, "startedAt" | "queu
 }
 
 /** Runs git in `root` and waits for it. */
-const gitSync: AfterRestartDeps["git"] = (root, args) => {
+export const gitSync: AfterRestartDeps["git"] = (root, args) => {
   const done = Bun.spawnSync({ cmd: ["git", ...args], cwd: root, stdout: "pipe", stderr: "ignore" });
   return { code: done.exitCode, stdout: done.stdout.toString() };
 };

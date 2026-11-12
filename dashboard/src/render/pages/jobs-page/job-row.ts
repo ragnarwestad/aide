@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, buttonForm, confirmDialog, facts, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -47,6 +47,23 @@ export interface JobRowOptions {
   key?: string;
   /** A job's steps as its pips draw them: each step's name and state. */
   pips?: (jobId: string) => { label: string; state?: ProgressStepState }[];
+  /** The commits a deploy took in, newest first (`SpecsPageOptions.deployCommits`). */
+  commits?: (jobId: string) => { sha: string; subject: string; url?: string }[] | undefined;
+}
+
+/** An open deploy's commits, a short sha and its subject each, the sha a link
+ *  to the commit's page where there is one; a line saying there were none. */
+function commitLines(row: QueueRowView, o: JobRowOptions): string {
+  const commits = o.commits?.(row.id);
+  if (!commits) return "";
+  const sha = (c: { sha: string; url?: string }): string => {
+    const short = esc(c.sha.slice(0, 7));
+    return c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${short}</a>` : short;
+  };
+  const body = commits.length
+    ? facts(commits.map((c) => ({ label: sha(c), value: esc(c.subject) })))
+    : `<p class="muted small">${esc(t(o.lang, "jobs.deployNoCommits"))}</p>`;
+  return `<tr class="phasemsgs"><td colspan="${LIST_COLUMNS}">${body}</td></tr>`;
 }
 
 const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", waiting: "todo" };
@@ -56,11 +73,11 @@ export function jobStepPipKind(state: ProgressStepState | undefined): PipKind {
   return state ? PIP_OF[state] : "todo";
 }
 
-/** One pip per step, numbered in the job's order, as a group's members are. */
+/** One pip per step, its first letter above it, as a spec draws its phases. */
 function stepPips(row: QueueRowView, o: JobRowOptions): string {
   const steps = o.pips?.(row.id) ?? [];
   return steps.length
-    ? `<span class="pipslot">${pips(steps.map((s, i) => ({ kind: jobStepPipKind(s.state), title: s.label, label: String(i + 1) })))}</span>`
+    ? `<span class="pipslot">${pips(steps.map((s) => ({ kind: jobStepPipKind(s.state), title: s.label })))}</span>`
     : "";
 }
 
@@ -151,7 +168,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
-    (open ? stepLines(row, o) : "") +
+    (open ? stepLines(row, o) + commitLines(row, o) : "") +
     messageLine(row, lang) +
     `<tr class="specgap" aria-hidden="true"><td colspan="${LIST_COLUMNS}"></td></tr>`
   );

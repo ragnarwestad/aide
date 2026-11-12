@@ -103,11 +103,13 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
     }
     const base = await deps.branchStatus.defaultBranch(root);
     if (!base) return fail({ key: "landing.deployNoDefaultBranch", values: { root } });
+    const before = await deps.gitRun(root, ["rev-parse", "HEAD"]);
+    const from = before.code === 0 ? before.stdout.trim() : "";
     const pulled = await deps.mergeLock.run(root, () => fastForwardToOrigin(deps.gitRun, root, base));
     if (!pulled.ok) return fail(pulled.error ?? `cannot bring ${root} up to date`, pulled.detail);
     const head = await deps.gitRun(root, ["rev-parse", "HEAD"]);
     const commit = head.code === 0 ? head.stdout.trim() : undefined;
-    deps.queue.update(jobId, { deploy: { root, ...(commit ? { commit } : {}) } });
+    deps.queue.update(jobId, { deploy: { root, ...(from ? { from } : {}), ...(commit ? { commit } : {}) } });
     mark("fetch", "done");
 
     // --- install.

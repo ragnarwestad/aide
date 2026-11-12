@@ -18,6 +18,7 @@ afterEach(cleanupHarness);
 
 const ROOT = "/srv/aide";
 const HEAD = "abc1234deadbeef";
+const BEFORE = "0001111aaaabbbb";
 const OLDER = "9999999cafefeed";
 
 interface Setup {
@@ -47,11 +48,14 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     stepStartedAt: new Date().toISOString(),
   });
   const git: string[] = [];
+  // The checkout stands at BEFORE until the fetch's merge moves it to HEAD.
+  let merged = false;
   const gitRun: GitRunner = async (_dir, args) => {
     const line = args.join(" ");
     git.push(line);
+    if (line.startsWith("merge")) merged = true;
     if (line === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: "master\n" };
-    if (line === "rev-parse HEAD") return { code: 0, stdout: `${HEAD}\n` };
+    if (line === "rev-parse HEAD") return { code: 0, stdout: `${merged ? HEAD : BEFORE}\n` };
     if (line.startsWith("merge") && opts.mergeFails) return { code: 1, stdout: "", stderr: "not a fast-forward" };
     return { code: 0, stdout: "" };
   };
@@ -127,7 +131,7 @@ describe("a deploy with nothing to restart", () => {
     expect(s.marks().map((m) => m.replace(/^--- Step (\d) of 5: .* — /, "$1 "))).toEqual([
       "1 started", "1 done", "2 started", "2 done", "3 skipped", "4 skipped", "5 started", "5 done",
     ]);
-    expect(store.get(s.id)?.deploy).toMatchObject({ root: ROOT, commit: HEAD });
+    expect(store.get(s.id)?.deploy).toMatchObject({ root: ROOT, from: BEFORE, commit: HEAD });
     expect(s.git).toContain("merge -q --ff-only origin/master");
     expect(installedRoot).toBe(ROOT);
     expect(s.calls.restartWhenSettled).toBe(0);
