@@ -1,5 +1,5 @@
-// What a deploy took in: the commits between the one that ran before its
-// fetch and the one its fetch reached, each with its address on the forge.
+// What a deploy took in: the commits between the one the previous deploy
+// reached and the one its fetch reached, each with its address on the forge.
 
 import { describe, expect, test } from "bun:test";
 import type { Job } from "../../../src/queue/queue.ts";
@@ -25,7 +25,7 @@ function fakeGit() {
 }
 
 describe("the commits a deploy took in", () => {
-  test("are the commits from the one that ran before its fetch to the one its fetch reached, newest first, each with its address", () => {
+  test("are, for a project's first deploy, the commits from the one its checkout stood at to the one its fetch reached, newest first, each with its address", () => {
     const { git, logs } = fakeGit();
     const job = deploy({ deploy: { root: "/r1", from: "f0", commit: "c1" } });
     expect(deployCommits(job, [job], git)).toEqual([
@@ -43,7 +43,15 @@ describe("the commits a deploy took in", () => {
     expect(logs()).toHaveLength(1);
   });
 
-  test("start, for a deploy that did not record its own, at the commit the newest earlier done deploy reached", () => {
+  test("start at the commit the previous done deploy reached, also when the checkout was brought up to date before the deploy's own fetch", () => {
+    const { git, logs } = fakeGit();
+    const before = deploy({ createdAt: "2026-11-11T10:00:00Z", deploy: { root: "/r5", from: "prev", commit: "prev" } });
+    const job = deploy({ createdAt: "2026-11-12T10:00:00Z", deploy: { root: "/r5", from: "c5", commit: "c5" } });
+    expect(deployCommits(job, [before, job], git)).toHaveLength(2);
+    expect(logs()).toEqual([["log", "--format=%H%x09%s", "prev..c5"]]);
+  });
+
+  test("start at the commit the newest earlier done deploy reached, passing over a failed one", () => {
     const { git, logs } = fakeGit();
     const older = deploy({ createdAt: "2026-11-10T10:00:00Z", deploy: { root: "/r3", commit: "old" } });
     const before = deploy({ createdAt: "2026-11-11T10:00:00Z", deploy: { root: "/r3", commit: "prev" } });

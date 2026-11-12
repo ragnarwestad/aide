@@ -831,8 +831,8 @@ held back or running, and once it has failed or been interrupted until a newer d
 deploy is refused while one is queued or running. It offers Cancel while queued and nothing once it runs, since a job
 marked cancelled would go on restarting the service. The open row lists five steps: fetch from origin, install, restart
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
-deploy took in: from the one the checkout stood at before the fetch, or for a deploy that did not record it, the one the
-previous done deploy reached, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
+deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout
+stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
 origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. While a merge is
 in flight, a queued deploy waits, and a running one waits before its fetch and before its restart; the row says "Held
 back" with the reason.

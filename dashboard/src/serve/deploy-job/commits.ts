@@ -1,6 +1,8 @@
-// What a deploy took in: the commits between the one its checkout stood at
-// before the fetch and the one the fetch reached, each with its address on
-// GitHub when origin is there. Read from git the first time a deploy's row is
+// What a deploy took in: the commits between the one the previous deploy
+// reached and the one its own fetch reached, each with its address on
+// GitHub when origin is there. The checkout's own position before the fetch
+// does not say what was served: the checkout is brought up to date between
+// deploys too, so it stands in only for a project's first deploy. Read from git the first time a deploy's row is
 // opened, and kept: a finished deploy's commits never change.
 
 import { jobKind, type Job } from "../../queue/queue.ts";
@@ -34,8 +36,8 @@ function webOf(root: string, git: Git): string | undefined {
   return webs.get(root);
 }
 
-/** Where a deploy that did not record its own starting commit started: the
- *  commit the newest earlier done deploy of the same project reached. */
+/** What was served when a deploy started: the commit the newest earlier done
+ *  deploy of the same project reached. */
 function previousCommit(job: Job, jobs: readonly Job[]): string | undefined {
   const at = (j: Job): number => Date.parse(j.createdAt) || 0;
   return jobs
@@ -50,7 +52,7 @@ export function deployCommits(job: Job, jobs: readonly Job[], git: Git = gitSync
   const to = job.deploy?.commit;
   const root = job.deploy?.root;
   if (!to || !root) return undefined;
-  const from = job.deploy?.from ?? previousCommit(job, jobs);
+  const from = previousCommit(job, jobs) ?? job.deploy?.from;
   if (!from) return undefined;
   if (from === to) return [];
   const key = `${root}\n${from}..${to}`;
