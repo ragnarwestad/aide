@@ -10,13 +10,15 @@ the root `AGENTS.md`.
 
 The rules that matter only in one part of the code live in `.claude/rules/`
 beside this file. Claude Code loads each one when a file it names is read;
-any other tool reads the one for the code it changes before changing it:
+every tool implementing or reviewing a change reads the rule for that code
+before starting:
 
 - `landing.md` — the landing, the archive step and Close: the code that
   lands a branch, and the rows and pages that read what a landing left.
 - `process-groups.md` — signalling a process group, under `src/serve/`.
-- `dashboard-design.md` — tokens, the class vocabulary and the layout
-  rules, under `src/render/`.
+- `dashboard-design.md` — required existing-design reference and visual
+  verification for implementation and review, tokens, the class vocabulary
+  and layout, under `src/render/` and `src/specs-client/`.
 
 ## How a run touches the repositories
 

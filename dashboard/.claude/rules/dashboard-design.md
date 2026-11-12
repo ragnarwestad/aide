@@ -15,14 +15,35 @@ the class vocabulary.
 ## A new piece of the page is built from the components
 
 Before adding or changing anything the page shows — a button, a fold, a
-form, a badge, a line of text — read "Components" and "What a button's
-variant means" in `docs/design-system.md`, and build it from the
-components listed there. Markup written by hand beside a component drifts
-from it: another arrow, another spacing, another word. Where no component
-fits, make one in `src/render/ui/components/` first and add it to that
-list. `test/guards/one-button-one-link-one-line.test.ts` and
+form, a badge, a line of text — inspect the surrounding interface and the
+nearest existing control with the same role. Before writing code, name
+that control and its source as the reference for the change. A request
+for a control beside an existing one means following that control's
+layout, appearance and interaction, including what opens and how it
+closes. A different solution needs a concrete reason agreed with the user
+before implementation.
+
+Read "Components" and "What a button's variant means" in
+`docs/design-system.md`. Reuse the reference's component and behaviour;
+using any shared component is not enough. If the matching controls have
+no shared component, extract their common presentation and interaction
+rather than adding another independent implementation. Where no existing
+pattern fits, make a component in `src/render/ui/components/` first and
+add it to the component list. Markup written by hand beside a component
+drifts from it: another arrow, another spacing, another word.
+`test/guards/one-button-one-link-one-line.test.ts` and
 `test/guards/six-shapes-one-component-each.test.ts` catch the shapes they
 know.
+
+Before reporting the change as finished, compare it with the named
+reference in the browser, in the surrounding page, at desktop and phone
+widths. Check its appearance and its opening, closing and keyboard
+behaviour. Passing functional tests does not replace this comparison.
+If browser verification is unavailable, report the missing check and do
+not claim visual verification. A review of an interface change must read
+this rule, inspect the same reference and check the implementation's
+visual verification; it must not approve design consistency from green
+tests alone.
 
 ## Colours, sizes and lengths come from tokens
 
