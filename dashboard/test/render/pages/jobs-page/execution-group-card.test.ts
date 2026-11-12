@@ -41,3 +41,10 @@ test("a prepared card starts and edits by durable id (AC-3, AC-6, AC-10, AC-11)"
 test("completed groups have no card action (AC-12, AC-14)", () => {
   expect(executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")])).not.toContain('name="action"');
 });
+
+test("a card ready to archive names Archive once, on its button", () => {
+  const ready = (folder: string) => ({ ...member(folder, "<tr></tr>"), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"] } as SpecGroup });
+  const html = executionGroupCard(group("waiting-acceptance"), [ready("1-first"), ready("2-second")]);
+  expect(html).toContain('name="action" value="archive"');
+  expect(html.match(/Archive/g)).toHaveLength(1);
+});

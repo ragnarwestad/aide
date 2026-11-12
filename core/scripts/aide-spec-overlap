@@ -50,10 +50,33 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bootstrap_value="no"
+for arg in "$@"; do
+  if [ "$bootstrap_value" = "yes" ]; then
+    bootstrap_value="no"
+    continue
+  fi
+  case "$arg" in
+    -h|--help) printf '%s\n' 'Usage:' \
+      '  aide-spec-overlap --specs-root <path> --spec <NN-slug>' \
+      '                     [--record] [--analysis <file>] [--project-dir <path>]'; exit 0 ;;
+    --specs-root|--spec|--analysis|--project-dir) bootstrap_value="yes" ;;
+  esac
+done
+require_library() {
+  [ -f "$SCRIPT_DIR/$1" ] && return 0
+  printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"%s is missing beside aide-spec-overlap — reinstall aide"}\n' "$1"
+  exit 2
+}
+for library in _aide-spec-lib.sh lib/config/aide-config.sh lib/spec-transitions.sh \
+  lib/spec-state.sh lib/status-progress.sh lib/files-to-change.sh \
+  lib/translation-files.sh lib/spec-result.sh; do
+  require_library "$library"
+done
 # shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
+source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # shellcheck source=lib/files-to-change.sh
 source "$SCRIPT_DIR/lib/files-to-change.sh"
 # shellcheck source=lib/translation-files.sh

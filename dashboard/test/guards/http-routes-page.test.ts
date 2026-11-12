@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { compareRoutes, readServeSources, routesOnPage, scanSource } from "../helpers/route-scan";
+import { compareRoutes, readServeSources, routeOwnership, routesOnPage, scanSource } from "../helpers/route-scan";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const page = readFileSync(join(ROOT, "docs", "http-routes.md"), "utf-8");
@@ -40,6 +40,11 @@ describe("the page's rows", () => {
 });
 
 describe("the scanner reads the real tree", () => {
+  test("every method and route has one source owner (AC-1)", () => {
+    const duplicates = routeOwnership(files, constants).filter((route) => route.owners.length > 1);
+    expect(duplicates).toEqual([]);
+  });
+
   test("every route file that checks req.method yields a route, and no constant is left unresolved", () => {
     const silent = Object.entries(files)
       .filter(([, text]) => text.includes("req.method"))
@@ -50,6 +55,19 @@ describe("the scanner reads the real tree", () => {
 
   test("/api/queue is read as both a read and an action", () => {
     expect(source.find((r) => r.path === "/api/queue")?.methods).toEqual(["GET", "POST"]);
+  });
+});
+
+describe("execution-group route owners", () => {
+  test("the route page names each authoritative source file (AC-4)", () => {
+    const expected = [
+      ["POST /api/queue/groups", "src/serve/routes/spec-edit/group.ts"],
+      ["POST /api/queue/groups/<id>", "src/serve/routes/spec-edit/group.ts"],
+      ["POST /api/queue/groups/<id>/action", "src/serve/routes/job-actions.ts"],
+    ];
+    for (const [route, owner] of expected) {
+      expect(page).toContain(`- \`${route}\` — \`${owner}\``);
+    }
   });
 });
 

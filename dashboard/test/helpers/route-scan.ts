@@ -16,6 +16,11 @@ export interface SourceRoute {
   path: string;
   methods: string[];
 }
+export interface RouteOwnership {
+  method: string;
+  path: string;
+  owners: string[];
+}
 export interface PageRoute {
   method: string;
   path: string;
@@ -100,25 +105,58 @@ const methodsAfter = (lines: string[], from: number, until: number): string[] =>
 
 /** Pure: file name -> text in, routes out. `constants` maps a name to the path
  *  it holds; a name it cannot resolve throws. */
+const routesIn = (text: string, constants: Record<string, string>): SourceRoute[] => {
+  const found = new Map<string, Set<string>>();
+  const lines = text.split("\n");
+  const sites = sitesIn(text, constants);
+  sites.forEach((site, i) => {
+    const until = sites[i + 1]?.line ?? lines.length;
+    const methods = methodsAfter(lines, site.line, until);
+    for (const raw of site.paths) {
+      const path = wildcard(raw);
+      const known = found.get(path) ?? new Set<string>();
+      for (const method of methods) known.add(method);
+      found.set(path, known);
+    }
+  });
+  return [...found]
+    .map(([path, methods]) => ({ path, methods: [...methods].sort() }))
+    .sort((a, b) => a.path.localeCompare(b.path));
+};
+
 export const scanSource = (files: Record<string, string>, constants: Record<string, string>): SourceRoute[] => {
   const found = new Map<string, Set<string>>();
   for (const text of Object.values(files)) {
-    const lines = text.split("\n");
-    const sites = sitesIn(text, constants);
-    sites.forEach((site, i) => {
-      const until = sites[i + 1]?.line ?? lines.length;
-      const methods = methodsAfter(lines, site.line, until);
-      for (const raw of site.paths) {
-        const path = wildcard(raw);
-        const known = found.get(path) ?? new Set<string>();
-        for (const m of methods) known.add(m);
-        found.set(path, known);
-      }
-    });
+    for (const route of routesIn(text, constants)) {
+      const methods = found.get(route.path) ?? new Set<string>();
+      for (const method of route.methods) methods.add(method);
+      found.set(route.path, methods);
+    }
   }
   return [...found]
     .map(([path, methods]) => ({ path, methods: [...methods].sort() }))
     .sort((a, b) => a.path.localeCompare(b.path));
+};
+
+export const routeOwnership = (
+  files: Record<string, string>,
+  constants: Record<string, string>,
+): RouteOwnership[] => {
+  const owners = new Map<string, Set<string>>();
+  for (const [file, text] of Object.entries(files)) {
+    for (const route of routesIn(text, constants)) {
+      for (const method of route.methods) {
+        const key = `${method} ${route.path}`;
+        owners.set(key, (owners.get(key) ?? new Set()).add(file));
+      }
+    }
+  }
+  return [...owners]
+    .map(([key, files]) => {
+      const split = key.indexOf(" ");
+      return { method: key.slice(0, split), path: key.slice(split + 1), owners: [...files].sort() };
+    })
+    .sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 };
 
 /** The 26 files of the scan roots by relative path, and the constants of every file under src/. */

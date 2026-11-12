@@ -109,15 +109,40 @@ def test_substitutes_title_folder_and_date(script, specs_root):
 
 
 def test_depends_on_formats_and_places_the_line(script, specs_root):
+    (specs_root / "10-earlier-spec").mkdir()
+    (specs_root / "11-a-spec-can-depend").mkdir()
     rc, out, _ = run(
         script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
-        depends_on=" 105 , 92-a-spec-can-depend ",
+        depends_on=" 10 , 11-a-spec-can-depend ",
     )
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     lines = desc.splitlines()
     created_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Created:**"))
-    assert lines[created_idx + 1] == "- **Depends on:** `105`, `92-a-spec-can-depend`"
+    assert lines[created_idx + 1] == "- **Depends on:** `10-earlier-spec`, `11-a-spec-can-depend`"
+
+
+def test_depends_on_resolves_unique_numbers_and_refuses_ambiguity_ac_1_ac_2_ac_3(
+    script, specs_root
+):
+    (specs_root / "77-old").mkdir()
+    rc, out, _ = run(
+        script, specs_root, "78", "do-a-thing", "Do a thing", "Problem: X.",
+        depends_on="77",
+    )
+    assert rc == 0, out
+    desc = (specs_root / "78-do-a-thing" / "1-description.md").read_text()
+    assert "- **Depends on:** `77-old`" in desc
+
+    (specs_root / "77-second").mkdir()
+    rc, out, _ = run(
+        script, specs_root, "79", "another", "Another", "Problem: X.",
+        depends_on="77",
+    )
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "77" in out["error"]
+    assert not (specs_root / "79-another").exists()
 
 
 def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
@@ -150,15 +175,16 @@ def test_no_acceptance_flag_writes_no_acceptance_line(script, specs_root):
 
 
 def test_acceptance_and_depends_on_both_land_after_created_in_order(script, specs_root):
+    (specs_root / "10-earlier-spec").mkdir()
     rc, out, _ = run(
         script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
-        depends_on="105", acceptance_not_required=True,
+        depends_on="10", acceptance_not_required=True,
     )
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     lines = desc.splitlines()
     created_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Created:**"))
-    assert lines[created_idx + 1] == "- **Depends on:** `105`"
+    assert lines[created_idx + 1] == "- **Depends on:** `10-earlier-spec`"
     assert lines[created_idx + 2] == "- **Acceptance:** not required"
 
 
@@ -607,13 +633,14 @@ def test_folder_name_needs_no_slug(script, specs_root):
 
 
 def test_folder_name_still_validates_depends_on_and_acceptance(script, specs_root):
+    (specs_root / "105-earlier-spec").mkdir()
     rc, out, _ = run_folder_name(
         script, specs_root, "new-abcd5678", "A new spec", "Problem: X.",
         depends_on="105", acceptance_not_required=True,
     )
     assert rc == 0, out
     desc = (specs_root / "new-abcd5678" / "1-description.md").read_text()
-    assert "- **Depends on:** `105`" in desc
+    assert "- **Depends on:** `105-earlier-spec`" in desc
     assert "- **Acceptance:** not required" in desc
 
 

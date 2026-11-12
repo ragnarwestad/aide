@@ -196,7 +196,10 @@ Three things hold a job back rather than stop it: nothing failed, and the job is
   job waits for what either names: a Depends on saved from the open row is written to the branch, while the runner's own
   check reads the checkout. The dashboard leaves the job `queued` with the reason on its row and tries again on
   every pass of the runner; a run started by hand is refused. `create` runs regardless. `analyze` waits too,
-  because a plan made before the dependency lands is a plan for code that is about to change.
+  because a plan made before the dependency lands is a plan for code that is about to change. A dependency can use the
+  complete folder name or its number, for both active and archived specs. A complete folder name identifies that exact
+  spec. A number identifies a spec only when exactly one active or archived folder has that number. An unknown or
+  ambiguous reference is refused; no spec is chosen from the order in which folders were read.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
 - **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
   Every other job runs as usual: the landing merges in a worktree of its own.

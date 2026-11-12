@@ -15,7 +15,7 @@ import { listedModelName } from "./model-name.ts";
 import { parseProviderPick } from "./providers/parse.ts";
 import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
-import { specReference } from "../project/spec-folder.ts";
+import { resolveDependencyFolderName, specReference } from "../project/spec-folder.ts";
 import { isScheduleKey, newProvisionalKey } from "../project/spec-names.ts";
 
 export type ParseResult = { ok: true; job: Job } | ({ ok: false } & RequestRefusal);
@@ -383,12 +383,9 @@ export function parseCreateRequest(
   const description = text(r.description, DESCRIPTION_MAX, "description", true);
   if (description instanceof Error) return { ok: false, error: description.message, solution: description.solution };
 
-  // What the new spec builds on. Scoped to the SAME project a
-  // dependency guard would later check it against — `aide-run-spec`
-  // resolves every "Depends on:" entry inside its own $specs_root — and
-  // read off the server's own resolver, never off whichever chips the
-  // browser happened to render. Refused entry by entry, like every other
-  // list-shaped field here; nothing is silently dropped.
+  // Resolve dependencies inside this project's specs root, using the
+  // server's known folders rather than the browser's rendered choices.
+  // One bad entry refuses the whole list; nothing is silently dropped.
   const dependsOn: string[] = [];
   if (r.dependsOn !== undefined && r.dependsOn !== null) {
     if (!Array.isArray(r.dependsOn)) return { ok: false, ...invalidRequest("dependsOn must be a list") };
@@ -396,13 +393,16 @@ export function parseCreateRequest(
     // No resolver, no known specs. An archived spec counts: one archived
     // since the form was drawn is a dependency already met.
     const resolved = opts.resolve?.(r.project);
-    const known = new Set([...(resolved?.specFolders ?? []), ...(resolved?.archivedFolders ?? [])]);
+    const known = [...(resolved?.specFolders ?? []), ...(resolved?.archivedFolders ?? [])];
     for (const d of r.dependsOn) {
-      if (typeof d !== "string" || !FOLDER_RE.test(d) || !known.has(d)) {
+      const folder = typeof d === "string" && FOLDER_RE.test(d)
+        ? resolveDependencyFolderName(known, d)
+        : undefined;
+      if (!folder) {
         return { ok: false, ...invalidRequest(`unknown spec in dependsOn: ${String(d)}`) };
       }
-      if (dependsOn.includes(d)) return { ok: false, ...invalidRequest(`dependsOn repeats ${d}`) };
-      dependsOn.push(d);
+      if (dependsOn.includes(folder)) return { ok: false, ...invalidRequest(`dependsOn repeats ${d}`) };
+      dependsOn.push(folder);
     }
   }
 

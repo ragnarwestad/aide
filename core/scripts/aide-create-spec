@@ -45,11 +45,51 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bootstrap_result_file=""
+bootstrap_value=""
+for arg in "$@"; do
+  if [ -n "$bootstrap_value" ]; then
+    [ "$bootstrap_value" = "result" ] && bootstrap_result_file="$arg"
+    bootstrap_value=""
+    continue
+  fi
+  case "$arg" in
+    -h|--help) printf '%s\n' 'Usage:' \
+      '  aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>' \
+      '                    --title <title> --description <text>' \
+      '                    [--given-description <text>]' \
+      '                    [--depends-on <value>] [--result-file <path>]' \
+      '  aide-create-spec --specs-root <path> --folder-name <name>' \
+      '                    --title <title> --description <text>' \
+      '                    [--given-description <text>]' \
+      '                    [--depends-on <value>] [--result-file <path>]' \
+      '  aide-create-spec --specs-root <path> --assign-number --folder <name>' \
+      '                    [--result-file <path>]' \
+      '  aide-create-spec --specs-root <path> --stamp-outcome --folder <NN-slug>' \
+      '                    --start-epoch <epoch-seconds> [--model <text>]' \
+      '                    [--result-file <path>]'; exit 0 ;;
+    --result-file) bootstrap_value="result" ;;
+    --specs-root|--number|--slug|--title|--description|--given-description|--depends-on|--folder|--start-epoch|--model|--folder-name) bootstrap_value="value" ;;
+  esac
+done
+require_library() {
+  [ -f "$SCRIPT_DIR/$1" ] && return 0
+  payload="$(printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"%s is missing beside aide-create-spec — reinstall aide"}' "$1")"
+  printf '%s\n' "$payload"
+  [ -z "$bootstrap_result_file" ] || printf '%s\n' "$payload" > "$bootstrap_result_file"
+  exit 2
+}
+require_library "_aide-spec-lib.sh"
+require_library "lib/config/aide-config.sh"
+require_library "lib/spec-result.sh"
+require_library "lib/spec-reference.sh"
+require_library "lib/tracking-info.sh"
 # `aide_next_spec_number` — the one place that answers "what is the next
 # number", shared with every other caller so two answers cannot drift.
 # shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+source "$SCRIPT_DIR/_aide-spec-lib.sh"
 source "$SCRIPT_DIR/lib/spec-result.sh"
+source "$SCRIPT_DIR/lib/spec-reference.sh"
 
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
@@ -216,6 +256,18 @@ fi
 [ -n "$folder_name" ] || [ -n "$slug" ] || aide_spec_refuse "missing --slug"
 [ -n "$title" ] || aide_spec_refuse "missing --title"
 [ -n "$description" ] || aide_spec_refuse "missing --description"
+
+if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
+  resolved_dependencies=()
+  while IFS= read -r dependency; do
+    dependency="$(printf '%s' "$dependency" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -n "$dependency" ] || continue
+    resolved="$(aide_resolve_dependency_folder "$specs_root" "$dependency")"
+    [ -n "$resolved" ] || aide_spec_refuse "unknown or ambiguous dependency: $dependency"
+    resolved_dependencies+=("$resolved")
+  done < <(printf '%s\n' "$depends_on" | tr ',' '\n')
+  depends_on="$(printf '%s\n' "${resolved_dependencies[@]}" | paste -sd, -)"
+fi
 
 # The rule's own definition of an acceptance-criteria line
 # (core/rules/spec-structure.md § 1-description) is

@@ -20,3 +20,8 @@ test("Edit addresses the prepared group by id and keeps its name read-only (AC-6
   expect(html).toContain('value="Release" readonly');
   expect(html).toContain('value="1-first" checked');
 });
+
+test("New group is drawn closed until it is opened", () => {
+  const html = executionGroupEditor({ projects: ["aide"], candidates: [] });
+  expect(html).toMatch(/^<details class="execution-group-editor">/);
+});

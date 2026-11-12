@@ -6,35 +6,23 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import type { DiscoveredProject, SpecRef } from "../../project/discover";
+import { resolveDependencyFolderName } from "../../project/spec-folder.ts";
 import { mergeQueueDefaults, parseAllowedHosts, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
 import { navEntries } from "../../render";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
 
 /** Which folder a `Depends on:` entry means — a second reader of
- *  `resolve_dependency_folder`'s rule in `aide-run-spec`: the exact
- *  folder first, then an `<id>-` prefix, live specs before archived
- *  ones. The same trade-off `discover.ts`'s `specDependsOn` already
- *  made for the line itself, so it gets what that one has: its own
- *  tests, mirroring the bash suite's cases one for one.
+ *  `resolve_dependency_folder`'s rule in `aide-run-spec`: an exact
+ *  folder first, otherwise the one folder whose number matches.
  *
  *  `undefined` for an identifier nothing matches. That is a REFUSAL, not
  *  a wait, and it belongs to `aide-run-spec` — a typo must reach the run
  *  that says so rather than park a job forever against a spec that will
  *  never exist. */
-export function resolveDependencyFolder(
-  project: DiscoveredProject,
-  id: string,
-): SpecRef | undefined {
-  const live = project.specs.filter((s) => !s.archived);
-  const archived = project.specs.filter((s) => s.archived);
-  for (const set of [live, archived]) {
-    const exact = set.find((s) => s.folder === id);
-    if (exact) return exact;
-    const prefixed = set.find((s) => s.folder.startsWith(`${id}-`));
-    if (prefixed) return prefixed;
-  }
-  return undefined;
+export function resolveDependencyFolder(project: DiscoveredProject, id: string): SpecRef | undefined {
+  const folder = resolveDependencyFolderName(project.specs.map((spec) => spec.folder), id);
+  return folder ? project.specs.find((spec) => spec.folder === folder) : undefined;
 }
 
 export function parseArgs(argv: string[]): ServerOptions {

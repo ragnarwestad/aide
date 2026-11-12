@@ -23,11 +23,9 @@
 # BEFORE anything touches a checkout, so a refusal here leaves nothing
 # behind.
 
-# The --spec lookup above (`aide_find_spec_folder`), with one deliberate
-# addition: the archive, so a dependency's folder NAME resolves whichever
-# list it is currently under. Reaching for the shared library's
-# aide_resolve_spec instead would give --spec and "Depends on:" two
-# different ideas of a valid identifier inside one script.
+# Dependency references have their own stricter rule: an exact folder
+# name wins, otherwise a number must identify exactly one active or
+# archived folder. Ordinary --spec lookup keeps its first-match rule.
 #
 # Resolves a folder NAME only — whether that folder is done is
 # no longer this function's question. A local directory listing cannot
@@ -35,8 +33,7 @@
 # `archive` step landed on origin, so the LOCAL archive/ scan
 # below is a hint for resolving the name, never proof of being done.
 resolve_dependency_folder() {   # sets $dep_folder
-  dep_folder=""
-  aide_find_spec_folder "$specs_root" "$1" any && dep_folder="$found_folder"
+  dep_folder="$(aide_resolve_dependency_folder "$specs_root" "$1")"
   return 0
 }
 

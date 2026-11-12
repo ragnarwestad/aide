@@ -248,6 +248,22 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
+  test("one ambiguous entry in a list refuses the whole save (AC-3)", async () => {
+    const { base, dir } = harness.start({
+      description: TRACKED(),
+      alsoSpecs: ["99-first-spec", "99-second-spec"],
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
+      extra: { gitRun: savable("/host") },
+    });
+    const { status, body } = await answer(await track(base, {
+      dependsOn: `${ARCHIVED}, 99`,
+      baseSha: FILE_SHA,
+    }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("99");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+  });
+
   // Every template writes `Created:`; a description hand-edited past it
   // has nowhere for the line to go, and a guess would be worse.
   test("no Created line to place it after is refused, not guessed at", async () => {

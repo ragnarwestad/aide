@@ -126,3 +126,21 @@ aide_find_spec_folder() {   # <root> <id> [<where>]
   done
   return 1
 }
+
+# Resolve a dependency by exact folder name or by a number that occurs
+# exactly once across active and archived specs. Echoes the folder name.
+aide_resolve_dependency_folder() {
+  local root="$1" id="$2" under candidate base matches=()
+  for under in "" "archive/"; do
+    [ -d "$root/$under$id" ] && { printf '%s\n' "$id"; return; }
+  done
+  case "$id" in ""|*[!0-9]*) return ;; esac
+  for under in "" "archive/"; do
+    for candidate in "$root/$under$id-"*/; do
+      [ -d "$candidate" ] || continue
+      base="$(basename "$candidate")"
+      matches+=("$base")
+    done
+  done
+  [ "${#matches[@]}" -eq 1 ] && printf '%s\n' "${matches[0]}"
+}
