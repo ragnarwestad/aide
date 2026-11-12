@@ -26,6 +26,7 @@ beforeAll(async () => {
   });
   base = started.base;
   await page.goto(`${base}/?live=0`);
+  await page.getByRole("button", { name: "Release", exact: true }).click();
   const answered = page.waitForResponse((response) =>
     response.request().method() === "POST");
   await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -33,6 +34,7 @@ beforeAll(async () => {
   expect(response.status()).toBe(200);
   const body = await response.json() as { job: { specFolder: string } };
   startedMember = body.job.specFolder;
+  await page.getByRole("button", { name: "Release", exact: true }).click();
 });
 
 afterAll(async () => {
@@ -55,6 +57,18 @@ test("Running keeps one group card and its member detail open in place (AC-1, AC
   await spec.waitFor({ state: "visible" });
 });
 
+test("Running hides the execution-group action line while its group is collapsed (AC-7)", async () => {
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+  const group = page.getByRole("button", { name: "Release", exact: true });
+  const actions = page.locator("tr[data-execution-group-actions]");
+  await group.waitFor();
+  await actions.waitFor({ state: "hidden" });
+  await group.click();
+  await actions.waitFor({ state: "visible" });
+  await group.click();
+  await actions.waitFor({ state: "hidden" });
+});
+
 test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () => {
   expect(startedMember).toBe("82-first");
   const queue = await (await fetch(`${base}/api/queue`)).json() as { jobs: Array<{ specFolder: string }> };
@@ -74,5 +88,6 @@ test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () =>
   });
   expect(ordinaryLater.status).toBe(409);
   await page.goto(`${base}/?live=0`);
+  await page.getByRole("button", { name: "Release", exact: true }).click();
   expect(await page.getByRole("button", { name: "Stop", exact: true }).count()).toBe(1);
 });

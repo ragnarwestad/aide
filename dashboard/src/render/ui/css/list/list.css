@@ -113,14 +113,41 @@ table.list td[data-col="setting-value"] textarea {
   color: inherit;
 }
 
-.execution-group-card > td {
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  background: var(--surface);
+/* An execution group uses the same rows as its member specs, but their
+   separate cards join into one outline. The final unmarked gap stays visible
+   while the group is shut, so a group keeps the same space as any spec. */
+table.list > tbody > tr[data-execution-group-gap][hidden] { display: table-row; }
+table.list:not([data-list="specs"]) > tbody > tr.execution-group-card[data-execution-group-card]:has(.fold[aria-expanded="true"])
+  + tr.specstate[data-execution-group-actions] { visibility: visible; }
+table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td {
+  border-bottom: 1px solid var(--line); }
+table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td:first-child {
+  border-bottom-left-radius: var(--r); }
+table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td:last-child {
+  border-bottom-right-radius: var(--r); }
+@media (min-width: 40.0625rem) {
+  table.speclist > tbody > tr.execution-group-card > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr[data-execution-group-card]:not(.specgap) > td { background: var(--surface); }
+  table.speclist > tbody > tr[data-execution-group-card]:not(.specgap) > td:last-child { border-right: 1px solid var(--line); }
+  table.speclist > tbody > tr[data-execution-group-card]:not(.specstate, .specgap) > td:first-child { border-left: 1px solid var(--line); }
+  table.speclist > tbody > tr[data-execution-group-card].spechead:not(.execution-group-card) > td {
+    border-top: 0; border-radius: 0; }
+  table.speclist > tbody > tr[data-execution-group-card]:has(+ tr.specgap[data-execution-group-card]) > td {
+    border-bottom: 0; border-radius: 0; }
+  table.speclist > tbody > tr.specgap[data-execution-group-card] > td {
+    height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 }
-
-.execution-group-card ~ tr[data-spec-group-member] > td:first-child { border-left: 1px solid var(--line); }
-.execution-group-card ~ tr[data-spec-group-member] > td:last-child { border-right: 1px solid var(--line); }
+@media (max-width: 40rem) {
+  table.list:not([data-list="specs"]) > tbody > tr.execution-group-card[data-execution-group-card]:has(.fold[aria-expanded="true"])
+    + tr.specstate[data-execution-group-actions] { display: flex; }
+  table.speclist > tbody > tr.execution-group-card > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr[data-execution-group-card].spechead:not(.execution-group-card) > td {
+    border-top: 0; border-radius: 0; }
+  table.speclist > tbody > tr[data-execution-group-card]:has(+ tr.specgap[data-execution-group-card]) {
+    border-bottom: 0; border-radius: 0; }
+  table.speclist > tbody > tr.specgap[data-execution-group-card] {
+    display: block; height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+}
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */
