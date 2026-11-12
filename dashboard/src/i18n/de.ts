@@ -58,6 +58,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.testRound": "die Runde",
 
   "list.statesLabel": "Zustände",
+  "list.statesChosen": "{n} Zustände",
   "list.state.all": "Alle",
   "list.state.active": "Aktiv",
   "list.state.running": "Läuft",

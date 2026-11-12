@@ -32,7 +32,7 @@ const draw = (opts: {
 const folders = (html: string): string[] =>
   [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]!).sort();
 const entryCount = (html: string): number | null => {
-  const m = html.match(/href="[^"]*state=not-verified[^"]*" role="radio"[^>]*>[\s\S]*?Not verified \((\d+)\)<\/a>/);
+  const m = html.match(/<a data-nav href="[^"]*" role="checkbox"[^>]*>[\s\S]*?Not verified \((\d+)\)<\/a>/);
   return m ? Number(m[1]) : null;
 };
 

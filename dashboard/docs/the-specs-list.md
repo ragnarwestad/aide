@@ -427,8 +427,10 @@ on the queue job, which the queue drops after 200 jobs.
 
 ## Filtering and searching the list
 
-The state filter is one axis, and `?state=` is where it lives. It is a dropdown: a trigger showing the chosen
-entry and its count, over a panel of radio links. The nine entries are:
+The state filter is one axis, and `?state=` is where it lives. It is a dropdown of checkbox links. Ticking several
+shows every row that matches any of them. `?state=` holds their keys separated by commas; one key still shows that
+state alone. The button keeps the width of its widest entry and names the ticked entries, or says how many when the
+names do not fit. Each entry's count is its own count over the rows the search lets through. The nine entries are:
 
 - **All** — the default.
 - **Active** — everything not archived and not closed.
@@ -441,10 +443,10 @@ entry and its count, over a panel of radio links. The nine entries are:
 - **Not verified**.
 
 The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
-default for every reader. Every entry, including "All", carries its own `state=` value explicitly, so choosing one
-always overrides whatever is remembered (see below).
+default for every reader. All is the same as ticking nothing. Every entry, including "All", carries its own `state=`
+value explicitly, so choosing one always overrides whatever is remembered (see below).
 
-**The chosen entry is remembered across visits, the same way the sort column is.** Choosing one sets the
+**The ticked entries are remembered across visits, the same way the sort column is.** Choosing one sets the
 `aide_state_<port>` cookie (`HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`), port-suffixed so a test board and
 the real one do not overwrite each other's memory; a request with no `state=` in the query string — the Specs tab's own
 link, a bookmark, the back button — falls back to that cookie instead of always landing on "All". An explicit

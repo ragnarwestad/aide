@@ -58,6 +58,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",
+  "list.statesChosen": "{n} tilstander",
   "list.state.all": "Alle",
   "list.state.active": "Aktive",
   "list.state.running": "Kjører",

@@ -14,6 +14,7 @@ import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
 import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
 import { syncSpecGroups } from "../spec-groups";
 import { syncExecutionGroupEditors } from "../execution-groups/editor.ts";
+import { fitStateFilterSummary } from "../state-filter-summary.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -460,6 +461,7 @@ export async function swapRows(): Promise<void> {
     if (replacedAll) {
       body.innerHTML = html;
       syncExecutionGroupEditors(body);
+      fitStateFilterSummary(body);
     }
     const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
     if (draft && nextSearch) {

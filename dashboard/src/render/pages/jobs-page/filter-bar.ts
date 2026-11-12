@@ -11,7 +11,7 @@ import { menuDropdown, searchForm, sortHead } from "../specs-list/filter-bar.ts"
 import { NEW_GROUP_DIALOG } from "./execution-group-editor.ts";
 import {
   jobsSortPatch,
-  jobsStateFilter,
+  jobsStateValue,
   jobsStateOptions,
   jobsViewPath,
   type RowFacts,
@@ -30,13 +30,14 @@ export function jobsFilterBar(facts: RowFacts[], f: SpecsFilter, lang: Language)
       label: stateFilterLabel(o.key, lang),
       count: o.count,
       on: o.on,
-      href: esc(jobsViewPath(f, { state: o.key })),
+      href: esc(jobsViewPath(f, { state: o.state })),
     })),
+    multipleLabel: t(lang, "list.statesChosen", { n: jobsStateOptions(facts, f).filter((o) => o.on).length }),
   });
   return searchForm(
     {
       action: "/",
-      hidden: [["state", jobsStateFilter(f.state).key], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
+      hidden: [["state", jobsStateValue(f.state)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
       after: state + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),

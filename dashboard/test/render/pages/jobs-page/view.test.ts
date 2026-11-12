@@ -8,7 +8,8 @@ import {
   JOBS_STATE_FILTERS,
   jobFacts,
   jobsSortPatch,
-  jobsStateFilter,
+  jobsStateFilters,
+  jobsStateValue,
   jobsStateOptions,
   jobsViewPath,
   jobsViewRows,
@@ -63,6 +64,9 @@ const view = (rows: Entry[], f: SpecsFilter): string[] => names(jobsViewRows(row
 const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 
 describe("the state and the search narrow the rows as the Specs list's do", () => {
+  test("several states keep every matching row (AC-2)", () => {
+    expect(view(tab, { state: "stopped,failed" })).toEqual(["report-other", "idle83"]);
+  });
   test("a state entry and a search each leave only the rows they match", () => {
     expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
     expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
@@ -80,7 +84,7 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
 describe("the state filter offers the states a row on the tab can be in", () => {
   test("its entries include Done while All remains first and selected by default (AC-5)", () => {
     expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "waiting", "done", "stopped", "failed", "not-verified"]);
-    expect(jobsStateFilter(undefined).key).toBe("all");
+    expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
   });
 
   test("search returns every round row for the same spec (AC-6)", () => {
@@ -94,14 +98,14 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("Done shows only finished rows and remains the selected state (AC-5)", () => {
     const done = spec("done", { specFolder: "145-done", state: "done", createdAt: T(6) });
     expect(view([running, done, failedReport], { state: "done" })).toEqual(["done"]);
-    expect(jobsStateFilter("done").key).toBe("done");
+    expect(jobsStateFilters("done").map((entry) => entry.key)).toEqual(["done"]);
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
     for (const key of [undefined, "", "archived", "closed", "not-archived", "no-such-entry"]) {
-      expect(jobsStateFilter(key).key).toBe("all");
+      expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
     }
-    expect(jobsStateFilter("failed").key).toBe("failed");
+    expect(jobsStateFilters("failed").map((entry) => entry.key)).toEqual(["failed"]);
     expect(view(tab, { state: "closed" })).toEqual(view(tab, {}));
     expect(view(tab, { state: "archived" })).toEqual(view(tab, {}));
   });
@@ -212,5 +216,13 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     expect(link.pathname).toBe("/");
     expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "nightly", sort: "cost" });
     expect(new URL(`http://x${jobsViewPath({ state: "closed" }, {})}`).searchParams.get("state")).toBe("all");
+  });
+
+  test("a state link and the search value carry every ticked entry (AC-5)", () => {
+    expect(jobsStateValue("failed,stopped")).toBe("stopped,failed");
+    const failed = jobsStateOptions(factsOf(tab), { state: "stopped" }).find((option) => option.key === "failed")!;
+    const link = new URL(`http://x${jobsViewPath({ state: "stopped", q: "night" }, { state: failed.state })}`);
+    expect(link.searchParams.get("state")).toBe("stopped,failed");
+    expect(link.searchParams.get("q")).toBe("night");
   });
 });

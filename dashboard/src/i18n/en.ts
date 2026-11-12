@@ -59,6 +59,7 @@ export const en = {
   "shell.testRound": "round",
 
   "list.statesLabel": "States",
+  "list.statesChosen": "{n} states",
   "list.state.all": "All",
   "list.state.active": "Active",
   "list.state.running": "Running",

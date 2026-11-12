@@ -847,8 +847,9 @@ most recently changed first in each. A job's change is the newest of its made, s
 same for its lead job, or the day the spec was made when no job of its round exists. A change made without a job, such as
 a description saved from another machine, does not move a spec.
 
-The tab has the Specs list's search box and a State dropdown (All, Running, Waiting, Done, Stopped, Failed and Not verified,
-All by default), each counted over the rows the search lets through; a job row is never Not verified. An old address
+The tab has the Specs list's search box and a State dropdown of checkbox links (All, Running, Waiting, Done, Stopped,
+Failed and Not verified, All by default). Ticking several shows every row that matches any of them, and the tab's cookie
+remembers every ticked entry. Each entry is counted over the rows the search lets through; a job row is never Not verified. An old address
 naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's name, or `name:`, narrows
 the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's rules; a third press on a
 sorted heading returns to the tab's own order. A view that hides every row says "Nothing on this tab matches this filter."
