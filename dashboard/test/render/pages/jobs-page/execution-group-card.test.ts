@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
+import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
 
 const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
   id: "group-1", project: "aide", name: "Release", members: ["2-second", "1-first"], branch: "group/1-first",
@@ -54,4 +55,8 @@ test("a card is drawn shut unless a member's spec is open in it", () => {
   const open = executionGroupCard(group("prepared"), [member("1-first", '<tr class="spechead"></tr><tr data-spec-detail="aide/1-first"></tr>')]);
   expect(open).not.toContain("data-group-body hidden");
   expect(open).toContain('aria-expanded="true"');
+});
+
+test("a card names its group after its project, as a spec is named", () => {
+  expect(executionGroupCard(group("prepared"), [])).toContain(projectLink("aide", { className: "muted" }));
 });

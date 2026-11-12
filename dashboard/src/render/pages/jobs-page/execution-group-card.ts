@@ -8,6 +8,7 @@ import { specBusy } from "../specs-list/row-state.ts";
 import { createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
+import { projectLink } from "../../ui/components/spec-name.ts";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -61,7 +62,8 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   const shut = open ? "" : " hidden";
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
-    `<td colspan="2"><div class="spec-name"><strong>${esc(group.name)}</strong></div></td>` +
+    `<td colspan="2"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
+    `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), group.state)}</span></td>` +
     `<td colspan="2">${group.completedMembers.length} of ${group.members.length} done</td></tr>` +
     `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
