@@ -406,6 +406,8 @@ export function sidePickers(
   opts: PickerOptions,
   part: SidePart,
   locked: boolean,
+  /** The model id the session's own run reported, when it ran. */
+  ranModelId?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   const choices = models;
@@ -421,11 +423,7 @@ export function sidePickers(
     offeredProviders(providers, resting?.key).map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;
-  const options = models.map((choice) => {
-    const tool = choice.tool ?? "claude";
-    return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
-  }).join("");
   const model = `<select name="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
-    `${options}</select>`;
+    `${modelOptions(pickerModels(models, chosen, ranModelId !== undefined, ranModelId), chosen, ranModelId)}</select>`;
   return `${ai}${model}`;
 }

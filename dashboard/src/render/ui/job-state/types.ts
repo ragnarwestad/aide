@@ -131,6 +131,8 @@ export interface SideRunView {
   durationSec?: number;
   costUsd?: number;
   tokens?: number;
+  /** The model id the session's own log named, when it named one. */
+  modelId?: string;
 }
 
 /** The little of a step's result the LIST needs. The job page's

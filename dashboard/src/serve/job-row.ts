@@ -109,7 +109,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
 /** A stored review or verification as the list draws it. */
 function sideView(run: SideRun | undefined): SideRunView | undefined {
   if (!run) return undefined;
-  return { outcome: run.outcome, tool: run.tool, durationSec: run.durationSec, costUsd: run.costUsd, tokens: run.tokens?.total };
+  return { outcome: run.outcome, tool: run.tool, durationSec: run.durationSec, costUsd: run.costUsd, tokens: run.tokens?.total, modelId: run.modelId };
 }
 
 /** The same `queuePriorityOrder()` `Runner.tick()` calls,

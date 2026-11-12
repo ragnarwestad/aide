@@ -4,7 +4,8 @@
 // version dropped off it ("Opus 5.5" became "Opus").
 
 import { describe, expect, test } from "bun:test";
-import { pickerModels, recordLabel, resolveRecordedModel } from "../../../../../src/render/pages/specs-list/model-picker.ts";
+import { pickerModels, recordLabel, resolveRecordedModel, sidePickers } from "../../../../../src/render/pages/specs-list/model-picker.ts";
+import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
 
 const MODELS = [
   { name: "Opus", ranAs: "claude-opus-5-5" },
@@ -42,5 +43,18 @@ describe("a phase's recorded model", () => {
   test("a model no choice names any more is still named by the version it ran on", () => {
     expect(recordLabel("opus-old", "claude-opus-5-5")).toBe("Opus 5.5");
     expect(recordLabel("opus-old", undefined)).toBe("opus-old");
+  });
+});
+
+describe("the Review and Verify pickers", () => {
+  const g = { project: "aide", specFolder: "1-x", named: true } as SpecGroup;
+  const opts = { modelChoices: MODELS, defaultModels: { review: "Opus" } };
+
+  test("name the version the alias gives today, as a phase's picker does", () => {
+    expect(sidePickers(g, opts, "review", false)).toContain(">Opus 5.5<");
+  });
+
+  test("name the version the session ran on once it has run", () => {
+    expect(sidePickers(g, opts, "review", true, "claude-opus-5-1")).toContain(">Opus 5.1<");
   });
 });

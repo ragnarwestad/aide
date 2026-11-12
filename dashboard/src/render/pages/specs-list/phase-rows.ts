@@ -13,7 +13,7 @@ import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull,
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
-import { sideLines } from "./phase-messages/side-lines.ts";
+import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
 import { SIDE_PARTS } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
@@ -305,7 +305,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
       if (p.step === "implement" && (opts.modelChoices ?? []).length) {
         for (const part of SIDE_PARTS) {
-          lines.push(...sideLines(g, p, opts, part, sidePickers(g, opts, part, locked || (busy && !editable.has("implement")))));
+          lines.push(...sideLines(g, p, opts, part, sidePickers(g, opts, part, locked || (busy && !editable.has("implement")), sideRunOf(p, part)?.modelId)));
         }
       }
     });
