@@ -126,6 +126,11 @@ table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td { padding-top: 0; padding-bottom: var(--sp-3); }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td[data-col="state"] { text-align: center; }
+table.speclist.groupcard > tbody > tr.groupactions > td[data-col="state"] > .actionslot {
+  display: flex; width: auto; justify-content: center; }
+/* The first member is the first row of its table, which the list's own
+   first row gives up its top edge for; a member's card keeps it. */
+table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--line); }
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   vertical-align: middle; text-align: center; line-height: 0; padding: var(--sp-3) var(--sp-1) 0; }
 /* On a phone the table is blocks: the card is the cell's box alone, and the
