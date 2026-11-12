@@ -123,8 +123,10 @@ table.speclist.groupcard { width: 100%; }
    and `:last-child` included. */
 table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.specgap, .specstate) > td:nth-child(n) {
   border: 0; border-radius: 0; background: none; }
-table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); }
+/* The two lines sit as close as a spec's: the fold spans both, as a spec's does. */
+table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td { padding-top: 0; padding-bottom: var(--sp-3); }
+table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
 table.speclist.groupcard > tbody > tr:is(.groupline, .groupactions) > td[data-col="state"] { text-align: center; }
 table.speclist.groupcard > tbody > tr.groupactions > td[data-col="state"] > .actionslot {
   display: flex; width: auto; justify-content: center; }
@@ -132,7 +134,7 @@ table.speclist.groupcard > tbody > tr.groupactions > td[data-col="state"] > .act
    first row gives up its top edge for; a member's card keeps it. */
 table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--line); }
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
-  vertical-align: middle; text-align: center; line-height: 0; padding: var(--sp-3) var(--sp-1) 0; }
+  vertical-align: top; text-align: center; line-height: 0; padding: 14px var(--sp-1) 0; }
 /* On a phone the table is blocks: the card is the cell's box alone, and the
    group's lines share one grid, so the action stands under the state. The `:not()`s outweigh
    the phone's own rules for the list's rows. A member's state line gives up
@@ -148,9 +150,11 @@ table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
   table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow) > td {
     display: block; padding-left: 0; padding-right: 0; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions):not(.spechead, .specstate, .subrow) > td:nth-child(n+5) { display: none; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) > td:nth-child(n+5),
+  table.speclist.groupcard > tbody > tr.groupline > td:nth-child(n+4) { display: none; }
   table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline, .groupactions) > td[data-col="state"] { text-align: center; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: var(--sp-3); }
+  table.speclist.groupcard > tbody > tr.groupline > td:first-child { grid-column: 2; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
   table.speclist.groupcard > tbody > tr.grouphead > td[data-col="state"] .badge { min-width: 100%; }
   table.speclist.groupcard tr.specstate > td:first-child {

@@ -77,12 +77,12 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   // only while the card is open.
   const progress = t(lang as Language, "list.groupDone", { done: String(group.completedMembers.length), total: String(group.members.length) });
   const head = `<tbody data-group-head><tr class="grouphead">` +
-    `<td class="foldcell" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
+    `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="2"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
     `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
     `<td></td><td></td></tr>` +
-    `<tr class="groupline"><td></td><td colspan="2">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</td>` +
+    `<tr class="groupline"><td colspan="2">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</td>` +
     `<td data-col="state" class="muted small">${esc(progress)}</td><td></td><td></td></tr>` +
     (control
       ? `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
