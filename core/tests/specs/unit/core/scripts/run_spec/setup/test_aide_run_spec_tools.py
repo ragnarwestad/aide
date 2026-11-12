@@ -13,7 +13,9 @@ from ...conftest import READ_SPECS, git, run
 from ..run_spec_fakes import project_only_claude, writing_claude
 from ..run_spec_origins import is_ancestor
 from ..run_spec_results import RESULT_ERROR, RESULT_OK
-from ..run_spec_status_files import conflicting_branch, nested_workspace, status_only_conflict, with_status
+from ..run_spec_status_files import (
+    conflicting_branch, mirror_only_conflict, nested_workspace, status_only_conflict, with_status,
+)
 
 
 def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
@@ -157,6 +159,37 @@ def test_a_4status_only_conflict_in_a_nested_specs_repo_resolves_to_mains_copy(
     text = git(ws["specs"], "show", f"{branch}:{status_rel}")
     assert text == "main's corrected copy", text
     assert "<<<<<<<" not in text
+
+def _merge_head_recorder(fake_claude, merge_head_file):
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'git -C "$specs" rev-parse -q --verify MERGE_HEAD >> {merge_head_file} 2>/dev/null\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+@pytest.mark.parametrize("members", [None, "81-queue-and-runner,82-group-member"])
+def test_a_conflict_in_the_status_mirrors_alone_is_resolved_before_the_step(
+    runner, tmp_path, fake_claude, members
+):
+    """The mirrors of the run's own specs, a group's members included,
+    conflict over a final newline: the runner rebuilds them from the
+    merged prose, and neither the archive check nor the step meets the
+    markers."""
+    ws = nested_workspace(tmp_path)
+    branch = mirror_only_conflict(ws, members.split(",") if members else ["81-queue-and-runner"])
+    merge_head_file = tmp_path / "merge-head.txt"
+    extra = {"group_members": members} if members else {}
+    rc, out, _ = run(runner, ws, _merge_head_recorder(fake_claude, merge_head_file), command="archive", **extra)
+    assert out.get("terminalReason") != "not-implemented-yet", out
+    assert not (merge_head_file.exists() and merge_head_file.read_text().strip()), \
+        "a conflict in the status mirrors alone must not be handed to the step"
+    tree = git(ws["specs"], "ls-tree", "-r", "--name-only", branch)
+    mirror = next(p for p in tree.splitlines() if p.endswith("81-queue-and-runner/4-status.json"))
+    state = json.loads(git(ws["specs"], "show", f"{branch}:{mirror}"))
+    assert "implement" in state["completedPhases"], state
+
 
 def test_a_4status_conflict_with_another_file_also_conflicting_stays_open(
     runner, tmp_path, fake_claude

@@ -36,6 +36,13 @@ _spec_state_file_for() {   # $1 = status_file path; prints the sibling state-fil
   printf '%s' "${1%4-status.md}4-status.json"
 }
 
+# Whether a state file is there and holds one JSON object. A merge can
+# leave it with conflict markers, and the prose it mirrors is then read
+# instead of it.
+_spec_state_readable() {   # $1 = state-file path
+  [ -f "$1" ] && jq -e 'type == "object"' "$1" >/dev/null 2>&1
+}
+
 # The steps on the last `- **Workflow steps completed:**` bullet of a
 # 4-status.md: the file, or standard input when none is given. Spaces may
 # follow the `-`, and the label may be in any letter case. One step per
@@ -213,7 +220,7 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
   if [ -n "$completed_override" ]; then
     completed_json="$(printf '%s' "$completed_override" | \
       jq -R -c 'split(",") | map(gsub("^[ \t`]+|[ \t`]+$";"")) | map(select(length>0))')"
-  elif [ -f "$state_file" ]; then
+  elif _spec_state_readable "$state_file"; then
     completed_json="$(jq -c '.completedPhases // []' "$state_file" 2>/dev/null)"
     [ -n "$completed_json" ] || completed_json="[]"
   else
@@ -259,7 +266,7 @@ write_spec_state() {   # $1 = resolved 4-status.md path, $2 = optional completed
 read_spec_state() {   # $1 = resolved 4-status.md path; sets $state_json
   local status_file="$1" state_file
   state_file="$(_spec_state_file_for "$status_file")"
-  [ -f "$state_file" ] || write_spec_state "$status_file"
+  _spec_state_readable "$state_file" || write_spec_state "$status_file"
   state_json="$(cat "$state_file" 2>/dev/null || echo '{}')"
 }
 

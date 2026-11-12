@@ -128,7 +128,9 @@ A spec's branch is brought up to date with the default branch before a step's ow
 settle. A `close` skips the code repository's branch, since it deletes that branch unmerged.
 
 `core/scripts/aide-run-spec` hands `archive` and `implement` the worktree with the merge still open. A conflict
-confined to this spec's own `4-status.md` it settles itself, the default branch's copy winning; the rest reaches the
+confined to the status files of the specs the run covers (its own, and a group's members) it settles itself: the
+default branch's `4-status.md` wins, and `4-status.json` is rebuilt from the merged `4-status.md`. A `4-status.json`
+that cannot be read is never used: the phase is read from `4-status.md` instead. The rest reaches the
 skill, which follows `core/skills/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
 decide not to, finish the merge with `git commit --no-edit`, run the project's own test command. The step never
 touches the default branch; the dashboard lands the resolved branch afterwards.

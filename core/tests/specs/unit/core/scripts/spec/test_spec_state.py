@@ -90,6 +90,33 @@ def test_a_write_with_no_override_preserves_the_existing_state_files_value(tmp_p
     assert state["completedPhases"] == ["create", "analyze"]
 
 
+CONFLICTED_STATE = (
+    '<<<<<<< HEAD\n{"completedPhases":["create"]}\n=======\n'
+    '{"completedPhases":["create"]}\n>>>>>>> origin/main\n'
+)
+
+
+def test_a_write_over_an_unreadable_state_file_takes_the_phases_from_the_prose(tmp_path):
+    content = (
+        "# Spec - Status\n\n## Tracking info\n\n"
+        "- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    (tmp_path / "4-status.json").write_text(CONFLICTED_STATE)
+    state = write_state(tmp_path, content)
+    assert state["completedPhases"] == ["create", "analyze", "implement"]
+
+
+def test_read_spec_state_rewrites_an_unreadable_state_file(tmp_path):
+    content = (
+        "# Spec - Status\n\n## Tracking info\n\n"
+        "- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    (tmp_path / "4-status.json").write_text(CONFLICTED_STATE)
+    state = read_state(tmp_path, content)
+    assert state["completedPhases"] == ["create", "analyze", "implement"]
+    assert json.loads((tmp_path / "4-status.json").read_text())["completedPhases"] == state["completedPhases"]
+
+
 def test_read_spec_state_self_heals_when_no_state_file_exists(tmp_path):
     content = (
         "# Spec - Status\n\n## Tracking info\n\n"

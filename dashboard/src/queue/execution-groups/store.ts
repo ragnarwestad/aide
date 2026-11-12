@@ -109,6 +109,14 @@ export class ExecutionGroupStore {
   }
   waitForAcceptance(id: string): ExecutionGroup { return this.update(id, { state: "waiting-acceptance" }); }
   archiveFailed(id: string, error: string): ExecutionGroup { return this.update(id, { state: "archiving", error }); }
+  /** Where a group stands once its archive step has ended: landed, failed
+   *  to land, or held back by the runner's own check, which lands nothing
+   *  and leaves the group waiting for Archive again. */
+  archiveSettled(id: string, outcome: "held-back" | "failed" | { prUrl?: string }): ExecutionGroup {
+    if (outcome === "failed") return this.archiveFailed(id, "Archive did not land");
+    if (outcome !== "held-back") return this.complete(id, outcome);
+    return this.get(id)?.state === "running" ? this.waitForAcceptance(id) : this.get(id)!;
+  }
   private write(): void {
     if (!this.path) return;
     mkdirSync(dirname(this.path), { recursive: true });

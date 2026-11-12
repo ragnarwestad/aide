@@ -295,13 +295,30 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     const status = await readStatusFromBranch(run, clone, branch, relPath);
     const state = await readStatusFromBranch(run, clone, branch, stateRelPath);
     expect(status?.text).toBe("# Status\n\nafter\n");
-    expect(state?.text).toBe('{"completedPhases":["create"]}');
+    expect(state?.text).toBe('{"completedPhases":["create"]}\n');
     // Both files' last-touch commit is the SAME one — one commit, not two.
     expect(status?.sha).toBe(state?.sha);
     // Exactly one new commit landed, not two.
     await run(clone, ["fetch", "-q", "origin", branch]);
     const headAfterCommitCount = git(clone, "log", "--oneline", `origin/${branch}`).trim().split("\n").length;
     expect(headAfterCommitCount).toBe(headBeforeCommitCount + 1);
+  });
+
+  // The same tick lands on main through saveSpecFiles, whose files end
+  // with a newline; a branch copy without one conflicts with it at the merge.
+  test("a file written to a branch ends with a newline, as one saved on main does", async () => {
+    const where = tmp("aide-branch-file-");
+    const { origin, clone } = makeRepo(where);
+    const branch = "aide/291-example";
+    const relPath = "aide/291-example/4-status.md";
+    pushBranch(origin, where, branch, relPath, "# Status\n\nbefore\n");
+    const run = createGitRunner();
+    const before = await readStatusFromBranch(run, clone, branch, relPath);
+
+    const result = await writeStatusToBranch(run, clone, branch, [{ relPath, text: "# Status\r\n\r\nafter" }], before!.sha, "tick a row");
+
+    expect(result.ok, result.note).toBe(true);
+    expect((await readStatusFromBranch(run, clone, branch, relPath))?.text).toBe("# Status\n\nafter\n");
   });
 
   test("refuses a write when another commit already landed on the branch (a headless run raced it)", async () => {

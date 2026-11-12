@@ -147,6 +147,38 @@ def status_only_conflict(ws, project_name="aide", second_file=None):
     return branch, status_rel
 
 
+def mirror_only_conflict(ws, folders, project_name="aide"):
+    """Gives each of `folders` an implemented `4-status.md`, then lets its
+    branch and the specs repo's main write the same `4-status.json`, the
+    branch's copy without the final newline: the tick written to an open
+    branch beside the same tick on main. Only the mirrors conflict."""
+    specs = ws["specs"]
+    branch = f"aide/{ws['folder']}"
+    state = '{"completedPhases":["create","analyze","implement"]}'
+    for folder in folders:
+        spec_dir = specs / project_name / folder
+        spec_dir.mkdir(exist_ok=True)
+        (spec_dir / "1-description.md").write_text("# X - Description\n")
+        (spec_dir / "4-status.md").write_text(
+            "# X - Status\n\n## Tracking info\n\n"
+            "- **Workflow steps completed:** create, analyze, implement\n"
+        )
+        (spec_dir / "4-status.json").write_text('{"completedPhases":["create","analyze"]}\n')
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "implemented")
+    git(specs, "switch", "-q", "-c", branch)
+    for folder in folders:
+        (specs / project_name / folder / "4-status.json").write_text(state)
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "branch side")
+    git(specs, "switch", "-q", "main")
+    for folder in folders:
+        (specs / project_name / folder / "4-status.json").write_text(state + "\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "main side")
+    return branch
+
+
 def subject(step, folder="81-queue-and-runner", headless=True, stopped=None, model=None):
     """The commit-subject grammar, spelled out rather than derived from
     the script — a fixture that built it the same way the reader parses
