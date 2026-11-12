@@ -10,6 +10,7 @@ import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { jobStepLines, jobStepPips } from "../../spec-views/job-marks.ts";
+import { deployCommits } from "../../deploy-job/commits.ts";
 import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
@@ -39,6 +40,10 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     jobStepPips: (jobId: string) => {
       const job = ctx.queue.get(jobId);
       return job ? jobStepPips(job, lang) : [];
+    },
+    deployCommits: (jobId: string) => {
+      const job = ctx.queue.get(jobId);
+      return job ? deployCommits(job, ctx.queue.list()) : undefined;
     },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the

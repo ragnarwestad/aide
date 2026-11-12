@@ -32,7 +32,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number };
+type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string };
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */
@@ -148,10 +148,13 @@ export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
 
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
- *  the deploy and the project it deploys. */
+ *  the deploy, the project it deploys and the commit its fetch reached. */
 export function jobTitle(row: TitleRow, lang: Language = "en"): string {
   const kind = jobKind(row);
-  if (kind === "deploy") return `${stepLabel("deploy", lang)} ${row.project}`.trim();
+  if (kind === "deploy") {
+    const named = `${stepLabel("deploy", lang)} ${row.project}`.trim();
+    return row.deployCommit ? `${named} · ${row.deployCommit.slice(0, 7)}` : named;
+  }
   if (kind === "cleanup") return stepLabel("cleanup", lang);
   const step = kind === "close" || kind === "reopen" ? kind : undefined;
   return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);

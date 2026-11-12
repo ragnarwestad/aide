@@ -50,6 +50,8 @@ export interface QueueRowView {
   /** When the job ended, as the queue recorded it: an interrupted job has
    *  this though it left no result to take an end from. */
   finishedAt?: string;
+  /** The commit a deploy's fetch reached. */
+  deployCommit?: string;
   /** The render-side mirror of `Job.stepStartedAt`: when the
    *  step now in flight was actually spawned. Absent whenever the job has
    *  no step actually running right now — including while merely `queued`

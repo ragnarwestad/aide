@@ -817,11 +817,15 @@ the newest 1000 jobs.
 
 The board's own deploy is a job under the tracking key `deploy`, a step the server runs itself, so it takes no slot
 (`takesSlot`, `queue/steps.ts`). The Deploy button on the board's own project queues it
-(`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", and it has a row while it is queued,
+(`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
+reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A second
 deploy is refused while one is queued or running. It offers Cancel while queued and nothing once it runs, since a job
 marked cancelled would go on restarting the service. The open row lists five steps: fetch from origin, install, restart
-the service, wait for the service to answer, and check that the newest commit runs. Its cost is a dash. While a merge is
+the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
+deploy took in: from the one the checkout stood at before the fetch, or for a deploy that did not record it, the one the
+previous done deploy reached, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
+origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. While a merge is
 in flight, a queued deploy waits, and a running one waits before its fetch and before its restart; the row says "Held
 back" with the reason.
 

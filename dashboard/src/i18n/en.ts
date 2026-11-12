@@ -121,6 +121,7 @@ export const en = {
   "list.cancelConfirmTitle": "Cancel {step}?",
   "list.cancelConfirmBody": "This stops it right away — it can be run again from the same spec.",
   "jobs.nothingRunning": "Nothing is running.",
+  "jobs.deployNoCommits": "No new commits",
   "jobs.colTitle": "Title",
   "jobs.noRowMatchesFilter": "Nothing on this tab matches this filter.",
   "jobs.foldTitle": "{action} the details of {name}",

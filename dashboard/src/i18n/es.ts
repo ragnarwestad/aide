@@ -120,6 +120,7 @@ export const es: Record<TranslationKey, string> = {
   "list.cancelConfirmTitle": "¿Cancelar {step}?",
   "list.cancelConfirmBody": "Esto lo detiene de inmediato — se puede volver a ejecutar desde la misma spec.",
   "jobs.nothingRunning": "No se está ejecutando nada.",
+  "jobs.deployNoCommits": "Sin commits nuevos",
   "jobs.colTitle": "Título",
   "jobs.noRowMatchesFilter": "Nada en esta pestaña coincide con este filtro.",
   "jobs.foldTitle": "{action} los detalles de {name}",

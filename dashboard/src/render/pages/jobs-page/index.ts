@@ -84,7 +84,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const rowKeys = jobRowKeys(v.shown);
   const jobs = v.shown.map((job) => ({
     key: rowKeys.get(job.id)!,
-    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, key: rowKeys.get(job.id) }),
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key: rowKeys.get(job.id) }),
     place: jobPlace(job, v.shown, v.scheduleEntryExists),
     facts: jobFacts(job, now),
   }));

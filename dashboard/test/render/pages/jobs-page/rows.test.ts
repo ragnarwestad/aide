@@ -423,3 +423,11 @@ describe("each job row has a key of its own", () => {
     expect(keys.get("d1")).toBe(`${jobKey(old)}@d1`);
   });
 });
+
+describe("a deploy's title", () => {
+  test("names the commit its fetch reached, short, once it has one", () => {
+    const row = { project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0 };
+    expect(jobTitle({ ...row, deployCommit: "1cddc87ac0ffee" })).toBe("Deploy aide · 1cddc87");
+    expect(jobTitle(row)).toBe("Deploy aide");
+  });
+});

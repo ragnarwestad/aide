@@ -58,6 +58,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     createdAt: job.createdAt,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
+    deployCommit: job.deploy?.commit,
     stepStartedAt: job.stepStartedAt,
     // Stored on the job — only the run that called `gh` knows
     // the URL, and there is nothing on this machine to work it out from.
