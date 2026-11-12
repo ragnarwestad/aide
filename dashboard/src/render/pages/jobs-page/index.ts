@@ -149,7 +149,18 @@ function executionGroupEditors(v: JobsView, lang: Language): string {
  *  on the page or the view hides it, and the script then redraws the whole list. */
 export function renderJobsSpecRows(v: JobsView, key: string): string {
   const shown = jobsViewRows(entries(v), v.list.filter ?? {});
-  return `<table><tbody>${shown.filter((r) => r.key === key).map((r) => r.html).join("")}</tbody></table>`;
+  const own = shown.filter((r) => r.key === key).map((r) => r.html);
+  return `<table><tbody>${own.length ? own.join("") : groupMemberRows(v, key, new Set(shown.map((r) => r.key)))}</tbody></table>`;
+}
+
+/** A spec drawn inside a group's card on the page: its own rows, as the card
+ *  draws them, while the card itself is shown. */
+function groupMemberRows(v: JobsView, key: string, shown: Set<string>): string {
+  const specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now());
+  const row = specRows.find((s) => s.key === key);
+  const inShownGroup = row && activeExecutionGroups(v, specRows).some((group) =>
+    shown.has(`execution-group:${group.id}`) && group.project === row.group.project && group.members.includes(row.group.specFolder));
+  return inShownGroup ? row.html : "";
 }
 
 export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: NavEntry[]): string {

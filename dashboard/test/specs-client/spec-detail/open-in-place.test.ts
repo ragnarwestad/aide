@@ -172,6 +172,16 @@ describe("a press on a shut › opens the row in place", () => {
     expect(specRowsOf(parent.querySelector("button") as unknown as Element) === null).toBe(true);
   });
 
+  test("a spec drawn inside a group's card is its own rows, not the card's", async () => {
+    const parent = win.document.createElement("tr");
+    parent.setAttribute("data-spec-group", "Release");
+    parent.innerHTML = `<td><table><tbody><tr><td>Release</td></tr></tbody><tbody>${shutGroup("member")}</tbody></table></td>`;
+    headRow(B).before(parent as unknown as Element);
+    const memberHead = win.document.getElementById("spec-member") as unknown as Element;
+    const { specRowsOf } = await import("../../../src/specs-client/row-swap/index.ts");
+    expect(specRowsOf(memberHead.querySelector("a") as unknown as Element)?.[0] === memberHead).toBe(true);
+  });
+
   test("the press is taken, nothing else on the page is replaced, and the address pushed is the chevron's href", () => {
     const others = [headRow(A), headRow(C), win.document.querySelector(".tablewrap")];
     const href = chevron(B).getAttribute("href")!;

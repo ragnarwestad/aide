@@ -113,40 +113,41 @@ table.list td[data-col="setting-value"] textarea {
   color: inherit;
 }
 
-/* An execution group uses the same rows as its member specs, but their
-   separate cards join into one outline. The final unmarked gap stays visible
-   while the group is shut, so a group keeps the same space as any spec. */
-table.list > tbody > tr[data-execution-group-gap][hidden] { display: table-row; }
-table.list:not([data-list="specs"]) > tbody > tr.execution-group-card[data-execution-group-card]:has(.fold[aria-expanded="true"])
-  + tr.specstate[data-execution-group-actions] { visibility: visible; }
-table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td {
-  border-bottom: 1px solid var(--line); }
-table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td:first-child {
-  border-bottom-left-radius: var(--r); }
-table.speclist > tbody > tr.execution-group-card:has(.fold[aria-expanded="false"]) > td:last-child {
-  border-bottom-right-radius: var(--r); }
-@media (min-width: 40.0625rem) {
-  table.speclist > tbody > tr.execution-group-card > td { border-top: 1px solid var(--line); }
-  table.speclist > tbody > tr[data-execution-group-card]:not(.specgap) > td { background: var(--surface); }
-  table.speclist > tbody > tr[data-execution-group-card]:not(.specgap) > td:last-child { border-right: 1px solid var(--line); }
-  table.speclist > tbody > tr[data-execution-group-card]:not(.specstate, .specgap) > td:first-child { border-left: 1px solid var(--line); }
-  table.speclist > tbody > tr[data-execution-group-card].spechead:not(.execution-group-card) > td {
-    border-top: 0; border-radius: 0; }
-  table.speclist > tbody > tr[data-execution-group-card]:has(+ tr.specgap[data-execution-group-card]) > td {
-    border-bottom: 0; border-radius: 0; }
-  table.speclist > tbody > tr.specgap[data-execution-group-card] > td {
-    height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
-}
+/* An execution group is one card on the list: a cell holding a table of
+   its own, with the group's two lines on the card's ground and its member
+   specs drawn as their own cards inside it, inset from its edges. */
+table.speclist > tbody > tr.execution-group > td.groupcell {
+  padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table.speclist.groupcard { width: 100%; }
+/* Specific enough to beat the spec cards' own edge rules, `:first-child`
+   and `:last-child` included. */
+table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.specgap, .specstate) > td:nth-child(n) {
+  border: 0; border-radius: 0; background: none; }
+table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); }
+table.speclist.groupcard > tbody > tr.groupactions > td { padding-bottom: var(--sp-3); }
+table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
+  vertical-align: middle; text-align: center; line-height: 0; padding: var(--sp-3) var(--sp-1) 0; }
+/* On a phone the table is blocks: the card is the cell's box alone, and the
+   group's two lines are flex lines like a spec's. The `:not()`s outweigh
+   the phone's own rules for the list's rows. A member's state line gives up
+   the card's inset from its pips' cell, or its time wraps. */
 @media (max-width: 40rem) {
-  table.list:not([data-list="specs"]) > tbody > tr.execution-group-card[data-execution-group-card]:has(.fold[aria-expanded="true"])
-    + tr.specstate[data-execution-group-actions] { display: flex; }
-  table.speclist > tbody > tr.execution-group-card > td { border-top: 1px solid var(--line); }
-  table.speclist > tbody > tr[data-execution-group-card].spechead:not(.execution-group-card) > td {
-    border-top: 0; border-radius: 0; }
-  table.speclist > tbody > tr[data-execution-group-card]:has(+ tr.specgap[data-execution-group-card]) {
-    border-bottom: 0; border-radius: 0; }
-  table.speclist > tbody > tr.specgap[data-execution-group-card] {
-    display: block; height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  table.speclist > tbody > tr.execution-group:not(.spechead, .specgap):not(.specstate) {
+    display: block; border: 0; background: none; }
+  table.speclist > tbody > tr.execution-group > td.groupcell { display: block; padding: 0 var(--sp-1); }
+  table.speclist.groupcard > tbody[hidden] { display: none; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) {
+    display: flex; align-items: center; gap: var(--sp-2); border: 0; background: none; padding: 0 var(--sp-2); }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) > td {
+    display: block; padding-left: 0; padding-right: 0; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions):not(.spechead, .specstate, .subrow) > td:empty { display: none; }
+  table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { flex: 0 0 auto; padding-top: var(--sp-3); }
+  table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
+  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupactions) > td[colspan="2"]:nth-child(2) { flex: 1 1 auto; min-width: 0; }
+  table.speclist.groupcard tr.specstate > td:first-child {
+    flex-basis: calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
+      + 2 * var(--sp-2) - 2 * var(--sp-1) - 2px); }
 }
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read

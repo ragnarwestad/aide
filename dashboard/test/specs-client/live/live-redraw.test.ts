@@ -379,6 +379,24 @@ describe("a redraw touches only the specs that changed", () => {
     heads.forEach((id, i) => expect(h.rowFor(id)).toBe(kept[i]!));
   });
 
+  test("a group's card, a table inside its one row, is kept like a spec across an unchanged redraw", async () => {
+    const card = `<tr class="execution-group" id="group-g1" data-spec-group="aide\nRelease"><td colspan="6">` +
+      `<table class="list speclist groupcard"><tbody data-group-head><tr class="grouphead"><td>Release</td></tr></tbody>` +
+      `<tbody data-group-members data-group-body>${group("aide/82-first", "queued")}</tbody></table></td></tr>`;
+    const same = page(group(A, "queued"), card);
+    const h = pages(same, same);
+    await settle(h);
+    const spec = h.rowFor(`spec-${A}`);
+    const cardRow = h.rowFor("group-g1");
+    expect(cardRow).not.toBeNull();
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rowFor(`spec-${A}`)).toBe(spec);
+    expect(h.rowFor("group-g1")).toBe(cardRow);
+  });
+
   test("a spec whose state moved IS replaced, and no other is", async () => {
     const h = pages(
       page(group(A, "queued"), group(B, "queued")),

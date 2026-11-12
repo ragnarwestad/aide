@@ -48,3 +48,11 @@ test("a card ready to archive names Archive once, on its button", () => {
   expect(html).toContain('name="action" value="archive"');
   expect(html.match(/Archive/g)).toHaveLength(1);
 });
+
+test("a card is drawn shut unless a member's spec is open in it", () => {
+  const shut = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
+  expect(shut.match(/data-group-body hidden/g)).toHaveLength(2);
+  const open = executionGroupCard(group("prepared"), [member("1-first", '<tr class="spechead"></tr><tr data-spec-detail="aide/1-first"></tr>')]);
+  expect(open).not.toContain("data-group-body hidden");
+  expect(open).toContain('aria-expanded="true"');
+});

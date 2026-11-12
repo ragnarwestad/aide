@@ -180,12 +180,14 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
   const start = open + OPEN_TBODY.length;
   // A second table would put rows outside the range walked below. The
   // answer that has the open spec in its row has tables of its own inside
-  // that row, and is one spec's rows alone.
+  // that row, and is one spec's rows alone. A group's card holds a table
+  // of its own inside its one row too, so a table inside a row is not a
+  // second one.
   if (!holdsSpec && html.indexOf(OPEN_TBODY, start) !== -1) return null;
   const content = html.slice(start, close);
   const Parser = document.defaultView?.DOMParser ?? DOMParser;
   const parsed = new Parser().parseFromString(html, "text/html");
-  const bodies = parsed.querySelectorAll("tbody");
+  const bodies = Array.from(parsed.querySelectorAll("tbody")).filter((b) => !b.parentElement?.closest("tr"));
   if (!bodies.length || (!holdsSpec && bodies.length !== 1)) return null;
   const heads = Array.from(bodies[0]!.children).filter(isRowHead);
   const at: { key: string; index: number }[] = [];
@@ -234,11 +236,12 @@ function groupRange(key: string): Element[] | null {
 
 /** The rows of the spec `el` sits in, reached from inside rather than by
  *  its anchor: the row it is in, climbed out of any table the open spec
- *  holds of its own, then back to that spec's head row. `null` for an
- *  element on no spec's rows. */
+ *  holds of its own — never out of the group card the spec is drawn in —
+ *  then back to that spec's head row. `null` for an element on no spec's
+ *  rows. */
 export function specRowsOf(el: Element): Element[] | null {
   let row = el.closest("tr");
-  for (let up = row?.parentElement?.closest("tr"); up; up = up.parentElement?.closest("tr")) row = up;
+  for (let up = row?.parentElement?.closest("tr"); up && !up.hasAttribute("data-spec-group"); up = up.parentElement?.closest("tr")) row = up;
   let head: Element | null = row;
   while (head && !isRowHead(head)) head = head.previousElementSibling;
   return head && isSpecHead(head) ? rowsFrom(head) : null;

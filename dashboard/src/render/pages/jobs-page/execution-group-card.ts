@@ -8,12 +8,17 @@ import { specBusy } from "../specs-list/row-state.ts";
 import { createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { t } from "../../../i18n";
+import { columnGroup } from "../specs-list/filter-bar.ts";
 
 export interface ExecutionGroupMemberRow {
   key: string;
   group: SpecGroup;
   html: string;
 }
+
+/** The id the group's row carries, the anchor the page's row swap finds it by. */
+export const executionGroupAnchor = (group: Pick<ExecutionGroup, "id" | "project" | "name">): string =>
+  `group-${group.id || `${group.project}-${group.name}`}`.replace(/\s+/g, "-");
 
 const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
   if (state === "running" || state === "archiving") return "running";
@@ -50,21 +55,30 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   const edit = group.state === "prepared" && !group.startedAt
     ? btn({ label: t(lang as never, "list.groupEdit"), type: "button", data: { "edit-execution-group": group.id } })
     : "";
-  const head = `<tr class="spechead execution-group-card" data-execution-group-card="1" data-spec-group="${esc(key)}">` +
-    `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open: false, data: { "group-toggle": key } })}</td>` +
+  // The card is one cell of the list holding a table of its own: the group's
+  // two lines, then its members drawn exactly as on the list, each its own
+  // card. A cell has one border, so the card around the specs cannot be
+  // drawn on the specs' own cells.
+  // Shut, unless a member's spec is open in it: the address that opens a
+  // spec opens its group too.
+  const open = members.some((member) => member.html.includes(" data-spec-detail="));
+  const shut = open ? "" : " hidden";
+  const head = `<tbody data-group-head><tr class="grouphead">` +
+    `<td class="foldcell" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="2"><div class="spec-name"><strong>${esc(group.name)}</strong></div></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), group.state)}</span></td>` +
     `<td colspan="2">${group.completedMembers.length} of ${group.members.length} done</td></tr>` +
-    `<tr class="specstate" data-execution-group-actions data-execution-group-card="1">` +
-    `<td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}${edit}</span></td>` +
+    `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
+    `<td></td><td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}${edit}</span></td>` +
     `<td data-col="state"><span class="actionslot">${control}</span></td>` +
-    `<td data-col="started"></td><td data-col="cost"></td></tr>`;
-  const memberRows = members.map((member) => {
+    `<td></td><td></td></tr></tbody>`;
+  const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;
-    const grouped = member.html.includes(" data-spec-group-member=")
+    return member.html.includes(" data-spec-group-member=")
       ? member.html.replace(/ data-spec-group-member="[^"]*"/, membership)
       : member.html.replace("<tr", `<tr${membership}`);
-    return grouped.replaceAll("<tr", '<tr data-execution-group-card="1"');
-  }).join("");
-  return head + memberRows + `<tr class="specgap" data-execution-group-gap aria-hidden="true"><td colspan="6"></td></tr>`;
+  }).join("") + `</tbody>`;
+  return `<tr class="execution-group" id="${esc(executionGroupAnchor(group))}" data-spec-group="${esc(key)}">` +
+    `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table></td></tr>` +
+    `<tr class="specgap" aria-hidden="true"><td colspan="6"></td></tr>`;
 }

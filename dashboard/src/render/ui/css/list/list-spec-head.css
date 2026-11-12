@@ -35,7 +35,6 @@ table.list tr.specstate .pipslot { display: flex; justify-content: flex-start; m
    below the pair's centre. */
 table.list tr.spechead td.foldcell { vertical-align: middle; text-align: center; line-height: 0;
   padding: 0 var(--sp-1); }
-table.list tr[data-spec-group-member] > td.foldcell { padding-left: var(--sp-4); }
 table.list > tbody > tr[hidden] { display: none; }
 /* A BLOCK of a known height, not an inline-flex: an inline box sits on
    the cell's baseline, which put the chevron 21px below the cell's top

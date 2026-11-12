@@ -785,6 +785,8 @@ is running." Failed-create messages stay above the search row. The first job app
 
 A grouped spec appears inside its execution group's card instead of as a second ordinary Running row. The card shows
 the group's creation date, its first start date when present, progress and the one action allowed by its current state.
+The card opens with its own ›, or when a member's spec is opened from its address. Shut, it shows the group's name, state
+and progress; open, its second line holds the action, and each member is drawn below as its own spec card.
 Completed groups leave Running; their archived specs, job pages, logs and pull-request marks remain available.
 
 An ordinary spec has a row for as long as the Specs list shows it under Active, whatever its jobs did and whether or not it has one

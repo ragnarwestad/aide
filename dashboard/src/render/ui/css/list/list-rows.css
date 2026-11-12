@@ -180,6 +180,8 @@ table.list tr.subrow[data-side] .modelcell > .row { gap: var(--sp-1); }
 .fold { display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; border-radius: var(--r-s); color: var(--muted);
   vertical-align: middle; margin-right: var(--sp-1); }
+/* The same arrow as a button, for a fold the page opens itself. */
+button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
 .fold:hover { background: var(--surface-2); color: var(--text); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }

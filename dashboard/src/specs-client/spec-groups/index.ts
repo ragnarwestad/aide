@@ -1,21 +1,16 @@
-import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
-
 const expanded = new Map<string, boolean>();
 
+/** Each group card on the page shown open or shut: the reader's own choice
+ *  while the page lives, otherwise open only when a member's spec is open
+ *  in it. Shut hides the group's second line and its members. */
 export function syncSpecGroups(root: ParentNode): void {
-  for (const head of root.querySelectorAll<HTMLElement>("tr[data-spec-group]")) {
-    const key = head.getAttribute("data-spec-group")!;
-    const members: HTMLElement[] = [];
-    for (let row = head.nextElementSibling as HTMLElement | null; row; row = row.nextElementSibling as HTMLElement | null) {
-      if (row.hasAttribute("data-spec-group") ||
-        (row.classList.contains(SPEC_HEAD_CLASS) && row.getAttribute("data-spec-group-member") !== key)) break;
-      members.push(row);
-    }
-    const open = expanded.get(key) ?? members.some((row) => row.hasAttribute("data-spec-detail"));
-    const button = head.querySelector("[data-group-toggle]");
+  for (const group of root.querySelectorAll<HTMLElement>("tr[data-spec-group]")) {
+    const key = group.getAttribute("data-spec-group")!;
+    const open = expanded.get(key) ?? group.querySelector("[data-spec-detail]") !== null;
+    const button = group.querySelector("[data-group-toggle]");
     button?.setAttribute("aria-expanded", String(open));
     button?.classList.toggle("shut", !open);
-    for (const row of members) row.hidden = !open;
+    for (const part of group.querySelectorAll<HTMLElement>("[data-group-body]")) part.hidden = !open;
   }
 }
 

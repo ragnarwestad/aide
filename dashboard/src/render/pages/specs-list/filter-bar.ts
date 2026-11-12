@@ -271,7 +271,7 @@ export function searchForm(
 
 /** The columns' widths are declared on the column group, in this order. */
 const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
-const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
+export const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one. */
