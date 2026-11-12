@@ -31,11 +31,10 @@ test("a running card offers Stop and retains member content (AC-1, AC-5, AC-8, A
   expect(html).toContain("recovery");
 });
 
-test("a prepared card starts and edits by durable id (AC-3, AC-6, AC-10, AC-11)", () => {
+test("a prepared card starts by durable id (AC-3, AC-10, AC-11)", () => {
   const html = executionGroupCard({ ...group("prepared"), startedAt: undefined }, [member("1-first", "<tr>first</tr>"), member("2-second", "<tr>second</tr>")]);
   expect(html).toContain('/api/queue/groups/group-1');
   expect(html).toContain('name="action" value="start"');
-  expect(html).toContain('data-edit-execution-group="group-1"');
 });
 
 test("completed groups have no card action (AC-12, AC-14)", () => {

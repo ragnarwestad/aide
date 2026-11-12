@@ -575,7 +575,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupDone": "{done} av {total} ferdige",
   "list.groupWaiting": "Venter på {spec}",
   "list.groupCreate": "Ny gruppe",
-  "list.groupEdit": "Rediger gruppe",
   "list.groupProject": "Prosjekt",
   "list.groupName": "Navn",
   "list.groupOrder": "Rekkefølge",

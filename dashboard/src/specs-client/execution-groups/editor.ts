@@ -70,16 +70,3 @@ export function changeExecutionGroupEditor(event: Event): boolean {
   updateExecutionGroupEditor(form);
   return true;
 }
-
-export function openExecutionGroupEditor(event: Event): boolean {
-  const button = (event.target as Element | null)?.closest?.("[data-edit-execution-group]") as HTMLElement | null;
-  const id = button?.dataset.editExecutionGroup;
-  if (!id) return false;
-  const form = button.ownerDocument.querySelector<HTMLFormElement>(`form[action="/api/queue/groups/${CSS.escape(id)}"]`);
-  const details = form?.closest("details") as HTMLDetailsElement | null;
-  if (!details) return false;
-  details.open = true;
-  form?.scrollIntoView?.({ block: "nearest" });
-  event.preventDefault();
-  return true;
-}

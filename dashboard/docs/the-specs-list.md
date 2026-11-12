@@ -122,7 +122,7 @@ archived nor closed and whose folder exists. It offers the specs the New spec fo
 itself, with the ones the spec depends on ticked; a dependency since archived or closed is no longer offered but stays
 ticked until it is removed. The scan resolves each entry of the `Depends on:` line to its folder, so a bare number ticks
 
-Execution-group membership is created and edited on Running, not on an individual Specs row. Membership does not
+Execution-group membership is created on Running, not on an individual Specs row. Membership does not
 change how Specs sorts or draws the row: every member remains an ordinary independent spec here. The execution group's
 combined card, progress and Start, Stop or Archive action are on Running, and an active grouped member has no
 individual Archive action.

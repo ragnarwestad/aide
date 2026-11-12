@@ -12,14 +12,13 @@ import { relabelRunButton } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
-import { changeExecutionGroupEditor, openExecutionGroupEditor, updateExecutionGroupEditor } from "../execution-groups/editor.ts";
+import { changeExecutionGroupEditor, updateExecutionGroupEditor } from "../execution-groups/editor.ts";
 
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one. A page drawn in place brings a new
 // container, and `bindLists` binds that one too.
 function onRowsClick(event: MouseEvent): void {
-  if (openExecutionGroupEditor(event)) return;
   toggleSpecGroup(event);
   navigate(event);
   onApproachCancel(event);

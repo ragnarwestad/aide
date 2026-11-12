@@ -583,7 +583,6 @@ export const en = {
   "list.groupDone": "{done} of {total} done",
   "list.groupWaiting": "Waiting for {spec}",
   "list.groupCreate": "New group",
-  "list.groupEdit": "Edit group",
   "list.groupProject": "Project",
   "list.groupName": "Name",
   "list.groupOrder": "Order",

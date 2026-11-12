@@ -1,13 +1,12 @@
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupAction, executionGroupActivity } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, btn, buttonForm, foldButton, stepLabel, type BadgeVariant } from "../../ui/components";
+import { badge, buttonForm, foldButton, stepLabel, type BadgeVariant } from "../../ui/components";
 import type { SpecGroup } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
 import { createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
-import { t } from "../../../i18n";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 
 export interface ExecutionGroupMemberRow {
@@ -52,9 +51,6 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     hidden: { action },
     button: { label: action === "archive" ? stepLabel("archive", lang as never) : action === "stop" ? "Stop" : "Start" },
   }) : "";
-  const edit = group.state === "prepared" && !group.startedAt
-    ? btn({ label: t(lang as never, "list.groupEdit"), type: "button", data: { "edit-execution-group": group.id } })
-    : "";
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
   // card. A cell has one border, so the card around the specs cannot be
@@ -69,7 +65,7 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), group.state)}</span></td>` +
     `<td colspan="2">${group.completedMembers.length} of ${group.members.length} done</td></tr>` +
     `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
-    `<td></td><td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}${edit}</span></td>` +
+    `<td></td><td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</span></td>` +
     `<td data-col="state"><span class="actionslot">${control}</span></td>` +
     `<td></td><td></td></tr></tbody>`;
   const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {

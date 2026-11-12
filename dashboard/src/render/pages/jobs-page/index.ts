@@ -137,12 +137,7 @@ function executionGroupEditors(v: JobsView, lang: Language): string {
   const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
   const jobs = [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
   const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
-  return executionGroupEditor({ projects, candidates, lang }) + groups
-    .filter((group) => group.state === "prepared" && !group.startedAt)
-    .map((group) => executionGroupEditor({
-      projects, group, lang,
-      candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups, jobs, editingGroupId: group.id }),
-    })).join("");
+  return executionGroupEditor({ projects, candidates, lang });
 }
 
 /** One spec's rows alone, for a fold: an empty body when the spec has no row

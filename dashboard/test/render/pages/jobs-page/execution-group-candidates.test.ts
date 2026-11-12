@@ -18,7 +18,7 @@ test("New group excludes a spec with an ordinary job in flight (AC-4)", () => {
   expect(editor).toContain('value="2-ready"');
 });
 
-test("a legacy prepared group has a matching editor for its membership identity (AC-6, AC-10)", () => {
+test("specs that share a group name in their descriptions are drawn as one group card", () => {
   const membership = (specFolder: string, position: number) => ({
     project: "aide", specFolder, title: specFolder, done: ["create"], group: { name: "Release", position },
   });
@@ -26,6 +26,5 @@ test("a legacy prepared group has a matching editor for its membership identity 
     shown: [], specJobs: [],
     list: { runnerAvailable: true, targets: [membership("1-first", 1), membership("2-second", 2)] },
   });
-  expect(html).toContain('data-edit-execution-group="membership:aide:Release"');
-  expect(html).toContain('action="/api/queue/groups/membership%3Aaide%3ARelease"');
+  expect(html).toContain('data-spec-group="aide\nRelease"');
 });
