@@ -12,7 +12,9 @@ import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
 import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
-import { activeSpecRows, type ArchivedSpecView, type SpecTarget, type SpecsPageOptions } from "../specs-list";
+import { activeSpecRows, specRowsOf, type ArchivedSpecView, type SpecTarget, type SpecsPageOptions } from "../specs-list";
+import { groupBySpec, groupKey, type SpecGroup } from "../specs-list/data-model";
+import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
@@ -62,7 +64,7 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
-    key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
+    key: s.key, html: s.html, place: specPlace(s.group, s.jobs), facts: s.group,
   }));
   const groups = activeGroups.map((group) => {
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
@@ -88,68 +90,60 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
-function roundSpecRows(v: JobsView, now: number) {
+interface SpecRow { key: string; group: SpecGroup; html: string; jobs: QueueRowView[] }
+
+/** Every spec's row: the current round of each active spec, as the Specs
+ *  list's Active entry draws it; each archived or closed spec, as the list
+ *  draws its archived rows; and each earlier round of a spec, under a key
+ *  of its own. */
+function roundSpecRows(v: JobsView, now: number): SpecRow[] {
   const bySpec = new Map<string, QueueRowView[]>();
   for (const job of v.specJobs) {
-    const key = `${job.project}/${job.specFolder}`;
+    const key = groupKey(job.project, job.specFolder);
     bySpec.set(key, [...(bySpec.get(key) ?? []), job]);
   }
-  const rows = activeSpecRows(v.specJobs, v.list, now);
-  const targets = new Map<string, SpecTarget>();
-  for (const target of v.list.targets) targets.set(`${target.project}/${target.specFolder}`, target);
-  for (const archived of v.historySpecs ?? []) {
-    const key = `${archived.project}/${archived.folder}`;
-    if (!targets.has(key)) targets.set(key, {
-      project: archived.project,
-      specFolder: archived.folder,
-      title: archived.title,
-      description: archived.description,
-      createdAt: archived.createdAt,
-      done: archived.done,
-      notVerified: archived.notVerified,
+  const roundOf = (key: string): QueueRowView[] => currentWorkRoundJobs(bySpec.get(key) ?? []);
+  const rows: SpecRow[] = activeSpecRows(v.specJobs, v.list, now).map((row) => ({ ...row, jobs: roundOf(row.key) }));
+  const drawn = new Set(rows.map((row) => row.key));
+  const history = (v.historySpecs ?? []).filter((spec) => !drawn.has(groupKey(spec.project, spec.folder)));
+  const historyKeys = history.map((spec) => groupKey(spec.project, spec.folder));
+  const historyGroups = groupBySpec(historyKeys.flatMap((key) => bySpec.get(key) ?? []), [], historyKeys, history, now);
+  rows.push(...specRowsOf(historyGroups, v.list, now).map((row) => ({ ...row, jobs: roundOf(row.key) })));
+
+  const targets = new Map<string, SpecTarget>(v.list.targets.map((target) => [groupKey(target.project, target.specFolder), target]));
+  for (const spec of history) {
+    targets.set(groupKey(spec.project, spec.folder), {
+      project: spec.project, specFolder: spec.folder, title: spec.title, description: spec.description,
+      createdAt: spec.createdAt, done: spec.done, notVerified: spec.notVerified,
     });
   }
-  for (const target of targets.values()) {
-    const baseKey = `${target.project}/${target.specFolder}`;
-    const history = bySpec.get(baseKey) ?? [];
-    const rounds = specRounds(history, target.createdAt);
-    const existing = rows.findIndex((row) => row.key === baseKey);
-    if (rounds.length <= 1 && existing >= 0) continue;
-    if (rounds.length > 1 && existing >= 0) rows.splice(existing, 1);
-    if (!rounds.length) {
-      const archived = (v.historySpecs ?? []).find((spec) => spec.project === target.project && spec.folder === target.specFolder);
-      rows.push(...activeSpecRows([], { ...v.list, targets: [target], archivedSpecs: [] }, now).map((row) => ({
-        ...row,
-        group: archived ? { ...row.group, state: archived.closed ? "closed" as const : "archived" as const } : row.group,
-      })));
-      continue;
-    }
-    for (const round of rounds) {
-      const open = (v.list.filter?.open ?? "").split(",").includes(round.key) ? baseKey : "";
-      const built = activeSpecRows(round.jobs, {
-        ...v.list,
-        targets: [{ ...target, createdAt: round.startedAt }],
-        archivedSpecs: [],
-        filter: { ...v.list.filter, open },
+  for (const [baseKey, jobs] of bySpec) {
+    const target = targets.get(baseKey);
+    if (!target) continue;
+    // The last round is the spec's own row above; each one before it is a row of its own.
+    for (const round of specRounds(jobs, target.createdAt).slice(0, -1)) {
+      const key = `${baseKey}@${encodeURIComponent(round.startedAt)}`;
+      const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
+      const roundTarget = { ...target, createdAt: round.startedAt };
+      const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now), {
+        ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
       }, now)[0];
       if (!built) continue;
-      const encodedBase = encodeURIComponent(baseKey);
-      const encodedRound = encodeURIComponent(round.key);
       rows.push({
-        ...built,
-        key: round.key,
+        key,
+        jobs: round.jobs,
         group: { ...built.group, createdAt: round.startedAt },
         html: built.html
-          .replaceAll(`id="spec-${baseKey}"`, `id="spec-${round.key}"`)
-          .replaceAll(`data-key="${baseKey}"`, `data-key="${round.key}"`)
-          .replaceAll(`open=${encodedBase}`, `open=${encodedRound}`),
+          .replaceAll(`id="spec-${baseKey}"`, `id="spec-${key}"`)
+          .replaceAll(`data-key="${baseKey}"`, `data-key="${key}"`)
+          .replaceAll(`open=${encodeURIComponent(baseKey)}`, `open=${encodeURIComponent(key)}`),
       });
     }
   }
   return rows;
 }
 
-function activeExecutionGroups(v: JobsView, specRows = roundSpecRows(v, v.now ?? Date.now())): ExecutionGroup[] {
+function activeExecutionGroups(v: JobsView, specRows: { key: string; group: SpecGroup; html: string }[] = roundSpecRows(v, v.now ?? Date.now())): ExecutionGroup[] {
   const registered = v.executionGroups ?? [];
   const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
   const legacy = new Map<string, typeof specRows>();

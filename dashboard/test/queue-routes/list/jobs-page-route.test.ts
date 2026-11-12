@@ -457,6 +457,11 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     expect(specKeys(tab)).not.toContain("retired/07-old");
   });
 
+  test("an archived or closed spec keeps its row as a record, whether or not the queue still holds its jobs", async () => {
+    const tab = await rowsOf(everyKind([job({ id: "arch90", specFolder: "90-finished", steps: ["archive"], state: "done" })]).base);
+    for (const folder of ["90-finished", "91-closed"]) expect(group(tab, `spec-aide/${folder}`)).toContain('data-run="archived"');
+  });
+
   test("an archived spec whose branch is on origin and not merged has the list's row for it, with its mark", async () => {
     const { base } = everyKind();
     const list = group(await activeList(base), `spec-aide/${UNMERGED}`);
@@ -470,14 +475,6 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
       .replaceAll('href="/specs?', 'href="/?')
       .replaceAll(`href="/specs/aide/${UNMERGED}"`, `href="/specs/aide/${UNMERGED}#spec-aide/${UNMERGED}"`);
     expect(withoutFold(tab)).toBe(withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')));
-  });
-
-  test("a closed spec with a failed job has no row of any kind", async () => {
-    const { base } = everyKind([job({ id: "bad", specFolder: "91-closed", steps: ["analyze"], state: "failed" })]);
-    await activeList(base);
-    const html = await rowsOf(base);
-    expect(html).not.toContain("91-closed");
-    expect(html).not.toContain("/jobs/bad");
   });
 
   // A Reopen or Close is a job of its own, as a scheduled job is: its own row,
@@ -526,13 +523,14 @@ describe("a spec's title on the Running tab", () => {
     expect(page).toContain(`id="spec-aide/${FOLDER}"`);
   });
 
-  test("a later round keeps the real spec address while its fold key names the round (AC-7)", async () => {
+  test("the current round keeps the spec's own key, an earlier one a key of its own with the real spec address (AC-7)", async () => {
     const html = await rowsOf(board([job({ id: "first", state: "done", finishedAt: "2026-10-08T10:05:00Z" }),
       job({ id: "reopen-done", steps: ["reopen"], state: "done", createdAt: "2026-10-09T10:00:00Z", finishedAt: "2026-10-09T10:05:00Z" }), job({ id: "second", steps: ["implement"], state: "done", createdAt: "2026-10-10T10:00:00Z", finishedAt: "2026-10-10T10:05:00Z" })]).base);
-    const later = group(html, "spec-aide/81-queue-and-runner@2026-10-09T10%3A05%3A00Z");
-    expect(later).toContain('data-key="aide/81-queue-and-runner@2026-10-09T10%3A05%3A00Z"'); expect(later).toContain(
-      'href="/specs/aide/81-queue-and-runner#spec-aide/81-queue-and-runner"',
-    ); expect(later).not.toContain('href="/specs/aide/81-queue-and-runner@');
+    expect(group(html, "spec-aide/81-queue-and-runner")).toContain('data-key="aide/81-queue-and-runner"');
+    const earlier = group(html, "spec-aide/81-queue-and-runner@2026-10-08T10%3A00%3A00Z");
+    expect(earlier).toContain('data-key="aide/81-queue-and-runner@2026-10-08T10%3A00%3A00Z"');
+    expect(earlier).toContain('href="/specs/aide/81-queue-and-runner#spec-aide/81-queue-and-runner"');
+    expect(earlier).not.toContain('href="/specs/aide/81-queue-and-runner@');
   });
 });
 describe("the rows stand in the tab's order", () => {

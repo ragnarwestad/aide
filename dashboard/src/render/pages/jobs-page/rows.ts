@@ -75,15 +75,16 @@ export const jobPlace = (
 };
 
 /** A spec's band is its row's state (a landing lead already reads `running`);
- *  its change is its lead job's newest stamp, or, with no job of its round,
- *  the day it was made. A spec git has not dated yet, with no job, was made
- *  moments ago: it is the newest, as the list's `sortGroups` treats it. */
-export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">): TabPlace => ({
+ *  its change is the newest stamp of its lead job and of the jobs of its
+ *  round, or, with no job, the day it was made. A spec git has not dated yet,
+ *  with no job, was made moments ago: it is the newest, as the list's
+ *  `sortGroups` treats it. */
+export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jobs: readonly JobLike[] = []): TabPlace => ({
   band: g.state === "running" ? 0 : g.state === "queued" ? 1 : ["archived", "closed"].includes(g.state) ? 3 : 2,
   changedAt:
-    !g.lead && !g.createdAt
+    !g.lead && !g.createdAt && !jobs.length
       ? Number.MAX_SAFE_INTEGER
-      : Math.max(g.lead ? lastStamp(g.lead) : 0, Date.parse(g.createdAt ?? "") || 0),
+      : Math.max(g.lead ? lastStamp(g.lead) : 0, ...jobs.map(lastStamp), Date.parse(g.createdAt ?? "") || 0),
 });
 
 /** Running or landing first, then queued, then the rest; the newest change first in each. */

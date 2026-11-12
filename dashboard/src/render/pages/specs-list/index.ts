@@ -285,13 +285,18 @@ export function activeSpecRows(
   opts: SpecsPageOptions,
   now = Date.now(),
 ): { key: string; group: SpecGroup; html: string }[] {
-  const opened = openedKeys(opts);
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  return applyFilter(groups, { state: ACTIVE_FILTER_KEY }).map((g) => ({
-    key: groupKey(g.project, g.specFolder),
-    group: g,
-    html: groupRow(g, opts, now, opened),
-  }));
+  return specRowsOf(applyFilter(groups, { state: ACTIVE_FILTER_KEY }), opts, now);
+}
+
+/** Each group as its row, drawn by the list's one row builder, with no filter. */
+export function specRowsOf(
+  groups: SpecGroup[],
+  opts: SpecsPageOptions,
+  now = Date.now(),
+): { key: string; group: SpecGroup; html: string }[] {
+  const opened = openedKeys(opts);
+  return groups.map((g) => ({ key: groupKey(g.project, g.specFolder), group: g, html: groupRow(g, opts, now, opened) }));
 }
 
 function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {

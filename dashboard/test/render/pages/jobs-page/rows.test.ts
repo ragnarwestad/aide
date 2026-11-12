@@ -45,6 +45,12 @@ const group = (o: { state: string; lead?: Partial<Lead>; createdAt?: string }): 
   ({ state: o.state, lead: o.lead ? job(o.lead as Partial<J>) : undefined, createdAt: o.createdAt }) as never;
 
 describe("where a row stands on the tab: running or landing, queued, the rest; the newest change first", () => {
+  test("a finished spec stands by its newest job, not by the day it was made", () => {
+    const finished = group({ state: "archived", createdAt: T(1) });
+    expect(specPlace(finished, [job({ createdAt: T(8), finishedAt: T(9) })])).toEqual({ band: 3, changedAt: ms(9) });
+    expect(specPlace(finished).changedAt).toBe(ms(1));
+  });
+
   test("uses four bands with finished work last and newest first in each (AC-4)", () => {
     const ordered = [
       ["finished-old", { band: 3, changedAt: ms(1) }],
