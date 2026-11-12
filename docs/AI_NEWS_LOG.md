@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-12](#2026-11-12)
   - [2026-11-11](#2026-11-11)
   - [2026-11-10](#2026-11-10)
   - [2026-11-09](#2026-11-09)
@@ -126,6 +127,55 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-12
+
+Nov 12. All sources were fetched again. The X list was read fresh (520 posts collected for Nov 11 to Nov 12, all
+retained for reading; most repeat the Fable 5.2 findings logged on Nov 11). Of the watched pages one changed in
+advice: the general prompting best-practices page.
+
+**Claude Code (v2.1.322):**
+
+| Date   | Version | News                                                                                                    | Source                                                         |
+|--------|---------|---------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 12 | —       | No Claude Code release after v2.1.322 (the fetch answered "No release since 2026-11-11")                | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 12 | —       | Anthropic news still leads with "Introducing Claude Fable 5.2 and Claude Mythos 5.2" (already reviewed) | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (v1.0.109 stable; v1.0.110-3 the newest pre-release):**
+
+| Date   | Version    | News                                                                                                                                                                                                       | Source                                                     |
+|--------|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 11 | v1.0.110-2 | Pre-release: `/compact` respects the session AI credit limit; `/session prune` skips sessions open in other processes; an invalid settings.json no longer erases other plugin and marketplace settings     | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 12 | v1.0.110-3 | Pre-release: the `/` command picker no longer runs a skill for a word its description hides in an escape sequence; `/mcp add` and `/mcp edit` keep the existing MCP configuration when the file is invalid | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.167.2 stable; v0.170.0-alpha.2 pre-release):**
+
+| Date   | Version  | News                                                                                                                                                 | Source                                               |
+|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 11 | v0.167.2 | Stable: tool updates sent incrementally by default on Google Cloud Vertex AI; opt out with `incremental_tools_legacy_gcp = false` under `[features]` | [Releases](https://github.com/openai/codex/releases) |
+| Nov 12 | —        | v0.170.0-alpha.1 and alpha.2 are pre-releases                                                                                                        | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.7):**
+
+| Date   | Version | News                                                                                        | Source                                                     |
+|--------|---------|---------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 11 | —       | Only a process-daemon package release (opencode-pty 0.5.2); no new release of the main tool | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ✅ Claude prompting best-practices page (watched, changed): a new block for system prompts of agents that handle
+  payments, account numbers or other people's records. It says to never send a payment itself, to say a check was
+  done only if a tool result in the session showed it, to keep the documented figures as the main version, and not to
+  send a message in a person's name without approval. It adds that the block guides and does not enforce, so a person
+  should approve each call to a tool that can move money. Aide handles no payments; the "claim a check only if a tool
+  result showed it" line matches how the step skills report test results.
+  [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
+- ℹ X list: a `/merge-risk` skill run as a last step before a PR (strips unaligned changes, splits high-impact
+  changes) [Post](https://x.com/BHolmesDev/status/2120637765436297507); the Fable 5.2 posts from Nov 11 are repeated
+  and already reviewed.
+- ℹ Copilot CLI v1.0.110-2 and -3 (pre-releases), Codex v0.167.2 and OpenCode's daemon package: fixes and a Vertex AI
+  opt-out; nothing that touches Aide's installers or skills.
+  [Copilot](https://github.com/github/copilot-cli/releases), [Codex](https://github.com/openai/codex/releases)
+
 ### 2026-11-11
 
 Nov 11. All sources were fetched again at 20:15. Since the earlier fetch the only new releases are Codex
