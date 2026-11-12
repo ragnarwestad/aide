@@ -579,5 +579,5 @@ export const fr: Record<TranslationKey, string> = {
   "list.groupProject": "Projet",
   "list.groupName": "Nom",
   "list.groupOrder": "Ordre",
-  "list.groupSave": "Enregistrer le groupe",
+  "list.groupSave": "Enregistrer",
 };

@@ -582,5 +582,5 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupProject": "Prosjekt",
   "list.groupName": "Navn",
   "list.groupOrder": "Rekkefølge",
-  "list.groupSave": "Lagre gruppe",
+  "list.groupSave": "Lagre",
 };

@@ -590,5 +590,5 @@ export const en = {
   "list.groupProject": "Project",
   "list.groupName": "Name",
   "list.groupOrder": "Order",
-  "list.groupSave": "Save group",
+  "list.groupSave": "Save",
 } as const;
