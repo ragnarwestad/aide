@@ -8,16 +8,18 @@ import { onDependsOnCancel, pickSetting } from "../depends-on";
 import { submitAction, submitTestServerStop } from "../forms.ts";
 import { navigate } from "../navigation.ts";
 import { postPendingModel } from "../pending-model.ts";
-import { relabelRunButton } from "../row-swap.ts";
+import { relabelRunButton } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
+import { changeExecutionGroupEditor, openExecutionGroupEditor, updateExecutionGroupEditor } from "../execution-groups/editor.ts";
 
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
 // would last until the next one. A page drawn in place brings a new
 // container, and `bindLists` binds that one too.
 function onRowsClick(event: MouseEvent): void {
+  if (openExecutionGroupEditor(event)) return;
   toggleSpecGroup(event);
   navigate(event);
   onApproachCancel(event);
@@ -27,6 +29,7 @@ function onRowsClick(event: MouseEvent): void {
 // replaced wholesale on every redraw, so a listener bound to a control
 // itself would last until the next one.
 const onRowsChange = ((event: Event) => {
+  if (changeExecutionGroupEditor(event)) return;
   const target = event.target as Element | null;
   // The compact picker's box says what the line is on, and every branch
   // below can change that. Queued rather than called here: `applyAiPick`
@@ -46,9 +49,7 @@ const onRowsChange = ((event: Event) => {
     | HTMLInputElement
     | HTMLSelectElement
     | null;
-  if (setting && ["removeGroup", "acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
-  const group = target?.closest?.('form.dependsform input[name="group"]') as HTMLInputElement | null;
-  if (group?.name === "group") return pickSetting(group);
+  if (setting && ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
   // A tail box's tick is a press, not something to remember for the
   // next redraw: it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather
@@ -122,6 +123,7 @@ export function bindLists(doc: Document): void {
   rows?.addEventListener("click", onRowsClick as EventListener);
   rows?.addEventListener("submit", submitAction as EventListener);
   rows?.addEventListener("change", onRowsChange);
+  for (const form of doc.querySelectorAll<HTMLFormElement>("form[data-execution-group-editor]")) updateExecutionGroupEditor(form);
   // The Test servers list's own Stop button.
   doc.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 }

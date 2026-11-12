@@ -1,0 +1,30 @@
+.execution-group-editor {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+
+.execution-group-editor > summary { cursor: pointer; font-weight: 600; }
+.execution-group-editor form { display: grid; gap: var(--sp-3); margin-top: var(--sp-3); }
+.execution-group-editor form > label { display: grid; gap: var(--sp-1); }
+.execution-group-editor :is(input:not([type="checkbox"]), select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.execution-group-editor ol { display: grid; gap: var(--sp-2); margin: 0; padding-left: var(--sp-5); }
+.execution-group-editor li { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: var(--sp-3); align-items: center; }
+.execution-group-editor li > label:first-child { min-width: 0; overflow-wrap: anywhere; }
+.execution-group-editor button { justify-self: start; }
+
+@media (max-width: 620px) {
+  .execution-group-editor li { grid-template-columns: 1fr; gap: var(--sp-1); }
+}

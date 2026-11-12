@@ -6,6 +6,12 @@ import type { ProviderLimit } from "../../../queue/queue.ts";
 import type { LogPart } from "../../../queue/parse-stream";
 import type { ResultTool } from "../../../queue/providers/tools.ts";
 
+export interface PhaseAttemptIdentity {
+  phase: string;
+  attempt: number;
+  at?: string;
+}
+
 export interface JobStepResultView {
   step?: string;
   ok: boolean;
@@ -42,6 +48,8 @@ export interface JobStepResultView {
    *  table never sets this; only `spec-page.ts`'s flattened, multi-job
    *  Steps tab does. */
   attempt?: number;
+  /** This phase's occurrence in the current work round. */
+  phaseAttempt?: PhaseAttemptIdentity;
   /** The error lines of both writers, already-escaped, in the order they
    *  happened — the Errors tab: Aide's `error:` lines and the AI's failed
    *  commands. Absent exactly when `logs` is. */
@@ -108,7 +116,7 @@ export interface JobDetailView extends QueueRowView {
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
-  runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number };
+  runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number; phaseAttempt?: PhaseAttemptIdentity };
   /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

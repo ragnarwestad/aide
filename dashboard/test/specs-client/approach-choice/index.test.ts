@@ -8,7 +8,7 @@ import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { approachPanel } from "../../../src/render/pages/specs-list/approach-choice";
 import { cancelApproach, pickApproach } from "../../../src/specs-client/approach-choice";
-import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
+import { restoreChosen } from "../../../src/specs-client/row-swap/index.ts";
 
 const FOLDER = "590-choose-the-approach";
 const FORM = `approach-aide-${FOLDER}`;

@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import type * as RowSwap from "../../../src/specs-client/row-swap.ts";
+import type * as RowSwap from "../../../src/specs-client/row-swap/index.ts";
 
 const KEY = "aide/81-x";
 const OTHER = "aide/82-y";
@@ -22,7 +22,7 @@ const group = (key: string, phase: string, detail = "") => head(key, phase) + de
 /** The module afresh for each test: it remembers the last rows it drew, and
  *  the first redraw after a load is the case under test. */
 let loads = 0;
-const rowSwap = (): Promise<typeof RowSwap> => import(`../../../src/specs-client/row-swap.ts?load=${++loads}`);
+const rowSwap = (): Promise<typeof RowSwap> => import(`../../../src/specs-client/row-swap/index.ts?load=${++loads}`);
 
 let win: Window;
 let mod: typeof RowSwap;
@@ -99,6 +99,16 @@ describe("the open spec survives a redraw of the rows", () => {
     expect(detail() === before).toBe(true);
     expect((win.document.querySelector("textarea") as unknown) === box).toBe(true);
     expect(box.value).toBe("typed after the page opened");
+  });
+
+  test("a live row redraw keeps an opened complete phase-attempt log open (AC-7)", async () => {
+    const phase = (text: string) =>
+      `<details data-phase-attempt-log="${KEY}:implement" open><summary>Entire Implement attempt log</summary>${text}</details>`;
+    win.document.body.innerHTML = `<div id="jobrows">${table(group(KEY, phase("first")) + group(OTHER, "phase v1"))}</div>`;
+    answer = table(group(KEY, phase("second")) + group(OTHER, "phase v1"));
+    await mod.swapRows();
+    expect(win.document.querySelector("details[data-phase-attempt-log]")?.hasAttribute("open")).toBe(true);
+    expect(win.document.body.innerHTML).toContain("second");
   });
 
   test("a redraw of that one spec alone keeps it", async () => {

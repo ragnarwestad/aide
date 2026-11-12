@@ -115,6 +115,7 @@ export const en = {
   "list.phaseModel": "Model: {model}",
   "list.descriptionChangedSince": "The description has changed since the last analysis.",
   "list.phaseOpenLog": "Open this step's log",
+  "list.phaseEntireLog": "Entire {phase} attempt log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",
@@ -581,4 +582,10 @@ export const en = {
   "list.groupStart": "Start",
   "list.groupDone": "{done} of {total} done",
   "list.groupWaiting": "Waiting for {spec}",
+  "list.groupCreate": "New group",
+  "list.groupEdit": "Edit group",
+  "list.groupProject": "Project",
+  "list.groupName": "Name",
+  "list.groupOrder": "Order",
+  "list.groupSave": "Save group",
 } as const;

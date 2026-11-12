@@ -114,6 +114,7 @@ export const de: Record<TranslationKey, string> = {
   "list.phaseModel": "Modell: {model}",
   "list.descriptionChangedSince": "Die Beschreibung wurde seit der letzten Analyse geändert.",
   "list.phaseOpenLog": "Das Protokoll dieses Schritts öffnen",
+  "list.phaseEntireLog": "Vollständiges Protokoll des {phase}-Versuchs",
   "list.cancel": "Abbrechen",
   "list.cancelling": "wird abgebrochen…",
   "list.cancelConfirmTitle": "{step} abbrechen?",
@@ -570,4 +571,10 @@ export const de: Record<TranslationKey, string> = {
   "list.groupStart": "Starten",
   "list.groupDone": "{done} von {total} erledigt",
   "list.groupWaiting": "Wartet auf {spec}",
+  "list.groupCreate": "Neue Gruppe",
+  "list.groupEdit": "Gruppe bearbeiten",
+  "list.groupProject": "Projekt",
+  "list.groupName": "Name",
+  "list.groupOrder": "Reihenfolge",
+  "list.groupSave": "Gruppe speichern",
 };

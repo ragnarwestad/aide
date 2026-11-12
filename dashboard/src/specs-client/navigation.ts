@@ -5,7 +5,7 @@
 
 import { connect, disconnect } from "./live.ts";
 import { SPINNER } from "./press.ts";
-import { swapRows, swapSpec } from "./row-swap.ts";
+import { swapRows, swapSpec } from "./row-swap/index.ts";
 import { openSpecInPlace } from "./spec-detail/open.ts";
 import { AWAITING } from "./state.ts";
 

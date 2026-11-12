@@ -119,7 +119,7 @@ export type { QueueRowView, SideRunView, StepResultView } from "./ui/job-state";
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
 export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";
 export type { JobsView } from "./pages/jobs-page";
-export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
+export type { JobDetailView, JobStepResultView, JobTab, SpecFileView, PhaseAttemptIdentity } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs.
 // It shares the job page's tab bar and steps table rather than

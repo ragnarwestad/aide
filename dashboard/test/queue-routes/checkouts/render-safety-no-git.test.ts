@@ -148,8 +148,8 @@ describe("no render path runs git or a network command", () => {
   const phaseBadge = (html: string, step: string): string =>
     (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "")
       .match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
-  const buttonLabel = (html: string): string =>
-    html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ?? "";
+  const buttonLabels = (html: string): string[] =>
+    [...html.matchAll(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/g)].map((match) => match[1]);
 
   // A regression guard for the branch above — a
   // LIVE spec must keep reading `done` from `target?.done` (the
@@ -177,6 +177,6 @@ describe("no render path runs git or a network command", () => {
     expect(phaseBadge(html, "analyze")).toBe("done");
     // And what the file CLAIMS is not what the row believes: implement
     // has no git-verified run, so the button is still named for it.
-    expect(buttonLabel(html)).toBe("Implement");
+    expect(buttonLabels(html)).toContain("Implement");
   });
 });

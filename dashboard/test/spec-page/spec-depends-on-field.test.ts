@@ -147,31 +147,6 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
-  test("saving an unchanged group name preserves its position (A757 AC-2)", async () => {
-    const grouped = TRACKED("- **Group:** `Release`\n- **Group position:** 1");
-    const { base, dir } = startTracked(savable("/host"), grouped);
-    const { status } = await answer(await track(base, { group: "Release", baseSha: FILE_SHA }));
-    expect(status).toBe(200);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(grouped);
-  });
-
-  test("a spec whose create step is complete can join a group before analyze (A757 AC-1)", async () => {
-    const { base, dir } = startTracked(savable("/host"));
-    const { status, body } = await answer(await track(base, { group: "Release", baseSha: FILE_SHA }));
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toContain("- **Group:** `Release`\n- **Group position:** 1");
-  });
-
-  test("removing a create-only spec from its group deletes both group lines (A757 AC-11)", async () => {
-    const grouped = TRACKED("- **Group:** `Release`\n- **Group position:** 1");
-    const { base, dir } = startTracked(savable("/host"), grouped);
-    const { status, body } = await answer(await track(base, { group: "", removeGroup: "1", baseSha: FILE_SHA }));
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
-  });
-
   // The picker's form is the only writer of the line, and a browser
   // posts nothing for a box left unticked: the form carries one empty
   // entry, so a picker cleared of every box still posts, and the route

@@ -141,7 +141,9 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                             | interface |
 | `POST /api/queue/failed-creates/<id>/dismiss` | action | nothing                                            | `{ ok }`; 404 for an unknown message                                       | form      |
-| `POST /api/queue/groups/<project>/<group>`    | action | `action`: `start`, `stop` or `archive`             | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
+| `POST /api/queue/groups`                      | action | project, name, ordered members                     | `{ ok, group }`; 409 if refused                                            | form      |
+| `POST /api/queue/groups/<id>`                 | action | project and ordered members                        | `{ ok, group }`; 409 if refused                                            | form      |
+| `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop` or `archive`             | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
 
 ### Specs
 

@@ -9,7 +9,7 @@
 // otherwise.
 
 import { createFollow } from "./follow";
-import { swapRows } from "./row-swap.ts";
+import { swapRows } from "./row-swap/index.ts";
 import { press } from "./state.ts";
 
 const RECONNECT_BASE_MS = 1000;
