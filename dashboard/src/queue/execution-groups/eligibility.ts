@@ -7,20 +7,18 @@ interface EligibilityInput {
   targets: SpecTarget[];
   groups: ExecutionGroup[];
   jobs: GroupJob[];
-  editingGroupId?: string;
 }
 
 const active = (state: string): boolean => state === "queued" || state === "running";
 
 export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
-  const editingName = input.groups.find((group) => group.id === input.editingGroupId)?.name;
   const owned = new Set(input.groups
-    .filter((group) => group.state !== "completed" && group.id !== input.editingGroupId)
+    .filter((group) => group.state !== "completed")
     .flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const busy = new Set(input.jobs.filter((job) => active(job.state)).map((job) => `${job.project}/${job.specFolder}`));
   return input.targets.filter((target) => {
     const key = `${target.project}/${target.specFolder}`;
-    return target.project === input.project && (!target.group || target.group.name === editingName) && !owned.has(key) && !busy.has(key) &&
+    return target.project === input.project && !target.group && !owned.has(key) && !busy.has(key) &&
       !(target.done ?? []).some((step) => step === "analyze" || step === "implement" || step === "archive") && !target.acceptancePhase;
   });
 }

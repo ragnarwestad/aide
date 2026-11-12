@@ -76,17 +76,6 @@ describe("ExecutionGroupStore", () => {
     expect(group.jobs[0]?.logs[0]).toEqual({ step: "implement", sessionId: "s1", streamFile: "/logs/1" });
   });
 
-  test("edits prepared members by durable identity without changing the name (AC-6, AC-7, AC-10)", () => {
-    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
-    const made = store.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });
-    expect(store.editPrepared(made.id, ["2-next", "3-last"], "group/2-next")).toMatchObject({
-      id: "group-1", name: "Release", members: ["2-next", "3-last"], branch: "group/2-next",
-    });
-    store.start(made.id);
-    expect(() => store.editPrepared(made.id, ["1-first"], "group/1-first")).toThrow("already started");
-    expect(new ExecutionGroupStore(path).get(made.id)?.members).toEqual(["2-next", "3-last"]);
-  });
-
   test("refuses a second new group with the same unfinished name without changing the first (AC-5)", () => {
     const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
     const made = store.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });

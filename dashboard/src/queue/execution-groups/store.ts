@@ -65,12 +65,6 @@ export class ExecutionGroupStore {
     }
     return this.create(input);
   }
-  editPrepared(id: string, members: string[], branch: string): ExecutionGroup {
-    const current = this.groups.get(id);
-    if (!current) throw new Error(`no such execution group: ${id}`);
-    if (current.startedAt || current.state !== "prepared") throw new Error(`execution group ${id} has already started`);
-    return this.update(id, { members: [...members], branch });
-  }
   reconcile(
     input: PrepareExecutionGroup & Pick<ExecutionGroup, "completedMembers">,
     jobs: LegacyJob[],

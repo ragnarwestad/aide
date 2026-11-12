@@ -28,7 +28,7 @@ const makeSpecsRepo = (dir: string): void => {
 };
 
 describe("execution-group HTTP routes", () => {
-  test("create, edit and lifecycle action keep their JSON response forms (AC-2)", async () => {
+  test("create and lifecycle action keep their JSON response forms (AC-2)", async () => {
     const { base, dir } = harness.start({
       description: description("81-queue-and-runner"),
       alsoSpecs: ["82-next"],
@@ -48,14 +48,6 @@ describe("execution-group HTTP routes", () => {
     expect(create.status).toBe(200);
     const created = await create.json() as { ok: boolean; group: { id: string; members: string[] } };
     expect(created).toMatchObject({ ok: true, group: { members: ["81-queue-and-runner", "82-next"] } });
-
-    const edit = await fetch(`${base}/api/queue/groups/${created.group.id}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", member: ["82-next", "81-queue-and-runner"], position: [1, 2] }),
-    });
-    expect(edit.status).toBe(200);
-    expect(await edit.json()).toMatchObject({ ok: true, group: { members: ["82-next", "81-queue-and-runner"] } });
 
     const grouped = (folder: string, position: number) =>
       `${description(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
@@ -86,7 +78,7 @@ describe("execution-group HTTP routes", () => {
 
   test("all recognised group routes refuse GET with the documented response (AC-3)", async () => {
     const { base } = harness.start();
-    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1", "/api/queue/groups/group-1/action"]) {
+    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1/action"]) {
       const response = await fetch(`${base}${path}`);
       expect(response.status).toBe(405);
       expect(await response.text()).toBe("method not allowed");
@@ -95,7 +87,7 @@ describe("execution-group HTTP routes", () => {
 
   test("all group POST routes share the Origin refusal (AC-2)", async () => {
     const { base } = harness.start();
-    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1", "/api/queue/groups/group-1/action"]) {
+    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1/action"]) {
       const response = await fetch(`${base}${path}`, {
         method: "POST",
         headers: { origin: "https://evil.example" },

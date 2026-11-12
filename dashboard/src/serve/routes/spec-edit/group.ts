@@ -7,15 +7,12 @@ import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
 import { validateExecutionGroupRequest } from "../../../queue/execution-groups/eligibility.ts";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
 import type { RoutesContext } from "..";
-import { executionGroupForAction } from "../job-actions.ts";
 
 const values = (value: unknown): string[] =>
   (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
 
 export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
-  const collection = path === "/api/queue/groups";
-  const edit = path.match(/^\/api\/queue\/groups\/([^/]+)$/);
-  if (!collection && !edit) return null;
+  if (path !== "/api/queue/groups") return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;
@@ -23,39 +20,29 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   try { body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>; }
   catch { return json({ error: "malformed body" }, 400); }
   const targets = ctx.withFreshness(ctx.targets());
-  let editId: string | undefined;
-  try { editId = edit ? decodeURIComponent(edit[1]!) : undefined; }
-  catch { return json({ error: "invalid group" }, 400); }
-  const existing = editId ? executionGroupForAction(ctx.queue.executionGroups, editId, targets) : undefined;
-  if (edit && !existing) return json({ error: "the group no longer exists" }, 404);
-  if (existing && (existing.startedAt || existing.state !== "prepared")) {
-    return json({ error: "this execution group has already started" }, 409);
-  }
-  const project = existing?.project ?? String(body.project ?? "");
-  const name = existing?.name ?? String(body.name ?? "").trim();
+  const project = String(body.project ?? "");
+  const name = String(body.name ?? "").trim();
   if (!project || !name) return json({ error: "project and name are required" }, 400);
-  if (collection && (ctx.queue.executionGroups.findUnfinished(project, name) ||
-    targets.some((target) => target.project === project && target.group?.name === name))) {
+  if (ctx.queue.executionGroups.findUnfinished(project, name) ||
+    targets.some((target) => target.project === project && target.group?.name === name)) {
     return json({ error: `an unfinished execution group named ${name} already exists` }, 409);
   }
   const checked = validateExecutionGroupRequest({
     project, members: values(body.member), positions: values(body.position).map(Number), targets,
-    groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(), editingGroupId: existing?.id,
+    groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(),
   });
   if (!checked.ok) return json({ error: checked.error }, 409);
 
-  const affected = [...new Set([...(existing?.members ?? []), ...checked.members])];
-  const firstDir = ctx.specDir(project, affected[0]!);
-  if (!firstDir) return json({ error: `${affected[0]} is no longer available` }, 409);
+  const firstDir = ctx.specDir(project, checked.members[0]!);
+  if (!firstDir) return json({ error: `${checked.members[0]} is no longer available` }, 409);
   const edits: SpecFileEdit[] = [];
-  for (const folder of affected) {
+  for (const [index, folder] of checked.members.entries()) {
     const dir = ctx.specDir(project, folder);
     if (!dir) return json({ error: `${folder} is no longer available` }, 409);
     let current: string;
     try { current = readFileSync(`${dir}/${DESCRIPTION_FILE}`, "utf-8"); }
     catch { return json({ error: `${folder} could not be read — nothing was saved` }, 409); }
-    const index = checked.members.indexOf(folder);
-    const text = withGroupLines(current, index < 0 ? undefined : { name, position: index + 1 });
+    const text = withGroupLines(current, { name, position: index + 1 });
     if (text === null) return json({ error: `${folder} has no place for group membership — nothing was saved` }, 409);
     const file = relative(firstDir, `${dir}/${DESCRIPTION_FILE}`);
     edits.push({ file, text, baseSha: (await lastCommitOf(ctx.gitRun, firstDir, file))?.sha ?? null });
@@ -66,9 +53,7 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   ));
   if (!saved.ok) return json({ error: saved.note }, 409);
   const branch = groupBranch(checked.members[0]!, name);
-  const group = existing
-    ? ctx.queue.executionGroups.editPrepared(existing.id, checked.members, branch)
-    : ctx.queue.executionGroups.create({ project, name, members: checked.members, branch });
+  const group = ctx.queue.executionGroups.create({ project, name, members: checked.members, branch });
   await ctx.rereadProject(project);
   ctx.notifyQueueChanged();
   return json({ ok: true, group });

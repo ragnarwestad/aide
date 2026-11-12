@@ -62,7 +62,6 @@ describe("execution-group route owners", () => {
   test("the route page names each authoritative source file (AC-4)", () => {
     const expected = [
       ["POST /api/queue/groups", "src/serve/routes/spec-edit/group.ts"],
-      ["POST /api/queue/groups/<id>", "src/serve/routes/spec-edit/group.ts"],
       ["POST /api/queue/groups/<id>/action", "src/serve/routes/job-actions.ts"],
     ];
     for (const [route, owner] of expected) {
