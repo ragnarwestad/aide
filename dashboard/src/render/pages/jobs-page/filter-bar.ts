@@ -46,10 +46,10 @@ export function jobsFilterBar(facts: RowFacts[], f: SpecsFilter, lang: Language)
   );
 }
 
-/** The table head: every heading sorts, none is marked while the tab keeps
- *  its own order, and the second is headed Title. */
+/** The table head: every heading sorts, Created is marked by default,
+ *  and the second is headed Title. */
 export function jobsHead(f: SpecsFilter, lang: Language): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort : undefined;
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort : "created";
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort ?? "created"]!;
   return sortHead(
     {

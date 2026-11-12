@@ -85,14 +85,14 @@ const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: "all", project: u
 
 /** The rows the view shows, in its order: the state entry and the search cut
  *  them as `applyFilter` does; a column the view names orders them
- *  as `sortGroups` does; with none, the tab's own order (`byTabPlace`). */
+ *  as `sortGroups` does; with none, newest created first. */
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
   const tabFilters = jobsStateFilters(f.state);
   const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
   const kept = searched.filter((facts) => tabFilters.some((entry) => matchesStateFilter(entry, facts)));
-  const shown = SORTS.includes(f.sort ?? "") ? sortGroups(kept, f) : kept;
+  const shown = sortGroups(kept, f);
   return shown.map((facts) => byFacts.get(facts)!);
 }
 
@@ -111,10 +111,10 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
 
 /** Where a heading's link goes: a column not sorted by goes to its first
  *  direction; the sorted one in its first direction turns round; turned round,
- *  back to the tab's own order. */
+ *  back to newest created first. */
 export function jobsSortPatch(f: SpecsFilter, key: string): { sort: string; dir: string } {
   const first = SORT_DEFAULT_DIR[key]!;
-  if (f.sort !== key) return { sort: key, dir: "" };
+  if ((SORTS.includes(f.sort ?? "") ? f.sort : "created") !== key) return { sort: key, dir: "" };
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : first;
   if (dir !== first) return { sort: "", dir: "" };
   return { sort: key, dir: first === "asc" ? "desc" : "asc" };

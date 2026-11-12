@@ -15,7 +15,7 @@ import {
   jobsViewRows,
   type RowFacts,
 } from "../../../../src/render/pages/jobs-page/view.ts";
-import { byTabPlace, jobPlace, type TabPlace } from "../../../../src/render/pages/jobs-page/rows.ts";
+import { jobPlace, type TabPlace } from "../../../../src/render/pages/jobs-page/rows.ts";
 
 const NOW = Date.parse("2026-10-09T12:00:00Z");
 const T = (day: number, hour = 10): string => `2026-10-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00Z`;
@@ -172,14 +172,13 @@ describe("a scheduled job is matched on its title and its project", () => {
   });
 });
 
-describe("the columns sort as the Specs list's do, and no sorting is the tab's own order", () => {
-  const inTabOrder = ["run81", "nightly", "report-other", "idle83"];
-
-  test("with no sort, or one that is not a column, the rows keep the tab's own order whatever order they come in", () => {
-    const shuffled = [stopped, nightly, failedReport, running];
-    expect(view(shuffled, {})).toEqual(inTabOrder);
-    expect(view(shuffled, { sort: "no-such-column" })).toEqual(inTabOrder);
-    expect([...tab].sort((a, b) => byTabPlace(a.place, b.place)).map((r) => r.name)).toEqual(inTabOrder);
+describe("the columns sort as the Specs list's do, newest created first by default", () => {
+  test("missing or invalid sort uses creation time across states and row kinds", () => {
+    const newest = jobEntry("newest", { state: "done", createdAt: T(9) });
+    const shuffled = [stopped, newest, nightly, failedReport, running];
+    const expected = ["newest", "run81", "nightly", "report-other", "idle83"];
+    expect(view(shuffled, {})).toEqual(expected);
+    expect(view(shuffled, { sort: "no-such-column" })).toEqual(expected);
   });
 
   test("a column the view names orders rows of both kinds, in the column's direction", () => {
@@ -201,7 +200,8 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     expect(view(rows, { sort: "started" })).toEqual(["long-job", "mid-spec", "short-spec"]);
   });
 
-  test("a press on a heading sorts by it, a second turns it round, a third returns to the tab's order", () => {
+  test("a press on a heading sorts by it, a second turns it round, a third returns to newest created first", () => {
+    expect(jobsSortPatch({}, "created")).toEqual({ sort: "created", dir: "asc" });
     expect(jobsSortPatch({}, "cost")).toEqual({ sort: "cost", dir: "" });
     expect(jobsSortPatch({ sort: "cost" }, "cost")).toEqual({ sort: "cost", dir: "asc" });
     expect(jobsSortPatch({ sort: "cost", dir: "asc" }, "cost")).toEqual({ sort: "", dir: "" });

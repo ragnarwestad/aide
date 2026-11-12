@@ -530,28 +530,6 @@ describe("a spec's title on the Running tab", () => {
     expect(earlier).not.toContain('href="/specs/aide/81-queue-and-runner@');
   });
 });
-describe("the rows stand in the tab's order", () => {
-  test("a running spec first, then the waiting scheduled jobs, the one that changed last first", async () => {
-    const failedReport = (o: Record<string, unknown>) =>
-      job({
-        state: "failed", steps: ["schedule"], specFolder: "schedule-report",
-        results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
-        ...o,
-      });
-    // `other` was made later than `aide` but `aide` finished last.
-    const { base } = scheduled([
-      failedReport({ id: "ra", createdAt: "2026-10-08T10:01:00Z", finishedAt: "2026-10-08T12:00:00Z" }),
-      failedReport({ id: "ro", project: "other", createdAt: "2026-10-08T10:05:00Z", finishedAt: "2026-10-08T10:06:00Z" }),
-      job({ id: "run81" }),
-    ]);
-    const html = await rowsOf(base);
-    const at = (id: string): number => html.indexOf(`id="spec-${id}"`);
-    expect(at("aide/81-queue-and-runner")).toBeGreaterThan(-1);
-    expect(at("aide/81-queue-and-runner")).toBeLessThan(at("aide/schedule-report"));
-    expect(at("aide/schedule-report")).toBeLessThan(at("other/schedule-report"));
-  });
-});
-
 // A done Analyze, then a failed Implement. An archive held
 // back on an unticked criterion. Both are shown on the Jobs tab, and both are
 // rows the Specs list draws.

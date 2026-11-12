@@ -846,18 +846,15 @@ under its state, ending with a Log link. A queued job offers Cancel and a runnin
 a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
-The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then waiting for
-the user, then finished, the
-most recently changed first in each. A job's change is the newest of its made, started and finished times; a spec's is the
-same for its lead job, or the day the spec was made when no job of its round exists. A change made without a job, such as
-a description saved from another machine, does not move a spec.
+The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
+Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box and a State dropdown of checkbox links (All, Running, Waiting, Done, Stopped,
 Failed and Not verified, All by default). Ticking several shows every row that matches any of them, and the tab's cookie
 remembers every ticked entry. Each entry is counted over the rows the search lets through; a job row is never Not verified. An old address
 naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's name, or `name:`, narrows
 the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's rules; a third press on a
-sorted heading returns to the tab's own order. A view that hides every row says "Nothing on this tab matches this filter."
+sorted heading returns to Created, newest first. A view that hides every row says "Nothing on this tab matches this filter."
 
 The tab remembers its search, filters and sorting in a cookie of its own, apart from the Specs list's. An address that
 names any of `state`, `sort`, `dir` or `q` is the whole view and becomes the memory; one that names none gets the view
