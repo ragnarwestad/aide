@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
-import { closeOrReopenSteps, deploySteps, jobMarks, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps, jobMarks, jobStepPips, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "job-marks-"));
 let n = 0;
@@ -402,4 +402,19 @@ test("a scheduled plan shows waiting steps before their actions start", () => {
   expect(got[2]!.seconds).toBeUndefined();
   expect(got[2]!.since).toBeUndefined();
   expect(got[2]!.tokens).toBeUndefined();
+});
+
+describe("a job's pips", () => {
+  test("a finished job's steps are read from its log once, and a running job's every time", () => {
+    const file = STOPPED_IN_STEP_1();
+    const finished = job({ id: "pips-done", state: "failed", finishedAt: "2026-10-03T10:05:00Z", streamFile: file });
+    const first = jobStepPips(finished, "en");
+    expect(first.length).toBeGreaterThan(0);
+    writeFileSync(file, "");
+    expect(jobStepPips(finished, "en")).toEqual(first);
+    const running = job({ id: "pips-run", streamFile: STOPPED_IN_STEP_1() });
+    const before = jobStepPips(running, "en");
+    writeFileSync(running.streamFile!, "");
+    expect(jobStepPips(running, "en")).not.toEqual(before);
+  });
 });

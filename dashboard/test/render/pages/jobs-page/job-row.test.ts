@@ -2,7 +2,7 @@
 // Log, as a spec's phase does, and only a step the log has marked offers it.
 
 import { describe, expect, test } from "bun:test";
-import { jobRow, type JobStep } from "../../../../src/render/pages/jobs-page/job-row.ts";
+import { jobRow, jobStepPipKind, type JobStep } from "../../../../src/render/pages/jobs-page/job-row.ts";
 import type { QueueRowView } from "../../../../src/render";
 import { createdLabel } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 
@@ -64,5 +64,12 @@ describe("a job step's Cost cell", () => {
 describe("a job's created stamp", () => {
   test("its row says when the job was made, as a spec's row says when the spec was", () => {
     expect(draw()).toContain(createdLabel(close.createdAt));
+  });
+});
+
+describe("a job's pips", () => {
+  test("a step's pip reads done, running, failed, or not started", () => {
+    expect(["done", "running", "failed", "waiting", undefined].map((s) => jobStepPipKind(s as never)))
+      .toEqual(["past", "now", "refused", "todo", "todo"]);
   });
 });
