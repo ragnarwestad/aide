@@ -56,7 +56,7 @@ export const prErrorSentence = (lang: Language): string => t(lang, "list.prError
  *  attempt only: a phase run again, this time opening the request, has
  *  nothing left to report. */
 export const prErrorOf = (p: Phase): string | undefined =>
-  (p.attempts[0]?.results ?? []).find((r) => r.step === p.step)?.prError;
+  (p.attempts[0]?.results ?? []).findLast((r) => r.step === p.step)?.prError;
 
 /** How many Not verified rows the row's line counts. Before the archive
  *  every criterion of a spec that needs no ticking stands Not verified, so

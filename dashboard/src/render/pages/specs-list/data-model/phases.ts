@@ -25,8 +25,16 @@ function stepsTouched(r: QueueRowView): string[] {
  *  and then it keeps the error); a step it has not reached yet is not an
  *  attempt at all. */
 function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
-  const res = (r.results ?? []).find((x) => x.step === step);
+  // A step the runner started again in the same job (a usage limit, then a
+  // retry) has a result per try: the newest decides the state, and the
+  // figures are the sum of all of them.
+  const tries = (r.results ?? []).filter((x) => x.step === step);
+  const res = tries.at(-1);
   if (res) {
+    const usd = tries.reduce((sum, x) => sum + x.costUsd - sidesSpent(x).usd, 0);
+    const tokens = tries.some((x) => x.tokens !== undefined)
+      ? tries.reduce((sum, x) => sum + (x.tokens ?? 0) - sidesSpent(x).tokens, 0)
+      : undefined;
     // A step whose own process finished but whose LANDING did not (a
     // merge conflict, red tests): the job carries the failure, and it
     // is this one step's — the one whose branch was being merged
@@ -38,8 +46,8 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
       // The step's figures are the total over its session and its review and
       // verification; this line is the session's own.
-      spentUsd: Math.max(0, res.costUsd - sidesSpent(res).usd),
-      spentTokens: res.tokens === undefined ? undefined : Math.max(0, res.tokens - sidesSpent(res).tokens),
+      spentUsd: Math.max(0, usd),
+      spentTokens: tokens === undefined ? undefined : Math.max(0, tokens),
       // THIS step's model, not the row's: the row speaks for the running
       // or last step, and spread whole it named the last step's model on
       // every line of a multi-step job (2026-09-15).
@@ -78,7 +86,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
  *  step spent, summed: the part of a phase file's figure that is not the
  *  step's own session. */
 export function attemptsSidesSpent(attempts: QueueRowView[], step: string): { usd: number; tokens: number } {
-  const results = attempts.map((a) => (a.results ?? []).find((x) => x.step === step)).filter((x): x is StepResultView => !!x);
+  const results = attempts.flatMap((a) => (a.results ?? []).filter((x): x is StepResultView => x.step === step));
   return {
     usd: results.reduce((sum, x) => sum + sidesSpent(x).usd, 0),
     tokens: results.reduce((sum, x) => sum + sidesSpent(x).tokens, 0),
@@ -339,7 +347,7 @@ const historyFor = (
  *  about it is the picture from before it ran. Unknown on either side
  *  answers no: a row with no read time keeps saying what the files say. */
 function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRowView | undefined): boolean {
-  const endedAt = latest?.results?.find((x) => x.step === step)?.at;
+  const endedAt = latest?.results?.findLast((x) => x.step === step)?.at;
   if (!endedAt || !t?.sourcesCheckedAt) return false;
   return Date.parse(endedAt) >= Date.parse(t.sourcesCheckedAt);
 }
@@ -384,7 +392,7 @@ function lastAnalyzeEndedMs(all: QueueRowView[]): number | undefined {
 function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, analyzedAtMs: number | undefined): Phase {
   if (!target?.superseded?.includes(phase.step) || target.done?.includes(phase.step)) return phase;
   const newer = (a: QueueRowView): boolean => {
-    const endedAt = a.results?.find((r) => r.step === phase.step)?.at;
+    const endedAt = a.results?.findLast((r) => r.step === phase.step)?.at;
     return inFlight(a) || analyzedAtMs === undefined || !endedAt || Date.parse(endedAt) > analyzedAtMs;
   };
   if (phase.attempts.some(newer)) return phase;
@@ -397,7 +405,7 @@ function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, anal
  *  "reported done" with nothing to show for it. */
 function refusalAnswered(phase: Phase, target: SpecTarget | undefined): boolean {
   if (target?.acceptanceOpen !== false) return false;
-  const latest = phase.attempts[0]?.results?.find((r) => r.step === "archive");
+  const latest = phase.attempts[0]?.results?.findLast((r) => r.step === "archive");
   return latest?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED;
 }
 

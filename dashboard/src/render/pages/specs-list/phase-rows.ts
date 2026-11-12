@@ -20,7 +20,7 @@ import { isGuardEnding } from "../../../step-endings.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
-const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).find((x) => x.step === step);
+const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).findLast((x) => x.step === step);
 
 // Ticked and locked: `create`'s box, the one phase that never runs
 // twice — the folder being on disk is its answer.
@@ -251,8 +251,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
         aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
-          latest?.results?.find((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId,
-          latest?.stepProviders?.[p.step] ?? latest?.results?.find((x) => x.step === p.step)?.provider?.key) +
+          latest?.results?.findLast((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId,
+          latest?.stepProviders?.[p.step] ?? latest?.results?.findLast((x) => x.step === p.step)?.provider?.key) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (the
       // fallback in `phasesFor`), even with no Cost line recorded? Used

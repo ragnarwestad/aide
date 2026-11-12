@@ -199,7 +199,7 @@ function decidePhase(
   // This phase's own newest run ended failed: it speaks for the phase over
   // an earlier Done. Its OWN result is read, not the job's state, so a step
   // that succeeded and whose merge then failed is left to the branch above.
-  const ownResult = history.step ? attempt?.results?.find((r) => r.step === history.step) : undefined;
+  const ownResult = history.step ? attempt?.results?.findLast((r) => r.step === history.step) : undefined;
   if (happened && attempt && !running && attempt.state === "failed" && ownResult?.ok === false) {
     return {
       pip: "todo",

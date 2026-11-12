@@ -49,3 +49,23 @@ describe("a landing that fell is the landed step's own failure", () => {
     expect(per.archive![0]!.error).toBeUndefined();
   });
 });
+
+// The runner started the step again in the same job: the first try stopped
+// on the provider's usage limit, the second completed.
+describe("a step run twice in one job", () => {
+  const twice = {
+    ...job("done"),
+    spentUsd: 3,
+    results: [
+      ok("analyze"),
+      { step: "implement", ok: false, costUsd: 1, tokens: 10, terminalReason: "provider-limit" },
+      { step: "implement", ok: true, costUsd: 2, tokens: 20, terminalReason: "completed" },
+    ],
+  } as unknown as QueueRowView;
+
+  test("reads done from its newest try, with both tries' cost and tokens", () => {
+    const implement = attemptsPerStep([twice]).implement![0]!;
+    expect(implement.state).toBe("done");
+    expect([implement.spentUsd, implement.spentTokens]).toEqual([3, 30]);
+  });
+});
