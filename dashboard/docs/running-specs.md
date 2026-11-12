@@ -293,7 +293,7 @@ The address names the open tab
 (`/settings?tab=providers&provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
 `config`, `usage`, `models` and `installation`, and anything else opens Config.
 
-**Usage, Models and Installation read their own answer when the tab is opened,** with no press, before the page
+**Models and Installation read their own answer when the tab is opened,** with no press, before the page
 answers. While the page waits, the click shows the same Loading cover as any other link on the board. A reading that
 fails or runs out of time says so in the tab. The models are read with the provider's own folders in the environment. Each opening reads again and
 records what it read: the models feed Add, the pickers and the notice about models no longer offered, and the
@@ -307,17 +307,24 @@ clears the notice on the next page load. An AI whose Models tab has not been ope
 whose last reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
 read with.
 
-**The chosen provider shows how much of its subscription is used**, read with the provider's folders: each usage
-window with the share used, when it starts over, and when it was read. Reading it runs the tool and takes seconds,
-so a reading is kept for two minutes, and the Usage tab opened again in that time shows it without reading; a
-provider saved since is read again. Claude Code's comes from
-`claude -p /usage`, and Codex's from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's
-text has no line the board can read as a window, the page shows the text as it came. OpenCode reports no usage windows.
+**The board reads the usage of every Claude Code and Codex provider in the background**, with the provider's
+folders: once when it starts, then every minute, and a provider again at once when it is saved. No page reads it. A
+reading is kept until the next reading of the same provider replaces it, and a provider whose reading is still under
+way when the next one is due is not read a second time. Claude Code's comes from `claude -p /usage`, and Codex's from
+`codex app-server`'s `account/rateLimits/read`; neither runs a model, so a reading costs none of the subscription.
+OpenCode and Copilot report no usage windows and are not read.
+
+**The Usage tab shows the chosen provider's kept reading** and answers without reading first: each usage window with
+the share used, when it starts over, and when it was read. When Claude's text has no line the board can read as a
+window, the tab shows the text as it came. An OpenCode provider's tab says that it reports no usage windows.
 
 **The Usage control beside Theme opens all providers in a header panel.** Codex appears first, then Claude Code,
 with one row for each window and one bar for each provider. Each bar shows the share left and when the window starts
-over. Readings from the last two minutes appear at once; the board reads every other provider together while the
-panel says that its usage is being read. OpenCode and Copilot do not appear because they report no usage windows.
+over. The panel comes complete with the page, from the kept readings, and opening it fetches them once more, so a
+page left open shows current numbers.
+
+**The panel and the tab say that a provider's usage is being read** only between the board's start and that
+provider's first finished reading.
 
 **The Installation tab is a table of where Aide is installed for the tool**: one row per place in
 `core/scripts/lib/install-targets.txt`, with what the place holds (instructions, rules, skills, scripts or hooks) and its

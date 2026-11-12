@@ -441,7 +441,6 @@ export const en = {
   "settings.notifications.checking": "Checking this device…",
   "settings.notifications.job": "A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. It is set on the job's form, on the project's Schedule tab.",
   "settings.usage.readAt": "Usage read {at}",
-  "settings.usage.unread": "Usage not read yet.",
   "settings.usage.failed": "The usage could not be read: {reason}",
   "settings.usage.none": "This AI reports no usage windows.",
   "settings.usage.used": "{percent}% used",

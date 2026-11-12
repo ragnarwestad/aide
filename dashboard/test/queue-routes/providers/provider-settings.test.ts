@@ -386,22 +386,25 @@ describe("what a provider's page shows of its own folders", () => {
     login: key === "Claude-2" ? login(`CLAUDE_CONFIG_DIR=${provider.configDir} claude auth login`) : undefined,
   });
 
-  test("every provider's status is read before the tab answers, and the usage only on the Usage tab, before it answers", async () => {
+  test("every provider's status is read before the tab answers", async () => {
     const asked: string[] = [];
     const probe: Probe = async (key, provider, opts) => { asked.push(`status:${key}`); return byKey(key, provider, opts); };
-    const { base } = serve({}, CONFIG, probe, async (key, provider) => { asked.push(`usage:${key}`); return stubUsage(key, provider); });
+    const { base } = serve({}, CONFIG, probe);
     expect((await fetch(`${base}/settings/providers/edit?key=Codex`)).status).toBe(200);
     expect(asked.sort()).toEqual(["status:Claude", "status:Codex"]);
-    expect(await (await fetch(`${base}/settings?tab=providers&provider=Codex&aitab=usage`)).text()).toContain("Window of Codex");
-    expect(asked.filter((a) => a.startsWith("usage:"))).toEqual(["usage:Codex"]);
   });
 
   test("two providers of one tool each show their own login and usage and not the other's (AC-4)", async () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
-    const second = await (await fetch(`${base}/settings?tab=providers&provider=Claude-2&aitab=usage`)).text();
-    const first = await (await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=usage`)).text();
+    // The tab's own part of the page: the header's Usage panel above it holds every provider's windows.
+    const tab = async (key: string): Promise<string> => {
+      const html = await (await fetch(`${base}/settings?tab=providers&provider=${key}&aitab=usage`)).text();
+      return html.slice(html.indexOf("<main"));
+    };
+    const second = await tab("Claude-2");
+    const first = await tab("Claude");
     expect(second).toContain("Window of Claude-2");
     expect(first).toContain("Window of Claude");
     expect(first).not.toContain("Window of Claude-2");

@@ -70,7 +70,7 @@ test("a click on a provider in the list shows it beside the list without loading
   expect(page.url()).toContain("/settings?tab=providers&provider=OpenCode");
   expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true);
   await page.goBack();
-  await page.locator("h3", { hasText: "Claude" }).waitFor();
+  await page.getByRole("heading", { name: "Claude", exact: true }).waitFor();
 });
 
 test("Save shows its pending label while the post is out (AC-10, AC-11)", async () => {

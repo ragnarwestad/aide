@@ -33,6 +33,8 @@ import {
   type ScheduleContext,
 } from "../schedules";
 import { BRANCH_PREVIEW_POLL_MS, dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../schedules/branch-previews.ts";
+import { keptEntries, readAllUsage, USAGE_POLL_MS, usageReader, type UsageRead } from "../providers/usage-kept.ts";
+import { setUsageEntries } from "../../render/ui/usage-dialog/index.ts";
 import { runScript } from "../process";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
@@ -48,6 +50,9 @@ export interface ScheduleSetupOptions {
   scheduleCheckMs?: number;
   branchPreviewPollMs?: number;
   cleanupCheckMs?: number;
+  usagePollMs?: number;
+  usageProbe?: UsageRead;
+  checkToolsOnStart?: boolean;
 }
 
 export interface ScheduleSetupInputs {
@@ -234,9 +239,27 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   }, cleanupCheckMs) : null;
   cleanupTimer?.unref?.();
 
+  // Every Claude Code and Codex provider's usage, read now and then on the
+  // interval, so no page waits for a tool. Only a server with something to
+  // read with reads, and only such a server's pages carry the readings.
+  const usageRead = usageReader(opts);
+  const usagePollMs = opts.usagePollMs ?? USAGE_POLL_MS;
+  const usageTimer =
+    usageRead && usagePollMs > 0
+      ? (() => {
+          const round = () => void readAllUsage(opts, queue.defaults.providers ?? {}, usageRead);
+          round();
+          return setInterval(round, usagePollMs);
+        })()
+      : null;
+  usageTimer?.unref?.();
+  // Set by every server, a server with nothing to read with included, so one
+  // server's readings never stay in the header of the next.
+  setUsageEntries(usageRead ? () => (state.stopped ? undefined : keptEntries(opts, queue.defaults.providers ?? {})) : undefined);
+
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
     warmSpec, rereadSpec, rereadProject, refreshSpecCaches, tickRunner,
-    timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer],
+    timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer, usageTimer],
   };
 }

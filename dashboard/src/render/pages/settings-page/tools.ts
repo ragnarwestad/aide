@@ -79,15 +79,15 @@ export function stamp(at: string): string {
   return Number.isNaN(when.getTime()) ? at : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
-/** How much of the provider's subscription is used, as read when its page
- *  opened. A reading that failed is muted like a question the check could
- *  not answer. */
+/** How much of the provider's subscription is used, in the reading the
+ *  server keeps of it. A reading that failed is muted like a question the
+ *  check could not answer. */
 export function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): string {
   const view = usageView(usage, now, lang);
   const read = (at: string) => `<p class="muted small">${esc(t(lang, "settings.usage.readAt", { at: stamp(at) }))}</p>`;
   switch (view.kind) {
     case "unread":
-      return `<p class="muted">${esc(t(lang, "settings.usage.unread"))}</p>`;
+      return `<p class="muted">${esc(t(lang, "usage.reading"))}</p>`;
     case "failed":
       return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.failed", { reason: view.reason }))}</p>`;
     case "none":

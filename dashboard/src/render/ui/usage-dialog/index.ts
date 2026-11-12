@@ -8,14 +8,30 @@ import { usageDialogView } from "./view.ts";
 
 export const USAGE_DIALOG_ROUTE = "/api/queue/settings/providers/usage";
 
-export const usageButton = (lang: Language): string => headerMenu({
-  label: t(lang, "shell.usage"), icon: ICON_USAGE, id: "usage-dialog",
-  data: { src: USAGE_DIALOG_ROUTE }, panelClass: "usagepanel",
-  content: `<div data-usage-content><h2>${esc(t(lang, "shell.usage"))}</h2><p>${esc(t(lang, "usage.reading"))}</p></div>`,
-});
+/** The providers the panel shows, each with the reading the server keeps of
+ *  it: read live every time a page is drawn. Set by every server when it
+ *  starts. Unset, or answering nothing, the panel says only that usage is
+ *  being read. It lives here because `src/render` may not import `src/serve`. */
+let entriesNow: (() => UsageDialogEntry[] | undefined) | undefined;
+
+export function setUsageEntries(source: (() => UsageDialogEntry[] | undefined) | undefined): void {
+  entriesNow = source;
+}
+
+export const usageButton = (lang: Language): string => {
+  const entries = entriesNow?.();
+  const body = entries
+    ? usageDialogBody(entries, Date.now(), lang)
+    : `<h2>${esc(t(lang, "shell.usage"))}</h2><p>${esc(t(lang, "usage.reading"))}</p>`;
+  return headerMenu({
+    label: t(lang, "shell.usage"), icon: ICON_USAGE, id: "usage-dialog",
+    data: { src: USAGE_DIALOG_ROUTE }, panelClass: "usagepanel",
+    content: `<div data-usage-content>${body}</div>`,
+  });
+};
 
 const stateLine = (entry: { key: string; name: string; state: string; text?: string }, lang: Language): string => {
-  if (entry.state === "unread") return shareBar(entry.name, undefined, t(lang, "usage.reading"), { "usage-pending": entry.key });
+  if (entry.state === "unread") return shareBar(entry.name, undefined, t(lang, "usage.reading"));
   if (entry.state === "failed") return `<p><strong>${esc(entry.name)}</strong> ${esc(t(lang, "settings.usage.failed", { reason: entry.text ?? "" }))}</p>`;
   if (entry.state === "text") return `<p><strong>${esc(entry.name)}</strong> ${esc(entry.text ?? "")}</p>`;
   return `<p><strong>${esc(entry.name)}</strong> ${esc(t(lang, "settings.usage.none"))}</p>`;

@@ -2,21 +2,23 @@
 // own: each now sends the reader to the Providers tab, where Add is a
 // dialog and the chosen provider is shown beside the list. The chosen
 // provider is read by the Settings route (`providerDetailFor`), which reads
-// the open tab's usage, models or installation before the page answers.
+// the open tab's models or installation before the page answers, and shows
+// the usage the server keeps.
 
 import { PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath } from "../../../render";
 import type { Language } from "../../../i18n";
 import type { Provider } from "../../../queue/providers/index.ts";
 import { readProviderUsage } from "../../providers/status.ts";
 import { readInstallationTab, readModelsTab } from "./readings.ts";
-import { keptUsage, readUsage } from "../../providers/usage-kept.ts";
+import { keptUsage, readsUsage } from "../../providers/usage-kept.ts";
 import { providerTab, type ProviderDetailOptions } from "../../../render/pages/settings-page/provider-detail.ts";
 import type { ProviderStatus } from "../../../render";
 import type { RoutesContext } from "../";
 
 /** What the Providers tab shows of the chosen provider: its status as the
- *  tab read it, and what the open tab reads: the usage (a reading kept from
- *  the last two minutes, or one read now), the models or the installation. */
+ *  tab read it, and what the open tab shows: the usage the server keeps, or
+ *  the models or the installation, read now. A tool the server reads no
+ *  usage for answers its own reading, which runs nothing. */
 export async function providerDetailFor(
   ctx: RoutesContext,
   key: string,
@@ -28,7 +30,10 @@ export async function providerDetailFor(
   const base = { key, provider, status, aiTab };
   switch (providerTab(aiTab)) {
     case "usage":
-      return { ...base, usage: keptUsage(ctx.opts, key, provider) ?? await readUsage(ctx.opts, key, provider, ctx.opts.usageProbe ?? readProviderUsage) };
+      return {
+        ...base,
+        usage: readsUsage(provider.tool) ? keptUsage(ctx.opts, key) : await (ctx.opts.usageProbe ?? readProviderUsage)(key, provider),
+      };
     case "models":
       return { ...base, reading: await readModelsTab(ctx, provider, lang) };
     case "installation":

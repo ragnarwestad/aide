@@ -430,7 +430,6 @@ export const fr: Record<TranslationKey, string> = {
   "settings.notifications.checking": "Vérification de cet appareil…",
   "settings.notifications.job": "Un job planifié notifie selon son propre choix — jamais, seulement quand l'exécution n'a pas réussi, ou à chaque exécution. Cela se règle dans le formulaire du job, sous l'onglet Planification du projet.",
   "settings.usage.readAt": "Utilisation lue {at}",
-  "settings.usage.unread": "Utilisation pas encore lue.",
   "settings.usage.failed": "L'utilisation n'a pas pu être lue : {reason}",
   "settings.usage.none": "Cette IA ne rapporte aucune fenêtre d'utilisation.",
   "settings.usage.used": "{percent} % utilisé",

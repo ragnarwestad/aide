@@ -1,21 +1,12 @@
 (() => {
   let opening = 0;
 
-  const pending = (root: ParentNode): string[] => [...root.querySelectorAll<HTMLElement>("[data-usage-pending]")].map((el) => el.dataset.usagePending!).filter(Boolean);
-  const load = async (box: HTMLDetailsElement, url: string, generation: number): Promise<void> => {
+  const load = async (box: HTMLDetailsElement, generation: number): Promise<void> => {
     try {
-      const response = await fetch(url);
+      const response = await fetch(box.dataset.src!);
       if (!response.ok) throw new Error("request failed");
       const html = await response.text();
-      if (generation !== opening) return;
-      const content = box.querySelector<HTMLElement>("[data-usage-content]")!;
-      const before = pending(content).length;
-      const holder = document.createElement("div");
-      holder.innerHTML = html;
-      if (before && pending(holder).length > before) return;
-      content.innerHTML = html;
-      const keys = pending(content);
-      await Promise.all(keys.map((key) => load(box, `${box.dataset.src}?read=${encodeURIComponent(key)}`, generation)));
+      if (generation === opening) box.querySelector<HTMLElement>("[data-usage-content]")!.innerHTML = html;
     } catch {
       location.reload();
     }
@@ -24,6 +15,6 @@
     const box = event.target as HTMLDetailsElement;
     if (!box?.matches?.("#usage-dialog")) return;
     const generation = ++opening;
-    if (box.open) void load(box, box.dataset.src!, generation);
+    if (box.open) void load(box, generation);
   }, true);
 })();

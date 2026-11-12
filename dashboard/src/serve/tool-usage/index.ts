@@ -1,7 +1,8 @@
-// How much of a provider's subscription is used, read when its page opens
-// and at no other time: the start-up check and the re-check before a job
-// call `checkTool()`, which reads none of it. Each reader asks the tool in
-// a way that runs no model, with the provider's folders in the environment.
+// How much of a provider's subscription is used. The server reads it when
+// it starts, then on a timer, and when a provider is saved
+// (`providers/usage-kept.ts`); the start-up check and the re-check before a
+// job call `checkTool()`, which reads none of it. Each reader asks the tool
+// in a way that runs no model, with the provider's folders in the environment.
 
 import { runScript, scriptFor } from "../process";
 import { TOOLS } from "../../queue/providers/tools.ts";

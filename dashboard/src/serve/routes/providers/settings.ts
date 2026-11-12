@@ -15,6 +15,7 @@ import { PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROV
 import { NAME_RE } from "../../../queue/parse-request.ts";
 import { TOOL_NAMES } from "../../../render/pages/specs-list/index.ts";
 import { readProviderStatus } from "../../providers/status.ts";
+import { readsUsage, readUsage, usageReader } from "../../providers/usage-kept.ts";
 import { json, parseBody } from "../../serve-helpers";
 import { prepareShadowHome } from "../../providers/shadow-home.ts";
 import type { RoutesContext } from "../";
@@ -172,9 +173,12 @@ async function saveChecked(
   return save(ctx, target, provider, { name });
 }
 
+/** Writes the provider, and reads its usage again at once rather than on the server's next round. */
 function save(ctx: RoutesContext, key: string, provider: Provider, extra: Record<string, unknown> = {}): Response {
   const error = saveQueueSettings(ctx, { providers: { [key]: provider } });
   if (error) return refuse(error);
+  const read = usageReader(ctx.opts);
+  if (read && readsUsage(provider.tool)) void readUsage(ctx.opts, key, provider, read);
   return json({ ok: true, key, ...extra });
 }
 

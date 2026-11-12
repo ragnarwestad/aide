@@ -433,7 +433,6 @@ export const nb: Record<TranslationKey, string> = {
   "settings.notifications.checking": "Sjekker denne enheten…",
   "settings.notifications.job": "En planlagt jobb varsler etter eget valg — aldri, bare når kjøringen ikke gikk bra, eller hver kjøring. Det settes i jobbens skjema, på Kjøring-fanen til prosjektet.",
   "settings.usage.readAt": "Forbruk lest {at}",
-  "settings.usage.unread": "Forbruket er ikke lest ennå.",
   "settings.usage.failed": "Forbruket kunne ikke leses: {reason}",
   "settings.usage.none": "Denne AI-en melder ingen forbruksvinduer.",
   "settings.usage.used": "{percent} % brukt",

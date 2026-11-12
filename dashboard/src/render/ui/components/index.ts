@@ -22,9 +22,8 @@ import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABEL
 
 export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
 
-export function shareBar(name: string, value: number | undefined, words: string, data: Record<string, string> = {}): string {
-  const attrs = Object.entries(data).map(([key, val]) => ` data-${key}="${esc(val)}"`).join("");
-  return `<div class="sharebar"${attrs}><span>${esc(name)}</span><progress max="100"${value === undefined ? "" : ` value="${value}"`}></progress><span>${esc(words)}</span></div>`;
+export function shareBar(name: string, value: number | undefined, words: string): string {
+  return `<div class="sharebar"><span>${esc(name)}</span><progress max="100"${value === undefined ? "" : ` value="${value}"`}></progress><span>${esc(words)}</span></div>`;
 }
 
 // --- button ----------------------------------------------------------------

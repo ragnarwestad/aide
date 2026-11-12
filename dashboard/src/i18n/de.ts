@@ -430,7 +430,6 @@ export const de: Record<TranslationKey, string> = {
   "settings.notifications.checking": "Prüfe dieses Gerät…",
   "settings.notifications.job": "Ein geplanter Job benachrichtigt nach eigener Wahl — nie, nur wenn der Lauf nicht erfolgreich war, oder bei jedem Lauf. Das wird im Formular des Jobs eingestellt, im Tab Zeitplan des Projekts.",
   "settings.usage.readAt": "Verbrauch gelesen {at}",
-  "settings.usage.unread": "Verbrauch noch nicht gelesen.",
   "settings.usage.failed": "Der Verbrauch konnte nicht gelesen werden: {reason}",
   "settings.usage.none": "Diese KI meldet keine Verbrauchsfenster.",
   "settings.usage.used": "{percent} % verbraucht",

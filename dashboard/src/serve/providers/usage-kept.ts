@@ -1,52 +1,69 @@
-// A provider's subscription usage, kept for a short while once read. Reading
-// it runs the tool (`claude -p /usage` takes seconds), so the Usage tab
-// shows a reading kept from the last two minutes, and reads one before it
-// answers only when none is kept. A reading is kept
-// per server and per provider as it stood, so an edited provider is read
-// again.
+// A provider's subscription usage as the server keeps it. Reading it runs the
+// tool (`claude -p /usage` takes seconds), so no page reads it: the server
+// reads every Claude Code and Codex provider when it starts and then on a
+// timer, and a provider again when it is saved. The latest finished reading
+// of each provider is kept, per server and under the provider's key, until a
+// newer one replaces it; the header's panel, its route and the Usage tab show
+// that reading.
 
 import type { Provider } from "../../queue/providers/index.ts";
 import type { ToolUsage } from "../../render";
+import { readProviderUsage } from "./status.ts";
 
-export const USAGE_KEPT_MS = 2 * 60_000;
+/** How often the server reads every provider's usage again. */
+export const USAGE_POLL_MS = 60_000;
 
-type Read = (key: string, provider: Provider) => Promise<ToolUsage>;
-interface Kept { usage: ToolUsage; at: number }
+/** What reads one provider's usage: the real tool, or a test's stand-in. */
+export type UsageRead = (key: string, provider: Provider) => Promise<ToolUsage>;
+/** A reading under way: the provider as it was read, and when it ends. */
+interface Underway { as: string; done: Promise<void> }
 
-const kept = new WeakMap<object, Map<string, Kept>>();
-const reading = new WeakMap<object, Map<string, Promise<ToolUsage>>>();
-const keyOf = (key: string, provider: Provider): string => `${key}\n${JSON.stringify(provider)}`;
-const store = (owner: object): Map<string, Kept> => {
-  let map = kept.get(owner);
-  if (!map) kept.set(owner, (map = new Map()));
+const kept = new WeakMap<object, Map<string, ToolUsage>>();
+const reading = new WeakMap<object, Map<string, Underway>>();
+const mapOf = <V>(maps: WeakMap<object, Map<string, V>>, owner: object): Map<string, V> => {
+  let map = maps.get(owner);
+  if (!map) maps.set(owner, (map = new Map()));
   return map;
 };
 
-/** The reading kept for this provider as it stands now, if it is less than
- *  two minutes old. */
-export function keptUsage(owner: object, key: string, provider: Provider, now = Date.now()): ToolUsage | undefined {
-  const hit = store(owner).get(keyOf(key, provider));
-  return hit && now - hit.at < USAGE_KEPT_MS ? hit.usage : undefined;
+/** The tools whose usage the server reads: the ones that report usage windows. */
+export const readsUsage = (tool: string): boolean => tool === "claude" || tool === "codex";
+
+/** What reads a Claude Code or Codex usage on this server: the test's probe,
+ *  the real tools on a server started to check them, and otherwise nothing,
+ *  so a server nobody asked to check anything never starts a CLI for it. */
+export function usageReader(opts: { usageProbe?: UsageRead; checkToolsOnStart?: boolean }): UsageRead | undefined {
+  return opts.usageProbe ?? (opts.checkToolsOnStart ? readProviderUsage : undefined);
 }
 
-/** Reads the usage now and keeps the answer. */
-export async function readUsage(owner: object, key: string, provider: Provider, read: Read, now = Date.now): Promise<ToolUsage> {
-  const usage = await read(key, provider);
-  store(owner).set(keyOf(key, provider), { usage, at: now() });
-  return usage;
+/** The provider's latest finished reading, however old. */
+export function keptUsage(owner: object, key: string): ToolUsage | undefined {
+  return mapOf(kept, owner).get(key);
 }
 
-/** Reads for the all-providers dialog, joining another dialog ask already under way. */
-export async function readUsageJoined(owner: object, key: string, provider: Provider, read: Read, now = Date.now): Promise<ToolUsage> {
-  let reads = reading.get(owner);
-  if (!reads) reading.set(owner, (reads = new Map()));
-  const id = keyOf(key, provider);
-  const underway = reads.get(id);
-  if (underway) return underway;
-  const promise = read(key, provider).then((usage) => {
-    store(owner).set(id, { usage, at: now() });
-    return usage;
-  }).finally(() => reads!.delete(id));
-  reads.set(id, promise);
-  return promise;
+/** Reads the provider's usage and keeps the answer, unless a reading of the
+ *  provider as it stands is under way. An answer a newer reading overtook is
+ *  dropped, and a reading that throws leaves the earlier one in place. */
+export function readUsage(owner: object, key: string, provider: Provider, read: UsageRead): Promise<void> {
+  const reads = mapOf(reading, owner);
+  const as = JSON.stringify(provider);
+  const current = reads.get(key);
+  if (current?.as === as) return current.done;
+  const latest = (): boolean => reads.get(key)?.done === done;
+  const done: Promise<void> = (async () => read(key, provider))()
+    .then((usage) => { if (latest()) mapOf(kept, owner).set(key, usage); })
+    .catch(() => {})
+    .finally(() => { if (latest()) reads.delete(key); });
+  reads.set(key, { as, done });
+  return done;
+}
+
+/** One round: reads every Claude Code and Codex provider not being read already. */
+export async function readAllUsage(owner: object, providers: Record<string, Provider>, read: UsageRead): Promise<void> {
+  await Promise.all(Object.entries(providers).filter(([, provider]) => readsUsage(provider.tool)).map(([key, provider]) => readUsage(owner, key, provider, read)));
+}
+
+/** Every Claude Code and Codex provider with its kept reading, as the Usage panel takes them. */
+export function keptEntries(owner: object, providers: Record<string, Provider>): { key: string; provider: Provider; usage?: ToolUsage }[] {
+  return Object.entries(providers).filter(([, provider]) => readsUsage(provider.tool)).map(([key, provider]) => ({ key, provider, usage: keptUsage(owner, key) }));
 }

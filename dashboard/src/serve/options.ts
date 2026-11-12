@@ -65,7 +65,11 @@ export interface ServerOptions {
    *  for every one of them — fourteen at once, the machine's load at
    *  133, and the board this dashboard IS taking two seconds to answer.
    *  A test that never mentions these tools must not be able to start
-   *  them by accident, and only an explicit yes can. */
+   *  them by accident, and only an explicit yes can.
+   *
+   *  The same flag decides whether the real tools are asked for each
+   *  provider's usage, at start, on `usagePollMs` and when a provider is
+   *  saved. */
   checkToolsOnStart?: boolean;
   queueDefaults?: QueueDefaults;
   /** Path to `aide-run-spec`. Without it the queue only stores jobs —
@@ -127,8 +131,9 @@ export interface ServerOptions {
    *  save runs in place of the real read of a provider's tool and login. A
    *  test seam. `login: false` asks only whether the tool starts. */
   providerProbe?: (key: string, provider: Provider, opts?: { login?: boolean }) => Promise<ProviderStatus>;
-  /** What opening a provider's page runs in place of the real read of its
-   *  usage. A test seam. */
+  /** What reads a provider's usage in place of the real tool: at start, on
+   *  `usagePollMs` and when a provider is saved. A test seam, and the only
+   *  thing that reads usage on a server started without `checkToolsOnStart`. */
   usageProbe?: (key: string, provider: Provider) => Promise<ToolUsage>;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
@@ -184,6 +189,11 @@ export interface ServerOptions {
    *  branch has been built. A SCHEDULE, like `driftPollMs`; `0` turns it
    *  off, which is a test seam. Omitted, `BRANCH_PREVIEW_POLL_MS`. */
   branchPreviewPollMs?: number;
+  /** How often the usage of every Claude Code and Codex provider is read
+   *  again, after the reading at start. A SCHEDULE, like `driftPollMs`; `0`
+   *  turns it off, the reading at start included, which is a test seam.
+   *  Omitted, `USAGE_POLL_MS`. */
+  usagePollMs?: number;
   /** How often the queue asks the runner whether a step has ended, and
    *  starts what comes next. A test seam; omitted, 2000. */
   queuePollMs?: number;

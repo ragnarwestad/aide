@@ -15,7 +15,7 @@ export interface UsageWindow extends ProviderLimitWindow {
   resets?: string;
 }
 
-/** One reading of a provider's usage, made when its page opened. */
+/** One reading of a provider's usage. */
 export interface ToolUsage {
   tool: CheckableTool;
   /** When the reading was made. Like a check, it is a moment. */
