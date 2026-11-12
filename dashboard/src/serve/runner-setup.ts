@@ -372,10 +372,9 @@ export function stepDoneHandler(
       const hasNext = group?.state === "stopped" ? false : queueNextGroupMember(job);
       if (!hasNext && group && ctx.groupHasOpenAcceptance?.(job.project, group.name)) ctx.store.executionGroups.waitForAcceptance(group.id);
     }
-    if (step === "archive" && job.executionGroupId && landing) void Promise.resolve(landing).then(() => {
+    if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
-        if (settled && !settled.error && !settled.landingError) ctx.store.executionGroups.complete(job.executionGroupId!, { prUrl: settled.prUrl });
-        else ctx.store.executionGroups.archiveFailed(job.executionGroupId!, "Archive did not land");
+        ctx.store.executionGroups.archiveSettled(job.executionGroupId!, !landing ? "held-back" : settled && !settled.error && !settled.landingError ? { prUrl: settled.prUrl } : "failed");
       });
     return landing;
   };

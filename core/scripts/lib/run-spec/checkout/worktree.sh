@@ -296,6 +296,47 @@ open_merge_count=0
 # already been tested on. An archive whose pull merged main in has a
 # result no green run has seen (run-spec/turn/step-tests.sh).
 base_merged_count=0
+# resolve_status_conflict($wt) — finishes the merge open in $wt when every
+# conflicted file is a 4-status.md or 4-status.json of a spec this run
+# covers; returns 1, leaving the merge as it was, otherwise.
+resolve_status_conflict() {
+  local wt="$1" rel spec file conflicted md
+  local -a allowed=() specs=("$spec_label")
+  rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
+  if [ -n "$group_members" ]; then
+    IFS=', ' read -r -a specs <<<"$group_members $spec_label"
+  fi
+  for spec in "${specs[@]}"; do
+    [ -n "$spec" ] || continue
+    for file in "$AIDE_STATUS_FILE" "${AIDE_STATUS_FILE%.md}.json"; do
+      allowed+=("${rel:+$rel/}$spec/$file" "${rel:+$rel/}archive/$spec/$file")
+    done
+  done
+  conflicted="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null)"
+  [ -n "$conflicted" ] || return 1
+  while IFS= read -r file; do
+    case " ${allowed[*]} " in *" $file "*) ;; *) return 1 ;; esac
+  done <<<"$conflicted"
+  while IFS= read -r file; do
+    case "$file" in
+      *.md) git -C "$wt" checkout --theirs -- "$file" 2>/dev/null || return 1 ;;
+    esac
+  done <<<"$conflicted"
+  while IFS= read -r file; do
+    case "$file" in
+      *.json)
+        md="${file%.json}.md"
+        rm -f "$wt/$file"
+        write_spec_state "$wt/$md" || return 1
+        ;;
+    esac
+  done <<<"$conflicted"
+  while IFS= read -r file; do
+    git -C "$wt" add -- "$file" 2>/dev/null || return 1
+  done <<<"$conflicted"
+  git -C "$wt" commit -q --no-edit >/dev/null 2>&1
+}
+
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
   # A close deletes the code branch unmerged, so it has nothing to catch
@@ -319,27 +360,16 @@ update_branch_to_base() {
     # Archive and implement are handed the conflict open, to resolve as
     # their first piece of work; a step that writes no code refuses.
     if [ "$STEP_RECEIVES_CONFLICT" = "true" ]; then
-      # A conflict confined to THIS spec's own 4-status.md is
-      # not two intents to merge — main's copy is a direct correction
-      # (the dashboard's tick-to-fix, or a person editing the file by
-      # hand) and the branch's copy is simply stale. Main always wins.
-      # Any OTHER conflicted file, still or instead, falls through
-      # unchanged, open for the skill's own judgment. Only checked in
-      # the specs repo itself — $specs_root/$specs_repo (:299-301,:309)
-      # are already resolved globals by this point in the script.
-      if [ "$root" = "$specs_repo" ]; then
-        rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
-        expected1="${rel:+$rel/}$spec_label/${AIDE_STATUS_FILE}"
-        expected2="${rel:+$rel/}archive/$spec_label/${AIDE_STATUS_FILE}"
-        conflicted="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null)"
-        if [ "$conflicted" = "$expected1" ] || [ "$conflicted" = "$expected2" ]; then
-          if git -C "$wt" checkout --theirs -- "$conflicted" 2>/dev/null \
-             && git -C "$wt" add -- "$conflicted" 2>/dev/null \
-             && git -C "$wt" commit -q --no-edit >/dev/null 2>&1; then
-            return 0
-          fi
-          git -C "$wt" merge --abort >/dev/null 2>&1 || true
-        fi
+      # A conflict confined to the status files of the specs this run
+      # covers (its own, and a group's members) is not two intents to
+      # merge. Main's 4-status.md is a direct correction (the dashboard's
+      # tick, or a person editing the file by hand) and the branch's copy
+      # is stale, so main wins; 4-status.json only mirrors the prose, so
+      # it is rebuilt from the merged 4-status.md. Any OTHER conflicted
+      # file, still or instead, falls through unchanged, open for the
+      # skill's own judgment. Only checked in the specs repo itself.
+      if [ "$root" = "$specs_repo" ] && resolve_status_conflict "$wt"; then
+        return 0
       fi
       open_merge_wt+=("$wt")
       open_merge_base_sha+=("$(git -C "$wt" rev-parse "$ref" 2>/dev/null)")

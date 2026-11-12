@@ -99,7 +99,7 @@ check_transition_condition() {
 _peek_spec_state() {
   local status_file="$1" state_file
   state_file="$(_spec_state_file_for "$status_file")"
-  if [ -f "$state_file" ]; then
+  if _spec_state_readable "$state_file"; then
     state_json="$(cat "$state_file" 2>/dev/null || echo '{}')"
     return
   fi
