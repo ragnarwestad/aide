@@ -6,15 +6,16 @@
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
-  DEFAULT_STATE_FILTER,
   NOT_VERIFIED_KEY,
   SORTS,
   SORT_DEFAULT_DIR,
   STATE_FILTERS,
   applyFilter,
+  chosenStates,
   matchesSearch,
   matchesStateFilter,
   sortGroups,
+  toggledState,
   type SpecGroup,
   type SpecsFilter,
 } from "../specs-list/data-model";
@@ -30,9 +31,11 @@ const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key
 export const JOBS_STATE_FILTERS = [...baseJobStates.slice(0, 3), doneState, ...baseJobStates.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
-export function jobsStateFilter(key: string | undefined): (typeof JOBS_STATE_FILTERS)[number] {
-  return JOBS_STATE_FILTERS.find((entry) => entry.key === key) ?? DEFAULT_STATE_FILTER;
-}
+export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>
+  chosenStates(JOBS_STATE_FILTERS, value);
+
+export const jobsStateValue = (value: string | undefined): string =>
+  jobsStateFilters(value).map((entry) => entry.key).join(",");
 
 /** What the filter and the sort read off a row. */
 export type RowFacts = Pick<
@@ -78,7 +81,7 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
 /** The view with its state entry resolved for this tab: an entry the tab does
  *  not offer (an old `archived` or `closed` link) is All, before anything is
  *  filtered or counted. The tab's view holds no project: the search finds one. */
-const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f.state).key, project: undefined });
+const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: "all", project: undefined });
 
 /** The rows the view shows, in its order: the state entry and the search cut
  *  them as `applyFilter` does; a column the view names orders them
@@ -86,22 +89,23 @@ const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
-  const tabFilter = jobsStateFilter(f.state);
+  const tabFilters = jobsStateFilters(f.state);
   const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
-  const kept = searched.filter((facts) => matchesStateFilter(tabFilter, facts));
+  const kept = searched.filter((facts) => tabFilters.some((entry) => matchesStateFilter(entry, facts)));
   const shown = SORTS.includes(f.sort ?? "") ? sortGroups(kept, f) : kept;
   return shown.map((facts) => byFacts.get(facts)!);
 }
 
 /** What the state dropdown offers: the six entries, the chosen one marked,
  *  each counted over the specs and jobs represented by matching rows. */
-export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean }[] {
-  const chosen = jobsStateFilter(f.state).key;
+export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean; state: string }[] {
+  const chosen = jobsStateFilters(f.state);
   const counted = facts.filter((g) => matchesSearch(g, f));
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
     count: counted.filter((g) => matchesStateFilter(s, g)).reduce((sum, g) => sum + (g.itemCount ?? 1), 0),
-    on: s.key === chosen,
+    on: chosen.some((entry) => entry.key === s.key),
+    state: toggledState(JOBS_STATE_FILTERS, chosen, s.key),
   }));
 }
 
@@ -119,5 +123,5 @@ export function jobsSortPatch(f: SpecsFilter, key: string): { sort: string; dir:
 /** A view link on the Jobs tab: always to `/`, always naming its state entry,
  *  so an address that names any view key is the whole view (`jobsViewChoice`). */
 export function jobsViewPath(f: SpecsFilter, patch: SpecsFilter): string {
-  return queuePath(f, { state: jobsStateFilter(f.state).key, ...patch }, "/");
+  return queuePath(f, { state: jobsStateValue(f.state), ...patch }, "/");
 }

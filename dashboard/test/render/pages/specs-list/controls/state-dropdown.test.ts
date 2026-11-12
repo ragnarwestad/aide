@@ -113,3 +113,16 @@ describe("old bookmarked state values fall back to All", () => {
     expect(optionByLabel(panel, "All")).toContain('aria-checked="true"');
   });
 });
+
+test("several states are checkbox links that toggle their key (AC-1, AC-5, AC-10)", () => {
+  const html = page({ filter: { state: "stopped,failed", q: "needle", sort: "state" } });
+  const panel = panelOf(html);
+  expect(optionByLabel(panel, "Stopped")).toContain('role="checkbox" aria-checked="true"');
+  expect(optionByLabel(panel, "Failed")).toContain('role="checkbox" aria-checked="true"');
+  expect(optionByLabel(panel, "Running")).toContain('aria-checked="false"');
+  const failed = new URL(`http://x${optionByLabel(panel, "Failed").match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&")}`);
+  expect(failed.searchParams.get("state")).toBe("stopped");
+  expect(failed.searchParams.get("q")).toBe("needle");
+  expect(panel).toContain("Stopped, Failed");
+  expect(panel).toContain("2 states");
+});

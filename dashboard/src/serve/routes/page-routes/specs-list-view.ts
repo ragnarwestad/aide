@@ -59,7 +59,8 @@ export async function specsListParts(
   // about 150 specs, this page rebuilds itself on every change
   // event on every open tab, and the default view must not pay for
   // a set it does not show.
-  let archivedSpecs = ctx.archivedSpecRows(chosenState);
+  const archivedState = (url.searchParams.get("q") ?? "").trim() ? "all" : chosenState;
+  let archivedSpecs = ctx.archivedSpecRows(archivedState);
   // The open spec's row is shown whatever the filter: an archived spec the
   // chosen state hides is built alone, so only this address pays for it.
   if (openKey && archivedKeys.includes(openKey) && !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)) {

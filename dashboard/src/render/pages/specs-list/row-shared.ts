@@ -3,7 +3,7 @@
 // every form on this page repeats.
 
 import { t, type Language } from "../../../i18n";
-import { CLOSED_STATE, NOT_VERIFIED_KEY, isFinishedGroup, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
+import { CLOSED_STATE, NOT_VERIFIED_KEY, isFinishedGroup, stateFilters, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request: the same word
@@ -63,7 +63,7 @@ export const prErrorOf = (p: Phase): string | undefined =>
  *  the count says nothing yet: it is shown on an archived spec, and on any
  *  spec when the reader chose the Not verified filter. */
 export const notVerifiedShown = (g: SpecGroup, f: SpecsFilter): number =>
-  isFinishedGroup(g) || f.state === NOT_VERIFIED_KEY ? (g.notVerified ?? 0) : 0;
+  isFinishedGroup(g) || stateFilters(f.state).some((entry) => entry.key === NOT_VERIFIED_KEY) ? (g.notVerified ?? 0) : 0;
 
 /** Whether the row draws the info line with its ›: a spec with a
  *  Not verified count to show, or a criterion that failed. A closed spec

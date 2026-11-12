@@ -29,7 +29,7 @@ type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "descrip
 /** What the column sort reads off a row. */
 type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">;
 
-type StateFilterEntry = {
+export type StateFilterEntry = {
   key: string;
   label: string;
   states?: string[];
@@ -129,6 +129,24 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
   return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
 }
 
+export function chosenStates<E extends { key: string }>(offered: readonly E[], value: string | undefined): E[] {
+  const keys = new Set((value ?? "").split(",").filter(Boolean));
+  const chosen = offered.filter((entry) => entry.key !== offered[0]?.key && keys.has(entry.key));
+  return chosen.length ? chosen : offered.slice(0, 1);
+}
+
+export function stateFilters(value: string | undefined): StateFilterEntry[] {
+  const resolved = (value ?? "").split(",").map((key) => stateFilter(key).key).join(",");
+  return chosenStates(STATE_FILTERS, resolved);
+}
+
+export function toggledState<E extends { key: string }>(offered: readonly E[], chosen: readonly E[], key: string): string {
+  if (key === offered[0]?.key) return offered[0]!.key;
+  const keys = new Set(chosen.map((entry) => entry.key).filter((chosenKey) => chosenKey !== offered[0]?.key));
+  if (keys.has(key)) keys.delete(key); else if (offered.some((entry) => entry.key === key)) keys.add(key);
+  return offered.filter((entry) => keys.has(entry.key)).map((entry) => entry.key).join(",") || offered[0]!.key;
+}
+
 /** Whether one entry admits one state. Written once because `applyFilter`
  *  decides which rows are RENDERED with it and `filterBar` decides what
  *  each entry's count SAYS with it — two answers to one question is how
@@ -156,8 +174,7 @@ export function matchesStateFilter(f: StateFilterEntry, g: FilterFacts): boolean
  *  shows closed rows needs the walk exactly as the Archived entry does —
  *  without this, Closed counted two and listed none. */
 export function filterShowsArchived(state: string | undefined): boolean {
-  const f = stateFilter(state);
-  return matchesState(f, ARCHIVED_STATE) || matchesState(f, CLOSED_STATE);
+  return stateFilters(state).some((f) => matchesState(f, ARCHIVED_STATE) || matchesState(f, CLOSED_STATE));
 }
 
 /** Whether a row is LOCKED — built by `readerGroup()` off the archive
@@ -200,10 +217,10 @@ export const matchesSearch = (g: FilterFacts, f: SpecsFilter): boolean => {
 };
 
 export function applyFilter<T extends FilterFacts>(groups: T[], f: SpecsFilter): T[] {
-  const entry = stateFilter(f.state);
+  const entries = stateFilters(f.state);
   return groups.filter(
     (g) =>
-      matchesStateFilter(entry, g) &&
+      entries.some((entry) => matchesStateFilter(entry, g)) &&
       (!f.project || g.project === f.project) &&
       matchesSearch(g, f),
   );

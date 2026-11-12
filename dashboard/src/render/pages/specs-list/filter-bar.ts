@@ -20,8 +20,9 @@ import {
   matchesSearch,
   matchesState,
   matchesStateFilter,
-  stateFilter,
+  stateFilters,
   stateFilterLabel,
+  toggledState,
   type SpecsFilter,
   type SpecGroup,
 } from "./data-model";
@@ -60,7 +61,6 @@ function runsHelp(lang: Language): string {
 
 export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions): string {
   const lang = opts.lang ?? "en";
-  const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
   // nobody asked for. The search is one of those filters
@@ -109,7 +109,7 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  const state = stateDropdown(f, current, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
+  const state = stateDropdown(f, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
   return searchForm(
     {
       action: "/specs",
@@ -122,20 +122,13 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   );
 }
 
-// One dropdown, six links, the same single-value `queueHref` merge the
-// chips used before it — a real `<input type="checkbox">`
-// would tell assistive tech "pick any number", which this control has
-// never allowed, so the mark is round and the panel carries
-// `role="radiogroup"`/`role="radio"`: a radio glyph is what
-// "pick one of these" looks and announces like, matching what picking
-// one here has always done — replace the other five, exactly as a chip
-// click always has.
+// One dropdown of checkbox links. Each link carries the whole next value,
+// so adding or removing a state works without JavaScript.
 // Labelled "State", not "Phases": this page already calls this exact concept "State" —
 // the table's own column heading — and "Phase" already means the
 // create/analyze/implement/archive workflow step two columns over.
 function stateDropdown(
   f: SpecsFilter,
-  current: string,
   counted: SpecGroup[],
   uncounted: { archived: number; closed: number; notVerified: number },
   lang: Language,
@@ -144,8 +137,9 @@ function stateDropdown(
   // choice can never show two different counts — the trigger
   // below reads `chosen.count` off this same array rather than summing
   // its own copy.
+  const ticked = stateFilters(f.state);
   const rows = STATE_FILTERS.map((s) => {
-    const on = s.key === current;
+    const on = ticked.some((entry) => entry.key === s.key);
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
       (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
@@ -157,6 +151,7 @@ function stateDropdown(
   return menuDropdown({
     filter: "state",
     ariaLabel: t(lang, "list.statesLabel"),
+    multipleLabel: t(lang, "list.statesChosen", { n: ticked.length }),
     options: rows.map(({ s, on, count }) => ({
       label: stateFilterLabel(s.key, lang),
       count,
@@ -165,7 +160,7 @@ function stateDropdown(
       // override a REMEMBERED non-default filter, and a blank `state`
       // collapses to the same bare `/` a plain navigation with no choice
       // at all produces — the one thing that would tell the two apart.
-      href: queueHref(f, { state: s.key }),
+      href: queueHref(f, { state: toggledState(STATE_FILTERS, ticked, s.key) }),
     })),
   });
 }
@@ -179,30 +174,27 @@ export interface MenuOption {
   href: string;
 }
 
-/** The dropdown the State control is, for any control that picks one of a few
- *  options. The trigger shows the chosen option's own label and count, and
- *  nothing else: the room the old "State:" prefix took is what
- *  lets a longer choice like "Running-analyzing (2)" fit. The
- *  visible content beside it IS that choice, not the word "States" — so
- *  `aria-label` alone carries the name for assistive tech, without a
- *  `title` repeating it as a tooltip nobody asked to read twice. The panel
- *  carries `role="radiogroup"`/`role="radio"`: a radio glyph is what
- *  "pick one of these" looks and announces like. `filter` names the control
- *  for the page script and the tests. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[] }): string {
+/** The State dropdown. Its checkbox links may be combined, while the trigger
+ *  reserves the width of the widest option. `filter` names the control for
+ *  the page script and the tests. */
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; multipleLabel?: string }): string {
   const options = o.options
     .map(
       (opt) =>
-        `<a data-nav href="${opt.href}" role="radio" aria-checked="${opt.on}">` +
+        `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
         `<span class="check" aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
     )
     .join("");
-  const chosen = o.options.find((opt) => opt.on) ?? o.options[0]!;
+  const chosen = o.options.filter((opt) => opt.on);
+  const visible = chosen.length === 1
+    ? `${esc(chosen[0]!.label)} (${chosen[0]!.count})`
+    : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;
+  const widths = o.options.map((opt) => `<span aria-hidden="true">${esc(opt.label)} (${opt.count})</span>`).join("");
   return (
     `<details class="menu state" data-filter="${o.filter}">` +
     `<summary aria-label="${o.ariaLabel}">` +
-    `${esc(chosen.label)} (${chosen.count})${ICON_CHEVRON}</summary>` +
-    `<div class="menupanel" role="radiogroup">${options}</div>` +
+    `<span class="menuwidth"><span>${visible}</span>${widths}</span>${ICON_CHEVRON}</summary>` +
+    `<div class="menupanel" role="group" aria-label="${o.ariaLabel}">${options}</div>` +
     `</details>`
   );
 }
