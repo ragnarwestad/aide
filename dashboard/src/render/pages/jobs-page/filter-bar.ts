@@ -1,7 +1,7 @@
 // The Jobs tab's search box, its state dropdown and its sortable head, drawn
 // from the Specs list's own pieces. `view.ts` decides what each offers, counts
 // and links to; this file draws it and decides nothing of its own. The bar
-// ends in the Specs list's New button, drawn by the same function.
+// ends in the New group button, which opens the dialog `execution-group-editor.ts` draws.
 
 import { t, type Language } from "../../../i18n";
 import { askButton } from "../../ui/components";

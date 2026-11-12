@@ -43,9 +43,9 @@ step that ends either advances the job or ends it, and several jobs run at once 
 ## Making a spec from the page
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
-there is a **New** button, a link to `/new`, at the right-hand end of the search field's row on the Specs list and on
-the Running tab, including when the tab is empty. It is not offered when no project on the board may have a spec made
-in it. The page is the form and nothing else, on two tabs with Create above them. **Spec**, the tab it opens on, holds a
+there is a **New spec** button, a link to `/new`, at the right-hand end of the search field's row on the Specs list.
+It is not offered when no project on the board may have a spec made in it. The page is the form and nothing else, on
+two tabs with Create above them. **Spec**, the tab it opens on, holds a
 project, a title, a description and a **Depends on** field naming a spec this one has to wait for. **Options**
 (`/new?tab=options`) holds the acceptance and approach settings, then the phase table. Switching tabs keeps what was
 typed, and Create posts both tabs from either. Create posts to `POST /api/queue/create` and goes to the Running tab with
@@ -89,8 +89,10 @@ A group is one collapsed card on Running, with its members inside it in saved or
 that is not done. Every member uses the branch named for the group's first member. Stop ends the current job and keeps
 later members waiting until Start resumes the same execution. A failed member keeps its own recovery controls.
 
-New group on Running chooses one project, a display name and at least two eligible specs. The numbered member list is
-the execution order. Saving creates a prepared card and does not start work. Edit on a prepared card can add, remove or
+**New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
+one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
+the execution order. Save creates a prepared card and does not start work; Cancel closes the dialog and saves nothing.
+A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
 reorder members until the first execution starts; after that, membership and order are fixed.
 
 Grouped member rows offer no Archive. When every member has finished Implement and every required acceptance row is
@@ -777,7 +779,8 @@ by its saved filter, replaces itself with the Specs list. Once the board has sta
 empty or not, on a click, a link or a reload. [Installing it as an app](hosting.md#installing-it-as-an-app) has the
 installed app's part.
 
-The tab offers **New**, as the Specs list does ([Making a spec from the page](#making-a-spec-from-the-page)).
+The tab makes groups, not specs: **New group**, at the right-hand end of its search row, opens the New group dialog,
+and a spec is made from the Specs list ([Making a spec from the page](#making-a-spec-from-the-page)).
 
 With no rows, the search field, State filter and column headings stay visible, and the table has one row saying "Nothing
 is running." Failed-create messages stay above the search row. The first job appears without a page reload.

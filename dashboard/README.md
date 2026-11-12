@@ -21,7 +21,7 @@ How a project gets in, and where its settings are kept, is in [Projects](docs/pr
 
 ## How it's used
 
-The front page lists every spec, grouped by phase. **New** writes a spec; a queued job shows its progress on the
+The front page lists every spec, grouped by phase. **New spec** writes a spec; a queued job shows its progress on the
 spec's row, and can be cancelled or given another phase from there. Opening a row shows the spec itself: its four files
 and every job that has run against it.
 

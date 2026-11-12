@@ -20,7 +20,7 @@ describe("formDialog", () => {
       id: "new-thing", title: "New thing", action: "/api/things", hook: "actionform",
       data: { "thing-editor": "" }, fields: `<input name="name">`,
     }));
-    const dialog = doc.querySelector("dialog.formdialog#new-thing")!;
+    const dialog = doc.querySelector<HTMLDialogElement>("dialog.formdialog#new-thing")!;
     const form = dialog.querySelector("#new-thing-form")!;
     expect(form.getAttribute("action")).toBe("/api/things");
     expect(form.classList.contains("actionform")).toBe(true);

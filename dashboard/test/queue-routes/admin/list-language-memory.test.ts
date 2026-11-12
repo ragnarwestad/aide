@@ -19,7 +19,7 @@ describe("the language the reader chose is remembered", () => {
     expect(langCookie(res)).toContain("aide_lang=nb");
     const html = await res.text();
     expect(html).toContain('<html lang="nb">');
-    expect(html).toContain(">Ny<");
+    expect(html).toContain(">Ny spesifikasjon<");
   });
 
   test("a later GET / with the cookie and no ?lang= is Norwegian too", async () => {

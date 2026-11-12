@@ -77,7 +77,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.searchAriaLabel": "Søk i specene",
   "list.searchClearTitle": "Tøm søket",
   "list.search": "Søk",
-  "list.newSpec": "Ny",
   "list.colSpec": "Spesifikasjon",
   "list.colState": "Tilstand/Aksjon",
   "list.colStateAlone": "Tilstand",
@@ -582,5 +581,4 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupProject": "Prosjekt",
   "list.groupName": "Navn",
   "list.groupOrder": "Rekkefølge",
-  "list.groupSave": "Lagre",
 };

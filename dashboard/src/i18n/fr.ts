@@ -77,7 +77,6 @@ export const fr: Record<TranslationKey, string> = {
   "list.searchAriaLabel": "Rechercher dans les specs",
   "list.searchClearTitle": "Effacer la recherche",
   "list.search": "Rechercher",
-  "list.newSpec": "Nouvelle",
   "list.colSpec": "Spécification",
   "list.colState": "État/Action",
   "list.colStateAlone": "État",
@@ -579,5 +578,4 @@ export const fr: Record<TranslationKey, string> = {
   "list.groupProject": "Projet",
   "list.groupName": "Nom",
   "list.groupOrder": "Ordre",
-  "list.groupSave": "Enregistrer",
 };

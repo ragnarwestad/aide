@@ -362,7 +362,7 @@ Every control here is a real form, whose own fields are what a press sends, and 
 button with the phases ticked, Cancel's OK, the checks' Save. Every action answers JSON, which the script reads (see
 [what the script adds](#what-the-script-adds)); expanding a row is a plain link.
 
-**New** is a link to `/new`, a page of its own; the list itself carries no form for making a spec. Such a form
+**New spec** is a link to `/new`, a page of its own; the list itself carries no form for making a spec. Such a form
 would need a spec dropdown, and a dropdown could not stay current — the row refresh deliberately replaces the ROWS
 alone, so a half-set control is never wiped, and a spec created since the page loaded would be in the list and not
 in the dropdown. The notice that says the runner is unavailable stands outside every fold, so that a reader is

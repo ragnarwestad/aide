@@ -78,7 +78,6 @@ export const en = {
   "list.searchAriaLabel": "Search the specs",
   "list.searchClearTitle": "Clear the search",
   "list.search": "Search",
-  "list.newSpec": "New",
   "list.colSpec": "Specification",
   "list.colState": "State/Action",
   "list.colStateAlone": "State",
@@ -590,5 +589,4 @@ export const en = {
   "list.groupProject": "Project",
   "list.groupName": "Name",
   "list.groupOrder": "Order",
-  "list.groupSave": "Save",
 } as const;

@@ -112,7 +112,7 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     expect(loads.n).toBe(0);
 
     // Cancel asks first; its OK posts and redraws the rows.
-    await page.locator("button[data-ask]").first().click();
+    await page.locator("tr button[data-ask]").first().click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
     await page.waitForFunction(async (jobId) => {
       const r = await fetch(`/api/queue/${jobId}`);

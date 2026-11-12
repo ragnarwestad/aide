@@ -99,9 +99,10 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
 | `messageSlot()`       | a message the page's script writes into: its icon, announced, and always drawn empty — with no words it takes no room                 |
 | `field()`             | label above any control, one height and one radius                                                                                    |
-| `saveCancelActions()` | a form's Save and Cancel pair; Cancel renders disabled (needs script), and Save too on a form only script posts                       |
+| `saveCancelActions()` | a form's Save and Cancel; Cancel is drawn disabled (needs script), Save too on a form only script posts; in a dialog Cancel closes it |
 | `confirmDialog()`     | a confirmation that runs no step: the question, OK first and Cancel beside it (the platform's own close)                              |
 | `progressDialog()`    | the question of a step that asks and then runs, with a refusal line; after OK the loading cover shows its word (`data-cover-note`)    |
+| `formDialog()`        | a dialog that holds a form: a title, the fields, a refusal line, Save and Cancel; another word for Save and buttons between           |
 | `askButton()`         | the button that names a dialog by `data-ask`; one listener on `body` opens any of them                                                |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below; `keep` on a page with tabs keeps it across tabs       |
