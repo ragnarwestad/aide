@@ -145,6 +145,12 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/groups/<id>`                 | action | project and ordered members                        | `{ ok, group }`; 409 if refused                                            | form      |
 | `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop` or `archive`             | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
 
+The execution-group routes have these authoritative handlers:
+
+- `POST /api/queue/groups` — `src/serve/routes/spec-edit/group.ts`
+- `POST /api/queue/groups/<id>` — `src/serve/routes/spec-edit/group.ts`
+- `POST /api/queue/groups/<id>/action` — `src/serve/routes/job-actions.ts`
+
 ### Specs
 
 Answered by the files under `src/serve/routes/spec-edit/`.

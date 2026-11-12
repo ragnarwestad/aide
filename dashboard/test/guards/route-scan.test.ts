@@ -1,7 +1,14 @@
 // The scanner behind the HTTP-routes guard, on small fixture strings. The
 // real tree against the real page is http-routes-page.test.ts.
 import { describe, expect, test } from "bun:test";
-import { compareRoutes, routesOnPage, scanSource, type PageRoute, type SourceRoute } from "../helpers/route-scan";
+import {
+  compareRoutes,
+  routeOwnership,
+  routesOnPage,
+  scanSource,
+  type PageRoute,
+  type SourceRoute,
+} from "../helpers/route-scan";
 
 const scan = (text: string, constants: Record<string, string> = {}): SourceRoute[] =>
   scanSource({ "fixture.ts": text }, constants);
@@ -90,6 +97,24 @@ describe("scanSource reads the methods of a path", () => {
   test("a path named again elsewhere keeps the union of what every site states", () => {
     const src = `if (path === "/a") {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}\nconst x = path === "/a" ? 1 : 2;`;
     expect(scan(src)).toEqual([{ path: "/a", methods: ["POST"] }]);
+  });
+});
+
+describe("routeOwnership", () => {
+  test("reports two source files that claim the same method and path (AC-1)", () => {
+    const route = `if (path === "/api/queue/groups") {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
+    expect(routeOwnership({ "one.ts": route, "two.ts": route }, {})).toEqual([
+      { method: "POST", path: "/api/queue/groups", owners: ["one.ts", "two.ts"] },
+    ]);
+  });
+
+  test("keeps separate methods on one path as separate owners (AC-1)", () => {
+    const get = `if (path === "/api/queue") {\n  if (req.method !== "GET") ${NOT_ALLOWED}\n}`;
+    const post = `if (path === "/api/queue") {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
+    expect(routeOwnership({ "read.ts": get, "write.ts": post }, {})).toEqual([
+      { method: "GET", path: "/api/queue", owners: ["read.ts"] },
+      { method: "POST", path: "/api/queue", owners: ["write.ts"] },
+    ]);
   });
 });
 
