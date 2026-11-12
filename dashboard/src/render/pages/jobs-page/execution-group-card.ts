@@ -45,9 +45,9 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     : "";
   const archiveLabel = action === "archive" ? " Group Archive" : "";
   const head = `<tr class="execution-group-card" data-spec-group="${esc(key)}"><td colspan="6">` +
-    (created ? `<span class="muted small">${esc(created)}</span> ` : "") +
     foldButton({ label: group.name, open: false, data: { "group-toggle": key } }) +
     `<strong>${esc(group.name)}</strong> · ${esc(group.state)} · ${group.completedMembers.length} of ${group.members.length} done` +
+    (created ? `<br><span class="muted small">${esc(created)}</span>` : "") +
     edit + control + archiveLabel + `</td></tr>`;
   return head + members.map((member) => member.html).join("");
 }
