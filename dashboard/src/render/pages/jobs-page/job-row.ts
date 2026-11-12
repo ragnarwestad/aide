@@ -43,6 +43,8 @@ export interface JobRowOptions {
   listPath: string;
   /** A Close, Reopen, deploy or scheduled job's steps, each in the state its log has it in. */
   steps?: (jobId: string) => JobStep[];
+  /** The row's key when it is not the job's own (`jobRowKeys`). */
+  key?: string;
 }
 
 const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
@@ -107,14 +109,14 @@ function messageLine(row: QueueRowView, lang: Language): string {
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open
  *  (`stepRows`, which a spec's unfolded phase draws its steps with too). */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
-  return stepRows(o.steps?.(row.id) ?? [], { prefix: jobKey(row), filter: o.filter, listPath: o.listPath, lang: o.lang, now: o.now })
+  return stepRows(o.steps?.(row.id) ?? [], { prefix: o.key ?? jobKey(row), filter: o.filter, listPath: o.listPath, lang: o.lang, now: o.now })
     .map((r) => `${r.tag}${r.cells}</tr>`)
     .join("");
 }
 
 export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const { lang } = o;
-  const key = jobKey(row);
+  const key = o.key ?? jobKey(row);
   const open = openKeys(o).includes(key);
   const name = jobTitle(row, lang);
   const kind = open ? jobControl(row) : undefined;

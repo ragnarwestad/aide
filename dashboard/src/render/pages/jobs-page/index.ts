@@ -18,7 +18,7 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobKey, jobPlace, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -81,9 +81,10 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
       } as RowFacts,
     };
   });
+  const rowKeys = jobRowKeys(v.shown);
   const jobs = v.shown.map((job) => ({
-    key: jobKey(job),
-    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
+    key: rowKeys.get(job.id)!,
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, key: rowKeys.get(job.id) }),
     place: jobPlace(job, v.shown, v.scheduleEntryExists),
     facts: jobFacts(job, now),
   }));

@@ -9,6 +9,7 @@ import {
   jobControl,
   jobKey,
   jobPlace,
+  jobRowKeys,
   jobsShown,
   jobTitle,
   scheduleStreamKey,
@@ -410,5 +411,15 @@ describe("the key the event stream listens on for a job row's key", () => {
     for (const key of ["aide/81-queue", "aide/534-a-card:reopen", "aide/schedule-nightly:schedule", "schedule-nightly", "/schedule-x", ""]) {
       expect(scheduleStreamKey(key)).toBeUndefined();
     }
+  });
+});
+
+describe("each job row has a key of its own", () => {
+  test("the newest job of a key keeps it, and each older one names its own id, so opening one opens no other", () => {
+    const old = job({ id: "d1", specFolder: "deploy", steps: ["deploy"], state: "done", createdAt: T(1) });
+    const newer = job({ id: "d2", specFolder: "deploy", steps: ["deploy"], state: "running", createdAt: T(2) });
+    const keys = jobRowKeys([old, newer]);
+    expect(keys.get("d2")).toBe(jobKey(newer));
+    expect(keys.get("d1")).toBe(`${jobKey(old)}@d1`);
   });
 });

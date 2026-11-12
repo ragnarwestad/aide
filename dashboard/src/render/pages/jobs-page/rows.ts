@@ -166,6 +166,22 @@ export function jobKey(row: Pick<JobLike, "id" | "project" | "specFolder" | "ste
   return kind === "spec" || kind === "schedule" ? `${row.project}/${row.specFolder}` : phaseKey(row.project, row.specFolder, kind);
 }
 
+/** Each job row's own key, by job id: the newest job of a key keeps it, so
+ *  the page hears its log grow while it runs, and each older one is
+ *  `<key>@<its id>`, so opening one row never opens another. */
+export function jobRowKeys(jobs: readonly JobLike[]): Map<string, string> {
+  const newest = new Map<string, JobLike>();
+  for (const job of jobs) {
+    const key = jobKey(job);
+    const seen = newest.get(key);
+    if (!seen || at(job) > at(seen)) newest.set(key, job);
+  }
+  return new Map(jobs.map((job) => {
+    const key = jobKey(job);
+    return [job.id, newest.get(key) === job ? key : `${key}@${job.id}`];
+  }));
+}
+
 /** The key the event stream listens on for a scheduled job's row key in
  *  `open`: its running step's phase key, `<project>/schedule-<name>:schedule`,
  *  the key `createStreamGrowth` gives it. Undefined for any other key. */
