@@ -9,6 +9,7 @@ import { createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { projectLink } from "../../ui/components/spec-name.ts";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -19,6 +20,17 @@ export interface ExecutionGroupMemberRow {
 /** The id the group's row carries, the anchor the page's row swap finds it by. */
 export const executionGroupAnchor = (group: Pick<ExecutionGroup, "id" | "project" | "name">): string =>
   `group-${group.id || `${group.project}-${group.name}`}`.replace(/\s+/g, "-");
+
+const GROUP_STATE_KEY = {
+  prepared: "list.groupState.prepared",
+  queued: "list.groupState.queued",
+  running: "list.groupState.running",
+  stopped: "list.groupState.stopped",
+  // The words a spec's own badge says in the same place.
+  "waiting-acceptance": "wordPhase.badgeHeldBack",
+  archiving: "list.groupState.archiving",
+  completed: "list.done",
+} as const satisfies Record<ExecutionGroup["state"], TranslationKey>;
 
 const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
   if (state === "running" || state === "archiving") return "running";
@@ -64,8 +76,8 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     `<td class="foldcell" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="2"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
     `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td>` +
-    `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), group.state)}</span></td>` +
-    `<td colspan="2">${group.completedMembers.length} of ${group.members.length} done</td></tr>` +
+    `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
+    `<td colspan="2">${esc(t(lang as Language, "list.groupDone", { done: String(group.completedMembers.length), total: String(group.members.length) }))}</td></tr>` +
     `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
     `<td></td><td colspan="2"><span class="row">${created ? `<span class="muted small">${esc(created)}</span>` : ""}</span></td>` +
     `<td data-col="state"><span class="actionslot">${control}</span></td>` +

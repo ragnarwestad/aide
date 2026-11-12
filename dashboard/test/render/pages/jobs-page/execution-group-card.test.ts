@@ -3,6 +3,7 @@ import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
+import { t } from "../../../../src/i18n";
 
 const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
   id: "group-1", project: "aide", name: "Release", members: ["2-second", "1-first"], branch: "group/1-first",
@@ -59,4 +60,15 @@ test("a card is drawn shut unless a member's spec is open in it", () => {
 
 test("a card names its group after its project, as a spec is named", () => {
   expect(executionGroupCard(group("prepared"), [])).toContain(projectLink("aide", { className: "muted" }));
+});
+
+test("a card's state and progress are read from the page's language", () => {
+  const html = executionGroupCard(group("prepared"), [], "nb");
+  expect(html).toContain(`>${t("nb", "list.groupState.prepared")}<`);
+  expect(html).toContain(t("nb", "list.groupDone", { done: "1", total: "2" }));
+});
+
+test("a group held back or done says so in a spec's own words", () => {
+  expect(executionGroupCard(group("waiting-acceptance"), [], "nb")).toContain(`>${t("nb", "wordPhase.badgeHeldBack")}<`);
+  expect(executionGroupCard(group("completed"), [], "nb")).toContain(`>${t("nb", "list.done")}<`);
 });
