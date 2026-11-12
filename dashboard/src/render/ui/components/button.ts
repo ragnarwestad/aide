@@ -18,6 +18,8 @@ export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 
 export interface BtnOptions {
   label: string;
+  /** Trusted inline SVG drawn before the escaped label. */
+  icon?: string;
   variant?: BtnVariant;
   /** `submit` unless said otherwise: every control on this page is a
    *  real form, whose own fields are what the page script posts. */
@@ -65,7 +67,7 @@ export function btn(o: BtnOptions): string {
   // The spinner sits INSIDE the button, before the label, so a busy
   // control reads as busy without a second element beside it.
   const spin = o.variant === "busy" ? SPINNER : "";
-  return `<button ${attrs}>${spin}${esc(o.label)}</button>`;
+  return `<button ${attrs}>${spin}${o.icon ?? ""}${esc(o.label)}</button>`;
 }
 
 /** Each key written as ` data-<key>="<value>"`, the value escaped. */

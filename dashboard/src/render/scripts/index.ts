@@ -2,6 +2,7 @@ import "./start-page.ts";
 import "./theme-script.ts";
 import "./unit-script.ts";
 import "./menu-script.ts";
+import "./usage-dialog.ts";
 import "./sw-register.ts";
 import "./app-badge.ts";
 import "../ui/forms/unsaved-changes.ts";

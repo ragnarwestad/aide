@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
+  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref, shareBar,
   saveCancelActions,
 } from "../../../src/render/ui/components";
 import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
@@ -69,6 +69,12 @@ const attrs = (el: Element): Record<string, string> =>
 const shape = (el: Element): Record<string, string> => ({ ...attrs(el), class: el.className.split(" ").sort().join(" ") });
 
 describe("btn()", () => {
+  test("draws a trusted icon with an accessible name and no variant (AC-12)", () => {
+    const el = first(btn({ label: "", icon: '<svg data-icon="usage"></svg>', ariaLabel: "Usage", type: "button" }), "button");
+    expect(el.getAttribute("class")).toBe("btn");
+    expect(el.getAttribute("aria-label")).toBe("Usage");
+    expect(el.querySelector("svg")?.getAttribute("data-icon")).toBe("usage");
+  });
   test("carries the form it belongs to, a value, data attributes and a spoken name, every value escaped", () => {
     const el = first(
       btn({
@@ -113,6 +119,13 @@ describe("btn()", () => {
   // Characterisation: the component already capitalises; the hand-written copies did not.
   test("writes its pending word with a capital first letter", () => {
     expect(first(btn({ label: "Run", pending: "starting…" }), "button").getAttribute("data-pending")).toBe("Starting…");
+  });
+});
+
+describe("shareBar()", () => {
+  test("holds a share when reported and stays unfilled when it is not (AC-5)", () => {
+    expect(first(shareBar("Claude", 76, "76% left"), "progress").getAttribute("value")).toBe("76");
+    expect(first(shareBar("Claude", undefined, "Reading usage…"), "progress").hasAttribute("value")).toBe(false);
   });
 });
 

@@ -7,7 +7,7 @@ import { rmSync } from "node:fs";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
 import type { ToolUsage } from "../../../src/render";
-import { keptUsage, readUsage, USAGE_KEPT_MS } from "../../../src/serve/providers/usage-kept.ts";
+import { keptUsage, readUsage, readUsageJoined, USAGE_KEPT_MS } from "../../../src/serve/providers/usage-kept.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { defaultsOf, ownFiles, post } from "../settings-models/fixtures.ts";
 
@@ -66,4 +66,56 @@ test("a kept reading is shown for two minutes and no longer", async () => {
   await readUsage(owner, "Claude", provider, async () => usage, () => 1_000);
   expect(keptUsage(owner, "Claude", provider, 1_000 + USAGE_KEPT_MS - 1)).toBe(usage);
   expect(keptUsage(owner, "Claude", provider, 1_000 + USAGE_KEPT_MS)).toBeUndefined();
+});
+
+test("dialog asks made while one provider is being read join the same read (AC-7)", async () => {
+  const owner = {};
+  const provider: Provider = { name: "Claude", tool: "claude" };
+  let reads = 0;
+  let release!: (usage: ToolUsage) => void;
+  const held = new Promise<ToolUsage>((resolve) => { release = resolve; });
+  const read = async () => { reads += 1; return held; };
+  const first = readUsageJoined(owner, "Claude", provider, read);
+  const second = readUsageJoined(owner, "Claude", provider, read);
+  release({ tool: "claude", at: "2026-11-06T09:00:00.000Z", windows: [] });
+  expect(await Promise.all([first, second])).toHaveLength(2);
+  expect(reads).toBe(1);
+});
+
+test("concurrent Usage-tab asks still make separate readings", async () => {
+  const owner = {};
+  const provider: Provider = { name: "Claude", tool: "claude" };
+  let reads = 0;
+  const read = async (): Promise<ToolUsage> => {
+    reads += 1;
+    return { tool: "claude", at: "2026-11-06T09:00:00.000Z", windows: [] };
+  };
+  await Promise.all([readUsage(owner, "Claude", provider, read), readUsage(owner, "Claude", provider, read)]);
+  expect(reads).toBe(2);
+});
+
+test("the dialog route starts missing providers together and excludes OpenCode (AC-6, AC-7, AC-9)", async () => {
+  const started: string[] = [];
+  const releases = new Map<string, (usage: ToolUsage) => void>();
+  const { file, modelIdsPath } = ownFiles(`{ "model": { "default": "Opus" } }\n`, ownDirs);
+  const providers = {
+    Claude: { name: "Claude", tool: "claude" as const },
+    Codex: { name: "Codex", tool: "codex" as const },
+    OpenCode: { name: "OpenCode", tool: "opencode" as const },
+  };
+  const { base } = start({
+    queueDefaults: { ...defaultsOf({ Opus: {} }, { default: "Opus" }), providers },
+    queueConfigFile: file, modelIdsPath,
+    usageProbe: async (key) => {
+      started.push(key);
+      return await new Promise<ToolUsage>((resolve) => releases.set(key, resolve));
+    },
+    providerProbe: async (key: string) => ({ key, at: "2026-11-06T09:00:00.000Z", installed: true }),
+  });
+  const html = await fetch(`${base}/api/queue/settings/providers/usage`).then((response) => response.text());
+  expect(started).toEqual(["Claude", "Codex"]);
+  expect(html).toContain("Claude");
+  expect(html).toContain("Codex");
+  expect(html).not.toContain("OpenCode");
+  for (const [key, release] of releases) release({ tool: providers[key as keyof typeof providers].tool, at: "2026-11-06T09:00:00.000Z", windows: [] });
 });

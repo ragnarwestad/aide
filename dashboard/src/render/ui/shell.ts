@@ -21,6 +21,7 @@ import { isSpecFolder } from "../../project/spec-names.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
+import { usageButton, usageDialog } from "./usage-dialog/index.ts";
 
 export interface NavEntry {
   label: string;
@@ -228,7 +229,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     // header-level controls the reader reaches without opening the menu
     // first, not one more item behind it.
     // A <div>, not a <span>: a <details> is flow content, which a span cannot hold.
-    `<div class="row">${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
+    `<div class="row">${usageButton(lang)}${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     `<details class="menu"><summary aria-label="${t(lang, "shell.more")}">` +
@@ -388,6 +389,7 @@ export function shellRest(
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
 ${aboutDialog()}
+${usageDialog(lang)}
 ${leaveAppDialog(lang)}
 ${tabs}
 <main>

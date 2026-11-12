@@ -14,6 +14,7 @@ type Read = (key: string, provider: Provider) => Promise<ToolUsage>;
 interface Kept { usage: ToolUsage; at: number }
 
 const kept = new WeakMap<object, Map<string, Kept>>();
+const reading = new WeakMap<object, Map<string, Promise<ToolUsage>>>();
 const keyOf = (key: string, provider: Provider): string => `${key}\n${JSON.stringify(provider)}`;
 const store = (owner: object): Map<string, Kept> => {
   let map = kept.get(owner);
@@ -33,4 +34,19 @@ export async function readUsage(owner: object, key: string, provider: Provider, 
   const usage = await read(key, provider);
   store(owner).set(keyOf(key, provider), { usage, at: now() });
   return usage;
+}
+
+/** Reads for the all-providers dialog, joining another dialog ask already under way. */
+export async function readUsageJoined(owner: object, key: string, provider: Provider, read: Read, now = Date.now): Promise<ToolUsage> {
+  let reads = reading.get(owner);
+  if (!reads) reading.set(owner, (reads = new Map()));
+  const id = keyOf(key, provider);
+  const underway = reads.get(id);
+  if (underway) return underway;
+  const promise = read(key, provider).then((usage) => {
+    store(owner).set(id, { usage, at: now() });
+    return usage;
+  }).finally(() => reads!.delete(id));
+  reads.set(id, promise);
+  return promise;
 }

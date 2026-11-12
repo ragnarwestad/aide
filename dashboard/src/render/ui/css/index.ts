@@ -40,6 +40,7 @@ const SECTIONS = [
   "text-roles.css",
   "components/button.css",
   "components/switch.css",
+  "components/share-bar.css",
   "components/status-badge.css",
   "components/phase-chip.css",
   "components/remaining-checks.css",

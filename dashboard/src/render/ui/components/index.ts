@@ -22,6 +22,11 @@ import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABEL
 
 export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
 
+export function shareBar(name: string, value: number | undefined, words: string, data: Record<string, string> = {}): string {
+  const attrs = Object.entries(data).map(([key, val]) => ` data-${key}="${esc(val)}"`).join("");
+  return `<div class="sharebar"${attrs}><span>${esc(name)}</span><progress max="100"${value === undefined ? "" : ` value="${value}"`}></progress><span>${esc(words)}</span></div>`;
+}
+
 // --- button ----------------------------------------------------------------
 
 export {
@@ -275,5 +280,5 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label
   `</div>`;
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, TOOL_ICONS } from "./icons.ts";
+export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, ICON_USAGE, TOOL_ICONS } from "./icons.ts";
 

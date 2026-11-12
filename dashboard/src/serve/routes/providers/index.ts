@@ -4,6 +4,7 @@
 import type { RoutesContext } from "../";
 import { handleProviderPages } from "./page.ts";
 import { handleProviderSettingsRoutes } from "./settings.ts";
+import { handleProviderUsageRoute } from "./usage.ts";
 
 export async function handleProviderRoutes(
   ctx: RoutesContext,
@@ -11,5 +12,7 @@ export async function handleProviderRoutes(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  return (await handleProviderSettingsRoutes(ctx, req, path)) ?? (await handleProviderPages(ctx, req, url, path));
+  return (await handleProviderSettingsRoutes(ctx, req, path)) ??
+    (await handleProviderUsageRoute(ctx, req, url, path)) ??
+    (await handleProviderPages(ctx, req, url, path));
 }

@@ -80,7 +80,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 
 | Component             | Variants                                                                                                                              |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*` and `aria-label` when asked         |
+| `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*`, `aria-label` and icon when asked   |
 | `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
 | `buttonForm()`        | a form whose only control is one button — a `btn()` or a dialog's close cross: a post or its close, hooks, hidden fields, a (?) first |
 | `foldArrow()`         | open or shut, swapping rows in place or, with `goto`, loading a page; its title one of six catalogue sentences                        |
@@ -99,6 +99,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `rowMessageParts()`   | the same three kinds built from parts rather than one string; every link in one opens in a new tab                                    |
 | `messageSlot()`       | a message the page's script writes into: its icon, announced, and always drawn empty — with no words it takes no room                 |
 | `field()`             | label above any control, one height and one radius                                                                                    |
+| `shareBar()`          | a name, share from 0 to 100 and its words; without a share the bar is unfilled                                                        |
 | `saveCancelActions()` | a form's Save and Cancel; Cancel is drawn disabled (needs script), Save too on a form only script posts; in a dialog Cancel closes it |
 | `confirmDialog()`     | a confirmation that runs no step: the question, OK first and Cancel beside it (the platform's own close)                              |
 | `progressDialog()`    | the question of a step that asks and then runs, with a refusal line; after OK the loading cover shows its word (`data-cover-note`)    |
