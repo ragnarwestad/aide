@@ -368,13 +368,10 @@ describe("nothing running", () => {
   });
 });
 
-describe("New", () => {
-  test("the Running tab and the Specs list draw the same New for a project on the allowlist", async () => {
-    const { base } = board();
-    const link = newSpecLink({ createProjects: ["aide"] }, "en");
-    expect(await rowsOf(base)).toContain(link);
-    const specs = await fetch(`${base}/specs?rows=1`, { redirect: "manual" });
-    expect(await specs.text()).toContain(link);
+describe("New spec", () => {
+  test("the Specs list's rows carry the New spec link for a project on the allowlist (AC-7)", async () => {
+    const specs = await fetch(`${board().base}/specs?rows=1`, { redirect: "manual" });
+    expect(await specs.text()).toContain(newSpecLink({ createProjects: ["aide"] }, "en"));
   });
 });
 

@@ -8,11 +8,11 @@ import { onDependsOnCancel, pickSetting } from "../depends-on";
 import { submitAction, submitTestServerStop } from "../forms.ts";
 import { navigate } from "../navigation.ts";
 import { postPendingModel } from "../pending-model.ts";
-import { relabelRunButton } from "../row-swap/index.ts";
+import { relabelRunButton, swapRows } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
-import { changeExecutionGroupEditor, updateExecutionGroupEditor } from "../execution-groups/editor.ts";
+import { changeExecutionGroupEditor, closeExecutionGroupEditor, syncExecutionGroupEditors } from "../execution-groups/editor.ts";
 
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
@@ -115,6 +115,13 @@ const onRowsChange = ((event: Event) => {
   }
 }) as EventListener;
 
+// The New group dialog closed, by Cancel, by Escape or after a saved group:
+// it is emptied, and the rows are drawn once, which a redraw waits with
+// while the dialog is open. That redraw is what draws a saved group's card.
+const onRowsClose = ((event: Event) => {
+  if (closeExecutionGroupEditor(event)) void swapRows();
+}) as EventListener;
+
 /** Binds the rows' and the Test servers list's containers, where the page has them. */
 export function bindLists(doc: Document): void {
   syncSpecGroups(doc);
@@ -122,7 +129,9 @@ export function bindLists(doc: Document): void {
   rows?.addEventListener("click", onRowsClick as EventListener);
   rows?.addEventListener("submit", submitAction as EventListener);
   rows?.addEventListener("change", onRowsChange);
-  for (const form of doc.querySelectorAll<HTMLFormElement>("form[data-execution-group-editor]")) updateExecutionGroupEditor(form);
+  // `close` does not bubble, so the container hears it in the capture phase.
+  rows?.addEventListener("close", onRowsClose, true);
+  syncExecutionGroupEditors(doc);
   // The Test servers list's own Stop button.
   doc.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 }

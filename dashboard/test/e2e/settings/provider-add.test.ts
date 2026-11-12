@@ -76,7 +76,7 @@ test("Add walks the three steps, makes the ID from the name, and lands on the ne
   expect(await dialog().locator("#provider-add-codex-codexHome").isVisible()).toBe(false);
   await Promise.all([
     page.waitForURL("**/settings?tab=providers&provider=claude-work"),
-    dialog().locator("button[data-add-save]").click(),
+    dialog().locator("#provider-add-form-save").click(),
   ]);
   expect(await page.locator(".providerlist").innerText()).toContain("Claude Work");
   await page.locator(`nav[data-aitabs] a`, { hasText: "Config" }).click();
@@ -97,10 +97,10 @@ test("a refused Add stays in the dialog with the reason, and Cancel starts it ov
   await dialog().locator(".toolcard", { hasText: "Codex" }).click();
   await dialog().locator('input[name="name"]').fill("Claude");
   await next().click();
-  await dialog().locator("button[data-add-save]").click();
+  await dialog().locator("#provider-add-form-save").click();
   await dialog().locator("#provider-add-refused span", { hasText: /Claude/ }).waitFor();
   expect(await dialog().isVisible()).toBe(true);
-  await dialog().locator("button[data-add-close]").click();
+  await dialog().getByRole("button", { name: "Cancel", exact: true }).click();
   await dialog().waitFor({ state: "hidden" });
   await page.locator("button.iconlink[data-ask=provider-add]").click();
   expect(await dialog().locator('.addstep[data-step="1"]').isVisible()).toBe(true);

@@ -1,13 +1,15 @@
 // The list's live redraw replaces the rows, and with them any dialog drawn
 // inside a row. An ask the reader has open — Reopen, before OK or after a
 // refusal — must not vanish under them; Cancel's plain confirm relies on the
-// redraw to go away after its OK, so it holds nothing.
+// redraw to go away after its OK, so it holds nothing. A dialog that holds a
+// form is held too, with what was typed in it.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { swapRows } from "../../../src/specs-client/row-swap/index.ts";
 import { confirmDialog } from "../../../src/render/ui/components";
 import { reopenAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
+import { executionGroupEditor, NEW_GROUP_DIALOG } from "../../../src/render/pages/jobs-page/execution-group-editor.ts";
 
 const real = {
   document: (globalThis as { document?: unknown }).document,
@@ -28,6 +30,8 @@ const CANCEL = confirmDialog("en", {
   ok: { variant: "primary" },
   post: { action: "/api/queue/j1/cancel", hook: "actionform" },
 });
+
+const NEW_GROUP = executionGroupEditor({ projects: ["aide"], candidates: [] });
 
 /** A page whose `#jobrows` holds `inside`, with the dialog `open` open, and
  *  a server answering the redraw with new rows. */
@@ -53,9 +57,22 @@ describe("swapRows under an open dialog", () => {
     expect(after).not.toContain("fresh");
   });
 
-  test("a closed ask, or Cancel's plain confirm open, lets the redraw go ahead", async () => {
+  test("an open New group dialog holds the redraw, so what was typed stays (AC-5)", async () => {
+    const win = listWith(NEW_GROUP, NEW_GROUP_DIALOG);
+    const name = win.document.querySelector('input[name="name"]') as unknown as HTMLInputElement;
+    name.value = "Release";
+    await swapRows();
+    const after = rowsOf(win);
+    const typed = name.isConnected ? name.value : "";
+    await win.happyDOM.close();
+    expect(after).not.toContain("fresh");
+    expect(typed).toBe("Release");
+  });
+
+  test("a closed ask, a closed New group dialog, or Cancel's plain confirm open, lets the redraw go ahead", async () => {
     for (const [inside, open] of [
       [REOPEN, undefined],
+      [NEW_GROUP, undefined],
       [CANCEL, "cancelask-j1"],
     ] as const) {
       const win = listWith(inside, open);

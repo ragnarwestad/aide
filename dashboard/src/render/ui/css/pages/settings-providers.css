@@ -46,17 +46,8 @@
 /* The two Add buttons are buttons that look like the link and the row they sit among. */
 button.iconlink, button.provideritem { border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 
-/* The Add dialog: the three steps named across its top, one step's fields at
-   a time, and its buttons in one row. A step, a tool's fields and a button
-   the script has hidden stay hidden, whatever their own display. */
-dialog.provideradd { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
-  background: var(--surface); color: var(--text); width: min(36rem, calc(100vw - 2rem)); box-shadow: var(--overlay-shadow); }
-dialog.provideradd::backdrop { background: var(--backdrop); }
-.provideraddform { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); }
-.provideraddform h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
-.provideraddform p { margin: 0; }
-.addactions { display: flex; gap: var(--sp-2); }
-.provideraddform [hidden] { display: none; }
+/* The Add dialog's own parts, inside the form dialog: the three steps named
+   across its top, and one step's fields at a time. */
 .addsteps { display: flex; gap: var(--sp-4); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-s); }
 .addsteps li[aria-current="step"] { color: var(--text); font-weight: 600; }
 .addstep { display: flex; flex-direction: column; gap: var(--sp-2); }

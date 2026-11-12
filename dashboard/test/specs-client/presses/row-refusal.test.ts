@@ -11,7 +11,7 @@ import { clearRefusal } from "../../../src/specs-client/row-refusal";
 import { showRefusal } from "../../../src/specs-client/tail-actions.ts";
 import { submitAction } from "../../../src/specs-client/forms.ts";
 import { swapRows } from "../../../src/specs-client/row-swap/index.ts";
-import { confirmDialog } from "../../../src/render/ui/components";
+import { confirmDialog, formDialog } from "../../../src/render/ui/components";
 
 const real = {
   document: (globalThis as { document?: unknown }).document,
@@ -42,6 +42,22 @@ const CANCEL = confirmDialog("en", {
   ok: { variant: "primary" },
   post: { action: "/api/queue/j1/cancel", hook: "actionform" },
 });
+
+/** A dialog that holds a form, posted as a row's press is. */
+const GROUP = formDialog("en", {
+  id: "new-group", title: "New group", action: "/api/queue/groups", hook: "actionform",
+  fields: `<input name="name" value="Release">`,
+});
+
+/** Posts the form in the open dialog `id`, and hands back the dialog and the form. */
+async function pressIn(doc: Document, id: string): Promise<{ dialog: HTMLDialogElement; form: HTMLFormElement }> {
+  const dialog = doc.getElementById(id) as unknown as HTMLDialogElement;
+  dialog.setAttribute("open", "");
+  const form = dialog.querySelector("form.actionform") as unknown as HTMLFormElement;
+  const event = { target: form, defaultPrevented: false, preventDefault() { event.defaultPrevented = true; } };
+  await submitAction(event as unknown as Event);
+  return { dialog, form };
+}
 
 /** The list's rows. A different `drawn` redraws the whole table rather
  *  than one spec's rows, which is the path a stand-in document parses
@@ -132,5 +148,24 @@ describe("a refused press on the list", () => {
     await showRefusal("the job is already done", "aide/zz");
     expect(refusalRows(doc)).toHaveLength(0);
     expect(words(doc.getElementById("list-refused"))).toBe("");
+  });
+
+  test("of a form in a form dialog stays in that dialog with what was typed, and the list holds none (AC-5)", async () => {
+    const reason = "an execution group needs at least two specs";
+    const doc = list(GROUP + rows(9), { rows: () => GROUP + rows(9), press: { status: 409, body: { error: reason } } });
+    const { dialog, form } = await pressIn(doc, "new-group");
+    expect(dialog.isConnected && dialog.hasAttribute("open")).toBe(true);
+    expect((form.querySelector('input[name="name"]') as unknown as HTMLInputElement).value).toBe("Release");
+    expect(words(form.querySelector(".refused"))).toBe("Problem: An execution group needs at least two specs");
+    expect(refusalRows(doc)).toHaveLength(0);
+    expect(words(doc.getElementById("list-refused"))).toBe("");
+  });
+});
+
+describe("a press that goes through", () => {
+  test("from a form in a form dialog closes that dialog (AC-4)", async () => {
+    const doc = list(GROUP + rows(10), { rows: () => GROUP + rows(10) });
+    const { dialog } = await pressIn(doc, "new-group");
+    expect(dialog.hasAttribute("open")).toBe(false);
   });
 });

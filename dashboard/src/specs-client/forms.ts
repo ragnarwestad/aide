@@ -24,6 +24,9 @@ export async function submitAction(event: Event): Promise<void> {
   const form = (event.target as Element | null)?.closest?.(ACTIONS) as HTMLFormElement | null;
   if (!form) return;
   event.preventDefault();
+  // A dialog that holds this form's fields: a refusal stays in it, with
+  // what was typed, and a press that goes through closes it.
+  const held = form.closest("dialog.formdialog") as HTMLDialogElement | null;
   await postForm(
     form,
     async () => {
@@ -31,11 +34,14 @@ export async function submitAction(event: Event): Promise<void> {
       // have done their job and must not go on deciding a later run
       clearChosenSteps(form.id);
       cardAnswered(form, "saved");
+      // Its close redraws the rows (`bindLists`).
+      if (held) return held.close();
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();
     },
     (why, spec) => {
+      if (held) return formNote(form, why);
       // A row's Cancel is posted from its confirm dialog, and the
       // refusal is written under the row, behind it.
       (form.closest("dialog[open]") as HTMLDialogElement | null)?.close();

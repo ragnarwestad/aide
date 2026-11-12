@@ -4,10 +4,11 @@
 // ends in the Specs list's New button, drawn by the same function.
 
 import { t, type Language } from "../../../i18n";
+import { askButton } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { SORTS, SORT_DEFAULT_DIR, stateFilterLabel, type SpecsFilter } from "../specs-list/data-model";
-import type { SpecsPageOptions } from "../specs-list";
-import { menuDropdown, newSpecLink, searchForm, sortHead } from "../specs-list/filter-bar.ts";
+import { menuDropdown, searchForm, sortHead } from "../specs-list/filter-bar.ts";
+import { NEW_GROUP_DIALOG } from "./execution-group-editor.ts";
 import {
   jobsSortPatch,
   jobsStateFilter,
@@ -20,13 +21,8 @@ import {
  *  keeps the filter, the column and the folds the reader had. */
 const KEPT = ["sort", "dir", "open", "checks", "phases"] as const;
 
-/** The search box with the state dropdown after its help, and New after the dropdown. */
-export function jobsFilterBar(
-  facts: RowFacts[],
-  f: SpecsFilter,
-  lang: Language,
-  opts: Pick<SpecsPageOptions, "createProjects"> = {},
-): string {
+/** The search box with the state dropdown after its help, and New group after the dropdown. */
+export function jobsFilterBar(facts: RowFacts[], f: SpecsFilter, lang: Language): string {
   const state = menuDropdown({
     filter: "state",
     ariaLabel: t(lang, "list.statesLabel"),
@@ -43,7 +39,7 @@ export function jobsFilterBar(
       hidden: [["state", jobsStateFilter(f.state).key], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: state + newSpecLink(opts, lang),
+      after: state + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
     },
     lang,
   );

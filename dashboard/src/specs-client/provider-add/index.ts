@@ -11,8 +11,11 @@ import type { ProviderTool } from "../../queue/providers/index.ts";
 const LAST = 3;
 
 export function bindProviderAdd(dialog: HTMLDialogElement): void {
+  // The posting form, the dialog's first; its affirmative is `<form id>-save`
+  // (`formDialog()`), and Cancel is the dialog's own close.
   const form = dialog.querySelector("form") as HTMLFormElement | null;
   if (!form) return;
+  const save = form.querySelector(`[id="${form.id}-save"]`) as HTMLButtonElement | null;
   const name = form.querySelector('input[name="name"]') as HTMLInputElement | null;
   const id = form.querySelector('input[name="providerId"]') as HTMLInputElement | null;
   const command = form.querySelector("[data-login-command]") as HTMLElement | null;
@@ -45,7 +48,6 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
     }
     const back = button("add-back");
     const ahead = button("add-next");
-    const save = button("add-save");
     if (back) back.hidden = step === 1;
     if (ahead) ahead.hidden = step === LAST;
     if (save) save.hidden = step !== LAST;
@@ -77,7 +79,6 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
 
   button("add-next")?.addEventListener("click", forward);
   button("add-back")?.addEventListener("click", () => show(Math.max(1, step - 1)));
-  button("add-close")?.addEventListener("click", () => dialog.close());
   // Enter in a field before the last step moves on rather than adding. Taken
   // in the capture phase, ahead of the listener that posts the form.
   form.addEventListener(

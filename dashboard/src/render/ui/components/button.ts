@@ -153,14 +153,28 @@ export function btnLink(o: {
  *
  *  `o.variant` is for the one form whose submit cannot be undone — Close
  *  deletes the spec's code branch without merging it — so it carries
- *  `danger` the way every other irreversible control does. */
+ *  `danger` the way every other irreversible control does.
+ *
+ *  In a dialog (`formDialog()`): `o.save` is the affirmative's own word
+ *  where it is not Save, `o.between` trusted markup between it and Cancel,
+ *  and `o.closes` the id of the dialog's `method="dialog"` form. Cancel is
+ *  then that form's submit: pressable from the start, closing the dialog
+ *  with no script, and without the id that ends `-cancel`, which would
+ *  disarm the leave guard (`unsaved-changes.ts`). */
 export function saveCancelActions(
-  prefix = "specform", o: { variant?: BtnVariant; saveDisabled?: boolean } = {}, lang: Language = "en",
+  prefix = "specform",
+  o: { variant?: BtnVariant; saveDisabled?: boolean; save?: { label: string; pending?: string }; between?: string; closes?: string } = {},
+  lang: Language = "en",
 ): string {
+  const cancel = t(lang, "dialog.cancel");
   return (
     `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: t(lang, "list.checksSave"), variant: o.variant ?? "primary", pending: t(lang, "list.checksSaving"), disabled: o.saveDisabled }) +
-    btn({ id: `${prefix}-cancel`, label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
+    btn({
+      id: `${prefix}-save`, label: o.save?.label ?? t(lang, "list.checksSave"), variant: o.variant ?? "primary",
+      pending: o.save ? o.save.pending : t(lang, "list.checksSaving"), disabled: o.saveDisabled,
+    }) +
+    (o.between ?? "") +
+    (o.closes ? btn({ label: cancel, form: o.closes }) : btn({ id: `${prefix}-cancel`, label: cancel, type: "button", disabled: true })) +
     `</span>`
   );
 }

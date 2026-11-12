@@ -1,15 +1,8 @@
-.execution-group-editor {
-  margin-bottom: var(--sp-3);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  background: var(--surface);
-}
-
-.execution-group-editor summary { font-weight: 600; }
-.execution-group-editor form { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: var(--sp-3); margin-top: var(--sp-3); }
-.execution-group-editor form > :is(ol, button) { grid-column: 1 / -1; }
-.execution-group-editor form > label { display: grid; gap: var(--sp-1); }
+/* The New group dialog's fields: Project and Name on one line, and under
+   them the specs a group can be made of, each with its place in the order. */
+.execution-group-editor { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: var(--sp-3); }
+.execution-group-editor > ol { grid-column: 1 / -1; }
+.execution-group-editor > label { display: grid; gap: var(--sp-1); }
 .execution-group-editor :is(input:not([type="checkbox"]), select) {
   box-sizing: border-box;
   width: 100%;
@@ -24,9 +17,8 @@
 .execution-group-editor ol { display: grid; gap: var(--sp-2); margin: 0; padding-left: var(--sp-5); }
 .execution-group-editor li { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: var(--sp-3); align-items: center; }
 .execution-group-editor li > label:first-child { min-width: 0; overflow-wrap: anywhere; }
-.execution-group-editor button { justify-self: end; }
 
 @media (max-width: 620px) {
-  .execution-group-editor form { grid-template-columns: minmax(0, 1fr); }
+  .execution-group-editor { grid-template-columns: minmax(0, 1fr); }
   .execution-group-editor li { grid-template-columns: 1fr; gap: var(--sp-1); }
 }

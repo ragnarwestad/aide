@@ -13,7 +13,7 @@ import { holdSpecDetail } from "../spec-detail";
 import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
 import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
 import { syncSpecGroups } from "../spec-groups";
-import { captureExecutionGroupEditors, restoreExecutionGroupEditors } from "../execution-groups/editor.ts";
+import { syncExecutionGroupEditors } from "../execution-groups/editor.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -425,11 +425,12 @@ export async function swapRows(): Promise<void> {
     // drew.
     if (press.pressGen !== gen) return;
     // A progress dialog open on a row — Reopen's, not yet answered, or
-    // kept open by a refusal — would go with the rows it sits in. Only
-    // that kind: Cancel's plain confirm relies on this redraw to go away
-    // after its OK. The
+    // kept open by a refusal — would go with the rows it sits in, and so
+    // would an open dialog that holds a form, with what was typed in it.
+    // Only those kinds: Cancel's plain confirm relies on this redraw to go
+    // away after its OK. The
     // next change once it is closed draws what this one would have.
-    if (body.querySelector("dialog[open][data-progress-dialog]")) return;
+    if (body.querySelector("dialog[open][data-progress-dialog], dialog.formdialog[open]")) return;
     // How far down the list is scrolled, kept across the
     // redraw the way `restoreChosen` keeps a reader's own picks. The
     // wholesale replace below builds `.tablewrap` afresh, and a new
@@ -455,11 +456,10 @@ export async function swapRows(): Promise<void> {
       : undefined;
     // The open spec is not in the answer: it is held across the replace.
     const restore = holdSpecDetail(body);
-    const editorDrafts = captureExecutionGroupEditors(body);
     const replacedAll = !next || !lastRows || !applyGroupDiff(lastRows, next);
     if (replacedAll) {
       body.innerHTML = html;
-      restoreExecutionGroupEditors(body, editorDrafts);
+      syncExecutionGroupEditors(body);
     }
     const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
     if (draft && nextSearch) {

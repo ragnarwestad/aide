@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { captureExecutionGroupEditors, changeExecutionGroupEditor, restoreExecutionGroupEditors, updateExecutionGroupEditor } from "../../../src/specs-client/execution-groups/editor.ts";
+import { executionGroupEditor, NEW_GROUP_DIALOG } from "../../../src/render/pages/jobs-page/execution-group-editor.ts";
+import { changeExecutionGroupEditor, closeExecutionGroupEditor, updateExecutionGroupEditor } from "../../../src/specs-client/execution-groups/editor.ts";
 
 test("filters by project and assigns consecutive saved order (AC-2, AC-4, AC-6)", () => {
   const window = new Window();
@@ -24,21 +25,27 @@ test("changing the name does not replace the order the user entered (AC-1, AC-2)
   expect(positions.map((input) => input.value)).toEqual(["2", "1"]);
 });
 
-test("a New group draft survives replacement and disables unselected order fields (AC-1, AC-6)", () => {
+test("a closed New group dialog is empty: no name, no tick, no order and no reason (AC-3)", () => {
   const window = new Window();
-  const markup = `<details open><form action="/api/queue/groups" data-execution-group-editor><select name="project"><option value="aide">aide</option></select><input name="name"><p data-group-project="aide"><input name="member" value="1-first" type="checkbox"><input name="position" type="number"></p><p data-group-project="aide"><input name="member" value="2-second" type="checkbox"><input name="position" type="number"></p></form></details>`;
-  window.document.write(`<div id="rows">${markup}</div>`);
-  const rows = window.document.querySelector("#rows")!;
-  const form = rows.querySelector("form") as unknown as HTMLFormElement;
-  (form.querySelector('input[name="name"]') as unknown as HTMLInputElement).value = "Release";
+  window.document.body.innerHTML = `<dialog id="other"></dialog>` + executionGroupEditor({
+    projects: ["aide"],
+    candidates: [{ project: "aide", specFolder: "1-first" }, { project: "aide", specFolder: "2-second" }],
+  });
+  const dialog = window.document.getElementById(NEW_GROUP_DIALOG) as unknown as HTMLDialogElement;
+  const form = dialog.querySelector("form[data-execution-group-editor]") as unknown as HTMLFormElement;
+  const name = form.querySelector('input[name="name"]') as unknown as HTMLInputElement;
   const members = [...form.querySelectorAll('input[name="member"]')] as unknown as HTMLInputElement[];
-  members[1]!.checked = true;
-  (form.querySelectorAll('input[name="position"]')[1] as unknown as HTMLInputElement).value = "1";
-  const draft = captureExecutionGroupEditors(rows as unknown as Element);
-  rows.innerHTML = markup;
-  restoreExecutionGroupEditors(rows as unknown as Element, draft);
-  const restored = rows.querySelector("form") as unknown as HTMLFormElement;
-  expect((restored.querySelector('input[name="name"]') as unknown as HTMLInputElement).value).toBe("Release");
-  expect([...restored.querySelectorAll<HTMLInputElement>('input[name="member"]')].map((input) => input.checked)).toEqual([false, true]);
-  expect([...restored.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => [input.value, input.disabled])).toEqual([["", true], ["1", false]]);
+  const reason = form.querySelector(".refused span")!;
+  name.value = "Release";
+  for (const member of members) member.checked = true;
+  updateExecutionGroupEditor(form);
+  reason.textContent = "An execution group needs at least two specs";
+
+  expect(closeExecutionGroupEditor({ target: window.document.getElementById("other") } as unknown as Event)).toBe(false);
+  expect(name.value).toBe("Release");
+  expect(closeExecutionGroupEditor({ target: dialog } as unknown as Event)).toBe(true);
+  expect(name.value).toBe("");
+  expect(members.map((member) => member.checked)).toEqual([false, false]);
+  expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => [input.value, input.disabled])).toEqual([["", true], ["", true]]);
+  expect(reason.textContent).toBe("");
 });

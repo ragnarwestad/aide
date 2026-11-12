@@ -11,6 +11,7 @@ import { read } from "./source.ts";
 
 const DIALOG = "src/render/ui/components/confirm-dialog.ts";
 const PROGRESS = "src/render/ui/components/progress-dialog.ts";
+const FORM_DIALOG = "src/render/ui/components/form-dialog.ts";
 const HOLD = "src/specs-client/progress-dialog/index.ts";
 
 const writing = (files: { file: string; text: string }[], needle: string): string[] =>
@@ -39,6 +40,15 @@ describe("one ask dialog, one opener", () => {
     expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([PROGRESS]);
     expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([PROGRESS]);
     expect(writing([...render, ...serve], "data-cover-note")).toEqual([PROGRESS]);
+  });
+
+  test("a dialog that holds a form is written by the form dialog alone (AC-1)", () => {
+    // The About box, the loading cover, the confirmation and the progress
+    // dialog hold no form's fields; every other dialog is the component's.
+    expect(writing(render, "<dialog")).toEqual(
+      ["src/render/ui/busy/nav-overlay.ts", "src/render/ui/shell.ts", DIALOG, FORM_DIALOG, PROGRESS].sort(),
+    );
+    expect(writing([...render, ...client, ...serve], `class="formdialog`)).toEqual([FORM_DIALOG]);
   });
 
   test("one script file opens every dialog from its button, and one asks again after a refusal", () => {

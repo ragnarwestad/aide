@@ -1,50 +1,13 @@
+// The New group dialog's form on the Jobs tab (`executionGroupEditor()` draws
+// it): the list of specs is kept to the chosen project, the ticked ones are
+// numbered in order, and a dialog that closes starts over empty.
+
+import { writeLine } from "../press.ts";
+
+const EDITOR = "form[data-execution-group-editor]";
+
 function rows(form: HTMLFormElement): HTMLElement[] {
   return [...form.querySelectorAll<HTMLElement>("[data-group-project]")];
-}
-
-interface ExecutionGroupDraft {
-  action: string;
-  open: boolean;
-  project?: string;
-  name?: string;
-  members: Map<string, { checked: boolean; position: string }>;
-}
-
-export function captureExecutionGroupEditors(root: Element): ExecutionGroupDraft[] {
-  return [...root.querySelectorAll<HTMLFormElement>("form[data-execution-group-editor]")].map((form) => ({
-    action: form.getAttribute("action") ?? "",
-    open: !!form.closest("details")?.hasAttribute("open"),
-    project: form.querySelector<HTMLSelectElement>('select[name="project"]')?.value,
-    name: form.querySelector<HTMLInputElement>('input[name="name"]')?.value,
-    members: new Map(rows(form).flatMap((row) => {
-      const member = row.querySelector<HTMLInputElement>('input[name="member"]');
-      const position = row.querySelector<HTMLInputElement>('input[name="position"]');
-      return member && position ? [[member.value, { checked: member.checked, position: position.value }]] : [];
-    })),
-  }));
-}
-
-export function restoreExecutionGroupEditors(root: Element, drafts: ExecutionGroupDraft[]): void {
-  for (const form of root.querySelectorAll<HTMLFormElement>("form[data-execution-group-editor]")) {
-    const draft = drafts.find((candidate) => candidate.action === (form.getAttribute("action") ?? ""));
-    const project = form.querySelector<HTMLSelectElement>('select[name="project"]');
-    const name = form.querySelector<HTMLInputElement>('input[name="name"]');
-    if (draft?.project !== undefined && project) project.value = draft.project;
-    if (draft?.name !== undefined && name) name.value = draft.name;
-    updateExecutionGroupEditor(form);
-    if (!draft) continue;
-    const details = form.closest("details") as HTMLDetailsElement | null;
-    if (details) details.open = draft.open;
-    for (const row of rows(form)) {
-      const member = row.querySelector<HTMLInputElement>('input[name="member"]');
-      const position = row.querySelector<HTMLInputElement>('input[name="position"]');
-      const saved = member ? draft.members.get(member.value) : undefined;
-      if (!member || !position || !saved || row.hidden) continue;
-      member.checked = saved.checked;
-      position.disabled = !saved.checked;
-      position.value = saved.checked ? saved.position : "";
-    }
-  }
 }
 
 export function updateExecutionGroupEditor(form: HTMLFormElement): void {
@@ -64,9 +27,27 @@ export function updateExecutionGroupEditor(form: HTMLFormElement): void {
 
 export function changeExecutionGroupEditor(event: Event): boolean {
   const target = event.target as HTMLInputElement | HTMLSelectElement | null;
-  const form = target?.closest?.("form[data-execution-group-editor]") as HTMLFormElement | null;
-  if (!form?.matches?.("form[data-execution-group-editor]")) return false;
+  const form = target?.closest?.(EDITOR) as HTMLFormElement | null;
+  if (!form?.matches?.(EDITOR)) return false;
   if (!["member", "project"].includes(target?.getAttribute("name") ?? "")) return true;
+  updateExecutionGroupEditor(form);
+  return true;
+}
+
+/** Every New group form under `root` brought in line with its own fields:
+ *  when the page is mounted, and after the rows it is drawn with are replaced. */
+export function syncExecutionGroupEditors(root: ParentNode): void {
+  for (const form of root.querySelectorAll<HTMLFormElement>(EDITOR)) updateExecutionGroupEditor(form);
+}
+
+/** A `close` event from the dialog that holds a New group form: the form is
+ *  emptied, its reason with it, so the dialog opens again as new. Says
+ *  whether the event was such a dialog's. */
+export function closeExecutionGroupEditor(event: Event): boolean {
+  const form = (event.target as Element | null)?.querySelector?.(EDITOR) as HTMLFormElement | null;
+  if (!form) return false;
+  form.reset();
+  writeLine(form.querySelector(".refused"), "");
   updateExecutionGroupEditor(form);
   return true;
 }

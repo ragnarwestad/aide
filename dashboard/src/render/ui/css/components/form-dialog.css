@@ -1,0 +1,13 @@
+/* --- The dialog that holds a form ------------------------------------- */
+
+/* Its box and backdrop, the posting form as one column, and the affirmative
+   and Cancel in one row. What a script has hidden in it stays hidden,
+   whatever its own display. */
+dialog.formdialog { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); width: min(36rem, calc(100vw - 2rem)); box-shadow: var(--overlay-shadow); }
+dialog.formdialog::backdrop { background: var(--backdrop); }
+.formdialog > form[method="post"] { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); }
+.formdialog h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
+.formdialog p { margin: 0; }
+.formdialog .factions { display: flex; gap: var(--sp-2); }
+.formdialog [hidden] { display: none; }
