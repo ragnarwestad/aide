@@ -127,4 +127,29 @@ describe("a group's job ending", () => {
     queue.transition(id, "step-succeeded-last");
     expect(queue.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
   });
+
+  test("keeps the group archiving from its archive job's start until the landing settles", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["archive"]);
+    expect(queue.executionGroups.get(group.id)?.state).toBe("archiving");
+    queue.transition(id, "step-succeeded-last");
+    expect(queue.executionGroups.get(group.id)?.state).toBe("archiving");
+    queue.executionGroups.archiveSettled(group.id, { prUrl: "https://example.test/pr/1" });
+    queue.update(id, { prUrl: "https://example.test/pr/1" });
+    expect(queue.executionGroups.get(group.id)?.state).toBe("completed");
+  });
+
+  test("leaves the group waiting for Archive again when its archive is held back", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["archive"]);
+    queue.transition(id, "step-succeeded-last");
+    expect(queue.executionGroups.archiveSettled(group.id, "held-back").state).toBe("waiting-acceptance");
+  });
+
+  test("stops the group when its archive job is cancelled", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["archive"]);
+    queue.transition(id, "cancel");
+    expect(queue.executionGroups.get(group.id)?.state).toBe("stopped");
+  });
 });

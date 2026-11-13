@@ -443,13 +443,18 @@ export class QueueStore {
     const jobs = [...group.jobs.filter((entry) => entry.id !== job.id), history];
     // A job that ends done or cancelled with nothing else of its group in
     // flight leaves the group idle; one that waits for Archive keeps waiting.
+    // The group's archive job keeps it archiving until its landing settles.
     const othersInFlight = [...this.jobs.values()].some((other) =>
       other.id !== job.id && other.executionGroupId === group.id && (other.state === "queued" || other.state === "running"));
-    const state = job.state === "running" ? "running"
-      : job.state === "queued" ? "queued"
-        : job.state === "stopped" || job.state === "failed" || job.state === "interrupted" ? "stopped"
-          : (group.state === "running" || group.state === "queued") && !othersInFlight ? "stopped"
-            : group.state;
+    const archive = job.steps.includes("archive");
+    const state = job.state === "stopped" || job.state === "failed" || job.state === "interrupted" ? "stopped"
+      : archive && (job.state === "queued" || job.state === "running") ? "archiving"
+        : job.state === "running" ? "running"
+          : job.state === "queued" ? "queued"
+            : archive && job.state === "done" && (group.state === "running" || group.state === "queued") ? "archiving"
+              : archive && job.state === "cancelled" && group.state === "archiving" ? "stopped"
+                : (group.state === "running" || group.state === "queued") && !othersInFlight ? "stopped"
+                : group.state;
     this.executionGroups.update(group.id, { jobs, state, currentMember: job.specFolder });
   }
 
