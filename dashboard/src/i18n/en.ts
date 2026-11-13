@@ -379,6 +379,8 @@ export const en = {
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Display name",
   "settings.providers.displayNameHelp": "What the board shows for this provider.",
+  "settings.providers.shortName": "Short name",
+  "settings.providers.shortNameHelp": "Two characters the pickers show beside the tool's icon. No two providers have the same.",
   "settings.providers.runtime": "Runtime",
   "settings.providers.binary": "Binary path",
   "settings.providers.binaryHelp": "Path to the {tool} program this provider runs. Leave empty to use the one on PATH.",

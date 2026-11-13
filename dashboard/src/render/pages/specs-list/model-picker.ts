@@ -1,6 +1,7 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state";
 import { aliasLabel, modelName } from "../../ui/components/model-label.ts";
+import { providerFace, providerPick } from "../../ui/components/icons.ts";
 import { t, type Language } from "../../../i18n";
 import type { SpecsPageOptions } from "./";
 import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
@@ -13,16 +14,17 @@ import {
   resolveChosenModel,
   resolveProvider,
   resolveRecordedModel,
+  shortOf,
+  type LineProvider,
   type PickerOptions,
 } from "./model-resolve.ts";
 import { type SidePart } from "../../../queue/providers/side-tools.ts";
-import { RUNNABLE_TOOLS } from "../../../queue/providers/tools.ts";
+import { RUNNABLE_TOOLS, asProviderTool } from "../../../queue/providers/tools.ts";
+import { shortNameFrom } from "../../../queue/providers/short-name.ts";
 
 export {
   SHORT_TOOL_NAMES,
   TOOL_NAMES,
-  compactModelLabel,
-  compactModelLabelFull,
   defaultModelForTool,
   offeredProviders,
   phaseAiModel,
@@ -33,7 +35,6 @@ export {
   type PickerOptions,
   type ProviderOption,
 } from "./model-resolve.ts";
-import { compactModelLabel, compactModelLabelFull } from "./model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase,
@@ -328,8 +329,14 @@ function pendingPick(
 // Each option carries the tool whose models it runs (`data-tool`, `claude`
 // for a stand-in), the model it fills in (`data-default`, worked out by
 // `defaultModelForTool` HERE rather than in the browser: which model a
-// provider stands for is a configuration fact) and the word the compact
-// button shows (`data-short`, the provider's name).
+// provider stands for is a configuration fact) and the short name the
+// face shows (`data-short`).
+//
+// A closed select shows only its chosen option's text, and an option holds
+// text only, so the select is wrapped with a face — the tool's mark and the
+// short name — laid over its own text (`providerPick`). The open list keeps
+// the full names, and the select's `title` and `aria-label` say the chosen
+// one's.
 //
 // `data-ai` names the model select this one writes — the same `name`
 // that select posts under. That plus the shared `form` id is the whole
@@ -381,25 +388,38 @@ export function aiPicker(
   // by another provider of the same tool.
   const gone = usedProvider !== undefined && !providers.some((p) => p.key === usedProvider);
   const resting = gone ? undefined : resolveProvider(opts, step, on, picks);
-  return (
+  const offered = offeredProviders(providers, resting?.key);
+  // What the closed select shows: the provider it is on, else the first it
+  // offers, which is the one a browser shows when none is selected. A
+  // removed provider is named by its key, on the tool its model runs.
+  const tool = gone ? asProviderTool(providerToolOf(models.find((m) => m.name === on)?.tool)) : undefined;
+  const shown = gone ? { name: usedProvider, short: shortNameFrom(usedProvider), tool } : (resting ?? offered[0]);
+  const select =
     `<select name="provider.${esc(step)}" data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Why it is locked, when it is, is said once for the whole phase
     // line now — not repeated on this select's own `title`.
     (locked ? " disabled" : "") +
+    titled(shown?.name) +
     `>` +
-    (gone ? `<option value="${esc(usedProvider)}" selected>${esc(usedProvider)}</option>` : "") +
-    offeredProviders(providers, resting?.key)
+    (gone
+      ? `<option value="${esc(usedProvider)}"${tool ? ` data-tool="${tool}"` : ""} data-short="${esc(shortNameFrom(usedProvider))}" selected>${esc(usedProvider)}</option>`
+      : "") +
+    offered
       .map(
         (p) =>
           `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
           ` data-default="${esc(defaultModelForTool(models, p.tool, configured) ?? "")}"` +
-          ` data-short="${esc(p.name)}"` +
+          ` data-short="${esc(shortOf(p))}"` +
           `${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
       )
       .join("") +
-    `</select>`
-  );
+    `</select>`;
+  return providerPick(select, shown?.tool, shown && shortOf(shown));
 }
+
+/** The chosen provider's full name, as the closed select's hover text and
+ *  accessible name. */
+const titled = (name: string | undefined): string => (name ? ` title="${esc(name)}" aria-label="${esc(name)}"` : "");
 
 export function sidePickers(
   g: SpecGroup,
@@ -419,10 +439,16 @@ export function sidePickers(
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
   const disabled = locked || !g.named ? " disabled" : "";
-  const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
-    offeredProviders(providers, resting?.key).map((p) =>
-      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
-    ).join("") + `</select>`;
+  const offered = offeredProviders(providers, resting?.key);
+  const shown = resting ?? offered[0];
+  const ai = providers.length === 0 || models.length === 0 ? "" : providerPick(
+    `<select name="provider.${part}" data-ai="model.${part}" form="${esc(runFormId(g))}"${disabled}${titled(shown?.name)}>` +
+    offered.map((p) =>
+      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"` +
+      ` data-short="${esc(shortOf(p))}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
+    ).join("") + `</select>`,
+    shown?.tool, shown && shortOf(shown),
+  );
   const model = `<select name="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
     `${modelOptions(pickerModels(models, chosen, ranModelId !== undefined, ranModelId), chosen, ranModelId)}</select>`;
   const tool = models.find((m) => m.name === chosen)?.tool ?? "claude";
@@ -432,32 +458,31 @@ export function sidePickers(
     ai,
     model,
     locked: !!disabled,
-    on: { model: chosen, tool, ...(resting ? { provider: resting.name } : {}) },
-    models,
+    on: { model: chosen, tool, ...(resting ? { provider: { name: resting.name, short: shortOf(resting) } } : {}) },
   });
 }
 
 /** A line's AI and model as one control: on a phone a button naming the
  *  choice that opens a panel holding the two selects, elsewhere the two
- *  selects side by side (`narrow.css` decides). A locked line draws the
- *  button unpressable, since its selects are a record, not a choice. */
+ *  selects side by side (`narrow.css` decides). The button leads with the
+ *  provider's face — its tool's mark and its short name — then the model,
+ *  and says the provider's full name in its `title`. A locked line draws
+ *  the button unpressable, since its selects are a record, not a choice. */
 export function compactAiModel(o: {
   id: string;
   lang: Language;
   ai: string;
   model: string;
   locked: boolean;
-  on: { model: string; tool: string; provider?: string } | undefined;
-  models: NonNullable<PickerOptions["modelChoices"]>;
+  on: { model: string; tool: string; provider?: LineProvider } | undefined;
 }): string {
-  // Two labels, always both drawn: which one shows is `narrow.css`'s
-  // 400-600px band's decision, not a runtime one.
-  const now = `<span class="aimodelshort">${esc(compactModelLabel(o.models, o.on))}</span>` +
-    `<span class="aimodelfull">${esc(compactModelLabelFull(o.models, o.on))}</span>`;
+  const now = (o.on ? providerFace(asProviderTool(providerToolOf(o.on.tool)), o.on.provider?.short) : "") +
+    `<span class="aimodelshort">${esc(o.on?.model ?? "")}</span>`;
+  const title = o.on ? ` title="${esc(o.on.provider ? `${o.on.provider.name} · ${o.on.model}` : o.on.model)}"` : "";
   const button = o.locked
-    ? `<span class="aimodelnow" aria-disabled="true">${now}</span>`
+    ? `<span class="aimodelnow" aria-disabled="true"${title}>${now}</span>`
     : `<input type="checkbox" class="aimodelopen" id="${esc(o.id)}">` +
-      `<label class="aimodelnow" for="${esc(o.id)}">${now}</label>`;
+      `<label class="aimodelnow" for="${esc(o.id)}"${title}>${now}</label>`;
   return (
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
     (o.ai ? `<label class="aimodelfield"><span>${t(o.lang, "list.captionAi")}</span>${o.ai}</label>` : "") +

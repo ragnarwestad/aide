@@ -132,7 +132,7 @@ describe("the display name and the ID", () => {
 
   test("a table keyed by IDs keeps entries whose names have spaces", () => {
     expect(parseProviders({ "claude-capra": { name: "Claude Capra", tool: "claude" } })).toEqual({
-      "claude-capra": { name: "Claude Capra", tool: "claude" },
+      "claude-capra": { name: "Claude Capra", short: "CC", tool: "claude" },
     });
   });
 

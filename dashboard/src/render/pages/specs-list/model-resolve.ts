@@ -3,8 +3,7 @@
 // theme so the reasoning and the markup that reads it are not one file.
 
 import type { SpecsPageOptions } from "./";
-import { compactModelLabels } from "../../../page-contract.ts";
-import { asRunnableTool } from "../../../queue/steps.ts";
+import { shortNameFrom } from "../../../queue/providers/short-name.ts";
 import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
@@ -96,15 +95,21 @@ export function defaultModelForTool(
 export const providerToolOf = (tool: string | undefined): string =>
   tool === undefined ? "claude" : (RUNNABLE_TOOLS as readonly string[]).includes(tool) ? providerFamily(tool as (typeof RUNNABLE_TOOLS)[number]) : tool;
 
-/** A provider as a picker offers it: its key (the value posted), its name
- *  and the tool whose models it runs. */
+/** A provider as a picker offers it: its key (the value posted), its name,
+ *  its short name and the tool whose models it runs. */
 export interface ProviderOption {
   key: string;
   name: string;
+  /** The two characters a closed picker shows; made from the name when a
+   *  table has none (`shortOf`). */
+  short?: string;
   tool: ProviderTool;
   /** Switched off in Settings → Providers. */
   off?: boolean;
 }
+
+/** The two characters a picker shows for a provider. */
+export const shortOf = (p: Pick<ProviderOption, "name" | "short">): string => p.short ?? shortNameFrom(p.name);
 
 /** The providers a picker shows: every one that is switched on, and a
  *  switched-off one only when it is `chosen`, so a choice already on it is
@@ -149,10 +154,18 @@ export type PickerOptions = Pick<
 
 export { SHORT_TOOL_NAMES, TOOL_NAMES };
 
-/** What one phase line is actually ON: the model, and the tool that
- *  model belongs to. The same two answers `modelPicker` and `aiPicker`
- *  work out for themselves, from the same helpers — read here so the
- *  compact button can say them without a third copy of the reasoning. */
+/** The provider a phase line is on, as its compact button names it: by
+ *  name, and by the short name its face shows. */
+export interface LineProvider {
+  name: string;
+  short: string;
+}
+
+/** What one phase line is actually ON: the model, the tool that model
+ *  belongs to and the provider. The same answers `modelPicker` and
+ *  `aiPicker` work out for themselves, from the same helpers — read here
+ *  so the compact button can say them without a third copy of the
+ *  reasoning. */
 export function phaseAiModel(
   g: SpecGroup,
   opts: PickerOptions,
@@ -164,7 +177,7 @@ export function phaseAiModel(
   usedTool?: string,
   /** The provider the phase's job, or its result, names. */
   usedProvider?: string,
-): { model: string; tool: string; provider?: string } | undefined {
+): { model: string; tool: string; provider?: LineProvider } | undefined {
   const models = opts.modelChoices ?? [];
   if (!models.length) return undefined;
   const archived = isArchivedRow(g);
@@ -181,46 +194,6 @@ export function phaseAiModel(
         opts, step, model,
         [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
       );
-  return { model, tool, ...(gone ? { provider: usedProvider } : provider ? { provider: provider.name } : {}) };
-}
-
-/** A tool's one-word name, or the word as it was written when the dashboard names no such tool. */
-const shortToolName = (tool: string): string => {
-  const known = asRunnableTool(tool);
-  return known ? SHORT_TOOL_NAMES[known] : tool;
-};
-
-/** The compact button's own text: the model's
- *  bare name, unless another entry in the SAME array carries that
- *  exact name — a tool prefix then goes in front, "Codex · gpt-6"
- *  (the description's own example). Written over the array
- *  `SpecsPageOptions.modelChoices` already is, not the config's
- *  `Record`, so a fixture built with two same-named entries exercises
- *  the tie-break directly; a real `queue-config.json` cannot produce
- *  one today, since the Record's own key IS the name
- *  (`ModelChoice`'s own comment) and a JS object cannot hold two
- *  identical keys. The shared contract applies the label rule after
- *  this server adapter supplies its plain values. */
-export function compactModelLabel(
-  models: NonNullable<SpecsPageOptions["modelChoices"]>,
-  on: { model: string; tool: string; provider?: string } | undefined,
-): string {
-  return compactModelLabels(
-    models.map((model) => model.name),
-    on ? { model: on.model, short: on.provider ?? shortToolName(on.tool) } : undefined,
-  ).short;
-}
-
-/** The FULL text the growing button shows once there is room for it
- *  always tool-prefixed, unlike `compactModelLabel()`'s
- *  own collision-only rule. Identical to `compactModelLabel()`'s own
- *  output whenever a collision already forces the prefix there. */
-export function compactModelLabelFull(
-  _models: NonNullable<SpecsPageOptions["modelChoices"]>,
-  on: { model: string; tool: string; provider?: string } | undefined,
-): string {
-  return compactModelLabels(
-    _models.map((model) => model.name),
-    on ? { model: on.model, short: on.provider ?? shortToolName(on.tool) } : undefined,
-  ).full;
+  const on = gone ? { name: usedProvider } : provider;
+  return { model, tool, ...(on ? { provider: { name: on.name, short: shortOf(on) } } : {}) };
 }

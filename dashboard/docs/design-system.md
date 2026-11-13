@@ -112,6 +112,9 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `askButton()`         | the button that names a dialog by `data-ask`; one listener on `body` opens any of them                                                |
 | `helpPopover()`       | a `details.intro` disclosure holding developer-authored help text                                                                     |
 | `backLink()`          | the link back out of a page, with the page's title beside it rather than below; `keep` on a page with tabs keeps it across tabs       |
+| `toolIcon()`          | a provider tool's mark: hidden from screen readers, or named on hover and read out when given a title                                 |
+| `providerFace()`      | a provider as a closed picker names it: its tool's mark and its two-character short name, hidden from screen readers                  |
+| `providerPick()`      | a provider select with its face laid over its own text; the select keeps its box, chevron, focus ring and open list                   |
 
 A badge says the state and nothing else: no reason, no count. Its icon comes from the word itself
 (`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running —
@@ -133,6 +136,12 @@ list, inside the link to the project's page, in `--tab-projects`.
 `STEP_LABELS` is re-exported from there and lives in `src/format/step-label.ts` — a step's technical name mapped to
 the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and three more), while `data-phase`, the
 checkbox `value`, the queue step and the skill all keep the technical name regardless.
+
+A provider picker shows the chosen provider by its face — the tool's mark and the short name — while its open list
+shows every provider's full name, and the select's hover text and accessible name are the chosen one's full name. The
+select's own text is transparent under the face (`providerpick`, `providerface`, `providershort`), and the browser
+draws the face again whenever the select's value changes. The phone's compact button for a phase line leads with the
+same face.
 
 The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs.
 

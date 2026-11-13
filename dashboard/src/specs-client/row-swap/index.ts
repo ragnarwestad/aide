@@ -4,7 +4,7 @@ import { openPhaseAttemptLogs, reopenPhaseAttemptLogs } from "./phase-attempt-lo
 
 import { drawLimits } from "../limits";
 import { applyRefusal } from "../row-refusal";
-import { offerEachToItsTool } from "../ai-sync.ts";
+import { offerEachToItsTool, paintProviderFace, refreshAiModelBox } from "../ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "../state.ts";
 import { syncApproachCancels } from "../approach-choice";
 import { syncDependsOnForms } from "../depends-on";
@@ -106,6 +106,7 @@ export function restoreChosen(body: Element): void {
     for (const option of provider.options) {
       if (option.value === want) provider.value = want;
     }
+    paintProviderFace(provider);
   }
   for (const el of body.querySelectorAll('select[name^="model."]')) {
     const model = el as HTMLSelectElement;
@@ -115,6 +116,7 @@ export function restoreChosen(body: Element): void {
       if (option.value === want) model.value = want;
     }
   }
+  for (const box of body.querySelectorAll(".aimodel")) refreshAiModelBox(box);
   for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));

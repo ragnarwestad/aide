@@ -1,0 +1,29 @@
+/* --- provider face ---------------------------------------------------- */
+
+/* A tool's mark: Claude Code's burst in the accent, Codex and OpenCode in
+   their own marks' colours, light and dark. No margin of its own: the
+   rows it sits in set the space around it. */
+.providericon { display: inline-flex; flex: none; width: 18px; height: 18px; color: var(--accent); }
+.providericon svg { width: 18px; height: 18px; }
+.providericon svg.mark-openai { color: var(--mark-openai); }
+.providericon svg.mark-opencode { color: var(--mark-opencode); }
+.providericon svg .mark-opencode-inner { fill: var(--mark-opencode-inner); }
+
+/* A provider as a closed picker names it: the mark and the two characters
+   of its short name, in the mono face a value is set in. */
+.providerface { display: inline-flex; align-items: center; gap: var(--sp-1); flex: none;
+  white-space: nowrap; }
+.providerface .providericon, .providerface .providericon svg { width: 14px; height: 14px; }
+.providershort { font-family: var(--mono), monospace; font-size: var(--fs-s); line-height: 1; }
+
+/* The provider select with the face laid over its own text. The select
+   keeps its box, chevron, focus ring and open list; only its text is
+   hidden, and the open list's options keep theirs. Every rule is under
+   .providerpick, so a provider select with no face keeps its text. */
+.providerpick { position: relative; display: inline-flex; flex: none; }
+.providerpick > .providerface { position: absolute; top: 0; bottom: 0; left: calc(var(--sp-2) + 1px);
+  color: var(--text); pointer-events: none; }
+.providerpick > select { color: transparent; -webkit-text-fill-color: transparent; }
+.providerpick > select option, .providerpick > select optgroup {
+  color: var(--text); -webkit-text-fill-color: var(--text); }
+.providerpick:has(> select:disabled) > .providerface { color: var(--muted); }

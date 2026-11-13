@@ -368,6 +368,8 @@ export const de: Record<TranslationKey, string> = {
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Anzeigename",
   "settings.providers.displayNameHelp": "Was das Dashboard für diesen Anbieter zeigt.",
+  "settings.providers.shortName": "Kurzname",
+  "settings.providers.shortNameHelp": "Zwei Zeichen, die die Auswahlfelder neben dem Symbol des Werkzeugs zeigen. Zwei Anbieter haben nie denselben.",
   "settings.providers.runtime": "Laufzeit",
   "settings.providers.binary": "Binärpfad",
   "settings.providers.binaryHelp": "Pfad zum {tool}-Programm, das dieser Anbieter ausführt. Leer lassen, um das aus PATH zu verwenden.",

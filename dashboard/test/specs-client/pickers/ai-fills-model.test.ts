@@ -6,7 +6,10 @@ import {
   flush,
 } from "../fixtures.ts";
 import { Window } from "happy-dom";
-import { offerEachToItsTool } from "../../../src/specs-client/ai-sync.ts";
+import { applyAiPick, offerEachToItsTool, refreshAiModelBox } from "../../../src/specs-client/ai-sync.ts";
+import { restoreChosen } from "../../../src/specs-client/row-swap/index.ts";
+import { chosen, selectKey } from "../../../src/specs-client/state.ts";
+import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
 
 test.each(["review", "verify"])("%s offers its own tool's models independently of Implement", (part) => {
   const window = new Window();
@@ -273,4 +276,83 @@ describe("a non-live pick posts itself to the spec-scoped route", () => {
       );
     });
   }
+});
+
+// --- The closed provider picker's face follows the select ----------
+
+// The face (the tool's icon and the short name) lies over the select's own
+// text, so whatever sets the select's value redraws it: a pick, and the
+// redraw that puts a hand-made pick back.
+describe("the closed provider picker's face", () => {
+  const face = (tool: "claude" | "codex", short: string) =>
+    `<span class="providerface" aria-hidden="true"><span class="providericon" aria-hidden="true">${TOOL_ICONS[tool]}</span>` +
+    `<span class="providershort">${short}</span></span>`;
+  const picker = (withFace = true) =>
+    `<span class="aimodel"><label class="aimodelnow" for="b" title="Claude Personal · sonnet">${face("claude", "CP")}<span class="aimodelshort">sonnet</span></label>` +
+    `<span class="aimodelpanel">` +
+    (withFace ? `<span class="providerpick">${face("claude", "CP")}` : "") +
+    `<select name="provider.analyze" data-ai="model.analyze" form="f" title="Claude Personal" aria-label="Claude Personal">` +
+    `<option value="personal" data-tool="claude" data-default="sonnet" data-short="CP" selected>Claude Personal</option>` +
+    `<option value="codex" data-tool="codex" data-default="codex-fast" data-short="CO">Codex Pro</option></select>` +
+    (withFace ? `</span>` : "") +
+    `<select name="model.analyze" form="f"><option value="sonnet" data-tool="claude" selected>sonnet</option>` +
+    `<option value="codex-fast" data-tool="codex">codex-fast</option></select></span></span>`;
+
+  const page = (withFace = true) => {
+    const window = new Window();
+    window.document.body.innerHTML = picker(withFace);
+    const doc = window.document as unknown as Document;
+    const before = globalThis.document;
+    globalThis.document = doc;
+    const ai = doc.querySelector("select[data-ai]") as HTMLSelectElement;
+    return { doc, ai, done: () => { globalThis.document = before; chosen.clear(); } };
+  };
+  const pickFace = (doc: Document) => doc.querySelector(".providerpick .providerface")?.innerHTML ?? "";
+
+  test("a pick redraws the face with the chosen provider's icon and short name, and its full name as title and accessible name (AC-5, AC-7)", () => {
+    const { doc, ai, done } = page();
+    try {
+      ai.value = "codex";
+      applyAiPick(ai);
+      expect(pickFace(doc)).toContain(TOOL_ICONS.codex);
+      expect(pickFace(doc)).toContain(">CO<");
+      expect(ai.getAttribute("title")).toBe("Codex Pro");
+      expect(ai.getAttribute("aria-label")).toBe("Codex Pro");
+    } finally { done(); }
+  });
+
+  test("a redraw that puts a hand-made pick back redraws the face too (AC-5)", () => {
+    const { doc, ai, done } = page();
+    try {
+      chosen.set(selectKey(ai), "codex");
+      restoreChosen(doc.body as unknown as Element);
+      expect(ai.value).toBe("codex");
+      expect(pickFace(doc)).toContain(">CO<");
+      expect(pickFace(doc)).toContain(TOOL_ICONS.codex);
+      expect(doc.querySelector(".aimodelnow .providershort")?.textContent).toBe("CO");
+    } finally { done(); }
+  });
+
+  test("the compact button follows a pick: the provider's icon and short name, the model, the full name in its title (AC-8)", () => {
+    const { doc, ai, done } = page();
+    try {
+      ai.value = "codex";
+      applyAiPick(ai);
+      refreshAiModelBox(doc.querySelector(".aimodel")!);
+      const button = doc.querySelector(".aimodelnow")!;
+      expect(button.querySelector(".providerface")?.innerHTML).toContain(TOOL_ICONS.codex);
+      expect(button.querySelector(".providershort")?.textContent).toBe("CO");
+      expect(button.querySelector(".aimodelshort")?.textContent).toBe("codex-fast");
+      expect(button.getAttribute("title")).toBe("Codex Pro · codex-fast");
+    } finally { done(); }
+  });
+
+  test("a provider select with no face is left as it is", () => {
+    const { ai, done } = page(false);
+    try {
+      ai.value = "codex";
+      applyAiPick(ai);
+      expect(ai.getAttribute("title")).toBe("Claude Personal");
+    } finally { done(); }
+  });
 });

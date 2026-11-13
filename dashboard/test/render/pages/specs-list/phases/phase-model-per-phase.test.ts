@@ -11,6 +11,7 @@ import {
   row,
   openKeys,
 } from "../../fixtures.ts";
+import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
 
 // --- One picker per phase, AI and model together -------------------
 //
@@ -85,6 +86,17 @@ describe("one picker per phase", () => {
     expect(review).not.toContain('<option value="">');
     expect(verify).not.toContain('<option value="">');
     expect(review).not.toContain("hidden disabled");
+  });
+
+  test("Review and Verify's closed provider picker shows its provider's tool icon and short name, the full name as its title (AC-5)", () => {
+    const html = rows([], { pendingModels: { "aide/169-one-picker": { review: "gpt-fast" } } });
+    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const picker = review.match(/<span class="providerpick">[\s\S]*?<\/select><\/span>/)?.[0] ?? "";
+    const face = picker.slice(0, picker.indexOf("<select"));
+    expect(face).toContain(TOOL_ICONS.codex);
+    expect(face).toContain(">CO<");
+    expect(picker).toMatch(/<select[^>]* title="Codex"/);
+    expect(picker).toMatch(/<option value="Codex"[^>]*data-short="CO"/);
   });
 
   test("Review and Verify show the first listed model when the configured default is not listed (AC-3)", () => {

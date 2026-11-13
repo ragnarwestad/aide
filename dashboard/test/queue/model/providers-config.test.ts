@@ -37,9 +37,9 @@ describe("reading the providers", () => {
       },
     });
     expect(merged.providers).toEqual({
-      Capra: { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" },
-      Personal: { name: "Codex-personal", tool: "codex", codexHome: "~/.codex-main", shadowHome: "~/.codex-p" },
-      Oc: { name: "OpenCode", tool: "opencode" },
+      Capra: { name: "Claude-Capra", short: "CL", tool: "claude", configDir: "~/.claude-capra" },
+      Personal: { name: "Codex-personal", short: "CO", tool: "codex", codexHome: "~/.codex-main", shadowHome: "~/.codex-p" },
+      Oc: { name: "OpenCode", short: "OP", tool: "opencode" },
     });
   });
 
@@ -62,7 +62,7 @@ describe("reading the providers", () => {
     const withBuiltIn = mergeQueueDefaults(QUEUE_DEFAULTS, { providers: { x: { tool: "nope" } } });
     expect(Object.keys(withBuiltIn.providers ?? {})).toEqual(["Claude", "Codex", "OpenCode"]);
     const merged = mergeQueueDefaults(BASE, { providers: { Default: { name: "Default", tool: "claude" } } });
-    expect(merged.providers).toEqual({ Default: { name: "Default", tool: "claude" } });
+    expect(merged.providers).toEqual({ Default: { name: "Default", short: "DE", tool: "claude" } });
   });
 
   test("the phase defaults per step are read like the models, strings only, and a `default` entry is left out (AC-23)", () => {
@@ -73,6 +73,19 @@ describe("reading the providers", () => {
   test("the board's built-in defaults carry a provider for each tool and no phase default (AC-23)", () => {
     expect(Object.values(QUEUE_DEFAULTS.providers ?? {}).map((p) => p.tool)).toEqual(["claude", "codex", "opencode"]);
     expect(QUEUE_DEFAULTS.provider).toBeUndefined();
+  });
+
+  test("a stored table and the built-in one come out with a short name on every provider (AC-2)", () => {
+    const merged = mergeQueueDefaults(BASE, {
+      providers: {
+        Personal: { name: "Claude Personal", tool: "claude" },
+        Mine: { name: "Mine", short: "CP", tool: "claude", configDir: "~/.claude-2" },
+        Bad: { name: "Claude Bad", short: "toolong", tool: "claude", configDir: "~/.claude-3" },
+      },
+    });
+    expect(Object.values(merged.providers ?? {}).map((p) => p.short)).toEqual(["C2", "CP", "CB"]);
+    const builtIn = mergeQueueDefaults(QUEUE_DEFAULTS, {});
+    expect(Object.values(builtIn.providers ?? {}).map((p) => p.short)).toEqual(["CL", "CO", "OP"]);
   });
 
   test("a providers table with no entry stays empty, and one whose entries are all invalid keeps the built-in three (AC-22)", () => {

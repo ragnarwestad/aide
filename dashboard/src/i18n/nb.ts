@@ -371,6 +371,8 @@ export const nb: Record<TranslationKey, string> = {
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Visningsnavn",
   "settings.providers.displayNameHelp": "Det dashbordet viser for denne provideren.",
+  "settings.providers.shortName": "Kortnavn",
+  "settings.providers.shortNameHelp": "To tegn velgerne viser ved siden av verktøyets ikon. To providere kan ikke ha det samme.",
   "settings.providers.runtime": "Kjøring",
   "settings.providers.binary": "Programsti",
   "settings.providers.binaryHelp": "Stien til {tool}-programmet denne provideren kjører. La den stå tom for å bruke den på PATH.",

@@ -271,17 +271,16 @@
     text-overflow: ellipsis; cursor: pointer; }
     table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
     background: var(--surface-2); cursor: default; }
-  /* Two candidate strings live in the button at once; which
-     one shows is this band's own choice, below, and the 400-600px block
-     narrows it again. Each gets its own overflow handling — the parent's
-     `overflow: hidden` above does not reliably clip a block-level
-     child's own text, only a direct text node — or an edge-case-long
-     combination would run past the button's edge instead of trimming. */
-  table.list tr.subrow .aimodelshort,
-  table.list tr.subrow .aimodelfull {
+  /* The provider's face leads and never shrinks; the model after it is
+     clipped to what is left — none of it below 27.5rem, where the button
+     holds the face alone. Its own overflow handling, since the parent's
+     `overflow: hidden` above does not reliably clip a block-level child's
+     own text, only a direct text node. */
+  table.list tr.subrow .aimodelnow { gap: var(--sp-1); padding: 0 var(--sp-1) 0 var(--sp-2); }
+  table.list tr.subrow .aimodelnow .providerface { gap: 2px; }
+  table.list tr.subrow .aimodelshort {
     display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
   }
-  table.list tr.subrow .aimodelfull { display: none; }
     table.list tr.subrow .aimodelpanel { display: none; position: absolute; top: 0; left: 0;
     z-index: 20; flex-direction: column; gap: var(--sp-2); min-width: 13rem;
     padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong);
@@ -290,6 +289,7 @@
     table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
     table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
     table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
+    table.list tr.subrow .aimodelpanel .providerpick { display: flex; }
 
   /* The caption line's own AI/Model merge: one word, "AI",
      heads the button's whole width, since the button is one control for
@@ -310,8 +310,8 @@
 }
 
 /* The growing step: once there is enough of the
-   line left to widen the button, it shows the tool ahead of the model
-   ("Claude · Sonnet") instead of the model alone. Measured with a
+   line left to widen the button, it has room for the model after the
+   provider's face ("CP sonnet") instead of the face alone. Measured with a
    headless browser, walking pixel by pixel with this project's own
    configured tool/model names (both a single-tool and a two-tool
    fixture): at 8rem, the button wraps Time onto a second line up to
@@ -326,8 +326,6 @@
    and the full button no longer shared the line. */
 @media (min-width: 27.5rem) and (max-width: 37.5rem) {
   table.list { --aimodel-w: 8rem; }
-  table.list tr.subrow .aimodelshort { display: none; }
-  table.list tr.subrow .aimodelfull { display: block; }
 }
 
 @media (max-width: 34rem) {

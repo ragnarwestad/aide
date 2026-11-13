@@ -5,6 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { providerLoginState, providerRows, providerStatusLines, selectedProviderKey, type ProviderStatus } from "../../../src/render/pages/settings-page/providers.ts";
 import type { ExtraCheck } from "../../../src/render/pages/settings-page/tools.ts";
+import { providerDetail } from "../../../src/render/pages/settings-page/provider-detail.ts";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 
 const CLAUDE: Provider = { name: "Claude-2", tool: "claude", configDir: "~/.claude-2" };
@@ -111,5 +112,20 @@ describe("which provider the tab shows", () => {
     expect(selectedProviderKey(providers, "Gone")).toBe("Claude");
     expect(selectedProviderKey(providers, null)).toBe("Claude");
     expect(selectedProviderKey(undefined, "Codex")).toBeUndefined();
+  });
+});
+
+describe("a provider's short name on the Providers tab", () => {
+  const providers: Record<string, Provider> = { Personal: { name: "Claude Personal", short: "CP", tool: "claude" } };
+
+  test("its row carries the short name, and its Config form posts it under short (AC-3)", () => {
+    expect(providerRows(providers)[0]?.short).toBe("CP");
+    const form = providerDetail({ key: "Personal", provider: providers.Personal! }, 0, "en");
+    expect(form).toMatch(/<input id="provider-short" name="short" type="text" value="CP"/);
+  });
+
+  test("a provider read without a short name has its form filled with one made from its name, so a save does not post an empty one (AC-3)", () => {
+    const form = providerDetail({ key: "Claude", provider: { name: "Claude", tool: "claude" } }, 0, "en");
+    expect(form).toMatch(/<input id="provider-short" name="short" type="text" value="CL"/);
   });
 });

@@ -88,6 +88,8 @@ export function providerLoginState(status: ProviderStatus | undefined): Provider
 export interface ProviderRow {
   key: string;
   name: string;
+  /** The two characters the pickers show for it. */
+  short?: string;
   tool: ProviderTool;
   /** The tool's own name, as the tab shows it. */
   toolName: string;
@@ -119,6 +121,7 @@ export function providerRows(
     return {
       key,
       name: p.name,
+      ...(p.short ? { short: p.short } : {}),
       tool: p.tool,
       toolName: TOOL_NAMES[p.tool] ?? p.tool,
       ...(version ? { version } : {}),

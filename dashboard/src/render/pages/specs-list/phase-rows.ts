@@ -363,6 +363,5 @@ function aiModel(
     model,
     locked,
     on: phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider),
-    models: opts.modelChoices ?? [],
   });
 }

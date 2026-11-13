@@ -11,6 +11,7 @@ import {
   row,
   openKeys,
 } from "../../fixtures.ts";
+import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
 
 // --- An AI and a model on every phase line -------------------------
 //
@@ -156,5 +157,42 @@ describe("an AI and a model on every phase line", () => {
     expect(select).not.toMatch(/<option value="Claude"[^>]*selected/);
   });
 
-  // --- Nothing new is posted ---------------------------------
+  // --- The closed picker: the tool's icon and the short name -------
+
+  /** The picker a phase line draws: the face and the select it lies over. */
+  const pick = (html: string, step: string) =>
+    html.match(new RegExp(`<span class="providerpick">(?:(?!<span class="providerpick">)[\\s\\S])*?data-ai="model\\.${step}"[\\s\\S]*?</select></span>`))?.[0] ?? "";
+  const face = (picker: string) => picker.slice(0, picker.indexOf("<select"));
+
+  test("the closed picker shows the chosen provider's tool icon and short name, every option keeping its full name (AC-5, AC-6)", () => {
+    const PERSONAL = { key: "personal", name: "Claude Personal", short: "CP", tool: "claude" as const };
+    const html = rows([], { modelChoices: BOTH, providerChoices: [PERSONAL, { ...CODEX, short: "CO" }] });
+    for (const step of STEPS) {
+      const picker = pick(html, step);
+      expect([step, face(picker).includes(TOOL_ICONS.claude)]).toEqual([step, true]);
+      expect([step, face(picker).includes(">CP<")]).toEqual([step, true]);
+      expect([step, face(picker).includes("Claude Personal")]).toEqual([step, false]);
+    }
+    const select = aiSelect(html, "analyze");
+    expect(select).toMatch(/<option value="personal" data-tool="claude"[^>]*data-short="CP"[^>]*>Claude Personal</);
+    expect(select).toMatch(/<option value="Codex" data-tool="codex"[^>]*data-short="CO"[^>]*>Codex</);
+  });
+
+  test("a provider with no short name is shown by one made from its name (AC-5)", () => {
+    expect(face(pick(rows(), "analyze"))).toContain(">CL<");
+  });
+
+  test("a removed provider the step ran on is shown by its key's letters and the icon of the tool its model runs on (AC-5)", () => {
+    const list = [row({ specFolder: "179-ai-per-phase", state: "done", model: "gpt-fast", stepProviders: { analyze: "removed-one" } })];
+    const picker = pick(rows(list), "analyze");
+    expect(face(picker)).toContain(">RE<");
+    expect(face(picker)).toContain(TOOL_ICONS.codex);
+  });
+
+  test("the closed picker carries the chosen provider's full name as its hover text and accessible name (AC-7)", () => {
+    const PERSONAL = { key: "personal", name: "Claude Personal", short: "CP", tool: "claude" as const };
+    const select = aiSelect(rows([], { providerChoices: [PERSONAL, CODEX] }), "analyze");
+    expect(select).toMatch(/^<select[^>]* title="Claude Personal"/);
+    expect(select).toMatch(/^<select[^>]* aria-label="Claude Personal"/);
+  });
 });

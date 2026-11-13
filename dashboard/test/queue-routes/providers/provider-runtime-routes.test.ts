@@ -124,7 +124,7 @@ describe("the on/off switch", () => {
     await post(base, EDIT, { key: "Codex", name: "Codex 2" });
     expect(queueDefaults.providers?.Codex?.enabled).toBe(false);
     expect((await post(base, SWITCH, { key: "Codex", enabled: "true" })).status).toBe(200);
-    expect(providersIn(file)?.Codex).toEqual({ name: "Codex 2", tool: "codex" });
+    expect(providersIn(file)?.Codex).toEqual({ name: "Codex 2", short: "CO", tool: "codex" });
   });
 
   test("an unknown provider is refused", async () => {

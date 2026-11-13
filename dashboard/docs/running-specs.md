@@ -608,11 +608,23 @@ A provider is one named AI login: a tool (Claude Code, Codex or OpenCode) and th
 Every AI choice on the board lists providers by name ("Claude", "Claude-Capra", "Codex"), with the model choice under
 the provider.
 
+- **The short name.** Every provider has a short name of two characters. A new provider gets one made from its name:
+  the first letters of its first two words ("Claude Personal" → CP), or the first two letters of a one-word name
+  ("Codex" → CO), in capitals. When another provider already has those letters, a digit takes the second character's
+  place, from 2 to 9 and then 0 and 1 ("C2"). A provider saved without one gets one made the same way each time the
+  settings are read, after every saved short name has kept its own, and it is written the first time the provider is
+  saved. No two providers have the same short name, in any case.
+- **What a picker shows.** A closed provider picker, on the phase lines of the Specs list and the Jobs tab, on the
+  Review and Verify lines and on the New spec page, shows the provider's tool icon and short name; its open list shows
+  every provider's full name, and the full name is shown when the pointer rests on it. The phone's compact button for
+  a line leads with the same icon and short name, with the model after it where the button has room. The selects on
+  Settings → Models per phase and the schedule form show the full name.
+
 - **One row of tabs.** Settings has four tabs on one row: Models per phase, Providers, Process and Notifications. A
   link that names the AI tab the row once had (`?tab=ai`) opens Models per phase, and one that names a tool tab
   (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under Settings.
 - **The list.** The Providers tab shows the providers in a list, with the chosen provider beside it (under it on a
-  narrow screen). Each row has the tool's icon, the name, the tool's version, the login and the plan (Claude Code's
+  narrow screen). Each row has the tool's icon, the name, the short name, the tool's version, the login and the plan (Claude Code's
   subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
   provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
   that provider in place, without loading the page again (as do the tabs of its page and Check again); the address
@@ -633,7 +645,7 @@ the provider.
   it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
   to the Providers tab.
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
-  four tabs. Config has one form with the display name and the runtime fields, with Save and Cancel; Usage has the
+  four tabs. Config has one form with the display name, the short name and the runtime fields, with Save and Cancel; Usage has the
   login (see Status) and the usage; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
   form's own line and leaves every field as it was typed; Cancel puts back what was saved. Renaming a provider updates
   nothing else: phase defaults, schedule entries and jobs store the provider's key. The old address of a provider's

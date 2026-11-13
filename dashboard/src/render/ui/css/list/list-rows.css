@@ -121,8 +121,11 @@ table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem;
    words running together at the left edge of the cell. Same numbers as
    the controls themselves, one line apart, because a caption that
    drifts from its control is worse than no caption. */
+/* The AI select shows a provider's face, its tool's mark and two
+   characters, so it and its caption take the width those and the chevron
+   need rather than a full name's. */
 table.list tr.subrow .modelcell > .row > [data-cap="ai"],
-table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
+table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 4.75rem; max-width: 4.75rem; }
 table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 8rem; max-width: 8rem; }
 /* The two selects sit in ONE wrapper (`.aimodel`) with nothing between
    them, so a caption line with the row's own 8px between every caption

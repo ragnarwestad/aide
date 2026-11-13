@@ -3,6 +3,7 @@
 import { availableParallelism } from "node:os";
 import { DESCRIPTION_MAX, TITLE_MAX } from "../../queue/parse-request.ts";
 import type { QueueDefaults } from "../../queue/queue.ts";
+import { withShortNames } from "../../queue/providers/short-name.ts";
 import type { ProcessSettings } from "../../render/pages/settings-page/process.ts";
 import { WORKFLOW_STEP_RECORDS } from "../../workflow-steps.ts";
 
@@ -45,12 +46,13 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // Every step runs on Claude Code's Opus until Settings saves another
   // choice for it.
   model: { default: "opus" },
-  // One provider for each tool, each on that tool's normal login.
-  providers: {
+  // One provider for each tool, each on that tool's normal login, with the
+  // short names a stored table would be given.
+  providers: withShortNames({
     Claude: { name: "Claude", tool: "claude" },
     Codex: { name: "Codex", tool: "codex" },
     OpenCode: { name: "OpenCode", tool: "opencode" },
-  },
+  }),
 };
 
 /** One repo, one merge at a time. Pressing Merge on two specs a few

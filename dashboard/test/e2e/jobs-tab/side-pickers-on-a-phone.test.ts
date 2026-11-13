@@ -22,6 +22,7 @@ beforeAll(async () => {
     permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
     modelChoices: { sonnet: {}, fable: {} },
+    providers: { Personal: { name: "Claude Personal", short: "CP", tool: "claude" as const } },
   };
   const implemented = {
     id: "impl1", project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"], stepIndex: 0, state: "done",
@@ -45,5 +46,23 @@ for (const part of ["review", "verify"]) {
     expect(await model.isVisible()).toBe(false);
     await page.click(`${line} label.aimodelnow`);
     expect(await model.isVisible()).toBe(true);
+  });
+}
+
+for (const width of [390, 500]) {
+  test(`at ${width}px each line's button shows its provider's short name (AC-8)`, async () => {
+    await page.setViewportSize({ width, height: 844 });
+    try {
+      await withBrowser(page.goto(`${base}/?open=aide/81-queue-and-runner&live=0`), "page.goto(Jobs)");
+      await page.waitForSelector('tr.subrow[data-side="review"]');
+      const shorts = page.locator("label.aimodelnow .providershort");
+      expect(await shorts.count()).toBeGreaterThan(2);
+      for (const short of await shorts.all()) {
+        expect(await short.isVisible()).toBe(true);
+        expect(await short.textContent()).toBe("CP");
+      }
+    } finally {
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
   });
 }

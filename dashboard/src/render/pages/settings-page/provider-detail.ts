@@ -5,7 +5,8 @@
 // for them before it answered.
 
 import { esc } from "../../ui/html.ts";
-import { askButton, confirmDialog, messageSlot, saveCancelActions, TOOL_ICONS } from "../../ui/components";
+import { shortNameFrom } from "../../../queue/providers/short-name.ts";
+import { askButton, confirmDialog, messageSlot, saveCancelActions, toolIcon } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { providerFields, type Provider, type ProviderField, type ProviderTool } from "../../../queue/providers/index.ts";
@@ -106,7 +107,7 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
   const { key, provider } = o;
   const version = versionNumber(o.status?.version);
   const head =
-    `<div class="providerdetailhead"><span class="providericon" title="${esc(TOOL_NAMES[provider.tool] ?? provider.tool)}">${TOOL_ICONS[provider.tool]}</span>` +
+    `<div class="providerdetailhead">${toolIcon(provider.tool, TOOL_NAMES[provider.tool] ?? provider.tool)}` +
     `<h3>${esc(provider.name)}</h3>` +
     (version ? `<span class="providerversion">${esc(version)}</span>` : "") +
     removeControl(key, provider.name, lang) +
@@ -124,6 +125,10 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
     fieldRow({
       id: "provider-name", name: "name", label: t(lang, "settings.providers.displayName"),
       help: t(lang, "settings.providers.displayNameHelp"), value: provider.name, extra: ` maxlength="64"`,
+    }) +
+    fieldRow({
+      id: "provider-short", name: "short", label: t(lang, "settings.providers.shortName"),
+      help: t(lang, "settings.providers.shortNameHelp"), value: provider.short ?? shortNameFrom(provider.name), extra: ` maxlength="2"`,
     }) +
     `<h4>${esc(t(lang, "settings.providers.runtime"))}</h4>` +
     runtimeRows(provider.tool, provider, lang) +

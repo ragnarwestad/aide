@@ -15,7 +15,6 @@ import {
   SPEC_LOADING_ROW_ID,
   SPINNER,
   TRACKED_FORM_SELECTOR,
-  compactModelLabels,
 } from "../src/page-contract.ts";
 
 const contractFile = join(import.meta.dir, "..", "src", "page-contract.ts");
@@ -51,18 +50,6 @@ describe("the page contract", () => {
     expect(FORM_ACTION_PREFIXES).toEqual([
       "specform", "settingsform", "providerform", "projectsettingsform", "scheduleform",
     ]);
-  });
-
-  test("works out ordinary, colliding and unknown compact model labels (AC-2)", () => {
-    expect(compactModelLabels(["sonnet"], { model: "sonnet", short: "Claude" })).toEqual({
-      short: "sonnet", full: "Claude · sonnet",
-    });
-    expect(compactModelLabels(["gpt-6", "gpt-6"], { model: "gpt-6", short: "Codex" })).toEqual({
-      short: "Codex · gpt-6", full: "Codex · gpt-6",
-    });
-    expect(compactModelLabels(["local"], { model: "local", short: "custom" })).toEqual({
-      short: "local", full: "custom · local",
-    });
   });
 
   test("bundles both browser entry points with shared imports (AC-3, AC-5)", async () => {

@@ -16,12 +16,8 @@
 .provideritem { display: flex; align-items: flex-start; gap: var(--sp-3); flex: 1; min-width: 0;
   padding: var(--sp-3); color: var(--text); }
 .provideritem:hover { text-decoration: none; background: var(--surface-2); }
-.providericon { display: inline-flex; flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--accent); }
-.providericon svg { width: 18px; height: 18px; }
-/* Codex and OpenCode in their own marks' colours, light and dark. */
-.providericon svg.mark-openai { color: var(--mark-openai); }
-.providericon svg.mark-opencode { color: var(--mark-opencode); }
-.providericon svg .mark-opencode-inner { fill: var(--mark-opencode-inner); }
+/* The tool's mark sits on the first line of the text beside it. */
+.provideritem > .providericon, .providerdetailhead > .providericon, .toolcard > .providericon { margin-top: 2px; }
 .providertext { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .providername { overflow-wrap: anywhere; }
 .providerversion { color: var(--muted); font-family: var(--mono); font-size: var(--fs-s); }

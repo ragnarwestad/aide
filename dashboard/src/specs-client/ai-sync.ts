@@ -4,7 +4,7 @@
 import { postPendingModel } from "./pending-model.ts";
 import { postTailModel } from "./tail-actions.ts";
 import { chosen, selectKey } from "./state.ts";
-import { compactModelLabels } from "../page-contract.ts";
+import { TOOL_ICONS, toolIcon } from "../page-contract.ts";
 
 // The AI picked on ONE phase line, written into that line's own model
 // select. One phase, never the row: the control it replaced
@@ -77,6 +77,7 @@ export function offerOnly(model: HTMLSelectElement, tool: string): void {
 // record the five-second swap would put the server's markup back over the
 // phase, with a press afterwards starting the step on a model nobody chose.
 export function applyAiPick(select: HTMLSelectElement): void {
+  paintProviderFace(select);
   const form = select.getAttribute("form");
   const name = select.getAttribute("data-ai");
   const option = select.selectedOptions[0];
@@ -114,44 +115,49 @@ export function applyAiPick(select: HTMLSelectElement): void {
   if (step) void postPendingModel(model, step, model.value, select.value);
 }
 
-/** The compact picker's own box, kept saying what the line is ON (the pair shown on
- *  narrow screens). The two selects inside it are the
- *  truth; this is the text over them, and a pick that left it stale
- *  would have the reader looking at "sonnet" over a Codex model until
- *  the next redraw.
- *
- *  Two spans, mirroring the server's own two candidate strings:
- *  `.aimodelshort` the bare model name, unless another
- *  CONFIGURED entry shares it — the same rule the server's
- *  `compactModelLabel()` applies — and `.aimodelfull` always tool-
- *  prefixed, the same rule as `compactModelLabelFull()`
- *  (`render/pages/specs-list/model-resolve.ts`). The two run in separate
- *  bundles with no shared module, so both must be kept applying the same
- *  rule by hand. Every configured model is an `<option data-tool>` in
- *  this select whatever tool is offered right now — `offerOnly()` only
- *  hides one, never removes it — so counting them here reads the same
- *  set the server's own array does, just off the DOM instead of
- *  `opts.modelChoices`.
- *
- *  The AI's word comes off the option the server wrote it on
- *  (`data-short`) — which word stands for which tool is a fact about
- *  the page — and the model is the select's own value. */
+/** A face's mark and short name drawn again: the mark from the page
+ *  contract's own icons, the short name as text. */
+function drawFace(face: Element, tool: string | undefined, short: string | undefined): void {
+  face.innerHTML = tool && tool in TOOL_ICONS ? toolIcon(tool as keyof typeof TOOL_ICONS) : "";
+  if (!short) return;
+  const span = face.ownerDocument.createElement("span");
+  span.className = "providershort";
+  span.textContent = short;
+  face.appendChild(span);
+}
+
+/** The face laid over a provider select's own text, kept saying which
+ *  provider the select is on: the chosen option's tool and short name, and
+ *  its full name as the select's hover text and accessible name. A
+ *  provider select with no face (Settings → Models, the schedule form) is
+ *  left as it is. */
+export function paintProviderFace(select: HTMLSelectElement): void {
+  const pick = select.parentElement;
+  if (!pick?.classList.contains("providerpick")) return;
+  const option = select.selectedOptions[0];
+  const face = pick.querySelector(".providerface");
+  if (!option || !face) return;
+  drawFace(face, option.dataset.tool, option.dataset.short);
+  const name = option.textContent ?? "";
+  select.setAttribute("title", name);
+  select.setAttribute("aria-label", name);
+}
+
+/** The compact picker's own box, kept saying what the line is ON (the
+ *  pair shown on narrow screens): the provider's face, the model, and the
+ *  provider's full name with the model as its title. The two selects
+ *  inside it are the truth; this is what stands over them, and a pick
+ *  that left it stale would have the reader looking at "sonnet" over a
+ *  Codex model until the next redraw. The server draws the same
+ *  (`compactAiModel`). */
 export function refreshAiModelBox(container: Element): void {
-  const shortEl = container.querySelector(".aimodelshort");
-  const fullEl = container.querySelector(".aimodelfull");
+  const modelEl = container.querySelector(".aimodelshort");
   const model = container.querySelector(MODEL_SELECTS) as HTMLSelectElement | null;
-  if (!shortEl || !fullEl || !model) return;
-  const ai = container.querySelector("select[data-ai]") as HTMLSelectElement | null;
-  const short =
-    ai?.selectedOptions[0]?.dataset.short ?? model.selectedOptions[0]?.dataset.tool ?? "";
-  const labels = compactModelLabels(
-    Array.from(model.querySelectorAll("option[data-tool]")).map((o) => (o as HTMLOptionElement).value),
-    { model: model.value, short },
-  );
-  const shortText = labels.short;
-  const fullText = labels.full;
-  shortEl.textContent = shortText;
-  fullEl.textContent = fullText;
+  if (!modelEl || !model) return;
+  const option = (container.querySelector("select[data-ai]") as HTMLSelectElement | null)?.selectedOptions[0];
   const box = container.querySelector(".aimodelnow");
-  box?.setAttribute("title", fullText);
+  const face = box?.querySelector(".providerface");
+  if (face) drawFace(face, option?.dataset.tool ?? model.selectedOptions[0]?.dataset.tool, option?.dataset.short);
+  modelEl.textContent = model.value;
+  box?.setAttribute("title", option ? `${option.textContent ?? ""} · ${model.value}` : model.value);
 }

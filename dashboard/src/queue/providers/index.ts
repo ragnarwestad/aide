@@ -16,12 +16,16 @@ import { loginFolder } from "./login-command.ts";
 import { listedModelName, resolveStepModel } from "../model-name.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
+import { shortNameError, withShortNames } from "./short-name.ts";
 import { PROVIDER_TOOLS, asProviderTool, providerFamily, type ProviderTool } from "./tools.ts";
 export { PROVIDER_TOOLS, asProviderTool, type ProviderTool };
 
 export interface Provider {
   /** What the board shows: free text, one line, at most 64 characters. */
   name: string;
+  /** Two characters the pickers show beside the tool's icon. Made from the
+   *  name when the file has none (`withShortNames`). */
+  short?: string;
   tool: ProviderTool;
   /** Stored only as `false`: a switched-off provider is offered by no picker
    *  and taken by no fallback, and a step that names it is held. */
@@ -225,6 +229,8 @@ export function parseProvider(raw: unknown): Provider | undefined {
   const tool = asProviderTool(e.tool);
   if (!tool || typeof e.name !== "string" || providerNameError(e.name)) return undefined;
   const out: Provider = { name: e.name, tool };
+  // A short name that is not one is ignored: the read makes another.
+  if (typeof e.short === "string" && !shortNameError(e.short)) out.short = e.short.trim();
   if (e.enabled !== undefined && typeof e.enabled !== "boolean") return undefined;
   if (e.enabled === false) out.enabled = false;
   for (const field of [...providerFields(tool), "binary"] as const) {
@@ -241,8 +247,9 @@ export function parseProvider(raw: unknown): Provider | undefined {
 }
 
 /** The `providers` table read off a file: keys and entries that are not
- *  valid, and a name another entry already has in any case, are dropped.
- *  Undefined when none is left. */
+ *  valid, and a name another entry already has in any case, are dropped,
+ *  and every provider left has a short name (`withShortNames`). Undefined
+ *  when none is left. */
 export function parseProviders(raw: unknown): Record<string, Provider> | undefined {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
   const out: Record<string, Provider> = {};
@@ -253,5 +260,5 @@ export function parseProviders(raw: unknown): Record<string, Provider> | undefin
     names.add(provider.name.toLowerCase());
     out[key] = provider;
   }
-  return Object.keys(out).length > 0 ? out : undefined;
+  return Object.keys(out).length > 0 ? withShortNames(out) : undefined;
 }

@@ -73,13 +73,13 @@ describe("adding, editing and removing a provider", () => {
     const { base, file, queueDefaults } = serve();
     const dir = folder();
     expect((await post(base, ADD, { tool: "claude", name: "Claude-Capra", configDir: dir })).status).toBe(200);
-    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", tool: "claude", configDir: dir });
+    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "C2", tool: "claude", configDir: dir });
     expect(queueDefaults.providers?.["Claude-Capra"]?.configDir).toBe(dir);
     expect(readFileSync(file, "utf-8")).toContain("// the operator's own note");
 
     const other = folder();
     expect((await post(base, EDIT, { key: "Claude-Capra", name: "Claude-Capra", configDir: other })).status).toBe(200);
-    expect(queueDefaults.providers?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", tool: "claude", configDir: other });
+    expect(queueDefaults.providers?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "C2", tool: "claude", configDir: other });
 
     expect((await post(base, REMOVE, { key: "Claude-Capra" })).status).toBe(200);
     expect(providersIn(file)?.["Claude-Capra"]).toBeUndefined();
@@ -91,7 +91,7 @@ describe("adding, editing and removing a provider", () => {
     const dir = folder();
     await post(base, ADD, { tool: "claude", name: "Claude-Capra", configDir: dir });
     expect((await post(base, EDIT, { key: "Claude-Capra", name: "Capra", configDir: dir })).status).toBe(200);
-    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Capra", tool: "claude", configDir: dir });
+    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Capra", short: "C2", tool: "claude", configDir: dir });
     expect(queueDefaults.providers?.["Claude-Capra"]?.name).toBe("Capra");
   });
 
@@ -172,6 +172,38 @@ describe("adding, editing and removing a provider", () => {
     expect(Object.fromEntries(Object.entries(queueDefaults.providers!).map(([k, v]) => [k, v.name]))).toEqual({
       Claude: "Claude", Codex: "Codex-main",
     });
+  });
+});
+
+describe("a provider's short name", () => {
+  test("Add stores one made from the name, with a digit in place of the second letter when another provider has them (AC-1)", async () => {
+    const { base, file } = serve();
+    expect((await post(base, ADD, { tool: "claude", name: "Claude Personal", configDir: folder() })).status).toBe(200);
+    expect((providersIn(file)?.["claude-personal"] as Provider).short).toBe("CP");
+    expect((await post(base, ADD, { tool: "codex", name: "Codex Pro", codexHome: folder() })).status).toBe(200);
+    expect((providersIn(file)?.["codex-pro"] as Provider).short).toBe("C2");
+  });
+
+  test("Edit stores the short name the form posts, and keeps the stored one when the form posts none (AC-3)", async () => {
+    const { base, file, queueDefaults } = serve();
+    expect((await post(base, EDIT, { key: "Claude", name: "Claude", short: "XY" })).status).toBe(200);
+    expect((providersIn(file)?.Claude as Provider).short).toBe("XY");
+    expect(queueDefaults.providers?.Claude?.short).toBe("XY");
+    expect((await post(base, EDIT, { key: "Claude", name: "Claude Renamed" })).status).toBe(200);
+    expect(queueDefaults.providers?.Claude?.short).toBe("XY");
+  });
+
+  test("a short name that is not two characters, and one another provider has in any case, are refused, naming that provider, the file as it was (AC-4)", async () => {
+    const { base, file } = serve();
+    expect((await post(base, EDIT, { key: "Codex", name: "Codex", short: "CX" })).status).toBe(200);
+    const before = readFileSync(file, "utf-8");
+    const long = await post(base, EDIT, { key: "Claude", name: "Claude", short: "XYZ" });
+    expect(long.status).toBe(400);
+    expect(await errorOf(long)).toContain("two characters");
+    const taken = await post(base, EDIT, { key: "Claude", name: "Claude", short: "cx" });
+    expect(taken.status).toBe(400);
+    expect(await errorOf(taken)).toContain("Codex");
+    expect(readFileSync(file, "utf-8")).toBe(before);
   });
 });
 

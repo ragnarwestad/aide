@@ -81,8 +81,8 @@
      names are short ("Implement", 60px), so an English page gives the
      name column back the room the Norwegian name needs. */
   /* --aimodel-w here is the 600-640px band's own value: the
-     two selects' combined footprint at their desktop width (8rem each,
-     list.css's own select[name^="model."]/[data-cap="ai"] caps) plus the
+     two selects' combined footprint at their desktop width (4.75rem and
+     8rem, list-rows.css's own select[data-ai]/select[name^="model."] caps) plus the
      row's own gap between them (`--sp-2`) — measured with a headless
      browser at 620px, the same way every other width below is. Below
      600px the two `@media` blocks at the end of narrow-rows.css override it
@@ -103,7 +103,7 @@
      control or not. */
   table.list { --fold-w: 16px; }
   table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * (24px + var(--sp-1))); }
-  table.list { --phase-w: 5.75rem; --aimodel-w: 16.5rem; --tick-w: 31px; --time-w: 3.25rem;
+  table.list { --phase-w: 5.75rem; --aimodel-w: 13.25rem; --tick-w: 31px; --time-w: 3.25rem;
     --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
       - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
   html[lang="en"] table.list { --phase-w: 4.5rem; }

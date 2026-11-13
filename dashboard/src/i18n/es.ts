@@ -368,6 +368,8 @@ export const es: Record<TranslationKey, string> = {
   "settings.providers.status": "Estado",
   "settings.providers.displayName": "Nombre visible",
   "settings.providers.displayNameHelp": "Lo que el dashboard muestra para este proveedor.",
+  "settings.providers.shortName": "Nombre corto",
+  "settings.providers.shortNameHelp": "Dos caracteres que los selectores muestran junto al icono de la herramienta. Dos proveedores no pueden tener el mismo.",
   "settings.providers.runtime": "Ejecución",
   "settings.providers.binary": "Ruta del binario",
   "settings.providers.binaryHelp": "Ruta al programa {tool} que ejecuta este proveedor. Déjala vacía para usar el del PATH.",

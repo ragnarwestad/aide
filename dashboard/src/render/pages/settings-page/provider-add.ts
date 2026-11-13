@@ -9,7 +9,7 @@
 // form dialog's (`formDialog()`).
 
 import { esc } from "../../ui/html.ts";
-import { btn, formDialog, TOOL_ICONS } from "../../ui/components";
+import { btn, formDialog, toolIcon } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { PROVIDER_TOOLS } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
@@ -26,7 +26,7 @@ function toolCards(lang: Language): string {
     `<div class="toolcards">` +
     PROVIDER_TOOLS.map((tool) =>
       `<label class="toolcard"><input type="radio" name="tool" value="${esc(tool)}" required>` +
-      `<span class="providericon" aria-hidden="true">${TOOL_ICONS[tool]}</span>` +
+      toolIcon(tool) +
       `<span class="providertext"><strong>${esc(TOOL_NAMES[tool] ?? tool)}</strong>` +
       `<span class="muted small">${esc(t(lang, `settings.providers.card.${tool}` as TranslationKey))}</span></span></label>`,
     ).join("") +

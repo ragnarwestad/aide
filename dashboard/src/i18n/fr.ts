@@ -368,6 +368,8 @@ export const fr: Record<TranslationKey, string> = {
   "settings.providers.status": "État",
   "settings.providers.displayName": "Nom affiché",
   "settings.providers.displayNameHelp": "Ce que le dashboard affiche pour ce fournisseur.",
+  "settings.providers.shortName": "Nom court",
+  "settings.providers.shortNameHelp": "Deux caractères que les sélecteurs affichent à côté de l'icône de l'outil. Deux fournisseurs ne peuvent pas avoir le même.",
   "settings.providers.runtime": "Exécution",
   "settings.providers.binary": "Chemin du binaire",
   "settings.providers.binaryHelp": "Chemin du programme {tool} que ce fournisseur exécute. Laissez vide pour utiliser celui du PATH.",

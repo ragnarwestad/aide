@@ -13,6 +13,7 @@ import {
 } from "../../../queue/providers/index.ts";
 import { PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE } from "../../../render";
 import { NAME_RE } from "../../../queue/parse-request.ts";
+import { freeShortName, shortNameError, shortNameHolder, withShortNames } from "../../../queue/providers/short-name.ts";
 import { TOOL_NAMES } from "../../../render/pages/specs-list/index.ts";
 import { readProviderStatus } from "../../providers/status.ts";
 import { readsUsage, readUsage, usageReader } from "../../providers/usage-kept.ts";
@@ -142,9 +143,23 @@ function prepareFolders(provider: Provider, home: string): string | null {
   return null;
 }
 
+/** The short name a save gives the provider, or the refusal. Add makes one
+ *  from the name that no other provider has; Edit takes the one the form
+ *  posts, as typed, and keeps the stored one when the form posts none. */
+function readShort(providers: Record<string, Provider>, key: string | undefined, name: string, asked: unknown): { short?: string } | string {
+  const others = withShortNames(providers);
+  if (!key) return { short: freeShortName(name, Object.values(others).flatMap((p) => (p.short ? [p.short] : []))) };
+  if (asked === undefined) return providers[key]?.short ? { short: providers[key].short } : {};
+  const short = text(asked);
+  const bad = shortNameError(short);
+  if (bad) return bad;
+  const holder = shortNameHolder(others, short, key);
+  return holder ? `${holder} already has the short name ${short} — pick another` : { short };
+}
+
 /** Add and Edit, which run the same rules in this order: the name, the
- *  fields, the login not another's, the tool installed, then the folders are
- *  made and the provider written. */
+ *  short name, the fields, the login not another's, the tool installed, then
+ *  the folders are made and the provider written. */
 async function saveChecked(
   ctx: RoutesContext, key: string | undefined, tool: Provider["tool"], asked: Record<string, unknown>,
 ): Promise<Response> {
@@ -154,13 +169,15 @@ async function saveChecked(
   if (bad) return refuse(bad);
   const taken = nameTaken(providers, name, key);
   if (taken) return refuse(`${taken} is already a provider — pick another name${key ? "" : ", or rename that one"}`);
+  const short = readShort(providers, key, name, asked.short);
+  if (typeof short === "string") return refuse(short);
   const home = homedir();
   const fields = readFields(tool, asked, home);
   if (typeof fields === "string") return refuse(fields);
   const runtime = readRuntime(tool, asked, home);
   if (typeof runtime === "string") return refuse(runtime);
   const off = key && providers[key]?.enabled === false ? { enabled: false as const } : {};
-  const provider: Provider = { name, tool, ...off, ...fields, ...runtime };
+  const provider: Provider = { name, ...short, tool, ...off, ...fields, ...runtime };
   const clash = conflict(providers, key, provider, home);
   if (clash) return refuse(clash);
   const made = key ?? newKey(providers, name, asked.providerId);

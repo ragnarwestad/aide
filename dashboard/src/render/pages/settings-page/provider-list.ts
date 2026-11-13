@@ -6,7 +6,7 @@
 // (`provider-add.ts`).
 
 import { esc, relTimeLabel } from "../../ui/html.ts";
-import { messageSlot, switchControl, TOOL_ICONS } from "../../ui/components";
+import { messageSlot, switchControl, toolIcon } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { Provider } from "../../../queue/providers/index.ts";
 import {
@@ -42,8 +42,9 @@ function row(r: ProviderRow, chosen: string | undefined, lang: Language): string
   return (
     `<li class="providerrow${r.key === chosen ? " chosen" : ""}">` +
     `<a class="provideritem" href="${esc(r.href)}"${r.key === chosen ? ` aria-current="page"` : ""}>` +
-    `<span class="providericon" title="${esc(r.toolName)}">${TOOL_ICONS[r.tool]}</span>` +
+    toolIcon(r.tool, r.toolName) +
     `<span class="providertext"><span class="providername"><strong>${esc(r.name)}</strong>` +
+    (r.short ? ` <span class="providerversion">${esc(r.short)}</span>` : "") +
     (r.version ? ` <span class="providerversion">${esc(r.version)}</span>` : "") +
     `</span><span class="muted small">${esc(rowLine(r, lang))}</span></span></a>` +
     switchForm(r, chosen, lang) +
