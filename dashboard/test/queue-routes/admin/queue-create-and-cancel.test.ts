@@ -65,7 +65,7 @@ test("an unknown project is 400 and stores nothing; an oversize body is 413", as
   expect(listed.jobs).toEqual([]);
 });
 
-test("cancel marks the job cancelled", async () => {
+test("cancel removes a job that had not started", async () => {
   const { base } = start();
   const headers = { "content-type": "application/json", accept: "application/json" };
   const made = (await (
@@ -76,7 +76,7 @@ test("cancel marks the job cancelled", async () => {
   const after = (await (await fetch(`${base}/api/queue`, { headers })).json()) as {
     jobs: { id: string; state: string }[];
   };
-  expect(after.jobs.find((j) => j.id === id)?.state).toBe("cancelled");
+  expect(after.jobs.find((j) => j.id === id)).toBeUndefined();
   expect((await fetch(`${base}/api/queue/nope/cancel`, { method: "POST", headers })).status).toBe(404);
 });
 
@@ -92,7 +92,7 @@ test("cancel refuses a job that has already finished, and leaves its state alone
     writeFileSync(join(site, "queue.json"), JSON.stringify([{
       id, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0, state,
         timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
-      createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
+      createdAt: "2026-08-17T00:00:00Z", startedAt: "2026-08-17T00:01:00Z", finishedAt: "2026-08-17T00:10:00Z",
     }]));
     const { base } = start({ queueMirrorPath: join(site, "queue.json") });
     const res = await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers });
@@ -109,8 +109,8 @@ test("cancel refuses a job that has already finished, and leaves its state alone
 // A deploy runs inside the board's own process, so there is nothing to
 // signal: marking it cancelled would leave it fetching and restarting under
 // a row that says it ended. Only a queued one, which has no run yet, is
-// cancelled.
-test("cancel refuses a running deploy and leaves it running; a queued deploy, held back or not, is cancelled", async () => {
+// cancelled, and removed, since it never started.
+test("cancel refuses a running deploy and leaves it running; a queued deploy, held back or not, is cancelled and removed", async () => {
   const headers = { "content-type": "application/json", accept: "application/json" };
   const deploy = (id: string, state: string, extra: Record<string, unknown> = {}) => ({
     id, project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state,
@@ -138,8 +138,8 @@ test("cancel refuses a running deploy and leaves it running; a queued deploy, he
     expect((await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers })).status).toBe(200);
   }
   const after = await states();
-  expect(after["dep-queued"]).toBe("cancelled");
-  expect(after["dep-held"]).toBe("cancelled");
+  expect(after["dep-queued"]).toBeUndefined();
+  expect(after["dep-held"]).toBeUndefined();
   expect(after["dep-running"]).toBe("running");
 });
 

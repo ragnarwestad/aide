@@ -66,6 +66,7 @@ export function makeRunner(opts: {
   /** Another store than the harness's own — a board read back from the
    *  same mirror, as after a restart. */
   store?: QueueStore;
+  log?: RunnerOptions["log"];
 } = {}) {
   return new Runner({
     store: opts.store ?? store,
@@ -89,6 +90,7 @@ export function makeRunner(opts: {
     isAlive: opts.alive ?? (() => true),
     readResult: opts.readResult ?? (() => null),
     notify: (event) => void events.push(event),
+    log: opts.log ?? (() => {}),
   });
 }
 

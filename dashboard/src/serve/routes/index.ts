@@ -59,6 +59,7 @@ import { failedCreateRoutes } from "./failed-create-routes.ts";
 import { handlePushRoutes } from "./push-routes.ts";
 import type { Push } from "../../push";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
+import { logAction } from "../action-log/index.ts";
 
 /** Everything `handleRoutes` used to read off `createServer`'s own
  *  closure, bundled so the function can live outside it. `createServer`
@@ -168,6 +169,15 @@ export interface RoutesContext {
 }
 
 export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
+  const response = await answerRoute(ctx, req, url, path);
+  await logAction({
+    log: (line) => console.error(line),
+    noteOnJob: (id, entry) => ctx.queue.noteAction(id, entry),
+  }, req, path, response);
+  return response;
+}
+
+async function answerRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
   return (
     selfStopRoute(ctx, req, path) ??
     (await selfDelayRoute(ctx, req, path)) ??

@@ -45,6 +45,7 @@ export {
   type ModelChoice,
   type ProjectResolver,
   type ProviderLimit,
+  type JobAction,
   type SharedFiles,
   type TestedGreen,
   type QueueDefaults,

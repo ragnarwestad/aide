@@ -93,7 +93,7 @@ test("a live row update preserves an unsubmitted search", async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
-  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel ends the job, the row staying, with no page load", async () => {
+  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel removes the job, the row staying, with no page load", async () => {
     const { base } = harness.start({});
     const page = await browser.newPage();
     await page.goto(`${base}/`);
@@ -114,11 +114,8 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     // Cancel asks first; its OK posts and redraws the rows.
     await page.locator("tr button[data-ask]").first().click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
-    await page.waitForFunction(async (jobId) => {
-      const r = await fetch(`/api/queue/${jobId}`);
-      return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
-    }, id);
-    expect(await stateOf(base, id)).toBe("cancelled");
+    // A job that never started is removed, not kept as cancelled.
+    await page.waitForFunction(async (jobId) => (await fetch(`/api/queue/${jobId}`)).status === 404, id);
     // The spec is still Active: its row stays, with nothing left to cancel.
     await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
     await page.locator(`form[action="/api/queue/${id}/cancel"]`).waitFor({ state: "detached", timeout: 10_000 });

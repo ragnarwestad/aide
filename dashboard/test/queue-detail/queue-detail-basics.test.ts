@@ -96,10 +96,7 @@ describe("GET /api/queue/<id>", () => {
       headers: { accept: "application/json" },
     });
     expect(res.status).toBe(200);
-    const after = (await (await fetch(`${base}/api/queue/${id}`)).json()) as {
-      job: { state: string };
-    };
-    expect(after.job.state).toBe("cancelled");
+    expect(((await res.json()) as { job: { state: string } }).job.state).toBe("cancelled");
   });
 });
 

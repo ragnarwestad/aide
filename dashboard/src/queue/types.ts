@@ -7,6 +7,10 @@ import type { CriteriaChecks } from "../project/discover";
 import type { Provider } from "./providers/index.ts";
 import type { ResultTool, RunnableTool } from "./providers/tools.ts";
 import type { SideRun } from "./runner/side-run.ts";
+import type { ProviderLimit } from "./providers/limit.ts";
+import type { JobAction } from "./store/job-action.ts";
+export type { ProviderLimit, ProviderLimitWindow } from "./providers/limit.ts";
+export type { JobAction } from "./store/job-action.ts";
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event. `total` is the sum of the other
  *  four: cached or not, every one of those tokens was processed, and
@@ -21,28 +25,6 @@ export interface TokenUsage {
   cacheRead: number;
   cacheCreation: number;
   total: number;
-}
-
-/** One usage window a provider reported: its name (`five_hour`,
- *  `seven_day`, or `<n>_minutes`), how much of it is spent, and when it
- *  starts over. */
-export interface ProviderLimitWindow {
-  name: string;
-  usedPercent: number;
-  resetsAt?: string;
-}
-
-/** The usage limit that stopped a step, as `aide-run-spec` read it from
- *  the tool itself (`lib/run-spec/turn/provider-limit.sh`) — never from the
- *  model, which is spent by then. `window` is the one that ran out;
- *  `plan` and `credit` are there only when the tool said them. */
-export interface ProviderLimit {
-  tool: string;
-  window: string;
-  resetsAt?: string;
-  windows?: ProviderLimitWindow[];
-  plan?: string;
-  credit?: string;
 }
 
 /** One open spec whose analysis lists files this analysis also lists, and
@@ -371,6 +353,8 @@ export interface Job {
   /** Queued by a person's press, not by the board itself. A press made
    *  after a usage-limit stop is not held by it. */
   pressed?: boolean;
+  /** The actions people took on this job, oldest first: what, when and from where. */
+  actions?: JobAction[];
   /** The automatic second attempt for this action and press. Persisted
    *  before it is queued so a board restart cannot grant a third one. */
   retry?: {

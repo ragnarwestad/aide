@@ -108,8 +108,8 @@ describe("QueueStore", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
-    store.update(r.job.id, { state: "cancelled" });
-    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("cancelled");
+    store.update(r.job.id, { state: "failed" });
+    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("failed");
   });
 
   test("a corrupt mirror is survivable — the store starts empty", () => {

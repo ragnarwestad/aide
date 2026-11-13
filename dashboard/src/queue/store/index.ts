@@ -12,7 +12,7 @@ import {
   type TransitionEvent,
   type WorkflowStep,
 } from "../steps.ts";
-import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
+import type { CreateProjectAllower, Job, JobAction, ProjectResolver, QueueDefaults } from "../types.ts";
 import type { Sentence } from "../../messages/types.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
@@ -33,6 +33,7 @@ import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, 
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 import { ExecutionGroupStore } from "../execution-groups/index.ts";
+import { cancelLine, neverStarted } from "./cancelled-job.ts";
 
 export class QueueStore {
   readonly executionGroups: ExecutionGroupStore;
@@ -66,6 +67,7 @@ export class QueueStore {
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
+  private readonly log: (line: string) => void;
 
   constructor(opts: QueueOptions) {
     this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
@@ -79,10 +81,12 @@ export class QueueStore {
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
     this.onChange = opts.onChange ?? (() => {});
+    this.log = opts.log ?? ((line) => console.error(line));
     // Before `load()`, which is not a change: nothing is listening yet
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
     loadJobs(this.mirrorPath, this.jobs);
+    for (const [id, job] of this.jobs) if (job.state === "cancelled" && neverStarted(job)) this.jobs.delete(id);
     while (this.jobs.size > this.cap) this.jobs.delete(this.jobs.keys().next().value as string);
     loadPendingModels(this.pendingModelsPath, this.pendingModels);
     loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
@@ -280,6 +284,12 @@ export class QueueStore {
     return this.jobs.get(id);
   }
 
+  /** An action a person took on the job, kept with it; a job already gone keeps nothing. */
+  noteAction(id: string, entry: JobAction): void {
+    const job = this.jobs.get(id);
+    if (job) this.update(id, { actions: [...(job.actions ?? []), entry] });
+  }
+
   /** Every job of one project, gone — the test board's Run control
    *  (self-run.ts) starts its round over from nothing, and rows for
    *  folders the round is about to make again would read as history
@@ -422,8 +432,12 @@ export class QueueStore {
     if (!to) return { ok: false, state: job.state, event };
     const next = { ...job, ...patch, state: to };
     this.jobs.set(id, next);
-    this.mirror();
+    // The group is told first: a job removed below still stops its group.
     this.syncExecutionGroup(next);
+    const removed = event === "cancel" && job.state === "queued" && neverStarted(job);
+    if (removed) this.jobs.delete(id);
+    if (event === "cancel") this.log(cancelLine(job, removed));
+    this.mirror();
     this.changed();
     return { ok: true, job: next };
   }

@@ -172,6 +172,8 @@ export interface RunnerOptions {
   clearResult?: (path: string) => void;
   now: () => string;
   today: () => string;
+  /** Where the line about a job's long wait goes; stderr when absent. */
+  log?: (line: string) => void;
   /** The session id a step will run under. Injected like the clock, so a
    *  test can assert on the id it chose rather than on "some string". */
   newSessionId?: () => string;

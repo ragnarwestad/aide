@@ -166,7 +166,6 @@ describe("a step reads busy for the whole landing window", () => {
     const decoy = await runStep(base, SPEC, "implement");
     const cancelled = await fetch(`${base}/api/queue/${decoy.id}/cancel`, { method: "POST", headers: AUTH });
     expect(cancelled.status).toBe(200);
-    await settle(base, decoy.id, (j) => j.state === "cancelled");
 
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(paths.specs)));
     await settle(base, job.id, (j) => j.state === "done");

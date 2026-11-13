@@ -261,7 +261,7 @@ describe("a job parked on an unmerged dependency", () => {
     expect(await until(() => existsSync(argvFile), 12_000)).toBe(true);
   }, 20000);
 
-  test("cancelling a parked job cancels it like any other queued job", async () => {
+  test("cancelling a parked job removes it like any other job that never started", async () => {
     const dir = own("aide-queue-parked-cancel-");
     const { bin } = stub(dir);
     const paths = root(dir);
@@ -278,16 +278,8 @@ describe("a job parked on an unmerged dependency", () => {
     await settle();
     expect((await fetch(`${base}/api/queue/${made.job.id}/cancel`, { method: "POST", headers: AUTH })).status)
       .toBe(200);
-    const after = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: { id: string; state: string; error?: unknown; errorReason?: unknown }[];
-    };
-    const job = after.jobs.find((j) => j.id === made.job.id);
-    expect(job?.state).toBe("cancelled");
-    // The held-back reason answered "why is this not running" — a
-    // question cancelling already answered a different way. It must not
-    // survive onto the cancelled job.
-    expect(job?.error).toBeUndefined();
-    expect(job?.errorReason).toBeUndefined();
+    const after = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: { id: string }[] };
+    expect(after.jobs.find((j) => j.id === made.job.id)).toBeUndefined();
   });
 
   // --- The same park, one question earlier -------------------------

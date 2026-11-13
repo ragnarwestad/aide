@@ -60,4 +60,7 @@ export interface QueueOptions {
    *  nobody is listening, which is what every test and every other
    *  caller of this class is. */
   onChange?: () => void;
+  /** Where a line about a cancelled job goes. Absent means stderr, as the
+   *  server's other `queue:` lines. */
+  log?: (line: string) => void;
 }

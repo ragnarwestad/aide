@@ -43,6 +43,7 @@ import { clearStaleHolds, holdFor, holdJob, type HoldAnswers } from "./holds.ts"
 import { holdLanding } from "./landing.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, endStep, stepResultEntry } from "./step-result.ts";
+import { WaitLog } from "./wait-log.ts";
 import { aiWorkRetryDecision, attemptOf, attemptsLeft, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
@@ -52,9 +53,11 @@ export class Runner {
   private maxConcurrent: number;
   private day: string;
   private spentTokens = 0;
+  private readonly waits: WaitLog;
 
   constructor(opts: RunnerOptions) {
     this.o = opts;
+    this.waits = new WaitLog(opts.log ?? ((line) => console.error(line)));
     this.maxConcurrent = opts.maxConcurrent && opts.maxConcurrent > 0 ? opts.maxConcurrent : 1;
     this.day = opts.today();
   }
@@ -153,10 +156,12 @@ export class Runner {
       });
       if (held) {
         if (held.reason) hold(job, held.reason);
+        this.waits.held(job, held, this.o.now());
         continue;
       }
-      this.startOne(job);
+      if (this.startOne(job)) this.waits.started(job, this.o.now());
     }
+    this.waits.keepOnly(new Set(this.o.store.list().filter((job) => job.state === "queued").map((job) => job.id)));
     clearStaleHolds(this.o.store, heldNow);
   }
 

@@ -81,7 +81,7 @@ describe("saving another approach", () => {
     expect(res.status).toBe(200);
     expect(solutionOf(dir)).toContain("**Chosen approach:** Approach B");
     const after = await jobs(base);
-    expect(after.find((j) => j.id === "held")?.state).toBe("cancelled");
+    expect(after.find((j) => j.id === "held")).toBeUndefined();
     const fresh = after.find((j) => j.id !== "held");
     expect(fresh?.state).toBe("queued");
     expect(fresh?.pressed).toBe(true);

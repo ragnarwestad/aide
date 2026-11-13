@@ -129,7 +129,16 @@ A job whose process is gone but whose result is on disk is completed from that f
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
 and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
-has already finished is refused with 409 and keeps its state.
+has already finished is refused with 409 and keeps its state. A job cancelled while it was queued and before any
+step started has no log, cost or result, and is removed from the queue instead of kept as `cancelled`; the queue
+drops such a job left over from before when it loads. Every cancel writes one line to the server's log naming the
+job, the state it was in and what it was waiting for.
+
+**The server's log** also gets one line for every action that went through (a `POST` that was not refused), naming
+the route, the tailnet login, address and device it came from, and the job it acted on; the job keeps the same entry
+in `actions`. A `POST` that only reads (`drift`, `test-command`) and a session's own report leave nothing. A job
+held in the queue for more than five minutes gets a line naming the hold that keeps it, another when the hold
+changes, and one when it starts.
 
 **Done to failed** is the one transition made after the fact. The step succeeded and the job reads `done`; when the
 landing is then refused for a conflict, or `archive`'s landing finds the spec's branch still on origin,
