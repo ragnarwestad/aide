@@ -110,6 +110,17 @@ if [ -n "$status_file" ]; then
         # The folder moved — and every merge this step was handed open
         # has to be finished too.
         open_merge_dropped && merge_unfinished
+        # A session archives the owner alone (it is not told the group):
+        # the members it left behind are moved here, before the commit.
+        if [ -n "$group_members" ] && [ "$terminal_reason" = "completed" ]; then
+          group_args=(--project-dir "$project_wt" --spec "$commit_label" --group-members "$group_members")
+          [ "$specs_root_wt" != "$project_wt" ] && group_args+=(--specs-dir "$specs_root_wt")
+          group_verdict="$("$SCRIPT_DIR/aide-archive-spec" "${group_args[@]}" 2>/dev/null || true)"
+          group_reason="$(jq -r '.terminalReason // "refused"' <<<"$group_verdict" 2>/dev/null || echo refused)"
+          if [ "$group_reason" != "archived" ] && [ "$group_reason" != "already-archived" ]; then
+            stop_step "$group_reason" "$(jq -r '.error // .note // "the group members could not be archived"' <<<"$group_verdict" 2>/dev/null)" ""
+          fi
+        fi
         ;;
       *)
         archive_args=(--project-dir "$project_wt" --spec "$commit_label")

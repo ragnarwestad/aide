@@ -308,6 +308,35 @@ def test_group_archive_refusal_moves_no_member(script, project, specs):
     assert (specs / "82-second").exists()
 
 
+def test_group_archive_after_the_owner_moved_alone_moves_the_rest(script, project, specs):
+    """A session that resolved a conflict archived the owner without its
+    group; the runner's call with the group moves the members left behind."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-first", body)
+    add_spec(specs, "82-second", body)
+    rc, out, _ = run(script, project, "81-first")
+    assert out["terminalReason"] == "archived", out
+    assert (specs / "82-second").exists()
+    rc, out, _ = run(script, project, "81-first", group_members=["81-first", "82-second"])
+    assert rc == 0, out
+    assert out["terminalReason"] == "archived", out
+    assert out["specFolder"] == "archive/81-first"
+    assert not (specs / "82-second").exists()
+    assert "**Archived:**" in (specs / "archive" / "82-second" / "4-status.md").read_text()
+
+
+def test_group_archive_with_every_member_moved_is_already_archived(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-first", body)
+    add_spec(specs, "82-second", body)
+    run(script, project, "81-first", group_members=["81-first", "82-second"])
+    rc, out, _ = run(script, project, "81-first", group_members=["81-first", "82-second"])
+    assert rc == 0, out
+    assert out["terminalReason"] == "already-archived", out
+
+
 # --- the status-table read, through a ## Checklist heading ----
 
 

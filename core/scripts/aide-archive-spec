@@ -127,12 +127,15 @@ fi
 [ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
 
 # A group is validated whole before the first move. The ordinary single-spec
-# path below then moves the owner; the tail moves the remaining members.
+# path below then moves the owner; the tail moves the remaining members. A
+# member already under archive/ was moved by an earlier call in the same step
+# (the session's own, after it resolved a conflict) and is not checked again.
 group_member_list=()
 if [ -n "$group_members" ]; then
   IFS=',' read -r -a group_member_list <<<"$group_members"
   [ "${#group_member_list[@]}" -gt 1 ] || aide_spec_refuse "a group archive needs at least two members"
   for member in "${group_member_list[@]}"; do
+    [ -d "$specs_root/archive/$member" ] && [ ! -d "$specs_root/$member" ] && continue
     [ -d "$specs_root/$member" ] || aide_spec_refuse "group member is not active: $member"
     member_status="$specs_root/$member/4-status.md"
     if [ ! -f "$member_status" ] || ! may_apply_spec_transition "$member_status" "archive"; then
@@ -185,9 +188,43 @@ fi
 # reported here too, same as the fresh `archived` outcome, so a caller
 # that reaches this on that second call still knows where Step 4 reads
 # from.
+# Stamps and moves every group member other than `$1` that is still active.
+move_group_members() {
+  local owner="$1" member member_status
+  [ "${#group_member_list[@]}" -gt 1 ] || return 0
+  for member in "${group_member_list[@]}"; do
+    [ "$member" = "$owner" ] && continue
+    [ -d "$specs_root/$member" ] || continue
+    member_status="$specs_root/$member/4-status.md"
+    write_phase_stamp "$member_status" "archived"
+    if [ "$specs_root_is_git" = "yes" ]; then
+      git -C "$specs_root" mv "$member" "archive/$member"
+    else
+      mv "$specs_root/$member" "$specs_root/archive/$member"
+    fi
+    if declare -f write_spec_state >/dev/null 2>&1; then
+      write_spec_state "$specs_root/archive/$member/4-status.md"
+      [ "$specs_root_is_git" = "yes" ] && git -C "$specs_root" add -- "archive/$member/4-status.json" 2>/dev/null
+    fi
+  done
+}
+specs_root_is_git="no"
+git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 && specs_root_is_git="yes"
+
 case "$spec_folder" in
   archive/*)
     folder_name="${spec_folder#archive/}"
+    # The owner moved without its group — a session that archived it alone
+    # after resolving a conflict: the members still active follow it now.
+    remaining=""
+    for member in ${group_member_list[@]+"${group_member_list[@]}"}; do
+      [ "$member" != "$folder_name" ] && [ -d "$specs_root/$member" ] && remaining="yes"
+    done
+    if [ -n "$remaining" ]; then
+      mkdir -p "$specs_root/archive"
+      move_group_members "$folder_name"
+      aide_spec_emit_ok "$(jq -cn --arg f "$spec_folder" '{terminalReason:"archived", needsDocFeedback:true, specFolder:$f}')"
+    fi
     aide_spec_emit_ok "$(jq -cn --arg n "spec $folder_name is already under archive/ on the spec branch — nothing is merged into the default branch yet" \
       --arg f "$spec_folder" \
       '{terminalReason:"already-archived", note:$n, specFolder:$f, needsDocFeedback:true}')"
@@ -296,30 +333,13 @@ fi
 write_phase_stamp "$status_file" "archived"
 
 mkdir -p "$specs_root/archive"
-specs_root_is_git="no"
-if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  specs_root_is_git="yes"
+if [ "$specs_root_is_git" = "yes" ]; then
   git -C "$specs_root" mv "$spec_folder" "archive/$spec_folder"
 else
   mv "$specs_root/$spec_folder" "$specs_root/archive/$spec_folder"
 fi
 
-if [ "${#group_member_list[@]}" -gt 1 ]; then
-  for member in "${group_member_list[@]}"; do
-    [ "$member" = "$spec_folder" ] && continue
-    member_status="$specs_root/$member/4-status.md"
-    write_phase_stamp "$member_status" "archived"
-    if [ "$specs_root_is_git" = "yes" ]; then
-      git -C "$specs_root" mv "$member" "archive/$member"
-    else
-      mv "$specs_root/$member" "$specs_root/archive/$member"
-    fi
-    if declare -f write_spec_state >/dev/null 2>&1; then
-      write_spec_state "$specs_root/archive/$member/4-status.md"
-      [ "$specs_root_is_git" = "yes" ] && git -C "$specs_root" add -- "archive/$member/4-status.json" 2>/dev/null
-    fi
-  done
-fi
+move_group_members "$spec_folder"
 
 # Re-derives at the NEW (archived) location, so the state file
 # travels with the git-mv above and carries the `archived` stamp just

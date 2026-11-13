@@ -25,7 +25,9 @@ exists in the project and in the specs repo, with different contents and two sep
 does nothing for the other: each repo's branch is landed on its own, asked of that repo's own checkout.
 
 Specs in one group share `aide/group-<first-member-folder>` in every repository. Their Implement steps leave code on
-that branch. The group Archive validates and moves every member before it lands the branch once. Merge mode runs one
+that branch. The group Archive validates and moves every member before it lands the branch once;
+a member the archive session left active, after it resolved a conflict and moved the owner alone, is moved before the
+commit. Merge mode runs one
 test gate and makes one merge; pull-request mode opens one request for the shared code branch. A refusal or failed
 landing leaves every member active on the default branch.
 

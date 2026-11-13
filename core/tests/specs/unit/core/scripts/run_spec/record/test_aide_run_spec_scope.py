@@ -138,6 +138,42 @@ def test_group_archive_may_move_every_named_member_without_a_scope_violation(
     assert f"archive/{folder}/4-status.md" in tree
     assert "archive/82-second/4-status.md" in tree
 
+def test_group_archive_moves_a_member_the_session_left_active(runner, workspace, fake_claude):
+    """A session that resolved a conflict archives the owner alone, since it
+    is not told the group. The fake session puts the second member back
+    among the active folders, which is what the runner then finds; the
+    runner moves it before the commit."""
+    folder = workspace["folder"]
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    other = workspace["specs"] / "82-second"
+    other.mkdir()
+    (other / "1-description.md").write_text("# Second\n")
+    (other / "4-status.md").write_text(
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add grouped member")
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'git -C "$specs" mv archive/82-second 82-second\n'
+        + 'rm -f "$specs/82-second/4-status.json"\n'
+        + 'printf "# Status\\n\\n## Tracking info\\n\\n- **Workflow steps completed:** create, analyze, implement\\n"'
+        + ' > "$specs/82-second/4-status.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(
+        runner, workspace, claude, command="archive",
+        group_members=f"{folder},82-second",
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", f"aide/{folder}")
+    assert f"archive/{folder}/4-status.md" in tree
+    assert "archive/82-second/4-status.md" in tree
+    assert "82-second/4-status.md" not in [line for line in tree.splitlines() if not line.startswith("archive/")]
+
+
 def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation_when_specs_are_tracked_inside_the_project(
     runner, fake_claude, tmp_path
 ):
