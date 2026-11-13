@@ -68,6 +68,8 @@ export function tabBar<T extends string>(
     /** The word a tab shows, for a caller whose words are in the
      *  catalogue; `tabLabel()` otherwise. */
     label?: (key: T) => string;
+    /** Decorative markup drawn before a tab's word. */
+    icon?: (key: T) => string | undefined;
     /** The reader's language, for the words `tabLabel()` gives. */
     lang?: Language;
     /** Each key written as `data-<key>` on the `<nav>`: a hook, like
@@ -104,10 +106,13 @@ export function tabBar<T extends string>(
         const to = href(t);
         const here = t === current ? ` aria-current="page"` : "";
         const text = `${esc(label)}${n === undefined ? "" : ` (${n})`}`;
+        const icon = o.icon?.(t);
+        const body = icon ? `${icon}<span>${text}</span>` : text;
+        const title = icon ? ` title="${esc(label)}"` : "";
         // data-goto: a real page load — nav-busy.ts marks it waiting.
         return to === undefined
-          ? `<span class="tab"${here}>${text}</span>`
-          : `<a class="tab" data-nav data-goto href="${esc(to)}"${here}>${text}</a>`;
+          ? `<span class="tab"${title}${here}>${body}</span>`
+          : `<a class="tab" data-nav data-goto href="${esc(to)}"${title}${here}>${body}</a>`;
       })
       .join("") +
     (trailing ? `<span class="row">${trailing}</span>` : "") +

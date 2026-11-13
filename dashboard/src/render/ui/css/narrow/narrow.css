@@ -12,7 +12,8 @@
    and quietly stop applying. The block is long enough to be split over
    three files — this one, narrow-spec-head.css and narrow-rows.css, each
    reopening the same 40rem query in that order. Two narrower `@media`
-   blocks, at the end of narrow-rows.css, are the one exception (next paragraph) — they
+   blocks for the AI/model control and one for the site tabs, at the end of
+   narrow-rows.css, are the exceptions (next paragraph) — they
    still follow the same convention, one level deeper. */
 /* The compact AI/model button grows between 400px (25rem) and
    600px (37.5rem), and from 600px to this block's own 640px the AI and

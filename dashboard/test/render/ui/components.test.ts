@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
   backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, kindIcon, KIND_ICONS, labelledCheckbox, messageSlot, resolveBackHref, shareBar,
+  tabIcon, TAB_ICONS,
   type RowKind,
   saveCancelActions,
 } from "../../../src/render/ui/components";
@@ -344,5 +345,27 @@ describe("kindIcon()", () => {
     // @ts-expect-error group is missing
     const missing = { spec: "x", deploy: "x", schedule: "x", cleanup: "x" } satisfies typeof KIND_ICONS;
     expect(Object.keys(missing)).toHaveLength(4);
+  });
+});
+
+describe("tabIcon()", () => {
+  test("reuses the kind drawings for Specs and Schedule (AC-2)", () => {
+    expect(TAB_ICONS.specs).toBe(KIND_ICONS.spec);
+    expect(TAB_ICONS.schedule).toBe(KIND_ICONS.schedule);
+  });
+
+  test("gives Jobs and Projects drawings of their own (AC-3)", () => {
+    expect(TAB_ICONS.jobs).not.toBe(TAB_ICONS.projects);
+    for (const drawing of [TAB_ICONS.jobs, TAB_ICONS.projects]) {
+      expect(Object.values(KIND_ICONS)).not.toContain(drawing);
+    }
+  });
+
+  test("carries the tab for styling without naming the decorative icon (AC-3, AC-5)", () => {
+    const icon = first(tabIcon("projects"), ".kindicon");
+    expect(icon.getAttribute("data-tab")).toBe("projects");
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+    expect(icon.hasAttribute("aria-label")).toBe(false);
+    expect(icon.hasAttribute("title")).toBe(false);
   });
 });

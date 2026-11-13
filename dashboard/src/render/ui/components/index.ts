@@ -279,7 +279,7 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label
   `</div>`;
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, ICON_USAGE, KIND_ICONS, kindIcon, TOOL_ICONS, type RowKind } from "./icons.ts";
+export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, ICON_USAGE, KIND_ICONS, kindIcon, TAB_ICONS, tabIcon, TOOL_ICONS, type RowKind, type SiteTab } from "./icons.ts";
 
 
 export { headerMenu } from "./header-menu";

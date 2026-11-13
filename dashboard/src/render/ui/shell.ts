@@ -10,7 +10,7 @@ import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
-import { buttonForm, confirmDialog, headerMenu, messageSlot } from "./components";
+import { buttonForm, confirmDialog, headerMenu, messageSlot, tabIcon, type SiteTab } from "./components";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -35,6 +35,7 @@ export interface NavEntry {
    *  exactly as before — a widening, not a breaking change to this
    *  type. */
   labelKey?: TranslationKey;
+  icon?: SiteTab;
 }
 
 
@@ -294,7 +295,15 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
     [entries[0]!.path, t(lang, "shell.tabProjects")],
     ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),
   ]);
-  return tabBar(keys, (path) => path, current, {}, "", { label: (path) => words.get(path)!, site: true });
+  const icons = new Map<string, string>([
+    ["/", tabIcon("jobs")],
+    ["/specs", tabIcon("specs")],
+    [entries[0]!.path, tabIcon("projects")],
+    ...sections.flatMap((entry): [string, string][] => entry.icon ? [[entry.path, tabIcon(entry.icon)]] : []),
+  ]);
+  return tabBar(keys, (path) => path, current, {}, "", {
+    label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true,
+  });
 }
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */

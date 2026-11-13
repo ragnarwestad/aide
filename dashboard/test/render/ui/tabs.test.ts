@@ -27,3 +27,22 @@ describe("tabBar() with a link function and a label function", () => {
     expect(html.match(/href=/g)?.length).toBe(2);
   });
 });
+
+describe("tabBar() with icons", () => {
+  const html = tabBar(["jobs", "specs"] as const, (tab) => `/${tab}`, "specs", {}, "", {
+    label: (tab) => (tab === "jobs" ? "Jobs" : "Specs"),
+    icon: (tab) => `<i data-icon="${tab}"></i>`,
+  });
+
+  test("keeps each icon, word and address inside one link (AC-5)", () => {
+    expect(html).toContain('<a class="tab" data-nav data-goto href="/jobs" title="Jobs"><i data-icon="jobs"></i><span>Jobs</span></a>');
+    expect(html).toContain('<a class="tab" data-nav data-goto href="/specs" title="Specs" aria-current="page"><i data-icon="specs"></i><span>Specs</span></a>');
+  });
+
+  test("leaves a strip with no icons unchanged (AC-5)", () => {
+    const plain = tabBar(["jobs"] as const, "/", "jobs", {});
+    expect(plain).toContain('>Jobs</a>');
+    expect(plain).not.toContain("title=");
+    expect(plain).not.toContain("<span>Jobs</span>");
+  });
+});
