@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
-import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
+import { jobsSentence, projectLink } from "../../../../src/render/ui/components/spec-name.ts";
+import { rowMessage, stepLabel } from "../../../../src/render/ui/components";
+import { specPagePath } from "../../../../src/render/pages/spec-page/tabs.ts";
 import { t } from "../../../../src/i18n";
 import { executionGroupRowState } from "../../../../src/render/pages/jobs-page";
 import { activeDurationCell, costCell } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
@@ -100,11 +102,51 @@ test("a completed group is counted under Done rather than Stopped (AC-3, AC-5)",
   expect(executionGroupRowState(group("completed"), false)).toBe("done");
 });
 
-test("a card ready to archive names Archive once, on its button", () => {
-  const ready = (folder: string) => ({ ...member(folder, "<tr></tr>"), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"] } as SpecGroup });
-  const html = executionGroupCard(group("waiting-acceptance"), [ready("1-first"), ready("2-second")]);
+const implemented = (folder: string, o: Partial<SpecGroup> = {}) =>
+  ({ ...member(folder, "<tr></tr>"), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"], ...o } as SpecGroup });
+
+test("a card ready to archive offers Archive and says the group lands together (AC-1)", () => {
+  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")]);
   expect(html).toContain('name="action" value="archive"');
-  expect(html.match(/Archive/g)).toHaveLength(1);
+  expect(html).toContain(t("en", "list.groupArchiveReady", { button: stepLabel("archive") }));
+});
+
+test("a card ready to archive names its own button in the page's language (AC-1)", () => {
+  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")], "nb");
+  expect(html).toContain(t("nb", "list.groupArchiveReady", { button: stepLabel("archive", "nb") }));
+});
+
+test("a card waiting on acceptance rows names each such member with a link to its page (AC-2)", () => {
+  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first", { acceptanceOpen: true }), implemented("2-second")]);
+  const { text, html: sentence } = jobsSentence("en", "list.groupArchiveAcceptance", { button: stepLabel("archive") }, ["aide:1-first"]);
+  expect(html).toContain(rowMessage("waiting", text, { html: sentence }));
+  expect(html).toContain(`href="${specPagePath("aide", "1-first")}"`);
+  expect(html).not.toContain(`href="${specPagePath("aide", "2-second")}"`);
+});
+
+test("a card waiting on a busy member names it with a link to its page (AC-3)", () => {
+  const busy = implemented("2-second", { lead: { state: "running" } as never });
+  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), busy]);
+  const { text, html: sentence } = jobsSentence("en", "list.groupArchiveBusy", { button: stepLabel("archive") }, ["aide:2-second"]);
+  expect(html).toContain(rowMessage("info", text, { html: sentence }));
+  expect(html).toContain(`href="${specPagePath("aide", "2-second")}"`);
+});
+
+test("a card's wait is drawn by the message component a spec's row uses (AC-4)", () => {
+  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")]);
+  expect(html).toContain(rowMessage("waiting", t("en", "list.groupArchiveReady", { button: "Archive" })));
+});
+
+test("a card's wait shows whether the card is shut or open (AC-5)", () => {
+  const ready = [implemented("1-first"), implemented("2-second")];
+  const message = t("en", "list.groupArchiveReady", { button: stepLabel("archive") });
+  const shut = executionGroupCard(group("waiting-acceptance"), ready);
+  expect(shut).toContain("data-group-body hidden");
+  expect(shut.indexOf(message)).toBeGreaterThan(-1);
+  expect(shut.indexOf(message)).toBeLessThan(shut.indexOf("data-group-body"));
+  const open = executionGroupCard(group("waiting-acceptance"), ready, "en", { openFor: "waiting" });
+  expect(open).not.toContain("data-group-body hidden");
+  expect(open).toContain(message);
 });
 
 test("a card is drawn shut unless a member's spec is open in it, with no state marker (AC-4)", () => {

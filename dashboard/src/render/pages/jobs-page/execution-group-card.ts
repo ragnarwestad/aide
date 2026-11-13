@@ -11,6 +11,7 @@ import { columnGroup } from "../specs-list/filter-bar.ts";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { addToGroupDialog } from "./execution-group-editor.ts";
+import { executionGroupWaitRows } from "./execution-group-waiting.ts";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -82,6 +83,7 @@ export function executionGroupCard(
     : undefined;
   const costSettled = members.some((member) => member.group.done.length > 0);
   const states = members.map(({ group: member }) => ({
+    specFolder: member.specFolder,
     implemented: member.done.includes("implement"),
     archived: isArchivedRow(member),
     acceptanceOpen: !!member.acceptanceOpen,
@@ -131,6 +133,8 @@ export function executionGroupCard(
     (control || add ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}${add}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
+    // What the group waits for, outside the body the fold hides.
+    executionGroupWaitRows(group, states, lang as Language) +
     `</tbody>`;
   const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;

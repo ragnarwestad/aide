@@ -604,4 +604,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.groupAddSave": "Ajouter",
   "list.groupAddSaving": "Ajout…",
   "list.groupAddNone": "Aucune spec de ce projet ne peut être ajoutée à ce groupe.",
+  "list.groupArchiveReady": "Toutes les specs du groupe sont implémentées — cliquez sur {button} sur la carte pour les merger ensemble.",
+  "list.groupArchiveBusy": "En attente de {jobs} ; la carte propose {button} une fois chaque spec terminée et cochée.",
+  "list.groupArchiveAcceptance": "En attente des critères d'acceptation de {jobs} ; la carte propose {button} une fois chaque spec terminée et cochée.",
 };

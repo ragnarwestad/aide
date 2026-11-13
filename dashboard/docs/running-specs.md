@@ -833,6 +833,9 @@ dropdown; one shut by hand stays shut until the chosen state changes. Shut, it s
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action and, while the group can take another spec, Add spec, and each member is drawn below as its own spec card.
+While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
+implemented and Archive on the card lands them together, or which members are still running, or which members have
+acceptance rows left to tick, each member a link to its spec page.
 Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
 Remove takes the card off.
 

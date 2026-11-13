@@ -123,6 +123,9 @@ table.speclist.groupcard { width: 100%; }
    and `:last-child` included. */
 table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.specgap, .specstate) > td:nth-child(n) {
   border: 0; border-radius: 0; background: none; }
+/* What a group waiting for Archive says stands on the card's own ground, as
+   the two lines above it do, not on a spec's card of its own. */
+table.speclist.groupcard > tbody[data-group-head] > tr.specnotice > td:nth-child(n) { border: 0; background: none; }
 /* The two lines sit as close as a spec's: the fold spans both, as a spec's does. */
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 0; padding-bottom: var(--sp-3); }

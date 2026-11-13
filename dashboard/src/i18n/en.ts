@@ -615,4 +615,7 @@ export const en = {
   "list.groupAddSave": "Add",
   "list.groupAddSaving": "Adding…",
   "list.groupAddNone": "No spec of this project can be added to this group.",
+  "list.groupArchiveReady": "Every spec in the group is implemented — press {button} on the card to land them together.",
+  "list.groupArchiveBusy": "Waiting for {jobs}; the card offers {button} once every spec is finished and ticked.",
+  "list.groupArchiveAcceptance": "Waiting for the acceptance criteria on {jobs}; the card offers {button} once every spec is finished and ticked.",
 } as const;
