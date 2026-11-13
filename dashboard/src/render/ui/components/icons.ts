@@ -5,6 +5,8 @@
 // which is why each state has a SHAPE of its own here.
 
 import type { ProviderTool } from "../../../queue/providers/tools.ts";
+import { t, type Language, type TranslationKey } from "../../../i18n";
+import { esc } from "../html.ts";
 export { SPINNER } from "../../../page-contract.ts";
 
 
@@ -94,6 +96,33 @@ export const ICON_CLOSE =
   `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +
   `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
   `<path d="M4 4l8 8M12 4l-8 8"></path></svg>`;
+
+export type RowKind = "spec" | "deploy" | "schedule" | "cleanup" | "group";
+
+const stroke = (body: string): string =>
+  `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" ` +
+  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+export const KIND_ICONS: Record<RowKind, string> = {
+  spec: stroke('<path d="M4 2.5h5l3 3V13.5H4zM9 2.5v3h3"></path>'),
+  deploy: stroke('<path d="M8 10.5v-8M5 5.5l3-3 3 3M3 9.5v4h10v-4"></path>'),
+  schedule: stroke('<rect x="2.5" y="3.5" width="11" height="10" rx="1"></rect><path d="M5 2v3M11 2v3M2.5 6.5h11M5 9h2M9 9h2M5 11.5h2"></path>'),
+  cleanup: stroke('<path d="M6.5 2.5h3l.5 4H6zM5.5 6.5h5l1.5 7H4zM6 10h4"></path>'),
+  group: stroke('<path d="M3 3h10v3H3zM4.5 6v3h7V6M6 9v3h4V9"></path>'),
+};
+
+const KIND_KEYS: Record<RowKind, TranslationKey> = {
+  spec: "jobs.kindSpec",
+  deploy: "jobs.kindDeploy",
+  schedule: "jobs.kindSchedule",
+  cleanup: "jobs.kindCleanup",
+  group: "jobs.kindGroup",
+};
+
+export function kindIcon(kind: RowKind, lang: Language = "en"): string {
+  const label = t(lang, KIND_KEYS[kind]);
+  return `<span class="kindicon" role="img" aria-label="${esc(label)}" title="${esc(label)}">${KIND_ICONS[kind]}</span>`;
+}
 
 /** The three tools a provider runs, each a shape of its own: a burst for
  *  Claude Code, a ring of loops for Codex, brackets for OpenCode. */

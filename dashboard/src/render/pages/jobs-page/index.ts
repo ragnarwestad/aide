@@ -63,6 +63,9 @@ export interface JobsView {
   rowKeys?: Map<string, string>;
 }
 
+/** The options the tab draws a spec's row with: the list's, and the row's kind shown. */
+const listOf = (v: JobsView): SpecsPageOptions => ({ ...v.list, kindIcon: true });
+
 /** The rows in order, each with its `<project>/<folder>` key and the facts the
  *  view's filter and sort read: the Active specs, each once, among the
  *  scheduled jobs, by where each stands. A row that `draws` answers no for
@@ -121,12 +124,12 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
     bySpec.set(key, [...(bySpec.get(key) ?? []), job]);
   }
   const roundOf = (key: string): QueueRowView[] => currentWorkRoundJobs(bySpec.get(key) ?? []);
-  const rows: SpecRow[] = activeSpecRows(v.specJobs, v.list, now, v.specs, draws).map((row) => ({ ...row, jobs: roundOf(row.key) }));
+  const rows: SpecRow[] = activeSpecRows(v.specJobs, listOf(v), now, v.specs, draws).map((row) => ({ ...row, jobs: roundOf(row.key) }));
   const drawn = new Set(rows.map((row) => row.key));
   const history = (v.historySpecs ?? []).filter((spec) => !drawn.has(groupKey(spec.project, spec.folder)));
   const historyKeys = history.map((spec) => groupKey(spec.project, spec.folder));
   const historyGroups = groupBySpec(historyKeys.flatMap((key) => bySpec.get(key) ?? []), [], historyKeys, history, now);
-  rows.push(...specRowsOf(historyGroups, v.list, now, draws).map((row) => ({ ...row, jobs: roundOf(row.key) })));
+  rows.push(...specRowsOf(historyGroups, listOf(v), now, draws).map((row) => ({ ...row, jobs: roundOf(row.key) })));
 
   const targets = new Map<string, SpecTarget>(v.list.targets.map((target) => [groupKey(target.project, target.specFolder), target]));
   for (const spec of history) {
@@ -144,7 +147,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
       const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
       const roundTarget = { ...target, createdAt: round.startedAt };
       const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now), {
-        ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
+        ...listOf(v), targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
       }, now, () => draws(key))[0];
       if (!built) continue;
       rows.push({
@@ -234,7 +237,7 @@ export function renderJobsSpecRows(v: JobsView, key: string): string {
 /** A spec drawn inside a group's card on the page: its own rows, as the card
  *  draws them, while the card itself is shown. */
 function groupMemberRows(v: JobsView, key: string, shown: Set<string>, draws: Draws): string {
-  const specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now(), v.specs, draws);
+  const specRows = activeSpecRows(v.specJobs, listOf(v), v.now ?? Date.now(), v.specs, draws);
   const row = specRows.find((s) => s.key === key);
   const inShownGroup = row && activeExecutionGroups(v, specRows).some((group) =>
     shown.has(`execution-group:${group.id}`) && group.project === row.group.project && group.members.includes(row.group.specFolder));

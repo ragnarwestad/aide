@@ -81,6 +81,9 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
 .spec-name > .label > .specpart > .muted { flex: 0 0 auto; }
 .spec-name > .label > .specpart > .specname { overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   min-width: 0; }
+.spec-name > .kindicon { align-self: center; color: var(--muted); display: inline-flex;
+  flex: none; height: 16px; width: 16px; }
+.spec-name > .kindicon svg { height: 16px; width: 16px; }
 /* The summary wraps at a sensible measure instead of dragging the
    whole column wide: the phase lines start where this column ends, so
    an un-capped line of text put a hand's width of nothing between the

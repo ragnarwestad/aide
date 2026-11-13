@@ -221,6 +221,8 @@ export interface SpecsPageOptions {
    *  Specs list's own `/specs` when absent. The Jobs tab draws the same rows
    *  and sets `/`. */
   listPath?: string;
+  /** Whether a spec's row leads with the icon of its kind. The Jobs tab sets it. */
+  kindIcon?: boolean;
   /** Browser code loaded by address (`src=`), after `script`: the spec
    *  editor or viewer the open spec's tab mounts. */
   scriptSrc?: string;

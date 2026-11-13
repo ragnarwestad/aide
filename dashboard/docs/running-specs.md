@@ -797,6 +797,9 @@ The Slack `notifyCommand` above is separate and unchanged.
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
 
+Every row starts with an icon for its kind: a spec, a deploy, a scheduled job, the cleanup or an execution group.
+Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
+
 When the board starts with nothing running, the first page a browser tab loads, if it is the Jobs tab with no row left
 by its saved filter, replaces itself with the Specs list. Once the board has started in a tab, the Jobs tab shows,
 empty or not, on a click, a link or a reload. [Installing it as an app](hosting.md#installing-it-as-an-app) has the

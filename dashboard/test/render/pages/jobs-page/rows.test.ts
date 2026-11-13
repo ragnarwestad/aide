@@ -9,6 +9,7 @@ import {
   jobControl,
   jobKey,
   jobPlace,
+  jobRowKind,
   jobRowKeys,
   jobsShown,
   jobTitle,
@@ -344,6 +345,20 @@ describe("a job row's title says what the job is", () => {
   test("a scheduled job reads its name, with no project", () => {
     const title = jobTitle(job({ specFolder: "schedule-nightly-report", steps: ["schedule"], project: "woodstack" }));
     expect(title).toBe("nightly-report");
+  });
+});
+
+describe("the icon kind of a job row", () => {
+  test("uses each job kind and treats ordinary spec work as a spec (AC-1)", () => {
+    expect(jobRowKind(sched())).toBe("schedule");
+    expect(jobRowKind(job({ steps: ["deploy"] }))).toBe("deploy");
+    expect(jobRowKind(job({ steps: ["cleanup"] }))).toBe("cleanup");
+    expect(jobRowKind(job({ steps: ["implement"] }))).toBe("spec");
+  });
+
+  test("treats Close and Reopen as work on a spec (AC-2)", () => {
+    expect(jobRowKind(job({ steps: ["close"] }))).toBe("spec");
+    expect(jobRowKind(job({ steps: ["reopen"] }))).toBe("spec");
   });
 });
 

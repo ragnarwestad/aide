@@ -1,7 +1,7 @@
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupAction, executionGroupActivity } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, buttonForm, foldButton, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
+import { badge, buttonForm, foldButton, kindIcon, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
@@ -93,7 +93,7 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
-    `<td colspan="5"><div class="spec-name"><span class="label">${projectLink(group.project, { className: "muted" })}` +
+    `<td colspan="5"><div class="spec-name">${kindIcon("group", lang as Language)}<span class="label">${projectLink(group.project, { className: "muted" })}` +
     `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +

@@ -5,7 +5,8 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref, shareBar,
+  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, kindIcon, KIND_ICONS, labelledCheckbox, messageSlot, resolveBackHref, shareBar,
+  type RowKind,
   saveCancelActions,
 } from "../../../src/render/ui/components";
 import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
@@ -309,5 +310,32 @@ describe("TOOL_ICONS is keyed by the provider tools", () => {
     // @ts-expect-error opencode is missing
     const missing = { claude: "x", codex: "x" } satisfies typeof TOOL_ICONS;
     expect(Object.keys(missing)).toHaveLength(2);
+  });
+});
+
+describe("kindIcon()", () => {
+  const kinds: RowKind[] = ["spec", "deploy", "schedule", "cleanup", "group"];
+
+  test("uses the translated kind as both its accessible name and hover text (AC-4)", () => {
+    const norwegian = first(kindIcon("schedule", "nb"), ".kindicon");
+    expect(norwegian.getAttribute("aria-label")).toBe(t("nb", "jobs.kindSchedule"));
+    expect(norwegian.getAttribute("title")).toBe(t("nb", "jobs.kindSchedule"));
+    expect(first(kindIcon("schedule"), ".kindicon").getAttribute("title")).toBe("Scheduled job");
+  });
+
+  test("names every kind and uses the same word for speech and hover text (AC-4)", () => {
+    for (const kind of kinds) {
+      const icon = first(kindIcon(kind), ".kindicon");
+      expect(icon.getAttribute("aria-label")).toBe(icon.getAttribute("title"));
+      expect(icon.getAttribute("aria-label")).not.toBe("");
+    }
+  });
+
+  test("the shared set has one distinct drawing for every kind (AC-5)", () => {
+    expect(Object.keys(KIND_ICONS).sort()).toEqual([...kinds].sort());
+    expect(new Set(Object.values(KIND_ICONS)).size).toBe(kinds.length);
+    // @ts-expect-error group is missing
+    const missing = { spec: "x", deploy: "x", schedule: "x", cleanup: "x" } satisfies typeof KIND_ICONS;
+    expect(Object.keys(missing)).toHaveLength(4);
   });
 });

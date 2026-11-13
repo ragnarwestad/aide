@@ -7,7 +7,7 @@
 import { isScheduleKey, scheduleNameOf } from "../../../project/spec-names.ts";
 import { inFlight, jobActivity, jobKind } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
-import { stepLabel } from "../../ui/components";
+import { stepLabel, type RowKind } from "../../ui/components";
 import { type Language } from "../../../i18n";
 import { waitsForPerson } from "../../../queue/steps.ts";
 import { type QueueRowView } from "../../ui/job-state";
@@ -33,6 +33,12 @@ export interface JobLike {
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string };
+
+/** The kind a job's row is marked as. A Close or a Reopen is work on a spec. */
+export function jobRowKind(row: Pick<JobLike, "steps" | "stepIndex" | "specFolder">): RowKind {
+  const kind = jobKind(row);
+  return kind === "close" || kind === "reopen" ? "spec" : kind;
+}
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
  *  scheduled job that failed, stopped or was interrupted. */

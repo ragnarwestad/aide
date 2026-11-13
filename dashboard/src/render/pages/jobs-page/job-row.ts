@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, kindIcon, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -28,7 +28,7 @@ import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
-import { jobControl, jobKey, jobTitle } from "./rows.ts";
+import { jobControl, jobKey, jobRowKind, jobTitle } from "./rows.ts";
 import { getJobMessage } from "../../../messages/jobs/get.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
@@ -154,7 +154,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   return (
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name"><span class="label">${label}</span></div></td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${kindIcon(jobRowKind(row), lang)}<span class="label">${label}</span></div></td></tr>` +
     // When the job was made and a pip per step, where a spec's row has its
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +

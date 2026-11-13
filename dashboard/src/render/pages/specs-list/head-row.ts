@@ -4,7 +4,7 @@ import type { Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, stepLabel } from "../../ui/components";
+import { badge, kindIcon, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { esc } from "../../ui/html.ts";
@@ -197,7 +197,7 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${opts.kindIcon ? kindIcon("spec", lang) : ""}${spec}` +
     `</div>` +
     under +
     `</td>` +
