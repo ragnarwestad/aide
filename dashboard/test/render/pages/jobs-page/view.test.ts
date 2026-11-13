@@ -141,9 +141,25 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 
   test("Done shows only finished rows and remains the selected state (AC-5)", () => {
-    const done = spec("done", { specFolder: "145-done", state: "done", createdAt: T(6) });
+    const done = spec("done", { specFolder: "145-done", state: "archived", createdAt: T(6) });
     expect(view([running, done, failedReport], { state: "done" })).toEqual(["done"]);
     expect(jobsStateFilters("done").map((entry) => entry.key)).toEqual(["done"]);
+  });
+
+  // A spec whose last job ended done — a Create, an Analyze — waits for its
+  // next phase: the row says Ready, and it is not finished until archived.
+  test("a live spec whose last job ended done is Active and Waiting, not Done", () => {
+    const created = spec("created", { specFolder: "146-created", state: "done", createdAt: T(6) });
+    expect(view([created], { state: "not-archived" })).toEqual(["created"]);
+    expect(view([created], { state: "waiting" })).toEqual(["created"]);
+    expect(view([created], { state: "done" })).toEqual([]);
+  });
+
+  test("a job that is not a spec's and ended done is Done, not Active or Waiting", () => {
+    const deploy = jobEntry("deploy", { specFolder: "deploy", steps: ["deploy"], state: "done", createdAt: T(6) });
+    expect(view([deploy], { state: "done" })).toEqual(["deploy"]);
+    expect(view([deploy], { state: "not-archived" })).toEqual([]);
+    expect(view([deploy], { state: "waiting" })).toEqual([]);
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
@@ -237,8 +253,8 @@ describe("a group stands for its member specs, each by its own state", () => {
       at("new", "not-started", 5), at("done", "done", 6), at("archived", "archived", 7), at("closed", "closed", 8),
       group("half", "running", [member("82-done", "done"), member("83-run", "running")]),
     ];
-    expect(view(rows, { state: "not-archived" }).sort()).toEqual(["failed", "half", "new", "queued", "running", "stopped"]);
-    expect(counts(rows)["not-archived"]).toBe(6);
+    expect(view(rows, { state: "not-archived" }).sort()).toEqual(["done", "failed", "half", "new", "queued", "running", "stopped"]);
+    expect(counts(rows)["not-archived"]).toBe(8);
   });
 });
 
