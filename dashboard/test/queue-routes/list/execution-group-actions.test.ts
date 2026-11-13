@@ -54,3 +54,20 @@ test("a failed member keeps its execution card in the Failed filter (AC-4, AC-11
   const html = await (await fetch(`${base}/?rows=1&state=failed`)).text();
   expect(html).toContain('data-spec-group="aide\nRelease"');
 });
+
+test("archived specs that share a group name with no record draw no card", async () => {
+  const description = (folder: string, position: number) =>
+    `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n- **Group:** \`Old\`\n- **Group position:** ${position}\n`;
+  const done = (specFolder: string) => ({
+    id: `j-${specFolder}`, project: "aide", specFolder, steps: ["archive"], stepIndex: 0, state: "done",
+    timeoutSec: {}, permissionMode: {}, model: {}, results: [],
+    createdAt: "2026-11-11T10:00:00Z", startedAt: "2026-11-11T10:30:00Z", finishedAt: "2026-11-11T11:00:00Z",
+  });
+  const { base } = harness.start({
+    archivedSpecs: { "01-first": { description: description("01-first", 1) }, "02-second": { description: description("02-second", 2) } },
+    queueMirror: JSON.stringify([done("01-first"), done("02-second")]),
+  });
+  const html = await (await fetch(`${base}/?rows=1`)).text();
+  expect(html).toContain("01-first");
+  expect(html).not.toContain('data-spec-group="aide\nOld"');
+});

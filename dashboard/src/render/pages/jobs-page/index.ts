@@ -13,7 +13,7 @@ import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
 import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
 import { activeSpecRows, specRowsOf, type ArchivedSpecView, type SpecTarget, type SpecsPageOptions } from "../specs-list";
-import { groupBySpec, groupKey, type SpecGroup } from "../specs-list/data-model";
+import { groupBySpec, groupKey, isFinishedGroup, type SpecGroup } from "../specs-list/data-model";
 import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
@@ -174,8 +174,10 @@ function activeExecutionGroups(v: JobsView, specRows: { key: string; group: Spec
   const registered = v.executionGroups ?? [];
   const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
   const legacy = new Map<string, typeof specRows>();
+  // Only specs still to run make a card from their `Group:` lines: archived
+  // and closed members are history, and a group of them has nothing to start.
   for (const row of specRows) {
-    if (!row.group.group) continue;
+    if (!row.group.group || isFinishedGroup(row.group)) continue;
     const key = `${row.group.project}\n${row.group.group.name}`;
     if (!known.has(key)) legacy.set(key, [...(legacy.get(key) ?? []), row]);
   }
