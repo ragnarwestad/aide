@@ -1,5 +1,4 @@
-// Add spec on a group's card: the route that writes one more spec's group
-// lines at the end of the order and appends it to the group's record.
+// Edit on a group's card: one checked save of its name, members and order.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -8,7 +7,7 @@ import { queueHarness } from "../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../helpers/specs-repo.ts";
 import { listUntil, rowSaysDone } from "./fixtures.ts";
 
-const harness = queueHarness("aide-execution-group-add-");
+const harness = queueHarness("aide-execution-group-edit-");
 afterEach(() => harness.cleanup());
 
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -56,65 +55,53 @@ async function groupOfTwo(state: string, opts: { implemented?: string[]; second?
   return started;
 }
 
-const add = (base: string, member: string) =>
-  fetch(`${base}/api/queue/groups/group-1/members`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ member }) });
+const edit = (base: string, members: string[], name = "Release") =>
+  fetch(`${base}/api/queue/groups/group-1`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ name, member: members, position: members.map((_, index) => index + 1) }) });
 const description = (dir: string, folder: string) => readFileSync(join(dir, "root", "aide", "specs", folder, "1-description.md"), "utf-8");
 const stored = (dir: string) => JSON.parse(readFileSync(join(dir, "execution-groups.json"), "utf-8"))[0] as { members: string[]; state: string };
 
-describe("adding a spec to a group that has started", () => {
-  test("places it last and leaves the members that have run as they were (AC-3)", async () => {
+describe("editing a group", () => {
+  test("adds and moves unlocked specs while leaving locked files unchanged (AC-5, AC-6, AC-9)", async () => {
     const { base, dir } = await groupOfTwo("running");
-    const before = [description(dir, FIRST), description(dir, SECOND)];
-    const res = await add(base, ADDED);
+    const before = description(dir, FIRST);
+    const res = await edit(base, [FIRST, ADDED, SECOND]);
     expect(res.status).toBe(200);
-    expect(description(dir, ADDED)).toContain("- **Group:** `Release`\n- **Group position:** 3\n");
-    expect(stored(dir)).toMatchObject({ members: [FIRST, SECOND, ADDED], state: "running" });
-    expect([description(dir, FIRST), description(dir, SECOND)]).toEqual(before);
+    expect(description(dir, ADDED)).toContain("- **Group:** `Release`\n- **Group position:** 2\n");
+    expect(description(dir, SECOND)).toContain("- **Group position:** 3\n");
+    expect(stored(dir)).toMatchObject({ members: [FIRST, ADDED, SECOND], state: "running" });
+    expect(description(dir, FIRST)).toBe(before);
   });
 
-  test("on a queued group, takes the position after the member that was last (AC-4)", async () => {
-    const { base, dir } = await groupOfTwo("queued");
-    expect((await add(base, ADDED)).status).toBe(200);
-    expect(description(dir, ADDED)).toContain("- **Group position:** 3\n");
-  });
-
-  test("on a stopped group, Start runs the member before it, and the added spec follows (AC-5)", async () => {
+  test("removes an unlocked spec and strips its group lines (AC-8)", async () => {
     const { base, dir } = await groupOfTwo("stopped");
-    expect((await add(base, ADDED)).status).toBe(200);
-    const start = await fetch(`${base}/api/queue/groups/group-1/action`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action: "start" }) });
-    expect(start.status).toBe(200);
-    const { job } = await start.json() as { job: { specFolder: string; executionGroupId?: string } };
-    expect(job).toMatchObject({ specFolder: SECOND, executionGroupId: "group-1" });
-    expect(description(dir, ADDED)).toContain("- **Group position:** 3\n");
+    expect((await edit(base, [FIRST, ADDED])).status).toBe(200);
+    expect(description(dir, SECOND)).not.toContain("Group:");
+    expect(stored(dir).members).toEqual([FIRST, ADDED]);
   });
 
-  test("is refused, with why and what to do, once every member has finished Implement (AC-6)", async () => {
-    const { base, dir } = await groupOfTwo("waiting-acceptance", { implemented: [FIRST, SECOND] });
-    const res = await add(base, ADDED);
+  test("refuses moving a locked spec and writes nothing (AC-4, AC-7)", async () => {
+    const { base, dir } = await groupOfTwo("running");
+    const before = [description(dir, FIRST), description(dir, SECOND), stored(dir)];
+    const res = await edit(base, [SECOND, FIRST]);
     expect(res.status).toBe(409);
-    const body = await res.json() as { error: string; solution?: string };
-    expect(body.error).toContain("Release");
-    expect(body.solution).toBeTruthy();
-    expect(description(dir, ADDED)).toBe(plain(ADDED));
-    expect(stored(dir).members).toEqual([FIRST, SECOND]);
+    expect([description(dir, FIRST), description(dir, SECOND), stored(dir)]).toEqual(before);
   });
 
-  test("refuses a spec a member depends on, naming both (AC-2)", async () => {
+  test("refuses dependency order and leaves the group unchanged (AC-7)", async () => {
     const { base, dir } = await groupOfTwo("running", { second: grouped(SECOND, 2, `- **Depends on:** \`${ADDED}\`\n`) });
-    const res = await add(base, ADDED);
+    const res = await edit(base, [FIRST, SECOND, ADDED]);
     expect(res.status).toBe(409);
     const { error } = await res.json() as { error: string };
-    expect(error).toContain(SECOND);
-    expect(error).toContain(ADDED);
+    expect(error).toContain(`${SECOND} depends on ${ADDED}`);
     expect(description(dir, ADDED)).toBe(plain(ADDED));
     expect(stored(dir).members).toEqual([FIRST, SECOND]);
   });
-});
 
-test("two adds of one spec at the same moment add it once (AC-3)", async () => {
-  const { base, dir } = await groupOfTwo("running");
-  const answers = await Promise.all([add(base, ADDED), add(base, ADDED)]);
-  expect(answers.map((res) => res.status).sort()).toEqual([200, 409]);
-  expect(stored(dir).members).toEqual([FIRST, SECOND, ADDED]);
-  expect(description(dir, ADDED).match(/Group position/g)).toHaveLength(1);
+  test("refuses renaming once a member is locked (AC-9)", async () => {
+    const { base, dir } = await groupOfTwo("running");
+    const res = await edit(base, [FIRST, SECOND], "Renamed");
+    expect(res.status).toBe(409);
+    expect(description(dir, FIRST)).toContain("`Release`");
+    expect(stored(dir).members).toEqual([FIRST, SECOND]);
+  });
 });

@@ -195,6 +195,11 @@ td form { margin: 0; display: inline-block; }
   width: 100%; text-align: left; background: none; border: 0; color: var(--text);
   font: var(--fs-m)/1 var(--sans); cursor: pointer; }
 .menupanel > button:hover { background: var(--surface-2); }
+.menupanel > form { padding: 0; }
+.menupanel > form > button { display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; padding: 6px 10px; border-radius: var(--r-s); text-align: left;
+  background: none; border: 0; color: var(--text); font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.menupanel > form > button:hover { background: var(--surface-2); }
 .menupanel > button[aria-current],
 .menupanel > a[aria-current] { font-weight: 600; }
 /* The chosen row also gets a text colour distinct from

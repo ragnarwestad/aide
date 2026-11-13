@@ -52,7 +52,7 @@ test("specs that share a group name in their descriptions are drawn as one group
   expect(html).toContain('data-spec-group="aide\nRelease"');
 });
 
-test("a group's card is handed the specs its group can take (AC-2)", () => {
+test("a group's Edit dialog gets every spec New group would offer (AC-6)", () => {
   const spec = (specFolder: string, extra: Record<string, unknown> = {}) => ({ project: "aide", specFolder, title: specFolder, done: ["create"], ...extra });
   const html = renderJobsRows({
     shown: [], specJobs: [],
@@ -69,5 +69,5 @@ test("a group's card is handed the specs its group can take (AC-2)", () => {
   const card = html.slice(html.indexOf('data-spec-group="aide\nRelease"'));
   const dialog = card.slice(card.indexOf('<dialog class="formdialog"'), card.indexOf("</dialog>"));
   expect(dialog).toContain('value="3-free"');
-  expect(dialog).not.toContain('value="4-required"');
+  expect(dialog).toContain('value="4-required"');
 });

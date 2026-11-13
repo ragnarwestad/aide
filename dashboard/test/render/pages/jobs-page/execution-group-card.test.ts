@@ -87,11 +87,12 @@ test("a prepared card starts by durable id (AC-3, AC-10, AC-11)", () => {
   expect(html).toContain('name="action" value="start"');
 });
 
-test("a completed card offers Remove, wired to the group's own route (AC-1)", () => {
+test("a completed card offers Remove in its menu, wired to the group's own route (AC-1, AC-10)", () => {
   const html = executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")]);
   expect(html).toContain('/api/queue/groups/group-1/action');
   expect(html).toContain('name="action" value="remove"');
   expect(html).toContain(`>${t("en", "project.remove")}</button>`);
+  expect(html).toContain('<details class="menu"');
 });
 
 test("a completed group is placed with finished work (AC-3, AC-4)", () => {
@@ -205,17 +206,10 @@ test("a card numbers its members' pips in the group's order", () => {
   expect(html.indexOf('title="2-second"')).toBeLessThan(html.indexOf('title="1-first"'));
 });
 
-test("a card with a member that has not finished Implement opens its own Add spec dialog (AC-1)", () => {
-  const ready = { ...member("1-first", ""), group: { ...member("1-first", "").group, done: ["create", "analyze", "implement"] } as SpecGroup };
-  const html = executionGroupCard(group("running"), [ready, member("2-second", "")], "en", { addCandidates: [{ project: "aide", specFolder: "3-third" }] });
-  const opener = html.match(/data-ask="([^"]+)"/)?.[1];
-  expect(opener).toBeDefined();
-  expect(html).toContain(`<dialog class="formdialog" id="${opener}"`);
-});
-
-test("a card whose every member has finished Implement offers no Add spec (AC-1, AC-6)", () => {
-  const ready = (folder: string) => ({ ...member(folder, ""), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"] } as SpecGroup });
-  const html = executionGroupCard(group("stopped"), [ready("1-first"), ready("2-second")], "en", { addCandidates: [{ project: "aide", specFolder: "3-third" }] });
-  expect(html).not.toContain("data-ask=");
-  expect(html).not.toContain("<dialog");
+test("an editable card opens its filled Edit dialog and has no Add spec control (AC-1, AC-2, AC-3, AC-12)", () => {
+  const html = executionGroupCard(group("running"), [member("1-first", ""), member("2-second", "")], "en", { candidates: [{ project: "aide", specFolder: "3-third" }], locked: new Set(["1-first"]) });
+  expect(html).toContain('<details class="menu"');
+  expect(html).toContain('data-ask="edit-group-group-group-1"');
+  expect(html).toContain('<dialog class="formdialog" id="edit-group-group-group-1"');
+  expect(html).not.toContain("/members");
 });

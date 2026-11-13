@@ -431,7 +431,7 @@ export async function swapRows(): Promise<void> {
     // Only those kinds: Cancel's plain confirm relies on this redraw to go
     // away after its OK. The
     // next change once it is closed draws what this one would have.
-    if (body.querySelector("dialog[open][data-progress-dialog], dialog.formdialog[open]")) return;
+    if (body.querySelector("dialog[open][data-progress-dialog], dialog.formdialog[open], tr.execution-group details.menu[open]")) return;
     // How far down the list is scrolled, kept across the
     // redraw the way `restoreChosen` keeps a reader's own picks. The
     // wholesale replace below builds `.tablewrap` afresh, and a new

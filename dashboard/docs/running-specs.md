@@ -104,17 +104,11 @@ the execution order. A group may include a spec and the spec it depends on when 
 order. An order that puts a spec before its dependency is refused and names both specs. A project with fewer than two
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
-A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
-reorder members until the first execution starts.
-
-**Add spec**, on the open card, adds one spec at the end of the order of a group that has not finished Implement for
-all its members, whether it is prepared, queued, running, stopped or waiting. Its dialog lists the specs New group would
-offer for the group's project, less any spec a member of the group depends on; a spec that depends on a member is
-listed, since it comes after every member. Add writes the spec's `Group:` and `Group position:` lines, one past the
-last member's, and changes nothing that has already run. A running or queued group runs it after the member that was
-last; a stopped group runs it when Start is pressed again. A group whose every member has finished Implement, or that
-is archiving or completed, offers no Add spec and refuses one with a sentence saying why: archive it and make a new
-group. Once a group has started, nothing else changes its members or their order.
+A refused Save says why in the dialog, which stays open with what was typed. The group's … menu offers **Edit** until
+the group starts archiving. Edit opens the New group dialog filled with the group's name, members and order. A spec
+that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed or
+moved, and any spec New group would offer can be added after the locked members. Save checks the whole dependency order
+and writes the new membership together.
 
 Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
 every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That
@@ -122,7 +116,7 @@ press validates and moves every member together, runs the project's test gate on
 member already archived counts as done, and Archive moves the rest. The card shows the group as archiving from the
 press until the landing has settled. A failed landing leaves every member active and shows the reason on the group.
 
-A completed group's card offers Remove, and no other state does. Remove takes the card off the Jobs tab and draws the
+A completed group's … menu offers Remove, and no other state does. Remove takes the card off the Jobs tab and draws the
 group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
 link — and changes no spec file.
 
@@ -827,12 +821,13 @@ With no rows, the search field, State filter and column headings stay visible, a
 is running." Failed-create messages stay above the search row. The first job appears without a page reload.
 
 A grouped spec appears inside its execution group's card instead of as a second ordinary Jobs row. The card shows
-the group's creation date, its progress and the one action allowed by its current state.
+the group's creation date, its progress and the one action allowed by its current state. Its top line ends with a …
+menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
-action and, while the group can take another spec, Add spec, and each member is drawn below as its own spec card.
+action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
 implemented and Archive on the card lands them together, or which members are still running, or which members have
 acceptance rows left to tick, each member a link to its spec page.

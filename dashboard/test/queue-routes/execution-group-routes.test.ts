@@ -58,7 +58,7 @@ describe("execution-group HTTP routes", () => {
 
   test("all recognised group routes refuse GET with the documented response (AC-3)", async () => {
     const { base } = harness.start();
-    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1/action", "/api/queue/groups/group-1/members"]) {
+    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1", "/api/queue/groups/group-1/action"]) {
       const response = await fetch(`${base}${path}`);
       expect(response.status).toBe(405);
       expect(await response.text()).toBe("method not allowed");
@@ -67,7 +67,7 @@ describe("execution-group HTTP routes", () => {
 
   test("all group POST routes share the Origin refusal (AC-2)", async () => {
     const { base } = harness.start();
-    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1/action", "/api/queue/groups/group-1/members"]) {
+    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1", "/api/queue/groups/group-1/action"]) {
       const response = await fetch(`${base}${path}`, {
         method: "POST",
         headers: { origin: "https://evil.example" },

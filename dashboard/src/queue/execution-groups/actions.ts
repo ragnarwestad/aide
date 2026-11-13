@@ -1,6 +1,7 @@
 import type { ExecutionGroup } from "./types.ts";
 
 export type ExecutionGroupAction = "start" | "stop" | "archive" | "remove";
+export type ExecutionGroupMenuAction = "edit" | "remove";
 
 export interface ExecutionGroupMemberState {
   implemented: boolean;
@@ -28,18 +29,15 @@ export function executionGroupAction(
   return undefined;
 }
 
-/** Why a group can take no more specs: archived, being archived, or every
- *  member through Implement, which a group waiting for Archive always is. */
-export type ExecutionGroupAddRefusal = "archiving" | "completed" | "implemented";
-
-/** Whether a spec may be added at the end of the group's order: nothing
- *  stops it, or the reason something does. */
-export function executionGroupAddRefusal(
+/** Splits a group's controls between its single State/Action button and
+ *  the card menu. */
+export function executionGroupControls(
   group: Pick<ExecutionGroup, "state">,
   members: readonly ExecutionGroupMemberState[],
-): ExecutionGroupAddRefusal | undefined {
-  if (group.state === "completed") return "completed";
-  if (group.state === "archiving") return "archiving";
-  if (members.length === 0 || members.every((member) => member.implemented || member.archived)) return "implemented";
-  return undefined;
+): { action: Exclude<ExecutionGroupAction, "remove"> | undefined; menu: ExecutionGroupMenuAction[] } {
+  const decided = executionGroupAction(group, members);
+  return {
+    action: decided === "remove" ? undefined : decided,
+    menu: group.state === "completed" ? ["remove"] : group.state === "archiving" ? [] : ["edit"],
+  };
 }

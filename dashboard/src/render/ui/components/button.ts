@@ -88,7 +88,7 @@ export const dataAttrs = (data: Record<string, string> = {}): string =>
 export function buttonForm(o: {
   /** A `btn()`, or the close cross in a dialog's corner, which is its icon
    *  alone and says what it does in `aria-label` (the About box's). */
-  button: BtnOptions | { cross: string };
+  button: BtnOptions | { cross: string } | { menuItem: string; pending?: string };
   /** Where it posts, unescaped; absent for `method: "dialog"`. */
   action?: string;
   /** The platform's own close of the dialog the form is in; a post otherwise. */
@@ -117,9 +117,10 @@ export function buttonForm(o: {
   const hidden = Object.entries(o.hidden ?? {})
     .map(([name, value]) => `<input type="hidden" name="${esc(name)}" value="${esc(value)}">`)
     .join("");
-  const button =
-    "cross" in o.button
-      ? `<button class="aboutclose" aria-label="${esc(o.button.cross)}">${ICON_CLOSE}</button>`
+  const button = "cross" in o.button
+    ? `<button class="aboutclose" aria-label="${esc(o.button.cross)}">${ICON_CLOSE}</button>`
+    : "menuItem" in o.button
+      ? `<button type="submit"${o.button.pending ? ` data-pending="${esc(o.button.pending)}"` : ""}>${esc(o.button.menuItem)}</button>`
       : btn(o.button);
   return `<form ${attrs}>${hidden}${o.before ?? ""}${button}${o.after ?? ""}</form>`;
 }

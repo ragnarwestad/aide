@@ -22,6 +22,7 @@ import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
+import { ICON_MORE } from "./components/icons.ts";
 
 export interface NavEntry {
   label: string;
@@ -229,10 +230,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     `<div class="row">${usageButton(lang)}${themeControl(lang)}${languageControl(lang, currentUrl)}${unitControl(lang)}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
-    headerMenu({ label: t(lang, "shell.more"), icon:
-      `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
-      `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
-      `<circle cx="8" cy="13" r="1.4"></circle></svg>`,
+    headerMenu({ label: t(lang, "shell.more"), icon: ICON_MORE,
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
         `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
         `<button type="button" data-about>${t(lang, "shell.about")}</button>`,

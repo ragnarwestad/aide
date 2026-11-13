@@ -25,6 +25,28 @@ test("changing the name does not replace the order the user entered (AC-1, AC-2)
   expect(positions.map((input) => input.value)).toEqual(["2", "1"]);
 });
 
+test("a locked member keeps its position while unlocked members can move around it (AC-4, AC-5)", () => {
+  const window = new Window();
+  window.document.write(`<form data-execution-group-editor><select name="project"><option value="aide">aide</option></select>
+    <p data-group-project="aide" data-group-locked><input type="checkbox" checked disabled><input name="member" type="hidden" value="1-first"><input name="position" value="1" readonly></p>
+    <p data-group-project="aide"><input name="member" type="checkbox" value="2-second" checked><input name="position" value="3"></p>
+    <p data-group-project="aide"><input name="member" type="checkbox" value="3-third" checked><input name="position" value="2"></p></form>`);
+  const form = window.document.querySelector("form") as unknown as HTMLFormElement;
+  updateExecutionGroupEditor(form);
+  expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => input.value)).toEqual(["1", "3", "2"]);
+});
+
+test("removing an unlocked member before a locked member closes the position gap (AC-4, AC-5)", () => {
+  const window = new Window();
+  window.document.write(`<form data-execution-group-editor><select name="project"><option value="aide">aide</option></select>
+    <p data-group-project="aide"><input name="member" type="checkbox" value="1-first"><input name="position" value="1"></p>
+    <p data-group-project="aide" data-group-locked><input type="checkbox" checked disabled><input name="member" type="hidden" value="2-locked"><input name="position" value="2" readonly></p>
+    <p data-group-project="aide"><input name="member" type="checkbox" value="3-third" checked><input name="position" value="3"></p></form>`);
+  const form = window.document.querySelector("form") as unknown as HTMLFormElement;
+  updateExecutionGroupEditor(form);
+  expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => input.value)).toEqual(["", "1", "2"]);
+});
+
 test("a closed New group dialog is empty: no name, no tick, no order and no reason (AC-3)", () => {
   const window = new Window();
   window.document.body.innerHTML = `<dialog id="other"></dialog>` + executionGroupEditor({

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { addToGroupDialog, executionGroupEditor, NEW_GROUP_DIALOG } from "../../../../src/render/pages/jobs-page/execution-group-editor.ts";
+import { executionGroupEditor, NEW_GROUP_DIALOG } from "../../../../src/render/pages/jobs-page/execution-group-editor.ts";
 
 const candidates = [
   { project: "aide", specFolder: "765-long", title: "Create and order groups" },
@@ -29,20 +29,12 @@ test("the New group form stands in the form dialog its button names (AC-6)", () 
   expect(form.closest("dialog.formdialog")?.id).toBe(NEW_GROUP_DIALOG);
 });
 
-test("the Add spec form posts one chosen member to the group's route (AC-2)", () => {
-  const html = addToGroupDialog({ id: "add-spec-group-1", group: { id: "group 1", name: "Release" }, candidates });
-  const win = new Window();
-  win.document.body.innerHTML = html;
-  const form = win.document.querySelector("form[data-group-add]")!;
-  expect(form.getAttribute("action")).toBe("/api/queue/groups/group%201/members");
-  expect([...form.querySelectorAll('input[type="radio"][name="member"]')].map((radio) => radio.getAttribute("value"))).toEqual(["765-long", "766-next"]);
-  expect(form.querySelector("button[disabled]")).toBeNull();
-});
-
-test("the Add spec form with no spec to offer cannot be sent (AC-2)", () => {
-  const win = new Window();
-  win.document.body.innerHTML = addToGroupDialog({ id: "add-spec-group-1", group: { id: "group-1", name: "Release" }, candidates: [] });
-  const form = win.document.querySelector("form[data-group-add]")!;
-  expect(form.querySelectorAll('input[name="member"]')).toHaveLength(0);
-  expect(form.querySelector("#add-spec-group-1-form-save")?.hasAttribute("disabled")).toBe(true);
+test("Edit draws the saved group before New group candidates and locks fixed members (AC-3, AC-4, AC-6)", () => {
+  const html = executionGroupEditor({ projects: ["aide"], candidates, group: { id: "group 1", anchor: "group-group-1", project: "aide", name: "Release", members: [{ specFolder: "1-first", title: "First", locked: true }, { specFolder: "2-second", title: "Second", locked: false }] } });
+  const form = formOf(html);
+  expect(form.getAttribute("action")).toBe("/api/queue/groups/group%201");
+  expect((form.querySelector('input[name="name"]') as HTMLInputElement).value).toBe("Release");
+  expect([...form.querySelectorAll('input[name="member"]')].map((box) => box.getAttribute("value"))).toEqual(["1-first", "2-second", "765-long", "766-next"]);
+  expect(form.querySelector('[data-group-locked] input[name="position"]')?.hasAttribute("readonly")).toBe(true);
+  expect(form.closest("dialog")?.id).toBe("edit-group-group-group-1");
 });

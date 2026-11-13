@@ -97,6 +97,11 @@ export const ICON_CLOSE =
   `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
   `<path d="M4 4l8 8M12 4l-8 8"></path></svg>`;
 
+export const ICON_MORE =
+  `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
+  `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
+  `<circle cx="8" cy="13" r="1.4"></circle></svg>`;
+
 export type RowKind = "spec" | "deploy" | "schedule" | "cleanup" | "group";
 
 const stroke = (body: string): string =>

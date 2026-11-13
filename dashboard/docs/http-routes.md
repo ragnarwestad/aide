@@ -142,13 +142,13 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/failed-creates/<id>/dismiss` | action | nothing                                            | `{ ok }`; 404 for an unknown message                                       | form      |
 | `POST /api/queue/groups`                      | action | project, name, ordered members                     | `{ ok, group }`; 409 if refused                                            | form      |
 | `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop`, `archive` or `remove`   | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
-| `POST /api/queue/groups/<id>/members`         | action | `member`: one spec, added last in the order        | `{ ok, group }`; 409 if refused                                            | form      |
+| `POST /api/queue/groups/<id>`                 | action | name and the full ordered member list              | `{ ok, group }`; 409 if refused                                            | form      |
 
 The execution-group routes have these authoritative handlers:
 
 - `POST /api/queue/groups` — `src/serve/routes/spec-edit/group.ts`
 - `POST /api/queue/groups/<id>/action` — `src/serve/routes/job-actions.ts`
-- `POST /api/queue/groups/<id>/members` — `src/serve/routes/spec-edit/group.ts`
+- `POST /api/queue/groups/<id>` — `src/serve/routes/spec-edit/group.ts`
 
 ### Specs
 

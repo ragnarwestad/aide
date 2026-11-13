@@ -13,7 +13,6 @@ import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
 import { changeExecutionGroupEditor, closeExecutionGroupEditor, syncExecutionGroupEditors } from "../execution-groups/editor.ts";
-import { closeGroupAddDialog } from "../execution-groups/add-spec.ts";
 import { fitStateFilterSummary } from "../state-filter-summary.ts";
 
 // Delegated from the container, because the controls are replaced along
@@ -117,12 +116,12 @@ const onRowsChange = ((event: Event) => {
   }
 }) as EventListener;
 
-// The New group dialog or a card's Add spec dialog closed, by Cancel, by
+// A New group or Edit group dialog closed, by Cancel, by
 // Escape or after a save: it is emptied, and the rows are drawn once, which a
 // redraw waits with while the dialog is open. That redraw is what draws a
 // saved group's card, or a card with its added spec.
 const onRowsClose = ((event: Event) => {
-  if (closeExecutionGroupEditor(event) || closeGroupAddDialog(event)) void swapRows();
+  if (closeExecutionGroupEditor(event)) void swapRows();
 }) as EventListener;
 
 /** Binds the rows' and the Test servers list's containers, where the page has them. */

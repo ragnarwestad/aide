@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { eligibleGroupMembers, groupAddCandidates, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
 
 const target = (specFolder: string, extra: Record<string, unknown> = {}) => ({
   project: "aide", specFolder, title: `Title ${specFolder}`, done: ["create"], dependsOn: [], ...extra,
@@ -56,23 +56,26 @@ test("refuses duplicates and missing positions before save", () => {
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first"], positions: [2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
 });
 
-test("a group takes the specs New group would offer, less any spec a member depends on (AC-2)", () => {
-  const offered = groupAddCandidates({
-    project: "aide",
-    members: ["1-first", "2-second"],
-    targets: [
-      target("1-first", { done: ["create", "analyze", "implement"], dependsOn: ["4-required"], group: { name: "Release", position: 1 } }),
-      target("2-second", { group: { name: "Release", position: 2 } }),
-      target("3-free"),
-      target("4-required"),
-      target("5-dependent", { dependsOn: ["2-second"] }),
-      target("6-other-group"),
-    ],
-    groups: [
-      { id: "release", project: "aide", name: "Release", members: ["1-first", "2-second"], branch: "group/1-first", state: "running", completedMembers: [], jobs: [] },
-      { id: "other", project: "aide", name: "Other", members: ["6-other-group"], branch: "group/6", state: "prepared", completedMembers: [], jobs: [] },
-    ],
-    jobs: [],
-  });
-  expect(offered.map((item) => item.specFolder)).toEqual(["3-free", "5-dependent"]);
+test("only members through Implement, in flight, or no longer active are locked (AC-4, AC-5)", () => {
+  const group = { id: "release", project: "aide", name: "Release", members: ["1-done", "2-ran", "3-busy", "4-new", "5-archived"], branch: "group/1", state: "running", completedMembers: ["1-done"], jobs: [{ id: "old", specFolder: "2-ran", logs: [] }] } as never;
+  const targets = [target("1-done", { done: ["implement"] }), target("2-ran"), target("3-busy"), target("4-new")];
+  expect([...lockedGroupMembers({ group, targets, jobs: [{ project: "aide", specFolder: "3-busy", state: "queued" }] })]).toEqual(["1-done", "3-busy", "5-archived"]);
+});
+
+test("an edit keeps locked positions, allows new candidates, and checks dependency order (AC-4, AC-5, AC-6, AC-7)", () => {
+  const group = { id: "release", project: "aide", name: "Release", members: ["1-first", "2-second"], branch: "group/1", state: "prepared", completedMembers: ["1-first"], jobs: [] } as never;
+  const targets = [target("1-first", { group: { name: "Release", position: 1 } }), target("2-second", { group: { name: "Release", position: 2 }, dependsOn: ["3-new"] }), target("3-new")];
+  const base = { project: "aide", group, targets, groups: [group], jobs: [], locked: new Set(["1-first"]) };
+  expect(validateExecutionGroupEdit({ ...base, members: ["1-first", "3-new", "2-second"], positions: [1, 2, 3] })).toEqual({ ok: true, members: ["1-first", "3-new", "2-second"] });
+  expect(validateExecutionGroupEdit({ ...base, members: ["2-second", "1-first"], positions: [1, 2] })).toMatchObject({ ok: false });
+  expect(validateExecutionGroupEdit({ ...base, members: ["1-first", "2-second", "3-new"], positions: [1, 2, 3] })).toEqual({ ok: false, error: "2-second depends on 3-new, so 3-new must come before 2-second in the group's order" });
+});
+
+test("removing an unlocked member before a locked member closes the position gap (AC-4, AC-5)", () => {
+  const group = { id: "release", project: "aide", name: "Release", members: ["1-first", "2-locked", "3-third"], branch: "group/1", state: "prepared", completedMembers: ["2-locked"], jobs: [] } as never;
+  const targets = [target("1-first"), target("2-locked", { done: ["implement"] }), target("3-third")];
+  expect(validateExecutionGroupEdit({
+    project: "aide", group, members: ["2-locked", "3-third"], positions: [1, 2], locked: new Set(["2-locked"]),
+    targets, groups: [group], jobs: [],
+  })).toEqual({ ok: true, members: ["2-locked", "3-third"] });
 });

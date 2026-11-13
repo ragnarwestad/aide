@@ -13,16 +13,31 @@ function rows(form: HTMLFormElement): HTMLElement[] {
 
 export function updateExecutionGroupEditor(form: HTMLFormElement): void {
   const project = form.querySelector<HTMLSelectElement>('select[name="project"]')?.value;
+  const edit = rows(form).some((row) => row.hasAttribute("data-group-locked"));
   let position = 0;
   for (const row of rows(form)) {
     row.hidden = !!project && row.dataset.groupProject !== project;
-    const member = row.querySelector<HTMLInputElement>('input[name="member"]');
+    const member = row.querySelector<HTMLInputElement>('input[type="checkbox"]');
     const order = row.querySelector<HTMLInputElement>('input[name="position"]');
     if (!member || !order) continue;
+    if (row.hasAttribute("data-group-locked")) continue;
     if (row.hidden) member.checked = false;
     order.disabled = !member.checked;
-    if (member.checked) order.value = String(++position);
-    else order.value = "";
+    if (!member.checked) order.value = "";
+    else if (!edit) order.value = String(++position);
+  }
+  if (edit) {
+    const selected = rows(form).filter((row) => {
+      const box = row.querySelector<HTMLInputElement>('input[type="checkbox"]');
+      return !row.hidden && !!box?.checked;
+    }).sort((a, b) => {
+      const value = (row: HTMLElement) => Number(row.querySelector<HTMLInputElement>('input[name="position"]')?.value) || Number.MAX_SAFE_INTEGER;
+      return value(a) - value(b);
+    });
+    selected.forEach((row, index) => {
+      const order = row.querySelector<HTMLInputElement>('input[name="position"]');
+      if (order) order.value = String(index + 1);
+    });
   }
   // A group needs two members, so a project with fewer has nothing to save.
   const enough = rows(form).filter((row) => !row.hidden).length >= 2;

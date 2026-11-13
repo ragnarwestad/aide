@@ -128,6 +128,8 @@ table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.specgap, .
 table.speclist.groupcard > tbody[data-group-head] > tr.specnotice > td:nth-child(n) { border: 0; background: none; }
 /* The two lines sit as close as a spec's: the fold spans both, as a spec's does. */
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
+.groupheadline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.groupheadline > .menu { flex: 0 0 auto; }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 0; padding-bottom: var(--sp-3); }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
 table.speclist.groupcard > tbody > tr.groupline .pipslot { display: flex; margin: 0; padding-left: 0; }

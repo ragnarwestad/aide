@@ -23,7 +23,7 @@ import { jobFacts, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./v
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
-import { eligibleGroupMembers, groupAddCandidates } from "../../../queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
@@ -96,7 +96,8 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
       html: draws(key)
         ? executionGroupCard(group, specRows, lang, {
           openFor,
-          addCandidates: groupAddCandidates({ project: group.project, members: group.members, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
+          candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
+          locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
         })
         : "",
       place: executionGroupPlace(group, members),
