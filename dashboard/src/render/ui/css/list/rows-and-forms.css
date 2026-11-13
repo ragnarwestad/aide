@@ -248,12 +248,15 @@ td form { margin: 0; display: inline-block; }
 .menucheck svg { width: 14px; height: 14px; }
 [aria-current] > .menucheck { opacity: 1; }
 
-/* The state dropdown's own rows: a square checkbox glyph beside each link.
-   Several entries may be checked at once. */
+/* The state dropdown's own rows: a checkbox beside each link, drawn as the
+   board's checkboxes are — an empty box, and the accent with a tick when
+   chosen. Several entries may be checked at once. */
 .menupanel.state a, .menu.state .menupanel a { display: flex; align-items: center; gap: var(--sp-2); }
-.menu.state .check { width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid var(--line-strong);
-  border-radius: var(--r-s); }
-.menu.state a[aria-checked="true"] .check { background: var(--text); border-color: var(--text); }
+.menu.state .check { display: inline-flex; width: 14px; height: 14px; flex: 0 0 auto;
+  border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface); }
+.menu.state a[aria-checked="true"] .check { background: var(--accent); border-color: var(--accent); }
+.menu.state a[aria-checked="true"] .check::after { content: ""; flex: 1; background-color: var(--on-accent);
+  -webkit-mask: var(--icon-check) center / 10px no-repeat; mask: var(--icon-check) center / 10px no-repeat; }
 /* The base `.menu > summary` above is a bare 32px icon circle, sized for
    the header's "…" and Theme triggers, which carry no text. This
    trigger's own label ("Archived (12)") needs room a fixed circle

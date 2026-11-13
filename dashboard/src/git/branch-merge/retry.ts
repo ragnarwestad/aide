@@ -5,11 +5,12 @@ import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.
 import type { RepoMergeResult } from "./result.ts";
 
 /** Every lock git can lose a race for, not only the index's. Read by
- *  one place alone: the merge in a landing's own worktree
- *  (`merge.ts`), which shares refs with the checkout it was cut from
- *  but not its index or HEAD, and so does not run under the checkout's
- *  lock. Every move of a shared checkout runs under that lock
- *  (`checkout-lock/`) and is tried once. */
+ *  the merge in a landing's own worktree (`merge.ts`), which shares refs
+ *  with the checkout it was cut from but not its index or HEAD, and so
+ *  does not run under the checkout's lock; and by the drift check's fetch
+ *  (`branch-status.ts`), which loses `refs/remotes/origin/<base>` to
+ *  another fetch of the same checkout. Every move of a shared checkout
+ *  runs under that lock (`checkout-lock/`) and is tried once. */
 export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
 /** Every retry a landing makes and the waits between them: the one place
  *  their bounds are written. The late retry, which queues the step again,

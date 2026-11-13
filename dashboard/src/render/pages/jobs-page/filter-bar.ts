@@ -37,7 +37,8 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language):
   const kindOptions = jobsKindOptions(facts, f);
   const kindNarrowed = kindOptions.some((o) => o.on && o.key !== "all");
   const options = [
-    ...stateOptions.map((o) => ({
+    ...stateOptions.map((o, index) => ({
+      heading: index === 0 ? t(lang, "list.statesLabel") : undefined,
       label: stateFilterLabel(o.key, lang),
       count: o.count,
       on: o.on,

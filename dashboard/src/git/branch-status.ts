@@ -12,11 +12,18 @@
 import { join } from "node:path";
 import { specBranch } from "../project/spec-names.ts";
 import type { GitRunner } from "./process/index.ts";
+import { GIT_LOCKED, sleep, type Wait } from "./branch-merge/retry.ts";
 
 /** How long one answer stands. Exported because the background
  *  drift poll runs on this same window, and a second constant for the
  *  same interval would one day be a different number. */
 export const DEFAULT_TTL_MS = 30_000;
+
+/** A fetch that lost the race for `refs/remotes/origin/<base>` to another
+ *  fetch of the same checkout (the drift poll, a spec's merge check) is
+ *  tried again this often, this far apart: the other fetch writes the same
+ *  ref within a second. */
+export const FETCH_LOCK_RETRIES = { retries: 3, waitMs: 500 } as const;
 
 /** `git ls-remote --exit-code`'s own answer for "the remote has no such
  *  ref". Documented by git and distinct from every other failure code,
@@ -53,12 +60,15 @@ export interface BranchStatusOptions {
    *  would spawn git for every branch on the board. */
   ttlMs?: number;
   now?: () => number;
+  /** The pause between fetch retries; tests pass one that does not wait. */
+  wait?: Wait;
 }
 
 export class BranchStatusChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
+  private readonly wait: Wait;
   private readonly cache = new Map<string, { at: number; merged: boolean }>();
   /** The drift answer, in its own map. `cache` holds a boolean and this
    *  one a number-or-null: widening the existing field's type would let
@@ -83,6 +93,7 @@ export class BranchStatusChecker {
     this.run = opts.run;
     this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
     this.now = opts.now ?? Date.now;
+    this.wait = opts.wait ?? sleep;
   }
 
   /** True only when git can PROVE there is nothing left to merge: the
@@ -222,7 +233,11 @@ export class BranchStatusChecker {
         const current = await this.run(projectDir, ["rev-parse", "--abbrev-ref", "HEAD"]);
         if (current.code === 0 && current.stdout.trim() === base) {
           // Best effort, as it is in `isMerged` — unless `reach` asks for origin's own answer.
-          const fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          let fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          for (let n = 0; n < FETCH_LOCK_RETRIES.retries && fetched.code !== 0 && GIT_LOCKED.test(fetched.stderr ?? ""); n++) {
+            await this.wait(FETCH_LOCK_RETRIES.waitMs);
+            fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          }
           if (reach && fetched.code !== 0) return null;
           const count = await this.run(projectDir, [
             "rev-list", "--count", `HEAD..refs/remotes/origin/${base}`,
@@ -238,7 +253,10 @@ export class BranchStatusChecker {
     }
 
     if (reach && behind === null) return null;
-    this.driftCache.set(projectDir, { at, behind });
+    // An answer asked earlier than the one already kept is older than it,
+    // even when it arrives later: it is returned, and the newer one is kept.
+    const kept = this.driftCache.get(projectDir);
+    if (!kept || kept.at <= at) this.driftCache.set(projectDir, { at, behind });
     return behind;
   }
 
