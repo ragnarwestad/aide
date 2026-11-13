@@ -290,10 +290,33 @@ dialog.about::backdrop { background: var(--backdrop); }
   width: 28px; height: 28px; border-radius: 999px; border: 0; background: none;
   color: var(--muted); cursor: pointer; }
 .aboutclose:hover { background: var(--surface-2); color: var(--text); }
-.menupanel.usagepanel { box-sizing: border-box; width: min(42rem, 90vw); max-height: 75vh; overflow-y: auto; }
+/* The Usage panel grows to its content and scrolls only when the window is
+   shorter: its cap is the window's height less where the panel starts (the
+   header's top padding, its 40px mark with the trigger centred beside it,
+   the 6px gap below the trigger) and a margin at the bottom. 100dvh after
+   100vh, as on the Specs list. */
+/*noinspection CssOverwrittenProperties*/
+.menupanel.usagepanel { box-sizing: border-box; width: min(42rem, 90vw); overflow-y: auto;
+  max-height: calc(100vh - var(--sp-4) - 40px - 6px - var(--sp-4));
+  max-height: calc(100dvh - var(--sp-4) - 40px - 6px - var(--sp-4)); }
 .usagepanel > [data-usage-content] { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
-.usagegroup, .usagewindow { display: flex; flex-direction: column; gap: var(--sp-2); }
-.usagegroup h3, .usagewindow h4 { margin: 0; }
+.usagegroup { display: flex; flex-direction: column; gap: var(--sp-3); }
+.usagegroup h3 { margin: 0; display: flex; align-items: center; gap: var(--sp-2); }
+.usagegroup h3 .providericon { margin-top: 0; }
+/* One window: its name and summary on the left, the accounts' bars beside
+   them, side by side and wrapping onto further lines when there is no room. */
+.usagewindow { display: grid; grid-template-columns: 8rem minmax(0, 1fr); align-items: start; gap: var(--sp-3); }
+.usagesummary { display: flex; flex-direction: column; gap: 2px; }
+.usagesummary h4, .usagesummary p { margin: 0; }
+.usagesummary h4 { font-size: var(--fs-s); font-weight: 600; color: var(--muted); }
+.usagesummary strong { font-size: var(--fs-l); }
+.usagesummary [data-trend] { font-weight: 600; }
+.usagesummary [data-trend="faster"] { color: var(--warn); }
+.usagesummary [data-trend="slower"] { color: var(--ok); }
+.usagesummary [data-trend="even"] { color: var(--muted); }
+.usagesummary [data-rise] { font-size: var(--fs-s); color: var(--muted); }
+.usagebars { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.usagebars > .usagebar { flex: 1 1 12rem; }
 
 /* A confirmation asked OVER the list rather than on a page of its own
    (2026-08-31, the schedule row's Delete), and the progress dialog a

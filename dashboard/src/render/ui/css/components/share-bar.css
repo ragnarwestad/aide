@@ -3,3 +3,20 @@
 .sharebar progress::-webkit-progress-bar { background: var(--surface-2); }
 .sharebar progress::-webkit-progress-value { background: var(--accent); }
 .sharebar progress::-moz-progress-bar { background: var(--accent); }
+/* The Usage dialog's bar: a thick track filled for the share left, the name,
+   the share and the time to the reset written inside it, over the fill. The
+   progress and the even-pace mark cover the bar's whole box beneath them. */
+.usagebar { position: relative; display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
+  box-sizing: border-box; min-height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s); overflow: hidden;
+  font-size: var(--fs-s); color: var(--text); }
+.usagebar progress { appearance: none; position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  background: var(--surface-2); }
+.usagebar progress::-webkit-progress-bar { background: var(--surface-2); }
+.usagebar progress::-webkit-progress-value { background: var(--accent-soft); }
+.usagebar progress::-moz-progress-bar { background: var(--accent-soft); }
+.usagebar svg[data-pace] { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.usagebar svg[data-pace] line { stroke: var(--text); stroke-width: 2; }
+.usagebar > span { position: relative; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.usagebar > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.usagebar > span:nth-of-type(2) { font-weight: 600; }
+.usagebar > [data-resets] { color: var(--muted); }

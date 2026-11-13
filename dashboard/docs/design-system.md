@@ -105,6 +105,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `messageSlot()`       | a message the page's script writes into: its icon, announced, and always drawn empty — with no words it takes no room                 |
 | `field()`             | label above any control, one height and one radius                                                                                    |
 | `shareBar()`          | a name, share from 0 to 100 and its words; without a share the bar is unfilled                                                        |
+| `usageBar()`          | a thick bar filled for a share, the name and share inside, a countdown at its right end and an even-pace mark when given              |
 | `saveCancelActions()` | a form's Save and Cancel; Cancel is drawn disabled (needs script), Save too on a form only script posts; in a dialog Cancel closes it |
 | `confirmDialog()`     | a confirmation that runs no step: the question, OK first and Cancel beside it (the platform's own close)                              |
 | `progressDialog()`    | the question of a step that asks and then runs, with a refusal line; after OK the loading cover shows its word (`data-cover-note`)    |

@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, kindIcon, KIND_ICONS, labelledCheckbox, messageSlot, resolveBackHref, shareBar,
+  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, kindIcon, KIND_ICONS, labelledCheckbox, messageSlot, resolveBackHref, shareBar, usageBar,
   tabIcon, TAB_ICONS,
   type RowKind,
   saveCancelActions,
@@ -129,6 +129,28 @@ describe("shareBar()", () => {
   test("holds a share when reported and stays unfilled when it is not (AC-5)", () => {
     expect(first(shareBar("Claude", 76, "76% left"), "progress").getAttribute("value")).toBe("76");
     expect(first(shareBar("Claude", undefined, "Reading usage…"), "progress").hasAttribute("value")).toBe(false);
+  });
+});
+
+describe("usageBar()", () => {
+  test("holds the share left and writes the name and share inside the bar (AC-1)", () => {
+    const html = usageBar({ name: "Claude Work", value: 58, label: "Claude Work: 58% left" });
+    expect(first(html, "progress").getAttribute("value")).toBe("58");
+    expect(first(html, "progress").getAttribute("aria-label")).toBe("Claude Work: 58% left");
+    expect(first(html, "div").textContent).toContain("Claude Work");
+    expect(first(html, "div").textContent).toContain("58%");
+  });
+
+  test("writes the countdown only when given one (AC-2)", () => {
+    expect(first(usageBar({ name: "A", value: 60, label: "A", resets: "4d 21h" }), "[data-resets]").textContent).toBe("4d 21h");
+    expect(first(usageBar({ name: "A", value: 60, label: "A" }), "[data-resets]")).toBeNull();
+  });
+
+  test("draws the pace mark at the even-pace share only when given one (AC-3)", () => {
+    const html = usageBar({ name: "A", value: 60, label: "A", pace: 70, paceTitle: "Even pace: 70% left" });
+    expect(first(html, "[data-pace] line").getAttribute("x1")).toBe("70");
+    expect(first(html, "[data-pace] title").textContent).toBe("Even pace: 70% left");
+    expect(first(usageBar({ name: "A", value: 60, label: "A" }), "[data-pace]")).toBeNull();
   });
 });
 
