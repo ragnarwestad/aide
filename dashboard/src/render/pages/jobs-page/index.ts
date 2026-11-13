@@ -267,7 +267,7 @@ export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: Nav
   // The refusal line and the row it is copied into sit outside `#jobrows`, so
   // no redraw of the rows replaces either.
   const body = listRefusalLine() + `<div id="jobrows">${renderJobsRows(v)}</div>` + refusalRowTemplate();
-  return pageShell("Jobs", entriesNav, "/", body, generatedAt, {
+  return pageShell(t(lang, "shell.tabRunning"), entriesNav, "/", body, generatedAt, {
     hideHeading: true,
     script: v.list.script,
     lang,

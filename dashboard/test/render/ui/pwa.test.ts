@@ -14,7 +14,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { t } from "../../../src/i18n";
 import { LOADING_CSS, TOKENS_CSS } from "../../../src/render/ui/css";
 import { NEW_SPEC_ROUTE } from "../../../src/render/pages/projects-page/routes.ts";
-import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, THEME_COLORS, WAIT_SCRIPT } from "../../../src/render/ui/pwa.ts";
+import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, serviceWorker, THEME_COLORS, WAIT_SCRIPT, WEBMANIFEST, webmanifest } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -125,6 +125,43 @@ describe("the service worker", () => {
     expect(res.headers.get("cache-control")).toBe("no-cache");
     // What Chrome's install check actually looks for.
     expect(await res.text()).toContain('addEventListener("fetch"');
+  });
+});
+
+describe("the service worker in the reader's language", () => {
+  test("its wait page and its not reachable page are in Norwegian, lang included (AC-2)", () => {
+    const sw = serviceWorker("nb");
+    for (const key of ["pwa.notReachable", "pwa.notReachableBody", "pwa.tryAgain"] as const) expect(sw).toContain(t("nb", key));
+    expect(sw).toContain(t("nb", "pwa.connecting", { host: "__HOST__" }));
+    expect(sw).toContain('lang=\\"nb\\"');
+    expect(sw).not.toContain('lang=\\"en\\"');
+  });
+
+  test("without a language it is the English worker (AC-2)", () => {
+    expect(SERVICE_WORKER).toBe(serviceWorker("en"));
+  });
+
+  test("/sw.js asked in Norwegian answers with the Norwegian worker (AC-2)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/sw.js`, { headers: { cookie: "aide_lang=nb" } });
+    expect(await res.text()).toBe(serviceWorker("nb"));
+  });
+});
+
+describe("the manifest in the reader's language", () => {
+  test("its shortcuts are named in Norwegian (AC-2)", () => {
+    const names = JSON.parse(webmanifest("nb")).shortcuts.map((s: { name: string }) => s.name);
+    expect(names).toEqual([t("nb", "shell.tabRunning"), t("nb", "shell.tabSpecs"), t("nb", "newSpec.pageTitle")]);
+  });
+
+  test("without a language it is the English manifest (AC-2)", () => {
+    expect(WEBMANIFEST).toBe(webmanifest("en"));
+  });
+
+  test("/manifest.webmanifest asked in Norwegian answers with the Norwegian manifest (AC-2)", async () => {
+    const { base } = start();
+    const res = await fetch(`${base}/manifest.webmanifest`, { headers: { cookie: "aide_lang=nb" } });
+    expect(await res.text()).toBe(webmanifest("nb"));
   });
 });
 

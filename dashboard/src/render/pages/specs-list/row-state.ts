@@ -5,6 +5,7 @@
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { groupKey, isArchivedRow, offersArchiveAgain, type SpecGroup } from "./data-model";
 import { nextPhase, phasesAhead, runButton } from "./data-model/phase.ts";
+import type { Language } from "../../../i18n";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../step-endings.ts";
 
@@ -114,13 +115,13 @@ export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, 
 // claiming a press would do something it would not.
 export function actionState(
   g: SpecGroup,
-  opts: { pendingSteps?: Record<string, string[]> },
+  opts: { pendingSteps?: Record<string, string[]>; lang?: Language },
 ): { label: string; active: boolean } | undefined {
   // The rule the page script names the button by too, so a redraw never
   // changes what it says. The ticks this side draws never hold a phase
   // that has run: `defaultTicked` leaves them out, `chosenSteps` drops
   // them from a recorded choice.
-  return runButton(g.done, chosenSteps(g, opts));
+  return runButton(g.done, chosenSteps(g, opts), opts.lang);
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake

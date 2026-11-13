@@ -7,7 +7,7 @@
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Job } from "../../../queue/types.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderScheduleRuns } from "./runs.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./list.ts";
@@ -52,7 +52,7 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
   // visible page heading read as the same word twice in a row, so the
   // heading is hidden and "Schedule" survives only as the browser tab's
   // title. The Running tab has the title "Running".
-  return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt, {
+  return pageShell(t(opts.lang ?? "en", "shell.tabSchedule"), nav, SCHEDULE_ROUTE, body, generatedAt, {
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,

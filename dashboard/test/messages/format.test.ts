@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { t } from "../../src/i18n";
+import { STEP_LABELS_NB } from "../../src/format/step-label.ts";
 import { type BoardMessage, messageDetail, messageIdentity, formatMessage, formatSentence } from "../../src/messages/format.ts";
 
 describe("formatMessage", () => {
@@ -138,5 +140,26 @@ describe("a value with replacement patterns fills its blank as typed", () => {
     expect(formatMessage("en", { key: "create.failed", values: { project: "aide", title: "a $& b $$ c" }, inner: "r" })).toContain(
       "a $& b $$ c",
     );
+  });
+});
+
+// A message stores the English word of the button its fix names; the
+// sentence names that button in the reader's language.
+describe("a stored button word, formatted in the reader's language", () => {
+  const solution = (button: string) =>
+    formatMessage("nb", { key: "push.stoppedTestsRed", values: { step: "Arkiver", button } });
+
+  test("a step's English button word reads as the Norwegian step name (AC-2)", () => {
+    expect(solution("Archive")).toContain(`trykk ${STEP_LABELS_NB.archive} igjen`);
+    expect(solution("Implement")).toContain(`trykk ${STEP_LABELS_NB.implement} igjen`);
+  });
+
+  test("Run now and its button read in Norwegian (AC-2)", () => {
+    expect(solution("Run now")).toContain(`trykk ${t("nb", "schedule.runNow")} igjen`);
+    expect(solution("its button")).not.toContain("its button");
+  });
+
+  test("any other button value is left as it is (AC-2)", () => {
+    expect(solution("Kvitsyl")).toContain("trykk Kvitsyl igjen");
   });
 });

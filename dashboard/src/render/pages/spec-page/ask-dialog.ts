@@ -13,25 +13,13 @@ import { specReference } from "../../../project/spec-folder.ts";
 
 /** The one sentence stated wherever a reader meets Close: in this
  *  dialog's own body text, and again — via `overview.ts`'s `actionsHelp` —
- *  beside the control on the spec's own page. One string, so the two places
+ *  beside the control on the spec's own page. One key, so the two places
  *  can never say it differently. */
-export const CLOSE_SENTENCE =
-  "Close says this spec will not work and archives it as a record; another round is how a spec that is still worth doing goes on.";
+export const closeSentence = (lang: Language): string => t(lang, "spec.closeSentence");
 
-/** What Close does to the spec's files and its code branch, said in the
- *  dialog and beside the button with the same words. */
-export const CLOSE_EFFECT =
-  "Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.";
-
-// Joined once, here — closeAskDialog() and overview.ts's actionsHelp()
-// each read a value already assembled, neither concatenates it itself.
-const CLOSE_WORDING = `${CLOSE_SENTENCE} ${CLOSE_EFFECT}`;
-
-/** What Reopen does, said in its dialog above the box that changes it. */
-export const REOPEN_SENTENCE =
-  "Reopen takes this spec back into the active list for another round. It keeps the description, " +
-  "the analysis, the plan and the status as they are, and removes its old branch. " +
-  "Tick the box to start the round from a clean slate instead.";
+/** What Close says in its dialog: the sentence above, and what Close does
+ *  to the spec's files and its code branch. */
+const closeWording = (lang: Language): string => `${closeSentence(lang)} ${t(lang, "spec.closeEffect")}`;
 
 /** Close's dialog, and Reopen's on the spec page: one of each per page. */
 export const CLOSE_ASK_ID = "closeask";
@@ -42,11 +30,11 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
     id: CLOSE_ASK_ID,
     title: t(lang, "dialog.closing"),
     ask: {
-      title: `Close ${specReference(project, specFolder)}?`,
-      sentence: CLOSE_WORDING,
+      title: t(lang, "spec.closeTitle", { spec: specReference(project, specFolder) }),
+      sentence: closeWording(lang),
       control: (formId) =>
         field(
-          "Reason",
+          t(lang, "spec.closeReason"),
           `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${CLOSE_REASON_MAX}"></textarea>`,
         ),
       ok: { variant: "danger", pending: t(lang, "dialog.closing") },
@@ -58,10 +46,10 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
 
 // A line of its own (`.frow`). Unticked: resetting throws the analysis,
 // the plan and the status away. `formId` is raw: the box escapes it.
-const resetBox = (formId: string): string =>
+const resetBox = (formId: string, lang: Language): string =>
   `<div class="frow">` +
   labelledCheckbox({
-    label: "Also reset the analysis, the plan and the status",
+    label: t(lang, "spec.resetFiles"),
     name: "resetFiles",
     value: "1",
     form: formId,
@@ -75,9 +63,9 @@ export function reopenAskDialog(project: string, specFolder: string, lang: Langu
     id,
     title: t(lang, "list.reopening"),
     ask: {
-      title: `Reopen ${specReference(project, specFolder)}?`,
-      sentence: REOPEN_SENTENCE,
-      control: () => resetBox(`${id}-form`),
+      title: t(lang, "spec.reopenTitle", { spec: specReference(project, specFolder) }),
+      sentence: t(lang, "spec.reopenSentence"),
+      control: () => resetBox(`${id}-form`, lang),
       ok: { variant: "primary", pending: t(lang, "list.reopening") },
       post: {
         action: "/api/queue",

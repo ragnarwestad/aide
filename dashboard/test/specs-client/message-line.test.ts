@@ -60,4 +60,17 @@ describe("a refusal the page's script writes", () => {
       "Problem: Change the model failed with HTTP 404",
     );
   });
+
+  test("without an error or an action, the fallback is in the page's own words (AC-2)", () => {
+    withLabels("Problem", "Løsning");
+    document.body.setAttribute("data-request-failed", "forespørselen feilet");
+    document.body.setAttribute("data-request-failed-http", "{action} feilet med HTTP {status}");
+    expect(refusalText(null)).toBe("Problem: Forespørselen feilet");
+    expect(refusalText(null, "endre modellen", 404)).toBe("Problem: Endre modellen feilet med HTTP 404");
+  });
+
+  test("with no words on the page, the fallback is English (AC-2)", () => {
+    withLabels("Problem", "Solution");
+    expect(refusalText(null)).toBe("Problem: The request failed");
+  });
 });

@@ -68,21 +68,30 @@ function unitControl(lang: Language): string {
 // The menu is a native <details>, the same disclosure `.intro` already
 // is: it opens with JavaScript off, and it keeps the promise that a
 // generated page carries the theme switcher and no other script.
+/** The words a page's script writes itself, by the `data-` attribute on
+ *  `<body>` it reads them from: a script has no catalogue of its own. */
+export const CLIENT_WORDS = {
+  "request-failed": "client.requestFailed",
+  "request-failed-http": "client.requestFailedHttp",
+  "the-action": "client.theAction",
+  "change-model": "client.changeModel",
+  "limit-count": "client.limitCount",
+  "limit-left": "client.limitLeft",
+  "limit-over-one": "client.limitOverOne",
+  "limit-over": "client.limitOver",
+  "limit-discarded-one": "client.limitDiscardedOne",
+  "limit-discarded": "client.limitDiscarded",
+} as const satisfies Record<string, TranslationKey>;
+
+const clientWords = (lang: Language): string =>
+  Object.entries(CLIENT_WORDS).map(([name, key]) => ` data-${name}="${esc(t(lang, key))}"`).join("");
+
 /** The About prose, shown in the dialog the "…" menu opens. */
-export function aboutProse(): string {
+export function aboutProse(lang: Language = "en"): string {
   return (
-    `<p class="intro">aide -board runs spec-driven development across ` +
-    `every project on this machine. Write a spec, and the board takes it ` +
-    `through create, analyze, implement and archive — each phase a real ` +
-    `run of an AI you choose, in a worktree of its own, ending in a branch ` +
-    `merged and the spec filed away.</p>` +
-    `<p class="intro">A spec's own files live in a specs repository; the ` +
-    `code it changes lives in the project's. The board owns neither: it ` +
-    `keeps its own checkouts, runs the project's tests before anything ` +
-    `merges, and stops rather than guess when they go red.</p>` +
-    `<p class="intro">Every project it knows about declares itself in an ` +
-    `<code>.aide/project.yaml</code> manifest. What each page means is ` +
-    `behind the "?" on that page.</p>`
+    `<p class="intro">${t(lang, "shell.aboutWhat", { board: "aide -board" })}</p>` +
+    `<p class="intro">${t(lang, "shell.aboutRepos")}</p>` +
+    `<p class="intro">${t(lang, "shell.aboutManifest", { manifest: "<code>.aide/project.yaml</code>" })}</p>`
   );
 }
 
@@ -91,12 +100,12 @@ export function aboutProse(): string {
 // it. The <form method="dialog"> close is the platform's own — no
 // script involved once the box is open; opening it modally is the one
 // thing `menu-script.ts` does for it.
-function aboutDialog(): string {
+function aboutDialog(lang: Language): string {
   return (
     `<dialog class="about"><div class="aboutpanel">` +
-    buttonForm({ method: "dialog", button: { cross: "Close" } }) +
-    `<h2>About</h2>` +
-    aboutProse() +
+    buttonForm({ method: "dialog", button: { cross: t(lang, "dialog.close") } }) +
+    `<h2>${esc(t(lang, "shell.about"))}</h2>` +
+    aboutProse(lang) +
     `</div></dialog>`
   );
 }
@@ -175,7 +184,7 @@ function runForm(lang: Language): string {
   return buttonForm({
     action: "/api/self-run",
     hook: "actionform reloadform",
-    button: { label: t(lang, "shell.runTestRound"), pending: "starting…" },
+    button: { label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
     after: messageSlot("refused"),
   });
 }
@@ -362,7 +371,7 @@ ${waitingMeta()}
 ${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
 <script>${HEAD_SCRIPT}</script>
 </head>
-<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}">`;
+<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}"${clientWords(lang)}>`;
 }
 
 /** The rest of the document, from the header to `</html>`. `afterMain` is
@@ -390,7 +399,7 @@ export function shellRest(
   return `
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}
-${aboutDialog()}
+${aboutDialog(lang)}
 ${leaveAppDialog(lang)}
 ${tabs}
 <main>

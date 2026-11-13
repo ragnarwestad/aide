@@ -3,6 +3,7 @@
 
 import { esc } from "../html.ts";
 import { ICON_CHECK, ICON_LOCK } from "./icons.ts";
+import { t, type Language } from "../../../i18n";
 
 /** A phase, as a control. Four states: the plain box, the ticked box,
  *  a finished phase (checkmark, text dimmed), and one that will not
@@ -62,6 +63,8 @@ export function phaseChip(o: {
    *  the one kind of chip that does nothing with script off, which is
    *  what the invariant above stops short of. */
   postTo?: string;
+  /** The reader's language, for the words the chip writes itself. */
+  lang?: Language;
 }): string {
   const locked = !!o.disabled && !o.plain;
   const state = locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
@@ -70,7 +73,7 @@ export function phaseChip(o: {
   // right now, and a chip that showed only the second lost the first.
   const cls = ["phase", state, o.done && state !== "done" ? "done" : ""].filter(Boolean).join(" ");
   const mark = locked ? `<span class="box">${ICON_LOCK}</span>` : "";
-  const tick = o.done ? ` <span class="box" title="already done">${ICON_CHECK}</span>` : "";
+  const tick = o.done ? ` <span class="box" title="${esc(t(o.lang ?? "en", "list.alreadyDone"))}">${ICON_CHECK}</span>` : "";
   return (
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
     `${o.title ? ` title="${esc(o.title)}"` : ""}>` +

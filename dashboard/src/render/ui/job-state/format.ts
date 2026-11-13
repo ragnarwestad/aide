@@ -9,6 +9,7 @@ import { esc } from "../html.ts";
 import { formatSentence } from "../../../messages/format.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
+import { isStepEnding } from "../../../step-endings.ts";
 import type { QueueRowView } from "./types.ts";
 
 // Every state is a single catalogue key — added here rather than left
@@ -28,8 +29,14 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
  *  step's own time limit — is the error sentence's to tell, in the
  *  row's message and the popover beside the chip, and is never written
  *  after the word. */
-export function stateWord(r: QueueRowView, lang: Language = "en"): string {
+export function stateWord(r: Pick<QueueRowView, "state">, lang: Language = "en"): string {
   return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
+}
+
+/** How a step ended, in one word for a table cell. A reason that is not a
+ *  step ending is shown as it is. */
+export function endingWord(lang: Language, reason: string): string {
+  return isStepEnding(reason) ? t(lang, `ending.${reason}` as TranslationKey) : reason;
 }
 
 // A wall of identical grey rows hides the one thing you came to see.
@@ -65,7 +72,7 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   // Why it stopped is the popover's, not the badge's — and a stop with
   // no sentence of its own gets no popover at all.
   const detail = r.state === "stopped" ? formatSentence(lang, r.error) : undefined;
-  return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
+  return detail ? b + helpPopover(t(lang, "help.whyStopped"), esc(detail)) : b;
 }
 
 /** Which states mean "still going". The list page's "Active" filter is

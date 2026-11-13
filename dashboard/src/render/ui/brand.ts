@@ -64,7 +64,7 @@ export const ICON_LINKS =
  *  loses. */
 export const WORDMARK =
   `<a class="brand" href="/">${MARK}` +
-  `<span>a<i>i</i>de <span class="surface">-board</span></span></a>`;
+  `<span translate="no">a<i>i</i>de <span class="surface">-board</span></span></a>`;
 
 /** The bounding box `bars()` actually covers on the 64 grid: x 10 to
  *  61, y 14 to 50. Written down because the icons below centre the

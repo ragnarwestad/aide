@@ -11,6 +11,7 @@ import { syncDependsOnForms } from "../depends-on";
 import { openTestFiles, reopenTestFiles } from "../test-files";
 import { holdSpecDetail } from "../spec-detail";
 import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
+import type { Language } from "../../i18n";
 import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
 import { syncSpecGroups } from "../spec-groups";
 import { syncExecutionGroupEditors } from "../execution-groups/editor.ts";
@@ -60,7 +61,9 @@ export function relabelRunButton(body: Element, formId: string): void {
   const ticked = new Set(boxes.filter((b) => b.checked).map((b) => b.value));
   // No boxes at all is the one case this file still hides for: nothing
   // here says what the button should be named.
-  const state = boxes.length ? runButton(done, ticked) : undefined;
+  // In the page's own language, which the document says on `<html lang>`.
+  const lang = (body.ownerDocument?.documentElement?.getAttribute("lang") ?? "en") as Language;
+  const state = boxes.length ? runButton(done, ticked, lang) : undefined;
   if (!state) {
     button.hidden = true;
     return;

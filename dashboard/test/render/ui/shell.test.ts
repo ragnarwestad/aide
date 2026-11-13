@@ -8,7 +8,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { pageShell, siteTabKeys } from "../../../src/render/ui/shell.ts";
+import { CLIENT_WORDS, pageShell, siteTabKeys } from "../../../src/render/ui/shell.ts";
+import { esc } from "../../../src/render/ui/html.ts";
+import { t } from "../../../src/i18n";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 
@@ -133,5 +135,19 @@ describe("the header's tabs", () => {
       { label: "Other", path: "/other" },
     ], "/other", "<p>body</p>", "2026-09-01T00:00:00Z");
     expect(html).not.toContain('data-tab="other"');
+  });
+});
+
+// A page's script has no catalogue of its own: it reads its words off the
+// page's <body>, which the server writes from the catalogue.
+describe("the words a page's script reads", () => {
+  test("each <body> attribute holds its catalogue entry in the page's language (AC-2)", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", { lang: "nb" });
+    const body = html.match(/<body[^>]*>/)?.[0] ?? "";
+    expect(Object.keys(CLIENT_WORDS).length).toBeGreaterThan(0);
+    for (const [name, key] of Object.entries(CLIENT_WORDS)) {
+      const value = body.match(new RegExp(` data-${name}="([^"]*)"`))?.[1];
+      expect({ name, value }).toEqual({ name, value: esc(t("nb", key)) });
+    }
   });
 });

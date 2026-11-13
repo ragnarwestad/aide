@@ -5,7 +5,7 @@
 // and come back, and the picker was back on the default with nothing
 // said about it.
 
-import { refusalText, type ActionResult } from "./press.ts";
+import { clientWord, refusalText, type ActionResult } from "./press.ts";
 import { showRefusal } from "./tail-actions.ts";
 
 /** The row a phase select's own `form` attribute names — `rowrun-
@@ -43,7 +43,7 @@ export async function postPendingModel(select: HTMLSelectElement, step: string, 
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
     if (!(res.ok && answer?.ok)) {
-      await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
+      await showRefusal(refusalText(answer, clientWord("changeModel", "change the model"), res.status), answer?.spec);
     }
   } catch {
     // Best effort: the pick still shows correctly for the rest of THIS

@@ -9,7 +9,7 @@ import { isSpecFolder } from "../../project/spec-names.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { backLink, buttonForm, messageSlot } from "../ui/components";
 import { esc } from "../ui/html.ts";
-import type { Language } from "../../i18n";
+import { t, type Language } from "../../i18n";
 
 export const TEST_SERVERS_ROUTE = "/test-servers";
 
@@ -61,7 +61,11 @@ const addressText = (url: string): string => {
 const COLUMNS = ["ts-project", "ts-spec", "ts-branch", "ts-status", "ts-address", "ts-stop"] as const;
 const th = (col: (typeof COLUMNS)[number], label: string): string => `<th data-col="${col}">${label}</th>`;
 
-const row = (r: TestServerRow): string => {
+/** A board's status in the reader's language: its own word while it starts,
+ *  a job state's word once it runs or has failed. */
+const STATUS_KEYS = { starting: "testServers.starting", running: "state.running", failed: "state.failed" } as const;
+
+const row = (r: TestServerRow, lang: Language): string => {
   const address =
     r.status === "running" && r.url
       ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(addressText(r.url))}</a>`
@@ -73,10 +77,10 @@ const row = (r: TestServerRow): string => {
     // spec page to link to.
     `<td data-col="ts-spec">${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
     `<td data-col="ts-branch">${esc(r.branch)}</td>` +
-    `<td data-col="ts-status">${esc(r.status)}</td>` +
+    `<td data-col="ts-status">${esc(t(lang, STATUS_KEYS[r.status]))}</td>` +
     `<td data-col="ts-address">${address}</td>` +
     `<td data-col="ts-stop">` +
-    buttonForm({ action: r.stopAction, hook: "actionform", button: { label: "Stop" }, after: messageSlot("refused") }) +
+    buttonForm({ action: r.stopAction, hook: "actionform", button: { label: t(lang, "jobs.stop") }, after: messageSlot("refused") }) +
     `</td>` +
     `</tr>`
   );
@@ -88,8 +92,9 @@ export function renderTestServersPage(
   rows: TestServerRow[],
   opts: TestServersPageOptions = {},
 ): string {
-  const back = backLink(opts.backHref ?? "/", "Test servers");
-  const cleanup = buttonForm({ action: "/api/queue/cleanup", hook: "actionform", button: { label: "Clean up" }, after: messageSlot("refused") });
+  const lang = opts.lang ?? "en";
+  const back = backLink(opts.backHref ?? "/", t(lang, "shell.testServers"), "", { lang });
+  const cleanup = buttonForm({ action: "/api/queue/cleanup", hook: "actionform", button: { label: t(lang, "testServers.cleanUp") }, after: messageSlot("refused") });
   // This codebase's own "nothing to show, show nothing" rule: most of
   // the time no board is running at all, and an empty table reads as
   // broken rather than as the ordinary case.
@@ -97,15 +102,16 @@ export function renderTestServersPage(
   // a second inside it took the frame's padding twice — the table then sat
   // 32 px inside the frame every other page's content lines up with.
   const body = !rows.length
-    ? `${back}${cleanup}<p class="muted">No test server is running right now.</p>`
+    ? `${back}${cleanup}<p class="muted">${esc(t(lang, "testServers.none"))}</p>`
     // The submit listener's delegation anchor (specs-client/index.ts) —
     // the same role `#jobrows` plays for the specs list.
     : `${back}${cleanup}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
       `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
-      th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
-      th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
-      `</tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>`;
-  return pageShell("Test servers", entries, TEST_SERVERS_ROUTE, body, generatedAt, {
-    hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl, script: opts.script,
+      th("ts-project", esc(t(lang, "testServers.colProject"))) + th("ts-spec", esc(t(lang, "testServers.colSpec"))) +
+      th("ts-branch", esc(t(lang, "testServers.colBranch"))) + th("ts-status", esc(t(lang, "testServers.colStatus"))) +
+      th("ts-address", esc(t(lang, "testServers.colAddress"))) + th("ts-stop", "") +
+      `</tr></thead><tbody>${rows.map((r) => row(r, lang)).join("")}</tbody></table></div>`;
+  return pageShell(t(lang, "shell.testServers"), entries, TEST_SERVERS_ROUTE, body, generatedAt, {
+    hideHeading: true, hideTabBar: true, lang, currentUrl: opts.currentUrl, script: opts.script,
   });
 }

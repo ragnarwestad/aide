@@ -230,7 +230,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   // the frame's padding twice. The row sits directly in it, so page.css's
   // Settings rule centres it, and the panel after it.
   const body = `${back}${top}${panel}`;
-  return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, {
+  return pageShell(t(lang, "shell.settings"), entries, SETTINGS_ROUTE, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

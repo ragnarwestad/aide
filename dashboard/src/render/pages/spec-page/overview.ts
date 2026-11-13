@@ -11,7 +11,7 @@ import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-c
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import {
-  CLOSE_ASK_ID, CLOSE_SENTENCE, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
+  CLOSE_ASK_ID, closeSentence, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -26,7 +26,7 @@ import { writing } from "../../../queue/queue.ts";
  *  inferred from the folder alone. */
 export function closedLine(view: SpecPageView, lang: Language = "en"): string {
   if (!view.closed) return "";
-  const when = view.closedDate ? ` on ${esc(view.closedDate)}` : "";
+  const when = view.closedDate ? ` ${t(lang, "spec.closedOn", { date: esc(view.closedDate) })}` : "";
   const reason = view.closeReason ? `: ${esc(view.closeReason)}` : "";
   return `<p class="desc"><span class="muted">${t(lang, "spec.closedLine", { when, reason })}</span></p>`;
 }
@@ -155,7 +155,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // cannot be drawn here, inside the checks' form, since the parser drops
   // a nested form. A live spec has its actions on its queue row.
   const reopen = (row: SpecCheckView): string =>
-    row.failed && view.archived && !view.closed ? askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) : "";
+    row.failed && view.archived && !view.closed ? askButton({ label: t(lang, "list.reopen"), dialogId: REOPEN_ASK_ID }) : "";
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -178,7 +178,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // one `.panelhead` div, the form's first child, so the
   // buttons sit on the same line as the mark rather than below the list.
   const panelHead = (actions = ""): string =>
-    `<div class="panelhead"><p data-checkshead><strong>Checks</strong> ` +
+    `<div class="panelhead"><p data-checkshead><strong>${esc(t(lang, "spec.checks"))}</strong> ` +
     `<span class="small muted">${checksSummary(open, rows.length, unverified, failed, lang)}</span></p>${actions}</div>`;
   // The boxes sit INSIDE the one form, and Save closes it — no id
   // plumbing, because there is only ever one form to belong to.
@@ -218,7 +218,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  row on the queue list is where its actions are. */
 export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
   return (
-    askButton({ label: "Reopen", dialogId: REOPEN_ASK_ID }) +
+    askButton({ label: t(lang, "list.reopen"), dialogId: REOPEN_ASK_ID }) +
     reopenAskDialog(view.project, view.specFolder, lang, REOPEN_ASK_ID)
   );
 }
@@ -236,15 +236,15 @@ export function reopenControl(view: SpecPageView, lang: Language = "en"): string
  *  control, the way a file icon is. */
 export const PDF_UNAVAILABLE = "md-to-pdf is not installed on this host";
 
-export function pdfLink(action: string, unavailableReason?: string): string {
+export function pdfLink(action: string, unavailableReason?: string, lang: Language = "en"): string {
   // Trimmed from "...in a new tab": the design guard caps a
   // title attribute at a few words, and the link's own target attribute
   // already says where it opens.
-  const what = "Open this spec as a PDF";
+  const what = t(lang, "spec.openPdf");
   if (unavailableReason) {
     return (
       `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>` +
-      helpPopover("why this is unavailable", esc(unavailableReason))
+      helpPopover(t(lang, "help.whyUnavailable"), esc(unavailableReason))
     );
   }
   return (
@@ -254,8 +254,8 @@ export function pdfLink(action: string, unavailableReason?: string): string {
 }
 
 /** The open spec's PDF, among its actions. */
-export function pdfControl(view: SpecPageView): string {
-  return pdfLink(`${specPagePath(view.project, view.specFolder)}/pdf`, view.pdfUnavailableReason);
+export function pdfControl(view: SpecPageView, lang: Language = "en"): string {
+  return pdfLink(`${specPagePath(view.project, view.specFolder)}/pdf`, view.pdfUnavailableReason, lang);
 }
 
 /** What a board is doing, when one was ever asked for: starting,
@@ -271,7 +271,7 @@ export function pdfControl(view: SpecPageView): string {
  *
  *  Drawn in the banner, above the tabs: it is a sentence, and the tab
  *  row holds buttons only. */
-export function testServerStatus(view: SpecPageView): string {
+export function testServerStatus(view: SpecPageView, lang: Language = "en"): string {
   // This used to also require `testServerAction` (whether a
   // NEW board may be started), which hid an already-running board's own
   // link and Stop button the moment the spec was archived. `testServerAction`
@@ -286,15 +286,14 @@ export function testServerStatus(view: SpecPageView): string {
   const where = `${esc(view.testServer.branch)} @ ${esc(view.testServer.commit.slice(0, 7))}`;
   if (view.testServer.status === "starting") {
     return (
-      `<p class="desc">${SPINNER}<span class="muted">Starting a test server for ${where} — ` +
-      `this takes a few minutes.</span></p>`
+      `<p class="desc">${SPINNER}<span class="muted">${t(lang, "spec.testServerStarting", { where })}</span></p>`
     );
   }
   if (view.testServer.status === "failed") {
     return (
-      `<p class="desc"><span class="muted">The test server could not be started` +
+      `<p class="desc"><span class="muted">${esc(t(lang, "spec.testServerFailed"))}` +
       `${view.testServer.error ? `: ${esc(view.testServer.error)}` : ""}.</span>` +
-      `${view.testServer.detail ? helpPopover("what it printed", esc(view.testServer.detail)) : ""}</p>`
+      `${view.testServer.detail ? helpPopover(t(lang, "help.whatPrinted"), esc(view.testServer.detail)) : ""}</p>`
     );
   }
   // The link carries a name, not the address itself: the address is a
@@ -302,15 +301,14 @@ export function testServerStatus(view: SpecPageView): string {
   // a reader reads.
   return (
     `<div class="row desc">` +
-    `<span><strong>Test server:</strong> ` +
-    `<a href="${esc(view.testServerOpenHref ?? view.testServer.url ?? "")}" target="_blank" rel="noopener">Open the test server</a> ` +
-    `<span class="muted">— it runs the code from ${where}. The specs shown are from the test ` +
-    `suite, not the ones on the prod dashboard.</span></span>` +
+    `<span><strong>${esc(t(lang, "spec.testServerLabel"))}</strong> ` +
+    `<a href="${esc(view.testServerOpenHref ?? view.testServer.url ?? "")}" target="_blank" rel="noopener">${esc(t(lang, "spec.testServerOpen"))}</a> ` +
+    `<span class="muted">${t(lang, "spec.testServerRuns", { where })}</span></span>` +
     buttonForm({
       action: view.testServerStopAction ?? "",
       hook: "reloadform",
       data: { line: SPEC_REFUSED_LINE },
-      button: { label: "Stop test server", pending: "stopping…" },
+      button: { label: t(lang, "spec.stopTestServer"), pending: t(lang, "jobs.stopping") },
     }) +
     `</div>`
   );
@@ -325,11 +323,11 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
   if (!view.closeAvailable || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
-  if (view.closeUnavailableReason) return btn({ label: "Close", type: "button", disabled: true });
+  if (view.closeUnavailableReason) return btn({ label: t(lang, "dialog.close"), type: "button", disabled: true });
   // Close has no fallback page behind it — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
-  return askButton({ label: "Close", dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
+  return askButton({ label: t(lang, "dialog.close"), dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
 }
 
 /** One "(?)" for the whole action row, replacing what used
@@ -341,20 +339,16 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
  *  differently), and Update's own. Drawn once, before the row's own
  *  buttons — covering what each button does and, where one will not
  *  take a click right now, why. */
-export function actionsHelp(view: SpecPageView): string {
+export function actionsHelp(view: SpecPageView, lang: Language = "en"): string {
   const sentences: string[] = [];
   if (view.archived) {
-    sentences.push(
-      "Reopen takes this spec back into the active list for another round. It keeps the " +
-        "description, the analysis, the plan and the status, and removes its old branch; " +
-        "you can choose to reset the analysis, the plan and the status as well.",
-    );
+    sentences.push(t(lang, "spec.reopenHelp"));
   } else if (view.closeAvailable) {
-    sentences.push(CLOSE_SENTENCE);
+    sentences.push(closeSentence(lang));
   }
   if (view.closeAvailable && !view.archived && view.closeUnavailableReason) {
-    sentences.push(`Close can't run right now because ${view.closeUnavailableReason}.`);
+    sentences.push(t(lang, "spec.closeUnavailable", { reason: view.closeUnavailableReason }));
   }
-  sentences.push("Update pulls the specs repository and shows what it says now.");
-  return helpPopover("What these buttons do", esc(sentences.join(" ")));
+  sentences.push(t(lang, "spec.updateHelp"));
+  return helpPopover(t(lang, "help.whatButtonsDo"), esc(sentences.join(" ")));
 }

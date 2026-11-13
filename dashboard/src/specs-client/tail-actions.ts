@@ -2,7 +2,7 @@
 // — ticking a step, picking a model — plus the refusal banner every
 // press on the page can land.
 
-import { attrValue, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
+import { attrValue, clientWord, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
 import { clearRefusal, holdRefusal } from "./row-refusal";
 import { swapRows } from "./row-swap/index.ts";
 import { chosen, press, selectKey } from "./state.ts";
@@ -128,7 +128,7 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
       return;
     }
     chosen.delete(selectKey(select));
-    await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
+    await showRefusal(refusalText(answer, clientWord("changeModel", "change the model"), res.status), answer?.spec);
   } catch {
     location.href = location.pathname + location.search;
   } finally {

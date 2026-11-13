@@ -98,7 +98,7 @@ export function executionGroupCard(
     hidden: { action: controls.action },
     // Primary, as a spec's own action is.
     button: {
-      label: controls.action === "archive" ? stepLabel("archive", lang as never) : controls.action === "stop" ? "Stop" : "Start",
+      label: controls.action === "archive" ? stepLabel("archive", lang as never) : controls.action === "stop" ? t(lang as Language, "jobs.stop") : t(lang as Language, "list.groupStart"),
       variant: "primary",
     },
   }) : "";

@@ -1,6 +1,7 @@
 // The spec page's paths, its tabs, and which file/phase each one names.
 
 import { pickTab } from "../job-page";
+import { t, type Language } from "../../../i18n";
 import type { SpecPageView } from "./types.ts";
 import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../../../project/spec-names.ts";
 import { inFlight } from "../../../queue/queue.ts";
@@ -161,27 +162,16 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
  *  appends it inside its own first line rather than drawing it as a
  *  preceding sibling. `stepResults()` is shared with the job page, which
  *  passes no mark and keeps its own output unchanged. */
-export const TAB_HELP: Record<SpecTab, string> = {
-  description: `The problem as it was reported, kept in <code>${DESCRIPTION_FILE}</code>. ` +
-    "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  analysis: "What <code>/aide-analyze</code> found when it read the code for this problem, " +
-    `kept in <code>${ANALYSIS_FILE}</code> and written by that step. ` +
-    "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  solution: `The plan <code>/aide-analyze</code> wrote, kept in <code>${SOLUTION_FILE}</code>. ` +
-    "Where it lists more than one Approach, only the one marked recommended gets built — " +
-    "the rest are the record of what was weighed, not options still open — unless the spec " +
-    "was created with Let me choose the approach, where the Specs list offers each real " +
-    "alternative until one is chosen. The Acceptance " +
-    "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
-    "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  status: `Progress through the plan, kept in <code>${STATUS_FILE}</code> and updated by ` +
-    "<code>/aide-implement</code> as it runs, shown read-only here. While the spec is active " +
-    "and no job is running, the <code>## Acceptance criteria</code> rows at the top can be " +
-    "ticked, and Save commits and pushes the ticks; only those rows hold the next archive " +
-    "run back. The Phase tables below them (RED/GREEN/VERIFY, or a Checklist) are " +
-    "<code>/aide-implement</code>'s own record of that run and are not part of that gate. " +
-    "An archived spec, or one with a job in flight, shows the rows without boxes.",
-  steps: "Every workflow step this spec's jobs have run — create, analyze, implement, " +
-    "archive — each with its own cost and how it ended. Nothing here is editable; open a " +
-    "row to see that step's own log.",
-};
+export function tabHelp(lang: Language): Record<SpecTab, string> {
+  const code = (text: string) => `<code>${text}</code>`;
+  const analyze = code("/aide-analyze");
+  const implement = code("/aide-implement");
+  const saveNote = t(lang, "specTab.help.saveNote");
+  return {
+    description: `${t(lang, "specTab.help.description", { file: code(DESCRIPTION_FILE) })} ${saveNote}`,
+    analysis: `${t(lang, "specTab.help.analysis", { analyze, file: code(ANALYSIS_FILE) })} ${saveNote}`,
+    solution: `${t(lang, "specTab.help.solution", { analyze, file: code(SOLUTION_FILE) })} ${saveNote}`,
+    status: t(lang, "specTab.help.status", { file: code(STATUS_FILE), implement, criteria: code("## Acceptance criteria") }),
+    steps: t(lang, "specTab.help.steps"),
+  };
+}

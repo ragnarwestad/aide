@@ -74,9 +74,9 @@ function logTab(r: StepPanelData, lang: Language): string {
     return `<pre class="specfile">${body}</pre>${pictures}`;
   }
   if (r.terminalReason === "refused") {
-    return `<p class="muted">This step was refused before it started, so nothing ran and no transcript exists.</p>${pictures}`;
+    return `<p class="muted">${esc(t(lang, "job.refusedBeforeStart"))}</p>${pictures}`;
   }
-  return `<p class="muted">Nothing has been captured from this step.</p>${pictures}`;
+  return `<p class="muted">${esc(t(lang, "job.nothingCaptured"))}</p>${pictures}`;
 }
 
 function filesTab(r: StepPanelData, lang: Language): string {
@@ -130,7 +130,7 @@ export function stepPanel(
   const content = { log: logTab, files: filesTab, errors: errorsTab }[current](r, o.lang);
   const merge = o.refusal
     ? rowMessageParts("waiting", [{ text: o.refusal.sentence }], {
-        end: o.refusal.detail ? helpPopover("more detail", esc(o.refusal.detail)) : "",
+        end: o.refusal.detail ? helpPopover(t(o.lang, "help.moreDetail"), esc(o.refusal.detail)) : "",
       })
     : "";
   return `${merge}${strip}<div class="logbox"><div>${content}</div></div>`;

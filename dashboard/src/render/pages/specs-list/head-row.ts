@@ -222,7 +222,7 @@ export function specHeadRow(
     `<td colspan="2">${opts.openSpec
       ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
       : `<span class="createdpips"><span class="muted small">${esc(createdLabel(g.createdAt))}</span>` +
-        `<span class="pipslot">${phasePips(g.phases, g.done)}</span></span>`}</td>` +
+        `<span class="pipslot">${phasePips(g.phases, g.done, lang)}</span></span>`}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next. No sentence
     // under it says what to press: the control names the
@@ -269,7 +269,7 @@ export function specHeadRow(
 export function headStateBadge(g: SpecGroup, lang: Language): string {
   const locked = isArchivedRow(g) && !archivingAgain(g);
   const nextStep = locked ? undefined : nextPhase(g.done);
-  const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
+  const readyPhase = nextStep ? stepLabel(nextStep, lang) : undefined;
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   return locked
     ? badge("done", capitalizeFirst(g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE))

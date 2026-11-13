@@ -195,6 +195,13 @@ describe("runCronPreview / scheduleCronPreview", () => {
     expect((target.classList as unknown as { contains: (c: string) => boolean }).contains("err")).toBe(true);
   });
 
+  test("an invalid cron writes the field's own sentence when the field carries one (AC-2)", async () => {
+    const target = Object.assign(fakeTarget(), { dataset: { invalid: "ikke et gyldig cron-uttrykk" } });
+    const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: '"x" is not a valid cron expression' } }));
+    await runCronPreview(fakeCronInput("x"), target, fetchImpl);
+    expect(target.textContent).toBe("ikke et gyldig cron-uttrykk");
+  });
+
   test("an empty field clears the line without asking the server", async () => {
     const input = fakeCronInput("");
     const target = fakeTarget();

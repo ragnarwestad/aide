@@ -29,6 +29,7 @@ export function pickTab<T extends string>(
  *  "Models per phase"). */
 const CATALOGUE_TABS = new Set([
   "steps", "ai", "phases", "providers", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
+  "overview", "description", "analysis", "solution", "status",
 ]);
 
 /** The word a tab key shows, in the reader's language. */

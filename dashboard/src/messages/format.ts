@@ -4,6 +4,7 @@
 // round.
 
 import { gerund } from "../format/gerund.ts";
+import { STEP_LABELS, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n/translations.ts";
 import { translations } from "../i18n/translations.ts";
 import { MESSAGES, type MessageEntry, type MessageKey } from "./catalog.ts";
@@ -90,6 +91,29 @@ function joined(texts: string[]): string {
  *  and its fix, the way a message not yet in that shape reads. */
 const flat = (p: Parts): string => (p.lines && p.solution ? `${p.problem} — ${p.solution}` : p.problem);
 
+/** The English step names a stored `button` value may hold, by step. */
+const STEP_BY_LABEL = new Map(Object.entries(STEP_LABELS).map(([step, label]) => [label, step]));
+
+/** A stored value in the reader's language, for the values a message stores
+ *  as English words: the step a job is doing, the button its fix names (a
+ *  step's name, Run now, or "its button") and the phase it is about. Any
+ *  other value is shown as it was stored. */
+function localValue(lang: Language, key: string, value: string): string {
+  const words = translations[lang];
+  if (key === "doing") return gerund(lang, value).toLowerCase();
+  if (key === "button" || key === "analyze") {
+    if (value === translations.en["message.itsButton"]) return words["message.itsButton"];
+    if (value === translations.en["schedule.runNow"]) return words["schedule.runNow"];
+    const step = STEP_BY_LABEL.get(value);
+    return step ? stepLabel(step, lang) : value;
+  }
+  if (key === "phase" && lang !== "en") {
+    if (value === translations.en["message.thisPhase"]) return words["message.thisPhase"];
+    return STEP_LABELS[value] ? stepLabel(value, lang) : value;
+  }
+  return value;
+}
+
 /** The blanks a message inside another one may take from the one around
  *  it: the button its fix names, which only the outer message's writer
  *  knows. */
@@ -102,7 +126,7 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog, inherit
     let out = text;
     for (const [k, v] of Object.entries(values)) {
       if (v === undefined) continue;
-      const value = k === "doing" && typeof v === "string" ? gerund(lang, v).toLowerCase() : v;
+      const value = typeof v === "string" ? localValue(lang, k, v) : v;
       out = out.replaceAll(`{${k}}`, () => String(Array.isArray(value) ? value.length : value));
     }
     const legacyTests = m.values?.tests;

@@ -185,11 +185,11 @@ export const costCell = (
  *  That gap is closed one layer down (`withFreshness` puts create into
  *  the set for any spec whose folder is on disk), so the phase LINE
  *  agrees now; the two states above are what is left. */
-export function phasePips(phases: Phase[], done: string[]): string {
+export function phasePips(phases: Phase[], done: string[], lang: Language = "en"): string {
   return pips(
     phases.map((p) => ({
       kind: phasePipKind(p, done),
-      title: stepLabel(p.step),
+      title: stepLabel(p.step, lang),
       // How much of a running implement is behind it. The
       // fallback above is the latest attempt whatever became of it,
       // so the "only while it runs" half of the rule is what keeps a

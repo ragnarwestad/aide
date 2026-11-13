@@ -9,11 +9,13 @@
 // from submitting. The count and the line are drawn here, not by the server,
 // so a page with script off is exactly what it was.
 
-import { countText, discarded, discardedText, ended, limitState, overText } from "./measure.ts";
+import { countText, discarded, discardedText, ended, limitState, limitWords, overText, type LimitWords } from "./measure.ts";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 interface Drawn {
   bound: number;
+  /** The count's words, in the page's language. */
+  words: LimitWords;
   count: HTMLElement;
   note: HTMLElement;
 }
@@ -35,7 +37,7 @@ function draw(doc: Document, field: Field): void {
   note.setAttribute("data-limit-note", "");
   note.setAttribute("role", "status");
   field.after(count, note);
-  drawn.set(field, { bound, count, note });
+  drawn.set(field, { bound, count, note, words: limitWords((doc.body as HTMLElement | null)?.dataset) });
   refreshLimit(field);
 }
 
@@ -46,7 +48,7 @@ export function refreshLimit(field: Field): void {
   const d = drawn.get(field);
   if (!d) return;
   const length = field.value.length;
-  d.count.textContent = countText(length, d.bound);
+  d.count.textContent = countText(length, d.bound, d.words);
   d.count.setAttribute("data-limit", limitState(length, d.bound));
   if (isUncut(field)) return markOver(field, d, length);
   if (length < d.bound) d.note.textContent = "";
@@ -56,7 +58,7 @@ export function refreshLimit(field: Field): void {
  *  is what makes the browser refuse to submit its form. */
 function markOver(field: Field, d: Drawn, length: number): void {
   if (length > d.bound) {
-    const sentence = overText(length - d.bound, d.bound);
+    const sentence = overText(length - d.bound, d.bound, d.words);
     field.setAttribute("aria-invalid", "true");
     field.setCustomValidity(sentence);
     d.note.textContent = sentence;
@@ -90,7 +92,7 @@ function watch(field: Field, inserted: number, replaced: number): void {
     refreshLimit(field);
     const after = field.value.length;
     const lost = discarded(inserted, before, replaced, after);
-    d.note.textContent = lost > 0 && ended(after, d.bound) ? discardedText(lost, d.bound) : "";
+    d.note.textContent = lost > 0 && ended(after, d.bound) ? discardedText(lost, d.bound, d.words) : "";
   }, 0);
 }
 

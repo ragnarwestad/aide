@@ -151,9 +151,9 @@ export function renderProjectsPage(
   // — an <h1> from the shell and an <h2> over the list (2026-08-21).
   // The spec list has hidden its own for the same reason since
   // 2026-08-19.
-  return pageShell("Projects", entries, "/projects", body, generatedAt, {
+  return pageShell(t(opts.lang ?? "en", "shell.tabProjects"), entries, "/projects", body, generatedAt, {
     hideHeading: true,
-    docTitle: "aide -board — from spec to merge",
+    docTitle: `aide -board — ${t(opts.lang ?? "en", "pwa.tagline")}`,
     script: opts.script,
     lang: opts.lang,
     currentUrl: opts.currentUrl,
@@ -285,8 +285,8 @@ export function renderAddProjectPage(
     `</span></span>` +
     messageSlot("refused") +
     `</form>`;
-  return pageShell("Add project", entries, "/projects", body, generatedAt, {
-    docTitle: "aide -board — add project",
+  return pageShell(t(opts.lang ?? "en", "project.add.title"), entries, "/projects", body, generatedAt, {
+    docTitle: `aide -board — ${t(opts.lang ?? "en", "project.add.title").toLowerCase()}`,
     script: opts.script,
     hideHeading: true,
     lang: opts.lang,

@@ -10,6 +10,7 @@ import {
   json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers";
+import { languageChoice } from "./serve-helpers/http.ts";
 
 export interface CoreRoutesContext {
   store: AideRunStore;
@@ -70,7 +71,8 @@ export async function handleCore(
   if (path === SPEC_EDITOR_ASSET_PATH) return serveSpecEditorAsset(req);
   if (path === SPEC_VIEWER_ASSET_PATH) return serveSpecViewerAsset(req);
 
-  const pwaAsset = servePwaAsset(path);
+  // The worker's wait and offline pages are in the reader's language.
+  const pwaAsset = servePwaAsset(path, languageChoice(url, req).lang);
   if (pwaAsset) return pwaAsset;
 
   // The address people bookmarked before the overview became a

@@ -453,7 +453,7 @@ export function renderSpecsPage(
   // The front page IS the board: the tab says only that — and the
   // heading said it a second time right under the Specs tab, so it is
   // gone (2026-08-19). The title still names the page for the shell.
-  return pageShell("Specs", entries, "/specs", specsPageBody(rows, opts), generatedAt, {
+  return pageShell(t(opts.lang ?? "en", "shell.tabSpecs"), entries, "/specs", specsPageBody(rows, opts), generatedAt, {
     docTitle: "aide -board",
     hideHeading: true,
     script: opts.script,
@@ -473,7 +473,7 @@ export function renderSpecsPageHead(title: string, lang: Language): string {
 /** The second chunk: the page from the header on, with the rule that hides
  *  the loading element right after `</main>`. */
 export function renderSpecsPageRest(rows: QueueRowView[], entries: NavEntry[], opts: SpecsPageOptions): string {
-  return shellRest(entries, "/specs", "Specs", specsPageBody(rows, opts), {
+  return shellRest(entries, "/specs", t(opts.lang ?? "en", "shell.tabSpecs"), specsPageBody(rows, opts), {
     hideHeading: true,
     script: opts.script,
     scriptSrc: opts.scriptSrc,

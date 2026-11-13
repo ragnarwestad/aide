@@ -334,11 +334,13 @@ and `LANGUAGE_NATIVE_NAMES` in `header-controls.ts`, and `LOCALES` in `messages/
 `format/gerund.ts` and `format/step-label.ts` are `Partial` and fall back to English, so they can be left. Everything
 else reads `Language`/`LANGUAGES` generically and needs nothing.
 
-**The Settings, Projects, Schedule and New spec pages are checked in Norwegian** by
-`test/render/pages/in-norwegian/`: each page state is drawn with Norwegian chosen, and a word inside `<main>` that
-the Norwegian catalogue does not hold fails the test, naming the page and the word. A page added to that test draws
-every word through `t()`; a name the page shows as it is (a tool, a model, a file, a setting key) is listed in
-`vocabulary.ts` under the kind of name it is. A source scan (`test/guards/catalogue/`) keeps the Cancel label and
+**Every page of the board is checked in Norwegian** by `test/render/pages/in-norwegian/`: each page state is drawn
+with Norwegian chosen — every job kind and state, every phase line, every tab of the job and spec pages, and the page
+shell with its About dialog — and a word that the Norwegian catalogue does not hold fails the test, naming the page
+and the word. A page added to that test draws every word through `t()`; a name the page shows as it is (a tool, a
+model, a file, a setting key) is listed in `vocabulary.ts` under the kind of name it is, and a name in the markup
+itself, like the wordmark, carries `translate="no"`. A word a page's script writes is read off `<body>`, where the
+server writes it from the catalogue (`CLIENT_WORDS` in `ui/shell.ts`). A source scan (`test/guards/catalogue/`) keeps the Cancel label and
 the confirmation dialogs out of the page code.
 
 ## Header and tab bar, not a sidebar

@@ -35,7 +35,7 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
 
 export const stopSentence = (reason: string, step?: string): Sentence => {
   const key = STOP_SENTENCES[reason];
-  return key ? { key, values: { button: step ? stepButton(step) : "its button" } } : reason;
+  return key ? { key, values: { button: step ? stepButton(step) : t("en", "message.itsButton") } } : reason;
 };
 
 /** What one phase reads as, in the three parts a row and a job page
@@ -62,7 +62,7 @@ export interface PhaseWord {
  *  half that is wrong in both cases. */
 const filesDisagreeSentence = (step: string | undefined): BoardMessage => ({
   key: "wordPhase.filesDisagree",
-  values: { phase: step ?? "this phase", button: step ? stepButton(step) : "its button" },
+  values: { phase: step ?? t("en", "message.thisPhase"), button: step ? stepButton(step) : t("en", "message.itsButton") },
 });
 
 /** The sentence for a last attempt that disagrees with the file:
@@ -305,7 +305,7 @@ function decidePhase(
       badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateWord(attempt, lang)) },
       qualifier: {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
-        values: { button: history.step ? stepButton(history.step) : "its button" },
+        values: { button: history.step ? stepButton(history.step) : t("en", "message.itsButton") },
       },
     };
   }

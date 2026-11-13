@@ -15,8 +15,8 @@ import type { SpecPageView } from "./types.ts";
  *  job in flight, or the same WYSIWYG mount/raw pair a
  *  writable tab carries, so the client script renders it read-only
  *  rather than raw markup. */
-function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
-  return `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` + viewerPair(file.text ?? "");
+function readOnlyDocument(file: SpecFileView, now: number, mark = "", lang: Language = "en"): string {
+  return `<h2>${esc(file.label)}${fileStamp(file, now, lang)}${mark}</h2>` + viewerPair(file.text ?? "");
 }
 
 /** Read-only counterpart of editableDocumentForm's mount/textarea
@@ -40,7 +40,7 @@ function statusPanel(
   const text = file.text ?? "";
   const drawn = drawnAcceptanceRows(view).length > 0;
   return (
-    `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
+    `<h2>${esc(file.label)}${fileStamp(file, now, lang)}${mark}</h2>` +
     checklist(view, lang) +
     viewerPair(drawn ? withoutAcceptanceSections(text) : text)
   );
@@ -109,15 +109,15 @@ export function documentPanel(
 ): string {
   const found = view.files.find((f) => f.label === label);
   const file = found ?? { label, text: null };
-  if (file.text === null) return specFilePanel(file, now, mark);
+  if (file.text === null) return specFilePanel(file, now, mark, lang);
   // `4-status.md` is a record, not a document to write: the tracking
   // block is the run's own stamp and the phase tables are its log of
   // what it did, so an edit here rewrites what happened. The one thing
   // in the file that is a person's to decide — the acceptance checks —
   // is drawn above it as a form that puts a check on and takes one back off.
   if (label === STATUS_SPEC_FILE) return statusPanel(view, file, now, lang, mark);
-  if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
-  const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
+  if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark, lang);
+  const heading = `<h2>${esc(file.label)}${fileStamp(file, now, lang)}${mark}</h2>`;
   return editableDocumentForm(view, label, heading, file.text, lang);
 }
 
@@ -139,6 +139,6 @@ export function descriptionPanel(view: SpecPageView, now: number, lang: Language
   const file = view.files.find((f) => f.label === EDITABLE_SPEC_FILE);
   if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
   const heading =
-    `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
+    `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now, lang)}${mark}</h2>`;
   return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "", lang);
 }

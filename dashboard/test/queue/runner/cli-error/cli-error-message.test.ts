@@ -87,6 +87,6 @@ describe("a Codex step that was not logged in", () => {
   test("reads in Norwegian as the tool not being logged in on the machine that runs Aide", () => {
     const text = formatSentence("nb", notLoggedIn()?.error as Parameters<typeof formatSentence>[1]) ?? "";
     expect(text).toContain("Codex er ikke logget inn på maskinen som kjører Aide");
-    expect(text).toContain("trykk så Implement igjen");
+    expect(text).toContain("trykk så Implementer igjen");
   });
 });

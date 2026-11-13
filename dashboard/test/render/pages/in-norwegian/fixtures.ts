@@ -23,6 +23,9 @@ export interface PageState {
   html: string;
   /** The strings the fixture wrote itself. */
   data: string[];
+  /** What the checker reads: the page's `<main>`, or its whole `<body>` for
+   *  the state that checks the page shell. */
+  read?: "main" | "body";
 }
 
 const AT = "2026-11-03T08:00:00.000Z";

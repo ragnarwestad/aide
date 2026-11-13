@@ -13,6 +13,7 @@ import { facts, foldArrow, stepLabel } from "../../ui/components";
 import type { JobDetailView, JobStepResultView } from "./types.ts";
 import { drawnParts, stepPanel } from "./step-tabs.ts";
 import { getProviderLimitMessage } from "../../../messages/usage-limit/get.ts";
+import { endingWord } from "../../ui/job-state/format.ts";
 
 /** A heading that says "Cost" above a column of token counts is the
  *  wrong word, so it flips with the figures under it — the description
@@ -29,18 +30,18 @@ export const unitLabel = (usd: string, tok: string): string =>
  *  list's row shows, from the same field. */
 function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal, lang: Language = "en"): string {
   if (r.step === "archive" && r.ok && archiveHeldBack) {
-    return `held back — ${esc(getHeldBackReasonMessage(lang, archiveHeldBack))}`;
+    return `${esc(t(lang, "state.heldBack"))} — ${esc(getHeldBackReasonMessage(lang, archiveHeldBack))}`;
   }
   // A create step that skipped the AI session reads distinctly
   // from an AI-run one, so a reader can tell which of the two paths
   // create took.
-  if (r.step === "create" && r.ok && r.tool === "none") return "created (no AI)";
+  if (r.step === "create" && r.ok && r.tool === "none") return esc(t(lang, "job.createdNoAi"));
   // The step's own process exited fine — that is all `ok` records — and
   // the merge that followed it was refused. A cell reading "ok" there
   // tells the reader the opposite of what the row on the specs list
   // says, so this one says the same thing that one does.
   if (landingRefused && r.step === landingRefused.step && r.ok) return esc(landingRefused.word);
-  return r.ok ? "ok" : esc(r.terminalReason || "failed");
+  return esc(r.ok ? t(lang, "job.outcomeOk") : r.terminalReason ? endingWord(lang, r.terminalReason) : t(lang, "state.failed"));
 }
 
 /** A step whose own run finished and whose MERGE was then refused: which
@@ -72,7 +73,7 @@ export function landingRefusal(
     // "stopped" is the landing's own word for a merge the project's
     // tests refused: the step ran and the merge was built, and what is
     // missing is a green suite. Everything else is a failure.
-    word: job.errorReason === "tests-red" ? "merge stopped" : "merge failed",
+    word: t(lang, job.errorReason === "tests-red" ? "job.mergeStopped" : "job.mergeFailed"),
     sentence,
     detail: [messageDetail(e as never), job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
   };
@@ -116,9 +117,9 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
     {
       label: t(lang, "job.stepResult"),
       value:
-        esc(r.terminalReason) +
+        esc(endingWord(lang, r.terminalReason)) +
         // The usage limit that stopped the step, from the tool's own record.
-        (r.providerLimit ? `<br><span class="muted small">${esc(getProviderLimitMessage(r.providerLimit, undefined, "en", Date.now(), undefined, r.provider?.name).text)}</span>` : ""),
+        (r.providerLimit ? `<br><span class="muted small">${esc(getProviderLimitMessage(r.providerLimit, undefined, lang, Date.now(), undefined, r.provider?.name).text)}</span>` : ""),
     },
     ...(r.provider ? [{ label: t(lang, "job.provider"), value: esc(r.provider.name) }] : []),
   ]);
@@ -159,7 +160,7 @@ export function stepResults(
   // there, even though every one of them is recorded with its cost, its
   // session and how it ended.
   if (results.length === 0 && !opts.runningStep)
-    return `<p class="muted">No step has finished yet.${opts.mark ? ` ${opts.mark}` : ""}</p>`;
+    return `<p class="muted">${esc(t(lang, "job.noStepFinished"))}${opts.mark ? ` ${opts.mark}` : ""}</p>`;
   // The running row is keyed by the index its step will have among the
   // results once it finishes, so the address that opens it keeps naming its
   // row after it has finished.
@@ -180,15 +181,15 @@ export function stepResults(
       const isOpen = open === key;
       const main =
         `<tr><td>${r.phaseAttempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: r.phaseAttempt.attempt })}</span> `}` +
-        `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
+        `${stepCell(r.step ? stepLabel(r.step, lang) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack, opts.landingRefused, lang)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
         // zero would print — and there is no estimate to mark either,
         // because nothing was estimated.
         `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}` +
-        `${r.tool === "codex" || r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
-        `<td>${esc(r.terminalReason)}</td>` +
+        `${r.tool === "codex" || r.costMeasured ? "" : ` <span class="muted small">${esc(t(lang, "job.estimated"))}</span>`}</td>` +
+        `<td>${esc(endingWord(lang, r.terminalReason))}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
       const refusal = opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused : undefined;
@@ -206,7 +207,7 @@ export function stepResults(
     const isOpen = open === key;
     const main =
       `<tr><td>${opts.runningStep.phaseAttempt === undefined ? "" : `<span class="muted small">${t(lang, "job.attempt", { n: opts.runningStep.phaseAttempt.attempt })}</span> `}` +
-      `${stepCell(stepLabel(opts.runningStep.step), key, isOpen)}</td>` +
+      `${stepCell(stepLabel(opts.runningStep.step, lang), key, isOpen)}</td>` +
       `<td>${t(lang, "state.running")}</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;
@@ -222,8 +223,8 @@ export function stepResults(
   // whatever it is told, so the box scrolls rather than the page
   // The spec page's Steps tab is this same table.
   return (
-    `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
+    `<div class="tablewrap"><table><thead><tr><th>${esc(t(lang, "job.colStep"))}</th><th>${esc(t(lang, "job.colOutcome"))}</th>` +
     `<th class="num">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</th>` +
-    `<th>Ended as</th><th>Session</th><th>At${opts.mark ?? ""}</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
+    `<th>${esc(t(lang, "job.colEndedAs"))}</th><th>${esc(t(lang, "job.colSession"))}</th><th>${esc(t(lang, "job.stepAt"))}${opts.mark ?? ""}</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
   );
 }

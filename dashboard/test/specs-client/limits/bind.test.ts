@@ -230,3 +230,15 @@ describe("drawLimits", () => {
     expect(box.querySelectorAll("[data-limit-note]")).toHaveLength(1);
   });
 });
+
+describe("the count in the page's language", () => {
+  test("reads the words the page's <body> carries (AC-2)", () => {
+    win = new Window();
+    win.document.body.setAttribute("data-limit-count", "{n} av {bound} tegn");
+    win.document.body.innerHTML = `<form><input type="text" name="title" maxlength="120" value="abc"></form>`;
+    const doc = win.document as unknown as Document;
+    bindLimits(doc);
+    const title = doc.querySelector('[name="title"]') as unknown as HTMLInputElement;
+    expect(count(title).textContent).toBe("3 av 120 tegn");
+  });
+});

@@ -4,7 +4,7 @@ import { badge } from "../components";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
-import { BADGE_VARIANT, currentStep } from "./format.ts";
+import { BADGE_VARIANT, currentStep, stateWord } from "./format.ts";
 import { heldBackResolvesOnItsOwn } from "../../../messages/jobs/holds.ts";
 import type { QueueRowView } from "./types.ts";
 import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
@@ -139,6 +139,6 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   // verified always populated for every stopReason). `stateChip` still
   // carries the full text, for the job DETAIL page's own big badge
   // (`job-page.ts`, which this does not change).
-  return badge(BADGE_VARIANT[r.state], capitalizeFirst(r.state));
+  return badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
 }
 

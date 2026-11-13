@@ -2,13 +2,14 @@
 // has happened.
 
 import { phaseChip, stepLabel } from "../../ui/components";
+import { t, type Language } from "../../../i18n";
 import { esc } from "../../ui/html.ts";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
-import { aiPicker, ALREADY_RUN_REASON, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
+import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
@@ -23,12 +24,13 @@ const stepResultOf = (r: QueueRowView, step: string) => (r.results ?? []).findLa
 
 // Ticked and locked: `create`'s box, the one phase that never runs
 // twice — the folder being on disk is its answer.
-function finishedPhaseChip(step: string): string {
+function finishedPhaseChip(step: string, lang: Language): string {
   return phaseChip({
     dataAttr: "data-phase",
     value: step,
     label: "",
-    ariaLabel: `${stepLabel(step)} — ${ALREADY_RUN_REASON}`,
+    ariaLabel: `${stepLabel(step, lang)} — ${t(lang, "list.alreadyRunReason")}`,
+    lang,
     // No name: nothing to post, whatever a browser decides to
     // do with a disabled field.
     name: "",
@@ -112,7 +114,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   g.phases
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step });
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step }, opts.lang);
       // The phase's own name, plain text: a phase line used to open the
       // tab the phase wrote, but the mapping did not hold for
       // every phase — archive writes no file of its own, and a step
@@ -167,7 +169,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             dataAttr: "data-phase",
             value: p.step,
             label: "",
-            ariaLabel: `${stepLabel(p.step)} — this spec is archived`,
+            ariaLabel: `${stepLabel(p.step, opts.lang)} — ${t(opts.lang ?? "en", "list.specArchived")}`,
+            lang: opts.lang,
             // Nothing to post and no form to post it to: `reopen` is the
             // one step an archived spec may be asked for, and the row's
             // Reopen carries it as a hidden field of its own.
@@ -197,7 +200,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // accessible one is given outright, since a wrapper with
             // no text has no name to offer.
             label: "",
-            ariaLabel: stepLabel(p.step),
+            ariaLabel: stepLabel(p.step, opts.lang),
+            lang: opts.lang,
             // An editable box is never posted with the Run form: while
             // a job runs, that form asks for a SECOND job and the
             // queue refuses it as a clash. It still NAMES the form,
@@ -222,7 +226,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // No `title` saying why the row will not take a click:
             // the State column says what is running (`aiModel()` below).
           })
-        : finishedPhaseChip(p.step); // `create`'s own arm, same shape
+        : finishedPhaseChip(p.step, opts.lang ?? "en"); // `create`'s own arm, same shape
       // The three choices this line offers, in one cell: the
       // AI, then the model it fills in, then the phase's box. In the
       // order they are made in — which AI a phase runs on decides which

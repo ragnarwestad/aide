@@ -19,7 +19,9 @@
 // who wants it already is.
 import { Buffer } from "node:buffer";
 
-import { t } from "../../i18n";
+import { t, type Language } from "../../i18n";
+import { esc } from "./html.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { appBadge, appIcon, appIconMaskable, MARK } from "./brand.ts";
 import { LOADING_CSS, TOKENS_CSS } from "./css";
 import { rasterizeIcon, rasterizeMark } from "./icon-png.ts";
@@ -60,7 +62,7 @@ const SHORTCUT_ICON = { src: "/icon-192.png", sizes: "192x192", type: "image/png
 
 /** The manifest itself. `start_url` is the address above, with no query
  *  string; `id` stays `/`, so an app installed on `/` is the same app. */
-export const WEBMANIFEST =
+export const webmanifest = (lang: Language): string =>
   JSON.stringify(
     {
       // The app's identity to the browser, so a later change of scope
@@ -68,7 +70,7 @@ export const WEBMANIFEST =
       id: "/",
       name: "aide -board",
       short_name: "aide -board",
-      description: "from spec to merge",
+      description: t(lang, "pwa.tagline"),
       start_url: APP_START_ROUTE,
       scope: "/",
       // Without this it is a bookmark with an icon, not an app.
@@ -96,14 +98,17 @@ export const WEBMANIFEST =
       // `shell.ts`, which imports this file, and this constant is
       // computed while the module loads. `test/pwa.test.ts` pins the two.
       shortcuts: [
-        { name: t("en", "shell.tabRunning"), url: "/", icons: [SHORTCUT_ICON] },
-        { name: t("en", "shell.tabSpecs"), url: "/specs", icons: [SHORTCUT_ICON] },
-        { name: "New spec", url: "/new", icons: [SHORTCUT_ICON] },
+        { name: t(lang, "shell.tabRunning"), url: "/", icons: [SHORTCUT_ICON] },
+        { name: t(lang, "shell.tabSpecs"), url: "/specs", icons: [SHORTCUT_ICON] },
+        { name: t(lang, "newSpec.pageTitle"), url: "/new", icons: [SHORTCUT_ICON] },
       ],
     },
     null,
     2,
   ) + "\n";
+
+/** The manifest in English: the published copy, which no request asks for in a language. */
+export const WEBMANIFEST = webmanifest("en");
 
 // iOS's home-screen icon: the one thing this site serves that is a
 // file's BYTES rather than a string built from the source above.
@@ -163,12 +168,12 @@ export const APPLE_TOUCH_ICON = Buffer.from(APPLE_TOUCH_ICON_BASE64, "base64");
  *  reached. Deliberately not the dashboard: the point is to say the
  *  tailnet is not there, not to imitate a page whose every line is
  *  live state. */
-const OFFLINE_PAGE = `<!doctype html>
-<html lang="en">
+const offlinePageIn = (lang: Language): string => `<!doctype html>
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>aide -board — not reachable</title>
+<title>aide -board — ${esc(t(lang, "pwa.notReachable"))}</title>
 <style>
 :root { color-scheme: light dark; background: ${THEME_COLORS.light}; }
 @media (prefers-color-scheme: dark) { :root { background: ${THEME_COLORS.dark}; } }
@@ -177,9 +182,9 @@ body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
 </style>
 </head>
 <body>
-<h1>Not reachable</h1>
-<p>The dashboard is on the tailnet, and this device cannot reach it right now.</p>
-<p><a href="/">Try again</a></p>
+<h1>${esc(capitalizeFirst(t(lang, "pwa.notReachable")))}</h1>
+<p>${esc(t(lang, "pwa.notReachableBody"))}</p>
+<p><a href="/">${esc(t(lang, "pwa.tryAgain"))}</a></p>
 </body>
 </html>
 `;
@@ -205,17 +210,17 @@ const scriptJson = (value: string) => JSON.stringify(value).replace(/</g, "\\u00
  *  answered within half a second: the spec page's loading element, with
  *  the board's own tokens and nothing fetched. The worker fills in
  *  `__HOST__` and `__LEFT_MS__` (the time left of its 30 seconds). */
-const WAIT_PAGE = `<!doctype html>
-<html lang="en">
+const waitPageIn = (lang: Language): string => `<!doctype html>
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>aide -board — connecting</title>
+<title>aide -board — ${esc(t(lang, "pwa.connectingTitle"))}</title>
 <style>${TOKENS_CSS}${LOADING_CSS}body { margin: 0; font-family: var(--sans); }</style>
 </head>
 <body>
-<div class="pageloading" role="status">${MARK}<span>Connecting to __HOST__…</span></div>
-<script>(() => { const OFFLINE_PAGE = ${scriptJson(OFFLINE_PAGE)}; const LEFT_MS = __LEFT_MS__; ${WAIT_SCRIPT} })();</script>
+<div class="pageloading" role="status">${MARK}<span>${esc(t(lang, "pwa.connecting", { host: "__HOST__" }))}</span></div>
+<script>(() => { const OFFLINE_PAGE = ${scriptJson(offlinePageIn(lang))}; const LEFT_MS = __LEFT_MS__; ${WAIT_SCRIPT} })();</script>
 </body>
 </html>
 `;
@@ -231,9 +236,9 @@ const WAIT_PAGE = `<!doctype html>
  *  rather than an omission — every line of this dashboard is live
  *  state, and a queue served out of yesterday's storage would be worse
  *  than no app at all. */
-export const SERVICE_WORKER = `// Served from /sw.js — built in src/render/ui/pwa.ts.
-const OFFLINE_PAGE = ${JSON.stringify(OFFLINE_PAGE)};
-const WAIT_PAGE = ${JSON.stringify(WAIT_PAGE)};
+export const serviceWorker = (lang: Language): string => `// Served from /sw.js — built in src/render/ui/pwa.ts.
+const OFFLINE_PAGE = ${JSON.stringify(offlinePageIn(lang))};
+const WAIT_PAGE = ${JSON.stringify(waitPageIn(lang))};
 const WAIT_AFTER_MS = 500;
 const GIVE_UP_AFTER_MS = 30000;
 const HTML = { "content-type": "text/html; charset=utf-8" };
@@ -338,6 +343,9 @@ self.addEventListener("fetch", (event) => {
   }));
 });
 `;
+
+/** The worker in English: the published copy, which no request asks for in a language. */
+export const SERVICE_WORKER = serviceWorker("en");
 
 /** The same eight answers as files, by the name they are served under —
  *  what a published copy of the site needs beside its pages, where no

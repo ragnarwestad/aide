@@ -4,7 +4,9 @@
 // in the popover beside the chip. It is never written after the word.
 
 import { describe, expect, test } from "bun:test";
-import { stateWord, wordPhase } from "../../../src/render/ui/job-state";
+import { endingWord, stateWord, wordPhase } from "../../../src/render/ui/job-state";
+import { STEP_ENDINGS } from "../../../src/step-endings.ts";
+import { LANGUAGES } from "../../../src/i18n";
 import type { QueueRowView } from "../../../src/render";
 
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
@@ -69,5 +71,23 @@ describe("nothing on the page writes the state as more than that word", () => {
     expect(wordPhase(true, undefined, { state: "cancelled" } as unknown as QueueRowView, {}, "nb").qualifier).toBe(
       "siste ny kjøring avbrutt",
     );
+  });
+});
+
+// How a step ended, in one word for a table cell: the steps table's Outcome
+// and Ended as columns.
+describe("endingWord()", () => {
+  test("every step ending has a word of its own in every language, English as the name (AC-2)", () => {
+    for (const { name } of STEP_ENDINGS) {
+      expect(endingWord("en", name)).toBe(name);
+      for (const lang of LANGUAGES.filter((l) => l !== "en")) {
+        const word = endingWord(lang, name);
+        expect({ name, lang, translated: word !== name && word.trim() !== "" }).toEqual({ name, lang, translated: true });
+      }
+    }
+  });
+
+  test("a reason that is not a step ending is shown as it is (AC-2)", () => {
+    expect(endingWord("nb", "noe-helt-nytt")).toBe("noe-helt-nytt");
   });
 });

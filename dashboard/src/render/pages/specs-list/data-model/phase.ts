@@ -7,7 +7,8 @@
 // either: a runtime import added here reaches the browser.
 
 import type { QueueRowView } from "../../../ui/job-state";
-import { stepButton } from "../../../../format/step-label.ts";
+import { stepLabel } from "../../../../format/step-label.ts";
+import type { Language } from "../../../../i18n";
 import { workflowArc, workflowControls } from "../../../../workflow-steps.ts";
 
 // Exported because `queue.ts` keeps the same list under
@@ -48,14 +49,16 @@ export const nextPhase = (done: readonly string[]): string | undefined => phases
  *  that has run included, since a press runs every ticked box. With nothing
  *  ticked, the next phase, disabled: named for what it would take to make a
  *  press do something, rather than hidden. The page draws the button by this
- *  and the page script names it again by this as the boxes are clicked. */
+ *  and the page script names it again by this as the boxes are clicked, in
+ *  the page's language. */
 export function runButton(
   done: readonly string[],
   ticked: ReadonlySet<string>,
+  lang: Language = "en",
 ): { label: string; active: boolean } | undefined {
   const first = RUN_STEPS.find((s) => ticked.has(s));
   const shown = first ?? nextPhase(done);
-  return shown ? { label: stepButton(shown), active: !!first } : undefined;
+  return shown ? { label: stepLabel(shown, lang), active: !!first } : undefined;
 }
 
 export interface Phase {

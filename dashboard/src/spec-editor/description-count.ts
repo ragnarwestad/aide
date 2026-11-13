@@ -6,7 +6,7 @@
 // reads as adjacent siblings.
 
 import { DESCRIPTION_MAX, descriptionPart } from "../project/description-bound.ts";
-import { countText, limitState, overText } from "../specs-client/limits/measure.ts";
+import { countText, limitState, limitWords, overText } from "../specs-client/limits/measure.ts";
 import { DESCRIPTION_FILE } from "../project/spec-names.ts";
 
 export interface DescriptionCount {
@@ -19,6 +19,7 @@ export interface DescriptionCount {
 export function mountDescriptionCount(raw: HTMLTextAreaElement): DescriptionCount | null {
   const file = raw.form?.querySelector<HTMLInputElement>('input[name="file"]');
   if (file?.value !== DESCRIPTION_FILE) return null;
+  const words = limitWords(document.body?.dataset);
   const count = document.createElement("span");
   const note = document.createElement("span");
   note.setAttribute("data-limit-note", "");
@@ -35,9 +36,9 @@ export function mountDescriptionCount(raw: HTMLTextAreaElement): DescriptionCoun
       if (!count.isConnected) raw.after(count, note);
       const length = part.length;
       const over = length > DESCRIPTION_MAX;
-      count.textContent = countText(length, DESCRIPTION_MAX);
+      count.textContent = countText(length, DESCRIPTION_MAX, words);
       count.setAttribute("data-limit", limitState(length, DESCRIPTION_MAX));
-      note.textContent = over ? overText(length - DESCRIPTION_MAX, DESCRIPTION_MAX) : "";
+      note.textContent = over ? overText(length - DESCRIPTION_MAX, DESCRIPTION_MAX, words) : "";
       if (over) note.setAttribute("data-over", "");
       else note.removeAttribute("data-over");
       return over;

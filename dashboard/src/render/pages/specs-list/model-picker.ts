@@ -19,7 +19,6 @@ import { type SidePart } from "../../../queue/providers/side-tools.ts";
 import { RUNNABLE_TOOLS } from "../../../queue/providers/tools.ts";
 
 export {
-  ALREADY_RUN_REASON,
   SHORT_TOOL_NAMES,
   TOOL_NAMES,
   compactModelLabel,

@@ -25,6 +25,7 @@ import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
+import { CLEANUP_KEY } from "../../../queue/steps.ts";
 
 export type { JobStepResultView, SpecFileView, JobDetailView, PhaseAttemptIdentity } from "./types.ts";
 export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./steps-table.ts";
@@ -41,11 +42,11 @@ export type JobTab = (typeof JOB_TABS)[number];
  *  Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
-export function specFilePanel(file: SpecFileView, now: number, mark = ""): string {
+export function specFilePanel(file: SpecFileView, now: number, mark = "", lang: Language = "en"): string {
   return (
-    `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
+    `<h2>${esc(file.label)}${fileStamp(file, now, lang)}${mark}</h2>` +
     (file.text === null
-      ? `<p class="muted">${esc(file.label)} has not been written yet.</p>`
+      ? `<p class="muted">${esc(t(lang, "job.notWrittenYet", { file: file.label }))}</p>`
       : `<pre class="specfile">${esc(file.text)}</pre>`)
   );
 }
@@ -55,9 +56,9 @@ export function specFilePanel(file: SpecFileView, now: number, mark = ""): strin
  *  textarea rather than a `<pre>`, and it carries the same stamp for
  *  the same reason — a reader has to be able to tell what they are
  *  about to edit from what a step wrote. */
-export function fileStamp(file: SpecFileView, now: number): string {
+export function fileStamp(file: SpecFileView, now: number, lang: Language = "en"): string {
   if (file.sha && file.at) {
-    return ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`;
+    return ` <span class="muted small">${esc(t(lang, "job.committed"))} ${relTime(file.at, now, lang)} · ${esc(file.sha.slice(0, 7))}</span>`;
   }
   return "";
 }
@@ -94,7 +95,7 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   const progress = pips(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
-      title: stepLabel(s),
+      title: stepLabel(s, lang),
       // The same fill the spec list's row shows, off the
       // same field: this page and that row are two views of one job,
       // and a reader who opens the row must not find it saying less.
@@ -109,7 +110,7 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   const detail = landingOwnsError ? undefined : messageDetail(job.error);
   const head = detail && sentence
     ? `<p class="pagehead">${stateChip(job, lang)}</p>` +
-      rowMessageParts("failed", [{ text: sentence }], { end: helpPopover("more detail", esc(detail)) })
+      rowMessageParts("failed", [{ text: sentence }], { end: helpPopover(t(lang, "help.moreDetail"), esc(detail)) })
     : `<p class="pagehead">${stateChip(job, lang)}` +
       (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") + `</p>`;
   return (
@@ -168,7 +169,7 @@ export function renderJobDetailPage(
   // works.
   const head =
     facts([
-      { label: t(lang, "job.started"), value: relTime(job.startedAt ?? job.createdAt, now) },
+      { label: t(lang, "job.started"), value: relTime(job.startedAt ?? job.createdAt, now, lang) },
       // Marked when any step summed into it was over-charged, the same
       // way the Steps tab already marks that step. Not
       // `anyCostUnmeasured`: this page's own `JobStepResultView` is a
@@ -179,37 +180,42 @@ export function renderJobDetailPage(
         value:
           usdOrTokens(job.spentUsd, job.spentTokens) +
           (job.results.some((r) => !r.costMeasured)
-            ? ' <span class="muted small">est.</span>'
+            ? ` <span class="muted small">${esc(t(lang, "job.estimated"))}</span>`
             : ""),
       },
-      { label: t(lang, "job.model"), value: esc(withModelId(job.model, job.modelId) ?? "as configured") },
+      { label: t(lang, "job.model"), value: esc(withModelId(job.model, job.modelId) ?? t(lang, "job.asConfigured")) },
       // Beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
-      { label: t(lang, "job.effort"), value: esc(job.effort ?? "not set") },
+      { label: t(lang, "job.effort"), value: esc(job.effort ?? t(lang, "job.notSet")) },
       ...(job.provider ? [{ label: t(lang, "job.provider"), value: esc(job.provider) }] : []),
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same
     // `## Description` prose every other page showed.
-    (job.phase ? specFilePanel(job.phase, now) : "");
+    (job.phase ? specFilePanel(job.phase, now, "", lang) : "");
 
   const panel = tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : head;
 
+  // A cleanup job's folder is the queue's own key, not a spec: it is named by its step.
+  const jobTitle = job.specFolder === CLEANUP_KEY ? stepLabel(CLEANUP_KEY, lang) : job.specFolder;
   const body = tabbedBody(
     followPart("head", banner),
     tabBar(JOB_TABS, `/jobs/${esc(job.id)}`, tab, {
       steps: job.results.length + (job.runningStep ? 1 : 0),
-    }),
+    }, "", { lang }),
     panel,
     job.backHref ?? "/",
-    job.specFolder,
+    jobTitle,
+    false,
+    "",
+    lang,
   );
 
   // `/`, not this page's own address: the nav entry it belongs under is
   // the spec list, and that is where the list lives now.
   return pageShell(
-    job.specFolder,
+    jobTitle,
     entries,
     "/",
     followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) + body,

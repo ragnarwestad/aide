@@ -298,7 +298,7 @@ export function getSpecMessage(
   }
   if (disagreement) return { variant: "waiting", text: disagreement };
   if (readyToArchive) {
-    return { variant: "waiting", text: t(lang, "list.readyToArchive", { button: stepButton("archive") }) };
+    return { variant: "waiting", text: t(lang, "list.readyToArchive", { button: stepLabel("archive", lang) }) };
   }
   return undefined;
 }

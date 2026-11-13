@@ -35,7 +35,8 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(after?.stopReason).toBe("acceptance-criteria");
     const en = formatSentence("en", after?.error as Sentence) ?? "";
     const nb = formatSentence("nb", after?.error as Sentence) ?? "";
-    for (const text of [en, nb]) expect(text).toContain("Analyze");
+    expect(en).toContain("Analyze");
+    expect(nb).toContain("trykk Analyser igjen");
     expect(messageDetail(after?.error as Sentence)).toBe("AC-2\nAC-4\nAC-5");
     expect(en).toContain("no acceptance criteria");
     expect(nb).not.toBe(en);

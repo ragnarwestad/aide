@@ -221,7 +221,7 @@ export async function runCronPreview(
       target.textContent = (target.dataset?.template ?? "Next run: {at}").replace("{at}", () => body.next!);
       target.classList.remove("err");
     } else {
-      target.textContent = body?.error ?? "not a valid cron expression";
+      target.textContent = target.dataset?.invalid ?? body?.error ?? "not a valid cron expression";
       target.classList.add("err");
     }
   } catch {

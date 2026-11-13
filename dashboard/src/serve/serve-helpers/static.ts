@@ -9,8 +9,9 @@ import {
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
   APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
-  SERVICE_WORKER, WEBMANIFEST,
 } from "../../render";
+import { serviceWorker, webmanifest } from "../../render/ui/pwa.ts";
+import type { Language } from "../../i18n";
 
 // Page code is TypeScript, split across src/specs-client/*.ts and bundled
 // from its src/specs-client/index.ts entry point; the browser needs one flat
@@ -228,14 +229,14 @@ export function serveStatic(root: string, pathname: string): Response {
  *  `null` for every other path — the caller falls through to its own
  *  routes, and then a 404. Pure: no closure, unlike almost everything
  *  else `createServer` calls. */
-export function servePwaAsset(path: string): Response | null {
+export function servePwaAsset(path: string, lang: Language = "en"): Response | null {
   if (path === "/manifest.webmanifest") {
-    return new Response(WEBMANIFEST, {
+    return new Response(webmanifest(lang), {
       headers: { "content-type": "application/manifest+json" },
     });
   }
   if (path === "/sw.js") {
-    return new Response(SERVICE_WORKER, {
+    return new Response(serviceWorker(lang), {
       headers: {
         "content-type": "text/javascript; charset=utf-8",
         // A worker the browser is holding on to is a worker a fix

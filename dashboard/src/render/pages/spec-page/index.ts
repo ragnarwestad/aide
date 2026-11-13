@@ -61,7 +61,7 @@ import {
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, specTabPath, TAB_FILES, TAB_HELP,
+  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, specTabPath, TAB_FILES, tabHelp,
   type ListView,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
@@ -101,7 +101,7 @@ function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "st
     runningStep: lead?.runningStep,
     steptab: opts.steptab,
     lang: opts.lang,
-    mark: helpPopover("What this tab shows", TAB_HELP.steps),
+    mark: helpPopover(t(opts.lang ?? "en", "help.whatTabShows"), tabHelp(opts.lang ?? "en").steps),
     // The same table, so the same answer: a step whose merge was
     // refused must not read "ok" here either.
     landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
@@ -145,7 +145,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     closedLine(view, opts.lang ?? "en") +
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
-    testServerStatus(view) +
+    testServerStatus(view, opts.lang ?? "en") +
     // The Steps tab follows a job that is in flight; the page script reads
     // the marker.
     (tab === "steps" && lead
@@ -163,20 +163,20 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // Every "(?)" first, then every button: a mark between two buttons
   // reads as belonging to the one before it.
   const actions =
-    actionsHelp(view) +
+    actionsHelp(view, opts.lang ?? "en") +
     (view.archived ? reopenControl(view, opts.lang ?? "en") : "") +
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
-    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } }) +
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: t(opts.lang ?? "en", "spec.update"), pending: t(opts.lang ?? "en", "spec.updating") } }) +
     // Last, so it is not between two buttons.
-    pdfControl(view);
+    pdfControl(view, opts.lang ?? "en");
 
   // Every tab says what it is for: a "(?)" at the right end of
   // the tab's own first line, using the same shared component the search
   // field's own popover is built on — threaded into whichever function
   // draws that line rather than prepended ahead of it.
-  const mark = helpPopover("What this tab shows", TAB_HELP[tab]);
+  const mark = helpPopover(t(opts.lang ?? "en", "help.whatTabShows"), tabHelp(opts.lang ?? "en")[tab]);
   const panel =
     tab === "steps"
       ? followPart("panel", stepsTable(view, opts))
@@ -195,6 +195,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     tab,
     { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
     actions,
+    { lang: opts.lang },
   );
 
   // The spec's content is FIELDS — the acceptance switch, the settings,

@@ -191,7 +191,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     field(
       t(lang, "schedule.cron"),
       `<input type="text" name="cron" required class="cron-input" value="${esc(e?.cron ?? "")}">` +
-        `<span class="muted" data-${CRON_NEXT_HOOK} data-template="${esc(t(lang, "schedule.nextRunAt", { at: "{at}" }))}">` +
+        `<span class="muted" data-${CRON_NEXT_HOOK} data-template="${esc(t(lang, "schedule.nextRunAt", { at: "{at}" }))}" data-invalid="${esc(t(lang, "schedule.cronInvalid"))}">` +
         (initialNext ? esc(t(lang, "schedule.nextRunAt", { at: initialNext.toISOString() })) : "") +
         `</span>`,
     ) +

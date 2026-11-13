@@ -4,7 +4,7 @@
 // and the run being shown is marked. Sorted through the address, the way the /schedule list is.
 import type { Job } from "../../../queue/types.ts";
 import { t, type Language } from "../../../i18n";
-import { durationLabel } from "../../ui/job-state";
+import { durationLabel, stateWord } from "../../ui/job-state";
 import { esc } from "../../ui/html.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { queryHref, resolveSort, sortHeading, type SortColumns, type SortDir } from "./sort-head.ts";
@@ -54,14 +54,14 @@ function carriedSort(now: { sort: string; dir: SortDir }): { sort?: string; dir?
   return { sort: now.sort, dir: firstDir ? undefined : now.dir };
 }
 
-function row(job: Job, href: string, shown: boolean): string {
+function row(job: Job, href: string, shown: boolean, lang: Language): string {
   const duration = job.finishedAt ? durationLabel(durationMs(job)) : `<span class="muted">–</span>`;
   return (
     // The whole row opens the run (`followScheduleRow`); the stamp is a
     // real link, so a modifier-click opens it in a new tab.
     `<tr data-row-href="${esc(href)}"${shown ? ` aria-current="true"` : ""}>` +
     `<td><a href="${esc(href)}">${esc(startedAt(job))}</a></td>` +
-    `<td>${esc(capitalizeFirst(job.state))}</td><td>${duration}</td></tr>`
+    `<td>${esc(capitalizeFirst(stateWord(job, lang)))}</td><td>${duration}</td></tr>`
   );
 }
 
@@ -81,7 +81,7 @@ export function renderScheduleRuns(o: ScheduleRunsOptions): string {
     th("state", t(o.lang, "report.runsState")) +
     th("duration", t(o.lang, "report.runsDuration")) +
     `</tr></thead><tbody>` +
-    sortRuns(o.runs, now).map((j) => row(j, runHref(j.id), j.id === o.shown)).join("") +
+    sortRuns(o.runs, now).map((j) => row(j, runHref(j.id), j.id === o.shown, o.lang)).join("") +
     `</tbody></table></div></section>`
   );
 }

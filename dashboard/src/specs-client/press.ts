@@ -53,14 +53,23 @@ export interface ActionResult {
 export function refusalText(body: ActionResult | null, action?: string, status?: number): string {
   const steps = (body?.results ?? []).filter((r) => r.error);
   const perStep = steps.map((r) => r.error).join("; ");
-  const problem = perStep || body?.error || (action && status !== undefined
-    ? `${action} failed with HTTP ${status}`
-    : "the request failed");
-  const solution = perStep ? steps.find((r) => r.solution)?.solution : body?.solution;
   const dataset = typeof document === "undefined" ? undefined : document.body?.dataset;
+  const problem = perStep || body?.error || (action && status !== undefined
+    ? (dataset?.requestFailedHttp ?? "{action} failed with HTTP {status}")
+        .replace("{action}", () => action).replace("{status}", () => String(status))
+    : dataset?.requestFailed ?? "the request failed");
+  const solution = perStep ? steps.find((r) => r.solution)?.solution : body?.solution;
   const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
   const first = `${dataset?.problem ?? "Problem"}: ${capital(problem)}`;
   return solution ? `${first}\n${dataset?.solution ?? "Solution"}: ${capital(solution)}` : first;
+}
+
+/** A word the page's `<body>` carries for its script, in the reader's
+ *  language (`CLIENT_WORDS`, render/ui/shell.ts); English where the page
+ *  has none. */
+export function clientWord(name: string, english: string): string {
+  const dataset = typeof document === "undefined" ? undefined : document.body?.dataset;
+  return dataset?.[name] ?? english;
 }
 
 /** Writes `text` into a message line `messageSlot()` drew: into its
@@ -214,7 +223,7 @@ export async function postForm(
       await onOk(answer);
       return;
     }
-    await onRefused(refusalText(answer, label || "the action", res.status), answer?.spec);
+    await onRefused(refusalText(answer, label || clientWord("theAction", "the action"), res.status), answer?.spec);
   } catch (error) {
     // A fault in what the press does, not in the request: a reload would
     // hide it, so it goes to the console and the page stays as it is.

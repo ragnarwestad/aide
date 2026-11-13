@@ -147,12 +147,6 @@ export type PickerOptions = Pick<
   "modelChoices" | "defaultModels" | "pendingModels" | "providerChoices" | "defaultProviders" | "pendingProviders"
 >;
 
-/** Why a phase that has already run will not take a pick. The same
- *  sentence its own Select box gives as its accessible name: a phase
- *  the row cannot run again is a record of what happened, and its AI
- *  and model selects say so the same way its box does. */
-export const ALREADY_RUN_REASON = "already done, and not a step you can run";
-
 export { SHORT_TOOL_NAMES, TOOL_NAMES };
 
 /** What one phase line is actually ON: the model, and the tool that

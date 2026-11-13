@@ -21,7 +21,7 @@ const LANGUAGE_FLAGS: Record<Language, string> = {
 // Each language's OWN name, in its own spelling — never translated into
 // the reader's language: "Español" reads "Español" whether the reader has chosen
 // English, Norwegian or Spanish itself.
-const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
+export const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
   en: "English", nb: "Norsk", es: "Español", de: "Deutsch", fr: "Français",
 };
 

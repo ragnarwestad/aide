@@ -134,7 +134,7 @@ function archiveAgainForm(g: SpecGroup, lang: Language): string {
     action: "/api/queue",
     hook: "actionform",
     hidden: { project: g.project, specFolder: g.specFolder, steps: "archive" },
-    button: { label: stepLabel("archive", lang), variant: "primary", pending: "starting…" },
+    button: { label: stepLabel("archive", lang), variant: "primary", pending: t(lang, "list.starting") },
   });
 }
 
@@ -237,7 +237,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // turn on but never press. `data-done` is the phases the spec has
     // done, which that script names the button by alongside the ticks.
     return btn({
-      label: action.label, variant: "primary", form: runFormId(g), pending: "starting…",
+      label: action.label, variant: "primary", form: runFormId(g), pending: t(lang, "list.starting"),
       disabled: !action.active, data: { done: g.done.join(" ") },
     });
   })();

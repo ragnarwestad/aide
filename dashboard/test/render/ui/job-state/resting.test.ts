@@ -142,3 +142,36 @@ describe("specStateChip() on a running row with a hold", () => {
     expect(html).not.toContain("Held back");
   });
 });
+
+// An ended job's chip on the Jobs tab and the specs list reads the state's
+// word from the reader's catalogue, and keeps the icon the English word has.
+describe("specStateChip() on an ended job, in every language", () => {
+  const ENDED = ["failed", "cancelled", "stopped", "interrupted"] as const;
+  const iconOf = (html: string) => html.match(/data-icon="([^"]*)"/)?.[1];
+  const wordOf = (html: string) => html.match(/>([^<]*)<\/span>$/)?.[1];
+
+  test("in Norwegian the chip reads the catalogue's word (AC-1)", () => {
+    for (const state of ENDED) {
+      const html = specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "nb");
+      const word = t("nb", `state.${state}`);
+      expect(wordOf(html)).toBe(word[0]!.toUpperCase() + word.slice(1));
+    }
+  });
+
+  test("in Spanish, German and French the chip reads that language's word with the English chip's icon (AC-1)", () => {
+    for (const state of ENDED) {
+      const english = specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en");
+      for (const lang of ["es", "de", "fr"] as const) {
+        const html = specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), lang);
+        const word = t(lang, `state.${state}`);
+        expect(wordOf(html)).toBe(word[0]!.toUpperCase() + word.slice(1));
+        expect({ state, lang, icon: iconOf(html) }).toEqual({ state, lang, icon: iconOf(english) });
+      }
+    }
+  });
+
+  test("in English the chip reads as before (AC-1)", () => {
+    const words = ENDED.map((state) => wordOf(specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en")));
+    expect(words).toEqual(["Failed", "Cancelled", "Stopped", "Interrupted"]);
+  });
+});

@@ -329,8 +329,8 @@ export function renderNewSpecPage(
   //
   // No reload of its own, for the reason `/projects` has none: this page is
   // a form, and a blunt refresh wipes a half-typed description.
-  return pageShell("New spec", entries, "/specs", body, generatedAt, {
-    docTitle: "aide -board — new spec",
+  return pageShell(t(opts.lang ?? "en", "newSpec.pageTitle"), entries, "/specs", body, generatedAt, {
+    docTitle: `aide -board — ${t(opts.lang ?? "en", "newSpec.pageTitle").toLowerCase()}`,
     script: opts.script,
     hideHeading: true,
     hideTabBar: true,
