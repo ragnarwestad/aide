@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-13](#2026-11-13)
   - [2026-11-12](#2026-11-12)
   - [2026-11-11](#2026-11-11)
   - [2026-11-10](#2026-11-10)
@@ -127,6 +128,65 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-13
+
+Nov 13. All sources were fetched again. The X list was read fresh (518 posts for Nov 12 to Nov 13, all retained for
+reading). Of the watched pages one changed in what it advises: the OpenCode agents page. Other changed pages only
+reworded text or fixed examples.
+
+**Claude Code (v2.1.323):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Source                                                         |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 12 | v2.1.323 | Code Mode (experimental, opt-in): Claude writes JavaScript to call its tools. `engines["claude-code"]` in `plugin.json`: plugins outside their stated version range are not installed, updated or loaded. `claude plugin validate` type-checks a plugin's TypeScript hooks module. Start-up warning for Bash allow rules with `*` in a variable's value, such as `Bash(PORT=* npm run dev)`. `CLAUDE_CODE_DISABLE_AGENT_PROGRESS_SUMMARIES=1` turns off subagent progress summaries. A progress heartbeat every 30 seconds while hooks run long in `claude -p`. | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (v1.0.110 stable; v1.0.111-0 the newest pre-release):**
+
+| Date   | Version    | News                                                                                                                                                                                                                                         | Source                                                     |
+|--------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 12 | v1.0.110   | Stable: experimental masked dialog for git, ssh and sudo password prompts from agent commands; `/compact` respects the session AI credit limit; the `/` picker no longer runs a skill for a word its description hides in an escape sequence | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 13 | v1.0.111-0 | Pre-release: regular expressions in enterprise-managed Shell, Bash and PowerShell permission rules; `--host-allow-session-creation` lets remote clients create sessions on a CLI host for one launch                                         | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.168.0 stable; v0.171.0-alpha.1 the newest pre-release):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                 | Source                                               |
+|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 13 | v0.168.0 | Model provider picker under Sessions; `features.tui_workspace` side conversation; `tui.notification_method = "osc777"`; Codex warns when `features.multi_agent` is explicitly configured and points to `agents.enabled` for disabling subagent tools | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.7):**
+
+| Date   | Version | News                                                                                                                                                                                                          | Source                                     |
+|--------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| Nov 12 | —       | No release of the main tool since Nov 12. Changelog: GitHub Copilot Auto in the model picker; breaking change for code importing `@opencode/ai` (`ImageResponse.image` is removed, read `response.images[0]`) | [Changelog](https://opencode.ai/changelog) |
+
+**Relevance for aide:**
+
+- ✅ OpenCode agents page (watched, changed): subagents "always run in the background: the parent receives a report
+  when a child goes idle, and again after each later round of work". The page said before that they ran in the
+  foreground or the background. Aide's installer for OpenCode installs no agents, so nothing breaks.
+  [Page](https://opencode.ai/docs/agents)
+- ✅ Codex v0.168.0: `features.multi_agent` is now warned about and replaced by `agents.enabled` for turning subagent
+  tools off. Aide's installers and docs do not set either key. [Releases](https://github.com/openai/codex/releases)
+- ✅ Claude Code v2.1.323: `engines["claude-code"]` in `plugin.json`. Aide installs skills and rules, not a plugin,
+  so no action. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ GitHub, "Build once, run on any agent: A practical guide to agent skills": skills in reviewable files that work
+  across hosts, with tools, context and permissions staying host-specific. This is how Aide shares one set of skills
+  across four tools. [Article](https://github.blog/ai-and-ml/github-copilot/)
+- ℹ Claude Code hooks guide and best-practices page (watched, changed): the prettier hook example now reads the path
+  into a variable and quotes it (`--ignore-unknown "$f"`) instead of piping to `xargs`; the Fable 5.1, Fable 5.2,
+  Haiku 5.5 and Opus 5.5 prompting pages changed in wording and clarifications about thinking blocks and the prompt
+  cache. No change to what they advise.
+  [Hooks guide](https://code.claude.com/docs/en/hooks-guide)
+- ℹ Anthropic: self-hosted Claude Managed Agents; OpenAI developer blog: "Securing persistent agents like OpenClaw
+  at OpenAI". Neither touches Aide's skills or installers.
+  [Claude blog](https://claude.com/blog/), [OpenAI blog](https://developers.openai.com/blog)
+- ℹ X list: an agent reviews its own code as a subagent before a person looks, so the reviewer sees the scope and
+  which parts need the closest look [Post](https://x.com/BHolmesDev/status/2120894454798409836); one report that
+  agents that spawn subagents on their first turn made the task cost about 8x more
+  [Post](https://x.com/AdamHoltererer/status/2120986882301473041). Unverified opinions, no action.
+- ℹ Copilot CLI v1.0.110 and v1.0.111-0, Codex's other notes and OpenCode's changelog: fixes and features that touch
+  no installer or skill. [Copilot](https://github.com/github/copilot-cli/releases)
+
 ### 2026-11-12
 
 Nov 12. All sources were fetched again. The X list was read fresh (520 posts collected for Nov 11 to Nov 12, all
