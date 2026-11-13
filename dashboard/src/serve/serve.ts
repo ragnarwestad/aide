@@ -255,7 +255,6 @@ export function createServer(opts: ServerOptions) {
     rereadSpecCaches: (dir, folder) => {
       setTimeout(() => void schedules.rereadSpec(dir, folder, { askOrigin: true }).catch(() => {}), 0);
     },
-    groupHasOpenAcceptance: (project, name) => targets().some((target) => target.project === project && target.group?.name === name && target.acceptanceOpen),
   };
   const runner = createQueueRunner(runnerSetupCtx);
   state.runner = runner;

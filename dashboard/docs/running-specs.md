@@ -86,8 +86,17 @@ A job survives a restart: the result file is the contract, and a job left `runni
 file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
-that is not done. Every member uses the branch named for the group's first member. Stop ends the current job and keeps
-later members waiting until Start resumes the same execution. A failed member keeps its own recovery controls.
+that is not done, and a member that finishes Implement queues the next one. Each runs on the models picked on its own
+row. Every member uses the branch named for the group's first member. Stop ends the current job and keeps later members
+waiting until Start resumes the same execution.
+
+A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
+
+- It is refused while the group already has a job queued or running.
+- It never includes Archive; a press that asked for Archive runs the other phases it asked for.
+- A press for Archive alone is refused, and points to the group's card.
+
+A failed member keeps its own recovery controls.
 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
@@ -96,10 +105,11 @@ Save is off. Save creates a prepared card and does not start work; Cancel closes
 A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
 reorder members until the first execution starts; after that, membership and order are fixed.
 
-Grouped member rows offer no Archive. When every member has finished Implement and every required acceptance row is
-ticked, the group card offers Archive. That press validates and moves every member together, runs the project's test
-gate once and lands the shared branch once. A failed landing leaves every member active and shows the reason on the
-group.
+Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
+every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That
+press validates and moves every member together, runs the project's test gate once and lands the shared branch once. A
+member already archived counts as done, and Archive moves the rest. A failed landing leaves every member active and
+shows the reason on the group.
 
 ### Execution group records
 

@@ -4,3 +4,4 @@ export type { ExecutionGroup, ExecutionGroupJob, ExecutionGroupLog, ExecutionGro
 export { executionGroupAction, executionGroupActivity } from "./actions.ts";
 export type { ExecutionGroupAction, ExecutionGroupMemberState } from "./actions.ts";
 export { eligibleGroupMembers, validateExecutionGroupRequest } from "./eligibility.ts";
+export { groupBranchForJob } from "./branch.ts";

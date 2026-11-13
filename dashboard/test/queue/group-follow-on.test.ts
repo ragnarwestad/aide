@@ -80,12 +80,11 @@ test("a red Implement does not queue the next group member (AC-3)", async () => 
   expect(store.list()).toHaveLength(0);
 });
 
-test("the last Implement with open acceptance leaves the execution waiting (AC-3)", async () => {
+test("the last Implement leaves the execution waiting for Archive", async () => {
   member("1-first", 1);
   const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: ["1-first"], branch: "aide/group-1-first" });
   const handle = stepDoneHandler({
     store,
-    groupHasOpenAcceptance: () => true,
     machinerySpecsRoot: () => join(root, "specs"),
     specDir: () => undefined,
     peekMachinerySpecDir: (_p: string, d: string) => d,
@@ -131,4 +130,25 @@ test("an archive the runner's check stopped hands the group back to wait for Arc
   });
   await Promise.resolve();
   expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+});
+
+test("the next member runs on the models picked on its own row", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const picking = new QueueStore({
+    mirrorPath: join(root, "picking.json"),
+    defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {} } },
+    resolve: () => ({ specFolders: ["1-first", "2-next"] }),
+  });
+  picking.pendingModels["aide/2-next"] = { analyze: "fable", implement: "fable" };
+  const handle = stepDoneHandler({
+    store: picking,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landArchivedSpec: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", model: { analyze: "sonnet", implement: "sonnet" } } as unknown as Job, "implement", { ok: true, terminalReason: "completed" });
+  await Promise.resolve();
+  expect(picking.list()[0]).toMatchObject({ specFolder: "2-next", model: { analyze: "fable", implement: "fable" } });
 });

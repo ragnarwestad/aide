@@ -45,6 +45,9 @@ export interface StartOptions {
   queueMirror?: string;
   /** Persisted execution-group registry, for pages that render group cards. */
   executionGroups?: unknown;
+  /** Runs on the written fixture before the server starts, so its first
+   *  scan sees what this adds (`ran()` commits, a status file). */
+  before?: (dir: string) => void;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The live spec's 2-analysis.md, verbatim. Absent writes none. */
@@ -88,6 +91,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       queueMirror,
       executionGroups,
       analysis,
+      before,
     } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
@@ -116,6 +120,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       // The queue as the last process left it: a board read back after a restart.
       if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
       if (executionGroups !== undefined) writeFileSync(join(dir, "execution-groups.json"), JSON.stringify(executionGroups));
+      before?.(dir);
       const server = createServer({
         port: 0,
         mirrorPath: join(dir, "runs.json"),

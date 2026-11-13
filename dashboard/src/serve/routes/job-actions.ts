@@ -16,7 +16,7 @@ import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
-import { enqueueRequest } from "../../queue/request/index.ts";
+import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
 import { ExecutionGroupStore, executionGroupAction, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import type { SpecTarget } from "../../render";
 
@@ -47,6 +47,25 @@ export function executionGroupForAction(
   });
 }
 
+/** A press on a grouped spec's own row runs as its group's job: the card
+ *  follows it, it waits while the group already has a job, and it never
+ *  archives the spec alone, since the group lands its shared branch once.
+ *  Answers the refusal, or rewrites `askedFor` and answers nothing. */
+function joinExecutionGroup(ctx: RoutesContext, askedFor: Record<string, unknown>, name: string): Response | undefined {
+  const project = String(askedFor.project);
+  const spec = `${project}/${String(askedFor.specFolder)}`;
+  const refuse = (reason: string): Response => { logRefusal("run", spec, reason); return json({ error: reason, spec }, 409); };
+  const steps = (askedFor.steps as unknown[]).filter((step) => step !== "archive");
+  if (steps.length === 0) return refuse(`a spec in the group ${name} is archived with the group: press Archive on the group`);
+  askedFor.steps = steps;
+  const execution = ctx.queue.executionGroups.findUnfinished(project, name);
+  if (!execution) return undefined;
+  const busy = ctx.queue.list().some((job) => job.project === project && execution.members.includes(job.specFolder) && inFlight(job));
+  if (busy) return refuse(`the group ${name} already has a job queued or running`);
+  if (steps.every((step) => step === "analyze" || step === "implement")) askedFor.executionGroupId = execution.id;
+  return undefined;
+}
+
 export async function handleJobActionRoutes(
   ctx: RoutesContext,
   req: Request,
@@ -70,7 +89,10 @@ export async function handleJobActionRoutes(
     const members = ctx.withFreshness(ctx.targets())
       .filter((target) => target.project === project && target.group?.name === name)
       .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
-    if (members.length < 2) return json({ error: "the group no longer exists" }, 409);
+    // A member already archived is done with, not gone: the rest still archive.
+    const archived = execution.members.filter((folder) =>
+      !members.some((member) => member.specFolder === folder) && ctx.specRef(project, folder)?.archived);
+    if (members.length === 0 || members.length + archived.length < 2) return json({ error: "the group no longer exists" }, 409);
     const next = members.find((member) => !(member.done ?? []).includes("implement"));
     const input = {
       project,
@@ -79,12 +101,13 @@ export async function handleJobActionRoutes(
       branch: groupBranch(members[0]!.specFolder, name),
     };
     const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
-    const available = executionGroupAction(execution, members.map((member) => ({
+    const available = executionGroupAction(execution, [...members.map((member) => ({
       implemented: (member.done ?? []).includes("implement"),
       archived: false,
       acceptanceOpen: !!member.acceptanceOpen,
       busy: historical.some((job) => job.specFolder === member.specFolder && inFlight(job)),
-    }))) ?? (execution.state === "prepared" ? "start" : undefined);
+    })), ...archived.map(() => ({ implemented: true, archived: true, acceptanceOpen: false, busy: false }))])
+      ?? (execution.state === "prepared" ? "start" : undefined);
     const action = askedAction ?? available;
     if (!action || action !== available) return json({ error: `the execution group cannot ${askedAction ?? "run"} while it is ${execution.state}` }, 409);
     if (action === "stop") {
@@ -95,14 +118,15 @@ export async function handleJobActionRoutes(
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
     const raw = action === "start"
-      ? next ? { project, specFolder: next.specFolder, steps: ["analyze", "implement"], executionGroupId: execution.id } : null
+      ? next ? withRowPicks({ project, specFolder: next.specFolder, steps: ["analyze", "implement"], executionGroupId: execution.id }, ctx.queue) : null
       : action === "archive" && !members.some((member) => member.acceptanceOpen)
         ? {
             project,
             specFolder: members[0]!.specFolder,
             steps: ["archive"],
-            groupMembers: members.map((member) => member.specFolder),
-            groupBranch: groupBranch(members[0]!.specFolder, name),
+            // One member left archives as an ordinary spec, on the group's
+            // branch through its record: a group archive moves two or more.
+            ...(members.length > 1 ? { groupMembers: members.map((member) => member.specFolder), groupBranch: execution.branch } : {}),
             executionGroupId: execution.id,
           }
         : null;
@@ -165,6 +189,8 @@ export async function handleJobActionRoutes(
               return json({ error: reason, spec }, 409);
             }
           }
+          const joined = joinExecutionGroup(ctx, askedFor, row.group.name);
+          if (joined) return joined;
         }
         const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];
         // ctx.specRef, not a fresh **Archived:** prose scan: the one

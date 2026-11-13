@@ -43,3 +43,25 @@ export function followOnRequest(
     executionGroupId: from.executionGroupId,
   };
 }
+
+/** `request` on the models picked on its spec's own row, for the steps it
+ *  runs: a row's pick wins over the model the request already names, and
+ *  brings the provider picked beside it, or none. */
+export function withRowPicks<T extends Record<string, unknown>>(
+  request: T,
+  picks: Pick<QueueStore, "pendingModels" | "pendingProviders">,
+): T & { model: Record<string, string>; provider: Record<string, string> } {
+  const key = `${String(request.project)}/${String(request.specFolder)}`;
+  const models = picks.pendingModels[key] ?? {};
+  const providers = picks.pendingProviders[key] ?? {};
+  const given = request as { model?: Record<string, string>; provider?: Record<string, string> };
+  const model = { ...given.model };
+  const provider = { ...given.provider };
+  for (const step of request.steps as string[]) {
+    if (!models[step]) continue;
+    model[step] = models[step];
+    if (providers[step]) provider[step] = providers[step];
+    else delete provider[step];
+  }
+  return { ...request, model, provider };
+}

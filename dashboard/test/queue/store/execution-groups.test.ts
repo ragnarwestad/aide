@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ExecutionGroupStore } from "../../../src/queue/execution-groups/index.ts";
+import { QueueStore } from "../../../src/queue/queue.ts";
 
 let dir: string;
 let path: string;
@@ -81,5 +82,49 @@ describe("ExecutionGroupStore", () => {
     const made = store.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });
     expect(() => store.create({ project: "aide", name: "Release", members: ["3-third", "4-fourth"], branch: "group/3-third" })).toThrow("already exists");
     expect(store.get(made.id)?.members).toEqual(["1-first", "2-next"]);
+  });
+});
+
+describe("a group's job ending", () => {
+  const queueWithGroup = () => {
+    const queue = new QueueStore({
+      defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+      resolve: () => ({ specFolders: ["1-first", "2-next"] }),
+    });
+    const group = queue.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+    const run = (specFolder: string, steps: string[]) => {
+      const made = queue.enqueue({ project: "aide", specFolder, steps, executionGroupId: group.id });
+      if (!made.ok) throw new Error(made.error);
+      queue.transition(made.job.id, "start");
+      return made.job.id;
+    };
+    return { queue, group, run };
+  };
+
+  for (const [event, label] of [["step-succeeded-last", "done"], ["cancel", "cancelled"]] as const) {
+    test(`leaves the group idle when it ends ${label} with nothing else of the group queued`, () => {
+      const { queue, group, run } = queueWithGroup();
+      const id = run("2-next", ["analyze"]);
+      expect(queue.executionGroups.get(group.id)?.state).toBe("running");
+      queue.transition(id, event);
+      expect(queue.executionGroups.get(group.id)?.state).toBe("stopped");
+    });
+  }
+
+  test("keeps the group going while its next job is already queued", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["implement"]);
+    const next = queue.enqueue({ project: "aide", specFolder: "2-next", steps: ["analyze"], executionGroupId: group.id });
+    expect(next.ok).toBe(true);
+    queue.transition(id, "step-succeeded-last");
+    expect(queue.executionGroups.get(group.id)?.state).toBe("queued");
+  });
+
+  test("keeps a group that waits for Archive waiting", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("2-next", ["implement"]);
+    queue.executionGroups.waitForAcceptance(group.id);
+    queue.transition(id, "step-succeeded-last");
+    expect(queue.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
   });
 });

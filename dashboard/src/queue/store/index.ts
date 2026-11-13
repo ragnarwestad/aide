@@ -441,10 +441,15 @@ export class QueueStore {
       logs: job.results.map((result) => ({ step: result.step, sessionId: result.sessionId, streamFile: result.streamFile })),
     };
     const jobs = [...group.jobs.filter((entry) => entry.id !== job.id), history];
+    // A job that ends done or cancelled with nothing else of its group in
+    // flight leaves the group idle; one that waits for Archive keeps waiting.
+    const othersInFlight = [...this.jobs.values()].some((other) =>
+      other.id !== job.id && other.executionGroupId === group.id && (other.state === "queued" || other.state === "running"));
     const state = job.state === "running" ? "running"
       : job.state === "queued" ? "queued"
         : job.state === "stopped" || job.state === "failed" || job.state === "interrupted" ? "stopped"
-          : group.state;
+          : (group.state === "running" || group.state === "queued") && !othersInFlight ? "stopped"
+            : group.state;
     this.executionGroups.update(group.id, { jobs, state, currentMember: job.specFolder });
   }
 

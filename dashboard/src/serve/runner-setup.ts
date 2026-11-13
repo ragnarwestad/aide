@@ -24,11 +24,11 @@ import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, specFolders, type CodeLanding } from "../project/discover";
-import { groupBranch } from "../project/spec-names.ts";
+import { groupBranchForJob } from "../queue/execution-groups";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
-import { enqueueRequest, followOnRequest } from "../queue/request/index.ts";
+import { enqueueRequest, followOnRequest, withRowPicks } from "../queue/request/index.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./land-branch/policy/index.ts";
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
@@ -88,7 +88,7 @@ export interface RunnerSetupContext {
   forgetSpecCaches: (dir: string, specFolder: string) => void;
   /** Reads those answers again once the step's own result is written,
    *  and tells the page — for a step with no landing to do it. */
-  rereadSpecCaches: (dir: string, specFolder: string) => void; groupHasOpenAcceptance?: (project: string, name: string) => boolean;
+  rereadSpecCaches: (dir: string, specFolder: string) => void;
 }
 
 /** A step that just ended rewrote the spec's files and pushed its
@@ -239,7 +239,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             // afterwards (`machinerySpecsRoot`), so the two cannot
             // disagree about where a spec belongs.
             specsRoot: ctx.machinerySpecsRoot(job.project),
-            branch: groupBranchForJob(ctx, job),
+            branch: groupBranchForJob(ctx.store.executionGroups, ctx.machinerySpecsRoot(job.project), job),
             worktreeBase: join(dirname(ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs")), "worktrees"),
             scriptsDir: dirname(runnerBin),
             // The global setting speaks for every project
@@ -329,20 +329,6 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
   });
 }
 
-/** Resolve one shared branch from persisted membership before bash starts.
- * The isolated worktree is deliberately not asked to discover siblings. */
-function groupBranchForJob(ctx: Pick<RunnerSetupContext, "machinerySpecsRoot">, job: Pick<Job, "project" | "specFolder">): string | undefined {
-  const root = ctx.machinerySpecsRoot(job.project);
-  if (!root) return undefined;
-  const members = specFolders(root, false);
-  const current = members.find((spec) => spec.folder === job.specFolder);
-  if (!current?.group) return undefined;
-  const first = members
-    .filter((spec) => spec.group?.name === current.group!.name)
-    .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
-  return first ? groupBranch(first.folder, current.group.name) : undefined;
-}
-
 /** What the runner does the moment a step ends: mark the spec's cached
  *  answers due, start the landing the step needs, and — for a step that
  *  needs none — read those answers again, since nothing else will until
@@ -370,7 +356,7 @@ export function stepDoneHandler(
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
       if (group) ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
       const hasNext = group?.state === "stopped" ? false : queueNextGroupMember(job);
-      if (!hasNext && group && ctx.groupHasOpenAcceptance?.(job.project, group.name)) ctx.store.executionGroups.waitForAcceptance(group.id);
+      if (!hasNext && group && group.state !== "stopped") ctx.store.executionGroups.waitForAcceptance(group.id);
     }
     if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
@@ -389,7 +375,7 @@ export function stepDoneHandler(
     if (!next) return false;
     const made = enqueueRequest(
       ctx.store,
-      followOnRequest(job.project, next.folder, ["analyze", "implement"], job),
+      withRowPicks(followOnRequest(job.project, next.folder, ["analyze", "implement"], job), ctx.store),
       "automatic",
     );
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
