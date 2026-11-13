@@ -129,6 +129,19 @@ export function kindIcon(kind: RowKind, lang: Language = "en"): string {
   return `<span class="kindicon" data-kind="${kind}" role="img" aria-label="${esc(label)}" title="${esc(label)}">${KIND_ICONS[kind]}</span>`;
 }
 
+export type SiteTab = "jobs" | "specs" | "projects" | "schedule";
+
+export const TAB_ICONS: Record<SiteTab, string> = {
+  jobs: stroke('<path d="M6 4.5h7.5M6 8h7.5M6 11.5h7.5M2.75 4.5h.5M2.75 8h.5M2.75 11.5h.5"></path>'),
+  specs: KIND_ICONS.spec,
+  projects: stroke('<path d="M2.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h4.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"></path>'),
+  schedule: KIND_ICONS.schedule,
+};
+
+export function tabIcon(tab: SiteTab): string {
+  return `<span class="kindicon" data-tab="${tab}" aria-hidden="true">${TAB_ICONS[tab]}</span>`;
+}
+
 /** The three tools a provider runs, each a shape of its own: a burst for
  *  Claude Code, a ring of loops for Codex, brackets for OpenCode. */
 export const TOOL_ICONS: Record<ProviderTool, string> = {

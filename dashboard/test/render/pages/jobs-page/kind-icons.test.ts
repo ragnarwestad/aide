@@ -43,8 +43,17 @@ test("a group member fetched alone keeps the spec icon (AC-1)", () => {
   expect(renderJobsSpecRows(view, "aide/82-member")).toContain('aria-label="Spec"');
 });
 
-test("the Specs list does not show kind icons (AC-1)", () => {
-  expect(renderSpecsRows(view.specJobs, view.list)).not.toContain('class="kindicon"');
+test("every Specs list row shows the spec kind icon (AC-1)", () => {
+  const archived = {
+    project: "aide", folder: "80-archived", done: ["create"], models: {}, phaseOutcomes: {},
+  };
+  for (const html of [
+    renderSpecsRows(view.specJobs, view.list),
+    renderSpecsRows(view.specJobs, { ...view.list, filter: { open: "aide/81-active" } }),
+    renderSpecsRows([], { ...view.list, archivedSpecs: [archived], filter: { state: "archived" } }),
+  ]) {
+    expect(html).toContain('class="kindicon" data-kind="spec"');
+  }
 });
 
 test("the one State dropdown contains a headed Kind part and no second kind control (AC-1, AC-2, AC-7)", () => {

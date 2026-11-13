@@ -78,6 +78,14 @@ nav.tabbar.subtabs .tab { min-width: 0; }
 .tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
   min-width: 7rem; text-align: center;
   color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }
+.tabbar .tab:has(> .kindicon) { display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-1); white-space: nowrap; position: relative; }
+.tabbar .tab > .kindicon { display: inline-flex; flex: none; }
+.tabbar .tab > .kindicon svg { height: 16px; width: 16px; }
+.tabbar .kindicon[data-tab="jobs"] { color: var(--tab-jobs); }
+.tabbar .kindicon[data-tab="specs"] { color: var(--kind-spec); }
+.tabbar .kindicon[data-tab="projects"] { color: var(--tab-projects); }
+.tabbar .kindicon[data-tab="schedule"] { color: var(--kind-schedule); }
 .tabbar .tab:hover { color: var(--text); text-decoration: none; }
 .tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
   border-bottom-color: var(--accent); }

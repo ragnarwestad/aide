@@ -116,4 +116,22 @@ describe("the header's tabs", () => {
     expect(siteTabKeys(NAV, "/projects").current).toBe("/projects");
     expect(siteTabKeys(NAV, "/schedule").current).toBe("/schedule");
   });
+
+  test("draws the four site tabs with their own icons (AC-2, AC-3)", () => {
+    const html = pageShell("Projects", [
+      { label: "Projects", path: "/projects" },
+      { label: "Schedule", labelKey: "shell.tabSchedule", path: "/schedule", icon: "schedule" },
+    ], "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
+    for (const tab of ["jobs", "specs", "projects", "schedule"]) {
+      expect(html).toContain(`data-tab="${tab}"`);
+    }
+  });
+
+  test("does not invent an icon for a section that names none (AC-2)", () => {
+    const html = pageShell("Other", [
+      { label: "Projects", path: "/projects" },
+      { label: "Other", path: "/other" },
+    ], "/other", "<p>body</p>", "2026-09-01T00:00:00Z");
+    expect(html).not.toContain('data-tab="other"');
+  });
 });

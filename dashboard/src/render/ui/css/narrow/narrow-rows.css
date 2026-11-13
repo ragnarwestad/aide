@@ -330,6 +330,12 @@
   table.list tr.subrow .aimodelfull { display: block; }
 }
 
+@media (max-width: 34rem) {
+  .tabbar .tab:has(> .kindicon) { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+  .tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
 /* A phone held sideways: a wide screen, but a short one, and the header
    and the tab bar under it took 107 of its 390px before the page began.
    The tabs move into the header's own row, which has room to spare at
@@ -349,6 +355,8 @@
   header > nav.tabbar { display: flex; flex: 1 1 auto; justify-content: center; gap: var(--sp-3);
     padding: 0; border-bottom: 0; min-width: 0; overflow-x: auto; }
   header > nav.tabbar .tab { min-width: 0; padding-left: var(--sp-2); padding-right: var(--sp-2); }
+  header > nav.tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   body > nav.tabbar { display: none; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }
   main { padding-top: var(--sp-3); }

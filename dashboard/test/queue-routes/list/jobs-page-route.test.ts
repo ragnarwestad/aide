@@ -113,7 +113,7 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
   test("the tab for / reads Jobs and is current, and the document's title says Jobs (AC-1)", async () => {
     const { base } = board([job({})]);
     const html = await (await fetch(`${base}/`)).text();
-    expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Jobs</a>');
+    expect(html).toMatch(/<a class="tab"[^>]*href="\/"[^>]*aria-current="page"[^>]*>[\s\S]*Jobs[\s\S]*<\/a>/);
     expect(html).toContain("<title>aide -board · Jobs</title>");
   });
 

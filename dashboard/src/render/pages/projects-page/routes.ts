@@ -16,7 +16,7 @@ export function navEntries(): NavEntry[] {
     // scheduled jobs in one table, the same single-aggregate shape
     // Projects took after the tab-per-project removal below — never one
     // tab per project.
-    { label: "Schedule", labelKey: "shell.tabSchedule", path: SCHEDULE_ROUTE },
+    { label: "Schedule", labelKey: "shell.tabSchedule", path: SCHEDULE_ROUTE, icon: "schedule" },
     // There is no Archive tab: every archived spec is a row on the Specs
     // list, one chip away, with its date, its description, its "not
     // landed" mark and a search — a second place to read the same thing

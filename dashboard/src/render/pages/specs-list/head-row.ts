@@ -197,7 +197,7 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${opts.kindIcon ? kindIcon("spec", lang) : ""}${spec}` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${kindIcon("spec", lang)}${spec}` +
     `</div>` +
     under +
     `</td>` +
