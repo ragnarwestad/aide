@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { eligibleGroupMembers, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, groupAddCandidates, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
 
 const target = (specFolder: string, extra: Record<string, unknown> = {}) => ({
   project: "aide", specFolder, title: `Title ${specFolder}`, done: ["create"], dependsOn: [], ...extra,
@@ -54,4 +54,25 @@ test("refuses duplicates and missing positions before save", () => {
   const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "1-first"], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first"], positions: [2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
+});
+
+test("a group takes the specs New group would offer, less any spec a member depends on (AC-2)", () => {
+  const offered = groupAddCandidates({
+    project: "aide",
+    members: ["1-first", "2-second"],
+    targets: [
+      target("1-first", { done: ["create", "analyze", "implement"], dependsOn: ["4-required"], group: { name: "Release", position: 1 } }),
+      target("2-second", { group: { name: "Release", position: 2 } }),
+      target("3-free"),
+      target("4-required"),
+      target("5-dependent", { dependsOn: ["2-second"] }),
+      target("6-other-group"),
+    ],
+    groups: [
+      { id: "release", project: "aide", name: "Release", members: ["1-first", "2-second"], branch: "group/1-first", state: "running", completedMembers: [], jobs: [] },
+      { id: "other", project: "aide", name: "Other", members: ["6-other-group"], branch: "group/6", state: "prepared", completedMembers: [], jobs: [] },
+    ],
+    jobs: [],
+  });
+  expect(offered.map((item) => item.specFolder)).toEqual(["3-free", "5-dependent"]);
 });

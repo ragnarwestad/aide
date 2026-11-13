@@ -23,7 +23,7 @@ import { jobFacts, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./v
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
-import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, groupAddCandidates } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
@@ -92,7 +92,12 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
       .filter((member): member is SpecGroup => !!member);
     return {
       key,
-      html: draws(key) ? executionGroupCard(group, specRows, lang, { openFor }) : "",
+      html: draws(key)
+        ? executionGroupCard(group, specRows, lang, {
+          openFor,
+          addCandidates: groupAddCandidates({ project: group.project, members: group.members, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
+        })
+        : "",
       place: executionGroupPlace(group, members),
       facts: {
         project: group.project, specFolder: group.name,
@@ -226,10 +231,14 @@ export function renderJobsRows(v: JobsView): string {
   );
 }
 
+/** The jobs a spec offered for a group is checked against: one in flight is not offered. */
+const groupJobs = (v: JobsView): { project: string; specFolder: string; state: string }[] =>
+  [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
+
 function executionGroupEditors(v: JobsView, lang: Language): string {
   const groups = activeExecutionGroups(v);
   const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
-  const jobs = [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
+  const jobs = groupJobs(v);
   const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
   return executionGroupEditor({ projects, candidates, lang });
 }

@@ -1,8 +1,8 @@
 import type { ExecutionGroup } from "../../../queue/execution-groups";
-import { executionGroupAction, executionGroupActivity } from "../../../queue/execution-groups";
+import { executionGroupAction, executionGroupActivity, executionGroupAddRefusal } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, buttonForm, foldButton, kindIcon, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
-import type { SpecGroup } from "../specs-list";
+import { askButton, badge, buttonForm, foldButton, kindIcon, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
+import type { SpecGroup, SpecTarget } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
 import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
@@ -10,6 +10,7 @@ import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
+import { addToGroupDialog } from "./execution-group-editor.ts";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -59,8 +60,12 @@ export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupM
   return { band, changedAt: Math.max(Date.parse(group.startedAt ?? group.createdAt ?? "") || 0, ...memberChanges) };
 }
 
-/** `openFor`: the chosen state entries the card is shown for, which draw it open. */
-export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en", opts: { openFor?: string } = {}): string {
+/** `openFor`: the chosen state entries the card is shown for, which draw it open.
+ *  `addCandidates`: the specs its Add spec dialog lists. */
+export function executionGroupCard(
+  group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en",
+  opts: { openFor?: string; addCandidates?: SpecTarget[] } = {},
+): string {
   const members = group.members.map((folder) => rows.find((row) => row.group.project === group.project && row.group.specFolder === folder)).filter((row): row is ExecutionGroupMemberRow => !!row);
   const totalDurationMs = members.reduce((sum, member) => sum + (member.group.totalDurationMs ?? 0), 0);
   const liveMember = members.find((member) => member.group.totalDurationSince);
@@ -76,12 +81,13 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     ? members.reduce((sum, member) => sum + (member.group.spentTokens ?? 0), 0)
     : undefined;
   const costSettled = members.some((member) => member.group.done.length > 0);
-  const action = executionGroupAction(group, members.map(({ group: member }) => ({
+  const states = members.map(({ group: member }) => ({
     implemented: member.done.includes("implement"),
     archived: isArchivedRow(member),
     acceptanceOpen: !!member.acceptanceOpen,
     busy: specBusy(member),
-  })));
+  }));
+  const action = executionGroupAction(group, states);
   const key = `${group.project}\n${group.name}`;
   const created = createdLabel(group.createdAt);
   const control = action ? buttonForm({
@@ -95,6 +101,10 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
       variant: "primary",
     },
   }) : "";
+  // Add spec beside the action, secondary, while the group can take a spec.
+  const addable = !executionGroupAddRefusal(group, states);
+  const addDialogId = `add-spec-${executionGroupAnchor(group)}`;
+  const add = addable ? askButton({ label: t(lang as Language, "list.groupAddSpec"), dialogId: addDialogId }) : "";
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
   // card. A cell has one border, so the card around the specs cannot be
@@ -118,7 +128,7 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span>` +
-    (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
+    (control || add ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}${add}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     `</tbody>`;
@@ -129,6 +139,9 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
       : member.html.replace("<tr", `<tr${membership}`);
   }).join("") + `</tbody>`;
   return `<tr class="execution-group" id="${esc(executionGroupAnchor(group))}" data-spec-group="${esc(key)}"${opts.openFor ? ` data-group-open="${esc(opts.openFor)}"` : ""}>` +
-    `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table></td></tr>` +
+    `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table>` +
+    // Outside the action slot, which is hidden while the card is shut.
+    (addable ? addToGroupDialog({ id: addDialogId, group, candidates: opts.addCandidates ?? [], lang: lang as Language }) : "") +
+    `</td></tr>` +
     `<tr class="specgap" aria-hidden="true"><td colspan="6"></td></tr>`;
 }

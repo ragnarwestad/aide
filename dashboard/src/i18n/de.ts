@@ -599,4 +599,9 @@ export const de: Record<TranslationKey, string> = {
   "list.groupName": "Name",
   "list.groupOrder": "Reihenfolge",
   "list.groupTooFew": "Dieses Projekt hat weniger als zwei Specs, die gruppiert werden können. Eine Spec kann einer Gruppe beitreten, bis sie analysiert ist.",
+  "list.groupAddSpec": "Spec hinzufügen",
+  "list.groupAddTitle": "Eine Spec zu {group} hinzufügen",
+  "list.groupAddSave": "Hinzufügen",
+  "list.groupAddSaving": "Wird hinzugefügt…",
+  "list.groupAddNone": "Keine Spec dieses Projekts kann dieser Gruppe hinzugefügt werden.",
 };

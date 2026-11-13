@@ -26,6 +26,8 @@ export interface FormDialogParts {
   fields: string;
   /** The affirmative's own word where it is not Save. */
   save?: { label: string; pending?: string };
+  /** The affirmative drawn shut, for a form with nothing to send. */
+  saveDisabled?: boolean;
   /** Trusted markup between the affirmative and Cancel. */
   between?: string;
 }
@@ -42,7 +44,7 @@ export function formDialog(lang: Language, parts: FormDialogParts): string {
     `<h2 id="${id}-title">${esc(parts.title)}</h2>` +
     parts.fields +
     messageSlot("refused", "failed", { id: `${parts.id}-refused` }) +
-    saveCancelActions(`${parts.id}-form`, { save: parts.save, between: parts.between, closes: `${parts.id}-close` }, lang) +
+    saveCancelActions(`${parts.id}-form`, { save: parts.save, saveDisabled: parts.saveDisabled, between: parts.between, closes: `${parts.id}-close` }, lang) +
     `</form>` +
     `<form method="dialog" id="${id}-close"></form>` +
     `</dialog>`

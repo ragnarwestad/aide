@@ -4,7 +4,7 @@
 .execution-group-editor > :is(ol, p) { grid-column: 1 / -1; }
 .execution-group-editor > p { margin: 0; }
 .execution-group-editor > label { display: grid; gap: var(--sp-1); }
-.execution-group-editor :is(input:not([type="checkbox"]), select) {
+.execution-group-editor :is(input:not([type="checkbox"], [type="radio"]), select) {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--control-h);

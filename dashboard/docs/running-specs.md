@@ -105,7 +105,16 @@ order. An order that puts a spec before its dependency is refused and names both
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
-reorder members until the first execution starts; after that, membership and order are fixed.
+reorder members until the first execution starts.
+
+**Add spec**, on the open card, adds one spec at the end of the order of a group that has not finished Implement for
+all its members, whether it is prepared, queued, running, stopped or waiting. Its dialog lists the specs New group would
+offer for the group's project, less any spec a member of the group depends on; a spec that depends on a member is
+listed, since it comes after every member. Add writes the spec's `Group:` and `Group position:` lines, one past the
+last member's, and changes nothing that has already run. A running or queued group runs it after the member that was
+last; a stopped group runs it when Start is pressed again. A group whose every member has finished Implement, or that
+is archiving or completed, offers no Add spec and refuses one with a sentence saying why: archive it and make a new
+group. Once a group has started, nothing else changes its members or their order.
 
 Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
 every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That
@@ -823,7 +832,7 @@ The card opens with its own ›, when a member's spec is opened from its address
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
-action, and each member is drawn below as its own spec card.
+action and, while the group can take another spec, Add spec, and each member is drawn below as its own spec card.
 Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
 Remove takes the card off.
 

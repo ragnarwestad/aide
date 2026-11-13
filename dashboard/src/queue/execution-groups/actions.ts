@@ -27,3 +27,19 @@ export function executionGroupAction(
   if (group.state === "prepared" || group.state === "stopped" || group.state === "waiting-acceptance") return "start";
   return undefined;
 }
+
+/** Why a group can take no more specs: archived, being archived, or every
+ *  member through Implement, which a group waiting for Archive always is. */
+export type ExecutionGroupAddRefusal = "archiving" | "completed" | "implemented";
+
+/** Whether a spec may be added at the end of the group's order: nothing
+ *  stops it, or the reason something does. */
+export function executionGroupAddRefusal(
+  group: Pick<ExecutionGroup, "state">,
+  members: readonly ExecutionGroupMemberState[],
+): ExecutionGroupAddRefusal | undefined {
+  if (group.state === "completed") return "completed";
+  if (group.state === "archiving") return "archiving";
+  if (members.length === 0 || members.every((member) => member.implemented || member.archived)) return "implemented";
+  return undefined;
+}
