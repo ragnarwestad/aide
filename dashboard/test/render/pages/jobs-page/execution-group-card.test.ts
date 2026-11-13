@@ -106,7 +106,7 @@ test("a card ready to archive names Archive once, on its button", () => {
 
 test("a card is drawn shut unless a member's spec is open in it", () => {
   const shut = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
-  expect(shut.match(/data-group-body hidden/g)).toHaveLength(2);
+  expect(shut.match(/data-group-body hidden/g)).toHaveLength(1);
   const open = executionGroupCard(group("prepared"), [member("1-first", '<tr class="spechead"></tr><tr data-spec-detail="aide/1-first"></tr>')]);
   expect(open).not.toContain("data-group-body hidden");
   expect(open).toContain('aria-expanded="true"');
@@ -125,11 +125,10 @@ test("a group held back or done says so in a spec's own words", () => {
   expect(executionGroupCard(group("completed"), [], "nb")).toContain(`>${t("nb", "list.done")}<`);
 });
 
-test("a shut card still shows its members' pips, and only a card with an action has a line for it", () => {
+test("a shut card still shows its members' pips", () => {
   const prepared = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
   expect(prepared.indexOf('class="pip ')).toBeGreaterThan(-1);
   expect(prepared.indexOf('class="pip ')).toBeLessThan(prepared.indexOf("data-group-body"));
-  expect(executionGroupCard(group("completed"), [])).not.toContain("data-execution-group-actions");
 });
 
 test("a member's pip takes the colour of its own state", () => {

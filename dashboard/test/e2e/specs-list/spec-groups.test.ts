@@ -57,16 +57,23 @@ test("Running keeps one group card and its member detail open in place (AC-1, AC
   await spec.waitFor({ state: "visible" });
 });
 
-test("Running hides the execution-group action line while its group is collapsed (AC-7)", async () => {
+test("Running switches between group state and action without navigation (AC-5)", async () => {
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const group = page.getByRole("button", { name: "Release", exact: true });
-  const actions = page.locator("tr[data-execution-group-actions]");
+  const card = page.locator("tr[data-spec-group]");
+  const state = card.locator("[data-group-state]");
+  const action = card.locator("[data-group-action]");
+  const url = page.url();
   await group.waitFor();
-  await actions.waitFor({ state: "hidden" });
+  await state.waitFor({ state: "visible" });
+  await action.waitFor({ state: "hidden" });
   await group.click();
-  await actions.waitFor({ state: "visible" });
+  await state.waitFor({ state: "hidden" });
+  await action.waitFor({ state: "visible" });
   await group.click();
-  await actions.waitFor({ state: "hidden" });
+  await state.waitFor({ state: "visible" });
+  await action.waitFor({ state: "hidden" });
+  expect(page.url()).toBe(url);
 });
 
 test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () => {

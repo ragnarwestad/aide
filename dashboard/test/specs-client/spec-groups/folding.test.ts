@@ -5,12 +5,14 @@ import { syncSpecGroups, toggleSpecGroup } from "../../../src/specs-client/spec-
 const windows: Window[] = [];
 afterEach(async () => { await Promise.all(windows.splice(0).map((win) => win.happyDOM.close())); });
 
-/** A group's card as the list draws it: one row, its own table inside, the
- *  group's second line and its members each a part the fold shows or hides. */
-const card = (key: string, members: string) =>
+/** A group's card as the list draws it: one row, its own table inside, with
+ *  state and action holders in its fixed second line and foldable members. */
+const card = (key: string, members: string, action = true) =>
   `<tr data-spec-group="${key}"><td><table><tbody><tr><td>` +
   `<button data-group-toggle="${key}" aria-expanded="false">Release</button></td></tr>` +
-  `<tr data-group-body hidden><td>Start</td></tr></tbody>` +
+  `<tr><td><span data-group-state>Prepared</span>` +
+  (action ? `<span data-group-action hidden>Start</span>` : "") +
+  `</td></tr></tbody>` +
   `<tbody data-group-members data-group-body hidden>${members}</tbody></table></td></tr>`;
 
 test("a group opens and closes its second line and members and keeps its choice across updates", () => {
@@ -23,15 +25,43 @@ test("a group opens and closes its second line and members and keeps its choice 
   const press = () => toggleSpecGroup({ target: doc.querySelector("button"), preventDefault() {} } as unknown as MouseEvent);
   doc.body.innerHTML = rows();
   syncSpecGroups(doc);
-  expect(parts()).toEqual([true, true]);
+  expect(parts()).toEqual([true]);
   press();
-  expect(parts()).toEqual([false, false]);
+  expect(parts()).toEqual([false]);
   doc.body.innerHTML = rows();
   syncSpecGroups(doc);
-  expect(parts()).toEqual([false, false]);
+  expect(parts()).toEqual([false]);
   press();
-  expect(parts()).toEqual([true, true]);
+  expect(parts()).toEqual([true]);
   expect((doc.getElementById("other") as HTMLElement).hidden).toBe(false);
+});
+
+test("an action replaces the state only while its group is open (AC-1, AC-3)", () => {
+  const win = new Window();
+  windows.push(win);
+  const doc = win.document as unknown as Document;
+  doc.body.innerHTML = `<table><tbody>${card("with-action", "")}</tbody></table>`;
+  const state = doc.querySelector<HTMLElement>("[data-group-state]")!;
+  const action = doc.querySelector<HTMLElement>("[data-group-action]")!;
+  const press = () => toggleSpecGroup({ target: doc.querySelector("button"), preventDefault() {} } as unknown as MouseEvent);
+
+  syncSpecGroups(doc);
+  expect([state.hidden, action.hidden]).toEqual([false, true]);
+  press();
+  expect([state.hidden, action.hidden]).toEqual([true, false]);
+  press();
+  expect([state.hidden, action.hidden]).toEqual([false, true]);
+});
+
+test("an open group without an action keeps its state visible (AC-2)", () => {
+  const win = new Window();
+  windows.push(win);
+  const doc = win.document as unknown as Document;
+  doc.body.innerHTML = `<table><tbody>${card("without-action", "", false)}</tbody></table>`;
+
+  syncSpecGroups(doc);
+  toggleSpecGroup({ target: doc.querySelector("button"), preventDefault() {} } as unknown as MouseEvent);
+  expect((doc.querySelector("[data-group-state]") as HTMLElement).hidden).toBe(false);
 });
 
 test("opening a spec's address also opens its group", () => {

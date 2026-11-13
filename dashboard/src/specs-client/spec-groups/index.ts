@@ -11,6 +11,10 @@ export function syncSpecGroups(root: ParentNode): void {
     button?.setAttribute("aria-expanded", String(open));
     button?.classList.toggle("shut", !open);
     for (const part of group.querySelectorAll<HTMLElement>("[data-group-body]")) part.hidden = !open;
+    const action = group.querySelector<HTMLElement>("[data-group-action]");
+    const state = group.querySelector<HTMLElement>("[data-group-state]");
+    if (action) action.hidden = !open;
+    if (state) state.hidden = open && !!action;
   }
 }
 

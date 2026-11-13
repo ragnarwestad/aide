@@ -99,8 +99,8 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   const open = members.some((member) => member.html.includes(" data-spec-detail="));
   const shut = open ? "" : " hidden";
   // Two lines always, as a spec's card: the name, then the date with a pip
-  // per member at its right, numbered in the group's order, and the state.
-  // The action takes a third line, shown only while the card is open.
+  // per member at its right, numbered in the group's order, and the state
+  // or, while the card is open, its action.
   const memberPips = pips(group.members.map((folder, index) => {
     const row = members.find((member) => member.group.specFolder === folder);
     return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: String(index + 1) };
@@ -111,13 +111,10 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span>` +
+    (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
-    (control
-      ? `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
-        `<td></td><td colspan="2"></td><td data-col="state"><span class="actionslot">${control}</span></td><td></td><td></td></tr>`
-      : "") +
     `</tbody>`;
   const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;
