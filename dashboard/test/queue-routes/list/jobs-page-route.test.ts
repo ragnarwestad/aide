@@ -18,8 +18,9 @@ import { dated, group, setupQueueRoutesHarness } from "../fixtures.ts";
  *  chevron loads the spec's own page, its title is text, the cell under it
  *  says when the spec was created, and it has no Time or Cost but the
  *  spec's PDF beside the state; the Jobs tab's chevron folds the row in
- *  place, its kind icon leads its linked title, the cell holds the pips and the row ends in
- *  its figures. Everything else is one builder's. */
+ *  place, its title is a link, the cell holds the pips and the row ends in
+ *  its figures. The icons are stripped from both alike, so the title's part
+ *  can be unwrapped to the colon and the name. Everything else is one builder's. */
 const withoutFold = (html: string): string =>
   html
     .replace(/<span class="kindicon"[^>]*>[\s\S]*?<\/span>/g, "")

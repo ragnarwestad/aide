@@ -11,14 +11,41 @@ import { projectPagePath } from "../../pages/projects-page/routes.ts";
 // noinspection ES6PreferShortImport
 import { specPagePath } from "../../pages/spec-page/tabs.ts";
 import { esc } from "../html.ts";
+import { kindIcon, tabIcon, type RowKind } from "./icons.ts";
 import { isSpecFolder } from "../../../project/spec-names.ts";
 
 /** The project's name as a link to its page. Every link carries
  *  `data-goto`: it leaves the page for another document, and a clicked
- *  one is marked waiting. */
-export function projectLink(project: string, o: { className?: string } = {}): string {
+ *  one is marked waiting. With `icon`, the Projects tab's icon stands
+ *  inside the link, before the name. */
+export function projectLink(project: string, o: { className?: string; icon?: boolean } = {}): string {
   const cls = o.className ? ` class="${esc(o.className)}"` : "";
-  return `<a${cls} data-goto href="${esc(projectPagePath(project))}">${esc(project)}</a>`;
+  const icon = o.icon ? tabIcon("projects") : "";
+  return `<a${cls} data-goto href="${esc(projectPagePath(project))}">${icon}${esc(project)}</a>`;
+}
+
+/** A row's name on the Jobs tab and the Specs list: the project's icon and
+ *  name as one link to its page, then the colon, the row's kind icon and its
+ *  name — one link to `href` when the row has one, text when it does not.
+ *  The two parts touch, with no whitespace between them. */
+export function rowLabel(o: {
+  project: string;
+  kind: RowKind;
+  name: string;
+  lang: Language;
+  href?: string;
+  title?: string;
+}): string {
+  const title = o.title === undefined ? "" : ` title="${esc(o.title)}"`;
+  const open = o.href === undefined
+    ? `<span class="specpart"${title}>`
+    : `<a class="specpart" data-goto href="${esc(o.href)}"${title}>`;
+  const close = o.href === undefined ? "</span>" : "</a>";
+  return (
+    `<span class="label">${projectLink(o.project, { className: "muted", icon: true })}` +
+    `${open}<span class="muted">:</span>${kindIcon(o.kind, o.lang)}` +
+    `<span class="specname">${esc(o.name)}</span>${close}</span>`
+  );
 }
 
 /** A job's name as a sentence shows it: `project:<spec folder>` is

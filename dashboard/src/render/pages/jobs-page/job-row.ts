@@ -18,8 +18,8 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, kindIcon, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
-import { projectLink } from "../../ui/components/spec-name.ts";
+import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
@@ -148,13 +148,10 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const open = openKeys(o).includes(key);
   const name = jobTitle(row, lang);
   const kind = open ? jobControl(row) : undefined;
-  const label =
-    `${projectLink(row.project, { className: "muted" })}<span class="specpart"><span class="muted">:</span>` +
-    `<span class="specname">${esc(name)}</span></span>`;
   return (
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${kindIcon(jobRowKind(row), lang)}<span class="label">${label}</span></div></td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang })}</div></td></tr>` +
     // When the job was made and a pip per step, where a spec's row has its
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +

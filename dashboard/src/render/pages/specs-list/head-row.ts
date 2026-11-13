@@ -4,8 +4,8 @@ import type { Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, kindIcon, stepLabel } from "../../ui/components";
-import { projectLink } from "../../ui/components/spec-name.ts";
+import { badge, stepLabel } from "../../ui/components";
+import { rowLabel } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state";
@@ -105,32 +105,25 @@ export function specHeadRow(
   // and prefixing it again read "81-81-queue-and-runner".
   const number = g.named ? g.specFolder.split("-")[0] : "";
   const specName = g.title ? (number ? `${number}-${g.title}` : g.title) : g.specFolder;
-  // The project is a link to its page and the rest a link to the spec:
-  // two anchors side by side inside the label's flex row, the colon in
-  // the spec's, with no whitespace between them so the two touch.
-  const project = projectLink(g.project, { className: "muted" });
+  // The project is a link to its page and the rest, from the colon, the
+  // spec's part (`rowLabel`): the Projects icon in the project's link, the
+  // spec icon after the colon. The name sits in a span of its own beside
+  // the colon: the label is a flex row, so a name that wraps hangs under
+  // itself rather than running back under the project.
   // On the Running tab the title opens the Specs list at its row. The Specs
   // list (which sets openSpec) draws the title as text: its › opens the
   // spec in place, so there is nowhere else for the title to lead.
-  const titleHref = `${specPagePath(g.project, g.specFolder)}#${rowAnchorId(g)}`;
+  // The tooltip is the IDENTIFIER — project and folder — which is what a
+  // reader copies into a command or another page. A create job has no
+  // tooltip, since the whole name is already on the line, and no spec page
+  // to open yet, so only the project is a link.
+  const identifier = `${g.project}:${g.specFolder}`;
+  const base = { project: g.project, kind: "spec" as const, name: specName, lang };
   const spec = g.named && opts.openSpec
-    ? `<span class="label">${project}<span class="specpart" title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      `<span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`
+    ? rowLabel({ ...base, title: identifier })
     : g.named
-    ? `<span class="label">${project}<a class="specpart" data-goto href="${esc(titleHref)}" ` +
-      // The tooltip is the IDENTIFIER — project and folder — which is
-      // what a reader copies into a command or another page.
-      `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-      // The name in a span of its own beside the colon (2026-09-10):
-      // the label is a flex row, so a name that wraps hangs under
-      // itself — every line starting where the number does — rather
-      // than running back under the project on its second line.
-      `<span class="muted">:</span><span class="specname">${esc(specName)}</span></a></span>`
-    // No `title` attribute here: the whole name is already on the line,
-    // and a tooltip repeating it would put the spec's title on the page
-    // twice. There is no spec page to
-    // open yet, so only the project is a link.
-    : `<span class="label">${project}<span class="specpart"><span class="muted">:</span><span class="specname">${esc(specName)}</span></span></span>`;
+    ? rowLabel({ ...base, title: identifier, href: `${specPagePath(g.project, g.specFolder)}#${rowAnchorId(g)}` })
+    : rowLabel(base);
   // A pull request open for this row's branch is a fact about the work,
   // not a second state the spec is IN: it is true for the whole window
   // from implement opening one to the branch finally landing, so it says
@@ -197,7 +190,7 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${kindIcon("spec", lang)}${spec}` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
     `</div>` +
     under +
     `</td>` +

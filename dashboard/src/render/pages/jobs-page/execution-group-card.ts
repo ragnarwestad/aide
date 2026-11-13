@@ -1,14 +1,14 @@
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, buttonForm, foldButton, headerMenu, kindIcon, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
+import { badge, buttonForm, foldButton, headerMenu, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup, SpecTarget } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
 import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
-import { projectLink } from "../../ui/components/spec-name.ts";
+import { rowLabel } from "../../ui/components/spec-name.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 import { ICON_MORE } from "../../ui/components/icons.ts";
@@ -126,8 +126,7 @@ export function executionGroupCard(
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
-    `<td colspan="5"><div class="groupheadline"><div class="spec-name">${kindIcon("group", lang as Language)}<span class="label">${projectLink(group.project, { className: "muted" })}` +
-    `<span class="muted">:</span><span class="specname">${esc(group.name)}</span></span></div>${menu}</div></td></tr>` +
+    `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name: group.name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span>` +

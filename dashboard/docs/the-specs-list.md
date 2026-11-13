@@ -33,8 +33,8 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 
 ## The row, open and shut
 
-One row per spec, not per job, and shut by default. A shut row shows the spec icon before the spec's name and title,
-followed by one status line.
+One row per spec, not per job, and shut by default. A shut row shows the Projects icon before the project and the spec
+icon before the spec's name and title, followed by one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
 orders by), its state, how long its phases have taken and what they cost; the list has five headings, Created,
 Specification, State, Time and Cost, and sorts by each. On the Running tab it is the created stamp with the phase

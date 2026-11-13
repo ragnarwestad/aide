@@ -81,14 +81,20 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
 .spec-name > .label > .specpart > .muted { flex: 0 0 auto; }
 .spec-name > .label > .specpart > .specname { overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   min-width: 0; }
-.spec-name > .kindicon { align-self: center; display: inline-flex;
+/* The Projects icon stands inside the project's link, before its name, and
+   the row's kind icon inside the name's part, after the colon: each part
+   spaces its icon from its word, as a tab does. */
+.spec-name > .label > a.muted { display: flex; align-items: center; gap: var(--sp-1); }
+.spec-name > .label > .specpart { gap: var(--sp-1); }
+.spec-name .kindicon { align-self: center; display: inline-flex;
   flex: none; height: 16px; width: 16px; }
-.spec-name > .kindicon svg { height: 16px; width: 16px; }
-.spec-name > .kindicon[data-kind="spec"] { color: var(--kind-spec); }
-.spec-name > .kindicon[data-kind="deploy"] { color: var(--kind-deploy); }
-.spec-name > .kindicon[data-kind="schedule"] { color: var(--kind-schedule); }
-.spec-name > .kindicon[data-kind="cleanup"] { color: var(--kind-cleanup); }
-.spec-name > .kindicon[data-kind="group"] { color: var(--kind-group); }
+.spec-name .kindicon svg { height: 16px; width: 16px; }
+.spec-name .kindicon[data-tab="projects"] { color: var(--tab-projects); }
+.spec-name .kindicon[data-kind="spec"] { color: var(--kind-spec); }
+.spec-name .kindicon[data-kind="deploy"] { color: var(--kind-deploy); }
+.spec-name .kindicon[data-kind="schedule"] { color: var(--kind-schedule); }
+.spec-name .kindicon[data-kind="cleanup"] { color: var(--kind-cleanup); }
+.spec-name .kindicon[data-kind="group"] { color: var(--kind-group); }
 /* The summary wraps at a sensible measure instead of dragging the
    whole column wide: the phase lines start where this column ends, so
    an un-capped line of text put a hand's width of nothing between the

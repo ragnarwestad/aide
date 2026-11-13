@@ -11,6 +11,7 @@ import {
   saveCancelActions,
 } from "../../../src/render/ui/components";
 import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
+import { projectLink, rowLabel } from "../../../src/render/ui/components/spec-name.ts";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
 
@@ -367,5 +368,39 @@ describe("tabIcon()", () => {
     expect(icon.getAttribute("aria-hidden")).toBe("true");
     expect(icon.hasAttribute("aria-label")).toBe(false);
     expect(icon.hasAttribute("title")).toBe(false);
+  });
+});
+
+describe("rowLabel()", () => {
+  const label = (o: { href?: string; title?: string } = {}) =>
+    parsed(rowLabel({ project: "aide", kind: "deploy", name: "deploy", lang: "en", ...o }));
+
+  test("the project's icon and name are one link to the project's page (AC-1, AC-2, AC-5)", () => {
+    const link = label().querySelector('a[href="/projects/aide"]')!;
+    expect(link.querySelector('.kindicon[data-tab="projects"]')).not.toBeNull();
+    expect(link.textContent).toBe("aide");
+  });
+
+  test("with an address, the kind icon and the name are one link to it (AC-1, AC-3)", () => {
+    const link = label({ href: "/specs/aide/81-x#spec-aide/81-x", title: "aide:81-x" })
+      .querySelector('a[href="/specs/aide/81-x#spec-aide/81-x"]')!;
+    expect(link.getAttribute("title")).toBe("aide:81-x");
+    expect(link.querySelector(".kindicon[data-kind]")).not.toBeNull();
+    expect(link.querySelector(".specname")!.textContent).toBe("deploy");
+  });
+
+  test("without an address, no link encloses the kind icon (AC-4)", () => {
+    const html = label();
+    expect(html.querySelectorAll("a")).toHaveLength(1);
+    expect(html.querySelector(".kindicon[data-kind]")!.closest("a")).toBeNull();
+    expect(html.querySelector(".specpart .kindicon[data-kind]")).not.toBeNull();
+  });
+
+  test("the kind given is the one the icon carries for the stylesheet (AC-5)", () => {
+    expect(label().querySelector(".kindicon[data-kind]")!.getAttribute("data-kind")).toBe("deploy");
+  });
+
+  test("the project link in a sentence draws no icon", () => {
+    expect(parsed(projectLink("aide")).querySelector(".kindicon")).toBeNull();
   });
 });

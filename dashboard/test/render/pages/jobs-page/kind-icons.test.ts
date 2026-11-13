@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { Window } from "happy-dom";
 import type { QueueRowView } from "../../../../src/render";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { renderJobsRows, renderJobsSpecRows, type JobsView } from "../../../../src/render/pages/jobs-page";
@@ -32,18 +33,31 @@ const view: JobsView = {
   now: Date.parse("2026-11-13T09:00:00Z"),
 };
 
-test("the Jobs tab marks every row builder with its kind (AC-1)", () => {
-  const html = renderJobsRows(view);
-  for (const name of ["Spec", "Deploy", "Scheduled job", "Cleanup", "Group"]) {
-    expect(html).toContain(`aria-label="${name}"`);
-  }
+/** Each row's name line: its kinds, after checking that the project's icon
+ *  sits in the project's link and the one kind icon in the name's part. */
+function rowKinds(html: string): string[] {
+  const body = new Window().document.body;
+  body.innerHTML = `<table>${html}</table>`;
+  const names = [...body.querySelectorAll(".spec-name")];
+  expect(names.length).toBeGreaterThan(0);
+  return names.map((name) => {
+    expect(name.querySelector('a[href="/projects/aide"] .kindicon[data-tab="projects"]')).not.toBeNull();
+    const kinds = name.querySelectorAll(".kindicon[data-kind]");
+    expect(kinds).toHaveLength(1);
+    expect(kinds[0].closest(".specpart")).not.toBeNull();
+    return kinds[0].getAttribute("data-kind")!;
+  });
+}
+
+test("every Jobs tab row draws the project icon in its link and its kind icon by its name (AC-1)", () => {
+  expect(new Set(rowKinds(renderJobsRows(view)))).toEqual(new Set(["spec", "deploy", "schedule", "cleanup", "group"]));
 });
 
 test("a group member fetched alone keeps the spec icon (AC-1)", () => {
   expect(renderJobsSpecRows(view, "aide/82-member")).toContain('aria-label="Spec"');
 });
 
-test("every Specs list row shows the spec kind icon (AC-1)", () => {
+test("every Specs list row draws the project icon in its link and the spec icon by its name (AC-1)", () => {
   const archived = {
     project: "aide", folder: "80-archived", done: ["create"], models: {}, phaseOutcomes: {},
   };
@@ -52,7 +66,7 @@ test("every Specs list row shows the spec kind icon (AC-1)", () => {
     renderSpecsRows(view.specJobs, { ...view.list, filter: { open: "aide/81-active" } }),
     renderSpecsRows([], { ...view.list, archivedSpecs: [archived], filter: { state: "archived" } }),
   ]) {
-    expect(html).toContain('class="kindicon" data-kind="spec"');
+    expect(new Set(rowKinds(html))).toEqual(new Set(["spec"]));
   }
 });
 

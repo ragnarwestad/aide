@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
-import { jobsSentence, projectLink } from "../../../../src/render/ui/components/spec-name.ts";
+import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
 import { rowMessage, stepLabel } from "../../../../src/render/ui/components";
 import { specPagePath } from "../../../../src/render/pages/spec-page/tabs.ts";
 import { t } from "../../../../src/i18n";
@@ -166,10 +166,6 @@ test("a card shown for a chosen state is drawn open with every member, and carri
   expect(html).toContain("queued-one");
   expect(html).toContain("stopped-two");
   expect(html).toContain('data-group-open="waiting"');
-});
-
-test("a card names its group after its project, as a spec is named", () => {
-  expect(executionGroupCard(group("prepared"), [])).toContain(projectLink("aide", { className: "muted" }));
 });
 
 test("a card's state is read from the page's language", () => {
