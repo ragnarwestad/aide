@@ -7,8 +7,8 @@ afterEach(async () => { await Promise.all(windows.splice(0).map((win) => win.hap
 
 /** A group's card as the list draws it: one row, its own table inside, with
  *  state and action holders in its fixed second line and foldable members. */
-const card = (key: string, members: string, action = true) =>
-  `<tr data-spec-group="${key}"><td><table><tbody><tr><td>` +
+const card = (key: string, members: string, action = true, openFor?: string) =>
+  `<tr data-spec-group="${key}"${openFor ? ` data-group-open="${openFor}"` : ""}><td><table><tbody><tr><td>` +
   `<button data-group-toggle="${key}" aria-expanded="false">Release</button></td></tr>` +
   `<tr><td><span data-group-state>Prepared</span>` +
   (action ? `<span data-group-action hidden>Start</span>` : "") +
@@ -73,4 +73,33 @@ test("opening a spec's address also opens its group", () => {
   syncSpecGroups(doc);
   expect(doc.querySelector("button")?.getAttribute("aria-expanded")).toBe("true");
   expect((doc.querySelector("[data-group-members]") as HTMLElement).hidden).toBe(false);
+});
+
+test("a card marked for a chosen state opens; a reader's choice holds under that state and goes when it changes (AC-4)", () => {
+  const win = new Window();
+  windows.push(win);
+  const doc = win.document as unknown as Document;
+  const draw = (openFor?: string) => {
+    doc.body.innerHTML = `<table><tbody>${card("state-chosen", '<tr class="spechead"><td>First</td></tr>', true, openFor)}</tbody></table>`;
+    syncSpecGroups(doc);
+  };
+  const shut = () => (doc.querySelector("[data-group-body]") as HTMLElement).hidden;
+  const press = () => toggleSpecGroup({ target: doc.querySelector("button"), preventDefault() {} } as unknown as MouseEvent);
+
+  draw("waiting");
+  expect(shut()).toBe(false);
+  press();
+  expect(shut()).toBe(true);
+  draw("waiting");
+  expect(shut()).toBe(true);
+  draw("failed");
+  expect(shut()).toBe(false);
+  draw();
+  expect(shut()).toBe(true);
+  press();
+  draw();
+  expect(shut()).toBe(false);
+  draw("waiting");
+  draw();
+  expect(shut()).toBe(true);
 });

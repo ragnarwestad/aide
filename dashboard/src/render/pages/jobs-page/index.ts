@@ -19,7 +19,7 @@ import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
-import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
+import { jobFacts, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
@@ -80,19 +80,25 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
   const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group, s.jobs), facts: s.group,
   }));
+  const openFor = jobsStateOpensGroups(v.list.filter?.state);
   const groups = activeGroups.map((group) => {
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
     const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
     const key = `execution-group:${group.id}`;
+    // Each member's current row, by its key: an earlier round of a reopened
+    // member is a row of its own, and is counted there.
+    const current: RowFacts[] = group.members
+      .map((folder) => specRows.find((row) => row.key === groupKey(group.project, folder))?.group)
+      .filter((member): member is SpecGroup => !!member);
     return {
       key,
-      html: draws(key) ? executionGroupCard(group, specRows, lang) : "",
+      html: draws(key) ? executionGroupCard(group, specRows, lang, { openFor }) : "",
       place: executionGroupPlace(group, members),
       facts: {
         project: group.project, specFolder: group.name,
         state: executionGroupRowState(group, !!failed),
-        failed: members.reduce((sum, row) => sum + (row.group.failed ?? 0), 0),
         title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
+        members: current,
       } as RowFacts,
     };
   });

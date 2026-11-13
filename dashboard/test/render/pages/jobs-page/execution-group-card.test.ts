@@ -104,12 +104,22 @@ test("a card ready to archive names Archive once, on its button", () => {
   expect(html.match(/Archive/g)).toHaveLength(1);
 });
 
-test("a card is drawn shut unless a member's spec is open in it", () => {
+test("a card is drawn shut unless a member's spec is open in it, with no state marker (AC-4)", () => {
   const shut = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
   expect(shut.match(/data-group-body hidden/g)).toHaveLength(1);
+  expect(shut).not.toContain("data-group-open");
   const open = executionGroupCard(group("prepared"), [member("1-first", '<tr class="spechead"></tr><tr data-spec-detail="aide/1-first"></tr>')]);
   expect(open).not.toContain("data-group-body hidden");
   expect(open).toContain('aria-expanded="true"');
+});
+
+test("a card shown for a chosen state is drawn open with every member, and carries the state (AC-4)", () => {
+  const html = executionGroupCard(group("prepared"), [member("1-first", "<tr>queued-one</tr>"), member("2-second", "<tr>stopped-two</tr>")], "en", { openFor: "waiting" });
+  expect(html).not.toContain("data-group-body hidden");
+  expect(html).toContain('aria-expanded="true"');
+  expect(html).toContain("queued-one");
+  expect(html).toContain("stopped-two");
+  expect(html).toContain('data-group-open="waiting"');
 });
 
 test("a card names its group after its project, as a spec is named", () => {

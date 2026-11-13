@@ -126,9 +126,10 @@ describe("kind choices narrow rows independently of state", () => {
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries include Done while All remains first and selected by default (AC-5)", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "waiting", "done", "stopped", "failed", "not-verified"]);
+  test("its entries are All, Active, Running, Waiting, Done, Stopped, Failed and Not verified, All selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "waiting", "done", "stopped", "failed", "not-verified"]);
     expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
+    expect(jobsStateFilters("not-archived").map((entry) => entry.key)).toEqual(["not-archived"]);
   });
 
   test("search returns every round row for the same spec (AC-6)", () => {
@@ -146,7 +147,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
-    for (const key of [undefined, "", "archived", "closed", "not-archived", "no-such-entry"]) {
+    for (const key of [undefined, "", "archived", "closed", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
     }
     expect(jobsStateFilters("failed").map((entry) => entry.key)).toEqual(["failed"]);
@@ -157,7 +158,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["active:all", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
+      ["all", 1], ["not-archived", 1], ["active:all", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
@@ -167,12 +168,12 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["active:all", 1], ["waiting", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
+    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["waiting", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
     for (const q of [undefined, "", "   "]) {
-      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 0, 1, 1, 0]);
+      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 4, 1, 1, 0, 1, 1, 0]);
     }
   });
 
@@ -182,19 +183,62 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 });
 
-describe("groups contribute their member count", () => {
-  test("state counts include group members instead of counting each group as one", () => {
-    const facts = factsOf([
-      spec("first", { specFolder: "first-group", state: "running", itemCount: 3 }),
-      spec("second", { specFolder: "second-group", state: "queued", itemCount: 3 }),
-      spec("ordinary", { specFolder: "ordinary", state: "not-started" }),
-      failedReport,
-    ]);
-    const count = (key: string, q?: string) => jobsStateOptions(facts, { q }).find((option) => option.key === key)?.count;
-    expect(count("all")).toBe(8);
-    expect(count("active:all")).toBe(3);
-    expect(count("waiting")).toBe(3);
-    expect(count("all", "first-group")).toBe(3);
+describe("a group stands for its member specs, each by its own state", () => {
+  /** A member spec's facts, as its current row holds them. */
+  const member = (folder: string, state: RowFacts["state"], o: Partial<RowFacts> = {}): RowFacts =>
+    spec(folder, { specFolder: folder, state, ...o }).facts;
+  /** A group's row: its own state and member count, and its members' facts. */
+  const group = (name: string, state: RowFacts["state"], members: RowFacts[]): Entry =>
+    spec(name, { specFolder: name, state, itemCount: members.length, members });
+  const counts = (rows: Entry[], f: JobsFilter = {}): Record<string, number> =>
+    Object.fromEntries(jobsStateOptions(factsOf(rows), f).map((o) => [o.key, o.count]));
+
+  test("a prepared group counts its members under their own states, never its own (AC-1)", () => {
+    const prepared = group("prepared", "stopped", [member("82-queued", "queued"), member("83-new", "not-started")]);
+    const c = counts([prepared]);
+    expect([c.waiting, c.stopped, c.all]).toEqual([1, 0, 2]);
+  });
+
+  test("a failed member counts under Failed and a queued one under Waiting (AC-1)", () => {
+    const c = counts([group("broken", "failed", [member("82-failed", "failed"), member("83-queued", "queued")])]);
+    expect([c.failed, c.waiting]).toEqual([1, 1]);
+  });
+
+  test("a member with an open criterion counts under Not verified, whatever its group's state (AC-1)", () => {
+    expect(counts([group("held", "done", [member("82-held", "done", { notVerified: 1 })])])["not-verified"]).toBe(1);
+    expect(counts([group("held", "running", [member("82-held", "done", { notVerified: 1 })])])["not-verified"]).toBe(1);
+  });
+
+  test("Running counts only the members that run, not every member of a running group (AC-2)", () => {
+    const one = group("one", "running", [member("82-run", "running"), member("83-done", "done")]);
+    const waiting = group("waiting", "queued", [member("84-q", "queued"), member("85-q", "queued")]);
+    expect(counts([one, waiting])["active:all"]).toBe(1);
+    expect(counts([group("both", "running", [member("82-run", "running"), member("83-run", "running")])])["active:all"]).toBe(2);
+  });
+
+  test("a chosen state shows a group when at least one member has it (AC-3)", () => {
+    const mixed = group("mixed", "stopped", [member("82-q", "queued"), member("83-s", "stopped")]);
+    expect(view([mixed], { state: "waiting" })).toEqual(["mixed"]);
+    expect(view([mixed], { state: "failed" })).toEqual([]);
+    expect(view([mixed], { state: "waiting,failed" })).toEqual(["mixed"]);
+  });
+
+  test("All shows every group, one with no member row found among them too (AC-3)", () => {
+    const empty = group("empty", "stopped", []);
+    const full = group("full", "running", [member("82-run", "running")]);
+    expect(view([empty, full], {}).sort()).toEqual(["empty", "full"]);
+    expect(view([empty], { state: "stopped" })).toEqual([]);
+  });
+
+  test("Active shows and counts every spec and job not Done, a group's running member among them (AC-6)", () => {
+    const at = (name: string, state: RowFacts["state"], day: number) => spec(name, { specFolder: name, state, createdAt: T(day) });
+    const rows = [
+      at("running", "running", 1), at("queued", "queued", 2), at("stopped", "stopped", 3), at("failed", "failed", 4),
+      at("new", "not-started", 5), at("done", "done", 6), at("archived", "archived", 7), at("closed", "closed", 8),
+      group("half", "running", [member("82-done", "done"), member("83-run", "running")]),
+    ];
+    expect(view(rows, { state: "not-archived" }).sort()).toEqual(["failed", "half", "new", "queued", "running", "stopped"]);
+    expect(counts(rows)["not-archived"]).toBe(6);
   });
 });
 

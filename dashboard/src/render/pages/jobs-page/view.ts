@@ -6,6 +6,7 @@
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
+  ACTIVE_FILTER_KEY,
   NOT_VERIFIED_KEY,
   SORTS,
   SORT_DEFAULT_DIR,
@@ -36,13 +37,15 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
 export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
-/** The state entries the Jobs tab offers, in the list's order: All, Running,
- *  Waiting, Stopped, Failed, Not verified. Active, Archived and Closed say
- *  nothing about a tab that shows only Active specs. */
+/** The state entries the Jobs tab offers: All, Active, Running, Waiting,
+ *  Done, Stopped, Failed, Not verified. Active is every state Done does not
+ *  hold, under the Specs list's key so it takes the list's label. Archived and
+ *  Closed are the tab's Done. */
 const JOBS_STATE_KEYS = ["all", "active:all", "waiting", "stopped", "failed", NOT_VERIFIED_KEY];
 const doneState = { key: "done", label: "Done", states: ["done", "archived", "closed"] } as (typeof STATE_FILTERS)[number];
+const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", excludeStates: doneState.states } as (typeof STATE_FILTERS)[number];
 const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key));
-export const JOBS_STATE_FILTERS = [...baseJobStates.slice(0, 3), doneState, ...baseJobStates.slice(3)];
+export const JOBS_STATE_FILTERS = [baseJobStates[0]!, activeState, ...baseJobStates.slice(1, 3), doneState, ...baseJobStates.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>
@@ -50,6 +53,13 @@ export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_
 
 export const jobsStateValue = (value: string | undefined): string =>
   jobsStateFilters(value).map((entry) => entry.key).join(",");
+
+/** Whether the view's state part is All: no entry narrows it. */
+const choosesAll = (value: string | undefined): boolean => jobsStateFilters(value)[0]!.key === JOBS_STATE_FILTERS[0]!.key;
+
+/** The view's state value when it names an entry other than All, which opens every group card it shows. */
+export const jobsStateOpensGroups = (value: string | undefined): string | undefined =>
+  choosesAll(value) ? undefined : jobsStateValue(value);
 
 /** What the filter and the sort read off a row. */
 export type RowFacts = Pick<
@@ -59,7 +69,12 @@ export type RowFacts = Pick<
 > & {
   /** Group members represented by this row; an ordinary spec or job counts as one. */
   itemCount?: number;
+  /** The member specs a group's row stands for, each its current row with its own state; absent on every other row. */
+  members?: RowFacts[];
 };
+
+/** What the state entries match and count for a row: a group's member specs, any other row itself. */
+const stateRows = (row: RowFacts): RowFacts[] => row.members ?? [row];
 
 /** When a job that is not going ended, in milliseconds; NaN when the queue
  *  recorded no end. */
@@ -102,8 +117,9 @@ const rowKind = (facts: RowFacts): Exclude<JobsKind, "all"> => {
   return facts.lead ? jobRowKind(facts.lead) : "spec";
 };
 
-/** The rows the view shows, in its order: the state entry and the search cut
- *  them as `applyFilter` does; a column the view names orders them
+/** The rows the view shows, in its order: the search cuts them as
+ *  `applyFilter` does, and a state entry keeps a row one of whose state rows
+ *  it matches (All keeps every row); a column the view names orders them
  *  as `sortGroups` does; with none, newest created first. */
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: JobsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
@@ -112,21 +128,21 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
   const kinds = jobsKindFilters(f.kind);
   const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
   const kept = searched.filter((facts) =>
-    tabFilters.some((entry) => matchesStateFilter(entry, facts)) &&
+    (choosesAll(f.state) || stateRows(facts).some((row) => tabFilters.some((entry) => matchesStateFilter(entry, row)))) &&
     kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts))
   );
   const shown = sortGroups(kept, f);
   return shown.map((facts) => byFacts.get(facts)!);
 }
 
-/** What the state dropdown offers: the six entries, the chosen one marked,
- *  each counted over the specs and jobs represented by matching rows. */
+/** What the state dropdown offers: the entries, the chosen ones marked, each
+ *  counting the specs and jobs the searched rows stand for, each once, by its own state. */
 export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean; state: string }[] {
   const chosen = jobsStateFilters(f.state);
   const counted = facts.filter((g) => matchesSearch(g, f));
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
-    count: counted.filter((g) => matchesStateFilter(s, g)).reduce((sum, g) => sum + (g.itemCount ?? 1), 0),
+    count: counted.reduce((sum, g) => sum + stateRows(g).filter((row) => matchesStateFilter(s, row)).length, 0),
     on: chosen.some((entry) => entry.key === s.key),
     state: toggledState(JOBS_STATE_FILTERS, chosen, s.key),
   }));

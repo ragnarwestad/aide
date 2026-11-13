@@ -815,7 +815,8 @@ is running." Failed-create messages stay above the search row. The first job app
 
 A grouped spec appears inside its execution group's card instead of as a second ordinary Jobs row. The card shows
 the group's creation date, its progress and the one action allowed by its current state.
-The card opens with its own ›, or when a member's spec is opened from its address. Shut, it shows the group's name, and under
+The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
+dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card.
@@ -872,12 +873,14 @@ a finished one has no action. Which scheduled jobs show is decided in
 The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
 Rows with the same creation time keep their order by state and most recent change.
 
-The tab has the Specs list's search box and a State dropdown. The dropdown first lists the states All, Running, Waiting,
-Done, Stopped, Failed and Not verified, then lists the kinds All, Specs, Deploys, Scheduled, Cleanup and Groups under a
+The tab has the Specs list's search box and a State dropdown. The dropdown first lists the states All, Active, Running,
+Waiting, Done, Stopped, Failed and Not verified, then lists the kinds All, Specs, Deploys, Scheduled, Cleanup and Groups under a
 Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
-them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Each entry is counted over
-the rows the search lets through, and the button shows when either part narrows the view. A job row is never Not
-verified. An old address naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's
+them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Active holds every row Done
+does not. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
+a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
+with all its members, when at least one member has that state. The button shows when either part narrows the view. A
+job row is never Not verified. An old address naming Archived or Closed gets All. There is no Project dropdown: typing a project's
 name, or `name:`, narrows the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's
 rules; a third press on a sorted heading returns to Created, newest first. A view that hides every row says "Nothing on
 this tab matches this filter."

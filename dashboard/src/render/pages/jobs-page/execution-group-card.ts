@@ -59,7 +59,8 @@ export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupM
   return { band, changedAt: Math.max(Date.parse(group.startedAt ?? group.createdAt ?? "") || 0, ...memberChanges) };
 }
 
-export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en"): string {
+/** `openFor`: the chosen state entries the card is shown for, which draw it open. */
+export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en", opts: { openFor?: string } = {}): string {
   const members = group.members.map((folder) => rows.find((row) => row.group.project === group.project && row.group.specFolder === folder)).filter((row): row is ExecutionGroupMemberRow => !!row);
   const totalDurationMs = members.reduce((sum, member) => sum + (member.group.totalDurationMs ?? 0), 0);
   const liveMember = members.find((member) => member.group.totalDurationSince);
@@ -94,9 +95,10 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
   // two lines, then its members drawn exactly as on the list, each its own
   // card. A cell has one border, so the card around the specs cannot be
   // drawn on the specs' own cells.
-  // Shut, unless a member's spec is open in it: the address that opens a
-  // spec opens its group too.
-  const open = members.some((member) => member.html.includes(" data-spec-detail="));
+  // Shut, unless a member's spec is open in it (the address that opens a
+  // spec opens its group too) or a chosen state shows it, which the row
+  // tells the page script in `data-group-open`.
+  const open = !!opts.openFor || members.some((member) => member.html.includes(" data-spec-detail="));
   const shut = open ? "" : " hidden";
   // Two lines always, as a spec's card: the name, then the date with a pip
   // per member at its right, numbered in the group's order, and the state
@@ -122,7 +124,7 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
       ? member.html.replace(/ data-spec-group-member="[^"]*"/, membership)
       : member.html.replace("<tr", `<tr${membership}`);
   }).join("") + `</tbody>`;
-  return `<tr class="execution-group" id="${esc(executionGroupAnchor(group))}" data-spec-group="${esc(key)}">` +
+  return `<tr class="execution-group" id="${esc(executionGroupAnchor(group))}" data-spec-group="${esc(key)}"${opts.openFor ? ` data-group-open="${esc(opts.openFor)}"` : ""}>` +
     `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table></td></tr>` +
     `<tr class="specgap" aria-hidden="true"><td colspan="6"></td></tr>`;
 }
