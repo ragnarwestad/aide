@@ -72,6 +72,25 @@ test("reconciles Schedule controls on mount and stops after unmount (AC-1, AC-2,
   expect(queueReads).toBe(2);
 });
 
+test("binds a remembered copy without starting automatic background work (AC-7)", async () => {
+  GlobalRegistrator.register({ url: "http://board.test/projects/aide?tab=schedule" });
+  let requests = 0;
+  globalThis.fetch = (async () => { requests += 1; return new Response(JSON.stringify({ jobs: [] })); }) as unknown as typeof fetch;
+  const { mountPage } = await import("../../../src/specs-client/page-mount");
+  document.body.innerHTML = `
+    <section data-origin-check="/api/origin"></section>
+    <form class="schedulerun" data-project="aide" data-entry="nightly"><button>Run now</button></form>
+    <main data-reload-every="1"><form class="actionform" action="/run"><button>Run</button></form></main>`;
+  mountPage(document, { referrer: "", background: false });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  expect(requests).toBe(0);
+  const form = document.querySelector("form.actionform") as HTMLFormElement;
+  let submitted = false;
+  form.addEventListener("submit", (event) => { event.preventDefault(); submitted = true; });
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  expect(submitted).toBe(true);
+});
+
 // A failed expectation must not leave the next test unable to register.
 afterEach(async () => {
   if (GlobalRegistrator.isRegistered) await GlobalRegistrator.unregister();

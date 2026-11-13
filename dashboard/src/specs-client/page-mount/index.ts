@@ -29,7 +29,7 @@ function onAiChange(event: Event): void {
   if (ai) return applyAiPick(ai);
 }
 
-export function mountPage(doc: Document, options: { referrer: string }): () => void {
+export function mountPage(doc: Document, options: { referrer: string; background?: boolean }): () => void {
   // `?.`: the page script's tests run it against a stand-in document with no root element.
   const root = doc.documentElement as HTMLElement | undefined;
   if (root?.dataset) root.dataset.pageMounted = "true";
@@ -49,7 +49,7 @@ export function mountPage(doc: Document, options: { referrer: string }): () => v
   }
   for (const el of doc.querySelectorAll("form.addprojectform")) bindAddProjectForm(el as HTMLFormElement);
   // The Deploy tab asks origin the moment it is open, and redraws itself from the answer.
-  startOriginCheck(doc);
+  if (options.background !== false) startOriginCheck(doc);
   for (const el of doc.querySelectorAll("form.projectsettingsform")) {
     const form = el as HTMLFormElement;
     form.addEventListener("submit", ((event: Event) => submitProjectSettings(form, event)) as EventListener);
@@ -97,7 +97,7 @@ export function mountPage(doc: Document, options: { referrer: string }): () => v
       return postScheduleRun(form);
     }) as EventListener);
   }
-  if (doc.querySelector("form.schedulerun[data-project][data-entry]")) cleanups.push(bindScheduleRuns(doc));
+  if (options.background !== false && doc.querySelector("form.schedulerun[data-project][data-entry]")) cleanups.push(bindScheduleRuns(doc));
   for (const el of doc.querySelectorAll("form.scheduleform")) {
     const form = el as HTMLFormElement;
     const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
@@ -110,11 +110,11 @@ export function mountPage(doc: Document, options: { referrer: string }): () => v
     form.addEventListener("change", onAiChange);
   }
   // A page that carries `data-reload-every` reloads from here, and waits while a dialog is open.
-  cleanups.push(startReloadWhileIdle(doc));
+  if (options.background !== false) cleanups.push(startReloadWhileIdle(doc));
   // The server draws every model, and each select is narrowed to the tool its own value belongs to.
   offerEachToItsTool(doc);
   // `?live=0` leaves the page as the server drew it: the live connection is declined.
-  connect();
+  if (options.background !== false) connect();
   for (const el of doc.querySelectorAll("iframe[data-report-frame]")) cleanups.push(bindReportFrame(el as HTMLIFrameElement));
   // A row the address names sits at the top of the list's box, the page at its top.
   const page = globalThis as unknown as Window;

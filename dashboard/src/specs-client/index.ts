@@ -97,7 +97,7 @@ page.addEventListener?.("load", () => placeNamedRow(document, page));
 let unmount = mountPage(document, { referrer: document.referrer });
 bindPageSwap(document, {
   unmount: () => unmount(),
-  mount: (referrer) => {
-    unmount = mountPage(document, { referrer });
+  mount: (options) => {
+    unmount = mountPage(document, options);
   },
 });
