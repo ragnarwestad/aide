@@ -17,8 +17,8 @@ import {
 } from "../spec-views";
 
 export function setupSpecViews(ctx: SpecViewsContext) {
-  function archivedSpecRows(state: string | undefined) {
-    return archivedSpecRowsImpl(ctx, state);
+  function archivedSpecRows(state: string | undefined, only?: ReadonlySet<string>) {
+    return archivedSpecRowsImpl(ctx, state, only);
   }
   function specPageView(project: string, specFolder: string, tab?: string) {
     return specPageViewImpl(ctx, project, specFolder, tab);

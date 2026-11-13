@@ -8,7 +8,7 @@
 import { providerPickerOptions } from "../../providers/options.ts";
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, resolveBackHref, specPagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
-import { listHeaders, specsListParts, specsRowsAnswer } from "./specs-list-view.ts";
+import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "./specs-list-view.ts";
 import type { RoutesContext } from "..";
 
 /** The typed text of a failed create, by its id; absent for an id that is not kept. */
@@ -50,7 +50,7 @@ export async function specsPages(
         headers: { location: `${specPagePath(spec[1]!, spec[2]!)}${rest.length ? `?${rest.join("&")}` : ""}` },
       });
     }
-    const parts = await specsListParts(ctx, req, url);
+    const parts = await specsListParts(ctx, req, url, undefined, oneRowKey(url));
     if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
     return new Response(
       renderSpecsPage(await parts.rows(), new Date().toISOString(), ctx.nav(), parts.view),

@@ -85,8 +85,15 @@ export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome>
  *
  *  Nothing here runs git: `archivedAt` and the not-landed mark are
  *  peeks against caches a background schedule keeps warm,
- *  exactly as `/archive` relied on. */
-export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefined): ArchivedSpecView[] {
+ *  exactly as `/archive` relied on.
+ *
+ *  `only` is the keys to build a row for: absent, every key the state
+ *  shows; an empty set, none. */
+export function archivedSpecRows(
+  ctx: SpecViewsContext,
+  state: string | undefined,
+  only?: ReadonlySet<string>,
+): ArchivedSpecView[] {
   if (!ctx.projectRoot) return [];
   // Fills `scan`, and — through `peekUnlanded` below — refills
   // `unlanded`, which `resolveProject` reads to decide whether an
@@ -109,6 +116,8 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
   for (const key of scan?.archived ?? []) {
+    // A request for one row reads that row's spec and no other.
+    if (only && !only.has(key)) continue;
     const cut = key.indexOf("/");
     const project = key.slice(0, cut);
     const ref = scan?.refs.get(key);

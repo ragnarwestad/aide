@@ -27,7 +27,7 @@ describe("building the archived rows", () => {
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
-    expect(calls.sort()).toEqual(['"all"', "ACTIVE_FILTER_KEY", "ARCHIVED_STATE", "archivedState"]);
+    expect(calls.sort()).toEqual(['"all", keys', "ACTIVE_FILTER_KEY, keys", "ARCHIVED_STATE, keys", "archivedState, keys"]);
   });
 
   test("skips a row before it reads anything for it", () => {

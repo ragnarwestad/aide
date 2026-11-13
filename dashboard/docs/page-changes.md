@@ -18,6 +18,10 @@ The same page setup runs for the new content, and the setup for the replaced con
 Successful actions that end on another dashboard page use the same page change. This includes creating a spec,
 adding or removing a project, saving project settings, completing an action dialog and saving a schedule.
 
+A row's › on the Running tab or the Specs list asks the page's own address for that one row. The server builds
+that row alone, so the answer does not take longer as the list grows, and the page replaces that row and nothing
+else. [The row, open and shut](the-specs-list.md#the-row-open-and-shut) says what the row shows.
+
 ## Address, history and scroll
 
 The address bar and page title follow the content. Back and Forward fetch and show the page for their address.

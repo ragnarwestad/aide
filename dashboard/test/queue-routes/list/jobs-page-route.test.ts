@@ -12,7 +12,7 @@ import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
 import { newSpecLink } from "../../../src/render/pages/specs-list/filter-bar.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
+import { dated, group, setupQueueRoutesHarness } from "../fixtures.ts";
 
 /** A row without what the two pages draw differently: the Specs list's
  *  chevron loads the spec's own page, its title is text, the cell under it
@@ -81,10 +81,6 @@ const rowsOf = async (base: string, query = ""): Promise<string> => {
   expect(res.status).toBe(200);
   return await res.text();
 };
-
-/** One row group: from its title line, as the page script finds it, to its gap row. */
-const group = (html: string, id: string): string =>
-  html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="${id}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
 
 /** A row group's title line: everything before its state line, without the fold's cell. */
 const headOf = (g: string): string => (g.split('<tr class="specstate"')[0] ?? "").replace(/<td class="foldcell"[\s\S]*?<\/td>/, "");

@@ -18,13 +18,25 @@ export interface SpecsListParts {
   setCookies: string[];
 }
 
+/** The key a request asks one row for: `only` in a rows answer, the spec's
+ *  own key (`detailKey`) for the spec opened in place, and none for a request
+ *  that draws the whole list. */
+export function oneRowKey(url: URL, detailKey?: string): string | undefined {
+  if (url.searchParams.get("rows")) return url.searchParams.get("only") || undefined;
+  return url.searchParams.get("detail") === "1" ? detailKey : undefined;
+}
+
 /** The list's view for this request. `openKey` is the spec whose row is
- *  open (`project/folder`), absent for a list with every row shut. */
+ *  open (`project/folder`), absent for a list with every row shut. `only`
+ *  is the one row the request asks for (`oneRowKey`): with it the parts hold
+ *  what that row is built from and nothing for any other row, and the two
+ *  lists the filter bar counts by are empty, since no row reads them. */
 export async function specsListParts(
   ctx: RoutesContext,
   req: Request,
   url: URL,
   openKey?: string,
+  only?: string,
 ): Promise<SpecsListParts> {
   // The reader's own choice of language, from the address
   // or from the cookie it was last written into — the same shape as
@@ -33,16 +45,20 @@ export async function specsListParts(
   const langResult = languageChoice(url, req);
   const base = specRowOptions(ctx, url, langResult.lang);
   const archivedKeys = base.archived ?? [];
+  // The archived keys the filter bar counts by; none where one row is asked for.
+  const counted = only ? [] : archivedKeys;
+  // The keys every read of the archive below is cut to; absent, it reads them all.
+  const keys = only ? new Set([only]) : undefined;
   // The closed subset of the same cheap key list, off
   // `ctx.specRef` — the same per-key lookup job-actions.ts already
   // uses, never a second walk.
-  const closedKeys = archivedKeys.filter((k) => {
+  const closedKeys = counted.filter((k) => {
     const cut = k.indexOf("/");
     return ctx.specRef(k.slice(0, cut), k.slice(cut + 1))?.closed;
   });
   // Off the same lookup: the archived specs with a Not verified row,
   // what the Not verified entry's count adds where no row is built.
-  const notVerifiedKeys = archivedKeys.filter((k) => {
+  const notVerifiedKeys = counted.filter((k) => {
     const cut = k.indexOf("/");
     const ref = ctx.specRef(k.slice(0, cut), k.slice(cut + 1));
     return (ref?.notVerified ?? 0) + (ref?.failed ?? 0) > 0;
@@ -60,11 +76,11 @@ export async function specsListParts(
   // event on every open tab, and the default view must not pay for
   // a set it does not show.
   const archivedState = (url.searchParams.get("q") ?? "").trim() ? "all" : chosenState;
-  let archivedSpecs = ctx.archivedSpecRows(archivedState);
+  let archivedSpecs = ctx.archivedSpecRows(archivedState, keys);
   // The open spec's row is shown whatever the filter: an archived spec the
   // chosen state hides is built alone, so only this address pays for it.
   if (openKey && archivedKeys.includes(openKey) && !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)) {
-    const open = ctx.archivedSpecRows(ARCHIVED_STATE).find((a) => `${a.project}/${a.folder}` === openKey);
+    const open = ctx.archivedSpecRows(ARCHIVED_STATE, keys).find((a) => `${a.project}/${a.folder}` === openKey);
     if (open) archivedSpecs = [...archivedSpecs, open];
   }
   // The reader's own choice of column, from the address or from the
@@ -119,7 +135,8 @@ export async function specsListParts(
   // allowlist keeps its jobs in the history (and in /api/queue), but
   // a row for it could only offer a Run that would be refused.
   // A schedule job is not a spec (`listedSpecJobs`).
-  const listed = listedSpecJobs(ctx, ctx.queue.list());
+  const every = listedSpecJobs(ctx, ctx.queue.list());
+  const listed = only ? every.filter((job) => `${job.project}/${job.specFolder}` === only) : every;
   return {
     view,
     rows: () => Promise.all(listed.map(ctx.jobRow)),

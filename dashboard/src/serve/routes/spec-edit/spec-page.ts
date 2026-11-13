@@ -11,7 +11,7 @@ import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-b
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, refusal, streamedPage } from "../../serve-helpers";
-import { listHeaders, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
+import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
@@ -170,7 +170,7 @@ export async function specPageRoutes(
     // page script redraws carry an empty place for the spec: it already holds
     // the spec, and building its view on every change would read git for each.
     const key = `${project}/${specFolder}`;
-    const parts = await specsListParts(ctx, req, url, key);
+    const parts = await specsListParts(ctx, req, url, key, oneRowKey(url, key));
     if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
     const lang = parts.view.lang ?? "en";
     const inRow = (view: SpecView) =>

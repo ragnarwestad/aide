@@ -117,7 +117,7 @@ export type {
 export type { QueueRowView, SideRunView, StepResultView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
-export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";
+export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, rowInputs, scheduleStreamKey } from "./pages/jobs-page";
 export type { JobsView } from "./pages/jobs-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView, PhaseAttemptIdentity } from "./pages/job-page";
 

@@ -88,13 +88,20 @@ function fromTarget(
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
+/** One group per spec. `only` is the keys to build a group for: absent, every
+ *  key gets one; an empty set builds none. What a key's group reads of the
+ *  whole list (which keys are archived, which projects the list knows a spec
+ *  of) is read from every row, target and archived key handed in, whatever
+ *  `only` holds, so a key's group is the same with it and without it. */
 export function groupBySpec(
   rows: QueueRowView[],
   targets: SpecTarget[],
   archived?: string[],
   archivedSpecs?: ArchivedSpecView[],
   now: number = Date.now(),
+  only?: ReadonlySet<string>,
 ): SpecGroup[] {
+  const wanted = (key: string): boolean => !only || only.has(key);
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
     const key = groupKey(r.project, r.specFolder);
@@ -138,6 +145,7 @@ export function groupBySpec(
     // rules out by name.
     .filter(
       ([key, all]) =>
+        wanted(key) &&
         !archivedSet.has(key) &&
         // A create that is over and left no folder is a message at the top
         // of the list (`failed-create-notices.ts`), never a row, in every
@@ -167,10 +175,11 @@ export function groupBySpec(
     // handed in too — an archived spec's key
     // being IN `byKey` at all is exactly the "queue still remembers"
     // case `readerGroup` now reads.
-    ...(archivedSpecs ?? []).map((s) =>
+    ...(archivedSpecs ?? []).filter((s) => wanted(groupKey(s.project, s.folder))).map((s) =>
       readerGroup(s, currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []), now),
     ),
     ...targets.filter((t) => {
+      if (!wanted(groupKey(t.project, t.specFolder))) return false;
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
     }).map((t) => emptyGroup(t, now)),

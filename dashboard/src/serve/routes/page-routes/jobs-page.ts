@@ -9,6 +9,7 @@ import {
   renderJobsPage,
   renderJobsRows,
   renderJobsSpecRows,
+  rowInputs,
 } from "../../../render";
 import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
@@ -27,6 +28,17 @@ export function openWithCreated(
   const key = `${job.project}/${job.specFolder}`;
   const keys = (open ?? "").split(",").filter(Boolean);
   return keys.includes(key) ? open : [...keys, key].join(",");
+}
+
+/** A project's specs, on disk and archived, each with its group's name: what
+ *  `rowInputs` finds the other members of a spec's group by. */
+function specsOf(ctx: RoutesContext, project: string): { specFolder: string; group?: string }[] {
+  const live = ctx.targets().filter((t) => t.project === project).map((t) => ({ specFolder: t.specFolder, group: t.group?.name }));
+  const archived = (ctx.readScan()?.archived ?? []).filter((key) => key.startsWith(`${project}/`)).map((key) => {
+    const specFolder = key.slice(project.length + 1);
+    return { specFolder, group: ctx.specRef(project, specFolder)?.group?.name };
+  });
+  return [...live, ...archived];
 }
 
 export async function jobsPage(
@@ -48,15 +60,28 @@ export async function jobsPage(
   });
   // The jobs a spec's row is drawn from, as the Specs list draws it.
   const specJobs = listedSpecJobs(ctx, jobs);
+  const executionGroups = ctx.queue.executionGroups.list();
+  // `only` is the one row a fold opened or shut: the view is cut to what that
+  // row is built from, so no other row is read. A key that is neither a job
+  // row's nor a spec's cuts nothing.
+  const only = path === "/" && url.searchParams.get("rows") ? url.searchParams.get("only") : null;
+  const cut = only
+    ? rowInputs(only, { shown, specJobs, groups: executionGroups, specsOf: (project) => specsOf(ctx, project) })
+    : undefined;
+  const kept = cut ?? { shown, specJobs };
+  // The keys every read of the archive below is cut to; absent, it reads them all.
+  const keys = cut?.specs;
   const built = new Map(
-    (await Promise.all([...new Set([...specJobs, ...shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
+    (await Promise.all([...new Set([...kept.specJobs, ...kept.shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
   );
   const rowOptions = specRowOptions(ctx, url, langResult.lang);
   const view = {
-    shown: shown.map((j) => built.get(j.id)!),
-    specJobs: specJobs.map((j) => built.get(j.id)!),
-    executionGroups: ctx.queue.executionGroups.list(),
-    historySpecs: ctx.archivedSpecRows("all"),
+    shown: kept.shown.map((j) => built.get(j.id)!),
+    specJobs: kept.specJobs.map((j) => built.get(j.id)!),
+    specs: cut?.specs,
+    rowKeys: cut?.rowKeys,
+    executionGroups,
+    historySpecs: ctx.archivedSpecRows("all", keys),
     scheduleEntryExists: (project: string, name: string) =>
       ctx.scheduleStore.list(project).some((entry) => entry.name === name),
     list: {
@@ -68,7 +93,7 @@ export async function jobsPage(
         open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs),
       },
       // The archived rows the list's Active entry shows: those whose branch has not merged.
-      archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY),
+      archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY, keys),
       listPath: "/",
       failedCreates: ctx.push.failedCreates.list(),
       currentUrl: langResult.currentUrl,
@@ -89,7 +114,6 @@ export async function jobsPage(
   // The rows alone, as the Specs list answers its own redraw; `only` is the
   // one spec a fold opened or shut.
   if (url.searchParams.get("rows")) {
-    const only = url.searchParams.get("only");
     return new Response(only ? renderJobsSpecRows(view, only) : renderJobsRows(view), { headers });
   }
   return new Response(renderJobsPage(view, new Date().toISOString(), ctx.nav()), { headers });

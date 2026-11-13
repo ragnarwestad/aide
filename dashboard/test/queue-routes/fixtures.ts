@@ -46,6 +46,10 @@ export const specControls = (html: string, folder: string): string =>
     ),
   )?.[0] ?? "";
 
+/** One row group: from its title line, as the page script finds it, to its gap row. */
+export const group = (html: string, id: string): string =>
+  html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="${id}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
+
 /** Whether a phase's own line says it is done. The
  *  State column's badge is the one place that is said — the checkbox
  *  beside it carries no second mark, so it is never said twice. */

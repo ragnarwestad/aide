@@ -283,24 +283,32 @@ function groupRows(
  *  drawn as the list draws them. The caller hands the archived rows the list
  *  builds for Active (`archivedSpecRows(ACTIVE_FILTER_KEY)`: the archived specs
  *  whose branch has not merged). Another page that shows the active specs, the
- *  Jobs tab, draws them with this, so the two cannot show different specs. */
+ *  Jobs tab, draws them with this, so the two cannot show different specs.
+ *  `only` is the keys to build a group for, and `draws` as in `specRowsOf`. */
 export function activeSpecRows(
   rows: QueueRowView[],
   opts: SpecsPageOptions,
   now = Date.now(),
+  only?: ReadonlySet<string>,
+  draws?: (key: string) => boolean,
 ): { key: string; group: SpecGroup; html: string }[] {
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  return specRowsOf(applyFilter(groups, { state: ACTIVE_FILTER_KEY }), opts, now);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, only);
+  return specRowsOf(applyFilter(groups, { state: ACTIVE_FILTER_KEY }), opts, now, draws);
 }
 
-/** Each group as its row, drawn by the list's one row builder, with no filter. */
+/** Each group as its row, drawn by the list's one row builder, with no filter.
+ *  A row that `draws` answers no for keeps its key and group, with an empty `html`. */
 export function specRowsOf(
   groups: SpecGroup[],
   opts: SpecsPageOptions,
   now = Date.now(),
+  draws: (key: string) => boolean = () => true,
 ): { key: string; group: SpecGroup; html: string }[] {
   const opened = openedKeys(opts);
-  return groups.map((g) => ({ key: groupKey(g.project, g.specFolder), group: g, html: groupRow(g, opts, now, opened) }));
+  return groups.map((g) => {
+    const key = groupKey(g.project, g.specFolder);
+    return { key, group: g, html: draws(key) ? groupRow(g, opts, now, opened) : "" };
+  });
 }
 
 function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {
@@ -408,7 +416,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
  *  The table is empty when the filter does not show that spec, and the
  *  page then redraws the whole list instead. */
 export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, new Set([key]));
   const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
   return `<table><tbody>${one.map((g) => groupRow(g, opts, now, openedKeys(opts))).join("")}</tbody></table>`;
 }

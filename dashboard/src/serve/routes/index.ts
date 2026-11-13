@@ -126,7 +126,8 @@ export interface RoutesContext {
     steps: ProjectStep[],
     readiness?: ProjectReadiness,
   ) => Response;
-  archivedSpecRows: (state: string | undefined) => ArchivedSpecView[];
+  /** The archived rows a state entry shows; `only` cuts them to those keys. */
+  archivedSpecRows: (state: string | undefined, only?: ReadonlySet<string>) => ArchivedSpecView[];
   specPageView: (project: string, specFolder: string, tab?: string) => Promise<SpecPageView | null>;
   jobDetailView: (job: Job) => Promise<JobDetailView>;
   /** This process's own boot-time commit and the repo it runs from
