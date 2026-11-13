@@ -610,4 +610,9 @@ export const en = {
   "list.groupName": "Name",
   "list.groupOrder": "Order",
   "list.groupTooFew": "This project has fewer than two specs that can be grouped. A spec can join a group until it has been analysed.",
+  "list.groupAddSpec": "Add spec",
+  "list.groupAddTitle": "Add a spec to {group}",
+  "list.groupAddSave": "Add",
+  "list.groupAddSaving": "Adding…",
+  "list.groupAddNone": "No spec of this project can be added to this group.",
 } as const;

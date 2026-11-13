@@ -159,3 +159,18 @@ test("a card numbers its members' pips in the group's order", () => {
   expect(marks.match(/>(\d)</g)).toEqual([">1<", ">2<"]);
   expect(html.indexOf('title="2-second"')).toBeLessThan(html.indexOf('title="1-first"'));
 });
+
+test("a card with a member that has not finished Implement opens its own Add spec dialog (AC-1)", () => {
+  const ready = { ...member("1-first", ""), group: { ...member("1-first", "").group, done: ["create", "analyze", "implement"] } as SpecGroup };
+  const html = executionGroupCard(group("running"), [ready, member("2-second", "")], "en", { addCandidates: [{ project: "aide", specFolder: "3-third" }] });
+  const opener = html.match(/data-ask="([^"]+)"/)?.[1];
+  expect(opener).toBeDefined();
+  expect(html).toContain(`<dialog class="formdialog" id="${opener}"`);
+});
+
+test("a card whose every member has finished Implement offers no Add spec (AC-1, AC-6)", () => {
+  const ready = (folder: string) => ({ ...member(folder, ""), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"] } as SpecGroup });
+  const html = executionGroupCard(group("stopped"), [ready("1-first"), ready("2-second")], "en", { addCandidates: [{ project: "aide", specFolder: "3-third" }] });
+  expect(html).not.toContain("data-ask=");
+  expect(html).not.toContain("<dialog");
+});

@@ -23,6 +23,16 @@ export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
   });
 }
 
+/** The specs a group may take at the end of its order: those New group would
+ *  offer for its project, less any a member depends on, since the member
+ *  would come before it. A spec that depends on a member is offered. */
+export function groupAddCandidates(input: EligibilityInput & { members: readonly string[] }): SpecTarget[] {
+  const required = new Set(input.targets
+    .filter((target) => target.project === input.project && input.members.includes(target.specFolder))
+    .flatMap((target) => target.dependsOn ?? []));
+  return eligibleGroupMembers(input).filter((target) => !required.has(target.specFolder));
+}
+
 export function validateExecutionGroupRequest(input: EligibilityInput & { members: string[]; positions?: number[] }):
   { ok: true; members: string[] } | { ok: false; error: string } {
   if (input.members.length < 2) return { ok: false, error: "an execution group needs at least two specs" };

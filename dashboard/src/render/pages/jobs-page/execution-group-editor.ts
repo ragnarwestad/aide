@@ -35,3 +35,33 @@ export function executionGroupEditor(options: EditorOptions): string {
       `<p class="muted" data-group-none hidden>${esc(t(lang, "list.groupTooFew"))}</p></div>`,
   });
 }
+
+interface AddOptions {
+  /** The dialog's id, which the card's Add spec button names. */
+  id: string;
+  group: { id: string; name: string };
+  candidates: SpecTarget[];
+  lang?: Language;
+}
+
+/** The Add spec dialog on a group's card: the specs the group can take, one
+ *  to choose, added at the end of its order. Drawn as New group's list is;
+ *  with nothing to offer it says so and Add stays shut. */
+export function addToGroupDialog(options: AddOptions): string {
+  const lang = options.lang ?? "en";
+  const list = options.candidates.length
+    ? `<ol>${options.candidates.map((candidate) =>
+      `<li><label><input type="radio" name="member" value="${esc(candidate.specFolder)}" required>` +
+      `<strong>${esc(candidate.specFolder)}</strong> ${esc(candidate.title ?? candidate.specFolder)}</label></li>`).join("")}</ol>`
+    : `<p class="muted">${esc(t(lang, "list.groupAddNone"))}</p>`;
+  return formDialog(lang, {
+    id: options.id,
+    title: t(lang, "list.groupAddTitle", { group: options.group.name }),
+    action: `/api/queue/groups/${encodeURIComponent(options.group.id)}/members`,
+    hook: "actionform",
+    data: { "group-add": "" },
+    fields: `<div class="execution-group-editor">${list}</div>`,
+    save: { label: t(lang, "list.groupAddSave"), pending: t(lang, "list.groupAddSaving") },
+    saveDisabled: options.candidates.length === 0,
+  });
+}

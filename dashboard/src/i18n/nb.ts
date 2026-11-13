@@ -602,4 +602,9 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupName": "Navn",
   "list.groupOrder": "Rekkefølge",
   "list.groupTooFew": "Dette prosjektet har færre enn to specer som kan grupperes. En spec kan legges i en gruppe fram til den er analysert.",
+  "list.groupAddSpec": "Legg til spec",
+  "list.groupAddTitle": "Legg en spec til {group}",
+  "list.groupAddSave": "Legg til",
+  "list.groupAddSaving": "Legger til…",
+  "list.groupAddNone": "Ingen spec i dette prosjektet kan legges til denne gruppen.",
 };
