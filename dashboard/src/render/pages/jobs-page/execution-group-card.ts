@@ -5,7 +5,7 @@ import { badge, buttonForm, foldButton, kindIcon, pips, stepLabel, type BadgeVar
 import type { SpecGroup } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
-import { createdLabel } from "../specs-list/cell-helpers.ts";
+import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { projectLink } from "../../ui/components/spec-name.ts";
@@ -61,6 +61,20 @@ export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupM
 
 export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en"): string {
   const members = group.members.map((folder) => rows.find((row) => row.group.project === group.project && row.group.specFolder === folder)).filter((row): row is ExecutionGroupMemberRow => !!row);
+  const totalDurationMs = members.reduce((sum, member) => sum + (member.group.totalDurationMs ?? 0), 0);
+  const liveMember = members.find((member) => member.group.totalDurationSince);
+  const otherDurationMs = liveMember
+    ? totalDurationMs - (liveMember.group.totalDurationMs ?? 0)
+    : 0;
+  const totalDurationSince = liveMember?.group.totalDurationSince
+    ? new Date(Date.parse(liveMember.group.totalDurationSince) - otherDurationMs).toISOString()
+    : undefined;
+  const spentUsd = members.reduce((sum, member) => sum + member.group.spentUsd, 0);
+  const hasTokenTotal = members.some((member) => member.group.spentTokens !== undefined);
+  const spentTokens = hasTokenTotal
+    ? members.reduce((sum, member) => sum + (member.group.spentTokens ?? 0), 0)
+    : undefined;
+  const costSettled = members.some((member) => member.group.done.length > 0);
   const action = executionGroupAction(group, members.map(({ group: member }) => ({
     implemented: member.done.includes("implement"),
     archived: isArchivedRow(member),
@@ -98,7 +112,8 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot">${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span></td>` +
-    `<td></td><td></td></tr>` +
+    `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
+    `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     (control
       ? `<tr class="groupactions" data-execution-group-actions data-group-body${shut}>` +
         `<td></td><td colspan="2"></td><td data-col="state"><span class="actionslot">${control}</span></td><td></td><td></td></tr>`

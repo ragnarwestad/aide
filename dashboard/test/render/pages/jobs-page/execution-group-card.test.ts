@@ -5,15 +5,60 @@ import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { projectLink } from "../../../../src/render/ui/components/spec-name.ts";
 import { t } from "../../../../src/i18n";
 import { executionGroupRowState } from "../../../../src/render/pages/jobs-page";
+import { activeDurationCell, costCell } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 
 const group = (state: ExecutionGroup["state"]): ExecutionGroup => ({
   id: "group-1", project: "aide", name: "Release", members: ["2-second", "1-first"], branch: "group/1-first",
   state, createdAt: "2026-11-10T12:00:00.000Z", startedAt: "2026-11-11T12:00:00.000Z",
   completedMembers: ["2-second"], jobs: [],
 });
-const member = (folder: string, html: string) => ({
+const member = (folder: string, html: string, totals: Partial<SpecGroup> = {}) => ({
   key: `aide/${folder}`, html,
-  group: { project: "aide", specFolder: folder, done: ["create"], state: "not-started", phases: [] } as unknown as SpecGroup,
+  group: {
+    project: "aide", specFolder: folder, done: [], state: "not-started", phases: [],
+    spentUsd: 0, costUnmeasured: false, ...totals,
+  } as unknown as SpecGroup,
+});
+
+test("a card sums its members' settled time and cost (AC-1, AC-3)", () => {
+  const first = member("1-first", "<tr>first</tr>", { totalDurationMs: 65_000, spentUsd: 1.25 });
+  const second = member("2-second", "<tr>second</tr>", { totalDurationMs: 55_000, spentUsd: 2.75 });
+  const html = executionGroupCard(group("completed"), [first, second]);
+
+  expect(html).toContain(activeDurationCell({ totalDurationMs: 120_000 } as SpecGroup));
+  expect(html).toContain(costCell(4, undefined, "–"));
+});
+
+test("a card sums token-only cost across its members (AC-3)", () => {
+  const first = member("1-first", "<tr>first</tr>", { spentTokens: 1_000 });
+  const second = member("2-second", "<tr>second</tr>", { spentTokens: 2_500 });
+
+  expect(executionGroupCard(group("completed"), [first, second])).toContain(costCell(0, 3_500, "–"));
+});
+
+test("a card shows a settled zero-dollar member cost as zero (AC-3)", () => {
+  const settled = member("1-first", "<tr>first</tr>", { done: ["create", "analyze"] });
+  const untouched = member("2-second", "<tr>second</tr>");
+
+  expect(executionGroupCard(group("completed"), [settled, untouched])).toContain(costCell(0, undefined, "–", true));
+});
+
+test("a card's live clock includes the other members' settled time (AC-2)", () => {
+  const runningSince = "2026-11-13T10:00:00.000Z";
+  const settled = member("1-first", "<tr>first</tr>", { totalDurationMs: 40_000 });
+  const running = member("2-second", "<tr>second</tr>", { totalDurationMs: 20_000, totalDurationSince: runningSince });
+  const groupSince = "2026-11-13T09:59:20.000Z";
+
+  expect(executionGroupCard(group("running"), [settled, running])).toContain(
+    activeDurationCell({ totalDurationMs: 60_000, totalDurationSince: groupSince } as SpecGroup),
+  );
+});
+
+test("a card uses the spec-row no-value output before any member has run (AC-4)", () => {
+  const html = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>"), member("2-second", "<tr>second</tr>")]);
+
+  expect(html).toContain(activeDurationCell({ totalDurationMs: 0 } as SpecGroup));
+  expect(html).toContain(costCell(0, undefined, "–"));
 });
 
 test("the card keeps saved member order and sorts by activity", () => {
