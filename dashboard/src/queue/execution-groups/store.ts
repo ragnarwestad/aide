@@ -109,7 +109,8 @@ export class ExecutionGroupStore {
   archiveSettled(id: string, outcome: "held-back" | "failed" | { prUrl?: string }): ExecutionGroup {
     if (outcome === "failed") return this.archiveFailed(id, "Archive did not land");
     if (outcome !== "held-back") return this.complete(id, outcome);
-    return this.get(id)?.state === "running" ? this.waitForAcceptance(id) : this.get(id)!;
+    const state = this.get(id)?.state;
+    return state === "running" || state === "archiving" ? this.waitForAcceptance(id) : this.get(id)!;
   }
   private write(): void {
     if (!this.path) return;

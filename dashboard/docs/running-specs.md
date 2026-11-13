@@ -110,8 +110,8 @@ reorder members until the first execution starts; after that, membership and ord
 Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
 every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That
 press validates and moves every member together, runs the project's test gate once and lands the shared branch once. A
-member already archived counts as done, and Archive moves the rest. A failed landing leaves every member active and
-shows the reason on the group.
+member already archived counts as done, and Archive moves the rest. The card shows the group as archiving from the
+press until the landing has settled. A failed landing leaves every member active and shows the reason on the group.
 
 ### Execution group records
 
