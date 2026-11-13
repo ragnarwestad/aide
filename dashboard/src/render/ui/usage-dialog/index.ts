@@ -1,9 +1,10 @@
 import { t, type Language } from "../../../i18n";
 import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
-import { headerMenu, shareBar } from "../components";
-import { ICON_USAGE } from "../components/icons.ts";
+import { headerMenu, shareBar, usageBar } from "../components";
+import { ICON_USAGE, TOOL_ICONS } from "../components/icons.ts";
 import { esc } from "../html.ts";
-import type { UsageDialogEntry } from "./view.ts";
+import type { Trend } from "./pace.ts";
+import type { UsageDialogBar, UsageDialogEntry, UsageDialogRow } from "./view.ts";
 import { usageDialogView } from "./view.ts";
 
 export const USAGE_DIALOG_ROUTE = "/api/queue/settings/providers/usage";
@@ -37,21 +38,34 @@ const stateLine = (entry: { key: string; name: string; state: string; text?: str
   return `<p><strong>${esc(entry.name)}</strong> ${esc(t(lang, "settings.usage.none"))}</p>`;
 };
 
+const TREND_MARKS: Record<Trend, string> = { faster: "↑", slower: "↓", even: "=" };
+
+/** A window's name, the mean share left with its trend, and how much it
+ *  rises at the earliest reset. */
+const summary = (row: UsageDialogRow, lang: Language): string => {
+  const { leftPercent, trend, rise } = row.summary;
+  const mark = trend ? ` <span data-trend="${trend}" title="${esc(t(lang, `usage.trend.${trend}`))}">${TREND_MARKS[trend]}</span>` : "";
+  return `<div class="usagesummary"><h4>${esc(row.label)}</h4>` +
+    `<p><strong>${leftPercent}%</strong> ${esc(t(lang, "usage.leftWord"))}${mark}</p>` +
+    (rise === undefined ? "" : `<p data-rise title="${esc(t(lang, "usage.riseTitle", { percent: rise }))}">↻ +${rise}%</p>`) +
+    `</div>`;
+};
+
+const bar = (bar: UsageDialogBar, lang: Language): string => usageBar({
+  name: bar.name, value: bar.leftPercent,
+  label: `${bar.name}: ${t(lang, "usage.left", { percent: bar.leftPercent })}`,
+  ...(bar.resetsIn ? { resets: bar.resetsIn } : {}),
+  ...(bar.pace === undefined ? {} : { pace: bar.pace, paceTitle: t(lang, "usage.paceTitle", { percent: bar.pace }) }),
+});
+
 export function usageDialogBody(entries: UsageDialogEntry[], now: number, lang: Language): string {
   const view = usageDialogView(entries, now, lang);
   const groups = view.groups.map((group) => {
-    const rows = group.rows.map((row) => `<section class="usagewindow"><h4>${esc(row.label)}</h4>` + row.bars.map((bar) => {
-      const provider = group.providers.find((candidate) => candidate.key === bar.key)!;
-      if (bar.leftPercent !== undefined) {
-        const words = bar.resetReported
-          ? t(lang, "usage.leftResets", { percent: bar.leftPercent, resets: bar.resets ?? "" })
-          : t(lang, "usage.leftResetUnknown", { percent: bar.leftPercent });
-        return shareBar(bar.name, bar.leftPercent, words);
-      }
-      return provider.state === "windows" ? shareBar(bar.name, undefined, t(lang, "usage.notReported")) : "";
-    }).join("") + `</section>`).join("");
+    const rows = group.rows.map((row) =>
+      `<section class="usagewindow">${summary(row, lang)}<div class="usagebars">${row.bars.map((b) => bar(b, lang)).join("")}</div></section>`).join("");
     const states = group.providers.filter((provider) => provider.state !== "windows").map((provider) => stateLine(provider, lang)).join("");
-    return `<section class="usagegroup"><h3>${esc(TOOL_NAMES[group.tool])}</h3>${rows}${states}</section>`;
+    const icon = `<span class="providericon" aria-hidden="true">${TOOL_ICONS[group.tool]}</span>`;
+    return `<section class="usagegroup"><h3>${icon}${esc(TOOL_NAMES[group.tool])}</h3>${rows}${states}</section>`;
   }).join("");
   return `<h2>${esc(t(lang, "shell.usage"))}</h2>${groups || `<p>${esc(t(lang, "usage.noProviders"))}</p>`}`;
 }

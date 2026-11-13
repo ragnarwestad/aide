@@ -26,6 +26,35 @@ export function shareBar(name: string, value: number | undefined, words: string)
   return `<div class="sharebar"><span>${esc(name)}</span><progress max="100"${value === undefined ? "" : ` value="${value}"`}></progress><span>${esc(words)}</span></div>`;
 }
 
+export interface UsageBarParts {
+  name: string;
+  /** The share left, 0 to 100: the bar's fill. */
+  value: number;
+  /** The bar's accessible name. */
+  label: string;
+  /** The time until the window starts over, written at the bar's right end. */
+  resets?: string;
+  /** The share that would be left at an even pace, drawn as a mark. */
+  pace?: number;
+  paceTitle?: string;
+}
+
+/** A thick bar with the name and the share written inside it, the time to
+ *  its reset at its right end and a mark at the even-pace share. Every
+ *  number is an attribute — the `<progress>` value and the mark's SVG
+ *  line — so no `style` is written. */
+export function usageBar(parts: UsageBarParts): string {
+  const mark = parts.pace === undefined ? "" :
+    `<svg data-pace viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true">` +
+    (parts.paceTitle ? `<title>${esc(parts.paceTitle)}</title>` : "") +
+    `<line x1="${parts.pace}" x2="${parts.pace}" y1="0" y2="1" vector-effect="non-scaling-stroke"></line></svg>`;
+  return `<div class="usagebar"${parts.paceTitle ? ` title="${esc(parts.paceTitle)}"` : ""}>` +
+    `<progress max="100" value="${parts.value}" aria-label="${esc(parts.label)}"></progress>${mark}` +
+    `<span title="${esc(parts.name)}">${esc(parts.name)}</span><span>${parts.value}%</span>` +
+    (parts.resets ? `<span data-resets>${esc(parts.resets)}</span>` : "") +
+    `</div>`;
+}
+
 // --- button ----------------------------------------------------------------
 
 export {
