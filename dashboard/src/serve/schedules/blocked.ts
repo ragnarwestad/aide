@@ -3,7 +3,7 @@
 // this one decides what a tick is allowed to run.
 
 import { proseSteps } from "../../project/discover/spec-files.ts";
-import { discoverProjects, manifestInside } from "../../project/discover";
+import { discoverProjects, manifestInside, type SpecRef } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { acceptanceStillOpen } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
@@ -97,6 +97,7 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
       // the script makes on its own, and neither is something waiting
       // could ever fix. Parking on one would hide a typo forever.
       if (!dep || dep.folder === spec.folder) continue;
+      if (doneEarlierInGroup(ctx, spec, dep)) continue;
       // `dep.archived` is a LOCAL filesystem scan and can be stale in
       // either direction — origin decides, every
       // time, even for a dependency already known archived locally, the
@@ -130,6 +131,13 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
     }
   }
   return blocked;
+}
+
+/** Whether the dependency is an earlier member of the same group whose
+ *  Implement step is already on the group's shared branch. */
+function doneEarlierInGroup(ctx: ScheduleContext, spec: SpecRef, dep: SpecRef): boolean {
+  if (!spec.group || dep.group?.name !== spec.group.name || dep.group.position >= spec.group.position) return false;
+  return completedSteps(ctx, dep.dir, dep.folder).includes("implement");
 }
 
 /** Which queued `implement` jobs are waiting on their own spec's

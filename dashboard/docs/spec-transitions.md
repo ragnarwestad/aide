@@ -192,10 +192,12 @@ Three things hold a job back rather than stop it: nothing failed, and the job is
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `analyze`, `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
-  spec's own `archive` lands. The line is read from the spec's open `aide/<folder>` branch and from the checkout, and the
-  job waits for what either names: a Depends on saved from the open row is written to the branch, while the runner's own
-  check reads the checkout. The dashboard leaves the job `queued` with the reason on its row and tries again on
-  every pass of the runner; a run started by hand is refused. `create` runs regardless. `analyze` waits too,
+  spec's own `archive` lands. A dependency on an earlier member of the same execution group is met once that member has
+  finished Implement on the group's shared branch; the group archives all its members together later. The line is read
+  from the spec's open `aide/<folder>` branch and from the checkout, and the job waits for what either names: a Depends
+  on saved from the open row is written to the branch, while the runner's own check reads the checkout. The dashboard
+  leaves the job `queued` with the reason on its row and tries again on every pass of the runner; a run started by hand
+  is refused. `create` runs regardless. `analyze` waits too,
   because a plan made before the dependency lands is a plan for code that is about to change. A dependency can use the
   complete folder name or its number, for both active and archived specs. A complete folder name identifies that exact
   spec. A number identifies a spec only when exactly one active or archived folder has that number. An unknown or

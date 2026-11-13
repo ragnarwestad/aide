@@ -9,11 +9,31 @@ unchanged and keep their names.
 import re
 import shlex
 import subprocess
+import json
 from ...conftest import git, run
 from ..run_spec_fakes import git_on_path, writing_claude
 from ..run_spec_invoking import run_traced
 from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin, local_origins
 from ..run_spec_status_files import add_spec, set_depends_on
+
+
+def group_dependency_branch(workspace, completed_phases):
+    """Put two grouped specs and the dependency's state on origin's shared branch."""
+    dependency = add_spec(workspace, "80-dependency")
+    dependency.joinpath("1-description.md").write_text(
+        "# Dependency - Description\n\n## Tracking info\n\n"
+        "- **Group:** `Together`\n- **Group position:** 1\n"
+    )
+    set_depends_on(workspace, "`80-dependency`")
+    dependent = workspace["specs"] / workspace["folder"] / "1-description.md"
+    dependent.write_text(
+        dependent.read_text()
+        + "- **Group:** `Together`\n- **Group position:** 2\n"
+    )
+    dependency.joinpath("4-status.json").write_text(json.dumps({"completedPhases": completed_phases}))
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "prepare execution group")
+    leave_branch_on_origin(workspace, "aide/group-80-dependency")
 
 
 def test_a_spec_without_the_field_asks_origin_nothing(
@@ -93,6 +113,33 @@ def test_a_dependency_merged_but_not_archived_still_refuses(
     assert "aide:80" in out["error"]
     assert "not archived yet" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_an_earlier_group_dependency_with_implement_done_lets_analyze_start_ac_5(
+    runner, workspace, fake_claude, local_origins
+):
+    group_dependency_branch(workspace, ["analyze", "implement"])
+
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace),
+        command="analyze", branch="aide/group-80-dependency",
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] != "refused"
+    assert fake_claude.calls.exists(), "the dependency gate must let the run reach the AI"
+
+
+def test_an_earlier_group_dependency_without_implement_still_refuses_ac_5(
+    runner, workspace, fake_claude, local_origins
+):
+    group_dependency_branch(workspace, ["analyze"])
+
+    rc, out, _ = run(
+        runner, workspace, fake_claude("exit 1"),
+        command="analyze", branch="aide/group-80-dependency",
+    )
+    assert rc == 2
+    assert "not archived yet" in out["error"]
 
 def test_a_dependency_with_no_branch_and_not_archived_still_refuses(
     runner, workspace, fake_claude, local_origins
