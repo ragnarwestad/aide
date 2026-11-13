@@ -161,7 +161,8 @@ with the table's rows.
 
 `DEPENDENCY_GATED_STEPS` is `analyze`, `implement` and `archive`, and "merged" means
 ARCHIVED: a dependent spec's held-back steps are released when the
-dependency's `archive` step runs. The two copies decide different things:
+dependency's `archive` step runs. A dependency on an earlier member of the same execution group is released once that
+member has finished Implement on the group's shared branch. The two copies decide different things:
 
 - The dashboard's copy — whether a queued job is PARKED (left `queued`
   with the reason on its row).

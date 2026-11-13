@@ -100,8 +100,10 @@ A failed member keeps its own recovery controls.
 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
-the execution order. A project with fewer than two eligible specs shows a sentence saying so in the list's place, and
-Save is off. Save creates a prepared card and does not start work; Cancel closes the dialog and saves nothing.
+the execution order. A group may include a spec and the spec it depends on when the dependency comes first in that
+order. An order that puts a spec before its dependency is refused and names both specs. A project with fewer than two
+eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
+not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. Edit on a prepared card can add, remove or
 reorder members until the first execution starts; after that, membership and order are fixed.
 
@@ -119,8 +121,8 @@ request. Creating or displaying a group does not set its first-start time. The r
 first process actually starts, and later starts reuse both the identity and the original time.
 
 Creation and editing use the record's identity, not its display name. The save checks the current project, membership,
-queue state and dependency order before it writes any member. A removed member keeps its spec and work and returns to
-the ordinary Running and Specs actions.
+queue state and that every dependency inside the group comes earlier in the execution order before it writes any
+member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means

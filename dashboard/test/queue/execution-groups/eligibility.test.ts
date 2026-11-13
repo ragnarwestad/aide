@@ -24,10 +24,34 @@ test("excludes specs whose work already started outside a group (AC-4, AC-7)", (
   expect(offered.map((item) => item.specFolder)).toEqual(["1-ready"]);
 });
 
-test("refuses duplicates, missing positions and dependency-incompatible order before save (AC-5)", () => {
+test("offers specs that depend on each other (AC-6)", () => {
+  const offered = eligibleGroupMembers({
+    project: "aide",
+    targets: [target("1-first", { dependsOn: ["2-required"] }), target("2-required")],
+    groups: [], jobs: [],
+  });
+  expect(offered.map((item) => item.specFolder)).toEqual(["1-first", "2-required"]);
+});
+
+test("accepts a dependency before its dependent (AC-1)", () => {
+  const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
+  expect(validateExecutionGroupRequest({
+    project: "aide", members: ["2-required", "1-first"], positions: [1, 2], targets, groups: [], jobs: [],
+  })).toEqual({ ok: true, members: ["2-required", "1-first"] });
+});
+
+test("refuses a dependent before its dependency and names the order (AC-2)", () => {
+  const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
+  expect(validateExecutionGroupRequest({
+    project: "aide", members: ["1-first", "2-required"], positions: [1, 2], targets, groups: [], jobs: [],
+  })).toEqual({
+    ok: false,
+    error: "1-first depends on 2-required, so 2-required must come before 1-first in the group's order",
+  });
+});
+
+test("refuses duplicates and missing positions before save", () => {
   const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "1-first"], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first"], positions: [2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
-  expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "2-required"], positions: [1, 2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
-  expect(validateExecutionGroupRequest({ project: "aide", members: ["2-required", "1-first"], positions: [1, 2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
 });

@@ -37,8 +37,9 @@ export function validateExecutionGroupRequest(input: EligibilityInput & { member
   const position = new Map(ordered.map((member, index) => [member, index]));
   for (const member of ordered) {
     for (const dependency of eligible.get(member)?.dependsOn ?? []) {
-      if (position.has(dependency)) {
-        return { ok: false, error: `${member} depends on ${dependency}, so they cannot be in the same execution group` };
+      const dependencyPosition = position.get(dependency);
+      if (dependencyPosition !== undefined && dependencyPosition >= position.get(member)!) {
+        return { ok: false, error: `${member} depends on ${dependency}, so ${dependency} must come before ${member} in the group's order` };
       }
     }
   }

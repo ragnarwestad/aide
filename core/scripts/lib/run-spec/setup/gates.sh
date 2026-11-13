@@ -117,6 +117,44 @@ dependency_archived_on_origin() {
   return $found
 }
 
+group_line() {
+  local folder="$1" label="$2"
+  awk -v prefix="- **$label:**" '
+    {
+      line = $0
+      sub(/^[[:space:]]*/, "", line)
+      if (index(line, prefix) == 1) {
+        sub(/^- \*\*[^*]+:\*\*[[:space:]]*/, "", line)
+        gsub(/`/, "", line)
+        sub(/[[:space:]]*$/, "", line)
+        print line
+        exit
+      }
+    }
+  ' "$specs_root/$folder/${AIDE_DESCRIPTION_FILE}"
+}
+
+# True when the dependency is an earlier member of this spec's group
+# whose Implement step is recorded on the group's shared origin branch.
+dependency_done_in_group() {
+  local dep_folder="$1" group dep_group position dep_position
+  local ref="refs/aide-dep/group-$$" done=1 state_json="" state_json_found=""
+  [ -n "$branch_arg" ] || return 1
+  group="$(group_line "$spec_folder" Group)"
+  [ -n "$group" ] || return 1
+  dep_group="$(group_line "$dep_folder" Group)"
+  [ "$dep_group" = "$group" ] || return 1
+  position="$(group_line "$spec_folder" 'Group position')"
+  dep_position="$(group_line "$dep_folder" 'Group position')"
+  [[ "$position" =~ ^[1-9][0-9]*$ && "$dep_position" =~ ^[1-9][0-9]*$ ]] || return 1
+  [ "$dep_position" -lt "$position" ] || return 1
+  git -C "$specs_root" fetch -q origin "refs/heads/$branch_arg:$ref" >/dev/null 2>&1 || return 1
+  read_spec_state_at_ref "$specs_root/$dep_folder" "$ref" "$AIDE_STATUS_FILE"
+  jq -e '(.completedPhases // []) | index("implement") != null' <<<"$state_json" >/dev/null 2>&1 && done=0
+  git -C "$specs_root" update-ref -d "$ref" >/dev/null 2>&1 || true
+  return $done
+}
+
 # Only the LOOP is gated on the command, never the three functions above
 # it: `default_branch` is called unconditionally four more times further
 # down, so gating its definition would leave every non-gated command
@@ -130,6 +168,7 @@ case " $DEPENDENCY_GATED_STEPS " in
         || refuse "spec $spec_reference depends on an unknown spec: $(aide_spec_reference "$project_name" "$dep_id") (not under $specs_root)"
       [ "$dep_folder" = "$spec_folder" ] \
         && refuse "spec $spec_reference cannot depend on itself ($(aide_spec_reference "$project_name" "$dep_id"))"
+      dependency_done_in_group "$dep_folder" && continue
       dependency_archived_on_origin "$dep_folder" \
         || refuse "spec $spec_reference depends on $(aide_spec_reference "$project_name" "$dep_folder"), which is not archived yet"
     done
