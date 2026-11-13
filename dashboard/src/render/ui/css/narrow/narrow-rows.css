@@ -112,6 +112,11 @@
      so it is 12px of nothing. The left padding stays: it is what makes
      the phase lines read as indented under the spec's own name. */
   table.list tr.subrow .phasecell { flex: 0 0 var(--phase-w); min-width: var(--phase-w); padding-right: 0; }
+  /* A review or verify line's name stands one fold control further in
+     (list-rows.css), and that indent is padding outside the width: taken
+     off the width here, its AI/model button starts where a phase's does. */
+  table.list tr.subrow[data-side] .phasecell { flex-basis: calc(var(--phase-w) - 24px - var(--sp-1));
+    min-width: calc(var(--phase-w) - 24px - var(--sp-1)); }
   /* A Close's, Reopen's or deploy's step is named in a sentence, not a
      word, and has no AI, model or box beside it: its name takes the room
      up to its state and wraps there, rather than running under it. */

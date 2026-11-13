@@ -3,13 +3,12 @@
 
 import { phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { t } from "../../../i18n";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
-import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
+import { aiPicker, ALREADY_RUN_REASON, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
@@ -353,23 +352,13 @@ function aiModel(
   // running, and an archived or already-run phase needs no sentence to
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
-  const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider);
-  // Two candidate strings, always both rendered: the
-  // SHORT one exactly as before, and a FULL one, always tool-prefixed.
-  // Which of the two spans shows is a `narrow.css` media query's own
-  // decision, not a runtime one — see that file's 400-600px band.
-  const short = compactModelLabel(opts.modelChoices ?? [], on);
-  const full = compactModelLabelFull(opts.modelChoices ?? [], on);
-  const now = `<span class="aimodelshort">${esc(short)}</span><span class="aimodelfull">${esc(full)}</span>`;
-  const id = `aim-${groupKey(g.project, g.specFolder)}-${step}`;
-  const button = locked
-    ? `<span class="aimodelnow" aria-disabled="true">${now}</span>`
-    : `<input type="checkbox" class="aimodelopen" id="${esc(id)}">` +
-      `<label class="aimodelnow" for="${esc(id)}">${now}</label>`;
-  return (
-    `<span class="aimodel">${button}<span class="aimodelpanel">` +
-    (ai ? `<label class="aimodelfield"><span>${t(lang, "list.captionAi")}</span>${ai}</label>` : "") +
-    `<label class="aimodelfield"><span>${t(lang, "list.captionModel")}</span>${model}</label>` +
-    `</span></span>`
-  );
+  return compactAiModel({
+    id: `aim-${groupKey(g.project, g.specFolder)}-${step}`,
+    lang,
+    ai,
+    model,
+    locked,
+    on: phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider),
+    models: opts.modelChoices ?? [],
+  });
 }

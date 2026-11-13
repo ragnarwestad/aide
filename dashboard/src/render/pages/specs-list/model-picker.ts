@@ -34,6 +34,7 @@ export {
   type PickerOptions,
   type ProviderOption,
 } from "./model-resolve.ts";
+import { compactModelLabel, compactModelLabelFull } from "./model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase,
@@ -403,7 +404,7 @@ export function aiPicker(
 
 export function sidePickers(
   g: SpecGroup,
-  opts: PickerOptions,
+  opts: PickerOptions & { lang?: Language },
   part: SidePart,
   locked: boolean,
   /** The model id the session's own run reported, when it ran. */
@@ -425,5 +426,43 @@ export function sidePickers(
     ).join("") + `</select>`;
   const model = `<select name="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
     `${modelOptions(pickerModels(models, chosen, ranModelId !== undefined, ranModelId), chosen, ranModelId)}</select>`;
-  return `${ai}${model}`;
+  const tool = models.find((m) => m.name === chosen)?.tool ?? "claude";
+  return compactAiModel({
+    id: `aim-${key}-${part}`,
+    lang: opts.lang ?? "en",
+    ai,
+    model,
+    locked: !!disabled,
+    on: { model: chosen, tool, ...(resting ? { provider: resting.name } : {}) },
+    models,
+  });
+}
+
+/** A line's AI and model as one control: on a phone a button naming the
+ *  choice that opens a panel holding the two selects, elsewhere the two
+ *  selects side by side (`narrow.css` decides). A locked line draws the
+ *  button unpressable, since its selects are a record, not a choice. */
+export function compactAiModel(o: {
+  id: string;
+  lang: Language;
+  ai: string;
+  model: string;
+  locked: boolean;
+  on: { model: string; tool: string; provider?: string } | undefined;
+  models: NonNullable<PickerOptions["modelChoices"]>;
+}): string {
+  // Two labels, always both drawn: which one shows is `narrow.css`'s
+  // 400-600px band's decision, not a runtime one.
+  const now = `<span class="aimodelshort">${esc(compactModelLabel(o.models, o.on))}</span>` +
+    `<span class="aimodelfull">${esc(compactModelLabelFull(o.models, o.on))}</span>`;
+  const button = o.locked
+    ? `<span class="aimodelnow" aria-disabled="true">${now}</span>`
+    : `<input type="checkbox" class="aimodelopen" id="${esc(o.id)}">` +
+      `<label class="aimodelnow" for="${esc(o.id)}">${now}</label>`;
+  return (
+    `<span class="aimodel">${button}<span class="aimodelpanel">` +
+    (o.ai ? `<label class="aimodelfield"><span>${t(o.lang, "list.captionAi")}</span>${o.ai}</label>` : "") +
+    `<label class="aimodelfield"><span>${t(o.lang, "list.captionModel")}</span>${o.model}</label>` +
+    `</span></span>`
+  );
 }
