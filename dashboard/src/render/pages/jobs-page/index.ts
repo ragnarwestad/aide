@@ -78,7 +78,8 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
   const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
-    key: s.key, html: s.html, place: specPlace(s.group, s.jobs), facts: s.group,
+    key: s.key, html: s.html, place: specPlace(s.group, s.jobs),
+    facts: s.key.includes("@") ? { ...s.group, pastRound: true } : s.group,
   }));
   const openFor = jobsStateOpensGroups(v.list.filter?.state);
   const groups = activeGroups.map((group) => {

@@ -890,8 +890,9 @@ Rows with the same creation time keep their order by state and most recent chang
 The tab has the Specs list's search box and a State dropdown. The dropdown first lists the states All, Active, Running,
 Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
-them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Active holds every row Done
-does not. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
+them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
+closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
+Waiting for its next phase. Active holds every row Done does not. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view. A
 job row is never Not verified. An old address naming Archived or Closed gets All. There is no Project dropdown: typing a project's

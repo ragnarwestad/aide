@@ -38,13 +38,20 @@ export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
 /** The state entries the Jobs tab offers: All, Active, Running, Waiting,
- *  Done, Stopped, Failed, Not verified. Active is every state Done does not
- *  hold, under the Specs list's key so it takes the list's label. Archived and
- *  Closed are the tab's Done. */
+ *  Done, Stopped, Failed, Not verified. Done is a spec archived or closed, or
+ *  any other row's job that has ended done; a spec whose last job ended done
+ *  waits for its next phase, as on the Specs list. Active is every row Done
+ *  does not hold, under the Specs list's key so it takes the list's label. */
 const JOBS_STATE_KEYS = ["all", "active:all", "waiting", "stopped", "failed", NOT_VERIFIED_KEY];
-const doneState = { key: "done", label: "Done", states: ["done", "archived", "closed"] } as (typeof STATE_FILTERS)[number];
-const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", excludeStates: doneState.states } as (typeof STATE_FILTERS)[number];
-const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key));
+type StateEntry = (typeof STATE_FILTERS)[number];
+const finished = (g: unknown): boolean => {
+  const row = g as RowFacts;
+  return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound));
+};
+const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
+const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknown) => !finished(g) } as StateEntry;
+const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key))
+  .map((s) => (s.key === "waiting" ? { ...s, where: (g: unknown) => !finished(g) } as StateEntry : s));
 export const JOBS_STATE_FILTERS = [baseJobStates[0]!, activeState, ...baseJobStates.slice(1, 3), doneState, ...baseJobStates.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
@@ -71,6 +78,8 @@ export type RowFacts = Pick<
   itemCount?: number;
   /** The member specs a group's row stands for, each its current row with its own state; absent on every other row. */
   members?: RowFacts[];
+  /** Set on the row of a spec's earlier round, which is over whatever the spec does now. */
+  pastRound?: boolean;
 };
 
 /** What the state entries match and count for a row: a group's member specs, any other row itself. */
