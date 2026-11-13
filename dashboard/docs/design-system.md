@@ -94,7 +94,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
-| `kindIcon()`          | the Jobs row's kind: spec, deploy, scheduled job, cleanup or execution group; named for screen readers and on hover, always muted     |
+| `kindIcon()`          | the Jobs row's kind: spec, deploy, scheduled job, cleanup or execution group; named for screen readers and on hover, coloured by kind |
 | `phaseChip()`         | `default`, `checked`, `done`, `off` (with the reason in `title`)                                                                      |
 | `phases()`            | a group of chips in one wrapper, so the row carries no spacing rule of its own                                                        |
 | `pips()`              | one pip per phase, its first letter above it, the full name in `title`                                                                |
@@ -118,7 +118,9 @@ alone, since the state column there is sized for the word.
 
 `kindIcon()` uses the shared drawings in `components/icons.ts`: a sheet of paper for a spec, an arrow leaving a tray
 for a deploy, a calendar for a scheduled job, a broom for cleanup and a stack for an execution group. These shapes are
-separate from the badge shapes. Every kind icon uses `--muted` and never takes a state colour.
+separate from the badge shapes. Each kind icon takes its kind's colour from `data-kind`: `--kind-spec`, `--kind-deploy`,
+`--kind-schedule`, `--kind-cleanup` and `--kind-group`, set for both themes and never a state colour. Only the icon
+takes it; the row's name, badges and pips keep their own colours.
 
 `STEP_LABELS` is re-exported from there and lives in `src/format/step-label.ts` — a step's technical name mapped to
 the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and three more), while `data-phase`, the

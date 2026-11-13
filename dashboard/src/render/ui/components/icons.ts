@@ -121,7 +121,7 @@ const KIND_KEYS: Record<RowKind, TranslationKey> = {
 
 export function kindIcon(kind: RowKind, lang: Language = "en"): string {
   const label = t(lang, KIND_KEYS[kind]);
-  return `<span class="kindicon" role="img" aria-label="${esc(label)}" title="${esc(label)}">${KIND_ICONS[kind]}</span>`;
+  return `<span class="kindicon" data-kind="${kind}" role="img" aria-label="${esc(label)}" title="${esc(label)}">${KIND_ICONS[kind]}</span>`;
 }
 
 /** The three tools a provider runs, each a shape of its own: a burst for

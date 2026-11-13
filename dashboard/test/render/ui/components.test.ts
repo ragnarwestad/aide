@@ -331,6 +331,13 @@ describe("kindIcon()", () => {
     }
   });
 
+  test("every kind's icon carries its own untranslated kind for the stylesheet to colour (AC-1)", () => {
+    for (const kind of kinds) {
+      expect(first(kindIcon(kind), ".kindicon").getAttribute("data-kind")).toBe(kind);
+    }
+    expect(first(kindIcon("schedule", "nb"), ".kindicon").getAttribute("data-kind")).toBe("schedule");
+  });
+
   test("the shared set has one distinct drawing for every kind (AC-5)", () => {
     expect(Object.keys(KIND_ICONS).sort()).toEqual([...kinds].sort());
     expect(new Set(Object.values(KIND_ICONS)).size).toBe(kinds.length);
