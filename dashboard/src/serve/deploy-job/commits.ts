@@ -8,6 +8,7 @@
 import { jobKind, type Job } from "../../queue/queue.ts";
 import type { AfterRestartDeps } from "./after-restart.ts";
 import { gitSync } from "./index.ts";
+import type { GitRunner } from "../../git/process/index.ts";
 
 export interface DeployCommit {
   sha: string;
@@ -58,14 +59,34 @@ export function deployCommits(job: Job, jobs: readonly Job[], git: Git = gitSync
   const key = `${root}\n${from}..${to}`;
   const kept = read.get(key);
   if (kept) return kept;
-  const log = git(root, ["log", "--format=%H%x09%s", `${from}..${to}`]);
-  if (log.code !== 0) return undefined;
-  const web = webOf(root, git);
-  const commits = log.stdout.split("\n").filter(Boolean).map((line) => {
-    const [sha = "", ...subject] = line.split("\t");
-    return { sha, subject: subject.join("\t"), ...(web ? { url: `${web}/commit/${sha}` } : {}) };
-  });
+  const commits = logCommits(root, `${from}..${to}`, git);
+  if (!commits) return undefined;
   read.set(key, commits);
   if (read.size > KEPT) read.delete(read.keys().next().value!);
   return commits;
+}
+
+/** The commits a Deploy pressed now would take in, newest first: from the
+ *  commit being served to origin's default branch as the last drift check
+ *  fetched it. Read, never fetched; undefined when git cannot answer. */
+export async function pendingCommits(root: string, served: string, base: string, run: GitRunner): Promise<DeployCommit[] | undefined> {
+  const log = await run(root, ["log", "--format=%H%x09%s", `${served}..refs/remotes/origin/${base}`]);
+  if (log.code !== 0) return undefined;
+  if (!webs.has(root)) {
+    const remote = await run(root, ["remote", "get-url", "origin"]);
+    webs.set(root, remote.code === 0 ? webAddress(remote.stdout) : undefined);
+  }
+  return parseLog(log.stdout, webs.get(root));
+}
+
+function logCommits(root: string, range: string, git: Git): DeployCommit[] | undefined {
+  const log = git(root, ["log", "--format=%H%x09%s", range]);
+  return log.code === 0 ? parseLog(log.stdout, webOf(root, git)) : undefined;
+}
+
+function parseLog(stdout: string, web: string | undefined): DeployCommit[] {
+  return stdout.split("\n").filter(Boolean).map((line) => {
+    const [sha = "", ...subject] = line.split("\t");
+    return { sha, subject: subject.join("\t"), ...(web ? { url: `${web}/commit/${sha}` } : {}) };
+  });
 }

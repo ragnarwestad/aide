@@ -50,7 +50,7 @@ export { foldArrow, foldArrowDisabled, foldButton, foldDisclosure, type FoldTitl
 
 // --- table of facts ----------------------------------------------------------------
 
-export { facts } from "./facts.ts";
+export { commitFacts, facts } from "./facts.ts";
 
 // --- labelled checkbox -------------------------------------------------------------
 

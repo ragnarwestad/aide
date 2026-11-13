@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, confirmDialog, facts, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -56,13 +56,7 @@ export interface JobRowOptions {
 function commitLines(row: QueueRowView, o: JobRowOptions): string {
   const commits = o.commits?.(row.id);
   if (!commits) return "";
-  const sha = (c: { sha: string; url?: string }): string => {
-    const short = esc(c.sha.slice(0, 7));
-    return c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${short}</a>` : short;
-  };
-  const body = commits.length
-    ? facts(commits.map((c) => ({ label: sha(c), value: esc(c.subject) })))
-    : `<p class="muted small">${esc(t(o.lang, "jobs.deployNoCommits"))}</p>`;
+  const body = commitFacts(commits, t(o.lang, "jobs.deployNoCommits"));
   return `<tr class="phasemsgs"><td colspan="${LIST_COLUMNS}">${body}</td></tr>`;
 }
 

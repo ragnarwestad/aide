@@ -3,7 +3,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { Job } from "../../../src/queue/queue.ts";
-import { deployCommits, webAddress } from "../../../src/serve/deploy-job/commits.ts";
+import { deployCommits, pendingCommits, webAddress } from "../../../src/serve/deploy-job/commits.ts";
 
 let n = 0;
 const deploy = (o: Partial<Job> & { deploy?: Job["deploy"] }): Job =>
@@ -74,5 +74,19 @@ describe("a repository's address on the web", () => {
     expect(webAddress("https://github.com/me/aide.git")).toBe("https://github.com/me/aide");
     expect(webAddress("https://github.com/me/aide")).toBe("https://github.com/me/aide");
     expect(webAddress("/srv/git/aide.git")).toBeUndefined();
+  });
+});
+
+describe("the commits a Deploy would take in", () => {
+  test("run from the commit being served to origin's default branch as last fetched, never from the checkout's own position", async () => {
+    const { git, logs } = fakeGit();
+    const run = async (root: string, args: string[]) => git(root, args);
+    expect((await pendingCommits("/r9", "s0", "main", run))?.map((c) => c.subject)).toEqual(["Second change", "First change"]);
+    expect(logs()).toEqual([["log", "--format=%H%x09%s", "s0..refs/remotes/origin/main"]]);
+  });
+
+  test("are not known when git cannot answer", async () => {
+    const run = async () => ({ code: 128, stdout: "" });
+    expect(await pendingCommits("/r10", "s0", "main", run)).toBeUndefined();
   });
 });

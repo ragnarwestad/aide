@@ -5,6 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import { pendingCommits } from "../../deploy-job/commits.ts";
 import { providerPickerOptions } from "../../providers/options.ts";
 import { readProviderStatus } from "../../providers/status.ts";
 import { providerDetailFor } from "../providers/page.ts";
@@ -221,6 +222,10 @@ export async function projectPages(
             return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
+    // What a Deploy pressed now would take in: from what this process
+    // serves to origin as the drift check last fetched it. Read only.
+    const base = serving ? await ctx.branchStatus.defaultBranch(driftRoot).catch(() => null) : null;
+    const pending = serving && base ? await pendingCommits(driftRoot, serving.sha, base, ctx.gitRun).catch(() => undefined) : undefined;
     // The manifest a run reads is the dashboard's own checkout's.
     // A clone that is still being made, or has none yet, answers
     // with the project's own directory, as everything did before.
@@ -259,6 +264,7 @@ export async function projectPages(
         // the page standing. A name nobody could fetch is no name, and
         // the choice falls back to the general word.
         defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
+        pending,
         schedule: ctx.scheduleStore.list(name),
         scheduleSort: {
           sort: url.searchParams.get("sort") ?? undefined,

@@ -295,6 +295,18 @@ describe("the Deploy tab of the board's own project", () => {
       expect(askTag(html)).toMatch(/\bdisabled\b/);
     });
 
+    test("lists the commits a Deploy would take in, from the served commit to origin", async () => {
+      const root = projectsRoot({ aide: INSTALLS });
+      const git = fakeGit({
+        "rev-parse --show-toplevel": { code: 0, stdout: `${join(root, "aide")}\n` },
+        "rev-parse HEAD": [{ code: 0, stdout: "abc1234deadbeef\n" }, { code: 0, stdout: "9999999cafefeed\n" }],
+        "symbolic-ref --quiet refs/remotes/origin/HEAD": { code: 0, stdout: "refs/remotes/origin/main\n" },
+        "log --format=%H%x09%s abc1234deadbeef..refs/remotes/origin/main": { code: 0, stdout: "1111111aaaa\tAdd the frobnicator\n" },
+      });
+      const html = await loadUntil(serveBoard(root, git, 0), "aide", "Add the frobnicator", 2000, "deploy");
+      expect(html).toContain("Add the frobnicator");
+    });
+
     test("names the newest change with no 'behind' claim when the service is current", async () => {
       const root = projectsRoot({ aide: INSTALLS });
       const base = serveBoard(

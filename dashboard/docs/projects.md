@@ -236,7 +236,9 @@ and one sentence saying there is not enough information about how the project is
 cannot restart a service it does not run, so a Deploy there would fetch and install in the board's own checkout and
 publish nothing.
 
-**On the project this server runs from**, a **Deploy** button sits under the count. It is disabled when the checkout
+**On the project this server runs from**, the commits a Deploy would take in are listed under the count, newest
+first, as the deploy's own row lists them afterwards: from the commit the service runs to origin's default branch as
+the last check fetched it, or "No new commits". A **Deploy** button sits under them. It is disabled when the checkout
 matches origin or when origin has not been checked yet. A board with no `AIDE_INSTALL_CMD` has no button, and says
 so in a sentence in place of the count. The button asks first ("Deploy aide?"); OK queues the deploy job and goes
 to the Running tab with the job's row open (`/?open=<project>/deploy:deploy`), where the five steps are followed as

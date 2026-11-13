@@ -19,6 +19,9 @@ export interface ProjectDrift {
 }
 
 export interface ProjectPageOptions {
+  /** The commits a Deploy pressed now would take in, newest first: from the
+   *  commit being served to origin as last checked. Absent when not known. */
+  pending?: readonly { sha: string; subject: string; url?: string }[];
   /** The project's own name for its default branch, off `origin/HEAD`
    *  — so the Code-landing choice reads "Merge into main" (or `master`)
    *  rather than naming a term from GitHub's settings that is nowhere
