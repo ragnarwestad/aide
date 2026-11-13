@@ -132,6 +132,7 @@ export const jobsViewCookieName = (port: number): string => `aide_jobs_view_${po
 /** The Jobs tab's view: the keys that cut and order its rows. */
 export interface JobsViewKeys {
   state?: string;
+  kind?: string;
   sort?: string;
   dir?: string;
   q?: string;
@@ -150,6 +151,7 @@ export function jobsViewChoice(url: URL, req: Request, port: number): { view: Jo
   // One literal read per key: a page reads its address only that way.
   const named = {
     state: url.searchParams.get("state"),
+    kind: url.searchParams.get("kind"),
     sort: url.searchParams.get("sort"),
     dir: url.searchParams.get("dir"),
     q: url.searchParams.get("q"),
@@ -158,7 +160,7 @@ export function jobsViewChoice(url: URL, req: Request, port: number): { view: Jo
   const stored = namesAny ? null : new URLSearchParams(cookieValue(req.headers.get("cookie"), cookieName) ?? "");
   const pick = (key: keyof JobsViewKeys): string | undefined => (stored ? stored.get(key) : named[key]) || undefined;
   const view: JobsViewKeys = {};
-  for (const key of ["state", "sort", "dir", "q"] as const) {
+  for (const key of ["state", "kind", "sort", "dir", "q"] as const) {
     const value = pick(key);
     if (value) view[key] = value;
   }

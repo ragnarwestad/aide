@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { QueueRowView } from "../../../../src/render";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { renderJobsRows, renderJobsSpecRows, type JobsView } from "../../../../src/render/pages/jobs-page";
+import { jobsFilterBar } from "../../../../src/render/pages/jobs-page/filter-bar.ts";
 import { renderSpecsRows } from "../../../../src/render/pages/specs-list";
 
 const row = (id: string, specFolder: string, step: string): QueueRowView => ({
@@ -44,4 +45,24 @@ test("a group member fetched alone keeps the spec icon (AC-1)", () => {
 
 test("the Specs list does not show kind icons (AC-1)", () => {
   expect(renderSpecsRows(view.specJobs, view.list)).not.toContain('class="kindicon"');
+});
+
+test("the one State dropdown contains a headed Kind part and no second kind control (AC-1, AC-2, AC-7)", () => {
+  const html = jobsFilterBar([], {}, "en");
+  expect(html.match(/data-filter="state"/g)).toHaveLength(1);
+  expect(html).not.toContain('data-filter="kind"');
+  expect(html).toContain(">Kind</strong>");
+  for (const name of ["All", "Specs", "Deploys", "Scheduled", "Cleanup", "Groups"]) {
+    expect(html).toContain(`>${name} (0)</a>`);
+  }
+
+  const narrowed = jobsFilterBar([], { kind: "deploy" }, "en");
+  expect(narrowed).toContain("Deploys (0)");
+  expect(narrowed).toContain('<input type="hidden" name="kind" value="deploy">');
+});
+
+test("the trigger does not count the default Kind choice as a narrowed state", () => {
+  const html = jobsFilterBar([], { state: "active:all,failed" }, "en");
+  expect(html).toContain('<span data-state-count>2 states</span>');
+  expect(html).not.toContain('<span data-state-count>3 states</span>');
 });

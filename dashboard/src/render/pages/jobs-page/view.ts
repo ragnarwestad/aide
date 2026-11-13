@@ -20,7 +20,21 @@ import {
   type SpecsFilter,
 } from "../specs-list/data-model";
 import { queuePath } from "../specs-list/filter-bar.ts";
-import { byTabPlace, jobTitle, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobRowKind, jobTitle, type TabPlace } from "./rows.ts";
+
+export interface JobsFilter extends SpecsFilter {
+  kind?: string;
+}
+
+export const JOBS_KIND_FILTERS = ["all", "spec", "deploy", "schedule", "cleanup", "group"] as const;
+type JobsKind = (typeof JOBS_KIND_FILTERS)[number];
+const kindEntries = JOBS_KIND_FILTERS.map((key) => ({ key }));
+
+export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] =>
+  chosenStates(kindEntries, value);
+
+export const jobsKindValue = (value: string | undefined): string =>
+  jobsKindFilters(value).map((entry) => entry.key).join(",");
 
 /** The state entries the Jobs tab offers, in the list's order: All, Running,
  *  Waiting, Stopped, Failed, Not verified. Active, Archived and Closed say
@@ -81,17 +95,26 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
 /** The view with its state entry resolved for this tab: an entry the tab does
  *  not offer (an old `archived` or `closed` link) is All, before anything is
  *  filtered or counted. The tab's view holds no project: the search finds one. */
-const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: "all", project: undefined });
+const onTab = (f: JobsFilter): SpecsFilter => ({ ...f, state: "all", project: undefined });
+
+const rowKind = (facts: RowFacts): Exclude<JobsKind, "all"> => {
+  if (facts.itemCount !== undefined && !facts.lead) return "group";
+  return facts.lead ? jobRowKind(facts.lead) : "spec";
+};
 
 /** The rows the view shows, in its order: the state entry and the search cut
  *  them as `applyFilter` does; a column the view names orders them
  *  as `sortGroups` does; with none, newest created first. */
-export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
+export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: JobsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
   const tabFilters = jobsStateFilters(f.state);
+  const kinds = jobsKindFilters(f.kind);
   const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
-  const kept = searched.filter((facts) => tabFilters.some((entry) => matchesStateFilter(entry, facts)));
+  const kept = searched.filter((facts) =>
+    tabFilters.some((entry) => matchesStateFilter(entry, facts)) &&
+    kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts))
+  );
   const shown = sortGroups(kept, f);
   return shown.map((facts) => byFacts.get(facts)!);
 }
@@ -109,10 +132,24 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
   }));
 }
 
+/** What the Kind part offers, counted over the same searched rows as State. */
+export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKind; count: number; on: boolean; kind: string }[] {
+  const chosen = jobsKindFilters(f.kind);
+  const counted = facts.filter((row) => matchesSearch(row, f));
+  return JOBS_KIND_FILTERS.map((key) => ({
+    key,
+    count: counted
+      .filter((row) => key === "all" || rowKind(row) === key)
+      .reduce((sum, row) => sum + (row.itemCount ?? 1), 0),
+    on: chosen.some((entry) => entry.key === key),
+    kind: toggledState(kindEntries, chosen, key),
+  }));
+}
+
 /** Where a heading's link goes: a column not sorted by goes to its first
  *  direction; the sorted one in its first direction turns round; turned round,
  *  back to newest created first. */
-export function jobsSortPatch(f: SpecsFilter, key: string): { sort: string; dir: string } {
+export function jobsSortPatch(f: JobsFilter, key: string): { sort: string; dir: string } {
   const first = SORT_DEFAULT_DIR[key]!;
   if ((SORTS.includes(f.sort ?? "") ? f.sort : "created") !== key) return { sort: key, dir: "" };
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : first;
@@ -122,6 +159,6 @@ export function jobsSortPatch(f: SpecsFilter, key: string): { sort: string; dir:
 
 /** A view link on the Jobs tab: always to `/`, always naming its state entry,
  *  so an address that names any view key is the whole view (`jobsViewChoice`). */
-export function jobsViewPath(f: SpecsFilter, patch: SpecsFilter): string {
-  return queuePath(f, { state: jobsStateValue(f.state), ...patch }, "/");
+export function jobsViewPath(f: JobsFilter, patch: JobsFilter): string {
+  return queuePath(f, { state: jobsStateValue(f.state), kind: jobsKindValue(f.kind), ...patch }, "/");
 }

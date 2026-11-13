@@ -870,15 +870,18 @@ a finished one has no action. Which scheduled jobs show is decided in
 The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
 Rows with the same creation time keep their order by state and most recent change.
 
-The tab has the Specs list's search box and a State dropdown of checkbox links (All, Running, Waiting, Done, Stopped,
-Failed and Not verified, All by default). Ticking several shows every row that matches any of them, and the tab's cookie
-remembers every ticked entry. Each entry is counted over the rows the search lets through; a job row is never Not verified. An old address
-naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's name, or `name:`, narrows
-the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's rules; a third press on a
-sorted heading returns to Created, newest first. A view that hides every row says "Nothing on this tab matches this filter."
+The tab has the Specs list's search box and a State dropdown. The dropdown first lists the states All, Running, Waiting,
+Done, Stopped, Failed and Not verified, then lists the kinds All, Specs, Deploys, Scheduled, Cleanup and Groups under a
+Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
+them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Each entry is counted over
+the rows the search lets through, and the button shows when either part narrows the view. A job row is never Not
+verified. An old address naming Archived, Closed or Active gets All. There is no Project dropdown: typing a project's
+name, or `name:`, narrows the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's
+rules; a third press on a sorted heading returns to Created, newest first. A view that hides every row says "Nothing on
+this tab matches this filter."
 
 The tab remembers its search, filters and sorting in a cookie of its own, apart from the Specs list's. An address that
-names any of `state`, `sort`, `dir` or `q` is the whole view and becomes the memory; one that names none gets the view
+names any of `state`, `kind`, `sort`, `dir` or `q` is the whole view and becomes the memory; one that names none gets the view
 last chosen.
 
 The rows sit in `#jobrows` and redraw as the Specs list's do: the page script asks the page's own address with `?rows=1`

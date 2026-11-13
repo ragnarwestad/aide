@@ -168,6 +168,10 @@ function stateDropdown(
 /** One option of a dropdown: its label as plain text, its count, whether it is
  *  the chosen one, and the link that chooses it, already escaped. */
 export interface MenuOption {
+  /** A heading put immediately before this option. */
+  heading?: string;
+  /** Whether this option represents the trigger's current summary. */
+  summary?: boolean;
   label: string;
   count: number;
   on: boolean;
@@ -181,11 +185,12 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
   const options = o.options
     .map(
       (opt) =>
+        (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
         `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
         `<span class="check" aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
     )
     .join("");
-  const chosen = o.options.filter((opt) => opt.on);
+  const chosen = o.options.filter((opt) => opt.summary ?? opt.on);
   const visible = chosen.length === 1
     ? `${esc(chosen[0]!.label)} (${chosen[0]!.count})`
     : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;

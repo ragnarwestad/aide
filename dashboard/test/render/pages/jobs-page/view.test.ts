@@ -3,10 +3,14 @@
 // a scheduled job's facts from `jobFacts`.
 
 import { describe, expect, test } from "bun:test";
-import type { QueueRowView, SpecsFilter } from "../../../../src/render";
+import type { QueueRowView } from "../../../../src/render";
 import {
   JOBS_STATE_FILTERS,
+  JOBS_KIND_FILTERS,
   jobFacts,
+  jobsKindFilters,
+  jobsKindOptions,
+  jobsKindValue,
   jobsSortPatch,
   jobsStateFilters,
   jobsStateValue,
@@ -14,6 +18,7 @@ import {
   jobsViewPath,
   jobsViewRows,
   type RowFacts,
+  type JobsFilter,
 } from "../../../../src/render/pages/jobs-page/view.ts";
 import { jobPlace, type TabPlace } from "../../../../src/render/pages/jobs-page/rows.ts";
 
@@ -60,7 +65,7 @@ const nightly = jobEntry("nightly", {
 const tab = [running, stopped, failedReport, nightly];
 
 const names = (rows: Entry[]): string[] => rows.map((r) => r.name);
-const view = (rows: Entry[], f: SpecsFilter): string[] => names(jobsViewRows(rows, f));
+const view = (rows: Entry[], f: JobsFilter): string[] => names(jobsViewRows(rows, f));
 const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 
 describe("the state and the search narrow the rows as the Specs list's do", () => {
@@ -78,6 +83,45 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
     expect(view(tab, { project: "other" })).toEqual(view(tab, {}));
     expect(view(tab, { project: "other", q: "other:" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { project: "aide" })).toEqual(jobsStateOptions(factsOf(tab), {}));
+  });
+});
+
+describe("kind choices narrow rows independently of state", () => {
+  const close = jobEntry("close", { specFolder: "84-close", steps: ["close"], state: "failed", createdAt: T(4) });
+  const reopen = jobEntry("reopen", { specFolder: "85-reopen", steps: ["reopen"], state: "queued", createdAt: T(3) });
+  const deploy = jobEntry("deploy", { specFolder: "deploy", steps: ["deploy"], state: "failed", createdAt: T(2) });
+  const cleanup = jobEntry("cleanup", { specFolder: "cleanup", steps: ["cleanup"], state: "done", createdAt: T(1) });
+  const group = spec("group", { specFolder: "Release", state: "running", itemCount: 2, createdAt: T(9) });
+  const kinds = [running, close, reopen, deploy, nightly, cleanup, group];
+
+  test("All is the default and several kinds keep every matching row (AC-1, AC-3)", () => {
+    expect(JOBS_KIND_FILTERS).toEqual(["all", "spec", "deploy", "schedule", "cleanup", "group"]);
+    expect(jobsKindFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
+    expect(view(kinds, { kind: "deploy,schedule" })).toEqual(["nightly", "deploy"]);
+  });
+
+  test("kind and state both have to match (AC-4)", () => {
+    expect(view(kinds, { kind: "spec", state: "waiting" })).toEqual(["reopen"]);
+    expect(view(kinds, { kind: "deploy,spec", state: "failed" })).toEqual(["close", "deploy"]);
+  });
+
+  test("Close and Reopen count as Specs while execution groups count as Groups (AC-5)", () => {
+    expect(view(kinds, { kind: "spec" })).toEqual(["run81", "close", "reopen"]);
+    expect(view(kinds, { kind: "group" })).toEqual(["group"]);
+  });
+
+  test("kind counts use the rows left by search and mark every chosen kind (AC-6, AC-7)", () => {
+    const options = jobsKindOptions(factsOf(kinds), { q: "aide", kind: "spec,group" });
+    expect(options.map((option) => [option.key, option.count])).toEqual([
+      ["all", 8], ["spec", 3], ["deploy", 1], ["schedule", 1], ["cleanup", 1], ["group", 2],
+    ]);
+    expect(options.filter((option) => option.on).map((option) => option.key)).toEqual(["spec", "group"]);
+  });
+
+  test("kind values and view links retain both filter parts (AC-7)", () => {
+    expect(jobsKindValue("group,spec")).toBe("spec,group");
+    const link = new URL(`http://x${jobsViewPath({ state: "failed", kind: "deploy" }, { sort: "cost" })}`);
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", kind: "deploy", sort: "cost" });
   });
 });
 
@@ -211,10 +255,10 @@ describe("the columns sort as the Specs list's do, newest created first by defau
   });
 
   test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties", () => {
-    expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all");
+    expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all&kind=all");
     const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { sort: "cost" })}`);
     expect(link.pathname).toBe("/");
-    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", q: "nightly", sort: "cost" });
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", kind: "all", q: "nightly", sort: "cost" });
     expect(new URL(`http://x${jobsViewPath({ state: "closed" }, {})}`).searchParams.get("state")).toBe("all");
   });
 
