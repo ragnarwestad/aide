@@ -5,7 +5,7 @@
 import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import type { QueueRowView } from "../../../../src/render";
-import { jobsTabHasRows, renderJobsSpecRows, type JobsView } from "../../../../src/render/pages/jobs-page";
+import { jobsTabHasRows, renderJobsRows, renderJobsSpecRows, type JobsView } from "../../../../src/render/pages/jobs-page";
 
 const release: ExecutionGroup = {
   id: "g1", project: "aide", name: "Release", members: ["82-first", "83-second"], branch: "group/82-first",
@@ -60,4 +60,26 @@ test("a reopened member is read by its current round; its earlier round is a row
   expect(rowsOf(view([release], { state: "active:all", specJobs }), CARD)).toContain('data-group-open="active:all"');
   expect(rowsOf(view([release], { state: "done", specJobs }), CARD)).toBe("");
   expect(rowsOf(view([release], { state: "done", specJobs }), earlier)).toContain(`id="spec-${earlier}"`);
+});
+
+const removed: ExecutionGroup = {
+  ...release, state: "completed", completedAt: "2026-11-11T12:00:00.000Z", removedAt: "2026-11-12T09:00:00.000Z",
+};
+
+test("a removed group draws no card, and its members are drawn as their own rows (AC-4)", () => {
+  const withCard = renderJobsRows(view([{ ...removed, removedAt: undefined }]));
+  expect(withCard).toContain('data-spec-group="aide\nRelease"');
+
+  const html = renderJobsRows(view([removed]));
+  expect(html).not.toContain('data-spec-group="aide\nRelease"');
+  expect(html).toContain('id="spec-aide/82-first"');
+  expect(html).toContain('id="spec-aide/83-second"');
+});
+
+test("a removed group's members draw no card from their Group: lines (AC-5)", () => {
+  const grouped = view([removed]);
+  grouped.list.targets = ["82-first", "83-second"].map((specFolder, index) => ({
+    project: "aide", specFolder, group: { name: "Release", position: index + 1 },
+  }));
+  expect(renderJobsRows(grouped)).not.toContain('data-spec-group="aide\nRelease"');
 });

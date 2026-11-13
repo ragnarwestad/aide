@@ -30,6 +30,8 @@ export interface ExecutionGroup {
   completedMembers: string[];
   jobs: ExecutionGroupJob[];
   prUrl?: string;
+  /** When Remove took the completed group off the Jobs tab. Everything else in the record stays. */
+  removedAt?: string;
   error?: string;
 }
 

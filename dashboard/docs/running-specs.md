@@ -113,6 +113,10 @@ press validates and moves every member together, runs the project's test gate on
 member already archived counts as done, and Archive moves the rest. The card shows the group as archiving from the
 press until the landing has settled. A failed landing leaves every member active and shows the reason on the group.
 
+A completed group's card offers Remove, and no other state does. Remove takes the card off the Jobs tab and draws the
+group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
+link — and changes no spec file.
+
 ### Execution group records
 
 An execution group has its own durable identity beside the queue history. The record keeps its ordered members,
@@ -820,7 +824,8 @@ dropdown; one shut by hand stays shut until the chosen state changes. Shut, it s
 it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card.
-Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available.
+Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
+Remove takes the card off.
 
 An ordinary spec has one Jobs row for each round. The first round starts on the day the spec was made, and every later
 round starts when Reopen finished. Earlier rows stay when the spec is reopened, archived or closed. Each round has its

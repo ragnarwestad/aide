@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness, ran, statusSaying } from "../helpers/queue-server.ts";
@@ -114,5 +114,69 @@ describe("the group card's Archive", () => {
     const { job } = await res.json() as { job: { specFolder: string; steps: string[]; executionGroupId?: string; groupMembers?: string[] } };
     expect(job).toMatchObject({ specFolder: "81-queue-and-runner", steps: ["archive"], executionGroupId: "group-1" });
     expect(job.groupMembers).toBeUndefined();
+  });
+});
+
+describe("the group card's Remove", () => {
+  const groupsIn = (dir: string): Record<string, unknown>[] => {
+    const path = join(dir, "execution-groups.json");
+    return existsSync(path) ? JSON.parse(readFileSync(path, "utf-8")) : [];
+  };
+  const specFiles = (dir: string, folder: string): Record<string, string> => {
+    const specDir = join(dir, "root", "aide", "specs", "archive", folder);
+    return Object.fromEntries(readdirSync(specDir).map((file) => [file, readFileSync(join(specDir, file), "utf-8")]));
+  };
+  const twoArchivedMembers = (state: string) => harness.start({
+    description: "# Queue - Description\n",
+    archivedSpecs: {
+      "79-older": { description: grouped("79-older", 1) },
+      "80-earlier": { description: grouped("80-earlier", 2) },
+    },
+    executionGroups: [{
+      ...record(state, ["79-older", "80-earlier"], ["79-older", "80-earlier"])[0],
+      startedAt: "2026-11-11T10:30:00Z",
+      completedAt: "2026-11-11T12:00:00Z",
+      prUrl: "https://example.test/pr/1",
+      jobs: [{ id: "job-1", specFolder: "79-older", logs: [{ step: "implement", sessionId: "s1" }] }],
+    }],
+    extra: { queueDefaults: DEFAULTS },
+  });
+
+  test("marks the completed record removed and keeps everything else in it (AC-3)", async () => {
+    const { base, dir } = twoArchivedMembers("completed");
+    const before = groupsIn(dir)[0]!;
+    const res = await groupAction(base, "remove");
+    expect(res.status).toBe(200);
+    const { group } = await res.json() as { group: Record<string, unknown> };
+    expect(typeof group.removedAt).toBe("string");
+    expect(groupsIn(dir)).toEqual([{ ...before, removedAt: group.removedAt }]);
+  });
+
+  test("leaves every member's spec files untouched (AC-6)", async () => {
+    const { base, dir } = twoArchivedMembers("completed");
+    const before = ["79-older", "80-earlier"].map((folder) => specFiles(dir, folder));
+    expect((await groupAction(base, "remove")).status).toBe(200);
+    expect(["79-older", "80-earlier"].map((folder) => specFiles(dir, folder))).toEqual(before);
+  });
+
+  test("refuses to remove a group that is not completed (AC-7)", async () => {
+    const { base, dir } = twoArchivedMembers("stopped");
+    const res = await groupAction(base, "remove");
+    expect(res.status).toBe(409);
+    expect(groupsIn(dir)[0]?.removedAt).toBeUndefined();
+  });
+
+  test("refuses a group known only from its members' Group: lines, and records none (AC-7)", async () => {
+    const { base, dir } = harness.start({
+      description: grouped("81-queue-and-runner", 1),
+      alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": grouped("82-next", 2) },
+      extra: { queueDefaults: DEFAULTS },
+    });
+    const res = await fetch(`${base}/api/queue/groups/${encodeURIComponent("membership:aide:Release")}/action`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action: "remove" }),
+    });
+    expect(res.status).toBe(409);
+    expect(groupsIn(dir)).toEqual([]);
   });
 });

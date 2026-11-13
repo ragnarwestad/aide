@@ -195,7 +195,9 @@ function activeExecutionGroups(v: JobsView, specRows: { key: string; group: Spec
       jobs: [],
     }];
   });
-  return [...registered, ...prepared];
+  // A removed group draws no card; its name in `known` above still keeps its
+  // members' `Group:` lines from drawing one.
+  return [...registered.filter((group) => !group.removedAt), ...prepared];
 }
 
 /** Whether the tab has a row to draw once its view has cut them: what the

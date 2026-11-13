@@ -79,10 +79,20 @@ export async function handleJobActionRoutes(
     let askedAction: ExecutionGroupAction | undefined;
     try {
       const body = sent.text ? bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown> : {};
-      if (body.action === "start" || body.action === "stop" || body.action === "archive") askedAction = body.action;
+      if (body.action === "start" || body.action === "stop" || body.action === "archive" || body.action === "remove") askedAction = body.action;
     } catch { return json({ error: "malformed body" }, 400); }
     let groupId: string;
     try { groupId = decodeURIComponent(groupAction[1]!); } catch { return json({ error: "invalid group" }, 400); }
+    if (askedAction === "remove") {
+      // The record alone decides: a completed group's members are archived, so
+      // the member check below would refuse it, and a group known only from its
+      // members' `Group:` lines is never completed and must get no record here.
+      const recorded = ctx.queue.executionGroups.get(groupId);
+      if (!recorded || executionGroupAction(recorded, []) !== "remove") {
+        return json({ error: "only a completed group can be removed" }, 409);
+      }
+      return json({ ok: true, group: ctx.queue.executionGroups.remove(recorded.id) });
+    }
     const execution = executionGroupForAction(ctx.queue.executionGroups, groupId, ctx.withFreshness(ctx.targets()));
     if (!execution) return json({ error: "the group no longer exists" }, 409);
     const { project, name } = execution;
@@ -108,7 +118,8 @@ export async function handleJobActionRoutes(
       busy: historical.some((job) => job.specFolder === member.specFolder && inFlight(job)),
     })), ...archived.map(() => ({ implemented: true, archived: true, acceptanceOpen: false, busy: false }))])
       ?? (execution.state === "prepared" ? "start" : undefined);
-    const action = askedAction ?? available;
+    // A POST that names no action never removes, and is refused as before.
+    const action = askedAction ?? (available === "remove" ? undefined : available);
     if (!action || action !== available) return json({ error: `the execution group cannot ${askedAction ?? "run"} while it is ${execution.state}` }, 409);
     if (action === "stop") {
       ctx.queue.executionGroups.stop(execution.id);

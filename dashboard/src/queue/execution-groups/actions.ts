@@ -1,6 +1,6 @@
 import type { ExecutionGroup } from "./types.ts";
 
-export type ExecutionGroupAction = "start" | "stop" | "archive";
+export type ExecutionGroupAction = "start" | "stop" | "archive" | "remove";
 
 export interface ExecutionGroupMemberState {
   implemented: boolean;
@@ -18,7 +18,8 @@ export function executionGroupAction(
   group: Pick<ExecutionGroup, "state">,
   members: readonly ExecutionGroupMemberState[],
 ): ExecutionGroupAction | undefined {
-  if (group.state === "completed" || members.length === 0 || members.every((member) => member.archived)) return undefined;
+  if (group.state === "completed") return "remove";
+  if (members.length === 0 || members.every((member) => member.archived)) return undefined;
   if (executionGroupActivity(group.state) !== "idle") return "stop";
   if (members.every((member) => member.implemented)) {
     return members.every((member) => !member.acceptanceOpen && !member.busy) ? "archive" : undefined;

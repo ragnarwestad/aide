@@ -85,8 +85,11 @@ test("a prepared card starts by durable id (AC-3, AC-10, AC-11)", () => {
   expect(html).toContain('name="action" value="start"');
 });
 
-test("completed groups have no card action (AC-12, AC-14)", () => {
-  expect(executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")])).not.toContain('name="action"');
+test("a completed card offers Remove, wired to the group's own route (AC-1)", () => {
+  const html = executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")]);
+  expect(html).toContain('/api/queue/groups/group-1/action');
+  expect(html).toContain('name="action" value="remove"');
+  expect(html).toContain(`>${t("en", "project.remove")}</button>`);
 });
 
 test("a completed group is placed with finished work (AC-3, AC-4)", () => {

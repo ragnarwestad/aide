@@ -56,6 +56,24 @@ describe("ExecutionGroupStore", () => {
     expect(store.get(made.id)).toMatchObject({ state: "completed", prUrl: "https://example.test/pr/1" });
   });
 
+  test("removing a completed group keeps every other field, across a reload (AC-3)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });
+    store.update(made.id, { jobs: [{ id: "job-1", specFolder: "1-first", logs: [{ step: "implement", sessionId: "s1", streamFile: "/logs/1" }] }] });
+    store.start(made.id, "2026-11-11T18:01:00.000Z");
+    const completed = store.complete(made.id, { prUrl: "https://example.test/pr/1", completedAt: "2026-11-11T18:10:00.000Z" });
+    const removed = store.remove(made.id, "2026-11-11T18:20:00.000Z");
+    expect(removed).toEqual({ ...completed, removedAt: "2026-11-11T18:20:00.000Z" });
+    expect(new ExecutionGroupStore(path).get(made.id)).toEqual(removed);
+  });
+
+  test("drops a record whose removal date is not a string (AC-3)", () => {
+    const entry = (id: string, name: string, rest: Record<string, unknown>) =>
+      ({ id, project: "aide", name, members: ["1-first"], branch: "group/1-first", state: "completed", jobs: [], completedMembers: [], ...rest });
+    writeFileSync(path, JSON.stringify([entry("bad", "Release", { removedAt: 17 }), entry("good", "Other", {})]));
+    expect(new ExecutionGroupStore(path).list().map((group) => group.id)).toEqual(["good"]);
+  });
+
   test("isolates malformed legacy entries and never invents missing dates (AC-9)", () => {
     writeFileSync(path, JSON.stringify([{ id: "legacy", project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first", state: "completed", jobs: [], completedMembers: ["1-first"] }, { nope: true }]));
     const first = new ExecutionGroupStore(path).list();

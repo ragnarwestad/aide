@@ -141,7 +141,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                             | interface |
 | `POST /api/queue/failed-creates/<id>/dismiss` | action | nothing                                            | `{ ok }`; 404 for an unknown message                                       | form      |
 | `POST /api/queue/groups`                      | action | project, name, ordered members                     | `{ ok, group }`; 409 if refused                                            | form      |
-| `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop` or `archive`             | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
+| `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop`, `archive` or `remove`   | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
 
 The execution-group routes have these authoritative handlers:
 

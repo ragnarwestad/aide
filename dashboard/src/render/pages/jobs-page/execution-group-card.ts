@@ -89,7 +89,11 @@ export function executionGroupCard(group: ExecutionGroup, rows: ExecutionGroupMe
     hook: "actionform",
     hidden: { action },
     // Primary, as a spec's own action is.
-    button: { label: action === "archive" ? stepLabel("archive", lang as never) : action === "stop" ? "Stop" : "Start", variant: "primary" },
+    button: {
+      label: action === "remove" ? t(lang as Language, "project.remove")
+        : action === "archive" ? stepLabel("archive", lang as never) : action === "stop" ? "Stop" : "Start",
+      variant: "primary",
+    },
   }) : "";
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
