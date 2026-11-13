@@ -287,4 +287,63 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
     const { checker } = checkout(state);
     expect(await checker.commitsBehindOrigin("/repo", true)).toBe(3);
   });
+
+  // The drift poll fetches the same checkout every 30 seconds, and right
+  // after a push both fetches have the same ref to move: git refuses one.
+  test("a fetch that lost the ref's lock to another fetch is tried again", async () => {
+    const lost = { code: 1, stderr: "error: cannot lock ref 'refs/remotes/origin/master': is at a but expected b" };
+    const git = fakeGit({
+      ...SYMREF_MASTER,
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: [lost, { code: 0 }],
+      "rev-list --count": { code: 0, stdout: "2\n" },
+    });
+    const waits: number[] = [];
+    const checker = new BranchStatusChecker({ run: git.run, wait: async (ms) => { waits.push(ms); } });
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBe(2);
+    expect(git.calls.filter((c) => c.args[0] === "fetch")).toHaveLength(2);
+    expect(waits).toHaveLength(1);
+  });
+
+  test("a fetch that failed for any other reason is not tried again", async () => {
+    const git = fakeGit({
+      ...SYMREF_MASTER,
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: { code: 128, stderr: "fatal: Could not read from remote repository." },
+      "rev-list --count": { code: 0, stdout: "2\n" },
+    });
+    const checker = new BranchStatusChecker({ run: git.run, wait: async () => {} });
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBeNull();
+    expect(git.calls.filter((c) => c.args[0] === "fetch")).toHaveLength(1);
+  });
+});
+
+describe("BranchStatusChecker.commitsBehindOrigin: answers that cross", () => {
+  test("an answer asked before the one kept does not replace it", async () => {
+    let releaseOld!: () => void;
+    const oldFetch = new Promise<void>((resolve) => (releaseOld = resolve));
+    let fetches = 0;
+    const run: GitRunner = async (_dir, args) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("fetch")) {
+        if (++fetches === 1) await oldFetch;
+        return { code: 0, stdout: "" };
+      }
+      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: fetches === 1 ? "0\n" : "4\n" };
+      return { code: 1, stdout: "" };
+    };
+    let clock = 1000;
+    const checker = new BranchStatusChecker({ run, now: () => clock });
+    // The poll asks first and is held in its fetch; the tab asks later and answers first.
+    const poll = checker.commitsBehindOrigin("/repo", true);
+    await Promise.resolve();
+    clock = 2000;
+    expect(await checker.commitsBehindOrigin("/repo", true, true)).toBe(4);
+    fetches = 1;
+    releaseOld();
+    expect(await poll).toBe(0);
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 4, checkedAt: 2000 });
+  });
 });
