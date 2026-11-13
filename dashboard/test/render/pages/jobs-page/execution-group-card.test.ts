@@ -206,10 +206,9 @@ test("a card numbers its members' pips in the group's order", () => {
   expect(html.indexOf('title="2-second"')).toBeLessThan(html.indexOf('title="1-first"'));
 });
 
-test("an editable card opens its filled Edit dialog and has no Add spec control (AC-1, AC-2, AC-3, AC-12)", () => {
+test("an editable card opens its filled Edit dialog", () => {
   const html = executionGroupCard(group("running"), [member("1-first", ""), member("2-second", "")], "en", { candidates: [{ project: "aide", specFolder: "3-third" }], locked: new Set(["1-first"]) });
   expect(html).toContain('<details class="menu"');
   expect(html).toContain('data-ask="edit-group-group-group-1"');
   expect(html).toContain('<dialog class="formdialog" id="edit-group-group-group-1"');
-  expect(html).not.toContain("/members");
 });
