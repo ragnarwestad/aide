@@ -14,7 +14,7 @@ import { runButton } from "../../render/pages/specs-list/data-model/phase.ts";
 import { SPEC_HEAD_CLASS } from "../../page-contract.ts";
 import { syncSpecGroups } from "../spec-groups";
 import { syncExecutionGroupEditors } from "../execution-groups/editor.ts";
-import { fitStateFilterSummary } from "../state-filter-summary.ts";
+import { fitStateFilterSummary, holdOpenFilterMenu } from "../state-filter-summary.ts";
 
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
@@ -457,6 +457,7 @@ export async function swapRows(): Promise<void> {
       : undefined;
     // The open spec is not in the answer: it is held across the replace.
     const restore = holdSpecDetail(body);
+    const reopenMenu = holdOpenFilterMenu(body);
     const replacedAll = !next || !lastRows || !applyGroupDiff(lastRows, next);
     if (replacedAll) {
       body.innerHTML = html;
@@ -472,6 +473,7 @@ export async function swapRows(): Promise<void> {
       }
     }
     restore();
+    reopenMenu();
     reopenPhaseAttemptLogs([body], openPhaseLogs);
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
