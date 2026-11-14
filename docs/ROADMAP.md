@@ -169,6 +169,8 @@ What the research found, and what it means for the order of the work:
   with Sonnet, as Aide's own defaults do. For Aide the value is the other way round: a hard spec not implemented by too
   weak a model.
 
+Idea 21 has a proposal for how a grade chooses the AI: a profile holds one list of providers and models per grade.
+
 So the first step is to measure, not to route: keep, for each spec, the shape of its change (files, separate places
 changed, lines), the model each step ran with, and how it went (green at the first try, rounds of red tests, defects
 the review found, a step run again). Only once that shows what predicts trouble should anything choose the model.
@@ -361,6 +363,37 @@ Open questions:
   little to what a project's own CLAUDE.md, AGENTS.md and rules already say. As checks that run, such as a browser
   check for a frontend change, they could catch defects; that is the part to start from, and only once a project
   shows the need.
+
+A proposal from 2026-11-14, for the AI part of a profile, with three Claude and Codex providers in use (Claude
+Personal, Claude Capra and Codex) and the subscriptions shared with work outside the board:
+
+- **A profile holds one ordered list per grade.** Each line is a provider and a model. A step chooses one profile,
+  as it chooses one provider today; the board takes the list for the grade the analysis set, and the list for
+  MEDIUM when there is none, which is every step before the analysis is done. A single provider and model is a
+  profile of one line, so today's settings keep working.
+
+  | Grade  | Line 1                  | Line 2                | Line 3              |
+  | ------ | ----------------------- | --------------------- | ------------------- |
+  | LOW    | Claude Personal · Opus  | Claude Capra · Opus   | Codex · gpt-6.1-sol |
+  | MEDIUM | Claude Personal · Opus  | Claude Capra · Opus   | Codex · gpt-6.1-sol |
+  | HIGH   | Claude Personal · Fable | Claude Capra · Fable  | Codex · gpt-6-astra |
+
+  LOW and MEDIUM are separate lists even while they hold the same lines, so either can change alone once a
+  measurement shows a lighter model holds for LOW.
+- **A reserve per provider,** such as 10 %. Before a step starts, a provider with less than its reserve left in any
+  usage window is passed over for the next line, so the account keeps something for work outside the board. The
+  board already reads every Claude Code and Codex provider's usage each minute at no cost to the subscription. A
+  running step is not stopped, and a reading that fails leaves the provider in use, with the usage limit as the
+  backstop.
+- **What moves a step to the next line:** the reserve reached before it starts; and, starting the step again on the
+  next line, a usage limit reached, a model at capacity, or a model that needs credits the account does not have.
+  Red tests and other failures do not: they are about the spec, not the AI.
+- **A job stays on the line it reached** until it is done; the next job starts from the top. When every line is held,
+  the step waits for the first reset, as it does today.
+- **The row says what was chosen and why,** such as "HIGH → Fable on Claude Personal" or "Claude Personal under its
+  reserve, started on Claude Capra".
+
+Open in this proposal: whether a profile may mix tools on one list, and whether Review and Verify take a profile too.
 
 Ideas 13, 14 and 15 are what a profile could later carry: a flow for the kind of task, a way to run a step, and an
 AI chosen from the spec's complexity.
