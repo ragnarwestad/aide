@@ -295,7 +295,13 @@ Let me choose the approach is on for this spec, per Step 7: mark each approach (
   short_line=""
   [ "$command_name" = "analyze" ] && [ "$choose_approach" != "yes" ] && [ -z "$already_sent_back" ] && short_line="
 A short analysis is allowed for this spec, per Step 3: grade $SHORT_ANALYSIS_GRADE, at most $SHORT_ANALYSIS_MAX_FILES source files to change (tests and documentation are not counted)"
-  prompt="$(skill_call "aide-$command_name" "$spec_id")$criteria_line$approach_line$short_line$reason_line
+  # A Review under Analyze chosen on the board: the session hands Step 8
+  # over and ends its turn, and run-spec/turn/plan-review.sh runs the
+  # reviewers on that AI and model and resumes it with their findings.
+  plan_review_line=""
+  [ "$command_name" = "analyze" ] && { [ -n "$plan_review_model" ] || [ -n "$plan_review_tool" ]; } && plan_review_line="
+The plan review runs in a session of its own on ${plan_review_tool:-$tool} ${plan_review_model:-(its own default model)}, per Step 8. When Step 8 runs, write its started mark, end your reply with the line \`plan review: handed over\` and end your turn — the one exception to the headless note below: the runner resumes this session with the three reviewers' findings. When Step 8 is skipped, finish the step as usual."
+  prompt="$(skill_call "aide-$command_name" "$spec_id")$criteria_line$approach_line$short_line$plan_review_line$reason_line
 $step_log_note
 $headless_note"
 else

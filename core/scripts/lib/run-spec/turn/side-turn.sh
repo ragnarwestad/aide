@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # run-spec/turn/side-turn.sh — a turn in a fresh session of its own beside
 # the step's: implement's review and the verification of what it found
-# (run-spec/turn/review.sh). Each may run on another model than the step,
-# on any supported AI (--review-tool, --verify-tool).
+# (run-spec/turn/review.sh), and an analyze's plan review
+# (run-spec/turn/plan-review.sh). Each may run on another model than the
+# step, on any supported AI (--review-tool, --verify-tool, --plan-review-tool).
 #
 # The step's complete result is retained as one value and put back afterwards:
 # its outcome, session, tokens, model id and limits stay the step's,
@@ -121,4 +122,31 @@ side_json() {  # <tool>
      + (if $providerLimit == null then {} else {providerLimit:$providerLimit} end)
      + (if $providerError == null then {} else {providerError:$providerError} end)
      + (if $timeLimit == null then {} else {timeLimit:$timeLimit} end)'
+}
+
+# A side turn that could not give what it was run for stops the step: the
+# part, the model and the reason, with the turn's own limits as the step's.
+side_failure() {  # <Review|Verify> <tool> <model>
+  local side_terminal="$side_reason"
+  [ "$side_terminal" = "unavailable" ] && side_terminal="cli-error"
+  stop_step "$side_terminal" "$1 on ${3:-$2} could not run: ${side_error:-$side_reason}" ""
+  error_log="$error_msg"
+  provider_limit_out="${side_limit:-}"; at_capacity_out="${side_capacity:-}"; provider_error_out="${side_provider_error:-}"
+  stage_error "$error_msg"
+}
+
+# Counts the side turn that just ran into the step's figures: its tokens join
+# the step's, and a dollar figure of its own makes the step's cost known when
+# the step's own tool reports none (a Codex step beside a Claude review).
+side_counted() {
+  tokens_json="$(turn_tokens_add "${tokens_json:-}" "${side_tokens:-}")"
+  if [ "$side_cost_known" = "true" ] && [ "$side_measured" = "true" ] && [ "$cost_known" != "true" ]; then
+    cost_known="true"; cost_measured="true"; sides_priced="true"
+  fi
+}
+
+# A later turn of the step resets what its tool reports; a dollar figure a
+# side session gave the step stays known.
+sides_priced_again() {
+  if [ "${sides_priced:-}" = "true" ]; then cost_known="true"; cost_measured="true"; fi
 }

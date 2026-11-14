@@ -14,7 +14,7 @@ import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
 import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
-import { SIDE_PARTS, type SidePart } from "../../../queue/providers/side-tools.ts";
+import { PLAN_REVIEW, SIDE_PARTS_OF, type PickPart } from "../../../queue/providers/side-tools.ts";
 
 export const SETTINGS_ROUTE = "/settings";
 
@@ -181,12 +181,14 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
       `${timeoutCell}</tr>`;
   };
-  const renderSideRow = (part: SidePart): string => {
+  const renderSideRow = (part: PickPart): string => {
     if (!models.length) return "";
-    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, part);
+    // Review under Analyze with no choice of its own rests on Analyze's pair.
+    const restsOn = part === PLAN_REVIEW && opts.defaultModels[part] === undefined ? "analyze" : part;
+    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, restsOn);
     const label = t(lang, `settings.side.${part}`);
     const providers = opts.providerChoices ?? [];
-    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, part, chosen, []);
+    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, restsOn, chosen, []);
     const ai = offeredProviders(providers, resting?.key).map((provider) =>
       `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
     ).join("");
@@ -201,7 +203,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const columns = models.length ? 4 : 2;
   const group = (label: string, steps: readonly (typeof SETTINGS_STEPS)[number][]): string =>
     `<tbody><tr class="settingsgroup"><th scope="rowgroup" colspan="${columns}">${esc(label)}</th></tr>` +
-    steps.flatMap((step) => step === "implement" ? [renderRow(step), ...SIDE_PARTS.map(renderSideRow)] : [renderRow(step)]).join("") +
+    steps.flatMap((step) => [renderRow(step), ...(SIDE_PARTS_OF[step] ?? []).map(renderSideRow)]).join("") +
     `</tbody>`;
   const rows =
     group(t(lang, "settings.group.onSpec"), SPEC_STEPS) +

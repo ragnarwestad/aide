@@ -15,7 +15,8 @@ import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
-import { SIDE_PARTS } from "../../../queue/providers/side-tools.ts";
+import { resolveProvider } from "./model-resolve.ts";
+import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
@@ -306,9 +307,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       });
       // The model's own messages, unfolded under the line.
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
-      if (p.step === "implement" && (opts.modelChoices ?? []).length) {
-        for (const part of SIDE_PARTS) {
-          lines.push(...sideLines(g, p, opts, part, sidePickers(g, opts, part, locked || (busy && !editable.has("implement")), sideRunOf(p, part)?.modelId)));
+      if ((opts.modelChoices ?? []).length) {
+        for (const part of SIDE_PARTS_OF[p.step] ?? []) {
+          const rests = part === PLAN_REVIEW ? analyzeRests(g, opts) : undefined;
+          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRunOf(p, part)?.modelId, rests);
+          lines.push(...sideLines(g, p, opts, part, pickers));
         }
       }
     });
@@ -364,4 +367,13 @@ function aiModel(
     locked,
     on: phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider),
   });
+}
+
+/** What the Review line under Analyze follows without a choice of its own:
+ *  the model and provider the Analyze line would run on next. */
+function analyzeRests(g: SpecGroup, opts: SpecsPageOptions): { model: string; provider?: string } | undefined {
+  const on = phaseAiModel(g, opts, "analyze");
+  if (!on) return undefined;
+  const pick = isArchivedRow(g) ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.analyze;
+  return { model: on.model, provider: resolveProvider(opts, "analyze", on.model, [pick])?.key };
 }

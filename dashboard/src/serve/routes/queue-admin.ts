@@ -13,7 +13,7 @@ import { cleanupProject } from "../process-cleanup/schedule.ts";
 import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
-import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
+import { PICK_PARTS, PLAN_REVIEW, planReviewToSave } from "../../queue/providers/side-tools.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
@@ -64,7 +64,7 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
-    const knownSettings = [...SETTINGS_STEPS, ...SIDE_PARTS] as readonly string[];
+    const knownSettings = [...SETTINGS_STEPS, ...PICK_PARTS] as readonly string[];
     const unknown = Object.keys(table).find((step) => !knownSettings.includes(step));
     if (unknown) return refuse(`unknown workflow step: ${unknown}`);
     const next: Record<string, string> = {};
@@ -80,7 +80,7 @@ export async function handleQueueAdminRoutes(
       next[step] = listed.name;
     }
     const sideModels: Record<string, string | null> = {};
-    for (const part of SIDE_PARTS) {
+    for (const part of PICK_PARTS) {
       const value = table[part];
       if (value === undefined) continue;
       if (Array.isArray(value) || typeof value !== "string") return refuse(`invalid model for ${part}`);
@@ -94,7 +94,7 @@ export async function handleQueueAdminRoutes(
     // the model; a save that posts none leaves the defaults' providers as
     // they are. Each must be configured and run the model saved with it.
     const providers = asked?.provider;
-    const nextProvider: Record<string, string> = {};
+    const nextProvider: Record<string, string | null> = {};
     if (providers !== undefined && (providers === null || typeof providers !== "object" || Array.isArray(providers))) {
       return refuse("provider defaults are malformed");
     }
@@ -108,6 +108,27 @@ export async function handleQueueAdminRoutes(
       const refusal = providerModelError(ctx.queue.defaults, found.key, selectedModel);
       if (refusal) return refuse(refusal.error);
       nextProvider[step] = found.key;
+    }
+    // Review under Analyze is saved only as a choice of its own: a pair that
+    // follows Analyze, or a cleared model, removes both keys.
+    const before = ctx.queue.defaults;
+    const dropPlanReview = () => {
+      sideModels[PLAN_REVIEW] = null;
+      if (before.provider?.[PLAN_REVIEW] !== undefined) nextProvider[PLAN_REVIEW] = null;
+      else delete nextProvider[PLAN_REVIEW];
+    };
+    const planReview = sideModels[PLAN_REVIEW];
+    if (planReview === null) dropPlanReview();
+    if (planReview) {
+      const restedModel = before.model.analyze ?? before.model.default ?? "";
+      const listedRested = listedModelName(Object.keys(before.modelChoices ?? {}), restedModel);
+      const kept = planReviewToSave(
+        { model: planReview, provider: nextProvider[PLAN_REVIEW] ?? undefined },
+        { model: next.analyze ?? "", provider: nextProvider.analyze ?? undefined },
+        { model: "name" in listedRested ? listedRested.name : restedModel, provider: before.provider?.analyze },
+        before.model[PLAN_REVIEW] !== undefined,
+      );
+      if (!kept) dropPlanReview();
     }
 
     // timeoutSec: the ceiling a per-job request can only tighten

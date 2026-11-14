@@ -38,31 +38,6 @@
 # the lists itself: a section without that line is logged as giving no
 # counts.
 
-# The text after `**<label>:**` on the first such line of the newest Plan
-# review section in <3-solution.md>: empty for a section without that
-# line, and a non-zero exit when there is no section. Fenced blocks are
-# examples, not the section, and a `## Round N` heading starts over, so
-# a held-back round's own review is the one read.
-plan_review_field() {  # <solution file> <label>
-  [ -f "$1" ] || return 1
-  awk -v label="**$2:**" '
-    /^(```|~~~)/ { fence = !fence; next }
-    fence { next }
-    /^## Round [0-9]/ { found = 0; inside = 0; seen = 0; value = "" }
-    /^##/ {
-      match($0, /^#+/); level = RLENGTH
-      if (inside && level <= at) inside = 0
-      if (!inside && tolower($0) ~ /plan review/) { found = 1; inside = 1; at = level; seen = 0; value = "" }
-      next
-    }
-    inside && !seen && index($0, label) == 1 {
-      seen = 1; value = substr($0, length(label) + 1)
-      sub(/^[ \t]+/, "", value); sub(/[ \t]+$/, "", value)
-    }
-    END { if (!found) exit 1; print value }
-  ' "$1"
-}
-
 # The counts of the newest Plan review section in <3-solution.md>, as
 # `<n> must-fix, <n> should-fix, <n> acted on`; `nocounts` for a section
 # without a whole Findings line; nothing when there is no section.
@@ -105,31 +80,6 @@ verified_defects() {  # <defects> <reply>
     /^[[:space:]]*[0-9]+\.[[:space:]]/ { if (buf != "") print buf; buf = $0; next }
     NF && buf != "" { sub(/^[[:space:]]+/, ""); buf = buf " " $0 }
     END { if (buf != "") print buf }')
-}
-
-side_failure() {  # <Review|Verify> <tool> <model>
-  local side_terminal="$side_reason"
-  [ "$side_terminal" = "unavailable" ] && side_terminal="cli-error"
-  stop_step "$side_terminal" "$1 on ${3:-$2} could not run: ${side_error:-$side_reason}" ""
-  error_log="$error_msg"
-  provider_limit_out="${side_limit:-}"; at_capacity_out="${side_capacity:-}"; provider_error_out="${side_provider_error:-}"
-  stage_error "$error_msg"
-}
-
-# Counts the side turn that just ran into the step's figures: its tokens join
-# the step's, and a dollar figure of its own makes the step's cost known when
-# the step's own tool reports none (a Codex step beside a Claude review).
-side_counted() {
-  tokens_json="$(turn_tokens_add "${tokens_json:-}" "${side_tokens:-}")"
-  if [ "$side_cost_known" = "true" ] && [ "$side_measured" = "true" ] && [ "$cost_known" != "true" ]; then
-    cost_known="true"; cost_measured="true"; sides_priced="true"
-  fi
-}
-
-# A later turn of the step resets what its tool reports; a dollar figure a
-# side session gave the step stays known.
-sides_priced_again() {
-  if [ "${sides_priced:-}" = "true" ]; then cost_known="true"; cost_measured="true"; fi
 }
 
 # The review's and the verification's records for the result, when they ran.

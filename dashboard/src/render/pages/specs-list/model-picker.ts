@@ -18,7 +18,7 @@ import {
   type LineProvider,
   type PickerOptions,
 } from "./model-resolve.ts";
-import { type SidePart } from "../../../queue/providers/side-tools.ts";
+import { type PickPart } from "../../../queue/providers/side-tools.ts";
 import { RUNNABLE_TOOLS, asProviderTool } from "../../../queue/providers/tools.ts";
 import { shortNameFrom } from "../../../queue/providers/short-name.ts";
 
@@ -424,20 +424,23 @@ const titled = (name: string | undefined): string => (name ? ` title="${esc(name
 export function sidePickers(
   g: SpecGroup,
   opts: PickerOptions & { lang?: Language },
-  part: SidePart,
+  part: PickPart,
   locked: boolean,
   /** The model id the session's own run reported, when it ran. */
   ranModelId?: string,
+  /** What the line follows with no choice of its own, in place of the default. */
+  rests?: { model: string; provider?: string },
 ): string {
   const models = opts.modelChoices ?? [];
   const choices = models;
   const providers = opts.providerChoices ?? [];
   const key = groupKey(g.project, g.specFolder);
   const saved = opts.pendingModels?.[key]?.[part] ?? "";
-  const configured = opts.defaultModels?.[part] ?? opts.defaultModels?.default;
+  const follows = rests && !saved && opts.defaultModels?.[part] === undefined ? rests : undefined;
+  const configured = opts.defaultModels?.[part] ?? follows?.model ?? opts.defaultModels?.default;
   const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
-  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
+  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider, follows?.provider]);
   const disabled = locked || !g.named ? " disabled" : "";
   const offered = offeredProviders(providers, resting?.key);
   const shown = resting ?? offered[0];

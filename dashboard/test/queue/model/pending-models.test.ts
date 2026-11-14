@@ -38,6 +38,32 @@ describe("QueueStore.setPendingModel()", () => {
     expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ verify: "codex" });
   });
 
+  test("records and clears an Analyze Review choice and its provider across a restart (AC-7)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const defaults = {
+      ...DEFAULTS,
+      modelChoices: { ...DEFAULTS.modelChoices, codex: { tool: "codex" as const } },
+      providers: { Codex: { name: "Codex", tool: "codex" as const } },
+    };
+    const first = new QueueStore({ defaults, resolve, pendingModelsPath });
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "plan-review", "codex", "Codex").ok).toBe(true);
+    const second = new QueueStore({ defaults, resolve, pendingModelsPath });
+    expect(second.pendingModels["aide/81-queue-and-runner"]).toEqual({ "plan-review": "codex" });
+    expect(second.pendingProviders["aide/81-queue-and-runner"]).toEqual({ "plan-review": "Codex" });
+    expect(second.setPendingModel("aide", "81-queue-and-runner", "plan-review", "").ok).toBe(true);
+    expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toBeUndefined();
+  });
+
+  test("an Analyze Review pick leaves the spec's Review and Verify picks as they are (AC-5)", () => {
+    const store = new QueueStore({ defaults: DEFAULTS, resolve });
+    store.setPendingModel("aide", "81-queue-and-runner", "review", "sonnet");
+    store.setPendingModel("aide", "81-queue-and-runner", "verify", "fable");
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "plan-review", "fable").ok).toBe(true);
+    expect(store.pendingModels["aide/81-queue-and-runner"]).toEqual({ review: "sonnet", verify: "fable", "plan-review": "fable" });
+    store.setPendingModel("aide", "81-queue-and-runner", "plan-review", "");
+    expect(store.pendingModels["aide/81-queue-and-runner"]).toEqual({ review: "sonnet", verify: "fable" });
+  });
+
   test("records a Review choice on another tool (AC-2)", () => {
     const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, pickle: { tool: "opencode" as const } } };
     const result = new QueueStore({ defaults, resolve }).setPendingModel("aide", "81-queue-and-runner", "review", "pickle");

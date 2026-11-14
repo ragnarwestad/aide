@@ -253,6 +253,16 @@ def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads():
 
 
 @pytest.mark.validation
+def test_analyze_names_the_plan_review_handover_the_runner_writes_and_reads_ac_3():
+    """With a Review under Analyze chosen, the runner's prompt line opens with
+    the first string and it waits for the second at the end of the reply."""
+    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    text = "\n".join(path.read_text(encoding="utf-8") for path in (analyze / "SKILL.md", *(analyze / "references").glob("*.md")))
+    for name in ("The plan review runs in a session of its own on", "plan review: handed over"):
+        assert name in text, f"the analyze skill does not name {name!r}"
+
+
+@pytest.mark.validation
 def test_implement_names_the_mark_of_a_short_analysis_it_builds_from():
     text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     assert "- **Analysis:** short" in text

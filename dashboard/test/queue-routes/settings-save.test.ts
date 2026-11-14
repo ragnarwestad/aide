@@ -183,4 +183,43 @@ describe("saved queue settings are applied through the startup rules", () => {
     expect(defaults).toEqual(before);
     expect(await shownConcurrency(base)).toBe(3);
   });
+
+  test("Review under Analyze is saved and cleared on its own, leaving Implement's Review and Verify as they are (AC-5, AC-7)", async () => {
+    const file = config({
+      model: { default: "Opus", review: "Spare", verify: "Spare" },
+      provider: { review: "Claude" },
+      modelChoices: { Opus: {}, Spare: { model: "spare" } },
+      providers: { Claude: { name: "Claude", tool: "claude" } },
+    });
+    const { base } = start({ queueConfigFile: file, queueDefaults: expected(file) });
+    const model = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "Opus"]));
+    const timeoutSec = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, 30]));
+    const savedModel = () => saved(file).model as Record<string, unknown>;
+    const savedProvider = () => (saved(file).provider ?? {}) as Record<string, unknown>;
+
+    expect((await post(base, "/api/queue/settings", {
+      model: { ...model, "plan-review": "Spare" }, provider: { "plan-review": "Claude" }, timeoutSec,
+    })).status).toBe(200);
+    expect(savedModel()["plan-review"]).toBe("Spare");
+    expect(savedProvider()["plan-review"]).toBe("Claude");
+    expect(savedModel()).toMatchObject({ review: "Spare", verify: "Spare" });
+    expect(savedProvider().review).toBe("Claude");
+
+    expect((await post(base, "/api/queue/settings", { model: { ...model, "plan-review": "" }, timeoutSec })).status).toBe(200);
+    expect(savedModel()["plan-review"]).toBeUndefined();
+    expect(savedModel()).toMatchObject({ review: "Spare", verify: "Spare" });
+  });
+
+  test("a Review under Analyze still following Analyze is not saved as a choice (AC-6)", async () => {
+    const file = config({
+      model: { default: "Opus", "plan-review": "Spare" },
+      modelChoices: { Opus: {}, Spare: { model: "spare" } },
+    });
+    const { base } = start({ queueConfigFile: file, queueDefaults: expected(file) });
+    const model = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "Opus"]));
+    const timeoutSec = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, 30]));
+
+    expect((await post(base, "/api/queue/settings", { model: { ...model, "plan-review": "Opus" }, timeoutSec })).status).toBe(200);
+    expect((saved(file).model as Record<string, unknown>)["plan-review"]).toBeUndefined();
+  });
 });

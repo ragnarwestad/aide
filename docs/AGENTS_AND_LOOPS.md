@@ -71,6 +71,8 @@ No subagents and no review.
    the plan (`core/skills/aide-analyze/references/plan-review.md`):
    three reviewers, in parallel, each with one perspective and no sight of the others' findings, whatever the spec's
    complexity. A tool with no way to start a subagent runs the same reviews one after the other in its own session.
+   With a Review under Analyze chosen, the session hands the review over instead: the runner runs the three reviewers
+   in a fresh read-only session on that AI and model, and gives their findings back to the analyze session.
 6. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
    the plan review's `**Findings:**` line.
 
@@ -142,7 +144,8 @@ Every loop that sends work back goes to the session that did the work, and every
 - **`AIDE_TEST_RUN_LIMIT_SEC`**: how long one of the runner's own test runs may take. An hour unless set; the step's
   own time limit does not count it.
 - **The AI, model and effort for each step**, chosen per spec. Review and Verify can also be chosen per spec; otherwise
-  they use Models per phase, with Implement's own model and no verification as their final defaults.
+  they use Models per phase, with Implement's own model and no verification as their final defaults. Review under
+  Analyze can be chosen the same way; without a choice the analyze session reviews on its own model.
 
 ## What Aide does not do
 

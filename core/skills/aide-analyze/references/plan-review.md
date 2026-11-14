@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Overview](#overview)
+- [Handing the review over](#handing-the-review-over)
 - [Review — three reviewers, at every complexity](#review--three-reviewers-at-every-complexity)
 - [Consolidate](#consolidate)
 - [Revise — the review is not a stamp](#revise--the-review-is-not-a-stamp)
@@ -27,6 +28,24 @@ both handed the spec's acceptance criteria checks level (`off`,
 `warn` or `stop`, Step 1), since that is not in the spec either:
 Feasibility makes the cannot-be-built check, Coherence the other four.
 Coherence is told, too, whether the spec asks to choose the approach.
+
+With a Review under Analyze chosen on the board, the reviewers run in a
+session of their own on that AI and model instead: see [Handing the review
+over](#handing-the-review-over).
+
+## Handing the review over
+
+A headless run whose prompt carries the line
+`The plan review runs in a session of its own on`, followed by an AI and
+a model, hands the review over; a run without it, and every interactive
+run, reviews as below.
+When Step 8 runs, write its started mark, end the reply with the line
+`plan review: handed over` and end the turn. That handover is the one
+exception to the headless note. The runner starts a fresh read-only
+session on the chosen AI and model, which runs the three reviewers of
+"Review" below, and resumes the analyst's session with their findings.
+Go on from "Consolidate" with them, then Steps 9 and 10. When Step 8 is
+skipped, nothing is handed over.
 
 ## Review — three reviewers, at every complexity
 

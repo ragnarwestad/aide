@@ -261,6 +261,13 @@ phase choice, then the default model. Every completed implement runs Review, and
 both are read-only. If the chosen model cannot start or complete, Implement stops with Review or Verify, the model and
 the reason in its result; it never falls back.
 
+`model` also takes `plan-review`, read for an analyze only: the choice Analyze's plan review runs on, with its provider
+under `provider.plan-review`. It has no default. Without it, and without a spec's own Review line under Analyze, the
+analyze session reviews its plan itself, on Analyze's model. With it, the three reviewers run read-only in a session of
+their own on that model, and their findings go back to the analyze session, which consolidates them and revises the
+plan ([The runner](the-runner.md#what-counts-as-a-step-having-run)). If that session cannot run or gives no findings,
+Analyze stops with Review, the model and the reason; it never falls back.
+
 `resumeAnalysis: true` lets an implement continue its analysis's own AI session. It applies only when both steps run
 with the same AI (the model may differ) and the analysis ended within the hour, and the two providers share sessions:
 the same provider, or two Codex providers with one `CODEX_HOME`. Off unless set.
@@ -435,7 +442,7 @@ its phase file as a `- **Effort:**` line, and shown on the job's page beside its
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its Models per phase tab. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts, and each list contains every configured model independently of Implement's AI. The same two lines on a spec override these defaults for that spec; without an override, the line shows and uses its Models per phase choice, or the default model when it has none. Every completed implement runs Review, and Review finding defects runs Verify, both read-only. If either chosen model cannot run, Implement stops with the part, model and reason and does not fall back to another model. The other rows are the
+`/settings` holds the default AI and model per step, on its Models per phase tab. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts, and each list contains every configured model independently of Implement's AI. The same two lines on a spec override these defaults for that spec; without an override, the line shows and uses its Models per phase choice, or the default model when it has none. Every completed implement runs Review, and Review finding defects runs Verify, both read-only. If either chosen model cannot run, Implement stops with the part, model and reason and does not fall back to another model. A Review row sits directly under Analyze too, without a timeout: with nothing saved for it, it shows the AI and model Analyze runs on, and a save that leaves it showing them saves no choice. The other rows are the
 six that act on a spec (Create, Analyze, Implement, Archive, Close and Reopen) and Schedule. A step nothing has been saved
 for runs on Claude Code's Opus, and its row shows that; a `model.default` in the config file is a saved choice for every
 step without one of its own. On a host whose choices hold no Opus, the row shows the first listed choice while the runner

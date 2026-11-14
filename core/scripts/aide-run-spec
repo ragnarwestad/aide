@@ -150,13 +150,16 @@ if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
   [ ! -d "$_source_dir/lib" ] || cp -RL "$_source_dir/lib" "$_snapshot/" || exit 2
   AIDE_RUN_SPEC_SELF_COPY="$_snapshot/runner" \
   AIDE_RUN_SPEC_SOURCE_DIR="$_snapshot" \
+  AIDE_RUN_SPEC_ORIGIN_DIR="$_source_dir" \
     exec "$BASH" "$_snapshot/runner" "$@"
 fi
 # Drop the markers before spawning any child, so a nested runner makes
 # its own copy and cannot delete the installation or its parent's copy.
 SCRIPT_DIR="$AIDE_RUN_SPEC_SOURCE_DIR"
 _runner_snapshot="$SCRIPT_DIR"
-unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
+# Where the runner was started from: a checkout keeps the skills beside it.
+RUNNER_ORIGIN_DIR="${AIDE_RUN_SPEC_ORIGIN_DIR:-$SCRIPT_DIR}"
+unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR AIDE_RUN_SPEC_ORIGIN_DIR
 trap 'rm -rf "$_runner_snapshot"' EXIT
 rm -f "$0"
 
@@ -190,7 +193,7 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in step-endings/catalog.json step-endings/read.sh spec-reference.sh run-spec/setup/run-log.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn/result.sh run-spec/turn/model-turn/index.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in step-endings/catalog.json step-endings/read.sh spec-reference.sh run-spec/setup/run-log.sh tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh checkout-lock.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/session-totals.sh run-spec/turn/model-turn/result.sh run-spec/turn/model-turn/index.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/turn/plan-review.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] \
   || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"_aide-spec-lib.sh is missing beside aide-run-spec","errorSolution":"reinstall aide (core/implementations/claude-code/install.sh)"}'
 # shellcheck source=/dev/null
@@ -340,6 +343,15 @@ source "$SCRIPT_DIR/lib/run-spec/turn/model-turn/index.sh"
 source "$SCRIPT_DIR/lib/run-spec/turn/screenshots.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/spec-paths.sh"
+# The side sessions and their words, then an analyze's plan review on a
+# model of its own: right after the step's turn, so what it writes is
+# committed and checked with the rest.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/turn/review-prompts.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/turn/side-turn.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/turn/plan-review.sh"
 
 # --- leaving the machine usable ---
 # shellcheck source=/dev/null
@@ -354,10 +366,6 @@ source "$SCRIPT_DIR/lib/run-spec/record/sent-back-check.sh"
 source "$SCRIPT_DIR/lib/run-spec/record/records.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/record/status-line.sh"
-# shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec/turn/review-prompts.sh"
-# shellcheck source=/dev/null
-source "$SCRIPT_DIR/lib/run-spec/turn/side-turn.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/turn/review.sh"
 # shellcheck source=/dev/null

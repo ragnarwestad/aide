@@ -1,7 +1,8 @@
 // On a phone a phase line's AI and model fold into one button that opens a
-// panel with the two choices. The Review and Verify lines under Implement
-// fold the same way: only a browser at a phone's width draws the fold. They
-// are drawn on the Jobs tab, in an open spec that has had an Implement.
+// panel with the two choices. The Review and Verify lines under Implement,
+// and the Review line under Analyze, fold the same way: only a browser at a
+// phone's width draws the fold. They are drawn on the Jobs tab, in an open
+// spec that has had an Implement.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -48,6 +49,16 @@ for (const part of ["review", "verify"]) {
     expect(await model.isVisible()).toBe(true);
   });
 }
+
+test("the Review line under Analyze opens its AI and model from one button, as Implement's Review line does (AC-8)", async () => {
+  await withBrowser(page.goto(`${base}/?open=aide/81-queue-and-runner&live=0`), "page.goto(Jobs)");
+  const line = 'tr.subrow[data-side="plan-review"]';
+  const model = page.locator(`${line} select[name="model.plan-review"]`);
+  await page.waitForSelector(line);
+  expect(await model.isVisible()).toBe(false);
+  await page.click(`${line} label.aimodelnow`);
+  expect(await model.isVisible()).toBe(true);
+});
 
 for (const width of [390, 500]) {
   test(`at ${width}px each line's button shows its provider's short name (AC-8)`, async () => {

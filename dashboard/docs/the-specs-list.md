@@ -324,6 +324,11 @@ Implement line shows the total less the two side sessions. A session that did no
 closed spec shows the figures only while the queue still holds the run, since the phase file records the phase as one
 figure.
 
+**The Review line under Analyze chooses the AI and model of the plan review.** It offers the same AI and model pickers
+as Implement's Review line, and they are locked where Analyze's own are. With no pick of its own and none in Settings,
+it shows the AI and model Analyze runs on next. It has no figures and no ›: the review session's cost and log are
+Analyze's.
+
 **The phase line's State/Action cell says the standard state alone; what explains it is in the unfolded row.** After the
 `Model:` line come the phase's explanations, one info line each: the description changed since the analysis (analyze
 only), no pull request could be opened for the latest attempt's branch, and the sentence the row's notice says about the

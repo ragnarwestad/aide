@@ -449,7 +449,14 @@ evidence that the phase happened:
 - `implement` handed a merge with the default branch open counts by the same test: a session that dropped the merge
   and did its work on the old base ends `merge-unfinished`.
 - `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
-  line that it did not run.
+  line that it did not run. With a Review under Analyze chosen (`--plan-review-model`, `--plan-review-tool`), the
+  prompt asks the session to hand its plan review over: it ends its reply with `plan review: handed over` when its
+  review step runs. The runner then starts a fresh read-only session on that AI and model, which runs the three
+  reviewers and ends `plan review: done`, and gives their findings to the ORIGINAL analyze session in one follow-up
+  turn, which consolidates them and finishes (`run-spec/turn/plan-review.sh`). That turn comes before the commit, so
+  the checks above cover it too, and the step's cost sums all three turns. A review session that cannot run or gives
+  no findings stops Analyze with Review, the model and the reason. A session that reviewed its plan itself despite the
+  choice is logged as an `error:` line, and the step goes on.
 
 A `scope-violation` carries `scopeViolation`: `specs` when the step wrote outside its own spec folder (those changes
 are undone), with the first three paths it wrote in `scopeSpecs`, and `analyze` when an analyze changed what it may not.

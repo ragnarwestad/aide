@@ -78,4 +78,38 @@ describe("the models an implement's review and verification run on", () => {
     expect(argv).toContain("--review-codex-home");
     expect(argv).toContain("/accounts/codex-b");
   });
+
+  test("an Analyze Review pick on a Codex provider reaches analyze with its account folder (AC-2)", () => {
+    expect(reviewModelArgs("analyze", "claude", {
+      home: "/home/test",
+      modelChoices: CHOICES,
+      model: { analyze: "Opus" },
+      sidePicks: { "plan-review": "gpt-6.1-sol" },
+      sideProviders: { "plan-review": "Codex-B" },
+      providers: { "Codex-B": { name: "Codex B", tool: "codex", codexHome: "/accounts/codex-b" } },
+    })).toEqual([
+      "--plan-review-model", "gpt-6.1-sol", "--plan-review-tool", "codex", "--plan-review-codex-home", "/accounts/codex-b",
+    ]);
+  });
+
+  test("Settings' Analyze Review reaches analyze, and the spec's own pick wins over it (AC-2)", () => {
+    const o = { modelChoices: CHOICES, model: { "plan-review": "Sonnet" } };
+    const job = { project: "aide", specFolder: "1-x", steps: ["analyze"], timeoutSec: {}, permissionMode: {}, model: {} } as unknown as Job;
+    const argv = runnerArgv(job, "analyze", "/tmp/r.json", { runnerBin: "/bin/r", projectDir: "/p", push: "branch", ...o });
+
+    expect(argv.join(" ")).toContain("--plan-review-model sonnet --plan-review-tool claude");
+    expect(reviewModelArgs("analyze", "claude", { ...o, sidePicks: { "plan-review": "gpt-6.1-sol" } })).toEqual([
+      "--plan-review-model", "gpt-6.1-sol", "--plan-review-tool", "codex",
+    ]);
+  });
+
+  test("each step is handed only its own parts when all three are chosen (AC-5)", () => {
+    const o = { modelChoices: CHOICES, model: { review: "Sonnet", verify: "Opus", "plan-review": "gpt-6.1-sol" } };
+
+    expect(reviewModelArgs("implement", "claude", o)).toEqual([
+      "--review-model", "sonnet", "--review-tool", "claude",
+      "--verify-model", "opus", "--verify-tool", "claude",
+    ]);
+    expect(reviewModelArgs("analyze", "claude", o)).toEqual(["--plan-review-model", "gpt-6.1-sol", "--plan-review-tool", "codex"]);
+  });
 });

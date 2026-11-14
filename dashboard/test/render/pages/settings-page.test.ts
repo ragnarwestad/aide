@@ -51,6 +51,54 @@ describe("Settings page", () => {
     }
   });
 
+  test("a Review row directly under Analyze offers the AI and model choices Implement's Review row does (AC-1)", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS,
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" },
+        { key: "Codex", name: "Codex", tool: "codex" },
+      ],
+      defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    const options = (name: string) => Array.from(window.document.querySelectorAll(`select[name="${name}"] option`),
+      (option) => option.getAttribute("value"));
+    const rows = Array.from(window.document.querySelectorAll("tr[data-step], tr[data-side]"),
+      (row) => row.getAttribute("data-step") ?? `side:${row.getAttribute("data-side")}`);
+
+    expect(rows[rows.indexOf("analyze") + 1]).toBe("side:plan-review");
+    expect(options("model.plan-review")).toEqual(options("model.review"));
+    expect(options("provider.plan-review")).toEqual(options("provider.review"));
+    expect(html).not.toContain('name="timeoutSec.plan-review"');
+  });
+
+  test("with no choice of its own, Review under Analyze shows the model and AI Analyze runs on (AC-6)", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS,
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" },
+        { key: "Claude-B", name: "Claude B", tool: "claude" },
+      ],
+      defaultModels: { default: "sonnet", analyze: "opus", review: "sonnet" },
+      defaultProviders: { analyze: "Claude-B" },
+      timeoutSec: TIMEOUT_SEC,
+    });
+    const row = html.match(/<tr data-side="plan-review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+
+    expect(row).toMatch(/<option value="opus"[^>]*selected/);
+    expect(row).toMatch(/<option value="Claude-B"[^>]*selected/);
+  });
+
+  test("Review under Analyze is labelled in the page's language (AC-8)", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      lang: "nb", modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    const row = html.match(/<tr data-side="plan-review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+
+    expect(row).toContain(`<th scope="row">${t("nb", "settings.side.plan-review")}</th>`);
+  });
+
   // The rows still come FROM the canonical step list rather than a
   // hand-picked copy of it — but now through two groups plus a named
   // set of steps that deliberately get no row, so a step added to

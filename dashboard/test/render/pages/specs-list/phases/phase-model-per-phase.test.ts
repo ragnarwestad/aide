@@ -117,6 +117,61 @@ describe("one picker per phase", () => {
     expect(review).not.toContain("hidden disabled");
   });
 
+  const sideLine = (html: string, part: string) =>
+    html.match(new RegExp(`<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
+  const optionValues = (line: string, name: string) =>
+    [...(line.match(new RegExp(`<select name="${name}"[\\s\\S]*?</select>`))?.[0] ?? "").matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+
+  test("a Review line under Analyze offers the AI and model options Implement's Review line does (AC-1)", () => {
+    const html = rows();
+    const planReview = sideLine(html, "plan-review");
+    const review = sideLine(html, "review");
+
+    expect(html.indexOf('data-side="plan-review"')).toBeGreaterThan(html.indexOf('data-step="analyze"'));
+    expect(html.indexOf('data-side="plan-review"')).toBeLessThan(html.indexOf('data-step="implement"'));
+    expect(optionValues(planReview, "model.plan-review")).toEqual(optionValues(review, "model.review"));
+    expect(optionValues(planReview, "provider.plan-review")).toEqual(optionValues(review, "provider.review"));
+    expect(planReview).not.toContain('<option value="">');
+  });
+
+  test("with no pick of its own, the Review line under Analyze rests on what Analyze runs on next (AC-6)", () => {
+    const html = rows([], {
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" as const },
+        { key: "Claude-B", name: "Claude B", tool: "claude" as const },
+        { key: "Codex", name: "Codex", tool: "codex" as const },
+      ],
+      defaultModels: { default: "sonnet", review: "gpt-fast" },
+      pendingModels: { "aide/169-one-picker": { analyze: "fable" } },
+      pendingProviders: { "aide/169-one-picker": { analyze: "Claude-B" } },
+    });
+    const planReview = sideLine(html, "plan-review");
+
+    expect(planReview).toMatch(/<option value="fable"[^>]*selected/);
+    expect(planReview).toMatch(/<option value="Claude-B"[^>]*selected/);
+  });
+
+  test("the Review line under Analyze is locked where Analyze's own choice is, and open while Analyze is still to come (AC-7)", () => {
+    const selects = (line: string) => line.match(/<select [^>]*>/g) ?? [];
+    const archived = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [],
+      modelChoices: BOTH,
+      archivedSpecs: [{ project: "aide", folder: "169-one-picker", done: ["create", "analyze", "implement", "archive"], models: {}, phaseOutcomes: {} }],
+      filter: { open: "aide/169-one-picker" },
+    });
+    const running = rows([row({ id: "j1", specFolder: "169-one-picker", steps: ["analyze"], stepIndex: 0, state: "running" })]);
+    const toCome = rows([
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["create", "analyze"], stepIndex: 0, state: "running", editableSteps: ["analyze"] }),
+    ]);
+
+    expect(selects(sideLine(archived, "plan-review")).length).toBeGreaterThan(0);
+    for (const select of selects(sideLine(archived, "plan-review"))) expect(select).toContain(" disabled");
+    for (const select of selects(sideLine(running, "plan-review"))) expect(select).toContain(" disabled");
+    expect(selects(sideLine(toCome, "plan-review")).length).toBeGreaterThan(0);
+    for (const select of selects(sideLine(toCome, "plan-review"))) expect(select).not.toContain(" disabled");
+  });
+
   // --- the server half: what a phase has already run on ---------------------
 
   // `used` is what pre-fills a select with the model its phase really

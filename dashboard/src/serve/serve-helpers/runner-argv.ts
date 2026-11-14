@@ -8,7 +8,7 @@ import { resolveStepModel } from "../../queue/model-name.ts";
 import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
-import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
+import { PLAN_REVIEW, resolveSidePick, SIDE_PARTS_OF } from "../../queue/providers/side-tools.ts";
 
 /** This step's wall clock. The field is a per-step table,
  *  but a job created before that is still in the store across the
@@ -55,8 +55,8 @@ export function stepTool(
 }
 
 /** The independently chosen model for an implement's review and defect
- *  verification. A per-spec choice wins over Settings; no resolved choice
- *  leaves that part Off. */
+ *  verification, and for an analyze's plan review. A per-spec choice wins
+ *  over Settings; no resolved choice leaves that part Off. */
 export function reviewModelArgs(
   step: string,
   _tool: string,
@@ -65,8 +65,9 @@ export function reviewModelArgs(
     sideProviders?: Record<string, string>; providers?: Record<string, Provider>; provider?: Record<string, string>; home?: string;
   },
 ): string[] {
-  if (step !== "implement") return [];
-  return SIDE_PARTS.flatMap((part) => {
+  // Analyze is handed its Review only, and Implement its Review and Verify.
+  const parts = step === "analyze" ? [PLAN_REVIEW] : step === "implement" ? SIDE_PARTS_OF.implement ?? [] : [];
+  return parts.flatMap((part) => {
     const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
     if (!name) return [];
     const choice = o.modelChoices?.[name];

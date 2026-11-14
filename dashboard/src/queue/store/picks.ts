@@ -11,7 +11,7 @@ import { WORKFLOW_STEPS } from "../steps.ts";
 import type { Job, QueueDefaults } from "../types.ts";
 import { tailEditStep } from "./tail-edits.ts";
 import type { PendingModelResult } from "./types.ts";
-import { SIDE_PARTS } from "../providers/side-tools.ts";
+import { PICK_PARTS } from "../providers/side-tools.ts";
 import type { RequestRefusal } from "../../format/request-fixes.ts";
 
 /** What the picks read and write, handed over by the store. */
@@ -113,9 +113,9 @@ function clearPendingModel(ctx: PickContext, project: string, specFolder: string
 export function setPendingModel(
   ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
 ): PendingModelResult {
-  const wanted = [...WORKFLOW_STEPS, ...SIDE_PARTS].find((s) => s === step);
+  const wanted = [...WORKFLOW_STEPS, ...PICK_PARTS].find((s) => s === step);
   if (!wanted) return { ok: false, ...invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
-  if ((SIDE_PARTS as readonly string[]).includes(wanted) && model === "") {
+  if ((PICK_PARTS as readonly string[]).includes(wanted) && model === "") {
     clearPendingModel(ctx, project, specFolder, wanted);
     ctx.changed();
     return { ok: true };

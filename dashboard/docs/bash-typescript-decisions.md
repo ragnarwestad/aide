@@ -125,8 +125,9 @@ workflow arc (`create`, `analyze`, `implement`, `archive`). Only
 since a JSON import cannot give TypeScript a literal union; a runtime
 assertion in that file throws if it ever disagrees with the shared file.
 Review is part of `analyze`, not a stage: the three-reviewer routine runs
-inline in `core/skills/aide-analyze/SKILL.md`, as separate Agent
-invocations blind to the analyst's own reasoning.
+inside the analyze step, as separate Agent invocations blind to the
+analyst's own reasoning — in the analyze session, or in a session of its
+own when a Review under Analyze is chosen.
 
 ## Not a pair: the effort levels
 

@@ -1,13 +1,14 @@
 // The Review and Verify lines under Implement: a session of their own beside
 // the implement session, with its state, time, tokens and cost, and a › that
 // folds out its own part of the step's transcript. A session that did not
-// run keeps the pickers alone.
+// run keeps the pickers alone, and so does the Review line under Analyze,
+// whose session's cost is Analyze's own.
 
 import { foldArrow, type ProgressStepState } from "../../../ui/components";
 import { esc } from "../../../ui/html.ts";
 import { durationLabel, type SideRunView } from "../../../ui/job-state";
 import { t } from "../../../../i18n";
-import type { SidePart } from "../../../../queue/providers/side-tools.ts";
+import { PLAN_REVIEW, type PickPart } from "../../../../queue/providers/side-tools.ts";
 import type { Phase, SpecGroup } from "../data-model";
 import type { SpecsPageOptions } from "../";
 import { costCell } from "../cell-helpers.ts";
@@ -18,7 +19,8 @@ import { parsePhaseKeys, phaseKey } from "./keys.ts";
 
 /** What the newest implement attempt reports of one of its side sessions, or
  *  nothing when it ran without that session or has no result yet. */
-export function sideRunOf(p: Phase, part: SidePart): SideRunView | undefined {
+export function sideRunOf(p: Phase, part: PickPart): SideRunView | undefined {
+  if (part === PLAN_REVIEW) return undefined;
   return (p.attempts[0]?.results ?? []).findLast((r) => r.step === "implement")?.[part];
 }
 
@@ -33,7 +35,7 @@ export function sideLines(
   g: SpecGroup,
   p: Phase,
   opts: SpecsPageOptions,
-  part: SidePart,
+  part: PickPart,
   pickers: string,
 ): { tag: string; cells: string }[] {
   const lang = opts.lang ?? "en";
@@ -60,7 +62,7 @@ export function sideLines(
       `<td data-col="started">${run?.durationSec !== undefined ? `<span class="muted small">${durationLabel(run.durationSec * 1000)}</span>` : ""}</td>` +
       `<td class="num" data-col="cost">${run ? costCell(run.costUsd ?? 0, run.tokens, "–", run.costUsd !== undefined) : ""}</td>`,
   };
-  if (!open) return [line];
+  if (!open || part === PLAN_REVIEW) return [line];
   const found = opts.sideMessages?.(p.attempts.map((a) => a.id), part);
   const body = found ? logBox(found.logs, found.aiModel, lang) : `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`;
   return [line, { tag: `<tr class="phasemsgs" data-msgs="implement.${part}">`, cells: `<td colspan="${LIST_COLUMNS}">${body}</td>` }];

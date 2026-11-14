@@ -325,6 +325,9 @@ nothing was written in Step 7 to review — and for a short analysis, which
 has no plan to review: `--- Step 8 of 11: Review the plan — skipped: a
 short analysis has no plan to review`.
 
+A prompt line saying the plan review runs in a session of its own hands
+this step over: see "Handing the review over" in `references/plan-review.md`.
+
 When AC-n ids exist, see `references/requirements-tracing.md` for the
 must-fix check on missing coverage.
 

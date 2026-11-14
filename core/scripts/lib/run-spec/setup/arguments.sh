@@ -73,6 +73,9 @@ kill_grace_sec="30"; do_pull="no"; dry_run="no"
 tool="claude"
 review_tool=""; review_model=""; verify_tool=""; verify_model=""
 review_claude_config_dir=""; review_codex_home=""; verify_claude_config_dir=""; verify_codex_home=""
+# The plan review an analyze hands over, on an AI and model of its own
+# (run-spec/turn/plan-review.sh): the same five flags as --review-*.
+plan_review_tool=""; plan_review_model=""; plan_review_claude_config_dir=""; plan_review_codex_home=""; plan_review_bin=""
 # `--bin`: the program the step's tool runs as, when its provider names one
 # (Settings → Providers, Binary path). Wins over AIDE_<TOOL>_BIN and PATH.
 # `--review-bin` / `--verify-bin` are the same for the two side turns.
@@ -208,6 +211,11 @@ while [ $# -gt 0 ]; do
     --verify-model) verify_model="${2:-}"; shift 2 ;;
     --verify-claude-config-dir) verify_claude_config_dir="${2:-}"; shift 2 ;;
     --verify-codex-home) verify_codex_home="${2:-}"; shift 2 ;;
+    --plan-review-tool) plan_review_tool="${2:-}"; shift 2 ;;
+    --plan-review-model) plan_review_model="${2:-}"; shift 2 ;;
+    --plan-review-claude-config-dir) plan_review_claude_config_dir="${2:-}"; shift 2 ;;
+    --plan-review-codex-home) plan_review_codex_home="${2:-}"; shift 2 ;;
+    --plan-review-bin) plan_review_bin="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --resume-session) resume_session="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
@@ -313,10 +321,11 @@ if [ -n "$codex_home_arg" ]; then
   [ -d "$codex_home_arg" ] || refuse "the Codex folder $codex_home_arg is not there on the serving host"
   export CODEX_HOME="$codex_home_arg"
 fi
-for side_dir in "$review_claude_config_dir" "$review_codex_home" "$verify_claude_config_dir" "$verify_codex_home"; do
+for side_dir in "$review_claude_config_dir" "$review_codex_home" "$verify_claude_config_dir" "$verify_codex_home" \
+  "$plan_review_claude_config_dir" "$plan_review_codex_home"; do
   [ -z "$side_dir" ] || [ -d "$side_dir" ] || refuse "the Review or Verify account directory $side_dir is not there on the serving host"
 done
-for given_bin in "$bin_arg" "$review_bin" "$verify_bin"; do
+for given_bin in "$bin_arg" "$review_bin" "$verify_bin" "$plan_review_bin"; do
   [ -z "$given_bin" ] || { [ -f "$given_bin" ] && [ -x "$given_bin" ]; } \
     || refuse "the provider's binary path $given_bin is not a program on the serving host"
 done
@@ -369,7 +378,7 @@ if [ -n "$autocompact" ]; then
     || refuse "invalid --autocompact: $autocompact (a number of tokens from 100000 to 1000000)"
 fi
 
-for side_tool in "$review_tool" "$verify_tool"; do
+for side_tool in "$review_tool" "$verify_tool" "$plan_review_tool"; do
   case "$side_tool" in
     ""|claude|codex|opencode|fake-claude) ;;
     *) refuse "invalid Review or Verify tool: $side_tool (claude, codex, opencode or fake-claude)" ;;

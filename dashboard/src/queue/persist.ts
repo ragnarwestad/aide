@@ -11,6 +11,7 @@ import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type Queue
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
 import { listedModelName } from "./model-name.ts";
 import { parseProviders, type Provider } from "./providers/index.ts";
+import { PICK_PARTS } from "./providers/side-tools.ts";
 
 // A job read back from the mirror. Looser than a request (it carries
 // id/state/results), but still validated: a corrupt row is dropped, not
@@ -156,7 +157,7 @@ export function parsePendingModels(raw: unknown): Record<string, Record<string, 
     if (steps === null || typeof steps !== "object" || Array.isArray(steps)) continue;
     const perStep: Record<string, string> = {};
     for (const [step, model] of Object.entries(steps as Record<string, unknown>)) {
-      if (typeof model === "string" && model && ([...WORKFLOW_STEPS, "review", "verify"] as readonly string[]).includes(step)) {
+      if (typeof model === "string" && model && ([...WORKFLOW_STEPS, ...PICK_PARTS] as readonly string[]).includes(step)) {
         perStep[step] = model;
       }
     }
