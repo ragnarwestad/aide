@@ -131,6 +131,9 @@ review from the channel's feed, which holds its newest 15 videos.
 | Jas Wong       | UCv5t6x3G9jpfVRhkDxIYRsQ |
 | Simon Scrapes  | UCdCR4-uYOg5ju-IUuDnfnQA |
 | Grace Leung    | UCrB7UFnkosBjAhOg3a9NdWw |
+| Anthropic      | UCrDwWp7EBBv4NwvScIpBDOA |
+| Claude         | UCV03SRZXJEz-hchIAogeJOg |
+| OpenAI         | UCXZCJLdBC09xxGZ6gcdrc6A |
 
 ---
 
