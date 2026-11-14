@@ -34,3 +34,12 @@ checkout_lock_take() {
   echo $$ > "$lock/pid" 2>/dev/null || true
   return 0
 }
+
+# $1 = a checkout. Lets go of the lock this process took there with
+# checkout_lock_take. Called only after that take returned 0: it removes
+# the lock without asking whose it is, as the dashboard's withCheckoutLock
+# does.
+checkout_lock_release() {
+  rm -rf "$(checkout_lock_path "$1")" 2>/dev/null || true
+  return 0
+}

@@ -92,10 +92,12 @@ def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, wor
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
 
 
-def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace, fake_claude, tmp_path):
+def test_a_cancelled_steps_commit_waits_for_the_checkout_lock_and_lets_go_of_it_AC_3(
+        runner, workspace, fake_claude, tmp_path):
     """A cancelled step's commit and the worktree's removal hold the
     checkout's lock, which the next run takes before it cuts its worktree,
-    so the commit never catches a fresh worktree's files."""
+    so the commit never catches a fresh worktree's files. The lock is gone
+    once the step has ended."""
     with_status(workspace, ["create", "analyze"])
     ready = tmp_path / "ready"
     claude = fake_claude(
@@ -137,6 +139,7 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace,
             proc.kill()
             proc.wait(timeout=10)
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
+    assert not lock.exists(), "the cancelled step left the checkout's lock behind"
 
 
 def test_a_cancel_while_the_merge_is_still_open_commits_no_conflict_markers(runner, workspace, fake_claude, tmp_path):

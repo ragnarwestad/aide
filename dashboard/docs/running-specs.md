@@ -179,7 +179,7 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
   config (`~/.aide/dashboard/queue-config.json`), as on the board's host.
 - **A refused request** prints the board's own reason on stderr and exits 1. A call made wrongly exits 2.
 - **Without `AIDE_BOARD_URL`, or with a board that does not know the project,** nothing is queued: the command says so,
-  names the `/aide-<step>` skill to run in an AI session instead, and exits 1. A board that cannot be reached, or does
+  names the `/aide-<step>` skill to run in an AI session instead, and exits 3. A board that cannot be reached, or does
   not answer in time, is said so with exit 1; a request that got no answer may still have been queued.
 - **A skill run in an AI session hands its step to `aide`** when the project has a board. `/aide-analyze`,
   `/aide-implement`, `/aide-archive`, `/aide-close` and `/aide-reopen` queue their step, and `/aide-create` queues the

@@ -24,24 +24,30 @@ def test_a_close_for_a_spec_the_board_does_not_know_says_so_AC_10(machine, board
     assert "no spec 722-x in demo" in result.stderr
 
 
-def test_without_an_address_the_skill_to_run_instead_is_named_AC_11(no_board_machine, board):
-    result = no_board_machine.run("analyze", "722")
+NO_BOARD = 3
 
-    assert result.returncode == 1
+
+def test_without_an_address_the_skill_to_run_instead_is_named_AC_11_AC_1(no_board_machine, board):
+    result = no_board_machine.run("analyze", "722")
+    create = no_board_machine.run("create", "demo", "A title", stdin="text\n")
+
+    assert result.returncode == NO_BOARD
     assert "AIDE_BOARD_URL" in result.stderr
     assert "/aide-analyze 722" in result.stderr
+    assert create.returncode == NO_BOARD
+    assert "/aide-create" in create.stderr
     assert board.requests == []
 
 
-def test_a_project_the_board_does_not_know_names_the_skill_to_run_instead_AC_11(machine, board):
+def test_a_project_the_board_does_not_know_names_the_skill_to_run_instead_AC_11_AC_1(machine, board):
     board.answer("POST", "/api/queue/projects/demo/fetch-specs", "not found", status=404)
 
     step = machine.run("analyze", "722")
     create = machine.run("create", "demo", "A title", stdin="text\n")
 
-    assert step.returncode == 1
+    assert step.returncode == NO_BOARD
     assert "demo" in step.stderr and "/aide-analyze 722" in step.stderr
-    assert create.returncode == 1
+    assert create.returncode == NO_BOARD
     assert "/aide-create" in create.stderr
     assert board.posts() == []
 

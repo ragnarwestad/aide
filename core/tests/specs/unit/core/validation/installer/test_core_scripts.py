@@ -149,7 +149,7 @@ class TestInstalledVersionStamp:
     this ~/.local/bin copy, so aide-preflight can later tell it apart from
     the repo's current HEAD."""
 
-    def test_install_common_bin_writes_a_stamp(self, workspace_root, tmp_path):
+    def test_install_common_bin_writes_a_stamp_with_named_fields_AC_6(self, workspace_root, tmp_path):
         installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
         result = subprocess.run(
             ["bash", "-c", f'source "{installer}"; install_common_bin'],
@@ -165,11 +165,10 @@ class TestInstalledVersionStamp:
             ["git", "-C", str(workspace_root), "rev-parse", "HEAD"],
             capture_output=True, text=True,
         ).stdout.strip()
-        assert len(lines) >= 2, f"stamp has too few lines: {lines}"
-        assert lines[1] == expected_sha, (
-            f"stamp's second line should be the repo's HEAD SHA "
-            f"({expected_sha}), got: {lines}"
-        )
+        fields = dict(line.split("=", 1) for line in lines if "=" in line)
+        assert fields.get("repo") == str(workspace_root.resolve()), lines
+        assert fields.get("commit") == expected_sha, lines
+        assert fields.get("installed_at"), lines
 
 
 @pytest.mark.validation

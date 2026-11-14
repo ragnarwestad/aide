@@ -51,7 +51,7 @@ is pytest, run from the repo root, and `dashboard/` is bun + TypeScript (see
 cd dashboard && make test           # the dashboard's gate: tsc --noEmit, then bun test
 cd dashboard && bun test test/queue/schedule-store.test.ts   # one suite
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo ROOT (the config lives there)
-scripts/check-bash                  # shellcheck over core/scripts and the round's bash — run it when a bash script changed
+scripts/check-bash                  # shellcheck over every bash script git tracks — run it when a bash script changed
 scripts/check-agents                # agnix over skills, rules, CLAUDE.md, agents and hooks — run it when one of those changed
 scripts/check-docs                  # the tests that read the documentation, about ten seconds — run it when a page changed
 ```

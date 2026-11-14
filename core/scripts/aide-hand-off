@@ -51,18 +51,27 @@ case "$step" in
   *) hand_off_usage; exit 2 ;;
 esac
 
-# aide's functions, without running it: it runs its command only when executed.
+# What reaches the board, without the aide command: the project, the board's
+# address, and the check that the board knows the project.
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/aide"
-type read_board_url >/dev/null 2>&1 && type aide_config_get >/dev/null 2>&1 || exit "$DO_IT_HERE"
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+type aide_config_get >/dev/null 2>&1 || exit "$DO_IT_HERE"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/board-request.sh" ] && source "$SCRIPT_DIR/lib/board-request.sh"
+if ! type require_board >/dev/null 2>&1; then
+  echo "aide: lib/board-request.sh is missing beside aide — reinstall aide"
+  exit 1
+fi
+
+die() {
+  echo "aide: $*" >&2
+  exit 1
+}
 
 read_board_url
 [ -n "$board_url" ] || exit "$DO_IT_HERE"
 
 find_own_project
-
-# Where `aide` says there is no board for the project, the session does the step.
-no_board_tail="in an AI session instead"
 
 if [ "$step" = "create" ]; then
   # aide create takes the project in front of the title.
@@ -86,9 +95,9 @@ if [ "$step" = "reopen" ]; then
       echo "Reopening with a reset is chosen with Reopen on the spec's page on the board; nothing was queued."
       exit 1
     fi
-    case "$asked" in
-      *"$no_board_tail"*) exit "$DO_IT_HERE" ;;
-    esac
+    if [ "$asked_exit" -eq "$NO_BOARD_EXIT" ]; then
+      exit "$DO_IT_HERE"
+    fi
     printf '%s\n' "$asked"
     exit 1
   fi
@@ -101,7 +110,9 @@ trap 'rm -f "$out_file" "$err_file" "${answer_file:-}"' EXIT
 bash "$SCRIPT_DIR/aide" "$@" >"$out_file" 2>"$err_file"
 aide_exit=$?
 
-if [ "$aide_exit" -eq 1 ] && grep -qF "$no_board_tail" "$err_file"; then
+# aide exits NO_BOARD_EXIT where there is no board for the project: the
+# session does the step.
+if [ "$aide_exit" -eq "$NO_BOARD_EXIT" ]; then
   exit "$DO_IT_HERE"
 fi
 

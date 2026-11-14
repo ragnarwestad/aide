@@ -29,6 +29,21 @@ def handing_without_a_board(tmp_path, hand_off):
     return Machine(tmp_path, hand_off, board_url=None)
 
 
+def beside_a_stub_aide(tmp_path, hand_off, board, stub, board_library=True):
+    """aide-hand-off with its libraries copied beside a stand-in `aide`
+    whose body is `stub`, on a machine whose board is set."""
+    scripts = hand_off.parent
+    copied = tmp_path / "bin"
+    copied.mkdir()
+    shutil.copy(hand_off, copied / "aide-hand-off")
+    shutil.copy(scripts / "_aide-spec-lib.sh", copied / "_aide-spec-lib.sh")
+    shutil.copytree(scripts / "lib", copied / "lib")
+    if not board_library:
+        (copied / "lib" / "board-request.sh").unlink()
+    (copied / "aide").write_text("#!/usr/bin/env bash\n" + stub)
+    return Machine(tmp_path, copied / "aide-hand-off", board_url=board.url)
+
+
 def create_posts(board):
     return [r for r in board.posts() if r["path"] == "/api/queue/create"]
 
@@ -152,6 +167,54 @@ def test_a_board_that_does_not_know_the_project_leaves_the_step_to_the_session_A
     assert result.returncode == DO_IT_HERE
     assert result.stdout == "" and result.stderr == ""
     assert board.posts() == []
+
+
+def test_an_aide_that_exits_3_in_other_words_leaves_the_step_to_the_session_AC_1(
+        tmp_path, hand_off, board):
+    machine = beside_a_stub_aide(
+        tmp_path, hand_off, board,
+        'echo "aide: nothing to queue here, so do it yourself" >&2\nexit 3\n')
+
+    result = machine.run("analyze", "722")
+
+    assert result.returncode == DO_IT_HERE
+    assert result.stdout == "" and result.stderr == ""
+
+
+def test_an_aide_refusal_in_the_old_no_board_words_is_passed_on_AC_1(tmp_path, hand_off, board):
+    sentence = "aide: the board refused — run /aide-analyze 722 in an AI session instead"
+    machine = beside_a_stub_aide(tmp_path, hand_off, board, f'echo "{sentence}" >&2\nexit 1\n')
+
+    result = machine.run("analyze", "722")
+
+    assert result.returncode == 1
+    assert sentence in result.stdout
+
+
+def test_the_hand_off_runs_aide_and_never_sources_it_AC_2(tmp_path, hand_off, board):
+    mark = tmp_path / "sourced"
+    machine = beside_a_stub_aide(
+        tmp_path, hand_off, board,
+        f'if [ "${{BASH_SOURCE[0]}}" != "$0" ]; then touch "{mark}"; return 0; fi\n'
+        'echo "Queued analyze on 722-x."\nexit 0\n')
+
+    result = machine.run("analyze", "722")
+
+    assert not mark.exists()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Queued analyze on 722-x." in result.stdout
+
+
+def test_a_missing_board_library_is_said_so_AC_2(tmp_path, hand_off, board):
+    machine = beside_a_stub_aide(
+        tmp_path, hand_off, board,
+        'if [ "${BASH_SOURCE[0]}" != "$0" ]; then return 0; fi\necho "Queued."\nexit 0\n',
+        board_library=False)
+
+    result = machine.run("analyze", "722")
+
+    assert result.returncode == 1
+    assert "lib/board-request.sh is missing" in result.stdout
 
 
 def test_without_aide_beside_it_the_step_is_done_in_the_session_AC_4(

@@ -100,11 +100,11 @@ install_common_bin() {
   done
   # Records which repo checkout and commit this ~/.local/bin copy came
   # from, so a later aide-preflight run can tell it apart from the
-  # repo's current HEAD.
+  # repo's current HEAD. One name=value line per field, read by name.
   local repo_root sha
   repo_root="$(cd "$_CORE_SCRIPTS_DIR/../.." && pwd)"
   sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
-  printf '%s\n%s\n%s\n' "$repo_root" "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  printf 'repo=%s\ncommit=%s\ninstalled_at=%s\n' "$repo_root" "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     > ~/.local/bin/.aide-installed-version
 }
 

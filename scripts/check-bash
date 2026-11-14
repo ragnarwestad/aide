@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# check-bash - Run shellcheck over every bash script in core/scripts.
+# check-bash - Run shellcheck over every bash script the repository tracks.
 #
-# The one place the list of scripts lives: CI's shellcheck job runs this
-# same file, so a script added here is checked on both sides at once. The
-# severity matches CI — warnings and errors fail, info and style do not.
+# The scripts are found through git: a tracked file named *.sh, or one whose
+# first line is a shebang that runs bash. Nothing is listed by hand, so a new
+# script is checked the moment it is committed. CI's shellcheck job runs this
+# same file. The severity matches CI — warnings and errors fail, info and
+# style do not.
 # .shellcheckrc at the repo root is picked up automatically when run from
 # there, which is why this script changes directory first.
 #
@@ -24,23 +26,20 @@ fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-shellcheck --severity=warning \
-  core/scripts/aide \
-  core/scripts/aide-* \
-  core/scripts/_*.sh \
-  core/scripts/build-agents-md.sh \
-  core/scripts/upgrade-ai-tools \
-  core/scripts/lib/*.sh \
-  core/scripts/lib/run-spec/*/*.sh \
-  dashboard/install.sh \
-  dashboard/deploy/check-prerequisites.sh \
-  dashboard/deploy/repair-serve-plist.sh \
-  dashboard/scripts/run-tests.sh \
-  dashboard/test/round/run \
-  dashboard/test/round/claude-stub \
-  scripts/test-linux-install \
-  scripts/check-agents \
-  scripts/check-bash \
-  scripts/check-docs \
-  .githooks/pre-push \
-  .githooks/commit-msg
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  || { echo "check-bash finds the scripts through git, and $(pwd) is not a git checkout" >&2; exit 2; }
+
+scripts=()
+while IFS= read -r -d '' file; do
+  [ -f "$file" ] || continue
+  case "$file" in
+    *.sh) scripts+=("$file"); continue ;;
+  esac
+  first=""
+  IFS= read -r first < "$file" || true
+  case "$first" in
+    '#!'*bash*) scripts+=("$file") ;;
+  esac
+done < <(git ls-files -z)
+
+shellcheck --severity=warning "${scripts[@]}"

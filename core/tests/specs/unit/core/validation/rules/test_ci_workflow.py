@@ -78,6 +78,29 @@ def _run_commands(job_text):
     return commands
 
 
+def _git(repo, *args):
+    import subprocess
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+
+def _run_check_bash(root):
+    """scripts/check-bash under `root`, with a shellcheck that records the
+    files it is given, one per line: the run, and those files."""
+    import os
+    import subprocess
+    record = root.parent / f"{root.name}-shellcheck-args"
+    stub = ('() { for a in "$@"; do case "$a" in -*) ;; *) echo "$a" >> '
+            f'"{record}" ;; esac; done; }}')
+    result = subprocess.run(
+        ["bash", str(root / "scripts" / "check-bash")],
+        env={**os.environ, "BASH_FUNC_shellcheck%%": stub,
+             "GIT_CEILING_DIRECTORIES": str(root.parent)},
+        capture_output=True, text=True,
+    )
+    given = record.read_text().splitlines() if record.exists() else []
+    return result, given
+
+
 @pytest.mark.validation
 class TestCiWorkflow:
     """The workflow must run the gates AGENTS.md documents."""
@@ -110,6 +133,43 @@ class TestCiWorkflow:
         assert result.returncode == 0, \
             f"Expected exit 0 for --help, got {result.returncode}: {result.stderr}"
         assert "usage" in result.stdout.lower(), result.stdout
+
+    def test_check_bash_checks_every_tracked_bash_script_and_nothing_else_AC_4(
+            self, workspace_root, tmp_path):
+        """A tracked *.sh, and a tracked file with no suffix whose shebang
+        runs bash, at any depth; never a Python script or an untracked file."""
+        repo = tmp_path / "repo"
+        (repo / "scripts").mkdir(parents=True)
+        (repo / "tools").mkdir()
+        (repo / "deep" / "x").mkdir(parents=True)
+        (repo / "scripts" / "check-bash").write_text(
+            (workspace_root / "scripts" / "check-bash").read_text())
+        (repo / "a.sh").write_text("echo a\n")
+        (repo / "tools" / "run").write_text("#!/usr/bin/env bash\necho run\n")
+        (repo / "deep" / "x" / "hook").write_text("#!/bin/bash\necho hook\n")
+        (repo / "tool.py").write_text("#!/usr/bin/env python3\nprint(1)\n")
+        _git(repo, "init", "-q")
+        _git(repo, "add", "-A")
+        (repo / "loose.sh").write_text("echo loose\n")
+
+        result, given = _run_check_bash(repo)
+
+        assert result.returncode == 0, result.stderr
+        assert sorted(given) == sorted(
+            ["a.sh", "scripts/check-bash", "tools/run", "deep/x/hook"])
+
+    def test_check_bash_outside_a_git_checkout_says_it_finds_scripts_through_git_AC_4(
+            self, workspace_root, tmp_path):
+        copy = tmp_path / "loose"
+        (copy / "scripts").mkdir(parents=True)
+        (copy / "scripts" / "check-bash").write_text(
+            (workspace_root / "scripts" / "check-bash").read_text())
+
+        result, given = _run_check_bash(copy)
+
+        assert result.returncode == 2
+        assert "through git" in result.stderr
+        assert given == []
 
     def test_bun_version_matches_lockfile(self, workspace_root):
         """The workflow's bun pin follows dashboard/bun.lock.

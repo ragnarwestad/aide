@@ -74,7 +74,6 @@ mkdir -p "$(dirname "$WT")"
 # loses a ref lock while a run is in its own section.
 # shellcheck source=/dev/null
 source "$(cd "$(dirname "$0")" && pwd)/lib/checkout-lock.sh"
-LOCK="$(checkout_lock_path "$ROOT")"
 if ! checkout_lock_take "$ROOT" 120; then
   echo "timed out waiting for the worktree lock on $ROOT (pid ${checkout_lock_owner:-unknown} may be stuck)" >&2
   exit 1
@@ -82,7 +81,7 @@ fi
 git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true
 ADD_ERROR="$(git -C "$ROOT" worktree add --detach "$WT" "$BRANCH" 2>&1)"
 ADD_CODE=$?
-rm -rf "$LOCK" 2>/dev/null || true
+checkout_lock_release "$ROOT"
 if [ "$ADD_CODE" -ne 0 ]; then
   echo "cannot check out $BRANCH in $ROOT: $(printf '%s\n' "$ADD_ERROR" | grep -m1 . | head -c 200)" >&2
   exit 1

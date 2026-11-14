@@ -62,6 +62,19 @@ describe("the lock's path", () => {
   });
 });
 
+describe("letting go of the lock", () => {
+  test("checkout_lock_release removes the lock checkout_lock_take made (AC-3)", () => {
+    const root = checkout();
+    const result = Bun.spawnSync({
+      cmd: ["bash", "-c", 'source "$1"; checkout_lock_take "$2" 1 || exit 1; checkout_lock_release "$2"', "_", LIB, root],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(checkoutLockPath(root))).toBe(false);
+  });
+});
+
 describe("the dashboard waits for the runner", () => {
   test("a move waits while a bash process holds the lock, and runs once it lets go (AC-1)", async () => {
     const root = checkout();
@@ -70,7 +83,7 @@ describe("the dashboard waits for the runner", () => {
     const holder = Bun.spawn({
       cmd: [
         "bash", "-c",
-        'source "$1"; checkout_lock_take "$2" 5 || exit 1; touch "$3"; sleep 0.6; touch "$4"; rm -rf "$(checkout_lock_path "$2")"',
+        'source "$1"; checkout_lock_take "$2" 5 || exit 1; touch "$3"; sleep 0.6; touch "$4"; checkout_lock_release "$2"',
         "_", LIB, root, taken, released,
       ],
     });

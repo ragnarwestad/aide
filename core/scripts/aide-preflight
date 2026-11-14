@@ -180,8 +180,12 @@ drift_state() {
   local stamp="$HOME/.local/bin/.aide-installed-version"
   [ -f "$stamp" ] || { echo "unknown||"; return 0; }
   local repo_root installed_sha current_sha
-  repo_root="$(sed -n '1p' "$stamp")"
-  installed_sha="$(sed -n '2p' "$stamp")"
+  repo_root="$(sed -n 's/^repo=//p' "$stamp" | head -1)"
+  installed_sha="$(sed -n 's/^commit=//p' "$stamp" | head -1)"
+  # A stamp without both fields (one written in the old line format before
+  # the next install rewrites it) measures nothing: git -C "" would read the
+  # repository preflight happens to run in.
+  { [ -n "$repo_root" ] && [ -n "$installed_sha" ]; } || { echo "unknown||"; return 0; }
   # rev-parse (not `[ -d "$repo_root/.git" ]`) so this still works from
   # a git worktree checkout, where .git is a FILE pointing at the real
   # gitdir rather than a directory.

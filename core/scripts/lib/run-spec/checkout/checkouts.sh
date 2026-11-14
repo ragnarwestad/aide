@@ -204,24 +204,22 @@ keep_stream() {
   fi
   return 0
 }
-# The checkout locks a cancelled step holds through its commit and the
+# The checkouts whose lock a cancelled step holds through its commit and the
 # removal of its worktrees (on_signal): released after both, in the EXIT
 # trap, so a run on the same branch waits for them.
 signal_locks=()
 release_signal_locks() {
-  local lock
-  for lock in ${signal_locks[@]+"${signal_locks[@]}"}; do rm -rf "$lock" 2>/dev/null || true; done
+  local root
+  for root in ${signal_locks[@]+"${signal_locks[@]}"}; do checkout_lock_release "$root"; done
   signal_locks=()
 }
 # Waits for one checkout's lock, as acquire_worktree_lock does, but never
 # refuses: a lock still held after two minutes is left, and the commit goes
 # ahead without it, as it always did.
 take_signal_lock() {
-  local lock
-  lock="$(checkout_lock_path "$1")"
-  [ "$lock" = "${worktree_lock:-}" ] && return 0
+  [ "$1" = "${worktree_lock_root:-}" ] && return 0
   checkout_lock_take "$1" 120 || return 0
-  signal_locks+=("$lock")
+  signal_locks+=("$1")
 }
 trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir" "$_runner_snapshot"' EXIT
 # A merge still open in a worktree is put back, never committed: the

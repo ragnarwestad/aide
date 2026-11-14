@@ -7,7 +7,8 @@
 # The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
 # machine (as aide-push-specs reads it). Without it, or with a board that
 # does not know the project, nothing is queued: the command says so, names
-# the /aide-<step> skill to run in an AI session instead, and exits 1.
+# the /aide-<step> skill to run in an AI session instead, and exits 3
+# (NO_BOARD_EXIT in lib/board-request.sh).
 #
 # Every answer is one plain sentence and no link. An accepted request says
 # what was queued, on which model, and whether it starts now or what it
@@ -28,15 +29,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 [ -f "$SCRIPT_DIR/lib/board-answer.sh" ] && source "$SCRIPT_DIR/lib/board-answer.sh"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/board-request.sh" ] && source "$SCRIPT_DIR/lib/board-request.sh"
-
-# How long to wait for the board: the connection, then an answer. The
-# reads wait CHECK_SECONDS. The specs fetch before every command asks
-# origin, and a request that queues something is answered only after a
-# scheduler pass, which may ask origin about each queued job's
-# dependencies, so both wait longer.
-CONNECT_SECONDS=3
-CHECK_SECONDS=15
-ANSWER_SECONDS="${AIDE_BOARD_ANSWER_SECONDS:-60}"
 
 STEPS="analyze implement archive reopen"
 
@@ -71,19 +63,10 @@ usage_error() {
 # The project and the spec
 # ---------------------------------------------------------------------------
 
-project_root=""
-own_project=""
-board_url=""
 project=""
 target_root=""
 spec_folder=""
 spec_path=""
-
-find_own_project() {
-  project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-  own_project="$(aide_manifest_get name "$project_root")"
-  [ -n "$own_project" ] || own_project="$(basename "$project_root")"
-}
 
 # The checkout whose specs root answers for the named project: this one when
 # it is the project, else the board host's own checkout of it, when this
@@ -106,11 +89,6 @@ number_from_board() {
     [(.jobs // [])[] | select(.project == $p and ((.specFolder // "") | test("^[0-9]+-")))
      | select(((.specFolder | capture("^(?<d>[0-9]+)-").d | tonumber)) == ($n | tonumber)) | .specFolder]
     | first // empty' "$answer_file" 2>/dev/null
-}
-
-read_board_url() {
-  board_url="$(aide_config_get AIDE_BOARD_URL "$HOME")"
-  board_url="${board_url%/}"
 }
 
 # resolve_spec <number or folder>: sets spec_folder (what the board takes)

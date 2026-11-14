@@ -89,7 +89,7 @@ def test_a_project_not_checked_out_here_says_only_the_job_AC_7(machine, board):
 def test_without_a_board_status_says_so_and_names_no_skill_AC_11(no_board_machine):
     result = no_board_machine.run("status", "722")
 
-    assert result.returncode == 1
+    assert result.returncode == 3
     assert "AIDE_BOARD_URL" in result.stderr
     assert "/aide-" not in result.stderr
 

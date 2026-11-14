@@ -271,25 +271,25 @@ fetch_base_with_retry() {
 # steals the lock the moment that pid is gone, the same next-run-cleans-up
 # shape sweep_worktree already uses for a killed run's leftover worktree.
 #
-# $worktree_lock is set ONLY once this process has actually created the
-# lock dir (the line right after mkdir succeeds, never before it): a
+# $worktree_lock_root, the checkout whose lock this process holds, is set
+# ONLY once this process has actually created the lock dir (the line right after mkdir succeeds, never before it): a
 # losing waiter that times out calls refuse (which exits 2, firing the
 # EXIT trap below) and must not delete the WINNER's still-live lock,
 # which is exactly what setting this variable early would do.
-worktree_lock=""
+worktree_lock_root=""
 acquire_worktree_lock() {
   local root="$1" lock
   lock="$(checkout_lock_path "$root")"
   if ! checkout_lock_take "$root" "${AIDE_WORKTREE_LOCK_WAIT_SECONDS:-120}"; then
-    worktree_lock=""
+    worktree_lock_root=""
     refuse_fix "timed out waiting for the worktree lock at $lock on the serving host" \
       "remove that lock, but only after confirming that no aide-run-spec process is using that checkout"
   fi
-  worktree_lock="$lock"
+  worktree_lock_root="$root"
 }
 release_worktree_lock() {
-  [ -n "$worktree_lock" ] && rm -rf "$worktree_lock" 2>/dev/null
-  worktree_lock=""
+  [ -n "$worktree_lock_root" ] && checkout_lock_release "$worktree_lock_root"
+  worktree_lock_root=""
   return 0
 }
 

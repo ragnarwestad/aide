@@ -27,7 +27,7 @@ other — see `AGENTS.md` for why they stay separate.
 ```bash
 .venv/bin/pytest                    # core's gate, run from the root
 cd dashboard && make test           # the dashboard's gate (tsc --noEmit, then bun test)
-scripts/check-bash                  # shellcheck over core/scripts, when a bash script changed
+scripts/check-bash                  # shellcheck over every bash script git tracks, when one changed
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo root
 ```
 

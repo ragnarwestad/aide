@@ -28,7 +28,7 @@ pull request:
 | Python 3.14       | `.venv/bin/pytest`, the root's gate                                                       | `brew install python@3.14`, then `python3.14 -m venv .venv && .venv/bin/pip install -r requirements.txt` |
 | bun               | `cd dashboard && make test`, the dashboard's gate                                         | `brew install oven-sh/bun/bun` (or mise; the version is `dashboard/bun.lock`'s)                          |
 | markdownlint-cli2 | `npx markdownlint-cli2 '**/*.md'`                                                         | fetched by `npx`, needs Node.js                                                                          |
-| shellcheck        | `scripts/check-bash`, over every bash script in `core/scripts` and `dashboard/test/round` | `brew install shellcheck`                                                                                |
+| shellcheck        | `scripts/check-bash`, over every bash script the repository tracks                        | `brew install shellcheck`                                                                                |
 | agnix             | `scripts/check-agents`, over skills, rules, CLAUDE.md, agents and hooks                   | fetched by `npx` at the version the script pins, needs Node.js                                           |
 
 `scripts/check-bash` refuses with the install command when shellcheck is

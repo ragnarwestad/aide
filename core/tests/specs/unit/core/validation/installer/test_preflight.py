@@ -120,11 +120,38 @@ class TestPreflightDrift:
 
     @staticmethod
     def _write_stamp(home, repo_root, sha):
+        TestPreflightDrift._write_stamp_text(
+            home, f"repo={repo_root}\ncommit={sha}\ninstalled_at=2026-09-01T00:00:00Z\n")
+
+    @staticmethod
+    def _write_stamp_text(home, text):
         stamp_dir = home / ".local" / "bin"
         stamp_dir.mkdir(parents=True, exist_ok=True)
-        (stamp_dir / ".aide-installed-version").write_text(
-            f"{repo_root}\n{sha}\n2026-09-01T00:00:00Z\n"
-        )
+        (stamp_dir / ".aide-installed-version").write_text(text)
+
+    @staticmethod
+    def _head(workspace_root):
+        return subprocess.run(
+            ["git", "-C", str(workspace_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+
+    def test_the_stamps_fields_are_read_by_name_in_any_order_AC_5(self, workspace_root, tmp_path):
+        head = self._head(workspace_root)
+        self._write_stamp_text(
+            tmp_path, f"commit={head}\ninstalled_at=2026-09-01T00:00:00Z\nrepo={workspace_root}\n")
+        result = _run(workspace_root, ["claude"], home=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "match" in result.stdout.lower(), result.stdout
+        assert head in result.stdout, result.stdout
+
+    def test_a_stamp_in_the_old_line_format_claims_no_drift_AC_5(self, workspace_root, tmp_path):
+        self._write_stamp_text(
+            tmp_path, f"{workspace_root}\n0000000000000000000000000000000000dead\n2026-09-01T00:00:00Z\n")
+        result = _run(workspace_root, ["claude"], home=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "match" not in result.stdout.lower()
+        assert "behind" not in result.stdout.lower()
 
     def test_reports_match_when_stamp_equals_head(self, workspace_root, tmp_path):
         head = subprocess.run(
