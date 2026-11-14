@@ -13,7 +13,7 @@ import { rowLabel } from "../../ui/components/spec-name.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 import { ICON_MORE } from "../../ui/components/icons.ts";
-import { executionGroupWaitRows } from "./execution-group-waiting.ts";
+import { executionGroupStopRows, executionGroupWaitRows } from "./execution-group-waiting.ts";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -137,6 +137,7 @@ export function executionGroupCard(
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     // What the group waits for, outside the body the fold hides.
     executionGroupWaitRows(group, states, lang as Language) +
+    executionGroupStopRows(group, members.map((member) => member.group), lang as Language) +
     `</tbody>`;
   const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;

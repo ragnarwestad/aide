@@ -199,17 +199,14 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
 /* The spinner a pressed › shows until its rows are back: a span, which
    takes its size only as an inline block. */
 .fold > .spin { display: inline-block; vertical-align: middle; }
-/* The letter row and the pip row repeat the same 21px width and 3px
-   gap per column (matching `.pip`'s own width below) so a letter
-   always sits centred over its own pip whatever the viewport — same
-   two numbers, twice, not a variable, since `.pip`'s width is itself
-   pinned to a literal by a test (divisible by three).
+/* Labels and bars share one width and gap, so each label centres over
+   its bar. Single letters use 21px; longer labels supply --pip-width.
    `.pipwrap` is what a caller's own layout treats as the pips now: it
    is the flex/table-cell item, not `.pips` (see `table.facts .pipwrap`
    in job-page.css for the one place that mattered). */
-.pipwrap { display: inline-flex; flex-direction: column; gap: 2px; }
+.pipwrap { display: inline-flex; flex-direction: column; gap: 2px; font-size: var(--fs-s); }
 .pipletters { display: flex; gap: 3px; }
-.pipletters span { width: 21px; text-align: center;
+.pipletters span { width: var(--pip-width, 21px); flex-shrink: 0; text-align: center;
   font-size: var(--fs-s); line-height: 1; color: var(--muted); }
 /* A letter takes its own pip's colour, so the pair reads as one mark
    rather than a grey label over a coloured bar. `todo` keeps `--muted`:
@@ -232,7 +229,7 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
    than while a run is going — a pip that grew mid-run would move
    everything on the line beside it. The position and overflow are what
    the fill below is drawn inside. */
-.pip { width: 21px; height: 4px; border-radius: 2px; background: var(--line-strong);
+.pip { width: var(--pip-width, 21px); flex-shrink: 0; height: 4px; border-radius: 2px; background: var(--line-strong);
   position: relative; overflow: hidden; }
 .pip.past { background: var(--ok); }
 /* The badge's own colours on the pip beside it: amber for a phase held

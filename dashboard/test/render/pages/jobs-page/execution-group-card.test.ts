@@ -103,6 +103,19 @@ test("a completed group is counted under Done rather than Stopped (AC-3, AC-5)",
   expect(executionGroupRowState(group("completed"), false)).toBe("done");
 });
 
+test("a stopped card links to the stopped member without repeating its failure", () => {
+  const stopped = member("1-first", "<tr>member</tr>", {
+    lead: {
+      id: "failed-job", project: "aide", specFolder: "1-first", state: "failed",
+      steps: ["implement"], stepIndex: 0, spentUsd: 0, timeoutSec: 600,
+      createdAt: "2026-11-14T20:00:00Z", error: "The test suite failed; correct the failing tests.",
+    },
+  });
+  const html = executionGroupCard({ ...group("stopped"), currentMember: "1-first" }, [stopped]);
+  expect(html).not.toContain("The test suite failed; correct the failing tests.");
+  expect(html).toContain(`href="${specPagePath("aide", "1-first")}"`);
+});
+
 const implemented = (folder: string, o: Partial<SpecGroup> = {}) =>
   ({ ...member(folder, "<tr></tr>"), group: { ...member(folder, "").group, done: ["create", "analyze", "implement"], ...o } as SpecGroup });
 

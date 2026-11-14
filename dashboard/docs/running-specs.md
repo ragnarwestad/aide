@@ -837,6 +837,11 @@ action, and each member is drawn below as its own spec card. The State/Action pl
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
 implemented and Archive on the card lands them together, or which members are still running, or which members have
 acceptance rows left to tick, each member a link to its spec page.
+When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
+is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
+The same notice covers failed, interrupted and cancelled member jobs, and a failed Archive landing even when the
+group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
+but only while that job is still the spec's current one.
 Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
 Remove takes the card off.
 
