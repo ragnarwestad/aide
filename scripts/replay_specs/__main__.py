@@ -69,6 +69,7 @@ def parse(argv):
     ap.add_argument("--analyze", nargs="+", metavar="TOOL MODEL [EFFORT]")
     ap.add_argument("--skip-analyze", action="store_true", help="implement runs on the description alone; needs --implement")
     ap.add_argument("--implement", nargs="+", metavar="TOOL MODEL [EFFORT]", help="left out, only analyze runs")
+    ap.add_argument("--preflight", help="shell command run in each historical code copy before any model; failure stops that spec")
     ap.add_argument("--repeat", type=int, default=1, help="how many times each spec is replayed, to see how consistent it is")
     ap.add_argument("--judge", default="opus", help="the Claude model that scores the new plan")
     ap.add_argument("--advisor", help="the model every claude step consults as its advisor")
@@ -125,7 +126,7 @@ def prepare(args: argparse.Namespace, analyze: Optional[steps.Step], implement: 
     return steps.Run(project=args.project, code=os.path.realpath(args.code), specs_root=os.path.realpath(args.specs_root), core=core,
                      tmp=tmp, out=out, analyze=analyze, implement=implement, judge_model=args.judge, advisor=args.advisor, branch=branch,
                      code_landing="pr" if copies.manifest_value(args.code, "codeLanding") == "pr" else "merge",
-                     env=env, tool_env=configured), sha
+                     env=env, tool_env=configured, preflight=args.preflight), sha
 
 
 def header(sha, run):

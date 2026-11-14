@@ -47,6 +47,7 @@ class Run:
     code_landing: str
     env: dict
     tool_env: dict
+    preflight: Optional[str] = None
 
 
 def end_group(proc):
@@ -232,6 +233,15 @@ def replay_one(run, arg, index, attempt=None):
         code_dir = copies.code_copy(run.code, re.sub("^origin/", "", run.branch), found.before, work / "code")
         specs_repo = work / "specs"
         specs_dir = copies.specs_copy(archived, folder, run.project, specs_repo, run.core, run.specs_root)
+        if run.preflight:
+            with (out / "preflight.log").open("w") as log:
+                try:
+                    checked = subprocess.run(["/bin/bash", "-c", run.preflight], cwd=code_dir,
+                                             env=run.env, stdout=log, stderr=subprocess.STDOUT, timeout=600)
+                except subprocess.TimeoutExpired:
+                    raise CannotReplay("preflight timed out after 600 seconds; see preflight.log") from None
+            if checked.returncode:
+                raise CannotReplay(f"preflight failed (exit {checked.returncode}); see preflight.log")
         row.replayed = True
         replay_steps(run, row, folder, archived, found, code_dir, str(specs_repo), specs_dir, work, out)
     except (CannotReplay, landing.NoLanding) as error:

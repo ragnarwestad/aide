@@ -333,3 +333,20 @@ def test_a_single_replay_keeps_its_logs_in_the_specs_own_folder_and_has_no_consi
 
 def test_a_repeat_below_one_is_refused_before_anything_is_copied(world, replay_main, capsys):
     refused(world, capsys, replay_main, world.argv("4-replayed", extra=("--repeat", "0")), "--repeat")
+
+
+def test_a_failed_environment_check_stops_before_any_model_runs(world, replay_main):
+    assert replay_main(world.argv("4-replayed", extra=("--preflight", "echo service-unavailable; exit 17"))) == 0
+    assert world.record("analyze", "args") is None
+    assert world.record("implement", "args") is None
+    assert "preflight failed (exit 17)" in results_text(world)
+    logs = list(world.run_folder().rglob("preflight.log"))
+    assert len(logs) == 1
+    assert "service-unavailable" in logs[0].read_text()
+
+
+def test_a_successful_environment_check_allows_the_model_to_run(world, replay_main):
+    assert replay_main(world.argv("4-replayed", implement=None, extra=("--preflight", "echo service-ready"))) == 0
+    assert world.record("analyze", "args")
+    logs = list(world.run_folder().rglob("preflight.log"))
+    assert "service-ready" in logs[0].read_text()

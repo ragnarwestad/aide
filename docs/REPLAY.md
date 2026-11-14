@@ -97,6 +97,14 @@ perl -e "setpgrp(0,0); exec @ARGV" python3 scripts/replay_specs --project aide -
   --code ~/develop/aide --specs-root ~/develop/aide-specs/aide --results ~/.aide/replays/<round>/615
 ```
 
+Use `--preflight '<command>'` when a project's tests need services. The command runs
+in each historical code copy, before analyze, the judge or implement. A nonzero
+exit or a ten-minute timeout stops that spec without calling a model; its output
+stays in `preflight.log` beside the step logs. For Skjera, use
+`--preflight 'docker compose up -d --wait mailpit && curl -fsS --max-time 10 http://127.0.0.1:8025/readyz'`.
+A port conflict must be resolved before replay; do not stop another service to
+make room for it.
+
 Start it with `tmux new-session -d -s <name> <launcher>`.
 
 Keep `--aide-commit` the same across rounds that are to be compared: the runner and
