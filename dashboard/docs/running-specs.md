@@ -837,7 +837,7 @@ the group's creation date, its progress and the one action allowed by its curren
 menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
-it the creation date, one pip per member numbered in the group's order, and the group's state. Each pip has the colour
+it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is

@@ -302,7 +302,7 @@
     border-radius: var(--r); box-shadow: var(--overlay-shadow); }
     table.list tr.subrow .aimodel:has(.aimodelopen:checked) .aimodelpanel { display: flex; }
     table.list tr.subrow .aimodelfield { display: flex; flex-direction: column; gap: var(--sp-1); }
-    table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
+    table.list tr.subrow .aimodelfield > span:not(.providerpick) { display: block; font-size: var(--fs-s); color: var(--muted); }
     table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
     table.list tr.subrow .aimodelpanel .providerpick { display: flex; }
 

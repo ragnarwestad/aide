@@ -1,3 +1,4 @@
+import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
@@ -118,11 +119,11 @@ export function executionGroupCard(
   const open = !!opts.openFor || members.some((member) => member.html.includes(" data-spec-detail="));
   const shut = open ? "" : " hidden";
   // Two lines always, as a spec's card: the name, then the date with a pip
-  // per member at its right, numbered in the group's order, and the state
+  // per member at its right, labelled with its spec number, and the state
   // or, while the card is open, its action.
-  const memberPips = pips(group.members.map((folder, index) => {
+  const memberPips = pips(group.members.map((folder) => {
     const row = members.find((member) => member.group.specFolder === folder);
-    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: String(index + 1) };
+    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: specNumber(folder) };
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
