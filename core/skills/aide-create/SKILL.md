@@ -187,6 +187,16 @@ its condition first:
 - `IF <condition>, THEN the <system> SHALL <response>` — unwanted behaviour
 - `WHERE <feature>, the <system> SHALL <response>` — an optional feature
 
+Before adding criteria for a user-interface change, read the project's design
+rules and inspect the nearest existing control with the same role. Use the
+control named in the description as the reference; otherwise identify one in
+the project. Criteria you add follow its button variant, opening and closing,
+and feedback or navigation after the action. Name the reference in the user's
+words, leaving source paths for analysis. Do not invent a different pattern
+just because a generic component is available. Keep incoming criteria and the
+description unchanged as required above; report a conflict with the existing
+pattern in Step 6 for the user to resolve before Analyze.
+
 A criterion about how something in the user interface looks names it
 in the words of the project's design document, when the project has one
 (its CLAUDE.md or AGENTS.md says where), and names that document and its

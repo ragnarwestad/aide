@@ -410,7 +410,10 @@ evidence that the phase happened:
   branch. Otherwise the step ends `no-progress` and the line is not extended. After that check:
   - **A review.** A second, fresh session reads the spec's description and the branch's diff and looks for defects
     against the description, each with the concrete case it goes wrong for (`run-spec/turn/review.sh`). It never
-    comments on style, naming or structure, except that a description with an `## Out of scope` section makes each
+    comments on stylistic preferences, naming or structure. For interface changes it also reads the project's design
+    rules and compares the implementation with the existing reference control: component, variant, opening, closing,
+    keyboard behaviour and feedback after an action. Concrete violations of those rules count as defects, and missing
+    visual verification is reported separately. A description with an `## Out of scope` section makes each
     change under an item in it a defect too. An existing test the branch weakened is a defect as well: a test deleted,
     an assertion removed or loosened, or a test marked as skipped or disabled, unless the description replaces or
     removes the behaviour that test checked. A test moved or renamed is not deleted. Every completed implement runs
