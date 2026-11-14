@@ -2,7 +2,7 @@ import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
-import { badge, buttonForm, foldButton, headerMenu, pips, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
+import { badge, buttonForm, foldButton, headerMenu, pips, progressDialog, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup, SpecTarget } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { specBusy } from "../specs-list/row-state.ts";
@@ -105,9 +105,10 @@ export function executionGroupCard(
   }) : "";
   const anchor = executionGroupAnchor(group);
   const editDialogId = `edit-group-${anchor}`;
+  const removeDialogId = `remove-group-${anchor}`;
   const menuContent = controls.menu.map((item) => item === "edit"
     ? `<button type="button" data-ask="${esc(editDialogId)}">${esc(t(lang as Language, "list.groupEdit"))}</button>`
-    : buttonForm({ action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`, hook: "actionform", hidden: { action: "remove" }, button: { menuItem: t(lang as Language, "project.remove") } })).join("");
+    : `<button type="button" data-ask="${esc(removeDialogId)}">${esc(t(lang as Language, "project.remove"))}</button>`).join("");
   const menu = headerMenu({ label: t(lang as Language, "list.groupMenu", { group: group.name }), icon: ICON_MORE, content: menuContent });
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
@@ -149,6 +150,12 @@ export function executionGroupCard(
       id: group.id, anchor, project: group.project, name: group.name,
       members: group.members.map((folder) => ({ specFolder: folder, title: members.find((row) => row.group.specFolder === folder)?.group.title, locked: opts.locked?.has(folder) ?? false })),
     }, lang: lang as Language }) : "") +
+    (controls.menu.includes("remove") ? progressDialog(lang as Language, {
+      id: removeDialogId, title: t(lang as Language, "dialog.removing"),
+      ask: { title: `${t(lang as Language, "project.remove")} ${group.name}`,
+        ok: { variant: "primary", pending: t(lang as Language, "dialog.removing") },
+        post: { action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`, hook: "actionform", hidden: { action: "remove" } } },
+    }) : "") +
     `</td></tr>` +
     `<tr class="specgap" aria-hidden="true"><td colspan="6"></td></tr>`;
 }

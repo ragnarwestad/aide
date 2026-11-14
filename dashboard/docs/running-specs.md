@@ -116,7 +116,8 @@ press validates and moves every member together, runs the project's test gate on
 member already archived counts as done, and Archive moves the rest. The card shows the group as archiving from the
 press until the landing has settled. A failed landing leaves every member active and shows the reason on the group.
 
-A completed group's … menu offers Remove, and no other state does. Remove takes the card off the Jobs tab and draws the
+A completed group's … menu offers Remove, and no other state does. It asks in the shared progress dialog, blocks input
+while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the
 group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
 link — and changes no spec file.
 

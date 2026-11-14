@@ -27,6 +27,13 @@ export async function submitAction(event: Event): Promise<void> {
   // A dialog that holds this form's fields: a refusal stays in it, with
   // what was typed, and a press that goes through closes it.
   const held = form.closest("dialog.formdialog") as HTMLDialogElement | null;
+  const progress = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
+  const hold = progress ? coverWhile(progress) : null;
+  if (hold) {
+    for (const menu of form.closest("tr.execution-group")?.querySelectorAll("details.menu[open]") ?? []) {
+      menu.removeAttribute("open");
+    }
+  }
   await postForm(
     form,
     async () => {
@@ -39,8 +46,10 @@ export async function submitAction(event: Event): Promise<void> {
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();
+      hold?.release();
     },
     (why, spec) => {
+      if (hold) return hold.release(why);
       if (held) return formNote(form, why);
       // A row's Cancel is posted from its confirm dialog, and the
       // refusal is written under the row, behind it.
