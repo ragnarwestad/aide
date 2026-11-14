@@ -135,7 +135,7 @@ tool's stderr when it wrote no result. The runner also sorts it, and the result 
 
 | `kind`      | When                                                                                                                   |
 |-------------|------------------------------------------------------------------------------------------------------------------------|
-| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication                                  |
+| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication, or a model that requires usage credits the account does not have |
 | `login`     | A 401, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in    |
 | `network`   | The tool could not reach the provider: DNS, a refused connection, `fetch failed` or another network error            |
 | `provider`  | A 5xx, Claude Code's `server_error`, overloaded or a connection that broke after opening                            |
@@ -161,7 +161,9 @@ The runner ends a step with `provider-limit` when the tool's own record says a u
 of it (the wait, the restart) is in [A job's states](job-states.md#beside-the-state). How each tool is read:
 
 - **Claude Code**: the `rate_limit_event` the stream carries. It names the window that ran out, when it resets, the
-  other windows' figures, and the plan or refused credit.
+  other windows' figures, and the plan or refused credit. An event for a model that requires usage credits the account
+  does not have (`credits_required`) is no usage window: that step fails as `forbidden`, and the board waits for
+  nothing.
 - **Codex**: the session file Codex keeps for the thread. A turn is a `provider-limit` when that file shows a full
   window, or when Codex's own error says the usage limit is hit; the error's "try again at" time is then the reset.
   The file is read under the `CODEX_HOME` the step ran with (`--codex-home`: the provider's shadow home, else its

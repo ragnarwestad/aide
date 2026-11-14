@@ -297,11 +297,14 @@ fi
 # A real stop has the credit refused beside it
 # (`overageStatus: rejected`, `overageDisabledReason: out_of_credits`,
 # `isUsingOverage: false`), so the credit in use is what tells the two
-# apart. Absent means false: an older CLI emitted neither field.
+# apart. Absent means false: an older CLI emitted neither field. A model
+# the account has no credit for (`credits_required`) is no window to wait
+# out: it fails below as a refused request, holding nothing else.
 provider_limit_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rc 'fromjson? | select(
   type == "object" and .type == "rate_limit_event" and
   .rate_limit_info.status == "rejected" and
-  (.rate_limit_info.isUsingOverage // false) == false
+  (.rate_limit_info.isUsingOverage // false) == false and
+  .rate_limit_info.errorCode != "credits_required"
 )' 2>/dev/null | tail -n 1)"
 if [ -n "$provider_limit_json" ]; then
   provider_limit_out="$(claude_provider_limit "$provider_limit_json")"
@@ -423,7 +426,8 @@ elif [ "$have_result" = "true" ]; then
     error_msg="$(jq -r 'if ((.errors // []) | length) > 0 then (.errors | join("; "))
       else (.result // "" | tostring) end' <<<"$result_json")"
     provider_error_out="$(provider_error_json "$error_msg" \
-      "$(jq -r '.api_error_status // empty' <<<"$result_json")" "$claude_error_name")"
+      "$(jq -r '.api_error_status // empty' <<<"$result_json")" "$claude_error_name" \
+      "$(jq -r '.api_error_code // empty' <<<"$result_json")")"
     if [ -n "$error_msg" ]; then
       error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
     else

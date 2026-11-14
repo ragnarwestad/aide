@@ -394,6 +394,30 @@ def test_a_claude_limit_event_wins_over_an_overloaded_result(runner, workspace, 
     assert out["terminalReason"] == "provider-limit"
 
 
+def test_a_model_that_requires_usage_credits_is_refused_not_a_usage_limit(runner, workspace, fake_claude):
+    """A model the account has no credit for is refused at once, and
+    waiting for the reset the event names (the next month) helps nothing:
+    the step fails with Claude's own sentence and holds no other step on
+    the account. The event and result are the ones a real Fable run on an
+    account without usage credits ended on."""
+    said = ("Fable 5.1 requires usage credits. Switch to another model, or manage usage credits at "
+            "https://claude.ai/admin-settings/usage, to continue.")
+    limit = {"type": "rate_limit_event",
+             "rate_limit_info": {"status": "rejected", "resetsAt": 1796083200,
+                                 "overageDisabledReason": "org_level_disabled", "isUsingOverage": False,
+                                 "errorCode": "credits_required", "canUserPurchaseCredits": True}}
+    result = {**RESULT_OK, "is_error": True, "terminal_reason": "api_error", "api_error_status": 429,
+              "api_error_code": "credits_required", "api_error": "model_requires_usage_credits",
+              "result": said}
+    claude = fake_claude(stream_body(result, before=[limit], exit_code=1))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["terminalReason"] == "cli-error", out
+    assert "providerLimit" not in out
+    assert out["providerError"]["kind"] == "forbidden"
+    assert out["providerError"]["message"].startswith("Fable 5.1 requires usage credits")
+
+
 def test_a_claude_server_error_after_529_retries_is_a_cli_error(runner, workspace, fake_claude):
     """Claude Code retried a 529 and got past it: the step ended on a
     different error, and the retries are not what it ended on."""

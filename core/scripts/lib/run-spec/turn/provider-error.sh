@@ -14,9 +14,10 @@
 # "API Error: 500", "502 Bad Gateway"): the request ids and cf-rays in
 # Codex's messages are hex, and a bare 401 or 500 turns up in them.
 
-# provider_error_json <what the tool said> [<HTTP status>] [<the error name the tool gave>]
+# provider_error_json <what the tool said> [<HTTP status>] [<the error name the tool gave>] [<the API's error code>]
+# A model the account has no credit for (`credits_required`) is `forbidden`.
 provider_error_json() {
-  jq -cn --arg said "${1:-}" --arg status "${2:-}" --arg name "${3:-}" '
+  jq -cn --arg said "${1:-}" --arg status "${2:-}" --arg name "${3:-}" --arg code "${4:-}" '
     ($said | gsub("\u001b\\[[0-9;]*[A-Za-z]"; "")) as $plain
     | [$plain | split("\n")[] | gsub("^\\s+|\\s+$"; "") | select(length > 0)] as $lines
     | if ($lines | length) == 0 then empty else
@@ -26,8 +27,9 @@ provider_error_json() {
           | ($cut | [match(" "; "g").offset] | last // 0) as $space
           | (if $space > 80 then $cut[0:$space] else $cut end) + "…"
         end) as $message
+      | ($code) as $apiCode
       | ($status | tonumber? // 0) as $code
-      | (if $code == 403 or ($plain | test("api error: 403\\b|status 403\\b|\\b403 forbidden"; "i")) then "forbidden"
+      | (if $code == 403 or $apiCode == "credits_required" or ($plain | test("api error: 403\\b|status 403\\b|\\b403 forbidden"; "i")) then "forbidden"
          elif $code == 401 or ($name | test("auth"; "i"))
             or ($plain | test("not logged in|please run /login|failed to authenticate|authentication (failed|required|error)|status 401\\b|\\b401 unauthorized|missing bearer|invalid (api[ _-]?key|x-api-key|bearer|access token|token)|api[ _-]?key (is )?(missing|invalid|not set)|(token|session|credentials?) (has |have )?(been )?(expired|revoked)|session expired"; "i"))
          then "login"

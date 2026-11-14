@@ -54,6 +54,15 @@ def test_an_explicit_403_is_forbidden_and_keeps_its_cause_AC_4(said, status, kin
     assert sorted_(said, status, kind) == {"kind": "forbidden", "message": said}
 
 
+def test_a_model_that_requires_usage_credits_is_forbidden():
+    out = subprocess.run(
+        ["bash", "-c", f'source "{LIB}"; provider_error_json "$1" "429" "rate_limit" "credits_required"', "_",
+         "Fable 5.1 requires usage credits. Switch to another model."],
+        capture_output=True, text=True, check=True,
+    )
+    assert json.loads(out.stdout)["kind"] == "forbidden"
+
+
 def test_claude_s_own_error_name_says_login_without_the_words():
     assert sorted_("something went wrong", kind="authentication_failed")["kind"] == "login"
 
