@@ -378,7 +378,7 @@ Usage, theme, language, units, the header's "…" menu and each group card's "�
 Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 
-At phone width the header keeps only the mark, the board line and the "…" menu. Theme, language and unit are rows in
+At phone width the header keeps the wordmark, the board line and the "…" menu. Theme, language and unit are rows in
 the "…" menu, and so are Usage and, on Jobs and Specs, Filter: each of those two opens its own panel, the one its
 hidden trigger opens on a wider screen, under the header's right end and under the search line's right end.
 
