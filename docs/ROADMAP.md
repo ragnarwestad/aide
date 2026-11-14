@@ -4,19 +4,15 @@
 
 - [How an idea is kept here](#how-an-idea-is-kept-here)
 - [To consider](#to-consider)
-  - [1. A commit body that says what was wrong and what stays unchanged](#1-a-commit-body-that-says-what-was-wrong-and-what-stays-unchanged)
   - [4. An append-only event log for runs](#4-an-append-only-event-log-for-runs)
-  - [5. The spec-structure rule describes how specs are written now](#5-the-spec-structure-rule-describes-how-specs-are-written-now)
-  - [6. The plan review checks the scenarios and the test list](#6-the-plan-review-checks-the-scenarios-and-the-test-list)
-  - [7. A Claude Code mod that shows the board in a session](#7-a-claude-code-mod-that-shows-the-board-in-a-session)
+  - [5. Spec writing that follows the sources](#5-spec-writing-that-follows-the-sources)
   - [8. Aide's skills as a Claude plugin](#8-aides-skills-as-a-claude-plugin)
-  - [9. Correct the spec, not the code](#9-correct-the-spec-not-the-code)
   - [10. Keep an archived spec's tests from disappearing unnoticed](#10-keep-an-archived-specs-tests-from-disappearing-unnoticed)
   - [11. A review that also holds the code to the repo's own rules](#11-a-review-that-also-holds-the-code-to-the-repos-own-rules)
   - [12. One project, several code repositories](#12-one-project-several-code-repositories)
   - [13. A flow suited to the kind of task](#13-a-flow-suited-to-the-kind-of-task)
   - [14. More than one way to run a step](#14-more-than-one-way-to-run-a-step)
-  - [15. A spec's complexity chooses the AI](#15-a-specs-complexity-chooses-the-ai)
+  - [15. Measure what makes a spec hard for the AI](#15-measure-what-makes-a-spec-hard-for-the-ai)
   - [16. Create and archive with as little AI as possible](#16-create-and-archive-with-as-little-ai-as-possible)
   - [17. Aide as a Mac app](#17-aide-as-a-mac-app)
   - [18. A run that reaches only its own repository](#18-a-run-that-reaches-only-its-own-repository)
@@ -26,7 +22,6 @@
   - [23. An agent that tries the criteria in a browser before a person ticks them](#23-an-agent-that-tries-the-criteria-in-a-browser-before-a-person-ticks-them)
   - [24. One spec in sections, each analysed and implemented in turn on one branch](#24-one-spec-in-sections-each-analysed-and-implemented-in-turn-on-one-branch)
   - [25. A plain way to run agents Aide has no support of its own for](#25-a-plain-way-to-run-agents-aide-has-no-support-of-its-own-for)
-  - [26. A check that nothing on a changed page runs past the screen's edge](#26-a-check-that-nothing-on-a-changed-page-runs-past-the-screens-edge)
   - [27. Asking for work where the conversation already is](#27-asking-for-work-where-the-conversation-already-is)
   - [28. A rule or skill is kept only while it helps](#28-a-rule-or-skill-is-kept-only-while-it-helps)
   - [29. A defect the review finds leaves a check behind](#29-a-defect-the-review-finds-leaves-a-check-behind)
@@ -52,11 +47,6 @@ same idea later. The next number is 33.
 
 ## To consider
 
-### 1. A commit body that says what was wrong and what stays unchanged
-
-From [OpenGeni](https://github.com/Cloudgeni-ai/opengeni): a fix's commit says what was wrong, why, what it meant for
-a user, and what deliberately does not change, so the next reader does not undo something that was intended.
-
 ### 4. An append-only event log for runs
 
 From OpenGeni: every event of a run is kept in order, so any view, a reload or an audit can replay what happened.
@@ -64,29 +54,17 @@ Aide keeps each job's latest state, so a run's history cannot be replayed. [T3 C
 way: every thread is kept as its events, with a checkpoint after each turn that can restore the files and the
 conversation ([architecture notes](https://github.com/pingdotgg/t3code/blob/main/AGENTS.md)).
 
-### 5. The spec-structure rule describes how specs are written now
+### 5. Spec writing that follows the sources
 
-From comparing Aide's specs with the sources in `docs/SPEC_WRITING_SOURCES.md`: the rule for the spec files should
-describe a spec as it is written today, throughout.
+From comparing Aide's specs with the sources in `docs/SPEC_WRITING_SOURCES.md`:
 
-### 6. The plan review checks the scenarios and the test list
-
-From the same comparison: the plan review holds a plan's scenarios to the criteria they come from, and its tests to
-the testing rules.
-
-### 7. A Claude Code mod that shows the board in a session
-
-From Claude Code's mods: the board's work shown inside the session working on Aide.
+- **The spec-structure rule** describes a spec as it is written today, throughout.
+- **The plan review** holds a plan's scenarios to the criteria they come from, and its tests to the testing rules.
 
 ### 8. Aide's skills as a Claude plugin
 
 From "Build plugins for Claude" and the Claude Marketplace: a second way to deliver Aide's skills to Claude users,
 beside the installer that also serves Codex, OpenCode and Copilot.
-
-### 9. Correct the spec, not the code
-
-From Felipe Fontoura's [case study](https://felipefontoura.com/articles/spec-driven-development-case-study/): a wrong
-result is fixed in the spec and run again, never patched in the code while the spec says something else.
 
 ### 10. Keep an archived spec's tests from disappearing unnoticed
 
@@ -98,6 +76,12 @@ cannot remove or weaken the test behind one without anyone being told.
 From Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review)
 skill: the review after an implement checks the code against the repo's own written rules as well as against the
 spec, and says what is missing, what nobody asked for, and where each finding comes from.
+
+From Vercel's [ui-sdk](https://github.com/vercel-labs/ui) repository, a related check: a last pass over the diff
+that removes what reads as generated, without changing behaviour. Comments that restate the next line or tell
+the history of the change, checks for cases the types already rule out, helpers with a single caller, names that
+say nothing, and filler words. Their `ui-sdk-unslop` skill lists the patterns, and a lint rule takes over each
+one that keeps coming back (idea 29).
 
 ### 12. One project, several code repositories
 
@@ -115,11 +99,7 @@ found one fixed flow far too heavy for a small bug fix. Kinds of task:
 
 - **A bug fix:** a test that reproduces the bug is red before the change and green after it.
 - **A refactor:** the behaviour does not change, so the existing tests stay as they are and green throughout.
-- **A quick fix:** built — a small spec gets a short analysis within limits the runner checks, and implement
-  can send it back to a full one once (`dashboard/docs/spec-lifecycle.md`).
 - **Explore first:** the analysis builds a throwaway prototype to learn from before it writes the plan.
-
-What the measurement behind the quick fix found is in `docs/REPLAY.md`, "What the rounds found".
 
 ### 14. More than one way to run a step
 
@@ -143,18 +123,16 @@ splitting between agents. Possible ways:
 - **Keep going until done:** the turn goes on until the tests are green and every criterion has a test, within a
   limit on time or cost, rather than for a fixed number of rounds.
 - **One criterion at a time:** each criterion is made green and committed before the next.
-- **A review by another model,** or several reviews with a focus each: the spec, the repo's own rules, security.
+- **Several reviews with a focus each:** the spec, the repo's own rules, security.
 - **The agent checks in a browser:** a change to a page is tried in a real browser before the step ends.
 
-### 15. A spec's complexity chooses the AI
+### 15. Measure what makes a spec hard for the AI
 
 From weighing how the AI and model for each step are chosen today: by habit, or to try a model out, rarely from how
-hard the spec is, since a person grades a spec no better than the analysis does. Once a spec's complexity can be judged
-well, it could choose the AI, model and effort for the steps after the analysis, with a person's own choice still
-winning. One way that keeps the risk low: the grade only raises the choice, so a stronger model takes the hard specs
-and a wrong grade never gives a weaker one than today.
+hard the spec is, since a person grades a spec no better than the analysis does. Before a grade chooses anything
+(idea 21), it has to be known what predicts a step going badly.
 
-What the research found, and what it means for the order of the work:
+What the research found:
 
 - **The shape of the change predicts difficulty, the description hardly does.** Lines deleted, how many separate places
   the change touches and how far apart, and the size of the repository predicted whether an agent succeeds
@@ -162,17 +140,8 @@ What the research found, and what it means for the order of the work:
   almost nothing, and predicting from the text alone transfers poorly
   ([Predicting task difficulty without rollouts](https://arxiv.org/html/2608.05797)). A grade set once the code is
   read, or read off the plan, is the useful one.
-- **What works learns from its own history.** [Agent-as-a-Router](https://www.alphaxiv.org/abs/2606.22902) chooses
-  from how the most similar earlier tasks went, and [Cursor Router](https://cursor.com/docs/cursor-router) is trained
-  on real requests; no single model was best at every kind of coding task.
-- **The products route mostly to save money.** [RouteLLM](https://www.lmsys.org/blog/2024-07-01-routellm/) kept 95 %
-  of the strong model's quality with a quarter of the calls; Claude Code's `opusplan` plans with Opus and carries out
-  with Sonnet, as Aide's own defaults do. For Aide the value is the other way round: a hard spec not implemented by too
-  weak a model.
 
-Idea 21 has a proposal for how a grade chooses the AI: a profile holds one list of providers and models per grade.
-
-So the first step is to measure, not to route: keep, for each spec, the shape of its change (files, separate places
+The first step is to measure: keep, for each spec, the shape of its change (files, separate places
 changed, lines), the model each step ran with, and how it went (green at the first try, rounds of red tests, defects
 the review found, a step run again). Only once that shows what predicts trouble should anything choose the model.
 
@@ -217,18 +186,6 @@ Every source the research read:
   - [What Makes Software Issue Resolution Tasks Difficult for Agents?](https://arxiv.org/html/2608.18280)
   - [Predicting Task Difficulty Without Rollouts](https://arxiv.org/html/2608.05797)
   - [Agent Psychometrics: Task-Level Performance Prediction in Agentic Coding Benchmarks](https://arxiv.org/html/2604.00594v2)
-- Routing between models:
-  - [Agent-as-a-Router: Agentic Model Routing for Coding Tasks](https://www.alphaxiv.org/abs/2606.22902)
-  - [Triage: Routing Software Engineering Tasks to Cost-Effective LLM Tiers via Code Quality Signals](https://arxiv.org/pdf/2604.07494)
-  - [Dynamic Model Routing and Cascading for Efficient LLM Inference: A Survey](https://arxiv.org/pdf/2603.04445)
-  - [RouteLLM: An Open-Source Framework for Cost-Effective LLM Routing](https://www.lmsys.org/blog/2024-07-01-routellm/)
-  - [Best AI Model for Coding Agents in 2026: A Routing Guide](https://www.augmentcode.com/guides/ai-model-routing-guide)
-- The products:
-  - [Cursor Router](https://cursor.com/docs/cursor-router)
-  - [I Tested Whether Cursor's Auto Mode Actually Picks the Right Model](https://dev.to/nedcodes/i-tested-whether-cursors-auto-mode-actually-picks-the-right-model-20ml)
-  - [About Copilot auto model selection](https://docs.github.com/en/copilot/concepts/models/auto-model-selection)
-  - [Why Copilot's Auto Mode for AI Models Ignores Your Actual Task](https://visualstudiomagazine.com/articles/2026/02/06/why-copilots-auto-mode-for-ai-models-ignores-your-actual-task.aspx)
-  - [Claude Code model configuration, with `opusplan`](https://code.claude.com/docs/en/model-config)
 
 ### 16. Create and archive with as little AI as possible
 
@@ -385,8 +342,34 @@ A proposal from 2026-11-14 for the AI part of a profile:
 
 Open in this proposal: whether a profile may mix tools on one list, and whether Review and Verify take a profile too.
 
-Ideas 13, 14 and 15 are what a profile could later carry: a flow for the kind of task, a way to run a step, and an
-AI chosen from the spec's complexity.
+What research on routing between models found, from the weighing behind idea 15:
+
+- **What works learns from its own history.** [Agent-as-a-Router](https://www.alphaxiv.org/abs/2606.22902) chooses
+  from how the most similar earlier tasks went, and [Cursor Router](https://cursor.com/docs/cursor-router) is trained
+  on real requests; no single model was best at every kind of coding task.
+- **The products route mostly to save money.** [RouteLLM](https://www.lmsys.org/blog/2024-07-01-routellm/) kept 95 %
+  of the strong model's quality with a quarter of the calls; Claude Code's `opusplan` plans with Opus and carries out
+  with Sonnet. For Aide the value is the other way round: a hard spec not implemented by too
+  weak a model.
+- A grade that only raises the choice keeps the risk low: a stronger model takes the hard specs, and a wrong grade
+  never gives a weaker one than today.
+
+Sources:
+
+- Routing between models:
+  - [Agent-as-a-Router: Agentic Model Routing for Coding Tasks](https://www.alphaxiv.org/abs/2606.22902)
+  - [Triage: Routing Software Engineering Tasks to Cost-Effective LLM Tiers via Code Quality Signals](https://arxiv.org/pdf/2604.07494)
+  - [Dynamic Model Routing and Cascading for Efficient LLM Inference: A Survey](https://arxiv.org/pdf/2603.04445)
+  - [RouteLLM: An Open-Source Framework for Cost-Effective LLM Routing](https://www.lmsys.org/blog/2024-07-01-routellm/)
+  - [Best AI Model for Coding Agents in 2026: A Routing Guide](https://www.augmentcode.com/guides/ai-model-routing-guide)
+- The products:
+  - [Cursor Router](https://cursor.com/docs/cursor-router)
+  - [I Tested Whether Cursor's Auto Mode Actually Picks the Right Model](https://dev.to/nedcodes/i-tested-whether-cursors-auto-mode-actually-picks-the-right-model-20ml)
+  - [About Copilot auto model selection](https://docs.github.com/en/copilot/concepts/models/auto-model-selection)
+  - [Why Copilot's Auto Mode for AI Models Ignores Your Actual Task](https://visualstudiomagazine.com/articles/2026/02/06/why-copilots-auto-mode-for-ai-models-ignores-your-actual-task.aspx)
+  - [Claude Code model configuration, with `opusplan`](https://code.claude.com/docs/en/model-config)
+
+Ideas 13 and 14 are what a profile could later carry: a flow for the kind of task and a way to run a step.
 
 ### 22. An analysis and a plan that are easier to read
 
@@ -443,6 +426,25 @@ Open questions:
   in a browser on the test server.
 - What it costs per spec, and whether it runs for every held-back spec or only on request.
 
+**A first step, measured rather than judged.** From [Anton](https://github.com/Ramgopalbhat10/anton-v2) (2026-10-31), a personal coding agent whose
+agent checks its own change in a browser before it finishes: it opens the app, takes screenshots and has a vision
+model describe them. Aide has no layout tests by choice, and its browser tests check what a page does, not how it
+looks, so a page that is wider than a phone passes every test and is found by a person.
+
+The idea: once an implement has changed a page, the runner opens that page at phone width and at desktop width and
+looks for any element whose right edge runs past the screen's. That is measured, not judged, so no model is needed
+and the answer is the same every time. It is not a layout test either: it is tied to no page or markup, it holds
+for every page, and it is run once on the change rather than kept in the suite.
+
+A vision model, as Anton uses, could later look for what cannot be measured, such as overlapping or unreadable
+text, but only if the measured check alone lets too much through.
+
+Open questions for the first step:
+
+- How the runner knows which pages a change touched, and how it reaches them with data on them.
+- Whether an element past the edge sends the step back to the same session, as red tests do, or only notes it on
+  the spec.
+
 ### 24. One spec in sections, each analysed and implemented in turn on one branch
 
 From running the Skjera specs 19 to 25 as a chain joined by Depends on (2026-10-21), and the
@@ -495,31 +497,8 @@ Where it stands (2026-10-31): parked until a feature is split into several specs
 - **The next try writes the shared description first:** when a feature is next split into specs, its goal and
   decisions are written before the specs run, rather than reconstructed afterwards.
 
-**A first step (2026-11-11): a group of specs on one branch, with no shared description.** Each spec in the group
-keeps its own description and is analysed and implemented as today, but all of them work on one branch, and the
-group lands once. What it is for is fewer landings, not time:
-
-- **CI runs once per landing.** A row of small specs runs the full CI on main once each, where one run for the whole
-  change would do. It costs machine time, and in a project with a CI quota it also costs money.
-- **A project that lands its code through a pull request gets one for the group,** one connected change to review
-  rather than several parts that make little sense on their own.
-
-The specs in a group run one at a time, in the order the group lists them, which takes the place of Depends on
-between them. The next spec starts when the one before it has run its last step before the archive, so its
-analysis builds on code that has been reviewed and verified.
-
-What the board would have to learn:
-
-1. **A branch that belongs to the group, not to one spec.** The landing, the clean-up, the check for unlanded work
-   and the test server all assume one `aide/<folder>` branch per spec.
-2. **The order within the group,** run one spec at a time, since they share one checkout.
-3. **No `shared-files` stop between specs in the same group,** where changing the same files is expected.
-4. **When the group lands:** once every spec in it is done and its criteria are ticked.
-5. **A spec that fails partway:** the specs after it wait, and the ones before it are done on the branch but not in
-   use, which the board has to show plainly.
-
-What it proves for the rest of the idea: the mechanics of several specs on one branch with one landing, which one
-spec in sections needs as well.
+Specs in a group already share one branch and land once (`dashboard/docs/landing.md`). What is left of the idea
+is the shared description and the sections that read what the sections before them found.
 
 ### 25. A plain way to run agents Aide has no support of its own for
 
@@ -548,28 +527,6 @@ board showing less for it: no tokens per step, and a stop at a usage limit read 
 
 Worth taking up when someone wants to run an agent outside the four, or when the protocol reports tokens and usage
 limits.
-
-### 26. A check that nothing on a changed page runs past the screen's edge
-
-From looking at [Anton](https://github.com/Ramgopalbhat10/anton-v2) (2026-10-31), a personal coding agent whose
-agent checks its own change in a browser before it finishes: it opens the app, takes screenshots and has a vision
-model describe them. Aide has no layout tests by choice, and its browser tests check what a page does, not how it
-looks, so a page that is wider than a phone passes every test and is found by a person.
-
-The idea: once an implement has changed a page, the runner opens that page at phone width and at desktop width and
-looks for any element whose right edge runs past the screen's. That is measured, not judged, so no model is needed
-and the answer is the same every time. It is not a layout test either: it is tied to no page or markup, it holds
-for every page, and it is run once on the change rather than kept in the suite.
-
-A vision model, as Anton uses, could later look for what cannot be measured, such as overlapping or unreadable
-text, but only if the measured check alone lets too much through. Idea 23 is the wider version: an agent that tries
-each acceptance criterion in a browser.
-
-Open questions:
-
-- How the runner knows which pages a change touched, and how it reaches them with data on them.
-- Whether an element past the edge sends the step back to the same session, as red tests do, or only notes it on
-  the spec.
 
 ### 27. Asking for work where the conversation already is
 
