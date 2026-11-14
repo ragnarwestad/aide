@@ -245,6 +245,11 @@ why, with the context a reader needs.
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
 standing instruction for later requests. The user pushes from the IDE.
 
+**A push to the default branch waits while the Aide board lands a spec in that project.** Look at
+the board before pushing; if one of the project's specs is landing, hold the push until it has
+landed. A push during a landing moves the default branch under the landing's test run, which then
+has to run again, and gives up after the second move.
+
 **When a job you committed is done, say so, and say it is ready to push.** Run
 `git log origin/main..main --oneline` in that same reply and end the report with what it shows:
 the commits waiting for a push, and, when they change something that runs on a server, that it
