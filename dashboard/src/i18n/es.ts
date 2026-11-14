@@ -77,7 +77,6 @@ export const es: Record<TranslationKey, string> = {
   "shell.testRound": "la ronda",
 
   "list.statesLabel": "Estados",
-  "list.statesChosen": "{n} estados",
   "list.state.all": "Todos",
   "list.state.active": "Activas",
   "list.state.running": "En curso",
@@ -153,7 +152,6 @@ export const es: Record<TranslationKey, string> = {
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Tipo",
   "jobs.typesLabel": "Tipos",
-  "jobs.resultCount": "{n} resultados",
   "jobs.kindSpec": "Spec",
   "jobs.kindDeploy": "Despliegue",
   "jobs.kindSchedule": "Trabajo programado",

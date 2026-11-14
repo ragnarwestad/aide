@@ -77,10 +77,10 @@ test("the … menu's Usage row opens the Usage panel at phone width (AC-2)", asy
 test("the … menu has separate States and Types rows on Jobs and one count outside it (AC-1, AC-6, AC-7)", async () => {
   await openMore(PHONE);
   const more = page.locator(MORE_MENU);
-  const count = page.locator("[data-jobs-result-count]");
+  const count = page.locator("[data-result-count]");
   expect(await more.getByRole("button", { name: "States", exact: true }).count()).toBe(1);
   expect(await more.getByRole("button", { name: "Types", exact: true }).count()).toBe(1);
-  expect(await more.locator("[data-jobs-result-count]").count()).toBe(0);
+  expect(await more.locator("[data-result-count]").count()).toBe(0);
   expect(await count.count()).toBe(1);
 
   await more.getByRole("button", { name: "States", exact: true }).click();

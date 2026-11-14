@@ -718,8 +718,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
   test("the Jobs bar shows one filtered result count and keeps choice counts (AC-4, AC-5)", async () => {
     const { base } = withBoth();
     const html = await rowsOf(base, "q=report&state=failed&kind=schedule");
-    expect(html.match(/data-jobs-result-count/g)).toHaveLength(1);
-    expect(html).toContain(t("en", "jobs.resultCount", { n: 1 }));
+    expect(html.match(/data-result-count>\((\d+)\)</g)).toEqual(["data-result-count>(1)<"]);
     expect(html).toContain(`${t("en", "list.state.failed")} (1)`);
     expect(html).toContain(`${t("en", "jobs.filterKindSchedule")} (1)`);
   });
@@ -728,7 +727,6 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const { base } = withBoth();
     const html = await rowsOf(base, "lang=de");
     expect(html).toContain(`>${t("de", "list.statesLabel")}<`); expect(html).toContain(`>${t("de", "jobs.typesLabel")}<`);
-    expect(html).toContain(t("de", "jobs.resultCount", { n: 2 }));
   });
 
   describe("a project key", () => {

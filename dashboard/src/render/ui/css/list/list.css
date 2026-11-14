@@ -143,6 +143,8 @@ table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] > :is(.ba
 table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--line); }
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   vertical-align: top; text-align: center; line-height: 0; padding: 14px var(--sp-1) 0; }
+@media (min-width: 40.0625rem) { /* Offset the group's inset to align its fold with the other cards. */
+  table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { position: relative; left: calc(-1 * var(--sp-2)); } }
 /* On a phone the table is blocks: the card is the cell's box alone, and the
    group's lines share one grid. The `:not()`s outweigh
    the phone's own rules for the list's rows. A member's state line gives up

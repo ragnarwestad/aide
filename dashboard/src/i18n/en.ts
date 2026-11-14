@@ -78,7 +78,6 @@ export const en = {
   "shell.testRound": "round",
 
   "list.statesLabel": "States",
-  "list.statesChosen": "{n} states",
   "list.state.all": "All",
   "list.state.active": "Active",
   "list.state.running": "Running",
@@ -154,7 +153,6 @@ export const en = {
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
-  "jobs.resultCount": "{n} results",
   "jobs.kindSpec": "Spec",
   "jobs.kindDeploy": "Deploy",
   "jobs.kindSchedule": "Scheduled job",

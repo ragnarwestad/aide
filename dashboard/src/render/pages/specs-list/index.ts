@@ -399,7 +399,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
       `</td></tr>`;
   return (
     renderFailedCreateNotices(opts.failedCreates ?? [], opts.lang ?? "en") +
-    filterBar(groups, f, opts) +
+    filterBar(groups, f, opts, matched.length) +
     // "speclist" beside "list": the mobile stylesheet lays THIS table
     // out as stacked blocks (its rows are flex lines there), and the
     // archive page and the settings table share .list without wanting

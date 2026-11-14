@@ -907,7 +907,7 @@ a finished one has no action. Which scheduled jobs show is decided in
 The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
 Rows with the same creation time keep their order by state and most recent change.
 
-The tab has the Specs list's search box and a State dropdown. The dropdown first lists the states All, Active, Running,
+The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
 Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or

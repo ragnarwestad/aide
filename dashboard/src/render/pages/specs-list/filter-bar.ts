@@ -59,7 +59,7 @@ function runsHelp(lang: Language): string {
   return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"));
 }
 
-export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions): string {
+export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions, shown: number): string {
   const lang = opts.lang ?? "en";
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
@@ -116,7 +116,7 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
       hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
       q: f.q ?? "",
       clearHref: queueHref(f, { q: "" }),
-      after: state + newSpecLink(opts, lang),
+      after: state + resultCount(shown) + newSpecLink(opts, lang),
     },
     lang,
   );
@@ -151,7 +151,7 @@ function stateDropdown(
   return menuDropdown({
     filter: "state",
     ariaLabel: t(lang, "list.statesLabel"),
-    multipleLabel: t(lang, "list.statesChosen", { n: ticked.length }),
+    triggerLabel: t(lang, "list.statesLabel"),
     options: rows.map(({ s, on, count }) => ({
       label: stateFilterLabel(s.key, lang),
       count,
@@ -170,18 +170,21 @@ function stateDropdown(
 export interface MenuOption {
   /** A heading put immediately before this option. */
   heading?: string;
-  /** Whether this option represents the trigger's current summary. */
-  summary?: boolean;
   label: string;
   count: number;
   on: boolean;
   href: string;
 }
 
-/** The State dropdown. Its checkbox links may be combined, while the trigger
- *  reserves the width of the widest option. `filter` names the control for
- *  the page script and the tests. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; multipleLabel?: string; triggerLabel?: string }): string {
+/** How many rows the table under a filter row shows, after its filters and search. */
+export function resultCount(n: number): string {
+  return `<span class="counts" data-result-count>(${n})</span>`;
+}
+
+/** A filter dropdown of checkbox links, its button named by `triggerLabel`
+ *  whatever is ticked. `filter` names the control for the page script and
+ *  the tests. */
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string }): string {
   const options = o.options
     .map(
       (opt) =>
@@ -190,15 +193,8 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
         `<span class="check" aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
     )
     .join("");
-  const chosen = o.options.filter((opt) => opt.summary ?? opt.on);
-  const visible = o.triggerLabel
-    ? esc(o.triggerLabel)
-    : chosen.length === 1
-      ? `${esc(chosen[0]!.label)} (${chosen[0]!.count})`
-      : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;
-  const widths = o.triggerLabel
-    ? `<span aria-hidden="true">${esc(o.triggerLabel)}</span>`
-    : o.options.map((opt) => `<span aria-hidden="true">${esc(opt.label)} (${opt.count})</span>`).join("");
+  const visible = esc(o.triggerLabel);
+  const widths = `<span aria-hidden="true">${visible}</span>`;
   return (
     `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}">` +
     `<summary aria-label="${o.ariaLabel}">` +

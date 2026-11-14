@@ -13,7 +13,6 @@ import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
 import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
 import { changeExecutionGroupEditor, closeExecutionGroupEditor, syncExecutionGroupEditors } from "../execution-groups/editor.ts";
-import { fitStateFilterSummary } from "../state-filter-summary.ts";
 
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
@@ -126,7 +125,6 @@ const onRowsClose = ((event: Event) => {
 
 /** Binds the rows' and the Test servers list's containers, where the page has them. */
 export function bindLists(doc: Document): void {
-  fitStateFilterSummary(doc);
   syncSpecGroups(doc);
   const rows = doc.getElementById("jobrows");
   rows?.addEventListener("click", onRowsClick as EventListener);

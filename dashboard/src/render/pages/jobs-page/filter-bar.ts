@@ -7,7 +7,7 @@ import { t, type Language } from "../../../i18n";
 import { askButton } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { SORTS, SORT_DEFAULT_DIR, stateFilterLabel } from "../specs-list/data-model";
-import { menuDropdown, searchForm, sortHead } from "../specs-list/filter-bar.ts";
+import { menuDropdown, resultCount, searchForm, sortHead } from "../specs-list/filter-bar.ts";
 import { NEW_GROUP_DIALOG } from "./execution-group-editor.ts";
 import {
   jobsSortPatch,
@@ -32,7 +32,7 @@ const KIND_LABELS = {
 } as const;
 
 /** The search box with separate state and type dropdowns after its help, and New group after them. */
-export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, resultCount = facts.length): string {
+export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, shownCount = facts.length): string {
   const stateOptions = jobsStateOptions(facts, f);
   const kindOptions = jobsKindOptions(facts, f);
   const state = menuDropdown({
@@ -57,14 +57,13 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
       href: esc(jobsViewPath(f, { kind: o.kind })),
     })),
   });
-  const count = `<span class="counts" data-jobs-result-count>${t(lang, "jobs.resultCount", { n: resultCount })}</span>`;
   return searchForm(
     {
       action: "/",
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: state + kind + count + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
+      after: state + kind + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
     },
     lang,
   );
