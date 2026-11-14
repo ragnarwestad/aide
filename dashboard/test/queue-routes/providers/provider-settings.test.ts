@@ -73,13 +73,13 @@ describe("adding, editing and removing a provider", () => {
     const { base, file, queueDefaults } = serve();
     const dir = folder();
     expect((await post(base, ADD, { tool: "claude", name: "Claude-Capra", configDir: dir })).status).toBe(200);
-    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "C2", tool: "claude", configDir: dir });
+    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "CC", tool: "claude", configDir: dir });
     expect(queueDefaults.providers?.["Claude-Capra"]?.configDir).toBe(dir);
     expect(readFileSync(file, "utf-8")).toContain("// the operator's own note");
 
     const other = folder();
     expect((await post(base, EDIT, { key: "Claude-Capra", name: "Claude-Capra", configDir: other })).status).toBe(200);
-    expect(queueDefaults.providers?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "C2", tool: "claude", configDir: other });
+    expect(queueDefaults.providers?.["Claude-Capra"]).toEqual({ name: "Claude-Capra", short: "CC", tool: "claude", configDir: other });
 
     expect((await post(base, REMOVE, { key: "Claude-Capra" })).status).toBe(200);
     expect(providersIn(file)?.["Claude-Capra"]).toBeUndefined();
@@ -91,7 +91,7 @@ describe("adding, editing and removing a provider", () => {
     const dir = folder();
     await post(base, ADD, { tool: "claude", name: "Claude-Capra", configDir: dir });
     expect((await post(base, EDIT, { key: "Claude-Capra", name: "Capra", configDir: dir })).status).toBe(200);
-    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Capra", short: "C2", tool: "claude", configDir: dir });
+    expect(providersIn(file)?.["Claude-Capra"]).toEqual({ name: "Capra", short: "CC", tool: "claude", configDir: dir });
     expect(queueDefaults.providers?.["Claude-Capra"]?.name).toBe("Capra");
   });
 

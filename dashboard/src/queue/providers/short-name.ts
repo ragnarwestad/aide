@@ -4,12 +4,19 @@
 
 import type { Provider } from "./index.ts";
 
+/** The words of a provider's name, split where the name itself divides
+ *  them: at spaces, hyphens, underscores, dots and slashes, so
+ *  "Claude-Personal" is two words. */
+export function providerNameWords(name: string): string[] {
+  return name.split(/[\s\-_./]+/).filter(Boolean);
+}
+
 /** Two characters made from a name: the first character of each of its
- *  first two words, else the first two of its one word, in capitals. A
- *  one-word name of one character gives one (`freeShortName` adds the
- *  second). */
+ *  first two words (`providerNameWords`), else the first two of its one
+ *  word, in capitals. A one-word name of one character gives one
+ *  (`freeShortName` adds the second). */
 export function shortNameFrom(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean).map((w) => [...w]);
+  const words = providerNameWords(name).map((w) => [...w]);
   const chars = words.length > 1 ? [words[0]![0]!, words[1]![0]!] : (words[0] ?? []).slice(0, 2);
   return chars.join("").toUpperCase();
 }

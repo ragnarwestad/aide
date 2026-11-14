@@ -37,8 +37,8 @@ describe("reading the providers", () => {
       },
     });
     expect(merged.providers).toEqual({
-      Capra: { name: "Claude-Capra", short: "CL", tool: "claude", configDir: "~/.claude-capra" },
-      Personal: { name: "Codex-personal", short: "CO", tool: "codex", codexHome: "~/.codex-main", shadowHome: "~/.codex-p" },
+      Capra: { name: "Claude-Capra", short: "CC", tool: "claude", configDir: "~/.claude-capra" },
+      Personal: { name: "Codex-personal", short: "CP", tool: "codex", codexHome: "~/.codex-main", shadowHome: "~/.codex-p" },
       Oc: { name: "OpenCode", short: "OP", tool: "opencode" },
     });
   });

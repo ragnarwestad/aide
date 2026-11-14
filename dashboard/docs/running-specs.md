@@ -610,7 +610,8 @@ Every AI choice on the board lists providers by name ("Claude", "Claude-Capra", 
 the provider.
 
 - **The short name.** Every provider has a short name of two characters. A new provider gets one made from its name:
-  the first letters of its first two words ("Claude Personal" → CP), or the first two letters of a one-word name
+  the first letters of its first two words ("Claude Personal" → CP, "Claude-Capra" → CC), where a space, hyphen,
+  underscore, dot or slash divides words, or the first two letters of a one-word name
   ("Codex" → CO), in capitals. When another provider already has those letters, a digit takes the second character's
   place, from 2 to 9 and then 0 and 1 ("C2"). A provider saved without one gets one made the same way each time the
   settings are read, after every saved short name has kept its own, and it is written the first time the provider is

@@ -20,6 +20,16 @@ describe("a short name made from a name", () => {
     expect(shortNameFrom("  Claude   Personal Work ")).toBe("CP");
   });
 
+  test("hyphens, underscores, dots and slashes divide words as spaces do", () => {
+    expect(shortNameFrom("Claude-Personal")).toBe("CP");
+    expect(shortNameFrom("Claude-Capra")).toBe("CC");
+    expect(shortNameFrom("claude_work")).toBe("CW");
+    expect(shortNameFrom("open.router")).toBe("OR");
+    expect(shortNameFrom("zen/free")).toBe("ZF");
+    expect(shortNameFrom("-Codex-")).toBe("CO");
+    expect(shortNameFrom("OpenCode")).toBe("OP");
+  });
+
   test("letters another provider has take a digit in place of the second, from 2 on (AC-9)", () => {
     expect(freeShortName("Claude Personal", [])).toBe("CP");
     expect(freeShortName("Codex Pro", ["cp"])).toBe("C2");

@@ -185,7 +185,7 @@ describe("an AI and a model on every phase line", () => {
   test("a removed provider the step ran on is shown by its key's letters and the icon of the tool its model runs on (AC-5)", () => {
     const list = [row({ specFolder: "179-ai-per-phase", state: "done", model: "gpt-fast", stepProviders: { analyze: "removed-one" } })];
     const picker = pick(rows(list), "analyze");
-    expect(face(picker)).toContain(">RE<");
+    expect(face(picker)).toContain(">RO<");
     expect(face(picker)).toContain(TOOL_ICONS.codex);
   });
 
