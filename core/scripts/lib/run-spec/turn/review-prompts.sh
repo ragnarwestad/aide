@@ -9,6 +9,8 @@
 # <fork>, against the description at <description-path>. A description
 # with an `## Out of scope` section adds one instruction: each change
 # under an item in it is a defect too.
+# An existing test the branch weakened is a defect in every review,
+# unless the description replaces or removes what it checked.
 review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headless-note>
   local scope=""
   if [ -n "$(aide_out_of_scope_section "$(cat "$1" 2>/dev/null)")" ]; then
@@ -17,6 +19,7 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
   printf '%s\n' \
     "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
     "" "Report a defect only when you can name the concrete case: the input or state, and the wrong result the code gives for it. A guard that might be missing, or a state the code cannot reach, is not a defect." \
+    "" "An existing test the branch weakened is a defect too: one it deleted, one with an assertion removed or loosened, or one it marked as skipped or disabled. An existing test is one that was there where the branch left $3; one moved or renamed that still checks the same behaviour is not deleted. Its concrete case is the test and what it no longer checks. It is not a defect when the description replaces or removes the behaviour that test checked." \
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
   [ -n "$scope" ] && printf '%s\n' "" "$scope"
@@ -38,6 +41,7 @@ verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
   printf '%s\n' \
     "A review of this spec's branch reported the defects below against the spec's own description. A review is often wrong. Check each one yourself in the code before anyone acts on it." \
     "" "Keep a defect only when you have traced a concrete case through the code: a state the code can reach, and the wrong result it gives there, against what the description asks for. Drop it when the code already handles the case, when the state cannot be reached, when it is only a guard that might be missing, or when the description does not ask for what it says is missing." \
+    "" "A defect about an existing test the branch weakened — one deleted, an assertion removed or loosened, or one marked as skipped or disabled — is checked on these terms instead: keep it when the diff shows the test weakened and the description does not replace or remove the behaviour that test checked. Drop it when the description replaces or removes that behaviour, or when the test was only moved or renamed and still checks the same behaviour." \
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough." \
     "" "The defects:" "" "$4" \

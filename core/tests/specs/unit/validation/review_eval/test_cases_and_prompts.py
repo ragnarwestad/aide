@@ -33,3 +33,25 @@ def test_the_verify_prompt_carries_the_numbered_defects(review_eval, tmp_path):
 
     assert "1. one\n2. two" in text
     assert "git diff abc123" in text
+
+
+def test_every_review_prompt_counts_a_weakened_existing_test_as_a_defect_ac_1_ac_2(review_eval, tmp_path):
+    plain = tmp_path / "plain.md"
+    plain.write_text("# x\n\nA change.\n")
+    scoped = tmp_path / "scoped.md"
+    scoped.write_text("# x\n\n## Out of scope\n\n- The settings page.\n")
+
+    for description in (plain, scoped):
+        text = review_eval.prompt("review_prompt", str(description), "abc123", "main", "", "(headless)").lower()
+
+        for term in ("deleted", "assertion", "loosened", "skipped", "disabled", "replaces or removes"):
+            assert term in text, (description.name, term)
+
+
+def test_the_verify_prompt_keeps_a_weakened_test_defect_only_when_the_description_keeps_its_behaviour_ac_3(review_eval, tmp_path):
+    text = review_eval.prompt(
+        "verify_prompt", str(tmp_path / "d.md"), "abc123", "main", "1. one\n2. two", "(headless)"
+    ).lower()
+
+    for term in ("skipped", "assertion", "replace or remove"):
+        assert term in text, term

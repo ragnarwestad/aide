@@ -411,14 +411,17 @@ evidence that the phase happened:
   - **A review.** A second, fresh session reads the spec's description and the branch's diff and looks for defects
     against the description, each with the concrete case it goes wrong for (`run-spec/turn/review.sh`). It never
     comments on style, naming or structure, except that a description with an `## Out of scope` section makes each
-    change under an item in it a defect too. Every completed implement runs Review on the spec's Review choice, then
-    the Models per phase Review choice, then the default model, read-only on that model's AI
-    (`run-spec/turn/side-turn.sh`). If the chosen model cannot run, Implement stops with Review, the model and the
-    reason; it never falls back to another model.
+    change under an item in it a defect too. An existing test the branch weakened is a defect as well: a test deleted,
+    an assertion removed or loosened, or a test marked as skipped or disabled, unless the description replaces or
+    removes the behaviour that test checked. A test moved or renamed is not deleted. Every completed implement runs
+    Review on the spec's Review choice, then the Models per phase Review choice, then the default model, read-only on
+    that model's AI (`run-spec/turn/side-turn.sh`). If the chosen model cannot run, Implement stops with Review, the
+    model and the reason; it never falls back to another model.
   - **A verification**, whenever Review finds defects: a third fresh session runs read-only on the spec's Verify
     choice, then the Models per phase Verify choice, then the default model, and keeps or drops each defect after
-    tracing it in the code. If the chosen model cannot run, Implement stops with Verify, the model and the reason; it
-    never falls back to another model.
+    tracing it in the code. It keeps a defect about a weakened test only when the description does not replace or
+    remove the behaviour that test checked. If the chosen model cannot run, Implement stops with Verify, the model and
+    the reason; it never falls back to another model.
   - **A fix turn.** The defects that are kept go back to the ORIGINAL implement session as one follow-up turn, which
     fixes them or turns one down on a `not a defect: <number>. <why>` line. The review itself is best-effort: a
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
