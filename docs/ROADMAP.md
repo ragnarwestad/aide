@@ -28,6 +28,7 @@
   - [30. Claude steps through Managed Agents](#30-claude-steps-through-managed-agents)
   - [31. Try Modern Web Guidance on a web task](#31-try-modern-web-guidance-on-a-web-task)
   - [32. Switching provider before a usage limit is reached](#32-switching-provider-before-a-usage-limit-is-reached)
+  - [33. Domain Specific / Standard Agents](#33-domain-specific--standard-agents)
 
 ---
 
@@ -43,7 +44,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 33.
+same idea later. The next number is 34.
 
 ## To consider
 
@@ -664,3 +665,29 @@ Limits:
 - A reading can be up to a minute old.
 - A reading that fails leaves the provider in use, with the usage limit as the backstop.
 - A step started again on another provider starts from the beginning: its session belongs to the first login.
+
+### 33. Domain Specific / Standard Agents
+
+From Justin Schroeder's work at Standard Agents: explore assistants dedicated to a narrow task, each with its own
+model, instructions, tools, context and execution rules, which other assistants can call. The goal for Aide is to
+find where a reusable specialist improves reliability or cost compared with the existing skills and step sessions.
+Specialisation need not mean training a model; it can mean testing and improving the complete combination around it.
+
+Standard Agents publishes an open specification and a Builder product for this approach. Its examples include an
+assistant that categorises and prioritises GitHub issues, and a customer-service assistant that calls billing,
+returns and order specialists. These are implementation examples, not independent evidence of better results.
+GEPA is related research on improving prompts through measured trials; it does not establish that a team of
+specialists outperforms a general-purpose assistant.
+
+Before adopting the approach, compare the same bounded task with and without a specialist, measuring correctness,
+cost and failures. Keep the model, tools and task examples recorded so the comparison can be repeated.
+
+References:
+
+- [Why Domain-specific Agents Are the Future — Justin Schroeder](https://www.youtube.com/watch?v=wIPr9GmLRaQ)
+- [Interview: Bridging the Gap Between AI Builders and Domain Experts, with transcript](https://home.mlops.community/public/videos/bridging-the-gap-between-ai-builders-and-domain-experts)
+- [Standard Agents Builder — product and demonstrations](https://standardagents.ai/)
+- [Standard Agent Specification — open specification](https://standardagentspec.org/)
+- [Code examples, including GitHub issue triage and composition](https://standardagentspec.org/0.2.0/getting-started/examples/)
+- [Available runtimes](https://standardagentspec.org/runtimes/)
+- [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)

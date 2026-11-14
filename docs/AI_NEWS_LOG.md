@@ -121,19 +121,20 @@ The YouTube channels whose videos the news check lists. This table is the one li
 or removed here. `scripts/news/fetch-youtube.py` reads it and lists each channel's videos published since the last
 review from the channel's feed, which holds its newest 15 videos.
 
-| Channel        | Channel id               |
-|----------------|--------------------------|
-| AI Engineer    | UCLKPca3kwwd-B59HNr-_lvA |
-| Code with Beto | UCh247h68vszOMA_OWpGEa5g |
-| Convex         | UCoC_9mdiPwIu1sDxDtGQggQ |
-| Chase AI       | UCoy6cTJ7Tg0dqS-DI-_REsA |
-| Bart Slodyczka | UC8F7X90NDmMr1mGx8897r_A |
-| Jas Wong       | UCv5t6x3G9jpfVRhkDxIYRsQ |
-| Simon Scrapes  | UCdCR4-uYOg5ju-IUuDnfnQA |
-| Grace Leung    | UCrB7UFnkosBjAhOg3a9NdWw |
-| Anthropic      | UCrDwWp7EBBv4NwvScIpBDOA |
-| Claude         | UCV03SRZXJEz-hchIAogeJOg |
-| OpenAI         | UCXZCJLdBC09xxGZ6gcdrc6A |
+| Channel               | Channel id                 |
+|-----------------------|----------------------------|
+| AI Engineer           | UCLKPca3kwwd-B59HNr-_lvA   |
+| Code with Beto        | UCh247h68vszOMA_OWpGEa5g   |
+| Convex                | UCoC_9mdiPwIu1sDxDtGQggQ   |
+| Chase AI              | UCoy6cTJ7Tg0dqS-DI-_REsA   |
+| Bart Slodyczka        | UC8F7X90NDmMr1mGx8897r_A   |
+| Jas Wong              | UCv5t6x3G9jpfVRhkDxIYRsQ   |
+| Simon Scrapes         | UCdCR4-uYOg5ju-IUuDnfnQA   |
+| Grace Leung           | UCrB7UFnkosBjAhOg3a9NdWw   |
+| Anthropic             | UCrDwWp7EBBv4NwvScIpBDOA   |
+| Claude                | UCV03SRZXJEz-hchIAogeJOg   |
+| OpenAI                | UCXZCJLdBC09xxGZ6gcdrc6A   |
+| Agentic AI Foundation | UCgkApalw5crKXOtr_mqtPQg   |
 
 ---
 
