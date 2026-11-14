@@ -224,11 +224,6 @@
     .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; }
-  /* The header keeps the mark, the board line and the "…" trigger. The
-     words beside the mark are clipped rather than removed, so the link
-     home keeps its name for a screen reader. */
-  header .brand > span[translate] { position: absolute; width: 1px; height: 1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* The controls' row holds its width on one line, so "…" stays at the
      header's right end; the board line is what gives way. */
   header > .row:not(.boardline) { flex: none; flex-wrap: nowrap; position: relative; }
