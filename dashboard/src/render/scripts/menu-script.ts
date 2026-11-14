@@ -27,6 +27,20 @@
   document.addEventListener("click", (e) => {
     const target = e.target as Element | null;
     closeBoxes(target);
+    // A phone's "…" menu row that stands in for a header or search-line
+    // trigger hidden at that width (Usage, the filter): it shuts the menus
+    // and opens the `<details>` it names, firing the same `toggle` its own
+    // trigger would, and puts the keyboard on the panel's first entry.
+    const opener = target?.closest?.("[data-opens]") as HTMLElement | null;
+    if (opener) {
+      e.preventDefault();
+      closeAll();
+      const box = document.getElementById(opener.dataset.opens ?? "");
+      if (!box?.matches("details")) return;
+      (box as HTMLDetailsElement).open = true;
+      box.querySelector<HTMLElement>(".menupanel a, .menupanel button")?.focus();
+      return;
+    }
     // The About item opens the dialog in place. Escape and the cross are
     // the platform's own once the box is modal — a click on the backdrop
     // is not, so it is handled here: the dialog element itself is only

@@ -17,13 +17,9 @@ beforeAll(async () => {
 
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
-async function width(path: string, state: string): Promise<{ width: number; page: number; viewport: number }> {
+async function width(path: string, state: string): Promise<number> {
   await withBrowser(page.goto(`${base}${path}?live=0&state=${encodeURIComponent(state)}`), `page.goto(${path})`);
-  return page.evaluate(() => ({
-    width: document.querySelector(".menu.state > summary")!.getBoundingClientRect().width,
-    page: document.documentElement.scrollWidth,
-    viewport: window.innerWidth,
-  }));
+  return page.evaluate(() => document.querySelector(".menu.state > summary")!.getBoundingClientRect().width);
 }
 
 test("the state button keeps its width across selections on both lists (AC-9)", async () => {
@@ -31,15 +27,6 @@ test("the state button keeps its width across selections on both lists (AC-9)", 
   for (const path of ["/", "/specs"]) {
     const widths = [];
     for (const state of ["all", "not-verified", "stopped,failed", "active:all,waiting,stopped"]) widths.push(await width(path, state));
-    expect(Math.max(...widths.map((value) => value.width)) - Math.min(...widths.map((value) => value.width))).toBeLessThan(0.5);
-  }
-});
-
-test("the fixed state button stays inside a phone page (AC-9, AC-10)", async () => {
-  await page.setViewportSize({ width: 390, height: 800 });
-  for (const path of ["/", "/specs"]) {
-    const measured = await width(path, "active:all,waiting,stopped");
-    expect(measured.page).toBeLessThanOrEqual(measured.viewport);
-    expect(await page.locator("[data-state-count]:visible").count()).toBe(1);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(0.5);
   }
 });

@@ -12,6 +12,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.testServers": "Servidores de prueba",
   "shell.about": "Acerca de",
   "shell.usage": "Uso",
+  "shell.filter": "Filtro",
   "shell.themeDark": "Oscuro",
   "shell.themeLight": "Claro",
   "shell.themeAuto": "Auto",

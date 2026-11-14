@@ -423,3 +423,6 @@ p.intro { margin: 0 0 var(--sp-3); }
    header on a desktop; the "…" menu's copy of it (`.boardrow`) is for
    phones only — narrow.css swaps the two. */
 .menupanel > .boardrow { display: none; }
+/* The "…" menu's Filter and Usage rows stand in for triggers a phone
+   hides (narrow-rows.css); everywhere else the triggers are there. */
+.menupanel > [data-opens] { display: none; }
