@@ -7,7 +7,7 @@
 
 import { isSpecFolder } from "../../project/spec-names.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { backLink, buttonForm, messageSlot } from "../ui/components";
+import { askButton, backLink, buttonForm, messageSlot, progressDialog } from "../ui/components";
 import { esc } from "../ui/html.ts";
 import { t, type Language } from "../../i18n";
 
@@ -94,7 +94,19 @@ export function renderTestServersPage(
 ): string {
   const lang = opts.lang ?? "en";
   const back = backLink(opts.backHref ?? "/", t(lang, "shell.testServers"), "", { lang });
-  const cleanup = buttonForm({ action: "/api/queue/cleanup", hook: "actionform", button: { label: t(lang, "testServers.cleanUp") }, after: messageSlot("refused") });
+  // Clean up asks first, as Deploy does, and its OK queues the cleanup job.
+  const cleanup = askButton({ label: t(lang, "testServers.cleanUp"), dialogId: "cleanupask" }) +
+    progressDialog(lang, {
+      id: "cleanupask",
+      title: t(lang, "testServers.cleanUpTitle"),
+      ask: {
+        title: t(lang, "testServers.cleanUpAskTitle"),
+        sentence: t(lang, "testServers.cleanUpAskSentence"),
+        ok: { variant: "primary", pending: t(lang, "testServers.cleanUpTitle") },
+        post: { action: "/api/queue/cleanup" },
+        queuesJob: true,
+      },
+    });
   // This codebase's own "nothing to show, show nothing" rule: most of
   // the time no board is running at all, and an empty table reads as
   // broken rather than as the ordinary case.
