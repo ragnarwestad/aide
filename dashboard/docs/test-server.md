@@ -157,7 +157,8 @@ are not in the Test servers register, and old orphaned test processes from the b
 folders. Registered test servers and processes belonging to queued, running or landing jobs are
 left alone.
 
-The Test servers page also has a **Clean up** button that starts the same cleanup. The cleanup is a
+The Test servers page also has a **Clean up** button that starts the same cleanup, once its question is answered
+OK. The cleanup is a
 job: it appears on the Running tab while it runs and remains in the job history; each operation's marks and details
 are in that job's Log. Pressing the button while a cleanup is already queued or running starts no second job.
 

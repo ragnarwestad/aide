@@ -170,7 +170,7 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
 table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { margin-left: var(--sp-1); }
 .aimodelopen, .aimodelnow { display: none; }
 .aimodelpanel, .aimodelfield { display: contents; }
-.aimodelfield > span { display: none; }
+.aimodelfield > span:not(.providerpick) { display: none; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
    name. Quiet at rest, obvious on hover, and the shut state turns the

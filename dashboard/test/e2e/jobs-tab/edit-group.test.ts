@@ -85,3 +85,38 @@ test("Edit removes one member and adds another (AC-8)", async () => {
   await head.locator(`.pip[title="${ADDED}"]`).waitFor({ state: "attached" });
   expect(await head.locator(`.pip[title="${SECOND}"]`).count()).toBe(0);
 });
+
+for (const width of [390, 1440]) {
+test(`at ${width}px Remove covers the pending request and removes the group without a reload`, async () => {
+  await page.setViewportSize({ width, height: 900 });
+  const { base } = harness.start({
+    description: grouped(FIRST, 1), alsoSpecs: [SECOND],
+    alsoDescriptions: { [SECOND]: grouped(SECOND, 2) },
+    executionGroups: [{ id: "group-1", project: "aide", name: "Release", members: [FIRST, SECOND],
+      branch: `aide/group-${FIRST}`, state: "completed", createdAt: "2026-11-11T10:00:00Z",
+      completedMembers: [FIRST, SECOND], jobs: [] }],
+  });
+  await page.goto(`${base}/?live=0`);
+  let navigations = 0;
+  page.on("framenavigated", (frame) => { if (frame === page.mainFrame()) navigations += 1; });
+  await card().locator("summary").click();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  const ask = page.locator("dialog.progressdialog[open]");
+  await ask.waitFor({ state: "visible", timeout: 2000 });
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/queue/groups/group-1/action", async (route) => {
+    await pending;
+    await route.continue();
+  });
+  try {
+    await ask.getByRole("button", { name: "OK", exact: true }).click();
+    await page.locator("dialog.pageoverlay[open]").waitFor({ state: "visible" });
+    await page.keyboard.press("Escape");
+    expect(await page.locator("dialog.pageoverlay[open]").count()).toBe(1);
+  } finally { release(); }
+  await card().waitFor({ state: "detached" });
+  await page.locator("dialog.pageoverlay[open]").waitFor({ state: "detached" });
+  expect(navigations).toBe(0);
+});
+}

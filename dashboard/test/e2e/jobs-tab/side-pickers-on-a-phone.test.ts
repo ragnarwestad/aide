@@ -66,3 +66,17 @@ for (const width of [390, 500]) {
     }
   });
 }
+
+test("on desktop the provider can be selected beside the model", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  try {
+    await withBrowser(page.goto(`${base}/?open=aide/81-queue-and-runner&live=0`), "page.goto(Jobs)");
+    const provider = page.locator('tr.subrow[data-side="review"] select[data-ai]');
+    await provider.waitFor({ state: "attached" });
+    expect(await provider.isVisible()).toBe(true);
+    await provider.selectOption("Personal");
+    expect(await provider.inputValue()).toBe("Personal");
+  } finally {
+    await page.setViewportSize({ width: 390, height: 844 });
+  }
+});

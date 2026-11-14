@@ -3,7 +3,7 @@ import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
-import { rowMessage, stepLabel } from "../../../../src/render/ui/components";
+import { pips, rowMessage, stepLabel } from "../../../../src/render/ui/components";
 import { specPagePath } from "../../../../src/render/pages/spec-page/tabs.ts";
 import { t } from "../../../../src/i18n";
 import { executionGroupRowState } from "../../../../src/render/pages/jobs-page";
@@ -195,16 +195,19 @@ test("a member's pip takes the colour of its own state", () => {
   expect(memberPipKind(undefined, false)).toBe("todo");
 });
 
-test("a card numbers its members' pips in the group's order", () => {
-  const html = executionGroupCard(group("prepared"), [member("1-first", ""), member("2-second", "")]);
-  const marks = html.slice(html.indexOf('class="pipletters"'), html.indexOf('class="pips"'));
-  expect(marks.match(/>(\d)</g)).toEqual([">1<", ">2<"]);
-  expect(html.indexOf('title="2-second"')).toBeLessThan(html.indexOf('title="1-first"'));
-});
-
 test("an editable card opens its filled Edit dialog", () => {
   const html = executionGroupCard(group("running"), [member("1-first", ""), member("2-second", "")], "en", { candidates: [{ project: "aide", specFolder: "3-third" }], locked: new Set(["1-first"]) });
   expect(html).toContain('<details class="menu"');
   expect(html).toContain('data-ask="edit-group-group-group-1"');
   expect(html).toContain('<dialog class="formdialog" id="edit-group-group-group-1"');
+});
+
+test("each member's pip is marked with its spec number, in the group's order", () => {
+  const second = member("798-second", "<tr>second</tr>");
+  const first = member("797-first", "<tr>first</tr>");
+  const execution = { ...group("running"), members: ["798-second", "797-first"], completedMembers: ["798-second"] };
+  expect(executionGroupCard(execution, [first, second])).toContain(pips([
+    { kind: memberPipKind(second.group, true), title: "798-second", label: "798" },
+    { kind: memberPipKind(first.group, false), title: "797-first", label: "797" },
+  ]));
 });
