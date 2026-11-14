@@ -315,7 +315,14 @@ export function harness(
   // `pathname` because the page's own reloads go back to the page they
   // are on — the Projects panel is served at `/projects`,
   // and a hardcoded `/` would throw the reader onto the spec list.
-  const location = { search, href: "http://dash.test/", pathname: o.pathname ?? "/" };
+  const location = {
+    search,
+    href: "http://dash.test/",
+    pathname: o.pathname ?? "/",
+    assign(url: string) { this.href = url; },
+    replace(url: string) { this.href = url; },
+    reload() {},
+  };
   // `replaceState` moves the address bar WITHOUT loading a document, so
   // it writes `search` (which `swapRows` reads back) and deliberately
   // leaves `href` alone: in this file `href` means "the page navigated",

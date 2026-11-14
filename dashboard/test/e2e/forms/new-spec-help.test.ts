@@ -1,4 +1,4 @@
-// Each of the New spec form's three acceptance criteria controls carries a
+// Each of the New spec form's three spec settings carries a
 // "(?)" of its own, and a press on it opens what that control does. Only a
 // real browser opens a `<details>` on a press.
 import { afterAll, beforeAll, expect, test } from "bun:test";
@@ -34,7 +34,6 @@ async function openOptions(): Promise<void> {
 // "(?)" sits in that field's own head.
 const CONTROLS: [string, string][] = [
   ["Acceptance ticking required", '.field:has(> .fieldhead [name="acceptanceRequired"])'],
-  ["Let AI formulate acceptance criteria", '.field:has(> .fieldhead [name="aiFormulateAcceptance"])'],
   ["Acceptance criteria checks", ".field:has(> .fieldhead #new-spec-criteria-checks)"],
 ];
 

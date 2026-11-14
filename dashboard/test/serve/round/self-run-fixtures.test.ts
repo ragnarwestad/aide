@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseCreateRequest } from "../../../src/queue/queue.ts";
-import { createEnd, fixtureCreateBody, fixtureOrder, jobSettled, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
+import { createdFolder, createEnd, fixtureCreateBody, fixtureOrder, jobSettled, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
 
 const FIXTURES = join(import.meta.dir, "..", "..", "round", "specs");
 
@@ -68,6 +68,11 @@ test("a fixture's create asks for acceptance ticking, as New spec does by defaul
   expect(parsed.ok).toBe(true);
   if (!parsed.ok) return;
   expect(parsed.job.acceptanceNotRequired).toBeUndefined();
+});
+
+test("a direct-create answer gives a fixture its final folder", () => {
+  expect(createdFolder({ ok: true, specFolder: "07-a-fact" }, "07-a-fact")).toBe("07-a-fact");
+  expect(() => createdFolder({ ok: true }, "07-a-fact")).toThrow("create gave no spec folder for 07-a-fact");
 });
 
 // The round creates its fixtures one at a time, in their own order, each

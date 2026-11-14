@@ -51,7 +51,9 @@ export async function handleQueueAdminRoutes(
       allow: (project) => ctx.allowed.has(project),
       resolve: (project) => ({
         specFolders: ctx.targets().filter((target) => target.project === project).map((target) => target.specFolder),
-        archivedFolders: [],
+        archivedFolders: (ctx.readScan()?.archived ?? [])
+          .filter((key) => key.startsWith(`${project}/`))
+          .map((key) => key.slice(project.length + 1)),
       }),
       defaults: ctx.queue.defaults,
     });

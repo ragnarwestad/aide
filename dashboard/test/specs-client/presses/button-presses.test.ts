@@ -155,17 +155,11 @@ describe("the New-spec form answers for itself", () => {
     expect(h.replaced).toHaveLength(0);
   });
 
-  // The form has a page of its own now: there is
-  // no panel to shut, no #jobrows beside it to swap, and the thing the
-  // reader asked to see — the new spec's row, with its progress — is on
-  // the page this navigates to.
-  test("a created spec takes the reader to the Running tab, opened by its job", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
+  test("a created spec takes the reader to its row on the Specs list (AC-3)", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true, specFolder: "805-a-spec" } }));
     await h.submitCreate();
-    expect(h.location.href).toBe("/?created=job-2");
-    // Nothing is put back in place first: the reader has left.
+    expect(h.location.href).toBe("/?created=805-a-spec");
     expect(h.resets).toHaveLength(0);
-    expect(h.requests.some((r) => r.url.includes("rows=1"))).toBe(false);
   });
 
   // The four ROW buttons change while their request is out; this one
@@ -223,16 +217,12 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
     expect(h.chips[1]!.input.disabled).toBe(false);
   });
 
-  // There is no re-sync after a create: the
-  // success path navigates, so there is no reset to chase and no
-  // half-cleared form to leave behind. What the reader picked stands
-  // until the browser leaves the page.
-  test("a successful create leaves them alone — the page is on its way out", async () => {
-    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
+  test("a successful create keeps its project choice while the Specs list replaces the page", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true, specFolder: "805-a-spec" } }));
     h.changeProject("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
     await h.submitCreate();
-    expect(h.location.href).toBe("/?created=job-2");
+    expect(h.location.href).toBe("/?created=805-a-spec");
     expect(h.projectSelect.value).toBe("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
   });

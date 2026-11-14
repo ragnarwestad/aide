@@ -156,35 +156,6 @@ describe("landing a stopped step's specs-only work", () => {
     expect(landed.stopReason).toBe("timeout");
   });
 
-  // The step-agnostic reach. `create` is not on any list here —
-  // what decides is that nothing outside the specs repo moved. Its job row
-  // keeps its provisional key (a stopped create reports no `specFolder`),
-  // which is accepted: the folder itself reaches the list, which reads the
-  // main checkout off disk.
-  test("a stopped create step's specs-repo work is landed too", async () => {
-    const CREATE_BRANCH = "aide/new-abc123de";
-    const git = gitFor();
-    const { base, results } = serverWithRunner(git);
-    const made = (await (
-      await fetch(`${base}/api/queue/create`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ project: "aide", title: "A half-written spec", description: "Do the thing" }),
-      })
-    ).json()) as { job: { id: string; specFolder: string } };
-    const stoppedResult = { ...STOPPED_RESULT, branch: CREATE_BRANCH };
-    writeFileSync(
-      join(results, `${made.job.id}.json`),
-      JSON.stringify(stoppedResult),
-    );
-    await finishSecondAttempt(base, results, made.job.id, stoppedResult);
-    const landed = await settle(base, made.job.id, (j) => j.state === "stopped" && !j.landing);
-
-    expect(landed.error).toBeFalsy();
-    expect(mergesOf(git.calls, CREATE_BRANCH).length).toBeGreaterThan(0);
-    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
-  });
-
   // The description's third requirement, and the reason the
   // check reads repos rather than step names: code stays on its branch,
   // where a person tests it, however the run ended.

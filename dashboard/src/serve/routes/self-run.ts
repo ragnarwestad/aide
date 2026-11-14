@@ -2,8 +2,8 @@
 // through again, on this same board, without starting a new server.
 //
 // The board owns the round: it sends every fixture spec through
-// `/api/queue/create`, waits for the folder it becomes and queues that
-// spec's own steps, and `test/round/run` is a thin shell around it. Before
+// `/api/queue/create`, reads the final folder and queues that spec's own
+// steps, and `test/round/run` is a thin shell around it. Before
 // the fixtures go in again the board is put back where the round left
 // it at the start: every live job is cancelled and the project's jobs
 // dropped, and the two throwaway repositories (the fixture project and
@@ -38,6 +38,15 @@ export function settledCreateFolder(job: { specFolder: string; landing?: Job["la
   if (isProvisionalKey(job.specFolder)) return undefined;
   if (job.landing) return undefined;
   return job.specFolder;
+}
+
+/** The direct-create endpoint's final folder, before the fixture's own
+ *  workflow steps are queued. */
+export function createdFolder(answer: Record<string, unknown>, slug: string): string {
+  if (typeof answer.specFolder !== "string" || !answer.specFolder) {
+    throw new Error(`create gave no spec folder for ${slug}`);
+  }
+  return answer.specFolder;
 }
 
 /** What a fixture's create has come to: its folder once landed, `failed`
@@ -409,10 +418,8 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
   };
   const dir = fixturesDir(ctx);
 
-  // One fixture's own create, then its own steps once its real folder is
-  // known — everything a fixture with no dependency needs is already in
-  // hand, so this reaches its own `/api/queue/create` call with nothing
-  // to wait for.
+  // One fixture's own direct create, then its own steps once the final
+  // folder has been pulled into the board's checkout.
   const runFixture = async (spec: RoundSpec): Promise<void> => {
     const dependsOn = spec.dependsOn.map((dep) => {
       const made = specs.find((s) => s.slug.startsWith(`${dep}-`))?.folder;
@@ -421,26 +428,9 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     });
     const description = readFileSync(join(dir, `${spec.slug}.md`), "utf8");
     const created = await api("/api/queue/create", fixtureCreateBody(project, spec, description, dependsOn));
-    const jobId = (created.job as { id?: string } | undefined)?.id;
-    if (!jobId) throw new Error(`create gave no job for ${spec.slug}`);
-    // A create job's OWN specFolder starts as a provisional "new-<8 hex>"
-    // placeholder and becomes the real "NN-slug" while the step's work
-    // lands; the queue refuses a step for that spec until the landing
-    // has finished, so the wait is for both.
-    const until = Date.now() + 180_000;
-    while (!spec.folder) {
-      const job = ctx.queue.get(jobId);
-      const end = job && createEnd(spec, job);
-      if (end && "failed" in end) {
-        spec.createFailed = true;
-        return;
-      }
-      if (end) spec.folder = end.folder;
-      else if (Date.now() > until) throw new Error(`create never landed for ${spec.slug}`);
-      else await new Promise((r) => setTimeout(r, 1000));
-    }
-    // The folder the landing pushed, into the checkout the board reads
-    // the spec's state from, before its steps are asked for.
+    spec.folder = createdFolder(created, spec.slug);
+    // Direct creation pushed the folder into the specs repository. Pull it
+    // into the checkout the board reads before asking for its steps.
     await pullDisplay(ctx, [specsDir]);
     ctx.invalidateScan();
     if (spec.after) {
@@ -459,13 +449,9 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     });
   };
 
-  // One fixture at a time, in the fixtures' own order, each waiting for
-  // the one before to land its number (2026-09-25). A spec's number is
-  // given when its create lands, so fixtures created together were
-  // numbered in whatever order they happened to land, and a board built
-  // twice showed the same fixture as 08 once and 10 the next time, in a
-  // different state. That concurrent creates work is the runner's own
-  // unit tests' to prove (runner-scheduling.test.ts), not this board's.
+  // One fixture at a time, in the fixtures' own order, so direct creation
+  // assigns the same numbers every time and dependencies can name folders
+  // already created earlier in the list.
   for (const spec of fixtureOrder(specs)) await runFixture(spec);
 }
 

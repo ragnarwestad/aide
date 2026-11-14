@@ -332,6 +332,26 @@ describe("POST /api/queue/create", () => {
     expect(body.specFolder).toBe("999-a-new-spec");
   });
 
+  test("an archived spec is accepted as a dependency", async () => {
+    let received: { dependsOn: string[] } | undefined;
+    const { base } = harness.start({
+      archivedSpecs: { "77-finished-work": {} },
+      extra: {
+        directCreateSpec: async (input) => {
+          received = input;
+          return { ok: true, specFolder: "999-a-new-spec" };
+        },
+      },
+    });
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ ...CREATE, dependsOn: ["77-finished-work"] }),
+    });
+    expect(res.status).toBe(200);
+    expect(received?.dependsOn).toEqual(["77-finished-work"]);
+  });
+
   test("a project that is allowlisted but has never had a spec is still accepted", async () => {
     // `resolveProject` answers "not found" for such a project — the gap
     // that makes a project's FIRST spec uncreatable today.

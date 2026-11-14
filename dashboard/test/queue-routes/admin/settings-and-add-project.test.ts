@@ -53,7 +53,7 @@ describe("Settings routes", () => {
 
   test("a successful save affects later jobs but not an accepted job", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
-    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file });
+    const { base } = start({ queueDefaults: structuredClone(DEFAULTS), queueConfigFile: file }, [], ["82-second"]);
     const accepted = await fetch(`${base}/api/queue`, {
       method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
@@ -68,13 +68,9 @@ describe("Settings routes", () => {
       method: "POST", headers: AUTH,
       body: JSON.stringify({ project: "aide", specFolder: "82-second", steps: ["analyze"] }),
     });
-    // The fixture does not discover 82-second, so use create to observe a later accepted job.
-    const created = await fetch(`${base}/api/queue/create`, {
-      method: "POST", headers: AUTH, body: JSON.stringify({ project: "aide", title: "Later", description: "Later job" }),
-    });
-    expect(later.status).toBe(400);
-    const createdBody = (await created.json()) as { job: { model: Record<string, string> } };
-    expect(createdBody.job.model.create).toBe("codex-fast");
+    expect(later.status).toBe(200);
+    const laterBody = (await later.json()) as { job: { model: Record<string, string> } };
+    expect(laterBody.job.model.analyze).toBe("codex-fast");
     expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
   });
 

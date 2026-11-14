@@ -13,19 +13,9 @@ const harness = queueHarness("aide-e2e-new-spec-tabs-");
 let browser: Browser;
 let base: string;
 
-// Model choices and a provider, so the phase table draws its AI and model pickers.
-const QUEUE_DEFAULTS = {
-  timeoutSec: { default: 1200 },
-  permissionMode: { default: "acceptEdits" },
-  model: { default: "sonnet" },
-  modelChoices: { sonnet: {}, fable: {} },
-  providers: { Claude: { name: "Claude", tool: "claude" as const } },
-  provider: { default: "Claude" },
-};
-
 beforeAll(async () => {
   browser = await withBrowser(chromium.launch(), "chromium.launch()");
-  base = harness.start({ extra: { queueDefaults: QUEUE_DEFAULTS } }).base;
+  base = harness.start().base;
 });
 
 afterAll(async () => {
@@ -51,7 +41,7 @@ async function open(o: { hold?: boolean; query?: string } = {}): Promise<Opened>
   await page.route("**/api/queue/create", async (route) => {
     posts.push(new URLSearchParams(route.request().postData() ?? ""));
     if (o.hold) await held;
-    await route.fulfill({ status: 200, json: { ok: true, job: { id: "j1" } } });
+    await route.fulfill({ status: 200, json: { ok: true, specFolder: "999-a-title" } });
   });
   await withBrowser(page.goto(`${base}/new?live=0${o.query ?? ""}`), "page.goto(/new)");
   return { page, posts, release };
@@ -94,20 +84,18 @@ describe("the New spec page's two tabs", () => {
     expect(await page.locator('#new-spec-form label[data-depends="81-queue-and-runner"]').isVisible()).toBe(true);
   });
 
-  test("Options holds the four settings and every phase's box, AI and model, and keeps what Spec holds", async () => {
+  test("Options holds the three spec settings, no run settings, and keeps what Spec holds", async () => {
     const { page } = await open();
     await title(page).fill("Kept across tabs");
     await tab(page, "Options").click();
-    for (const name of ["acceptanceRequired", "aiFormulateAcceptance", "chooseApproach"]) {
+    for (const name of ["acceptanceRequired", "chooseApproach"]) {
       expect(await page.locator(`#new-spec-form label:has(> input[name="${name}"])`).isVisible()).toBe(true);
     }
     expect(await page.locator("#new-spec-criteria-checks").isVisible()).toBe(true);
-    for (const step of ["create", "analyze", "implement", "archive"]) {
-      const line = page.locator(`#new-spec-form tr[data-step="${step}"]`);
-      expect(await line.locator(`label[data-phase="${step}"]`).isVisible()).toBe(true);
-      expect(await line.locator(`select[data-ai="model.${step}"]`).isVisible()).toBe(true);
-      expect(await line.locator(`select[name="model.${step}"]`).isVisible()).toBe(true);
-    }
+    expect(await page.locator('#new-spec-form [name="aiFormulateAcceptance"]').count()).toBe(0);
+    expect(await page.locator("#new-spec-form [data-phase]").count()).toBe(0);
+    expect(await page.locator("#new-spec-form select[data-ai]").count()).toBe(0);
+    expect(await page.locator('#new-spec-form select[name^="model."]').count()).toBe(0);
     expect(await title(page).isVisible()).toBe(false);
     expect(await page.locator("#leaveapp").isVisible()).toBe(false);
     await tab(page, "Spec").click();
@@ -193,6 +181,6 @@ describe("Create pressed with Spec filled in", () => {
     expect(body.get("description")).toBe("A description");
     expect(body.get("criteriaChecks")).toBe("stop");
     expect(body.get("chooseApproach")).toBe("1");
-    expect(body.getAll("steps")).toEqual(["analyze", "implement", "archive"]);
+    expect(body.getAll("steps")).toEqual([]);
   });
 });
