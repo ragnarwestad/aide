@@ -9,11 +9,10 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { getErrorMessage } from "../../../messages/shared/written.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
-import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, refusal, streamedPage } from "../../serve-helpers";
+import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, resolveSpecTab, specTabPath } from "../../../render";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, refusal, streamedPage } from "../../serve-helpers";
 import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
-import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
 import { afterTick } from "./checks.ts";
@@ -148,25 +147,6 @@ export async function specPageRoutes(
       dir: url.searchParams.get("dir"),
       q: url.searchParams.get("q"),
     });
-    // `?follow=1`: the Steps tab's moving parts alone, for the page script that
-    // follows a job in place. Built from the round's steps, never the page's
-    // whole view, which reads branch copies and coverage through git.
-    if (url.searchParams.get("follow") === "1") {
-      const langResult = languageChoice(url, req);
-      const { lead, steps } = await stepsOfRound(ctx.queue, ctx.jobDetailView, project!, specFolder!);
-      return new Response(
-        renderSpecStepsFollowParts(
-          { project: project!, specFolder: specFolder!, lead, steps },
-          {
-            step: url.searchParams.get("step") ?? undefined,
-            steptab: url.searchParams.get("steptab") ?? undefined,
-            lang: langResult.lang,
-            view: listView,
-          },
-        ),
-        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
-      );
-    }
     // The address is the Specs list with this spec's row open. The rows the
     // page script redraws carry an empty place for the spec: it already holds
     // the spec, and building its view on every change would read git for each.

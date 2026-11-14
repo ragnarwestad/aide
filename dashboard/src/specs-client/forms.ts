@@ -42,6 +42,10 @@ export async function submitAction(event: Event): Promise<void> {
       clearChosenSteps(form.id);
       cardAnswered(form, "saved");
       // Its close redraws the rows (`bindLists`).
+      if (held && form.dataset.goto) {
+        location.href = form.dataset.goto;
+        return;
+      }
       if (held) return held.close();
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.

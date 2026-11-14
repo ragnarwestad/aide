@@ -138,7 +138,7 @@ describe("a Codex step's job page", () => {
     expect(old).toContain("git status");
   });
 
-  test("steptab=files opens the step on Changed files, marked as the page's own tab bar marks its tab, on the spec page's Logs tab too", async () => {
+  test("steptab=files opens the job step on Changed files and marks its tab", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const mirror = seed(dir, id, (job) => {
@@ -152,8 +152,6 @@ describe("a Codex step's job page", () => {
 
     const job = await (await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)).text();
     expect(current(job)).toBe("Changed files");
-    const spec = await (await fetch(`${base2}/specs/aide/81-queue-and-runner?tab=steps&step=0&steptab=files`)).text();
-    expect(current(spec)).toBe("Changed files");
   });
 });
 
@@ -221,7 +219,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(html).toContain('id="jobrows"');
     expect(html).toContain(`data-spec-detail="aide/${SPEC}"`);
     // The tabs, each a link to the spec's own address, and the Description panel.
-    for (const tab of ["description", "analysis", "solution", "status", "steps"]) {
+    for (const tab of ["description", "analysis", "solution", "status"]) {
       expect([tab, new RegExp(`href="/specs/aide/${SPEC}\\?[^"]*tab=${tab}`).test(html)]).toEqual([tab, true]);
     }
     expect(html).toContain("It shows nothing about");
@@ -352,76 +350,3 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 });
 
-// --- Every attempt's steps in one flat list, no picker ------------
-//
-// The picker used to read `?job=` to decide which attempt's steps to
-// show. Direction: remove the picker, list every attempt's steps
-// together, and stop reading `?job=` at all — a stray one on an old
-// bookmark or shared link now changes nothing rather than filtering.
-
-describe("GET /specs/<project>/<specFolder>?job=", () => {
-  const SPEC = "81-queue-and-runner";
-  const PATH = `/specs/aide/${SPEC}`;
-
-  // The spec is drawn in the open row of the Specs list. The rest of the
-  // list (the header's language links, the freshness marks of its rows) varies
-  // with the address and the clock, so what is compared is the spec's own cell.
-  const detailOf = (html: string): string => html.match(/<tr class="specdetail"[\s\S]*?<tr class="specgap"/)?.[0] ?? "";
-
-  /** Two finished analyze jobs on one spec, oldest last — which is one
-   *  more than the queue will accept through its own route, so the
-   *  second is written into the mirror the server reads at boot. */
-  const twoAttempts = (dir: string, id: string): string => {
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const newer = jobs.find((j) => j.id === id)!;
-    newer.state = "done";
-    newer.startedAt = "2026-08-21T11:00:00Z";
-    newer.results = [
-      {
-        step: "analyze", ok: true, costUsd: 7.77, costMeasured: true,
-        terminalReason: "completed", at: "2026-08-21T11:30:00Z",
-      },
-    ];
-    jobs.push({
-      ...newer,
-      id: "older-attempt",
-      state: "failed",
-      error: "unknown spec",
-      startedAt: "2026-08-19T11:00:00Z",
-      results: [
-        {
-          step: "analyze", ok: false, costUsd: 1.11, costMeasured: true,
-          terminalReason: "completed", at: "2026-08-19T11:30:00Z",
-        },
-      ],
-    });
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return mirror;
-  };
-
-  test("?job= naming a real other attempt changes nothing", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base);
-    const mirror = twoAttempts(dir, id);
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const bare = detailOf(await (await fetch(`${base2}${PATH}?tab=steps`)).text());
-    const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`);
-    expect(res.status).toBe(200);
-    expect(bare).toContain("$7.77");
-    expect(detailOf(await res.text())).toBe(bare);
-  });
-
-  test("both attempts' cost figures are present together in one response", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base);
-    const mirror = twoAttempts(dir, id);
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${PATH}?tab=steps`)).text();
-    expect(html).toContain("$7.77");
-    expect(html).toContain("$1.11");
-  });
-
-});

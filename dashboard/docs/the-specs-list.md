@@ -80,19 +80,18 @@ that bookmarks and other pages still use; a push notification opens the Running 
 with several keys it goes to the first. The Running tab is the other page that draws these rows, and it keeps `?open=`
 for its own folds.
 
-On the Specs list an open row is the spec: its title line, the row's message rows — held-back, refusal, info
-line — and then the spec itself. It shows nothing about the spec's runs: no caption line, no phase lines and no
-press that starts, stops or re-runs a step, since what runs is followed on the Running tab.
+On the Specs list an open row is the spec: its title line, short state, description, settings, dependencies,
+acceptance criteria and the spec documents. It shows no phase lines, steps or logs. The Jobs link opens the Jobs tab
+with every round of this spec and no other row. Run opens a dialog for choosing the phases and each phase's AI and
+model before the job starts on Jobs.
 
 The Running tab's open row reveals the workflow phases underneath, always in that order, so how far a spec has got
 is readable without counting rows. The phase lines sit directly under the row; its message rows come after them.
 A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count
 beside it, because a re-run is ordinary.
 
-The header carries what belongs to the spec rather than to one run, shut or open: the summed cost, one link per
-repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the most recent
-outcome. It carries no button: the row's one action is on the caption line inside the Running tab's fold, once per
-spec rather than once per job.
+The Specs header carries one short state: Not started, Running, Held back, Waiting for Archive or Failed. The Jobs
+row keeps the detailed state for that run.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
 line. On the Specs list an open row is drawn the same as a shut one. On the Running tab an open row drops the second
@@ -102,13 +101,12 @@ column at the phase badges' own size, then the total in the Time column.
 
 ## The row's controls
 
-The Running tab's open row adds one line per phase, and a caption line above them; the Specs list's open row has
-none of this. Each phase line carries its own tick box, its
+The Jobs tab's open row adds one line per phase and a caption line above them. Each phase line carries its own tick box, its
 own AI select and its own model select — the AI select only when more than one tool is configured, since one tool
 is nothing to choose between. On a narrow screen the two selects collapse into one disclosure labelled with what
 they are set to, `Claude/sonnet`.
 
-The caption line carries the row's action, and the row draws one at a time. While nothing of this spec is
+The caption line carries the job row's action, and the row draws one at a time. While nothing of this spec is
 running it is the run button, **labelled with the phase it would run** — "Implement", not "Run" — and disabled,
 still named, when that phase is unticked. Pressing it queues everything ticked as a single job in the workflow's
 order: the browser submits checkboxes in the order they are drawn, so ticking `implement` before `analyze` still
@@ -116,7 +114,9 @@ queues analyze first. While something is running it is **Cancel** instead, a but
 dialog whose OK posts the cancel; like Close and Reopen, it needs script. While `create` is the running step there is no
 button at all: cancelling it would throw away the title and the description with no spec left to run again from.
 
-A reader who wants to stop between steps runs one phase at a time.
+A reader who wants to start a new job presses Run on Specs. The dialog uses the recorded phase choices when they
+exist. Otherwise it ticks every unfinished phase and uses the board's default AI and model for each. A reader who
+wants to stop between steps chooses one phase at a time.
 
 **The Depends on picker is the last line of the open row**, after the phase lines, for every spec that is neither
 archived nor closed and whose folder exists. It offers the specs the New spec form offers for the project, less the spec
@@ -150,8 +150,9 @@ script; everything else on the row does not.
 
 ## What is ticked, and why
 
-The boxes are on the Running tab's open row. Before the first Run, every remaining phase is ticked and uses the board's
-default AI and model. After Run, what was ticked is the recorded choice until the reader changes it on a later Run.
+The choices are in the Run dialog on Specs and on the phase lines on Jobs. Before the first Run, every remaining
+phase is ticked and uses the board's default AI and model. After Run, what was ticked is the recorded choice until
+the reader changes it on a later Run.
 
 A spec with no such choice recorded — no create, no Run — falls back to ticking every phase it has not had. A
 phase already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A
@@ -517,9 +518,9 @@ with one in flight it answers with the clash refusal.
 
 ## The spec page
 
-`/specs/<project>/<spec>` is the Specs list with that spec's row open, and the whole SPEC, as it stands now, drawn in the
-row after its message rows: a banner and five tabs, one per document (Description,
-Analysis, Solution, Status — each stamped with the commit that last changed it) and Logs for its runs. The open
+`/specs/<project>/<spec>` is the Specs list with that spec's row open, and the whole spec, as it stands now, drawn in the
+row after its message rows: a banner and four document tabs: Description, Analysis, Solution and Status. Each file is
+stamped with the commit that last changed it. The open
 tab's file, its stamp and the banner's facts about the description are read off the spec's own `aide/<folder>`
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
@@ -546,17 +547,8 @@ them. A direct load of the address (a reload, a link from the Running tab, Back 
 the list and the spec when the spec's view is ready. A press on a shut row of the Specs list does not load the address
 but asks for it with `?detail=1`, as "The row, open and shut" says.
 
-**The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
-the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
-`?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
-follows its job**, in place: while the lead job is queued, running or landing, the page carries a hidden marker, and
-when the live feed says something moved (or the stream reconnects, or the tab comes back into view) the page script asks
-its own address with `follow=1`. The server answers the steps table alone, built from the round's
-steps and never from the page's whole view; the script swaps only the rows that differ, adds a longer log's new end
-after what is drawn, and keeps the page's scroll, each log box's place and any row the reader has selected text in.
-An answer without the marker ends the following, and a page whose job is not in flight asks for nothing at all. Every
-other tab carries a form a refresh would wipe; their banner facts are only as fresh as the last time the page was asked
-for, which is what Update is for.
+Runs and logs are on the Jobs tab and on each job's page. A job page keeps the phase progress, the phase file, every
+step and its log. While that job waits for Archive, the job row and the job page offer Archive; Specs does not.
 
 **An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
 time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred

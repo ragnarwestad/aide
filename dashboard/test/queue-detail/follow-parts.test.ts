@@ -47,19 +47,18 @@ async function runningJob(): Promise<{ base: string; id: string; stream: string 
 }
 
 describe("the follow answer of a running job", () => {
-  test("a job page and a Steps tab each answer the marker and a panel holding the log, and no page", async () => {
+  test("a job page answers the marker and a panel holding the log, and no page", async () => {
     const { base, id, stream } = await runningJob();
     writeFileSync(stream, said("the line X"));
-    for (const url of [`/jobs/${id}?tab=steps&follow=1`, `/specs/aide/${FOLDER}?tab=steps&follow=1`]) {
-      const html = await (await fetch(`${base}${url}`)).text();
-      expect(html, url).toContain("data-follow");
-      expect(html, url).toContain('data-follow-part="panel"');
-      expect(html, url).toContain("the line X");
-      expect(html, url).not.toContain("<html");
-      expect(html, url).not.toContain("<header");
-      expect(html, url).not.toContain("tab=overview");
-      expect(html, url).not.toContain("tab=description");
-    }
+    const url = `/jobs/${id}?tab=steps&follow=1`;
+    const html = await (await fetch(`${base}${url}`)).text();
+    expect(html).toContain("data-follow");
+    expect(html).toContain('data-follow-part="panel"');
+    expect(html).toContain("the line X");
+    expect(html).not.toContain("<html");
+    expect(html).not.toContain("<header");
+    expect(html).not.toContain("tab=overview");
+    expect(html).not.toContain("tab=description");
   }, 30000);
 });
 

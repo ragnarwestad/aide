@@ -112,6 +112,8 @@ export interface JobDetailView extends QueueRowView {
    *  Read off the SPEC's `4-status.md`, exactly as the list's row reads
    *  it, so the two pages cannot word the same fact differently. */
   archiveHeldBack?: string;
+  /** The queue action while this spec is ready for Archive. */
+  archiveAction?: string;
   /** The step running RIGHT NOW, when one is. It has no
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own

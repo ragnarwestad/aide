@@ -60,9 +60,10 @@ export async function handleQueueAdminRoutes(
     if (!result.ok) return refusal(result);
     const created = await createSpecDirectly(ctx, result.create!);
     if (!created.ok) return json(created, 400);
+    if (created.specDir) await ctx.rereadSpec?.(created.specDir, created.specFolder).catch(() => {});
     ctx.invalidateScan();
     ctx.notifyQueueChanged();
-    return json(created);
+    return json({ ok: true, specFolder: created.specFolder });
   }
 
   if (path === "/api/queue/settings") {

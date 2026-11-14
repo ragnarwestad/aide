@@ -20,7 +20,7 @@ import { getUsageLimitMessage } from "../../../messages/usage-limit/get.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
-import { facts, helpPopover, pips, rowMessageParts, stepLabel, type PipKind } from "../../ui/components";
+import { buttonForm, facts, helpPopover, pips, rowMessageParts, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
@@ -116,7 +116,15 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   return (
     head +
     progress +
-    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
+    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "") +
+    (job.archiveAction
+      ? buttonForm({
+          action: job.archiveAction,
+          hook: "actionform",
+          hidden: { project: job.project, specFolder: job.specFolder, steps: "archive" },
+          button: { label: stepLabel("archive", lang), variant: "primary", pending: t(lang, "list.starting") },
+        })
+      : "")
   );
 }
 

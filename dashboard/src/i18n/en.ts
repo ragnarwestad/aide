@@ -219,6 +219,11 @@ export const en = {
   // A hold is not a stop: the row's own badge for a queued
   // job the runner is holding back, never merged with "stopped" below.
   "state.heldBack": "held back",
+  "specState.notStarted": "Not started",
+  "specState.running": "Running",
+  "specState.heldBack": "Held back",
+  "specState.waitingArchive": "Waiting for Archive",
+  "specState.failed": "Failed",
   "state.stopped": "stopped",
   // A stopped job is not a failed one, and the reason is the half that
   // says which. These read on the row itself, so they are as short as
@@ -724,6 +729,7 @@ export const en = {
   "list.specArchived": "this spec is archived",
   "list.alreadyDone": "already done",
   "list.starting": "starting…",
+  "list.runDialogTitle": "Run spec",
   "message.itsButton": "its button",
   "message.thisPhase": "this phase",
   "testServers.cleanUp": "Clean up",

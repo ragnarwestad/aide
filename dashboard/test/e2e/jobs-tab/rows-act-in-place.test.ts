@@ -93,6 +93,33 @@ test("a live row update preserves an unsubmitted search", async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
+  test("Run on Specs asks for phases and models, starts the job on Jobs and the Jobs link filters the spec (AC-3, AC-4)", async () => {
+    const queueDefaults = {
+      timeoutSec: { default: 1200 },
+      permissionMode: { default: "acceptEdits" },
+      model: { default: "sonnet" },
+      modelChoices: { sonnet: {}, fable: {} },
+    };
+    const { base } = harness.start({ extra: { queueDefaults } });
+    const page = await browser.newPage();
+    await page.goto(`${base}/specs/aide/${SPEC}`);
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="steps"]').first().waitFor();
+    expect(await dialog.locator('select[name^="model."]').count()).toBeGreaterThan(0);
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === "/"),
+      dialog.getByRole("button", { name: "Run", exact: true }).click(),
+    ]);
+    await page.goto(`${base}/specs/aide/${SPEC}`);
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.get("q") === "aide:81"),
+      page.locator("#jobrows").getByRole("link", { name: "Jobs", exact: true }).click(),
+    ]);
+    expect(new URL(page.url()).searchParams.get("q")).toBe("aide:81");
+    await page.close();
+  });
+
   test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel removes the job, the row staying, with no page load", async () => {
     const { base } = harness.start({});
     const page = await browser.newPage();

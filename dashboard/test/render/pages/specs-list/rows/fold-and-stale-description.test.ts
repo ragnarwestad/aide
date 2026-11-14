@@ -161,12 +161,12 @@ describe("an open row on the Specs list is the spec alone", () => {
   const onJobsTab = (key: string): string =>
     group(renderSpecsRows(list, { ...base, filter: { open: key, phases: "aide/81-queue-x:create" } }, NOW), key);
 
-  test("no caption line, phase line, message, Select box, Run, Cancel or row Reopen", () => {
+  test("no phase line, message, inline Run, Cancel or row Reopen (AC-1, AC-7, AC-8)", () => {
     for (const key of specs) {
       const html = onList(key);
       expect(html).toContain("THE-SPEC");
       for (const absent of [
-        "data-caption", "data-step", "phasemsgs", "data-phase", 'name="steps"',
+        "data-caption", "data-step", "phasemsgs",
         'class="rowrun"', 'data-ask="cancelask-run82"', 'data-ask="reopenask-aide/50-archived"',
       ]) {
         expect([key, absent, html.includes(absent)]).toEqual([key, absent, false]);
@@ -174,12 +174,59 @@ describe("an open row on the Specs list is the spec alone", () => {
     }
   });
 
+  test("the Specs row has its short state, filtered Jobs link and Run dialog (AC-2, AC-3, AC-4)", () => {
+    const html = onList("aide/81-queue-x");
+    expect(html).toContain(">Not started<");
+    expect(html).toContain('href="/?q=aide%3A81"');
+    expect(html).toContain('data-ask="runask-aide/81-queue-x"');
+    expect(html).toContain('id="runask-aide/81-queue-x"');
+  });
+
+  test("the Run dialog keeps a recorded phase choice and configured models (AC-5)", () => {
+    const key = "aide/81-queue-x";
+    const html = group(renderSpecsRows([], {
+      ...base,
+      openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
+      pendingSteps: { [key]: ["implement"] },
+      defaultModels: { implement: "codex-fast", default: "sonnet" },
+    }, NOW), key);
+    expect(html).toMatch(/value="implement" checked/);
+    expect(html).not.toMatch(/value="analyze" checked/);
+    expect(html).toMatch(/name="model\.implement"[\s\S]*?<option value="codex-fast"[^>]* selected/);
+  });
+
+  test("a spec waiting for Archive has no Run dialog on the Specs list", () => {
+    const key = "aide/81-queue-x";
+    const html = group(renderSpecsRows([], {
+      ...base,
+      targets: [{ project: "aide", specFolder: "81-queue-x", done: ["create", "analyze", "implement"] }],
+      openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
+    }, NOW), key);
+
+    expect(html).not.toContain("data-run-dialog");
+    expect(html).not.toContain('value="archive"');
+  });
+
+  test("a held-back current job is Held back, not Running", () => {
+    const key = "aide/82-queue-y";
+    const held = row({ id: "held82", specFolder: "82-queue-y", state: "queued", errorReason: "held-back" });
+    const html = group(renderSpecsRows([held], {
+      ...base,
+      openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
+    }, NOW), key);
+
+    expect(html).toContain(">Held back<");
+    expect(html).not.toContain(">Running<");
+  });
+
   test("the rows are the title line, the state line, the settings for an active spec, the spec, then the gap", () => {
     for (const key of specs) {
       const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map((m) => m[1]);
       const expected = key === "aide/50-archived"
         ? ["spechead", "specstate", "specdetail", "specgap"]
-        : ["spechead", "specstate", "subrow", "specdetail", "specgap"];
+        : key === "aide/81-queue-x"
+          ? ["spechead", "specstate", "subrow", "subrow", "specdetail", "specgap"]
+          : ["spechead", "specstate", "subrow", "specdetail", "specgap"];
       expect(classes.filter((c) => c !== "specnotice")).toEqual(expected);
       expect(classes.indexOf("specdetail")).toBeGreaterThan(classes.lastIndexOf("specnotice"));
     }

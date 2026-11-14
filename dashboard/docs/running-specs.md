@@ -53,8 +53,9 @@ spec folder without starting a job, and opens its row (`/?created=<spec folder>`
 beside the form, where what was typed can be corrected. The browser holds Create at an empty project, title or
 description.
 
-**The new spec is on the Specs list as soon as Create succeeds.** Its row offers the remaining phases with the board's
-default AI and model. Run starts the chosen work.
+**The new spec is on the Specs list as soon as Create succeeds.** The row shows the spec, its settings and its short
+state. Run opens a dialog with the remaining phases and the board's default AI and model for each. Starting it opens
+the Jobs tab, where every round has its own row with phase information, steps, logs and Archive when it is ready.
 
 - **The project list is the raw allowlist**, `queue-config.json`'s `projects`, seeded from `QUEUE_PROJECTS`: a project
   whose FIRST spec does not exist yet appears here and in no other list. `/api/queue` still refuses a project with no

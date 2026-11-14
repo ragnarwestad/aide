@@ -2,7 +2,7 @@
 // the message has a fix, the Solution line under it.
 
 import { describe, expect, test } from "bun:test";
-import { renderJobFollowParts } from "../../../../src/render/pages/job-page";
+import { renderJobDetailPage, renderJobFollowParts } from "../../../../src/render/pages/job-page";
 import { getWrittenMessage } from "../../../../src/messages/shared/written.ts";
 import { row } from "../fixtures.ts";
 
@@ -13,6 +13,16 @@ const banner = (error: unknown): string =>
   );
 
 describe("the job page's banner", () => {
+  test("a job waiting for Archive offers Archive on its page (AC-7)", () => {
+    const html = renderJobDetailPage(
+      { ...row({ id: "j1", specFolder: "81-x", steps: ["implement"], state: "done" }), results: [], archiveAction: "/api/queue/archive" } as never,
+      "now",
+      [],
+    );
+    expect(html).toContain('action="/api/queue/archive"');
+    expect(html).toContain(">Archive</button>");
+  });
+
   test("shows a message with a fix as a Problem line and a Solution line (AC-7)", () => {
     const html = banner(getWrittenMessage("the push failed", "push it by hand"));
     expect(html).toContain("Problem: The push failed\nSolution: Push it by hand");

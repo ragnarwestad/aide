@@ -1,6 +1,6 @@
-// The spec page's Steps tab and a job page follow their job in place: no
-// reload, no request while nothing runs, and a log that keeps the reader's
-// place. Scroll, selection and navigation only exist in a real browser.
+// A job page follows its job in place: no reload, no request while nothing
+// runs, and a log that keeps the reader's place. Scroll, selection and
+// navigation only exist in a real browser.
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -115,27 +115,22 @@ describe("a page whose job runs follows it in place", () => {
   const logHas = (page: Page, text: string) =>
     page.waitForFunction((t) => document.querySelector(".logbox pre")?.textContent?.includes(t) ?? false, text, { timeout: 5_000 });
 
-  test("lines reach the Log, keep the reader's place, and the finished step stays open", async () => {
+  test("lines reach the job's Log, keep the reader's place, and the finished step stays open", async () => {
     const run = await runningJob();
     writeFileSync(run.stream, lines(1, 150));
     const context = await browser.newContext({ viewport: { width: 1000, height: 700 } });
     try {
-      const steps = await context.newPage();
       const jobPage = await context.newPage();
-      const stepsSeen = watch(steps);
       const jobSeen = watch(jobPage);
-      await Promise.all([
-        steps.goto(`${run.base}/specs/aide/${FOLDER}?tab=steps`),
-        jobPage.goto(`${run.base}/jobs/${run.id}`),
-      ]);
-      await Promise.all([logHas(steps, "line 150"), logHas(jobPage, "line 150")]);
+      await jobPage.goto(`${run.base}/jobs/${run.id}`);
+      await logHas(jobPage, "line 150");
 
-      // A line in the transcript, and later one in the run log, appears in both pages' Log.
+      // A line in the transcript, and later one in the run log, appears in the job's Log.
       appendFileSync(run.stream, said("line 151"));
-      await Promise.all([logHas(steps, "line 151"), logHas(jobPage, "line 151")]);
+      await logHas(jobPage, "line 151");
       appendFileSync(run.runLog, "Aide: tests and commit\n");
-      await Promise.all([logHas(steps, "tests and commit"), logHas(jobPage, "tests and commit")]);
-      expect([stepsSeen.navigations(), jobSeen.navigations()]).toEqual([1, 1]);
+      await logHas(jobPage, "tests and commit");
+      expect(jobSeen.navigations()).toBe(1);
 
       // At the end of a log longer than its box, new lines are followed.
       const place = () =>
@@ -179,12 +174,10 @@ describe("a page whose job runs follows it in place", () => {
       await jobPage.evaluate(() => window.getSelection()!.removeAllRanges());
       appendFileSync(run.stream, said("the last line"));
       run.finish();
-      for (const page of [steps, jobPage]) {
-        await page.waitForFunction(() => document.body.textContent?.includes("completed") ?? false, undefined, { timeout: 8_000 });
-        await logHas(page, "the last line");
-        expect(new URL(page.url()).searchParams.get("step")).toBe("0");
-      }
-      expect([stepsSeen.navigations(), jobSeen.navigations()]).toEqual([1, 1]);
+      await jobPage.waitForFunction(() => document.body.textContent?.includes("completed") ?? false, undefined, { timeout: 8_000 });
+      await logHas(jobPage, "the last line");
+      expect(new URL(jobPage.url()).searchParams.get("step")).toBe("0");
+      expect(jobSeen.navigations()).toBe(1);
     } finally {
       await context.close();
     }

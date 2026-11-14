@@ -332,6 +332,23 @@ describe("POST /api/queue/create", () => {
     expect(body.specFolder).toBe("999-a-new-spec");
   });
 
+  test("a newly created spec warms its workflow history immediately", async () => {
+    const warmed: Array<[string, string]> = [];
+    const { base } = start({
+      directCreateSpec: async () => ({ ok: true, specFolder: "999-a-new-spec", specDir: "/specs/999-a-new-spec" }),
+      rereadSpec: async (dir, folder) => { warmed.push([dir, folder]); },
+    });
+
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify(CREATE),
+    });
+
+    expect(res.status).toBe(200);
+    expect(warmed).toEqual([["/specs/999-a-new-spec", "999-a-new-spec"]]);
+  });
+
   test("an archived spec is accepted as a dependency", async () => {
     let received: { dependsOn: string[] } | undefined;
     const { base } = harness.start({

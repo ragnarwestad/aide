@@ -53,15 +53,14 @@ import { shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE } from "../../ui/loading.ts";
 import { t } from "../../../i18n";
 import { groupKey } from "../specs-list/data-model";
-import { landingRefusal, stepResults, tabBar } from "../job-page";
-import { followMarker, followPart } from "../job-page/follow.ts";
+import { tabBar } from "../job-page";
 import {
   actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, specTabPath, TAB_FILES, tabHelp,
+  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, TAB_FILES, tabHelp,
   type ListView,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
@@ -83,40 +82,6 @@ interface SpecDetailOpts {
   view?: ListView;
 }
 
-/** What the Steps tab draws of a spec: its lead job and every step of the
- *  round. The follow answer builds only these two, not the whole page's view. */
-export type SpecStepsView = Pick<SpecPageView, "project" | "specFolder" | "lead" | "steps">;
-
-/** The index the lead job's running step has among the round's steps once it
- *  finishes — what keys its row and what the follow marker names. */
-const runningIndexOf = (view: SpecStepsView): number | undefined =>
-  view.lead?.runningStep ? (view.steps?.length ?? 0) : undefined;
-
-/** The Steps tab's table, with the tab's own "(?)" in its first line. */
-function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view">): string {
-  const lead = view.lead;
-  return stepResults(view.steps ?? [], lead?.archiveHeldBack, {
-    tabHref: opts.view ? specDetailPath(view.project, view.specFolder, opts.view, "steps") : specTabPath(view.project, view.specFolder, "steps"),
-    openStep: opts.step,
-    runningStep: lead?.runningStep,
-    steptab: opts.steptab,
-    lang: opts.lang,
-    mark: helpPopover(t(opts.lang ?? "en", "help.whatTabShows"), tabHelp(opts.lang ?? "en").steps),
-    // The same table, so the same answer: a step whose merge was
-    // refused must not read "ok" here either.
-    landingRefused: lead ? landingRefusal(lead, opts.lang ?? "en") : undefined,
-  });
-}
-
-/** What `?follow=1` answers on the Steps tab: the marker and the parts the
- *  page script swaps, drawn by the same functions as the page. */
-export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view"> = {}): string {
-  return (
-    (view.lead ? followMarker(view.lead, { tab: "steps", step: opts.step, runningIndex: runningIndexOf(view) }) : "") +
-    followPart("panel", stepsTable(view, opts))
-  );
-}
-
 /** The whole spec as it sits in the open row of the Specs list: what each
  *  phase runs on beside the spec's settings, the banner, the tab bar
  *  and the open tab's panel. The page's own frame — its "← Back" link and
@@ -129,7 +94,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // this one is about the spec, and the spec's own prose is what most
   // readers come for first.
   const tab = resolveSpecTab(opts.tab);
-  const lead = view.lead;
 
   // No title line. The project and folder sit directly above it and ARE
   // the title (the project leads, matching the identifier every other
@@ -146,11 +110,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // What a board asked for is doing, in words. Its button lives in
     // the tab row below, which holds buttons only.
     testServerStatus(view, opts.lang ?? "en") +
-    // The Steps tab follows a job that is in flight; the page script reads
-    // the marker.
-    (tab === "steps" && lead
-      ? followMarker(lead, { tab, step: opts.step, runningIndex: runningIndexOf(view) })
-      : "") +
     // Where the page script writes what a press on this page answered:
     // Update, Save, the banner, the Status tab's tick, Stop test server.
     messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
@@ -177,12 +136,9 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // field's own popover is built on — threaded into whichever function
   // draws that line rather than prepended ahead of it.
   const mark = helpPopover(t(opts.lang ?? "en", "help.whatTabShows"), tabHelp(opts.lang ?? "en")[tab]);
-  const panel =
-    tab === "steps"
-      ? followPart("panel", stepsTable(view, opts))
-      : tab === "description"
-        ? descriptionPanel(view, now, opts.lang ?? "en", mark)
-        : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
+  const panel = tab === "description"
+    ? descriptionPanel(view, now, opts.lang ?? "en", mark)
+    : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
 
   // Each tab is a page load of the spec's own address, with the list's view
@@ -193,7 +149,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     SPEC_TABS,
     (key) => `${specDetailPath(view.project, view.specFolder, view_, key)}${anchor}`,
     tab,
-    { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
+    {},
     actions,
     { lang: opts.lang },
   );

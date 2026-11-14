@@ -50,7 +50,6 @@ export const SPEC_TABS = [
   "analysis",
   "solution",
   "status",
-  "steps",
 ] as const;
 export type SpecTab = (typeof SPEC_TABS)[number];
 
@@ -172,6 +171,5 @@ export function tabHelp(lang: Language): Record<SpecTab, string> {
     analysis: `${t(lang, "specTab.help.analysis", { analyze, file: code(ANALYSIS_FILE) })} ${saveNote}`,
     solution: `${t(lang, "specTab.help.solution", { analyze, file: code(SOLUTION_FILE) })} ${saveNote}`,
     status: t(lang, "specTab.help.status", { file: code(STATUS_FILE), implement, criteria: code("## Acceptance criteria") }),
-    steps: t(lang, "specTab.help.steps"),
   };
 }

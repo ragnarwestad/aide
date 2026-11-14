@@ -1,7 +1,7 @@
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
-import { phaseChip, stepLabel } from "../../ui/components";
+import { askButton, formDialog, phaseChip, stepLabel } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import { esc } from "../../ui/html.ts";
 import { wordPhase } from "../../ui/job-state";
@@ -321,6 +321,42 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // again from a checkbox unchecked by default on every render.
   //
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + dependsOnLine(g, opts);
+}
+
+/** The Specs list's Run control. The dialog reuses the same saved/default
+ * phase, provider and model choices as the Jobs row without drawing that
+ * row's phase history, states or logs. */
+export function specRunDialogRow(g: SpecGroup, opts: SpecsPageOptions): string {
+  if (isArchivedRow(g) || specBusy(g) || !g.named) return "";
+  const lang = opts.lang ?? "en";
+  const id = `runask-${groupKey(g.project, g.specFolder)}`;
+  const formId = `${id}-form`;
+  const ticked = chosenSteps(g, opts);
+  const phases = g.phases.filter((p) => RUN_STEPS.includes(p.step) && p.step !== "archive");
+  if (!phases.some((p) => ticked.has(p.step))) return "";
+  const fields =
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `<div class="options-group">` +
+    phases.map((p) =>
+      `<span class="field"><span class="fieldhead"><span class="row">` +
+      phaseChip({ dataAttr: "data-phase", value: p.step, label: stepLabel(p.step, lang), lang, name: "steps", form: formId, checked: ticked.has(p.step) }) +
+      aiPicker(g, opts, p.step, false, false, undefined, undefined, formId) +
+      modelPicker(g, opts, p.step, false, false, undefined, undefined, formId) +
+      `</span></span></span>`
+    ).join("") +
+    `</div>`;
+  const control = askButton({ label: t(lang, "shell.runTestRound"), dialogId: id, variant: "primary" });
+  const dialog = formDialog(lang, {
+    id,
+    title: t(lang, "list.runDialogTitle"),
+    action: "/api/queue",
+    hook: "actionform",
+    data: { goto: "/" },
+    fields,
+    save: { label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
+  });
+  return `<tr class="subrow" data-run-dialog="1"><td colspan="6">${control}${dialog}</td></tr>`;
 }
 
 /** The AI and the model a phase line offers, in one place.

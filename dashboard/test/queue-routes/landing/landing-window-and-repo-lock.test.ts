@@ -154,7 +154,7 @@ describe("a step reads busy for the whole landing window", () => {
   // A newer job that has already settled (cancelled, in
   // this case) must not push a still-landing job out of the lead slot
   // by coincidence of sort order.
-  test("the single-spec page picks the still-landing job as lead, not a newer settled one", async () => {
+  test("the single-spec page stays locked while its current job is landing", async () => {
     const dir = own("aide-254-lead-");
     const paths = repos(dir);
     const git = heldGit();
@@ -172,16 +172,12 @@ describe("a step reads busy for the whole landing window", () => {
     await settle(base, job.id, (j) => j.state === "done");
 
     const html = await (await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })).text();
-    // The lead is the analyze job that is STILL LANDING, not the newer
-    // cancelled decoy: the page says so by disabling Close for exactly
-    // that reason, and by counting the analyze job's one step. A page
-    // that had taken the decoy as lead would offer Close and know
-    // nothing of a landing.
+    // The analyze job is STILL LANDING, so the page disables Close for
+    // exactly that reason. The cancelled decoy must not replace that state.
     // The disabled reason names the button ("Close can't run
     // right now"), reworded when its own "(?)" was folded into the
     // action row's single shared one.
     expect(html).toContain("Close can't run right now because a merge is in progress.");
-    expect(html).toContain("Logs (1)");
     expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 
     git.release();

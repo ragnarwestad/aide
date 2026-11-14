@@ -5,7 +5,7 @@
 // of the two bundles a tab needs, not just whether one is needed: a
 // locked tab with real text needs the viewer, never nothing.
 import { describe, expect, test } from "bun:test";
-import { documentTabScript, type SpecPageView } from "../../../../src/render";
+import { documentTabScript, resolveSpecTab, renderSpecDetail, type SpecPageView } from "../../../../src/render";
 
 const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
   project: "aide",
@@ -99,7 +99,11 @@ describe("documentTabScript", () => {
     expect(documentTabScript(baseView(), "status")).toBeUndefined();
   });
 
-  test("undefined for steps", () => {
-    expect(documentTabScript(baseView(), "steps")).toBeUndefined();
+  test("the spec page has only its four document tabs and old Steps links open Description (AC-6)", () => {
+    expect(resolveSpecTab("steps")).toBe("description");
+    const html = renderSpecDetail(baseView(), { tab: "steps" });
+    expect(html).not.toContain("?tab=steps");
+    expect(html).not.toContain(">Steps<");
+    expect(html).toContain("# Q");
   });
 });

@@ -132,11 +132,10 @@ export {
   TAB_FILES,
   documentTabScript,
   renderSpecDetail,
-  renderSpecStepsFollowParts,
   renderSpecPageFailedRest,
   listViewIn,
   specDetailPath,
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";
-export type { ListView, SpecCheckView, SpecChecksView, SpecPageView, SpecStepsView } from "./pages/spec-page";
+export type { ListView, SpecCheckView, SpecChecksView, SpecPageView } from "./pages/spec-page";

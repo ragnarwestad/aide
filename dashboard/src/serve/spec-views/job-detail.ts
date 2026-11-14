@@ -74,6 +74,9 @@ export async function jobDetailView(
     running && step && job.streamFile
       ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined, ctx.queue.defaults.providers) })
       : undefined;
+  const currentJob = (ctx.queue.list?.() ?? [job]).find((candidate) =>
+    candidate.project === job.project && candidate.specFolder === job.specFolder
+  );
   return {
     ...(await ctx.jobRow(job)),
     tool,
@@ -129,5 +132,13 @@ export async function jobDetailView(
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,
+    archiveAction:
+      currentJob?.id === job.id &&
+      target?.done?.includes("implement") &&
+      !target.done.includes("archive") &&
+      !target.archiveHeldBack &&
+      !target.acceptanceOpen
+        ? "/api/queue"
+        : undefined,
   };
 }

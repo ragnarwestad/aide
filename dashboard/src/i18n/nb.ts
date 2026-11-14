@@ -214,6 +214,11 @@ export const nb: Record<TranslationKey, string> = {
   "state.cancelled": "avbrutt",
   "state.interrupted": "avbrutt",
   "state.heldBack": "holdt tilbake",
+  "specState.notStarted": "Ikke startet",
+  "specState.running": "Kjører",
+  "specState.heldBack": "Holdt tilbake",
+  "specState.waitingArchive": "Venter på Arkiver",
+  "specState.failed": "Feilet",
   "state.stopped": "stoppet",
 
   "project.deployRestartWaiting":
@@ -716,6 +721,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.specArchived": "denne specen er arkivert",
   "list.alreadyDone": "allerede gjort",
   "list.starting": "starter…",
+  "list.runDialogTitle": "Kjør spec",
   "message.itsButton": "knappen",
   "message.thisPhase": "denne fasen",
   "testServers.cleanUp": "Rydd opp",

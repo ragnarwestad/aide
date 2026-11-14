@@ -10,7 +10,7 @@ import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 import { AWAITING_DRIFT_REFRESH_SECONDS } from "../../../src/render/pages/projects-page/project-page.ts";
-import { lead, page, view } from "./spec-page-fixtures.ts";
+import { page, view } from "./spec-page-fixtures.ts";
 import { detail, NAV } from "./fixtures.ts";
 
 afterEach(() => setBoardInfo(undefined));
@@ -95,14 +95,12 @@ const marker = (html: string): string | null =>
 const follows = (html: string): boolean => parse(html).querySelector("[data-follow]") !== null;
 
 describe("the pages that follow their job carry the marker the script reads", () => {
-  test("a job page and a spec's Steps tab carry it while their job runs, and not once it is done", () => {
+  test("a job page carries it while its job runs, and not once it is done", () => {
     const running = { state: "running" as const, runningStep: { step: "analyze", logs: [] } };
     expect(follows(renderJobDetailPage(detail(running), "2026-08-16T10:00:00Z", NAV))).toBe(true);
-    expect(follows(page(view({ lead: lead(running) }), "steps"))).toBe(true);
 
     const done = { state: "done" as const };
     expect(follows(renderJobDetailPage(detail(done), "2026-08-16T10:00:00Z", NAV))).toBe(false);
-    expect(follows(page(view({ lead: lead(done) }), "steps"))).toBe(false);
   });
 });
 

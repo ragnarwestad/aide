@@ -212,6 +212,11 @@ export const fr: Record<TranslationKey, string> = {
   "state.cancelled": "annulé",
   "state.interrupted": "interrompu",
   "state.heldBack": "retenu",
+  "specState.notStarted": "Non démarré",
+  "specState.running": "En cours",
+  "specState.heldBack": "Retenu",
+  "specState.waitingArchive": "En attente d’Archivage",
+  "specState.failed": "Échoué",
   "state.stopped": "arrêté",
 
   "project.deployRestartWaiting":
@@ -713,6 +718,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.specArchived": "cette spec est archivée",
   "list.alreadyDone": "déjà fait",
   "list.starting": "démarrage…",
+  "list.runDialogTitle": "Exécuter la spec",
   "message.itsButton": "son bouton",
   "message.thisPhase": "cette phase",
   "testServers.cleanUp": "Nettoyer",

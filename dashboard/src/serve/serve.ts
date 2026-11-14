@@ -319,7 +319,7 @@ export function createServer(opts: ServerOptions) {
     allowed,
     scheduleStore,
     forgetSpec: schedules.forgetSpec, specProgress: schedules.specProgress,
-    rereadSpec: schedules.rereadSpec,
+    rereadSpec: opts.rereadSpec ?? schedules.rereadSpec,
     rereadProject: schedules.rereadProject,
     targets,
     withFreshness: land.withFreshness,

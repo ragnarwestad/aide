@@ -14,7 +14,7 @@ export interface DirectCreateInput {
   chooseApproach: boolean;
 }
 
-export type DirectCreateResult = { ok: true; specFolder: string } | { ok: false; error: string };
+export type DirectCreateResult = { ok: true; specFolder: string; specDir?: string } | { ok: false; error: string };
 
 const firstLine = (text?: string): string => text?.split(/\r?\n/).find((line) => line.trim())?.trim() ?? "git gave no reason";
 
@@ -57,7 +57,7 @@ export async function createSpecDirectly(ctx: RoutesContext, input: DirectCreate
       if (committed.code !== 0) { await rollback(); return { ok: false, error: "the new spec could not be committed" }; }
       const pushed = await ctx.gitRun(root, ["push", "origin", "HEAD"]);
       if (pushed.code !== 0) { await rollback(); return { ok: false, error: `the new spec could not be pushed: ${firstLine(pushed.stderr)}` }; }
-      return { ok: true, specFolder: answer.specFolder };
+      return { ok: true, specFolder: answer.specFolder, specDir: `${checkout.specs}/${answer.specFolder}` };
     }, { waitMs: REQUEST_LOCK_WAIT_MS });
     return held.locked ? held.value : { ok: false, error: "another process is using the specs checkout; try again" };
   });

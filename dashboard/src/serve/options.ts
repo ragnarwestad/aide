@@ -14,7 +14,9 @@ import type { watch } from "node:fs";
 
 export interface ServerOptions {
   /** Direct-create transaction seam for route tests. */
-  directCreateSpec?: (input: import("./routes/direct-create/index.ts").DirectCreateInput) => Promise<{ ok: true; specFolder: string } | { ok: false; error: string }>;
+  directCreateSpec?: (input: import("./routes/direct-create/index.ts").DirectCreateInput) => Promise<import("./routes/direct-create/index.ts").DirectCreateResult>;
+  /** Cache-warming seam for route tests. */
+  rereadSpec?: (dir: string, specFolder: string) => Promise<void>;
   port: number;
   mirrorPath?: string;
   // Nav entries for /live: derived from --root's manifests when given,
