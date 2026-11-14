@@ -3,9 +3,10 @@ instructions within these steps, not a second progress plan. Do not apply the sk
 
 ## Step 1 of 5: Collect the news sources
 
-Run Steps 1 and 2 of `/check-news`: find the last review date and collect MyAI first, then every official source
-and watched page. X is fetched fresh in this run, without Chrome. If X fails, show that gap and continue with the
-other sources; do not mark the whole job failed just because one source could not be read.
+Run Steps 1 and 2 of `/check-news`: find the last review date and collect MyAI first, then every official source,
+watched page and followed YouTube channel. X is fetched fresh in this run, without Chrome. If X, a YouTube channel or
+a video's captions fail, show that gap and continue with the other sources; do not mark the whole job failed just
+because one source could not be read.
 
 ## Step 2 of 5: Assess the findings
 
@@ -40,22 +41,28 @@ the run's report. Plain HTML, no styling:
   log's own entries have it,
 - the "Relevance for Aide" list,
 - X collection coverage: its exact time interval and collected/retained post counts, or why it could not be read,
+- YouTube coverage: the channels read and those that failed, the number of videos listed, the videos whose
+  captions were read, and each chosen video without captions by its title and link, marked unassessed,
 - a "To take up in a session" list: one numbered point for each finding that
   calls for a change in Aide — in `docs/AI_SUPPORT_MATRIX.md` beyond its
   version rows, `.claude/skills/ai-tools-reference/SKILL.md` or elsewhere (an
   installer, a skill, a rule, the runner). Each point says what to change and
-  where, quotes the finding as its source words it, and links the sources.
+  where, quotes the finding as its source words it, and links the sources;
+  a video is linked by its YouTube link.
   Each ⭐ article on how to work with coding agents is on it too, saying what
-  in Aide it touches and what it advises differently.
-  A finding that needs no change is not on it, and a period with none says so
-  in one line,
+  in Aide it touches and what it advises differently. So is each video whose
+  captions were read and that was assessed ⭐, ✅ or ⚠️, with its YouTube link,
+  saying what in it bears on Aide.
+  Any other finding that needs no change is not on it, and a period with none
+  says so in one line,
 - one line saying what was changed: the log entry's date, how many old reviews
   were deleted, and which version rows `scripts/stamp-versions` changed — or,
   when the period earned no log entry, that the log was left as it was, and
   why.
 
-Fetch every address in the log's Sources table, each one, on every run: a
-source is never skipped to save time, and a quiet source is still fetched. A
+Fetch every address in the log's Sources table, and list every channel in its
+YouTube channels table, each one, on every run: a source is never skipped to
+save time, and a quiet source is still fetched. A
 fetch that fails is named in the same file with what the fetch answered,
 instead of being left out. "Not read" in the report means a fetch was tried
 and failed, never that it was not tried.

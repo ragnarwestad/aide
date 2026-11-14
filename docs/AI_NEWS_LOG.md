@@ -5,6 +5,7 @@
 - [Maintenance](#maintenance)
   - [Sources](#sources)
   - [Watched pages](#watched-pages)
+  - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
   - [2026-11-14](#2026-11-14)
@@ -88,7 +89,7 @@ generative AI tag on martinfowler.com lists articles out of date order, each wit
 The best-practice pages the skill fetches on every run and compares with the copy kept from the previous
 run. They change without an announcement, so none of the sources above shows it. This table is the one list of
 watched pages: a page is added or removed here. A pattern in the third column adds every link on that page matching
-it, so a page that lists one page per model brings each new model's page in by itself. `scripts/watch-pages.py`
+it, so a page that lists one page per model brings each new model's page in by itself. `scripts/news/watch-pages.py`
 reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and each change's diff in
 `~/.aide/news-check/watched-diffs/`, on the machine that runs the news check, outside the repository.
 
@@ -113,6 +114,23 @@ reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and
 | OpenCode           | <https://opencode.ai/docs/agents>                                                                          |                                                                                               |
 | All four           | <https://agentskills.io/specification>                                                                     |                                                                                               |
 | All four           | <https://agents.md>                                                                                        |                                                                                               |
+
+### YouTube channels
+
+The YouTube channels whose videos the news check lists. This table is the one list of channels: a channel is added
+or removed here. `scripts/news/fetch-youtube.py` reads it and lists each channel's videos published since the last
+review from the channel's feed, which holds its newest 15 videos.
+
+| Channel        | Channel id               |
+|----------------|--------------------------|
+| AI Engineer    | UCLKPca3kwwd-B59HNr-_lvA |
+| Code with Beto | UCh247h68vszOMA_OWpGEa5g |
+| Convex         | UCoC_9mdiPwIu1sDxDtGQggQ |
+| Chase AI       | UCoy6cTJ7Tg0dqS-DI-_REsA |
+| Bart Slodyczka | UC8F7X90NDmMr1mGx8897r_A |
+| Jas Wong       | UCv5t6x3G9jpfVRhkDxIYRsQ |
+| Simon Scrapes  | UCdCR4-uYOg5ju-IUuDnfnQA |
+| Grace Leung    | UCrB7UFnkosBjAhOg3a9NdWw |
 
 ---
 

@@ -1,4 +1,4 @@
-"""scripts/watch-pages.py: fetch the watched pages, compare each with its kept copy, keep the new one."""
+"""scripts/news/watch-pages.py: fetch the watched pages, compare each with its kept copy, keep the new one."""
 import importlib.util
 import os
 import subprocess
@@ -19,7 +19,7 @@ FILLER = (
 
 @pytest.fixture
 def script(workspace_root):
-    return workspace_root / "scripts" / "watch-pages.py"
+    return workspace_root / "scripts" / "news" / "watch-pages.py"
 
 
 @pytest.fixture
@@ -352,3 +352,12 @@ def test_a_log_with_no_watched_pages_or_an_empty_table_exits_1(script, tmp_path,
     assert result.returncode == 1
     assert result.stderr.strip()
     assert os.path.exists(tmp_path / "store") is False or not list((tmp_path / "store").iterdir())
+
+
+def test_without_log_the_repository_s_news_log_is_read(module, workspace_root, tmp_path, monkeypatch):
+    fetched = []
+    html = "<html><body><p>%s</p></body></html>" % FILLER
+    monkeypatch.setattr(module, "fetch", lambda address: (fetched.append(address), (html, None))[1])
+    assert module.main(["--store", str(tmp_path / "store")]) == 0
+    rows = module.watched_pages((workspace_root / "docs" / "AI_NEWS_LOG.md").read_text(encoding="utf-8"))
+    assert rows and fetched == [address for _, address, _ in rows]

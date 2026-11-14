@@ -50,7 +50,7 @@ claude
 2. **Installs the scripts** to `~/.local/bin/`: every `core/scripts/aide-*` script (`aide-run-spec`,
    `aide-create-spec`, `aide-archive-spec`, `aide-generate-pdf`, `aide-generate-html`, …), their
    library under `~/.local/bin/lib/`, the git hooks, and `upgrade-ai-tools`.
-3. **Installs the shared tools** through mise: markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf.
+3. **Installs the shared tools** through mise: markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp.
 4. **Puts `~/.local/bin` on PATH** in `~/.zshenv` and `~/.bashrc`, so non-interactive shells (ssh,
    launchd) find the scripts too.
 5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` except `spec-structure` →

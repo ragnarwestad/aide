@@ -14,7 +14,7 @@ source "$SCRIPT_DIR/lib/ai-tools/read.sh"
 tool_ids="$(ai_tool_ids)" || exit 1
 mise_packages=""
 self_tools=""
-report_names="ollama|markdownlint|jq|gh|bun|pandoc|md-to-pdf"
+report_names="ollama|markdownlint|jq|gh|bun|pandoc|md-to-pdf|yt-dlp"
 for id in $tool_ids; do
   upgrade="$(ai_tool_field "$id" upgrade)" || exit 1
   cli="$(ai_tool_field "$id" cli)" || exit 1
@@ -29,7 +29,7 @@ for id in $tool_ids; do
 done
 
 echo "Upgrading AI tools via mise..."
-mise upgrade $mise_packages ollama npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf
+mise upgrade $mise_packages ollama npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf yt-dlp
 
 for cli in $self_tools; do
   echo ""

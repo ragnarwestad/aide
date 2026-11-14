@@ -77,3 +77,10 @@ disabled_rules = ["AS-012", "CC-SK-016"]
 [[overrides]]
 paths = ["core/implementations/claude-code/settings.json"]
 disabled_rules = ["CC-HK-017"]
+
+# check-news runs the news scripts in scripts/news/ from the repository root.
+# Those are the repository's commands, not files the skill bundles, so the
+# one-level limit on a skill's own file references (AS-013) does not apply.
+[[overrides]]
+paths = [".claude/skills/check-news/SKILL.md"]
+disabled_rules = ["AS-013"]

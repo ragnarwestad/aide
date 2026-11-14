@@ -101,7 +101,7 @@ cd aide/implementations/claude-code
 
 **The script installs globally:**
 - ✅ Every `core/scripts/aide-*` script and `upgrade-ai-tools` → `~/.local/bin/`, with `~/.local/bin` put on PATH
-- ✅ The shared tools (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) through mise
+- ✅ The shared tools (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp) through mise
 - ✅ Skills, agents and rules → `~/.claude/`
 - ✅ LSP plugins (typescript, kotlin, jdtls)
 

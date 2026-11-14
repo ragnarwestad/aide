@@ -8,7 +8,7 @@ contradict what the page says. This fetches with curl and keeps the text:
 - a GitHub releases page is read from GitHub's API, which gives every release's
   notes in full (the newest 20); with --since, releases published before that
   date are left out, and a page that holds nothing older says more may exist
-- any other page is reduced to its text, as scripts/watch-pages.py does
+- any other page is reduced to its text, as scripts/news/watch-pages.py does
 
 One line per address, in table order: `fetched <tool> <address> <file>` or
 `failed <tool> <address> <reason>`. Exits 1 when any address failed.
@@ -17,7 +17,7 @@ A page drawn in the browser by JavaScript has little text in its HTML, so its
 file says little; a release page needs no login, and GitHub allows 60 such
 requests an hour from one address.
 
-usage: scripts/fetch-sources.py [--log PATH] [--out DIR] [--since YYYY-MM-DD]
+usage: scripts/news/fetch-sources.py [--log PATH] [--out DIR] [--since YYYY-MM-DD]
   --log    the news log (default: docs/AI_NEWS_LOG.md in the repo the script sits in)
   --out    where the files are written (default: ~/.aide/news-check/sources)
   --since  leave out releases published before this date
@@ -118,7 +118,7 @@ def fetch_text(address, since):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--log", default=str(HERE.parent / "docs" / "AI_NEWS_LOG.md"))
+    parser.add_argument("--log", default=str(HERE.parents[1] / "docs" / "AI_NEWS_LOG.md"))
     parser.add_argument("--out", default=str(Path.home() / ".aide" / "news-check" / "sources"))
     parser.add_argument("--since")
     args = parser.parse_args(argv)

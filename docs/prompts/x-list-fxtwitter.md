@@ -21,7 +21,7 @@ not that every post visible on X was returned.
 For a standalone diagnostic run from the Aide repository on the serving host (Python 3 and curl are required):
 
 ```bash
-python3 scripts/fetch-x-list.py --output "$AIDE_SCHEDULE_OUTPUT_DIR/posts.json" \
+python3 scripts/news/fetch-x-list.py --output "$AIDE_SCHEDULE_OUTPUT_DIR/posts.json" \
   --job-result "$AIDE_SCHEDULE_OUTPUT_DIR/job-result.json"
 ```
 

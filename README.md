@@ -198,7 +198,7 @@ No AI CLI is installed for you. Each tool's installer sets up Aide's skills and 
 when the tool itself is missing, so install the ones you want to use yourself.
 
 [mise](https://mise.jdx.dev) is what `install-all.sh` uses to install the tools the skills and scripts call: bun,
-jq, gh, pandoc and md-to-pdf.
+jq, gh, pandoc, md-to-pdf and yt-dlp.
 
 `./install-all.sh` runs all four installers and asks nothing. The only questions any of them has are Codex's two
 optional MCP servers — browser testing and Context7 — and run from here, both are answered no. To be asked them,

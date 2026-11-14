@@ -1,4 +1,4 @@
-"""scripts/fetch-sources.py: fetch every news source as its own text, never a summary of it."""
+"""scripts/news/fetch-sources.py: fetch every news source as its own text, never a summary of it."""
 import importlib.util
 import json
 import subprocess
@@ -11,7 +11,7 @@ pytestmark = pytest.mark.validation
 
 @pytest.fixture
 def script(workspace_root):
-    return workspace_root / "scripts" / "fetch-sources.py"
+    return workspace_root / "scripts" / "news" / "fetch-sources.py"
 
 
 @pytest.fixture
@@ -106,3 +106,16 @@ def test_a_page_is_written_as_its_text_and_a_failed_fetch_is_named(script, tmp_p
     written = (out / lines[0].split()[-1].split("/")[-1]).read_text()
     assert "Nov 5\nNew hooks event" in written and "x()" not in written
     assert done.returncode == 1
+
+
+def test_without_log_the_repository_s_news_log_is_read(module, workspace_root, tmp_path, monkeypatch):
+    fetched = []
+
+    def fetch(address):
+        fetched.append(address)
+        return ("[]" if "api.github.com" in address else "<p>text</p>"), None
+
+    monkeypatch.setattr(module.watch_pages, "fetch", fetch)
+    assert module.main(["--out", str(tmp_path / "out")]) == 0
+    expected = [module.releases_api(a) or a for _, a in module.sources((workspace_root / "docs" / "AI_NEWS_LOG.md").read_text())]
+    assert expected and fetched == expected

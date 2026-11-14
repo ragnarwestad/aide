@@ -57,7 +57,7 @@ and the install carries on with what it can do without it.
 
 - ✅ Git, and your projects cloned and working
 - ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
-  (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) in place through it, and `jq` is what every spec script
+  (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp) in place through it, and `jq` is what every spec script
   needs; without mise they are all skipped with a warning
 
   ```bash

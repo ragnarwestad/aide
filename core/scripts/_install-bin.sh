@@ -62,7 +62,7 @@ COMMON_BIN_LIB_SCRIPTS="$(_core_lib_files "$(cd "$(dirname "${BASH_SOURCE[0]}")"
 # the installed-files warning banner via install_mise_declared_tools's
 # own "no mise" warning. TestRequiredToolsAreDeclared fails when a
 # script or installer checks for a tool that is not in this list.
-MISE_DECLARED_TOOLS="npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf"
+MISE_DECLARED_TOOLS="npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf yt-dlp"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Replace an installed script by RENAME, never by writing into it: bash

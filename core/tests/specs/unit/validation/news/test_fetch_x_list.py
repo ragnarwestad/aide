@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[5]
-spec = importlib.util.spec_from_file_location("fetch_x_list", ROOT / "scripts/fetch-x-list.py")
+ROOT = Path(__file__).resolve().parents[6]
+spec = importlib.util.spec_from_file_location("fetch_x_list", ROOT / "scripts/news/fetch-x-list.py")
 reader = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reader)
 

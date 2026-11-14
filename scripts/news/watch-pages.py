@@ -13,7 +13,7 @@ One line per page, in table order: `new` (no copy before; stored), `unchanged`,
 outside the repository. A diff is written to a file rather than printed, so
 output cut short, or a second run that finds the page unchanged, cannot lose it.
 
-usage: scripts/watch-pages.py [--log PATH] [--store DIR] [--diffs DIR]
+usage: scripts/news/watch-pages.py [--log PATH] [--store DIR] [--diffs DIR]
   --log    the news log (default: docs/AI_NEWS_LOG.md in the repo the script sits in)
   --store  where the copies are kept (default: ~/.aide/news-check/watched-pages)
   --diffs  where the diffs are kept (default: watched-diffs beside the store)
@@ -216,8 +216,8 @@ def compare(address, html, store, diffs):
 
 def main(argv=None):
     here = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(prog="scripts/watch-pages.py", description=__doc__.split("\n\n")[0])
-    parser.add_argument("--log", default=str(here.parent / "docs" / "AI_NEWS_LOG.md"))
+    parser = argparse.ArgumentParser(prog="scripts/news/watch-pages.py", description=__doc__.split("\n\n")[0])
+    parser.add_argument("--log", default=str(here.parents[1] / "docs" / "AI_NEWS_LOG.md"))
     parser.add_argument("--store", default=str(Path.home() / ".aide" / "news-check" / "watched-pages"))
     parser.add_argument("--diffs")
     args = parser.parse_args(argv)
