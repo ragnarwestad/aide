@@ -171,7 +171,10 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
 
    The field keeps room on its right for the control, so a long term
    does not run underneath it. */
-.searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
+/* Above the table's sticky head (z-index 5, list.css), which starts right
+   under this line and would otherwise paint over the lower edge of the
+   field's focus ring. */
+.searchfield { position: relative; z-index: 6; display: inline-flex; width: 26rem; max-width: 100%; }
 /* Above the 40rem phone step (its own harder rule, narrow.css,
    wins there by source order — see the min-width reset added there),
    the row must not wrap either. --speclist-width above steps down at

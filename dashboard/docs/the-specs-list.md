@@ -498,7 +498,9 @@ All three fall out of the filter tables rather than out of an exception inside t
 
 **`?q=` is a plain search**, a GET form carrying the rest of the view as hidden fields, matching the folder, the title
 and the WHOLE description — including the part the clamp does not show, which the note under the field says out loud.
-It reads live and archived rows alike, because they are rows on one list.
+It reads live and archived rows alike, because they are rows on one list. With the page's script running, Search puts
+the term in the address and draws the rows again in place, as the filter links do, on the Specs list and the Jobs tab
+alike; a search for the term the rows already show, an empty one included, changes nothing.
 
 ## Changing a running job's tail
 
