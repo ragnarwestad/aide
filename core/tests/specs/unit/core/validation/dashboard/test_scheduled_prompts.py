@@ -1,18 +1,18 @@
-"""The news check writes a report the board reads, and proposes no specs."""
+"""The news check and the untangle run write a report the board reads, and propose no specs."""
 import re
 
 import pytest
 
-PROMPT = "docs/prompts/check-news.md"
+PROMPTS = ["docs/prompts/check-news.md", "docs/prompts/untangle.md"]
 
 
-@pytest.fixture
-def prompt(workspace_root):
-    return (workspace_root / PROMPT).read_text()
+@pytest.fixture(params=PROMPTS)
+def prompt(request, workspace_root):
+    return (workspace_root / request.param).read_text()
 
 
 @pytest.mark.validation
-class TestNewsCheckPromptIsAReport:
+class TestReportOnlyPromptsAreReports:
     def test_it_names_the_file_the_board_reads(self, prompt, workspace_root):
         source = (workspace_root / "dashboard/src/queue/schedule.ts").read_text()
         name = re.search(
