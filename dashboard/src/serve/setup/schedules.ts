@@ -26,6 +26,8 @@ import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
   rereadProject as rereadProjectImpl,
+  forgetSpec as forgetSpecImpl,
+  readSpecProgress,
   rereadSpec as rereadSpecImpl,
   refreshSpecCaches as refreshSpecCachesImpl,
   refreshSchedules as refreshSchedulesImpl,
@@ -132,6 +134,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     readBranchFileSteps: () => branchFileSteps,
     targets,
     readScan: () => state.scan,
+    invalidateScan: () => {
+      state.scan = null;
+    },
     allowed,
     ensureCheckout,
     getWarming: () => state.warming,
@@ -173,6 +178,12 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   }
   function rereadProject(project: string) {
     return rereadProjectImpl(scheduleCtx, project);
+  }
+  function forgetSpec(dir: string, specFolder: string) {
+    forgetSpecImpl(scheduleCtx, dir, specFolder);
+  }
+  function specProgress(dir: string, specFolder: string) {
+    return readSpecProgress(scheduleCtx, dir, specFolder);
   }
   function refreshSpecCaches() {
     return refreshSpecCachesImpl(scheduleCtx);
@@ -259,7 +270,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
 
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    warmSpec, rereadSpec, rereadProject, refreshSpecCaches, tickRunner,
+    warmSpec, rereadSpec, rereadProject, forgetSpec, specProgress, refreshSpecCaches, tickRunner,
     timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer, usageTimer],
   };
 }

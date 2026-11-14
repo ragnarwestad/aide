@@ -773,6 +773,22 @@ as its run's own word, with no sentence about the files disagreeing, because the
 with no landing of its own (`implement`, a failed step) has those answers read again as soon as its result is
 written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step with a landing has them read again by the landing.
 
+**The list, the runner's holds and the Run route read a spec's phases and acceptance by one rule.** The branch copy of
+the spec's files answers once it has been read and no write has marked it due, however long ago that read was; the copy
+on main answers otherwise (`specCopy`, `src/git/branch-file-steps.ts`). That copy's state file names the completed
+phases, git history does when it has none, and a step whose newest run leaves it undone is not done
+(`completedPhasesOf`, `src/git/workflow-history.ts`). Whether an acceptance row is open, Not verified or Failed comes
+from the same copy's `4-status.json` alone; a copy with no state file has no open row. `readSpecProgress`
+(`src/serve/schedules/spec-progress.ts`) puts the two together for the holds and the Run route. While a branch answer
+is due, main answers and the reader says the answer is not settled: the archive hold, which ends a job, acts only on a
+settled answer.
+
+**Every write to a spec's files drops every cached answer about it in one call,** `forgetSpec`
+(`src/serve/schedules/index.ts`): the history, the branch copy, whether the description moved on, the created date and
+each file's last commit are marked due, and the list's scan is dropped. The step's end, the landing, a fetch from
+another machine and every save on the spec page go through it, and read the spec again straight after. How long an
+answer stands is defined once, in `src/git/branch-status.ts`.
+
 ## A spec's date does not move, and a phase says how long it took
 
 The **Created** heading, first in the heading row over the chevron and Spec columns, sorts the list by when the spec was

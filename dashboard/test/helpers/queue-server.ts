@@ -72,7 +72,11 @@ export interface QueueHarness {
 
 /** `defaultStatus` is the spec's 4-status.md when a start names none. A
  *  suite that queues implement or archive through the run route starts
- *  from `IMPLEMENTED`: the route refuses a start out of order. */
+ *  from `IMPLEMENTED`: the route refuses a start out of order. A spec
+ *  started from `IMPLEMENTED` gets the 4-status.json beside it too, unless
+ *  the start names its own (`liveState`): a spec with no state file has its
+ *  phases read off git history, as the specs list reads them, and a
+ *  fixture that is not a git repository has none. */
 export function queueHarness(prefix: string, defaultStatus?: string): QueueHarness {
   const servers: { stop: () => void }[] = [];
   const dirs: string[] = [];
@@ -97,7 +101,8 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       dirs.push(dir);
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description, status);
-      if (liveState !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), liveState);
+      const state = liveState ?? (status === IMPLEMENTED ? IMPLEMENTED_STATE : undefined);
+      if (state !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), state);
       if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
@@ -234,8 +239,16 @@ function git(cwd: string, ...args: string[]): void {
 export const statusSaying = (steps: string[], rest = ""): string =>
   `# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n${rest}`;
 
+/** The 4-status.json the writer scripts derive beside a `statusSaying`
+ *  file: the phases it names, and no acceptance rows. */
+export const stateSaying = (steps: string[]): string =>
+  JSON.stringify({ completedPhases: steps, archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} });
+
 /** A spec implement has run on: any step may be queued for it. */
 export const IMPLEMENTED = statusSaying(["create", "analyze", "implement"]);
+
+/** The 4-status.json beside `IMPLEMENTED`. */
+export const IMPLEMENTED_STATE = stateSaying(["create", "analyze", "implement"]);
 
 // One manifest and one spec: the least a project needs to be discovered.
 function project(root: string, name: string, specFolder: string, description: string, status: string): void {

@@ -6,7 +6,7 @@ import {
   createRootLock,
 } from "../../../src/serve/serve-helpers";
 import { type GitRunner } from "../../../src/git/process/index.ts";
-import { statusSaying } from "../../helpers/queue-server.ts";
+import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
@@ -45,6 +45,7 @@ describe("a step reads busy for the whole landing window", () => {
     mkdirSync(join(project, "specs", SPEC), { recursive: true });
     writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
     writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
+    writeFileSync(join(project, "specs", SPEC, "4-status.json"), stateSaying(["create", "analyze"]));
     mkdirSync(specs, { recursive: true });
     return { root: projectsRoot, specs };
   }

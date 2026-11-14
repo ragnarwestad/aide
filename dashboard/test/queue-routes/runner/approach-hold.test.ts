@@ -89,7 +89,9 @@ const chained: QueuedJob = { id: "chained", project: "aide", specFolder: FOLDER,
 const alone: QueuedJob = { id: "alone", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement"], stepIndex: 0 };
 
 function ctxFor(root: string, jobs: QueuedJob[], checker: BranchFileStepsChecker = emptyChecker()): ScheduleContext {
-  return { projectRoot: root, queue: { list: () => jobs }, readBranchFileSteps: () => checker } as unknown as ScheduleContext;
+  return {
+    projectRoot: root, queue: { list: () => jobs }, readBranchFileSteps: () => checker, targets: () => [], readScan: () => null,
+  } as unknown as ScheduleContext;
 }
 
 const sentence = (m: unknown): string => formatSentence("en", m as Parameters<typeof formatSentence>[1]) ?? "";

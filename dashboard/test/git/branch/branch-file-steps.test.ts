@@ -11,6 +11,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
+import { specCopy, type FileStepsAnswer } from "../../../src/git/branch-file-steps.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { notVerifiedCount } from "../../../src/project/parse-status";
@@ -80,7 +81,7 @@ describe("BranchFileStepsChecker", () => {
     const git = fake(branchFile(["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
-    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
+    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptance: [] });
   });
 
   // The branch half of a known class of bug: the
@@ -94,7 +95,7 @@ describe("BranchFileStepsChecker", () => {
     expect(steps).toEqual({
       proseSteps: ["create", "analyze"],
       stateSteps: ["create", "analyze", "implement"],
-      acceptanceOpen: false,
+      stateAcceptance: [],
       acceptance: [],
     });
   });
@@ -119,7 +120,7 @@ describe("BranchFileStepsChecker", () => {
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     const { steps, checkedAt } = checker.peekFileSteps(DIR, FOLDER);
-    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
+    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptance: [] });
     expect(checkedAt).toBe(1000);
     expect(git.calls.length).toBe(before);
   });
@@ -233,19 +234,13 @@ describe("the branch's own acceptance rows", () => {
     return answers;
   };
 
-  test("an open row on the branch answers acceptanceOpen", async () => {
+  test("the branch's state file rows ride on the answer, an open one included (AC-3)", async () => {
     const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: false }]));
     const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
-    expect(steps?.acceptanceOpen).toBe(true);
+    expect(steps?.stateAcceptance).toEqual([{ task: "REQ-1", done: true }, { task: "REQ-2", done: false }]);
   });
 
-  test("every row ticked on the branch answers not open, whatever disk says", async () => {
-    const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: true }]));
-    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
-    expect(steps?.acceptanceOpen).toBe(false);
-  });
-
-  test("with no state file on the branch, the prose's own acceptance rows answer", async () => {
+  test("with no state file on the branch, no state rows ride on the answer (AC-3)", async () => {
     const answers = branchFile(["create", "analyze", "implement"]);
     answers[`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`] = {
       code: 0,
@@ -253,9 +248,8 @@ describe("the branch's own acceptance rows", () => {
         "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n\n" +
         "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: it works | ⬜ | |\n",
     };
-    const git = fake(answers);
-    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
-    expect(steps?.acceptanceOpen).toBe(true);
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.stateAcceptance).toBeUndefined();
   });
 });
 
@@ -290,7 +284,6 @@ describe("the branch's Not verified rows", () => {
     };
     const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
     expect(notVerifiedCount(steps?.acceptance ?? [])).toBe(2);
-    expect(steps?.acceptanceOpen).toBe(false);
   });
 });
 
@@ -314,5 +307,36 @@ describe("the branch's record of which test covers which criterion", () => {
   test("a branch with none answers none", async () => {
     const steps = await new BranchFileStepsChecker({ run: fake(branchFile(["create"])).run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acCoverage).toBeUndefined();
+  });
+});
+
+// Which copy of a spec answers: the branch copy once it has been read and
+// no write has marked it due, however long ago that was; main otherwise.
+describe("specCopy", () => {
+  const disk: FileStepsAnswer = { proseSteps: ["create"], stateSteps: ["create"] };
+  const branch: FileStepsAnswer = { proseSteps: ["create", "analyze"], stateSteps: ["create", "analyze"] };
+
+  test("a branch answer read and not marked due answers, and is settled (AC-2)", () => {
+    expect(specCopy({ steps: branch, checkedAt: 1 }, disk)).toEqual({ answer: branch, from: "branch", settled: true });
+  });
+
+  test("however old the read, the branch answer stands (AC-2)", async () => {
+    let clock = 0;
+    const checker = new BranchFileStepsChecker({ run: fake(branchFile(["create", "analyze"], ["create", "analyze"])).run, now: () => clock });
+    await checker.read(DIR, FOLDER, TARGET);
+    clock = 24 * 60 * 60_000;
+    expect(specCopy(checker.peekFileSteps(DIR, FOLDER), disk).from).toBe("branch");
+  });
+
+  test("a branch answer a write has marked due gives way to main, unsettled (AC-2)", () => {
+    expect(specCopy({ steps: branch, checkedAt: 1, stale: true }, disk)).toEqual({ answer: disk, from: "main", settled: false });
+  });
+
+  test("a branch answer never read gives way to main, unsettled (AC-2)", () => {
+    expect(specCopy({ steps: null, checkedAt: null }, disk)).toEqual({ answer: disk, from: "main", settled: false });
+  });
+
+  test("a spec read and found with no open branch is main's, settled (AC-2)", () => {
+    expect(specCopy({ steps: null, checkedAt: 1 }, disk)).toEqual({ answer: disk, from: "main", settled: true });
   });
 });

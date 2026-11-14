@@ -14,10 +14,19 @@ import { specBranch } from "../project/spec-names.ts";
 import type { GitRunner } from "./process/index.ts";
 import { GIT_LOCKED, sleep, type Wait } from "./branch-merge/retry.ts";
 
-/** How long one answer stands. Exported because the background
- *  drift poll runs on this same window, and a second constant for the
- *  same interval would one day be a different number. */
+/** How long one answer stands. Every window a cached answer about a spec
+ *  stands for is defined here, beside this one, and nowhere else: the
+ *  checkers in this folder, the drift poll and the list's scan read them
+ *  from here, so two windows meant to match cannot drift apart. */
 export const DEFAULT_TTL_MS = 30_000;
+
+/** How long an archived spec's created date stands once git has dated it:
+ *  an archived spec's history cannot change, so the sweep asks once a day,
+ *  not once a pass. An undated answer keeps `DEFAULT_TTL_MS`, so it is retried. */
+export const ARCHIVED_RESOLVED_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** How long the list's scan of the specs roots stands (`targets()`). */
+export const SCAN_TTL_MS = 5_000;
 
 /** A fetch that lost the race for `refs/remotes/origin/<base>` to another
  *  fetch of the same checkout (the drift poll, a spec's merge check) is

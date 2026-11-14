@@ -58,6 +58,7 @@ import { selfDelayRoute } from "./self-delay.ts";
 import { failedCreateRoutes } from "./failed-create-routes.ts";
 import { handlePushRoutes } from "./push-routes.ts";
 import type { Push } from "../../push";
+import type { SpecProgress } from "../schedules/spec-progress.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import { logAction } from "../action-log/index.ts";
 
@@ -78,9 +79,12 @@ export interface RoutesContext {
   scheduleStore: ScheduleStore;
   readScan: () => { archived: string[] } | null;
   invalidateScan: () => void;
-  /** Drop the cached branch answer for one spec (`dir`, `specFolder`),
-   *  after a write that changed the file it caches. */
-  forgetBranchFileSteps?: (dir: string, specFolder: string) => void;
+  /** Mark every cached answer about one spec due and drop the list's scan,
+   *  after a write to the spec's files (`forgetSpec`). */
+  forgetSpec?: (dir: string, specFolder: string) => void;
+  /** How far one spec has got, by the one rule every reader follows
+   *  (`readSpecProgress`). */
+  specProgress: (dir: string, specFolder: string) => SpecProgress;
   /** Read one spec's cached answers again now, and tell the page. */
   rereadSpec?: (dir: string, specFolder: string) => Promise<void>;
   /** Read every live spec of one project again now, and tell the page once. */

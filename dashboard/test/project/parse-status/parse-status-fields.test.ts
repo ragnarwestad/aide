@@ -12,7 +12,6 @@ import {
   ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
   acceptanceCriteriaUnticked,
   acceptanceRowsOf,
-  acceptanceStillOpen,
   archiveHeldBackApplies,
   archiveHeldBackReason,
   parseStatus,
@@ -303,50 +302,6 @@ describe("archiveHeldBackApplies", () => {
   });
 });
 
-// The branch answers for both when it has one: it is where the Checks
-// tab's write lands while a branch is open, so it is the newer of the
-// two by construction. Disk answers only when the branch has nothing to
-// say.
-//
-// This used to demand that BOTH copies say open, because a tick could
-// only ever add ticks and so "all ticked" could never be the stale
-// answer. A check can be taken back off now, and the old rule let an
-// untick on the branch be outvoted by a disk copy ticked before the
-// branch existed.
-describe("acceptanceStillOpen", () => {
-  const open = [{ done: false }];
-  const ticked = [{ done: true }];
-
-  test("both copies still open", () => {
-    expect(acceptanceStillOpen(true, open)).toBe(true);
-  });
-
-  test("ticked on the branch, still open on disk: the branch is where the tick landed", () => {
-    expect(acceptanceStillOpen(false, open)).toBe(false);
-  });
-
-  // The case the untick opened up. Disk is main, ticked before this
-  // branch existed; the branch carries the check the reader has just
-  // taken back off, and it is the one that counts.
-  test("taken back off on the branch, still ticked on disk: the branch decides", () => {
-    expect(acceptanceStillOpen(true, ticked)).toBe(true);
-  });
-
-  test("no branch answer: disk decides", () => {
-    expect(acceptanceStillOpen(undefined, open)).toBe(true);
-    expect(acceptanceStillOpen(undefined, ticked)).toBe(false);
-  });
-
-  // Disk with no rows knows nothing — a spec whose acceptance rows
-  // exist only on an unlanded analyze's branch must not have the disk's
-  // silence read as agreement.
-  test("disk with no rows at all answers nothing", () => {
-    expect(acceptanceStillOpen(true, [])).toBe(true);
-    expect(acceptanceStillOpen(true, undefined)).toBe(true);
-    expect(acceptanceStillOpen(undefined, [])).toBe(false);
-  });
-});
-
 // --- The one record of how far a spec has got ---------------------
 
 // --- The rows the Specs list unfolds -------------------------------
@@ -407,12 +362,6 @@ describe("Not verified is a done mark for every gate", () => {
   test("acceptanceCriteriaUnticked does not hold on it, and still holds on a ⬜ row", () => {
     expect(acceptanceCriteriaUnticked(file([NV, DONE]))).toBe(false);
     expect(acceptanceCriteriaUnticked(file([NV, OPEN]))).toBe(true);
-  });
-
-  test("acceptanceStillOpen reads a Not verified row as settled", () => {
-    const rows = acceptanceRowsOf(file([NV, DONE]));
-    expect(acceptanceStillOpen(undefined, rows)).toBe(false);
-    expect(acceptanceStillOpen(undefined, acceptanceRowsOf(file([NV, OPEN])))).toBe(true);
   });
 
   test("parseStatus's phase and acceptancePhase count it done", () => {

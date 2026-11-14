@@ -6,7 +6,7 @@ import { fileOnceWritten } from "../../helpers/file-once-written.ts";
 import { existsSync, readdirSync, readFileSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { statusSaying } from "../../helpers/queue-server.ts";
+import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { runnerArgv } from "../../../src/serve/serve-helpers";
@@ -19,7 +19,7 @@ const { harness } = setupQueueRoutesHarness();
 // implement on a spec with no analyze on its steps line is held back
 // in the queue instead, and the spawn these tests wait for never comes.
 const ANALYZED = statusSaying(["create", "analyze"]);
-const start = (extra: Partial<ServerOptions> = {}) => harness.start({ extra, status: ANALYZED });
+const start = (extra: Partial<ServerOptions> = {}) => harness.start({ extra, status: ANALYZED, liveState: stateSaying(["create", "analyze"]) });
 
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
@@ -272,6 +272,7 @@ describe("the runner invocation", () => {
     mkdirSync(join(project, "specs", "81-queue-and-runner"), { recursive: true });
     writeFileSync(join(project, "specs", "81-queue-and-runner", "1-description.md"), "# 81 - Description\n");
     writeFileSync(join(project, "specs", "81-queue-and-runner", "4-status.md"), ANALYZED);
+    writeFileSync(join(project, "specs", "81-queue-and-runner", "4-status.json"), stateSaying(["create", "analyze"]));
     return { root, dir };
   }
 

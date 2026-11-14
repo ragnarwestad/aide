@@ -27,8 +27,10 @@ import { join } from "node:path";
 import {
   BranchFileStepsChecker,
   WorkflowHistoryChecker,
+  completedPhasesOf,
   resolveWorkflowState,
   workflowLogArgs,
+  type WorkflowHistory,
 } from "../../../src/git/workflow-history.ts";
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
@@ -315,6 +317,45 @@ describe("resolveWorkflowState", () => {
     const branchFileSteps = await warmedBranchSteps(["create"], ["create"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create"]);
+  });
+
+  // A write marks the branch answer due; until it is read again, the
+  // copy on main answers, as it does for every other reader.
+  test("a branch answer a write has marked due gives way to the disk copy (AC-2)", async () => {
+    const history = await warmedHistory(subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    branchFileSteps.forget(DIR, FOLDER);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: ["create"],
+      stateSteps: ["create"],
+    });
+    expect(resolved!.done).toEqual(["create"]);
+    expect(resolved!.fileSteps).toEqual(["create"]);
+  });
+});
+
+// Which phases one copy of a spec records — the rule every reader asks.
+describe("completedPhasesOf", () => {
+  const history = (done: string[], stopped: Record<string, string> = {}): WorkflowHistory =>
+    ({ done, stopped, superseded: [] });
+
+  test("the copy's state file answers when it has one (AC-1)", () => {
+    expect(completedPhasesOf({ proseSteps: ["create"], stateSteps: ["create", "analyze"] }, history(["create"])))
+      .toEqual(["create", "analyze"]);
+  });
+
+  test("with no state file, git history answers (AC-1)", () => {
+    expect(completedPhasesOf({ proseSteps: ["create", "analyze"], stateSteps: undefined }, history(["create", "analyze", "implement"])))
+      .toEqual(["create", "analyze", "implement"]);
+  });
+
+  test("with no state file and no history read yet, the prose answers (AC-1)", () => {
+    expect(completedPhasesOf({ proseSteps: ["analyze"], stateSteps: undefined }, null)).toEqual(["create", "analyze"]);
+  });
+
+  test("a step whose newest run failed is not done, whatever the copy says (AC-1)", () => {
+    const copy = { proseSteps: [], stateSteps: ["create", "analyze", "implement"] };
+    expect(completedPhasesOf(copy, history(["create", "analyze"], { implement: "model-refused" }))).toEqual(["create", "analyze"]);
   });
 });
 

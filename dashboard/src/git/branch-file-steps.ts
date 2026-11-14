@@ -7,16 +7,15 @@ import { dirname, join } from "node:path";
 import { branchAcCoverage, type AcTest } from "../project/ac-coverage.ts";
 import type { GitRunner } from "./process/index.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
-import { parseSpecStateText } from "../project/parse-spec-state.ts";
+import { acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
+import { parseSpecStateText, type SpecStateAcceptanceRow } from "../project/parse-spec-state.ts";
 import { dependsOnIn } from "../project/discover/depends-on.ts";
 import { groupIn, type SpecGroupMembership } from "../project/discover/group.ts";
 import { createChoicesIn, type CreateChoices } from "../project/discover/create-choices.ts";
 import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 import { DESCRIPTION_FILE, SOLUTION_FILE, STATE_FILE } from "../project/spec-names.ts";
+import { DEFAULT_TTL_MS } from "./branch-status.ts";
 
-/** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
-export const DEFAULT_TTL_MS = 30_000;
 
 /** What a spec's own files claim, kept apart by source — the
  *  prose's own line, and the state file's `completedPhases` when this
@@ -28,13 +27,11 @@ export interface FileStepsAnswer {
    *  copy of the spec's files has no state file yet,
    *  the cue to keep comparing `proseSteps` against git. */
   stateSteps: string[] | undefined;
-  /** Whether the file has an acceptance row nobody has ticked — read
-   *  off the same branch copy as the steps, since a tick on a spec
-   *  with an open branch is written THERE (spec-edit.ts) and the
-   *  default branch's copy stays unticked until archive lands. The
-   *  row's "archive held back" and the queue's archive hold-back read
-   *  this before the disk copy; absent when the answer came off disk. */
-  acceptanceOpen?: boolean;
+  /** `4-status.json`'s own acceptance rows — the one source for whether a
+   *  row is open, Not verified or Failed. `undefined` when this copy has
+   *  no state file, and such a copy has no open row. A tick on a spec with
+   *  an open branch is written there, beside the prose, in one commit. */
+  stateAcceptance?: SpecStateAcceptanceRow[];
   /** The Acceptance section's rows off that same file, for the Specs
    *  list's unfold — the row draws them without reading git. */
   acceptance?: StatusCheck[];
@@ -55,6 +52,33 @@ export interface FileStepsAnswer {
   /** When the disk scan read this copy, epoch ms. Set by `targets()` on the disk answer only — the branch
    *  copy's read time is `peekFileSteps().checkedAt` — so an answer that came from the branch has none. */
   readAt?: number;
+}
+
+/** What `peekFileSteps` hands back: the branch answer, when it was read
+ *  (`null` when never), and whether a write has marked it due since. */
+export interface BranchPeek {
+  steps: FileStepsAnswer | null;
+  checkedAt: number | null;
+  stale?: boolean;
+}
+
+/** Which copy of a spec answers, and whether it is known to be the newest. */
+export interface SpecCopy {
+  answer: FileStepsAnswer;
+  from: "branch" | "main";
+  /** False while an open branch's answer is unread or marked due: main then
+   *  answers, but it may not be the spec's newest copy. */
+  settled: boolean;
+}
+
+/** The one rule for which copy of a spec every reader reads: the branch copy
+ *  once it has been read and no write has marked it due, however long ago
+ *  that read was — the schedule refills every few minutes, so most answers
+ *  are past their window — and the copy on main otherwise. */
+export function specCopy(branch: BranchPeek, disk: FileStepsAnswer): SpecCopy {
+  const read = branch.checkedAt !== null && !branch.stale;
+  if (read && branch.steps) return { answer: branch.steps, from: "branch", settled: true };
+  return { answer: disk, from: "main", settled: read };
 }
 
 export interface BranchFileStepsOptions {
@@ -123,9 +147,7 @@ export class BranchFileStepsChecker {
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,
-            acceptanceOpen: state
-              ? state.acceptanceCriteria.some((row) => !row.done)
-              : acceptanceCriteriaUnticked(file.text),
+            ...(state ? { stateAcceptance: state.acceptanceCriteria } : {}),
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
             ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
@@ -141,19 +163,13 @@ export class BranchFileStepsChecker {
     return steps;
   }
 
-  /** Drop one spec's cached answer, so the next `read` goes to git.
-   *  The Checks tab's tick writes the very file this caches, onto the
-   *  same branch it reads: without this the row went on saying "held
-   *  back: the Acceptance criteria are not all ticked yet" for the rest
-   *  of the TTL after a Save that ticked the last row (337,
-   *  2026-09-04). */
+  /** Mark one spec's cached answer due, so the next `read` goes to git
+   *  even inside the window. Called through `forgetSpec` after every
+   *  write to the spec's files. */
   forget(dir: string, specFolder: string): void {
-    // Marked due for a fresh read, NOT dropped: the row keeps answering
-    // from it until `read` has replaced it. Dropped, the row fell back
-    // to the default branch's copy of the file for as long as the
-    // re-read took, and that copy still says what it said before
-    // implement ran — so a tick on the Checks tab made the row announce
-    // that the files disagree.
+    // Marked, not dropped: the peek still reports when the answer was
+    // read, which the row's sources count, while `specCopy` reads main
+    // until `read` has replaced it.
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     if (hit) this.cache.set(key, { ...hit, stale: true });
@@ -163,10 +179,7 @@ export class BranchFileStepsChecker {
    *  covers two different truths the caller does not need to tell
    *  apart: no open branch, and "not warmed yet" — both mean "fall back
    *  to the disk read" (unchanged behavior). */
-  peekFileSteps(
-    dir: string,
-    specFolder: string,
-  ): { steps: FileStepsAnswer | null; checkedAt: number | null; stale?: boolean } {
+  peekFileSteps(dir: string, specFolder: string): BranchPeek {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
     return hit ? { steps: hit.steps, checkedAt: hit.at, stale: hit.stale } : { steps: null, checkedAt: null };
   }

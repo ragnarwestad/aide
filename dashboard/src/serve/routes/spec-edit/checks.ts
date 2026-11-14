@@ -324,19 +324,17 @@ function wantedState(tick: boolean, unverified: boolean, current: CheckState): E
   return tick ? "done" : unverified ? "notVerified" : "open";
 }
 
-/** What a saved tick leaves behind for the next page. The branch answer
- *  it just changed is cached, and the Specs list reads it to decide
- *  whether to say "held back: the Acceptance criteria are not all ticked
- *  yet". Marked due alone, it went on being served until the schedule's
- *  next read — up to half a minute of the list saying the opposite of
- *  what the reader had just saved. So it is read again before the reader
- *  is sent back, and the list's own scan, which copied it, is dropped. */
+/** What a write to a spec's files leaves behind for the next page. Every
+ *  cached answer about the spec is dropped in one call (`forgetSpec`) and
+ *  read again before the reader is sent back, so the page they come back
+ *  to reads what they saved; and the list's own scan, which `rereadSpec`
+ *  rebuilt while the answer was still due, is dropped. */
 export async function afterTick(
-  ctx: Pick<RoutesContext, "forgetBranchFileSteps" | "rereadSpec" | "invalidateScan">,
+  ctx: Pick<RoutesContext, "forgetSpec" | "rereadSpec" | "invalidateScan">,
   dir: string,
   specFolder: string,
 ): Promise<void> {
-  ctx.forgetBranchFileSteps?.(dir, specFolder);
+  ctx.forgetSpec?.(dir, specFolder);
   await ctx.rereadSpec?.(dir, specFolder).catch(() => {});
   ctx.invalidateScan();
 }

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { statusSaying } from "../../helpers/queue-server.ts";
+import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -98,6 +98,7 @@ describe("landing a stopped step's specs-only work", () => {
       [],
       [],
       statusSaying(["create", "analyze"]),
+      stateSaying(["create", "analyze"]),
     );
     return { base, dir, results };
   }

@@ -39,6 +39,9 @@ export interface LandContext {
    *  stale copy — what `withFreshness` prefers over `t.fileSteps` when
    *  it has a real answer. */
   branchFileSteps: BranchFileStepsChecker;
+  /** Marks every cached answer about a spec due and drops the list's scan
+   *  (`forgetSpec`, `serve/schedules`). */
+  forgetSpec: (dir: string, specFolder: string) => void;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   invalidateScan: () => void;
   queueInstallTimeoutMs?: number;

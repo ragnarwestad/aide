@@ -136,8 +136,8 @@ export const heldBack = (rows: string[]) =>
 
 export const statusPath = (dir: string, folder = SPEC) => join(dir, "root", "aide", "specs", folder, "4-status.md");
 
-export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status = STATUS) {
-  return harness.start({ description: DESCRIPTION, status, extra: { gitRun } });
+export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status = STATUS, liveState?: string) {
+  return harness.start({ description: DESCRIPTION, status, extra: { gitRun }, ...(liveState ? { liveState } : {}) });
 }
 
 /** The checks form's own body, and nothing else: the one shared phase

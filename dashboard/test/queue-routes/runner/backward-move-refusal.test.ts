@@ -8,7 +8,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { ran, stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 import { listUntil, rowSaysDone } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -57,7 +57,7 @@ describe("a phase that has run may be run again", () => {
 
 describe("a start out of order is refused at the press, with the reason", () => {
   const refused = async (done: string[], steps: string[], says: string) => {
-    const { base } = harness.start({ extra: {}, status: statusSaying(done) });
+    const { base } = harness.start({ extra: {}, status: statusSaying(done), liveState: stateSaying(done) });
     const res = await queue(base, steps);
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain(says);
@@ -81,11 +81,25 @@ describe("a start out of order is refused at the press, with the reason", () => 
 // the row reads — the branch and the history as well as main — or every
 // archive is refused as "not reached implement yet".
 describe("a phase proved on the spec's branch counts, though main has not got it", () => {
-  test("archive after an implement main does not show yet is accepted", async () => {
+  test("archive after an implement main does not show yet is accepted (AC-1)", async () => {
     const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
     ran(dir, ["create", "analyze", "implement"]);
     await listUntil(base, rowSaysDone("implement"));
     expect((await queue(base, ["archive"])).status).toBe(200);
+  });
+});
+
+// The route asks the reader the specs list and the runner's holds ask, so
+// an implement whose newest run failed is undone here as it is on the row.
+describe("a phase whose newest run failed", () => {
+  test("does not count, though main's record names it: archive is refused (AC-1)", async () => {
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
+    ran(dir, ["create", "analyze", "implement"]);
+    ran(dir, ["implement"], "81-queue-and-runner", { stopped: "model-refused" });
+    await listUntil(base, (html) => rowSaysDone("analyze")(html) && !rowSaysDone("implement")(html));
+    const res = await queue(base, ["archive"]);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("has not reached implement yet");
   });
 });
 

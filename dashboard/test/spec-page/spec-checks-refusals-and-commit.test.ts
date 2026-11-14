@@ -184,13 +184,13 @@ describe("4-status.md cannot be saved as a document", () => {
 // to go and tick it.
 
 describe("after a tick is saved", () => {
-  test("the answer is read again, and the list's scan dropped, before the reader is sent back", async () => {
+  test("every cached answer is dropped in one call, read again, and the list's scan dropped, before the reader is sent back (AC-4)", async () => {
     const order: string[] = [];
     let release = (): void => {};
     const reread = new Promise<void>((r) => (release = r));
     const done = afterTick(
       {
-        forgetBranchFileSteps: (dir, folder) => void order.push(`forget ${dir} ${folder}`),
+        forgetSpec: (dir, folder) => void order.push(`forget ${dir} ${folder}`),
         rereadSpec: async (dir, folder) => {
           order.push(`reread ${dir} ${folder}`);
           await reread;

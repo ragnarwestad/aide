@@ -53,6 +53,7 @@ export interface LandSetupInputs {
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
   branchFileSteps: BranchFileStepsChecker;
+  forgetSpec: (dir: string, specFolder: string) => void;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   queueInstallTimeoutMs?: number;
   restart: RestartHook;
@@ -93,6 +94,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     specCreatedAt: inputs.specCreatedAt,
     freshness: inputs.freshness,
     branchFileSteps: inputs.branchFileSteps,
+    forgetSpec: inputs.forgetSpec,
     rootsStillHolding: inputs.rootsStillHolding,
     invalidateScan: () => {
       state.scan = null;

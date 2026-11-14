@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { inFlight, type Job } from "../../queue/queue.ts";
+import { inFlight, type Job, type QueueStore } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { sharedFiles } from "../../queue/runner/types.ts";
 import type { RoutesContext } from "../routes";
@@ -52,11 +52,24 @@ async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<str
   return descriptions;
 }
 
+/** Whether an analyze that stopped on files another open spec changes may
+ *  go on: it is still stopped for that reason, no dependencies were added
+ *  for it yet, its landing is neither running nor failed, and no other job
+ *  of the spec is in flight. The automatic path and the Depends on save
+ *  both ask this; each adds only what sets it off. */
+export function stoppedAnalyzeGoesOn(queue: Pick<QueueStore, "list" | "get">, job: Pick<Job, "id">): boolean {
+  const current = queue.get(job.id);
+  if (!current || current.state !== "stopped" || current.stopReason !== "shared-files") return false;
+  if (current.dependencyNotice || current.landing || landingErrorOfStep(current, "analyze")) return false;
+  return !queue.list().some((other) => other.id !== current.id && other.project === current.project &&
+    other.specFolder === current.specFolder && inFlight(other));
+}
+
 export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   const required = sharedFiles(outcome.sharedFiles);
   if (!required?.length) return;
   const source = ctx.queue.get(job.id);
-  if (!source || source.state !== "stopped" || source.stopReason !== "shared-files" || source.dependencyNotice || source.landing || landingErrorOfStep(source, "analyze")) return;
+  if (!source || !stoppedAnalyzeGoesOn(ctx.queue, job)) return;
   const missing = required.filter((entry) => !entry.reason);
   if (missing.length) {
     const attempts = attemptOf(source, "analyze");
@@ -85,17 +98,13 @@ export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, out
       : message });
     return;
   }
-  const active = () => ctx.queue.list().some((other) => other.id !== job.id && other.project === job.project &&
-    other.specFolder === job.specFolder && inFlight(other));
-  if (active()) return;
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;
   const dir = await ctx.machinerySpecDir(job.project, found);
   const root = await ctx.specsRoot(dir);
   try {
     await ctx.mergeLock.run(root, async () => {
-      const current = ctx.queue.get(job.id);
-      if (active() || !current || current.state !== "stopped" || current.stopReason !== "shared-files" || current.dependencyNotice) return;
+      if (!stoppedAnalyzeGoesOn(ctx.queue, job)) return;
       if (outcome.pushError) throw new Error(outcome.pushError);
       const specs = dirname(dir), file = join(dir, DESCRIPTION_FILE);
       const text = readFileSync(file, "utf8");

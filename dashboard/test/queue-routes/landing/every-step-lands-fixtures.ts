@@ -10,7 +10,7 @@ import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerOptions } from "../../../src/serve/serve.ts";
-import { statusSaying, type QueueHarness } from "../../helpers/queue-server.ts";
+import { stateSaying, statusSaying, type QueueHarness } from "../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 export const SPEC = "81-queue-and-runner";
@@ -104,6 +104,7 @@ export function repos(dir: string): {
   mkdirSync(join(project, "specs", SPEC), { recursive: true });
   writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
   writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze", "implement"]));
+  writeFileSync(join(project, "specs", SPEC, "4-status.json"), stateSaying(["create", "analyze", "implement"]));
   mkdirSync(specs, { recursive: true });
   return {
     root: projectsRoot,

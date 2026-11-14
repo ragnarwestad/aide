@@ -86,13 +86,11 @@ describe("what is settled before the checkout moves", () => {
 });
 
 describe("what is settled once the landing has moved the folder", () => {
-  test("both cached git answers for the spec are due for a fresh read, under either path", async () => {
+  test("every cached answer about the spec is due for a fresh read, under either path (AC-4)", async () => {
     const git = landingGit();
-    const history: [string, string][] = [];
-    const fileSteps: [string, string][] = [];
+    const order: string[] = [];
     const { ctx } = landCtx(git.run, {
-      workflowHistory: { forget: (dir: string, folder: string) => void history.push([dir, folder]) },
-      branchFileSteps: { forget: (dir: string, folder: string) => void fileSteps.push([dir, folder]) },
+      forgetSpec: (dir: string, folder: string) => void order.push(`forget ${dir} ${folder}`),
     });
     await landBranch(
       ctx as unknown as Parameters<typeof landBranch>[0],
@@ -104,8 +102,6 @@ describe("what is settled once the landing has moved the folder", () => {
         failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
       } as unknown as Parameters<typeof landBranch>[3],
     );
-    const expected: [string, string][] = [[`${ROOT}/archive/150-spec`, "150-spec"], [`${ROOT}/150-spec`, "150-spec"]];
-    expect(history).toEqual(expected);
-    expect(fileSteps).toEqual(expected);
+    expect(order).toEqual([`forget ${ROOT}/archive/150-spec 150-spec`, `forget ${ROOT}/150-spec 150-spec`]);
   });
 });

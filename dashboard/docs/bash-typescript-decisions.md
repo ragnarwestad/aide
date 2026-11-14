@@ -184,13 +184,14 @@ scan as naming no dependency.
 
 The acceptance-criteria gate is
 the script's alone: `aide-archive-spec` refuses an `archive` whose state
-file has an open row, and the row's "archive held back" reads the BRANCH
-copy of the state file first (`BranchFileStepsChecker`'s
-`acceptanceOpen`): a tick on a spec whose `aide/<folder>` is open is
-written there, and the disk copy stays unticked until archive lands.
-`blockedForMissingAnalyze` reads the same branch copy first for the same
-reason: a chained job's analyze is on the branch the moment the step
-ends, whether or not its landing reached main.
+file has an open row. The row's "archive held back" and the queue's
+archive hold read the state file of the copy `specCopy` picks: the
+branch copy once it has been read and no write has marked it due — a
+tick on a spec whose `aide/<folder>` is open is written there, and main
+stays unticked until archive lands — and main's otherwise.
+`blockedForMissingAnalyze` reads its phases off the same copy for the
+same reason: a chained job's analyze is on the branch the moment the
+step ends, whether or not its landing reached main.
 
 ## Not a pair: where aide installs for each AI
 

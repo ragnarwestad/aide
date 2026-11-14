@@ -21,6 +21,7 @@ import {
 } from "../../serve-helpers";
 
 import { afterTick } from "./checks.ts";
+import { stoppedAnalyzeGoesOn } from "../../dependencies";
 import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
 
 import type { RoutesContext } from "..";
@@ -230,8 +231,7 @@ export async function trackingRoutes(
   // it waiting until that spec archives.
   const lead = workRoundJobs(ctx.queue, project!, specFolder!)[0];
   const named = new Set(
-    (lead?.state === "stopped" && lead.stopReason === "shared-files" ? (lead.results.at(-1)?.sharedFiles ?? []) : [])
-      .map((s) => s.spec),
+    (lead && stoppedAnalyzeGoesOn(ctx.queue, lead) ? (lead.results.at(-1)?.sharedFiles ?? []) : []).map((s) => s.spec),
   );
   if (lead && depFolders.some((folder) => named.has(folder))) {
     const queued = enqueueRequest(

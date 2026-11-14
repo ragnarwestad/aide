@@ -14,9 +14,10 @@
 import { readAcCoverage, withAcCoverage } from "../project/ac-coverage.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, sep, join } from "node:path";
-import type { BranchStatusChecker } from "../git/branch-status.ts";
+import { SCAN_TTL_MS, type BranchStatusChecker } from "../git/branch-status.ts";
 import type { GitRunner } from "../git/process/index.ts";
-import type { BranchFileStepsChecker } from "../git/workflow-history.ts";
+import type { BranchFileStepsChecker, FileStepsAnswer } from "../git/workflow-history.ts";
+import { specProgressOf } from "./schedules/spec-progress.ts";
 import { specBranch, STATUS_FILE } from "../project/spec-names.ts";
 import { branchForSpec } from "../project/discover/group.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
@@ -24,7 +25,7 @@ import {
   discoverProjects, manifestInside, type CodeLanding, type SpecRef,
 } from "../project/discover";
 import {
-  acceptanceRowsOf, acceptanceStillOpen, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, failedCount, notVerifiedCount, parseStatus, reopenedRound,
+  acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus, reopenedRound,
 } from "../project/parse-status";
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
@@ -82,7 +83,7 @@ export interface SpecLookupContext {
 export function targets(ctx: SpecLookupContext): SpecTarget[] {
   const now = Date.now();
   const cached = ctx.readScan();
-  if (cached && now - cached.at < 5000) return cached.targets;
+  if (cached && now - cached.at < SCAN_TTL_MS) return cached.targets;
   const found: SpecTarget[] = [];
   const gone: string[] = [];
   // And WHAT each of them is, from the same walk. `targets`
@@ -135,16 +136,22 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // case's "waiting" — the two share this field because both are
         // archive declining to proceed, but only one of them is
         // ordinary, expected progress.
-        // The BRANCH copy first: a tick on a spec whose `aide/<folder>`
-        // is open lands there, and the Checks tab reads it from there;
-        // the disk copy stays unticked until archive lands. Reading disk
-        // alone said "archive held back" over a spec whose every row was
-        // ticked.
-        const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
-        const acceptanceOpen = acceptanceStillOpen(branchAnswer?.acceptanceOpen, state?.acceptanceCriteria);
-        const acceptanceRows = branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? [];
-        const notVerified = notVerifiedCount(acceptanceRows) || undefined;
-        const failed = failedCount(acceptanceRows) || undefined;
+        // Whether a row is open, Not verified or Failed, by the one rule every
+        // reader follows: the branch copy's state file once it has been read
+        // and no write has marked it due — a tick on a spec whose
+        // `aide/<folder>` is open lands there — and main's otherwise.
+        const branchPeek = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder) ?? { steps: null, checkedAt: null };
+        const branchAnswer = branchPeek.steps;
+        const fileSteps: FileStepsAnswer = {
+          proseSteps: parseStatus(statusText).workflowSteps,
+          stateSteps: state?.completedPhases,
+          ...(state ? { stateAcceptance: state.acceptanceCriteria } : {}),
+          readAt: now,
+        };
+        const progress = specProgressOf(fileSteps, branchPeek, null);
+        const acceptanceOpen = progress.acceptanceOpen;
+        const notVerified = progress.notVerified || undefined;
+        const failed = progress.failed || undefined;
         const heldBack = statusText
           ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
           : null;
@@ -153,16 +160,20 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           specFolder: s.folder,
           acceptanceOpen,
           reopenedRound: reopenedRound(statusText),
-          // The branch's rows first, like `acceptanceOpen`: a mark moved
-          // on the open branch is not on disk until archive lands.
+          // Off the same copy as `acceptanceOpen`: a mark moved on the open
+          // branch is not on main until archive lands.
           notVerified,
           failed,
-          // The rows the list unfolds, from the same source order as
-          // `acceptanceOpen`: the branch answer's, else the checkout's.
-          // Carried while a row is open, and while one waits for a check
-          // or failed: the list unfolds them under that count too.
+          // The rows the list unfolds, off the same copy as `acceptanceOpen`:
+          // its prose lines, which the tick route finds a row again by, and
+          // which it writes in one commit with the state file. Carried while
+          // a row is open, and while one waits for a check or failed: the
+          // list unfolds them under that count too.
           acceptance: acceptanceOpen || notVerified || failed
-            ? withAcCoverage(branchAnswer?.acceptance ?? acceptanceRowsOf(statusText), branchAnswer?.acCoverage ?? readAcCoverage(s.dir))
+            ? withAcCoverage(
+                (progress.from === "branch" ? branchAnswer?.acceptance : undefined) ?? acceptanceRowsOf(statusText),
+                branchAnswer?.acCoverage ?? readAcCoverage(s.dir),
+              )
             : undefined,
           // The approaches waiting for the person who asked to choose,
           // off the branch's plan first, as the rows above.
@@ -217,7 +228,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // a git-history comparison of a state-file spec compares two
           // records that can legitimately disagree for reasons that
           // mean nothing.
-          fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases, readAt: now },
+          fileSteps,
           // Where this spec's history starts, when it has been
           // reopened. Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.

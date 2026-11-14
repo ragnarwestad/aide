@@ -14,7 +14,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { queueHarness, IMPLEMENTED } from "../../helpers/queue-server.ts";
+import { queueHarness, IMPLEMENTED, statusSaying } from "../../helpers/queue-server.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -189,7 +189,8 @@ describe("POST /api/queue records the row's own choice", () => {
   });
 
   test("a refused submission (an unknown step) records nothing", async () => {
-    const { base } = harness.start();
+    // A created spec, so the row's own default pick is analyze.
+    const { base } = harness.start({ status: statusSaying(["create"]) });
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: {

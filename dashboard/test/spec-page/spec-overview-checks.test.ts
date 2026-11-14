@@ -26,6 +26,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { writing } from "../../src/queue/queue.ts";
+import { stateSaying } from "../helpers/queue-server.ts";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
 import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE, CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
@@ -149,7 +150,8 @@ describe("the checks on the Overview tab", () => {
   // landing in flight, still refuses: `specWriteInFlight`.
   test("a queued matching job does not block a direct tick", async () => {
     const git = recording();
-    const { base, dir } = startWithChecks(git.run);
+    // An implemented spec's state file beside its prose: the press is judged on it.
+    const { base, dir } = start(harness, git.run, STATUS, stateSaying(["create", "analyze", "implement"]));
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },

@@ -22,8 +22,7 @@ import { basename, dirname, join } from "node:path";
 import type { GitRunner } from "./process/index.ts";
 import { DESCRIPTION_FILE } from "../project/spec-names.ts";
 import { parseStepSubject, stepSubjectStart } from "./workflow-history.ts";
-
-const DEFAULT_TTL_MS = 30_000;
+import { ARCHIVED_RESOLVED_TTL_MS, DEFAULT_TTL_MS } from "./branch-status.ts";
 
 /** A finished analyze of `specFolder`, headless or committed at a keyboard: its subject read as the
  *  workflow history reads it, and no stop reason. A fixed-string grep matches a prefix, so a stopped
@@ -310,7 +309,7 @@ export class SpecCreatedAtChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; createdAt: string | null }>();
+  private readonly cache = new Map<string, { at: number; createdAt: string | null; due?: boolean }>();
 
   constructor(opts: SpecCreatedAtOptions) {
     this.run = opts.run;
@@ -324,7 +323,7 @@ export class SpecCreatedAtChecker {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.createdAt;
+    if (hit && !hit.due && at - hit.at < this.ttlMs) return hit.createdAt;
 
     let createdAt: string | null = null;
     try {
@@ -339,6 +338,15 @@ export class SpecCreatedAtChecker {
     return createdAt;
   }
 
+  /** Both of a spec's dates due for a fresh ask, kept until then, as `WorkflowHistoryChecker.forget` does. */
+  forget(dir: string, specFolder: string): void {
+    const key = JSON.stringify([dir, specFolder]);
+    for (const cache of [this.cache, this.archivedCache]) {
+      const hit = cache.get(key);
+      if (hit) cache.set(key, { ...hit, due: true });
+    }
+  }
+
   /** The LAST date this checker holds, without asking git at all.
    *  `checkedAt` is `null` only where nothing has ever been
    *  asked; a real, timestamped `null` is a spec git could not date.
@@ -349,19 +357,11 @@ export class SpecCreatedAtChecker {
     return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 
-  /** How long a RESOLVED archived answer stands — a day, not
-   *  the standard TTL above: an archived spec's history cannot change
-   *  after the fact, so the per-tick cost `refreshSpecCaches` pays for
-   *  it is owed once per archived spec ever, not once per sweep tick.
-   *  A genuine `null` (git could not date it, or a transient failure)
-   *  keeps the standard TTL instead, so a fixable answer is retried. */
-  private static readonly ARCHIVED_RESOLVED_TTL_MS = 24 * 60 * 60 * 1000;
-
   // A cache of its own, never the one above: an archived `dir` already
   // contains `archive/` and cannot collide with a live one, but the two
   // questions keep different TTL rules and a shared map would have to
   // carry both.
-  private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
+  private readonly archivedCache = new Map<string, { at: number; createdAt: string | null; due?: boolean }>();
 
   /** How many archived lookups run at once. The sweep asks every
    *  archived spec in one go, and hundreds of `git log --follow` side by
@@ -395,8 +395,9 @@ export class SpecCreatedAtChecker {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.archivedCache.get(key);
     const at = this.now();
-    const ttl = hit?.createdAt ? SpecCreatedAtChecker.ARCHIVED_RESOLVED_TTL_MS : this.ttlMs;
-    if (hit && at - hit.at < ttl) return hit.createdAt;
+    // A resolved answer stands a day (`ARCHIVED_RESOLVED_TTL_MS`); a `null` keeps the standard window, so it is retried.
+    const ttl = hit?.createdAt ? ARCHIVED_RESOLVED_TTL_MS : this.ttlMs;
+    if (hit && !hit.due && at - hit.at < ttl) return hit.createdAt;
 
     let createdAt: string | null = null;
     try {
@@ -457,7 +458,7 @@ export class SpecFileCommitChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; commit: { sha: string; at: string } | null }>();
+  private readonly cache = new Map<string, { at: number; commit: { sha: string; at: string } | null; due?: boolean }>();
 
   constructor(opts: SpecFileCommitOptions) {
     this.run = opts.run;
@@ -471,7 +472,7 @@ export class SpecFileCommitChecker {
     const key = JSON.stringify([dir, file]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.commit;
+    if (hit && !hit.due && at - hit.at < this.ttlMs) return hit.commit;
 
     let commit: { sha: string; at: string } | null = null;
     try {
@@ -482,5 +483,10 @@ export class SpecFileCommitChecker {
 
     this.cache.set(key, { at, commit });
     return commit;
+  }
+
+  /** Every file of a spec due for a fresh ask: a write changes the last commit of the file it writes. */
+  forget(dir: string): void {
+    for (const [key, hit] of this.cache) if ((JSON.parse(key) as [string, string])[0] === dir) this.cache.set(key, { ...hit, due: true });
   }
 }

@@ -1,11 +1,9 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
-import { proseSteps } from "../../project/discover/spec-files.ts";
 import { previousGroupMember } from "../../project/discover/group.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
-import { readSpecState } from "../../project/parse-spec-state.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
@@ -179,11 +177,12 @@ export async function handleJobActionRoutes(
     ) {
       const dir = ctx.specDir(askedFor.project, askedFor.specFolder);
       if (dir) {
-        // The default branch's record, and what the spec's own branch and
-        // history prove (the row's `done`): implement lands nothing, so its
-        // step is on the branch alone until archive merges it, and read off
-        // main alone an archive was refused as "not reached implement yet".
-        const onMain = readSpecState(dir)?.completedPhases ?? proseSteps(dir);
+        // The phases by the rule the specs list and the runner's holds read:
+        // the spec's own branch when it is settled, main otherwise, and the
+        // history. Implement lands nothing, so its step is on the branch
+        // alone until archive merges it; read off main alone an archive was
+        // refused as "not reached implement yet".
+        const { completedPhases, onMain } = ctx.specProgress(dir, askedFor.specFolder);
         const row = ctx.withFreshness(
           ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
         )[0];
@@ -203,7 +202,6 @@ export async function handleJobActionRoutes(
           const joined = joinExecutionGroup(ctx, askedFor, row.group.name);
           if (joined) return joined;
         }
-        const completedPhases = [...new Set([...onMain, ...(row?.done ?? [])])];
         // ctx.specRef, not a fresh **Archived:** prose scan: the one
         // resolved answer for this request's own project/specFolder.
         const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived

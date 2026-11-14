@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyOverlapDependencies } from "../../../src/serve/dependencies";
+import { applyOverlapDependencies, stoppedAnalyzeGoesOn } from "../../../src/serve/dependencies";
 import { createRootLock } from "../../../src/serve/serve-helpers/config.ts";
 import type { RoutesContext } from "../../../src/serve/routes";
 import type { Job } from "../../../src/queue/queue.ts";
@@ -245,4 +245,25 @@ test("a refused save clears the landing mark and queues nothing (AC-6)", async (
   expect(during).toBe(true);
   expect(h.queued).toEqual([]);
   expect(h.job.landing).toBeUndefined();
+});
+
+// Whether an analyze stopped on shared files may go on is decided once,
+// for the automatic path and the Depends on save alike.
+test("a stopped analyze goes on only when it stopped on shared files and nothing about it is unsettled (AC-6)", () => {
+  const stopped = { id: "old", project: "aide", specFolder: "1-a", state: "stopped", stopReason: "shared-files", steps: ["analyze"], stepIndex: 0, results: [] };
+  const goesOn = (patch: Record<string, unknown>, others: Record<string, unknown>[] = []) => {
+    const job = { ...stopped, ...patch } as unknown as Job;
+    const jobs = [job, ...others.map((o, i) => ({ ...stopped, id: `other-${i}`, ...o }) as unknown as Job)];
+    return stoppedAnalyzeGoesOn({ list: () => jobs, get: (id: string) => jobs.find((j) => j.id === id) }, job);
+  };
+  expect(goesOn({})).toBe(true);
+  expect(goesOn({ stopReason: "acceptance-criteria" })).toBe(false);
+  expect(goesOn({ state: "done" })).toBe(false);
+  expect(goesOn({ dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: [] } } })).toBe(false);
+  expect(goesOn({ landing: true })).toBe(false);
+  expect(goesOn({ landingError: { key: "x" }, landingErrorStep: "analyze" })).toBe(false);
+  expect(goesOn({ landingError: { key: "x" }, landingErrorStep: "create" })).toBe(true);
+  expect(goesOn({}, [{ state: "running" }])).toBe(false);
+  expect(goesOn({}, [{ state: "queued" }])).toBe(false);
+  expect(goesOn({}, [{ state: "running", specFolder: "2-b" }])).toBe(true);
 });

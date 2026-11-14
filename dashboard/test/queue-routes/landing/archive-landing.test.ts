@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { statusSaying } from "../../helpers/queue-server.ts";
+import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../../archived/archived-specs-fixtures.ts";
 import { specHead } from "../fixtures.ts";
 import {
@@ -268,7 +268,8 @@ describe("landing an archived spec", () => {
         // An analyzed spec: an `implement` on a spec with
         // no analyze is held back in the queue, and this test needs the
         // step to run so it can watch it NOT land.
-        const analyzed = (o: Partial<ServerOptions>) => start(o, [], [], statusSaying(["create", "analyze"]));
+        const analyzed = (o: Partial<ServerOptions>) =>
+          start(o, [], [], statusSaying(["create", "analyze"]), stateSaying(["create", "analyze"]));
         const { base, results } = serverWithRunner(analyzed, "aide-archive-results-", git);
         const job = await runStep(base, step);
         writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));

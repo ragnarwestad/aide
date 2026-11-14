@@ -42,6 +42,7 @@ export {
   approachChoiceHolds, archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze,
   deployLandingHolds, notAnalyzedHolds,
 } from "./blocked.ts";
+export { readSpecProgress, specProgressOf, type SpecProgress, type SpecProgressCaches } from "./spec-progress.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
@@ -75,6 +76,8 @@ export interface ScheduleContext {
   readBranchFileSteps: () => BranchFileStepsChecker;
   targets: () => SpecTarget[];
   readScan: () => { archived: string[]; dirs: Map<string, string> } | null;
+  /** Drops the list's scan, so the next `targets()` builds it again. */
+  invalidateScan: () => void;
   allowed: Set<string>;
   scheduleStore: ScheduleStore;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
@@ -178,17 +181,27 @@ export async function rereadSpec(
 }
 
 /** Every live spec of one project read again now, after a fetch brought in what another machine pushed, and the
- *  page told once. Marked stale first: an answer younger than its window is otherwise handed back as it was. */
+ *  page told once. Marked due first: an answer younger than its window is otherwise handed back as it was. */
 export async function rereadProject(ctx: ScheduleContext, project: string): Promise<void> {
   const live = ctx.targets().filter((t) => t.project === project);
-  for (const t of live) {
-    if (!t.dir) continue;
-    ctx.readWorkflowHistory().forget(t.dir, t.specFolder);
-    ctx.readBranchFileSteps().forget(t.dir, t.specFolder);
-    ctx.readFreshness().forget(t.dir, t.specFolder);
-  }
+  for (const t of live) if (t.dir) forgetSpec(ctx, t.dir, t.specFolder);
   await Promise.all(live.map((t) => warmSpec(ctx, t)));
   ctx.notifyQueueChanged();
+}
+
+/** The one call that drops every cached answer about a spec, after anything
+ *  wrote to its files: its history, its branch copy, whether its description
+ *  moved on, its created date and each file's last commit are marked due —
+ *  kept, and read from git again on their next read — and the list's scan is
+ *  dropped. Whether a branch is merged or open is left out: a write to the
+ *  spec's files does not change it, and the landing drops it itself. */
+export function forgetSpec(ctx: ScheduleContext, dir: string, specFolder: string): void {
+  ctx.readWorkflowHistory().forget(dir, specFolder);
+  ctx.readBranchFileSteps().forget(dir, specFolder);
+  ctx.readFreshness().forget(dir, specFolder);
+  ctx.readSpecCreatedAt().forget(dir, specFolder);
+  ctx.readSpecFileCommits().forget(dir);
+  ctx.invalidateScan();
 }
 
 /** The ONE schedule that feeds every peek on every page.

@@ -16,6 +16,7 @@ import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page
 import { stepsOfRound } from "../../spec-views/work-round.ts";
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
+import { afterTick } from "./checks.ts";
 import { writing } from "../../../queue/queue.ts";
 import { branchForSpec } from "../../../project/discover/group.ts";
 
@@ -368,6 +369,8 @@ export async function specPageRoutes(
       logRefusal("save", `${project}/${specFolder}`, result.note);
       return json({ error: result.note }, 400);
     }
+    // The cached answers about the spec read what was just saved.
+    await afterTick(ctx, dir, specFolder!);
     // The page loads again on its own tab, where the file now carries its
     // new commit stamp — unless nothing was committed, which it says.
     return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });

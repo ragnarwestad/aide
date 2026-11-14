@@ -341,6 +341,15 @@ describe("the Depends on field", () => {
       expect(await jobsOfSpec(base)).toHaveLength(0);
     });
 
+    // A landing in flight is not carried over a restart, so the mirror can
+    // only start one whose landing failed; the decision is the same one.
+    test("an analyze whose landing failed queues nothing (AC-6)", async () => {
+      const { base } = startStopped({ ...STOPPED(), landingError: "the merge failed", landingErrorStep: "analyze" });
+      const { body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
+      expect(body.ok).toBe(true);
+      expect((await allJobs(base)).filter((j) => j.specFolder === SPEC && j.id !== "stopped-1")).toHaveLength(0);
+    });
+
     test("a lead job that stopped for another reason queues nothing", async () => {
       const { base } = startStopped(STOPPED("acceptance-criteria"));
       const { body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));

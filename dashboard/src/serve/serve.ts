@@ -195,6 +195,7 @@ export function createServer(opts: ServerOptions) {
     specCreatedAt: schedules.specCreatedAt,
     freshness: schedules.freshness,
     branchFileSteps: schedules.branchFileSteps,
+    forgetSpec: schedules.forgetSpec,
     rootsStillHolding: resolution.rootsStillHolding,
     queueInstallTimeoutMs: opts.queueInstallTimeoutMs,
     restart: opts.restart ?? createLaunchdRestart(),
@@ -245,10 +246,7 @@ export function createServer(opts: ServerOptions) {
     startDeploy: land.deployJob.start, testServerStore,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
-    forgetSpecCaches: (dir, folder) => {
-      schedules.workflowHistory.forget(dir, folder);
-      schedules.branchFileSteps.forget(dir, folder);
-    },
+    forgetSpecCaches: schedules.forgetSpec,
     // A macrotask, not now: the step's own result is written right
     // after this is asked for, and a read stamped before that write
     // would never count as having seen the step.
@@ -320,7 +318,7 @@ export function createServer(opts: ServerOptions) {
     nav,
     allowed,
     scheduleStore,
-    branchFileSteps: schedules.branchFileSteps,
+    forgetSpec: schedules.forgetSpec, specProgress: schedules.specProgress,
     rereadSpec: schedules.rereadSpec,
     rereadProject: schedules.rereadProject,
     targets,

@@ -4,22 +4,19 @@
 // functions to get it under 500 lines) — built last, since it is the
 // one stage that reads every other one.
 
-import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { ServerState } from "../state.ts";
 import { CHANGED_EVENT } from "../sse-watchers.ts";
 import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
- *  this stage builds itself off `state` and `branchFileSteps` — the
- *  same "the getters live here, the values arrive from every earlier
- *  stage" split `RoutesContext`'s own doc comment already
- *  describes for `readScan`/`invalidateScan`. */
+ *  this stage builds itself off `state` — the same "the getters live
+ *  here, the values arrive from every earlier stage" split
+ *  `RoutesContext`'s own doc comment already describes for
+ *  `readScan`/`invalidateScan`. */
 export type QueueContextInputs = Omit<
   RoutesContext,
-  "readScan" | "invalidateScan" | "notifyQueueChanged" | "forgetBranchFileSteps" | "readServing" | "readPendingRestart" | "readDeployFailure" | "readBranchPreview" | "selfStopExit"
-> & {
-  branchFileSteps: BranchFileStepsChecker;
-};
+  "readScan" | "invalidateScan" | "notifyQueueChanged" | "readServing" | "readPendingRestart" | "readDeployFailure" | "readBranchPreview" | "selfStopExit"
+>;
 
 export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): RoutesContext {
   return {
@@ -35,7 +32,8 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     notifyQueueChanged: () => {
       for (const c of [...inputs.watchers]) inputs.writeTo(c, CHANGED_EVENT);
     },
-    forgetBranchFileSteps: (dir, specFolder) => inputs.branchFileSteps.forget(dir, specFolder),
+    forgetSpec: inputs.forgetSpec,
+    specProgress: inputs.specProgress,
     rereadSpec: inputs.rereadSpec,
     rereadProject: inputs.rereadProject,
     targets: inputs.targets,

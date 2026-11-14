@@ -5,7 +5,6 @@
 import { proseSteps } from "../../project/discover/spec-files.ts";
 import { discoverProjects, manifestInside, type SpecRef } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceStillOpen } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
@@ -14,6 +13,7 @@ import { landingJobNames } from "../deployment";
 import { jobKind, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
+import { readSpecProgress, type SpecProgress } from "./spec-progress.ts";
 
 /** Which queued jobs are waiting on a dependency that is not archived
  *  yet — job id → the folder it is waiting for.
@@ -168,7 +168,7 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     // spec), never something parking here could fix — the same rule
     // blockedDependencies already keeps for an unknown dependency id.
     if (!spec) continue;
-    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze")) blocked.add(job.id);
+    if (!progressOf(ctx, job, spec).completedPhases.includes("analyze")) blocked.add(job.id);
   }
   return blocked;
 }
@@ -225,9 +225,9 @@ export function deployLandingHolds(ctx: ScheduleContext): Map<string, BoardMessa
 
 /** Which queued `archive` jobs `aide-archive-spec` would only refuse,
  *  because the spec's acceptance rows are not all ticked. Only on a
- *  branch answer read since the last tick: the Checks tab ticks the
- *  BRANCH copy, so an unread or stale one is left to the script's own
- *  pre-check rather than judged off a disk copy archive has not
+ *  settled answer: this ENDS the job, and the Checks tab ticks the
+ *  BRANCH copy, so an unread or due one is left to the script's own
+ *  pre-check rather than judged off a copy on main archive has not
  *  updated yet. */
 export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
   const open = new Set<string>();
@@ -238,37 +238,30 @@ export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
   for (const job of waiting) {
     const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;
-    const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
-    if (peek.checkedAt === null || peek.stale) continue;
+    const progress = progressOf(ctx, job, spec);
+    if (!progress.settled) continue;
     // Only once implement has run: before that, the script's own refusal —
     // "not reached implement yet" — is the reason, and this would put the
     // lesser one on the row.
-    const done = peek.steps?.stateSteps ?? peek.steps?.proseSteps ?? readSpecState(spec.dir)?.completedPhases ?? [];
-    if (!done.includes("implement")) continue;
-    if (acceptanceStillOpen(peek.steps?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) open.add(job.id);
+    if (!progress.completedPhases.includes("implement")) continue;
+    if (progress.acceptanceOpen) open.add(job.id);
   }
   return open;
 }
 
-/** Which workflow steps this spec has actually completed.
- *
- *  The state file, not a fresh parse of the prose
- *  beside it — the same gate `core/scripts/aide-run-spec`'s own
- *  may-implement-start check reads, now off the one shared source.
- *  The state file when the spec has one, its own prose when it has
- *  not: a spec analyzed before state files existed carries no state
- *  file, and reading that as "nothing has run" held every
- *  such implement back as not analyzed (2026-09-02). The runner's own
- *  gate still refuses a spec that truly has not been
- *  analyzed, whichever source said so here.
- *
- *  The BRANCH copy first, as the acceptance gate reads it: a
- *  chained job's analyze is on `aide/<folder>` the moment the step
- *  ends, and its landing can fail (main moved under it) without the
- *  analysis being any less done — implement runs from that branch.
- *  Read off disk alone, such a job sat queued behind "held back: not
- *  analyzed yet" with the real reason only in landingError
- *  (2026-09-03). */
+/** How far a queued job's spec has got, by the one rule every reader
+ *  follows, under the folder the caches are keyed by: the scan's, which on
+ *  the serving host is the dashboard's own checkout, while the discovered
+ *  folder is the person's own. The discovered one only when the scan has none. */
+function progressOf(ctx: ScheduleContext, job: Job, spec: SpecRef): SpecProgress {
+  ctx.targets();
+  const dir = ctx.readScan()?.dirs.get(`${job.project}/${job.specFolder}`) ?? spec.dir;
+  return readSpecProgress(ctx, dir, job.specFolder);
+}
+
+/** Which workflow steps an earlier group member has completed, for
+ *  `doneEarlierInGroup` alone: when an earlier member counts as met is
+ *  decided here, apart from the one rule `readSpecProgress` keeps. */
 function completedSteps(ctx: ScheduleContext, dir: string, folder: string): string[] {
   const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(dir, folder).steps;
   return (

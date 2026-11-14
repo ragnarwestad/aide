@@ -5,6 +5,9 @@
 // recording git runner shows which specs git was asked about again.
 
 import { describe, expect, test } from "bun:test";
+import { Glob } from "bun";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { BranchFileStepsChecker } from "../../src/git/branch-file-steps.ts";
@@ -15,7 +18,8 @@ import { WorkflowHistoryChecker } from "../../src/git/workflow-history.ts";
 import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
-import { rereadProject, warmSpec, type ScheduleContext } from "../../src/serve/schedules";
+import { forgetSpec, rereadProject, warmSpec, type ScheduleContext } from "../../src/serve/schedules";
+import type { OpenBranchTarget } from "../../src/git/branch-file.ts";
 import type { GitCall } from "../helpers/fake-git.ts";
 
 const WINDOW_MS = 60 * 60_000;
@@ -39,6 +43,7 @@ function context() {
   const fileCommits = new SpecFileCommitChecker({ run, ttlMs: WINDOW_MS });
   const branchFiles = new BranchFileStepsChecker({ run, ttlMs: WINDOW_MS });
   let told = 0;
+  let scansDropped = 0;
   let warming = false;
   const ctx: ScheduleContext = {
     projectRoot: undefined,
@@ -53,6 +58,9 @@ function context() {
     readBranchFileSteps: () => branchFiles,
     targets: () => specs,
     readScan: () => ({ archived: [], dirs: new Map() }),
+    invalidateScan: () => {
+      scansDropped += 1;
+    },
     allowed: new Set(),
     ensureCheckout: async () => undefined,
     getWarming: () => warming,
@@ -67,7 +75,7 @@ function context() {
       told += 1;
     },
   };
-  return { ctx, calls, told: () => told };
+  return { ctx, calls, told: () => told, scansDropped: () => scansDropped, history, freshness, created, fileCommits, branchFiles };
 }
 
 /** The history and freshness questions git was asked about one spec: the
@@ -93,5 +101,63 @@ describe("rereadProject", () => {
     const { ctx, told } = context();
     await rereadProject(ctx, "aide");
     expect(told()).toBe(1);
+  });
+});
+
+describe("forgetSpec", () => {
+  const t = specs[0]!;
+  const target: OpenBranchTarget = {
+    root: "/root",
+    branch: `aide/${t.specFolder}`,
+    relPath: `aide/specs/${t.specFolder}/4-status.md`,
+    archivedRelPath: `aide/specs/archive/${t.specFolder}/4-status.md`,
+  };
+
+  test("every cached answer about the spec is read from git again on its next read, and the list's scan is dropped (AC-4)", async () => {
+    const c = context();
+    const reads: [string, () => Promise<unknown>][] = [
+      ["history", () => c.history.read(t.dir, t.specFolder)],
+      ["description freshness", () => c.freshness.isStale(t.dir, t.specFolder)],
+      ["created date", () => c.created.createdAt(t.dir, t.specFolder)],
+      ["archived created date", () => c.created.createdAtForArchived(t.dir, t.specFolder)],
+      ["file commit", () => c.fileCommits.commitFor(t.dir, "1-description.md")],
+      ["branch file steps", () => c.branchFiles.read(t.dir, t.specFolder, target)],
+    ];
+    for (const [, read] of reads) await read();
+    const askedAgain = async () => {
+      const asked: string[] = [];
+      for (const [name, read] of reads) {
+        const before = c.calls.length;
+        await read();
+        if (c.calls.length > before) asked.push(name);
+      }
+      return asked;
+    };
+    // Inside the window, every answer stands.
+    expect(await askedAgain()).toEqual([]);
+
+    forgetSpec(c.ctx, t.dir, t.specFolder);
+
+    expect(await askedAgain()).toEqual(reads.map(([name]) => name));
+    expect(c.scansDropped()).toBe(1);
+  });
+
+  test("no checker's answer is dropped outside forgetSpec, and every module that writes a spec's files drops them (AC-4)", () => {
+    const src = join(import.meta.dir, "../../src");
+    const text = (file: string) => readFileSync(join(src, file), "utf-8");
+    const files = [...new Glob("**/*.ts").scanSync(src)].sort();
+    const schedules = text("serve/schedules/index.ts");
+    const forgetSpecBody = schedules.slice(schedules.indexOf("export function forgetSpec("));
+    const callsIn = (code: string) => (code.match(/\.forget\(/g) ?? []).length;
+    expect(files.filter((f) => callsIn(text(f)) > 0)).toEqual(["serve/schedules/index.ts"]);
+    expect(callsIn(forgetSpecBody.slice(0, forgetSpecBody.indexOf("\n}\n")))).toBe(callsIn(schedules));
+
+    const writers = files.filter((f) => {
+      const code = text(f);
+      return /\b(saveSpecFiles|writeStatusToBranch)\(/.test(code) &&
+        !/export (async )?function (saveSpecFiles|writeStatusToBranch)\b/.test(code);
+    });
+    expect(writers.length).toBeGreaterThan(0);
+    expect(writers.filter((f) => !/\b(afterTick|rereadProject)\(/.test(text(f)))).toEqual([]);
   });
 });

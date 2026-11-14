@@ -22,12 +22,13 @@
 // `aide/<spec-folder>` for as long as the spec takes.
 
 import type { GitRunner } from "./process/index.ts";
-import { DEFAULT_TTL_MS, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
+import { specCopy, type BranchFileStepsChecker, type FileStepsAnswer } from "./branch-file-steps.ts";
+import { DEFAULT_TTL_MS } from "./branch-status.ts";
 import { leavesStepUndone } from "../format/stop-reason.ts";
 import { WORKFLOW_ARC_RETIRED, workflowArc } from "../workflow-steps.ts";
 
-export { BranchFileStepsChecker } from "./branch-file-steps.ts";
-export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-steps.ts";
+export { BranchFileStepsChecker, specCopy } from "./branch-file-steps.ts";
+export type { BranchFileStepsOptions, BranchPeek, FileStepsAnswer, SpecCopy } from "./branch-file-steps.ts";
 
 /** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
@@ -365,6 +366,18 @@ export interface ResolvedWorkflowState {
   checkedAt: number;
 }
 
+/** Which phases one copy of a spec records — the rule the specs list, the
+ *  runner's holds and the Run route all read through. The copy's state
+ *  file is what a gate reads, so it answers once one exists; git's own
+ *  history when there is none; the copy's prose only while the history has
+ *  not been read. `create` is always done, and a step whose newest run
+ *  leaves it undone is not, whatever the copy still names. */
+export function completedPhasesOf(copy: FileStepsAnswer, history: Omit<WorkflowHistory, "superseded"> | null): string[] {
+  const source = copy.stateSteps ?? history?.done ?? copy.proseSteps;
+  const named = source.includes("create") ? source : ["create", ...source];
+  return named.filter((step) => step === "create" || !leavesStepUndone(history?.stopped[step]));
+}
+
 /** The one canonical `{ done, stopped, fileDisagrees, fileSteps }`
  *  a spec's steps resolve to — the `create` special case included — built
  *  from the same two peeks `withFreshness` used to assemble by hand.
@@ -381,20 +394,12 @@ export function resolveWorkflowState(
   const { history: h, checkedAt } = history.peekHistory(dir, specFolder, reopenedAfter);
   if (h === null || checkedAt === null) return null;
   const branchPeek = branchFileSteps.peekFileSteps(dir, specFolder);
-  const branchSteps = branchPeek.steps;
-  const answer: FileStepsAnswer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
-  // Only the disk answer carries `readAt`: the disk scan counts when it is the file source.
+  const { answer } = specCopy(branchPeek, diskFileSteps ?? { proseSteps: [], stateSteps: undefined });
+  // Only the disk answer carries `readAt`: the disk scan counts when it is the file source. The branch
+  // read counts even while a write has marked it due, so a row read then is older than the run that ended.
   const reads = [checkedAt, branchPeek.checkedAt, answer.readAt].filter((at): at is number => at != null);
-  // The state file is what a gate reads, so it is what the pips
-  // and the done list read too, once one exists — git's own
-  // `history.done` only when there is no state file for this spec yet.
-  const doneSource = answer.stateSteps ?? h.done;
-  const named = doneSource.includes("create") ? doneSource : ["create", ...doneSource];
-  // The state file keeps naming what an earlier run finished; the newest
-  // run says how the step stands now.
-  const done = named.filter((step) => step === "create" || !leavesStepUndone(h.stopped[step]));
   return {
-    done,
+    done: completedPhasesOf(answer, h),
     stopped: h.stopped,
     fileDisagrees: stepsFileDisagreesOn(answer, h),
     fileSteps: answer.proseSteps,

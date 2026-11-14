@@ -16,7 +16,8 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultSt
     alsoProjects: string[] = [],
     alsoSpecs: string[] = [],
     status?: string,
-  ) => harness.start({ extra, alsoProjects, alsoSpecs, ...(status ? { status } : {}) });
+    liveState?: string,
+  ) => harness.start({ extra, alsoProjects, alsoSpecs, ...(status ? { status } : {}), ...(liveState ? { liveState } : {}) });
   return { harness, start };
 }
 
