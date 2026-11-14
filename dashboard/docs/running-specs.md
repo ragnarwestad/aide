@@ -340,7 +340,7 @@ window, the tab shows the text as it came. An OpenCode provider's tab says that 
 **The Usage control beside Theme opens all providers in a header panel.** Codex appears first, then Claude Code,
 with one row for each window and one bar for each provider. Each bar shows the share left and when the window starts
 over. The panel comes complete with the page, from the kept readings, and opening it fetches them once more, so a
-page left open shows current numbers.
+page left open shows current numbers. On a phone the "…" menu's Usage row opens the same panel.
 
 **The panel and the tab say that a provider's usage is being read** only between the board's start and that
 provider's first finished reading.

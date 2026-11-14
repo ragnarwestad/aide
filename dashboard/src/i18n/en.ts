@@ -13,6 +13,7 @@ export const en = {
   "shell.testServers": "Test servers",
   "shell.about": "About",
   "shell.usage": "Usage",
+  "shell.filter": "Filter",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
   "shell.themeAuto": "Auto",

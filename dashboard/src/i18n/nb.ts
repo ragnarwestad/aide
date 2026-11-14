@@ -12,6 +12,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.testServers": "Testservere",
   "shell.about": "Om",
   "shell.usage": "Forbruk",
+  "shell.filter": "Filter",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",
   "shell.themeAuto": "Auto",

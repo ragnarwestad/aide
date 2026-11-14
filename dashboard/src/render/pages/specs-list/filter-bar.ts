@@ -196,7 +196,7 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
     : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;
   const widths = o.options.map((opt) => `<span aria-hidden="true">${esc(opt.label)} (${opt.count})</span>`).join("");
   return (
-    `<details class="menu state" data-filter="${o.filter}">` +
+    `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}">` +
     `<summary aria-label="${o.ariaLabel}">` +
     `<span class="menuwidth"><span>${visible}</span>${widths}</span>${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="group" aria-label="${o.ariaLabel}">${options}</div>` +

@@ -65,6 +65,25 @@ async function openMore(size: { width: number; height: number }, path = "/?live=
   await page.locator(`${MORE_MENU} > summary`).click();
 }
 
+// Placed before the language case, which sets the language cookie for
+// every later load on this page: these find their rows by English name.
+test("the … menu's Usage row opens the Usage panel at phone width (AC-2)", async () => {
+  await openMore(PHONE);
+  await page.locator(MORE_MENU).getByRole("button", { name: "Usage", exact: true }).click();
+  await page.locator("[data-usage-content]").waitFor({ state: "visible" });
+  expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+});
+
+test("the … menu's Filter row opens the filter list on Jobs and Specs at phone width (AC-4, AC-5)", async () => {
+  for (const path of ["/?live=0", "/specs?live=0"]) {
+    await openMore(PHONE, path);
+    await page.locator(MORE_MENU).getByRole("button", { name: "Filter", exact: true }).click();
+    const filter = page.locator('details.menu[data-filter="state"]');
+    expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await filter.locator(".menupanel a").first().waitFor({ state: "visible" });
+  }
+});
+
 test("choosing Deutsch reloads in German with the menu open, once", async () => {
   await openMore(PHONE);
   await Promise.all([page.waitForURL(/[?&]lang=de(&|$)/), page.locator(`${MORE_MENU} select[data-lang-select]`).selectOption({ label: "🇩🇪 Deutsch" })]);
