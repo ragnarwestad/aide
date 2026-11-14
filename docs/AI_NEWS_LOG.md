@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-14](#2026-11-14)
   - [2026-11-13](#2026-11-13)
   - [2026-11-12](#2026-11-12)
   - [2026-11-11](#2026-11-11)
@@ -128,6 +129,72 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+### 2026-11-14
+
+Nov 14. All sources were fetched again. The X list was read fresh (535 posts for Nov 13 to Nov 14, 295 of them long
+enough to carry content and read). Of the watched pages the hooks guide changed in what it advises; the others
+changed only in blank lines and invisible characters.
+
+**Claude Code (v2.1.325):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Source                                                                     |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| Nov 13 | v2.1.325 | Security fix in decoding zstd-compressed responses. A sandboxed `git checkout`, `git stash` or autostash pull that cannot update protected files such as those in `.claude` now gives Claude a note. `/security-review` and skills' inline git commands no longer fail in worktrees of bare repositories and `--separate-git-dir` checkouts. Subagents with their own model keep it when the model setting is `opusplan` or `haiku`. An unrecognized `teammateMode` value is listed as a skipped entry by `claude -p`, the startup warning and `claude doctor`. `--worktree` runs a plugin's `WorktreeCreate` hook on the first run in a new home directory. Many fixes in sign-in, `/stats`, `/insights` and terminal display | [Releases](https://github.com/anthropics/claude-code/releases)             |
+| Nov 13 | —        | Claude article "Building always-on agents": five primitives (event inbox, timers, memory, permissions with a credential proxy, outbox) for agents that wake on events; advises lean per-run context, caching, and saving to memory before a session is compacted or replaced                                                                                                                                                                                                                                                                                                                                                                                                                                                   | [Article](https://claude.com/resources/articles/building-always-on-agents) |
+| Nov 14 | —        | Anthropic news still leads with "Introducing Claude Fable 5.2 and Claude Mythos 5.2" (already reviewed); nothing new beyond it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | [News](https://www.anthropic.com/news)                                     |
+
+**GitHub Copilot CLI (v1.0.112 stable):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                       | Source                                                     |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 13 | v1.0.111 | Stable: the pre-release changes of v1.0.111-0 (regular expressions in enterprise-managed shell permission rules; `--host-allow-session-creation`)                                                                                                                                                                                                                                          | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 13 | v1.0.112 | Stable: subagents respect the session-wide `--max-ai-credits` limit; team plugins install from a branch, tag or repository subfolder; `copilot help sandbox` says macOS sandbox host rules block direct TCP connections to local ports; terminal escape sequences from task prompts, MCP prompts and tool rows are no longer passed to the terminal; many fixes in narrow-terminal display | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 13 | —        | Changelog: "GitHub Enterprise Server support in the GitHub Copilot app", "Gemini 4 Hydrogen in GitHub Copilot", upcoming deprecation of selected models in December                                                                                                                                                                                                                        | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (v0.169.0 stable; v0.171.0-alpha.5 the newest pre-release):**
+
+| Date   | Version          | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Source                                               |
+|--------|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 13 | v0.169.0         | Stable: `codex exec` keeps project configuration and MCP servers disabled in untrusted directories, even with `--sandbox workspace-write`; `--trust` on `codex exec` or `codex review` saves project trust. "Yes, clear context and implement" hands the full approved plan to the fresh session. Multiple side-chat tabs in the terminal workspace; custom model providers added or edited from the terminal; `Ctrl+S` in the report editor saves a diagnostic ZIP | [Releases](https://github.com/openai/codex/releases) |
+| Nov 14 | v0.171.0-alpha.5 | Pre-release without notes                                                                                                                                                                                                                                                                                                                                                                                                                                           | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.3.0):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                                                                                                                  | Source                                                     |
+|--------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 13 | v2.3.0  | Subagents always run in the background and report to the parent when idle; the TUI summarizes tool calls and thoughts into one collapsible row by default (`session.verbosity`); experimental `mcp_events` and `shell_timeout_background` flags; providers can present a client certificate (`settings.tls`); GitHub Copilot Auto in the model picker | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⚠️ Codex v0.169.0: `codex exec` now keeps project configuration and MCP servers disabled in an untrusted
+  directory, even with `--sandbox workspace-write`, and `--trust` saves project trust. The runner starts steps with
+  `codex exec` (`core/scripts/lib/run-spec/setup/invocation.sh`) and passes no trust flag. If a step's checkout
+  counts as untrusted, Codex steps lose the project's configuration and MCP servers. To verify in a session.
+  [Releases](https://github.com/openai/codex/releases)
+- ✅ Codex v0.169.0: "Yes, clear context and implement" now hands the full approved plan to the fresh session. Aide
+  runs steps headless and hands plans over through spec files, so nothing changes.
+  [Releases](https://github.com/openai/codex/releases)
+- ✅ OpenCode v2.3.0: subagents always run in the background and report when idle (the agents page already said so
+  on Nov 13). Aide's OpenCode installer installs no agents. [Releases](https://github.com/anomalyco/opencode/releases)
+- ✅ Claude Code v2.1.325: a note to Claude when a sandboxed `git checkout`, `git stash` or autostash pull cannot
+  update protected files such as `.claude`, and `/security-review` works in `--separate-git-dir` worktrees. Both
+  touch how steps run in Aide's worktrees; no change needed. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude article "Building always-on agents": inbox, timers, memory, permissions and outbox for agents that wake
+  on events, with a credential proxy and quick acknowledgement. Aide's scheduled runs and queue work the same way,
+  and the article says nothing on specs, review or subagents. [Article](https://claude.com/resources/articles/building-always-on-agents)
+- ℹ Claude Code hooks guide (watched, changed): the example for protecting `.env` and `.git` now says Claude can still
+  change the files with shell commands and recommends `Edit` deny rules under `permissions.deny` and sandboxing; a
+  failed HTTP hook blocks only when `onFailure: "block"` is set. The skill-authoring best-practices page, Claude Code
+  best-practices page, Agent Skills specification and the model prompting pages changed only in blank lines and
+  invisible characters. [Hooks guide](https://code.claude.com/docs/en/hooks-guide)
+- ℹ X list: a Claude Code Stop hook that exits 2 sends Claude back to retry with the hook's stderr, while exit 1
+  is non-blocking, and the retry stops after 8 rounds without a tool call
+  [Post](https://x.com/lydiahallie/status/2121313048820617645); a thread on three levers for cutting review time
+  on many agent PRs, starting with rounds of adversarial review
+  [Post](https://x.com/BHolmesDev/status/2121256836703895578). Unverified, no action.
+- ℹ Copilot CLI v1.0.111 and v1.0.112, Copilot changelog, OpenAI developer blog and GitHub blog: fixes and
+  features that touch no installer or skill.
+
 ### 2026-11-13
 
 Nov 13. All sources were fetched again. The X list was read fresh (518 posts for Nov 12 to Nov 13, all retained for
