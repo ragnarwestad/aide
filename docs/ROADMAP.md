@@ -32,6 +32,7 @@
   - [29. A defect the review finds leaves a check behind](#29-a-defect-the-review-finds-leaves-a-check-behind)
   - [30. Claude steps through Managed Agents](#30-claude-steps-through-managed-agents)
   - [31. Try Modern Web Guidance on a web task](#31-try-modern-web-guidance-on-a-web-task)
+  - [32. Switching provider before a usage limit is reached](#32-switching-provider-before-a-usage-limit-is-reached)
 
 ---
 
@@ -47,7 +48,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 32.
+same idea later. The next number is 33.
 
 ## To consider
 
@@ -364,8 +365,7 @@ Open questions:
   check for a frontend change, they could catch defects; that is the part to start from, and only once a project
   shows the need.
 
-A proposal from 2026-11-14, for the AI part of a profile, with three Claude and Codex providers in use (Claude
-Personal, Claude Capra and Codex) and the subscriptions shared with work outside the board:
+A proposal from 2026-11-14 for the AI part of a profile:
 
 - **A profile holds one ordered list per grade.** Each line is a provider and a model. A step chooses one profile,
   as it chooses one provider today; the board takes the list for the grade the analysis set, and the list for
@@ -380,18 +380,8 @@ Personal, Claude Capra and Codex) and the subscriptions shared with work outside
 
   LOW and MEDIUM are separate lists even while they hold the same lines, so either can change alone once a
   measurement shows a lighter model holds for LOW.
-- **A reserve per provider,** such as 10 %. Before a step starts, a provider with less than its reserve left in any
-  usage window is passed over for the next line, so the account keeps something for work outside the board. The
-  board already reads every Claude Code and Codex provider's usage each minute at no cost to the subscription. A
-  running step is not stopped, and a reading that fails leaves the provider in use, with the usage limit as the
-  backstop.
-- **What moves a step to the next line:** the reserve reached before it starts; and, starting the step again on the
-  next line, a usage limit reached, a model at capacity, or a model that needs credits the account does not have.
-  Red tests and other failures do not: they are about the spec, not the AI.
-- **A job stays on the line it reached** until it is done; the next job starts from the top. When every line is held,
-  the step waits for the first reset, as it does today.
-- **The row says what was chosen and why,** such as "HIGH → Fable on Claude Personal" or "Claude Personal under its
-  reserve, started on Claude Capra".
+- **The lines after the first are where a step goes** when a provider is out of room, as idea 32 describes.
+- **The row says what was chosen,** such as "HIGH → Fable on Claude Personal".
 
 Open in this proposal: whether a profile may mix tools on one list, and whether Review and Verify take a profile too.
 
@@ -687,3 +677,33 @@ Open questions:
 - Which browsers and versions the project must support, and what fallbacks are needed.
 - Whether the guidance improves the result while respecting the project's design and testing rules.
 - Whether useful guidance should be consulted on request or installed as a shared skill.
+
+### 32. Switching provider before a usage limit is reached
+
+From the user's use of the same Claude subscriptions in Cowork and elsewhere outside the board, and from steps that
+wait up to five hours for a usage limit to reset while another account has room. Today a step stopped on a usage
+limit waits for the reset on the same provider; moving it to another one is a person's choice on the phase line.
+
+The idea: the board moves a step to another provider itself, and does so before the account is empty, so some of it
+is kept for work outside the board.
+
+- **A reserve per provider,** such as 10 %. Before a step starts, a provider with less than its reserve left in any
+  usage window, the five-hour or the weekly, is passed over for the next provider. The board already reads every
+  Claude Code and Codex provider's usage each minute, at no cost to the subscription, and that reading includes use
+  outside the board.
+- **What moves a step on:** the reserve reached before it starts; and, starting the step again on the next provider,
+  a usage limit reached, a model at capacity, or a model that needs credits the account does not have. Red tests and
+  other failures do not: they are about the spec, not the AI.
+- **Where it goes next** is the next line of the step's profile (idea 21), so nothing about the order is fixed in
+  code. Without profiles, it would need a list of its own per phase.
+- **A job stays on the provider it reached** until it is done; the next job starts from the top. When every provider
+  is held, the step waits for the first reset, as it does today.
+- **The row says why,** such as "Claude Personal under its reserve, started on Claude Capra".
+
+Limits:
+
+- The reserve is checked when a step starts. A running step is not stopped, and a long step on Opus or Fable can use
+  several percent of the five-hour window, so the reserve needs a margin.
+- A reading can be up to a minute old.
+- A reading that fails leaves the provider in use, with the usage limit as the backstop.
+- A step started again on another provider starts from the beginning: its session belongs to the first login.
