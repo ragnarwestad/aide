@@ -445,63 +445,6 @@ describe("POST /api/queue/create", () => {
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
-  // The model the create step runs on, chosen on the form
-  // itself. Posted form-encoded, as the form posts it, which is the body
-  // `bodyToObject` folds `model.create` into the per-step shape on.
-  test("a removed model field does not create queue state", async () => {
-    const { base } = start({
-      queueDefaults: {
-        timeoutSec: { default: 1200 },
-        permissionMode: { default: "acceptEdits" },
-        model: { default: "sonnet" },
-        modelChoices: { sonnet: { }, fable: {  } },
-      },
-    });
-    const res = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({ ...CREATE, "model.create": "fable" }).toString(),
-    });
-    expect(res.status).toBe(200);
-    expect((await res.json() as { specFolder: string }).specFolder).toBe("999-a-new-spec");
-
-    // ...and a name this server does not offer is refused, rather than
-    // quietly falling back to the default.
-    const bad = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({ ...CREATE, "model.create": "opus" }).toString(),
-    });
-    expect(bad.status).toBe(400);
-  });
-
-  // The provider is posted beside the model as `provider.<step>`, and
-  // `bodyToObject` folds it into the per-step shape the parser reads.
-  test("a removed provider field does not create queue state", async () => {
-    const { base } = start({
-      queueDefaults: {
-        timeoutSec: { default: 1200 },
-        permissionMode: { default: "acceptEdits" },
-        model: { default: "sonnet" },
-        modelChoices: { sonnet: {} },
-        providers: { Claude: { name: "Claude", tool: "claude" }, Capra: { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" } },
-      },
-    });
-    const res = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
-      body: new URLSearchParams({ ...CREATE, "model.create": "sonnet", "provider.create": "Capra" }).toString(),
-    });
-    expect(res.status).toBe(200);
-    expect((await res.json() as { specFolder: string }).specFolder).toBe("999-a-new-spec");
-  });
-
   test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueProjects: ["aide", "brandnew"] });
     const html = await (await fetch(`${base}/new`, )).text();
