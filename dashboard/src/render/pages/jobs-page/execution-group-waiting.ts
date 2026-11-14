@@ -1,9 +1,12 @@
-// What a group waiting for Archive says on its card: which waits it is in,
-// and the message row for each.
+// Messages on a group's card: its waits for Archive and the reason it stopped.
 
 import { executionGroupAction, type ExecutionGroup, type ExecutionGroupMemberState } from "../../../queue/execution-groups";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { rowMessage, stepLabel, type MessageVariant } from "../../ui/components";
+import { getGroupStopMessage, type GroupStopMember } from "../../../messages/jobs/group-stop.ts";
+import { specNumber } from "../../../project/spec-folder.ts";
+import { specPagePath } from "../spec-page/tabs.ts";
+import { esc } from "../../ui/html.ts";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 
@@ -78,4 +81,19 @@ export function executionGroupWaitRows(
     }
     return `<tr class="specnotice"><td colspan="${columns}">${box}</td></tr>`;
   }).join("");
+}
+
+export function executionGroupStopRows(
+  group: ExecutionGroup,
+  members: readonly GroupStopMember[],
+  lang: Language,
+): string {
+  const stopped = getGroupStopMessage(group, members, lang);
+  if (!stopped) return "";
+  const { specFolder, notice } = stopped;
+  const name = specFolder ? `${group.project}:${specNumber(specFolder)}` : undefined;
+  const html = name && specFolder ? esc(notice.text).replace(esc(name),
+    `<a data-goto href="${esc(specPagePath(group.project, specFolder))}">${esc(name)}</a>`) : undefined;
+  const box = rowMessage(notice.variant, notice.text, { html });
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${box}</td></tr>`;
 }

@@ -1,6 +1,34 @@
 import type { MessageEntry } from "../types.ts";
 
 export const JOBS_CATALOG = {
+  "group.memberStopped": {
+    en: "the group stopped because {spec} stopped",
+    nb: "gruppa stoppet fordi {spec} stoppet",
+    es: "el grupo se detuvo porque {spec} se detuvo",
+    de: "die Gruppe wurde angehalten, weil {spec} angehalten wurde",
+    fr: "le groupe s’est arrêté parce que {spec} s’est arrêté",
+    solution: {
+      en: "open the spec to see why",
+      nb: "åpne specen for å se hvorfor",
+      es: "abre la especificación para ver el motivo",
+      de: "öffne die Spec, um den Grund zu sehen",
+      fr: "ouvre la spécification pour en voir la raison",
+    },
+  },
+  "group.stopped": {
+    en: "the group is stopped",
+    nb: "gruppa er stoppet",
+    es: "el grupo está detenido",
+    de: "die Gruppe ist angehalten",
+    fr: "le groupe est arrêté",
+    solution: {
+      en: "open the group and check the state of its specs",
+      nb: "åpne gruppa og sjekk statusen på specene",
+      es: "abre el grupo y comprueba el estado de sus especificaciones",
+      de: "öffne die Gruppe und prüfe den Status ihrer Specs",
+      fr: "ouvre le groupe et vérifie l’état de ses spécifications",
+    },
+  },
   "runner.stepFailed": {
     en: "{step} failed: {message}",
     nb: "{step} feilet: {message}",
