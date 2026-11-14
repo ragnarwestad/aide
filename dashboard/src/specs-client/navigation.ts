@@ -50,6 +50,27 @@ export function navigate(event: MouseEvent): void {
   void swapRows();
 }
 
+/** The search box above the rows, asked in place as the filter links are:
+ *  its term goes into the address and the rows are drawn again, so the page
+ *  is never loaded anew under it. A search for the term the rows already
+ *  show, an empty one included, changes nothing and asks nothing. Returns
+ *  whether the submit was the search's. */
+export function submitSearch(event: Event): boolean {
+  if (event.defaultPrevented) return false;
+  const form = (event.target as Element | null)?.closest?.("form.specsearch") as HTMLFormElement | null;
+  if (!form) return false;
+  event.preventDefault();
+  const q = String(new FormData(form).get("q") ?? "").trim();
+  if (q === (new URLSearchParams(location.search).get("q") ?? "").trim()) return true;
+  const url = new URL(location.href);
+  if (q) url.searchParams.set("q", q);
+  else url.searchParams.delete("q");
+  history.replaceState(null, "", `${url.pathname}${url.search}`);
+  document.getElementById("jobrows")?.classList.add(AWAITING);
+  void swapRows();
+  return true;
+}
+
 /** A spec's own › — its row or its criteria. The address is worked out
  *  here from the address itself, not from the link: after an earlier ›
  *  swapped only its own spec, every other link on the page still names

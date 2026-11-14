@@ -6,7 +6,7 @@ import { applyAiPick, refreshAiModelBox } from "../ai-sync.ts";
 import { onApproachCancel, pickApproach } from "../approach-choice";
 import { onDependsOnCancel, pickSetting } from "../depends-on";
 import { submitAction, submitTestServerStop } from "../forms.ts";
-import { navigate } from "../navigation.ts";
+import { navigate, submitSearch } from "../navigation.ts";
 import { postPendingModel } from "../pending-model.ts";
 import { relabelRunButton, swapRows } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
@@ -130,7 +130,8 @@ export function bindLists(doc: Document): void {
   syncSpecGroups(doc);
   const rows = doc.getElementById("jobrows");
   rows?.addEventListener("click", onRowsClick as EventListener);
-  rows?.addEventListener("submit", submitAction as EventListener);
+  // The promise is returned, not dropped: it is what a test waits on.
+  rows?.addEventListener("submit", ((event: Event) => (submitSearch(event) ? undefined : submitAction(event))) as EventListener);
   rows?.addEventListener("change", onRowsChange);
   // `close` does not bubble, so the container hears it in the capture phase.
   rows?.addEventListener("close", onRowsClose, true);
