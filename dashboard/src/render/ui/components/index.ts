@@ -291,8 +291,10 @@ export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 // beside four `title`s reading "Create"/"Analyze"/... would say the
 // same thing twice, worse the second time.
 /** `label`: the mark over the pip, when it is not the title's first letter. */
-export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label?: string }[]): string =>
-  `<div class="pipwrap">` +
+export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label?: string }[]): string => {
+  const labelLength = Math.max(0, ...items.map((p) => (p.label ?? p.title.slice(0, 1)).length));
+  const width = labelLength > 1 ? ` style="--pip-width: max(21px, ${labelLength + 1}ch)"` : "";
+  return `<div class="pipwrap"${width}>` +
   `<div class="pipletters" aria-hidden="true">` +
   items.map((p) => `<span class="${p.kind}">${esc(p.label ?? p.title.slice(0, 1))}</span>`).join("") +
   `</div>` +
@@ -306,6 +308,7 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2; label
     .join("") +
   `</div>` +
   `</div>`;
+};
 
 // What used to live here too, in a part beside this file.
 export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, ICON_USAGE, KIND_ICONS, kindIcon, TAB_ICONS, tabIcon, TOOL_ICONS, toolIcon, providerFace, providerPick, type RowKind, type SiteTab } from "./icons.ts";
