@@ -5,6 +5,11 @@
 # Kept apart from the turns that send them so scripts/review_eval measures
 # the very prompts the runner sends: it sources this file beside _aide-spec-lib.sh.
 
+# Interface behaviour is reviewed against the project rules as well as the spec.
+review_design_instruction() {
+  printf '%s\n' "For a user-interface change, read the project's CLAUDE.md or AGENTS.md and the design rules they point to for the changed files. Compare with the existing control named as the reference in the description or plan; when none is named, locate the nearest control with the same role. Check the component and variant, opening, closing, keyboard behaviour, and feedback or navigation after the action. A concrete violation of those rules is a defect even when the description does not repeat the rule; this is not a request for stylistic preferences or a redesign. Follow the project's visual verification requirements: inspect the recorded browser comparison or verify it yourself where possible, and report any missing verification separately without claiming the appearance is verified."
+}
+
 # The review's prompt: look for defects in what the branch changed since
 # <fork>, against the description at <description-path>. A description
 # with an `## Out of scope` section adds one instruction: each change
@@ -17,11 +22,12 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
     scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
   fi
   printf '%s\n' \
-    "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about style, naming or structure." \
+    "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about stylistic preferences, naming or structure." \
     "" "Report a defect only when you can name the concrete case: the input or state, and the wrong result the code gives for it. A guard that might be missing, or a state the code cannot reach, is not a defect." \
     "" "An existing test the branch weakened is a defect too: one it deleted, one with an assertion removed or loosened, or one it marked as skipped or disabled. An existing test is one that was there where the branch left $3; one moved or renamed that still checks the same behaviour is not deleted. Its concrete case is the test and what it no longer checks. It is not a defect when the description replaces or removes the behaviour that test checked." \
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
+  printf '%s\n' "" "$(review_design_instruction)"
   [ -n "$scope" ] && printf '%s\n' "" "$scope"
   [ -n "$4" ] && printf '%s\n' "" "$4"
   printf '%s\n' \
@@ -39,11 +45,12 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
 # against the code, and keep or drop it.
 verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
   printf '%s\n' \
-    "A review of this spec's branch reported the defects below against the spec's own description. A review is often wrong. Check each one yourself in the code before anyone acts on it." \
-    "" "Keep a defect only when you have traced a concrete case through the code: a state the code can reach, and the wrong result it gives there, against what the description asks for. Drop it when the code already handles the case, when the state cannot be reached, when it is only a guard that might be missing, or when the description does not ask for what it says is missing." \
+    "A review of this spec's branch reported the defects below against the spec's own description and applicable project design rules. A review is often wrong. Check each one yourself in the code before anyone acts on it." \
+    "" "Keep a defect only when you have traced a concrete case through the code: a state the code can reach, and the wrong result it gives there, against what the description or applicable project design rules require. Drop it when the code already handles the case, when the state cannot be reached, when it is only a guard that might be missing, or when neither the description nor the applicable project rules require what it says is missing." \
     "" "A defect about an existing test the branch weakened — one deleted, an assertion removed or loosened, or one marked as skipped or disabled — is checked on these terms instead: keep it when the diff shows the test weakened and the description does not replace or remove the behaviour that test checked. Drop it when the description replaces or removes that behaviour, or when the test was only moved or renamed and still checks the same behaviour." \
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough." \
+    "" "$(review_design_instruction)" \
     "" "The defects:" "" "$4" \
     "" "Do not edit, create or delete any file — you are reading and reporting only." \
     "" "End your reply with one line for each defect, in the order of their numbers, as your very last lines, plain text, no other formatting:" \

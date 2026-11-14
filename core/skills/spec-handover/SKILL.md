@@ -24,6 +24,16 @@ answers that the project has no board, invoke `/aide-create` instead. Never
 the board's HTTP routes, `aide-create-spec` by hand, or the files written
 directly.
 
+For a user-interface change, before writing Solution or criteria, read the
+project's design rules and inspect the nearest existing control with the same
+role. Name that control in the description, in the user's words, as the
+reference for appearance and interaction: the button variant, where it opens,
+how it closes, and what feedback or navigation follows the action. Keep source
+paths for the analysis. Reuse that pattern unless the user explicitly asks for
+a different one; do not turn a request for a control beside an existing one
+into a new dialog or menu pattern. If the request conflicts with the reference,
+raise that concrete difference before settling the description.
+
 1. **Ask first.** Raise the choices the spec depends on — thresholds,
    scope, dependencies on other specs — before writing the text, not as
    a list of open questions after it.

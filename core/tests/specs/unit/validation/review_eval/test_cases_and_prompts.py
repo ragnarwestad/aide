@@ -1,5 +1,8 @@
 """scripts/review_eval: the labelled set it measures against, and the runner's own prompts it sends."""
 import json
+import subprocess
+
+import pytest
 
 from .conftest import SCRIPT_DIR
 
@@ -55,3 +58,21 @@ def test_the_verify_prompt_keeps_a_weakened_test_defect_only_when_the_descriptio
 
     for term in ("skipped", "assertion", "replace or remove"):
         assert term in text, term
+
+
+@pytest.mark.parametrize("function", ["review_prompt", "verify_prompt"])
+def test_review_and_verify_include_the_shared_design_instruction(review_eval, tmp_path, function):
+    description = tmp_path / "description.md"
+    description.write_text("# Change\n")
+    script = '''
+source "$1/_aide-spec-lib.sh"
+source "$1/lib/run-spec/turn/review-prompts.sh"
+review_design_instruction() { printf '%s\\n' 'design-instruction-sentinel'; }
+"$2" "$3" fork main "" headless-sentinel
+'''
+    result = subprocess.run(
+        ["bash", "-c", script, "bash", str(review_eval.SCRIPTS), function, str(description)],
+        capture_output=True, text=True, check=True,
+    )
+    assert result.stdout.splitlines().count("design-instruction-sentinel") == 1
+    assert result.stdout.rstrip().endswith("headless-sentinel")
