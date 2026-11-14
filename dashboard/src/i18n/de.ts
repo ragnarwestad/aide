@@ -4,7 +4,7 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const de: Record<TranslationKey, string> = {
-  "shell.theme": "Thema",
+  "shell.colorScheme": "Farbschema",
   "shell.language": "Sprache",
   "shell.unit": "Einheiten",
   "shell.more": "Mehr",
@@ -419,6 +419,14 @@ export const de: Record<TranslationKey, string> = {
   "tab.providers": "Anbieter",
   "tab.process": "Prozess",
   "tab.notifications": "Benachrichtigungen",
+  "tab.appearance": "Darstellung",
+  "settings.appearance.themes": "Themen",
+  "settings.appearance.theme.default": "Standard",
+  "settings.appearance.theme.maroon": "Maroon",
+  "settings.appearance.theme.grove": "Grove",
+  "settings.appearance.theme.ocean": "Ocean",
+  "settings.appearance.theme.ember": "Ember",
+  "settings.appearance.theme.iris": "Iris",
   "tab.deploy": "Deployment",
   "tab.config": "Konfiguration",
   "tab.schedule": "Zeitplan",

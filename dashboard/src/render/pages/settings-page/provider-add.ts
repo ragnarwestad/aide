@@ -9,7 +9,7 @@
 // form dialog's (`formDialog()`).
 
 import { esc } from "../../ui/html.ts";
-import { btn, formDialog, toolIcon } from "../../ui/components";
+import { btn, formDialog, radioCards, toolIcon } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { PROVIDER_TOOLS } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
@@ -22,16 +22,10 @@ const ID_PATTERN = "[A-Za-z0-9_\\-]{1,64}";
 const STEPS: TranslationKey[] = ["settings.providers.stepProvider", "settings.providers.stepIdentity", "settings.providers.stepConfig"];
 
 function toolCards(lang: Language): string {
-  return (
-    `<div class="toolcards">` +
-    PROVIDER_TOOLS.map((tool) =>
-      `<label class="toolcard"><input type="radio" name="tool" value="${esc(tool)}" required>` +
-      toolIcon(tool) +
-      `<span class="providertext"><strong>${esc(TOOL_NAMES[tool] ?? tool)}</strong>` +
-      `<span class="muted small">${esc(t(lang, `settings.providers.card.${tool}` as TranslationKey))}</span></span></label>`,
-    ).join("") +
-    `</div>`
-  );
+  return radioCards({ label: t(lang, "settings.providers.chooseTool"), name: "tool", cards: PROVIDER_TOOLS.map((tool) => ({
+    value: tool, required: true, content: toolIcon(tool) + `<span class="providertext"><strong>${esc(TOOL_NAMES[tool] ?? tool)}</strong>` +
+      `<span class="muted small">${esc(t(lang, `settings.providers.card.${tool}` as TranslationKey))}</span></span>`,
+  })) });
 }
 
 function identity(lang: Language): string {

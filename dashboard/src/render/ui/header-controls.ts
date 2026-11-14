@@ -78,7 +78,7 @@ export function themeControl(lang: Language): string {
     ([choice]) =>
       `<span data-theme-icon="${choice}"${choice === "auto" ? "" : " hidden"}>${THEME_ICONS[choice]}</span>`,
   ).join("");
-  const theme = t(lang, "shell.theme");
+  const theme = t(lang, "shell.colorScheme");
   return headerMenu({
     label: theme, icon: trigger, kind: "theme",
     content: `<span class="lbl">${theme}</span>${themeChoiceRows(lang)}`,
@@ -143,7 +143,7 @@ function themeSegment(lang: Language): string {
         `${t(lang, THEME_LABELS[choice]!)}</button>`,
     )
     .join("");
-  return `<span class="seg" role="group" aria-label="${t(lang, "shell.theme")}">${buttons}</span>`;
+  return `<span class="seg" role="group" aria-label="${t(lang, "shell.colorScheme")}">${buttons}</span>`;
 }
 
 // Changes the language only with script: an <option> has no href of its
@@ -171,7 +171,7 @@ function unitSegment(lang: Language): string {
 
 export function menuSettingRows(lang: Language, currentUrl: string): string {
   return (
-    menuRow("theme", t(lang, "shell.theme"), themeSegment(lang)) +
+    menuRow("theme", t(lang, "shell.colorScheme"), themeSegment(lang)) +
     menuRow("lang", t(lang, "shell.language"), languageSelect(lang, currentUrl)) +
     menuRow("unit", t(lang, "shell.unit"), unitSegment(lang)) +
     `<div class="menusep" role="separator"></div>`

@@ -1,0 +1,11 @@
+.appearancepanel { display: flex; flex-direction: column; gap: var(--sp-3); }
+.appearancepanel h3 { margin: var(--sp-3) 0 0; }
+.appearancepanel .radiocard { flex-direction: column; }
+.schemepreview, .themeswatches { display: grid; grid-template-columns: 1fr 1fr; width: 100%; height: var(--sp-6);
+  overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-s); }
+.schemepreview.light i { background: var(--surface-l); }
+.schemepreview.dark i { background: var(--surface-d); }
+.schemepreview.auto i:first-child { background: var(--surface-l); }
+.schemepreview.auto i:last-child { background: var(--surface-d); }
+.themeswatches .light { background: linear-gradient(90deg, var(--bg-l), var(--accent-l)); }
+.themeswatches .dark { background: linear-gradient(90deg, var(--bg-d), var(--accent-d)); }

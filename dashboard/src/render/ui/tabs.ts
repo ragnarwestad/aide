@@ -28,7 +28,7 @@ export function pickTab<T extends string>(
  *  key gives by capitalising it, or a word it cannot ("Logs", "AI",
  *  "Models per phase"). */
 const CATALOGUE_TABS = new Set([
-  "steps", "ai", "phases", "providers", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
+  "steps", "ai", "phases", "providers", "process", "notifications", "appearance", "deploy", "config", "schedule", "report", "settings",
   "overview", "description", "analysis", "solution", "status",
 ]);
 

@@ -5,7 +5,7 @@
 // exact English text the covered surfaces already render — the
 // byte-identical default depends on that.
 export const en = {
-  "shell.theme": "Theme",
+  "shell.colorScheme": "Color scheme",
   "shell.language": "Language",
   "shell.unit": "Units",
   "shell.more": "More",
@@ -430,6 +430,14 @@ export const en = {
   "tab.providers": "Providers",
   "tab.process": "Process",
   "tab.notifications": "Notifications",
+  "tab.appearance": "Appearance",
+  "settings.appearance.themes": "Themes",
+  "settings.appearance.theme.default": "Default",
+  "settings.appearance.theme.maroon": "Maroon",
+  "settings.appearance.theme.grove": "Grove",
+  "settings.appearance.theme.ocean": "Ocean",
+  "settings.appearance.theme.ember": "Ember",
+  "settings.appearance.theme.iris": "Iris",
   "tab.deploy": "Deploy",
   "tab.config": "Config",
   "tab.schedule": "Schedule",

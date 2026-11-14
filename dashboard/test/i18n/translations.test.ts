@@ -7,13 +7,13 @@ import { t, LANGUAGES } from "../../src/i18n";
 
 describe("t()", () => {
   test("returns the English source string for en", () => {
-    expect(t("en", "shell.theme")).toBe("Theme");
+    expect(t("en", "shell.colorScheme")).toBe("Color scheme");
   });
 
   test("returns a different, Norwegian string for nb", () => {
-    const nbText = t("nb", "shell.theme");
-    expect(nbText).not.toBe(t("en", "shell.theme"));
-    expect(nbText).toBe("Tema");
+    const nbText = t("nb", "shell.colorScheme");
+    expect(nbText).not.toBe(t("en", "shell.colorScheme"));
+    expect(nbText).toBe("Fargeskjema");
   });
 
   test("substitutes a {param} placeholder", () => {

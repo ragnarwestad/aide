@@ -83,7 +83,7 @@ export { commitFacts, facts } from "./facts.ts";
 
 // --- labelled checkbox -------------------------------------------------------------
 
-export { labelledCheckbox, labelledRadio } from "./checkbox.ts";
+export { labelledCheckbox, labelledRadio, radioCards } from "./checkbox.ts";
 
 // --- status badge --------------------------------------------------------------
 

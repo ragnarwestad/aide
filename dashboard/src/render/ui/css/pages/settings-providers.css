@@ -17,7 +17,7 @@
   padding: var(--sp-3); color: var(--text); }
 .provideritem:hover { text-decoration: none; background: var(--surface-2); }
 /* The tool's mark sits on the first line of the text beside it. */
-.provideritem > .providericon, .providerdetailhead > .providericon, .toolcard > .providericon { margin-top: 2px; }
+.provideritem > .providericon, .providerdetailhead > .providericon, .radiocard > .providericon { margin-top: 2px; }
 .providertext { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .providername { overflow-wrap: anywhere; }
 .providerversion { color: var(--muted); font-family: var(--mono); font-size: var(--fs-s); }
@@ -47,12 +47,6 @@ button.iconlink, button.provideritem { border: 0; background: none; font: inheri
 .addsteps { display: flex; gap: var(--sp-4); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-s); }
 .addsteps li[aria-current="step"] { color: var(--text); font-weight: 600; }
 .addstep { display: flex; flex-direction: column; gap: var(--sp-2); }
-.toolcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--sp-2); }
-.toolcard { position: relative; display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3);
-  border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
-.toolcard:hover { background: var(--surface-2); }
-.toolcard:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
-.toolcard input { position: absolute; opacity: 0; pointer-events: none; }
 .addtool fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .logincommand { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-3) 0; }
 .logincommand code { margin-top: var(--sp-1); padding: var(--sp-2); border-radius: var(--r-s); background: var(--surface-2);

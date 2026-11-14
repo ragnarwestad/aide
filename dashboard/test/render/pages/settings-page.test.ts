@@ -122,9 +122,9 @@ describe("the Settings tabs", () => {
     };
   };
 
-  test("the one row is Models per phase, Providers, Process and Notifications", () => {
-    expect([...SETTINGS_PANELS]).toEqual(["phases", "providers", "process", "notifications"]);
-    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Process", "Notifications"]);
+  test("the one row includes Appearance as its fifth tab (AC-1)", () => {
+    expect([...SETTINGS_PANELS]).toEqual(["phases", "providers", "process", "notifications", "appearance"]);
+    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Process", "Notifications", "Appearance"]);
     expect([...CHECKABLE_TOOLS]).toEqual(["claude", "codex", "opencode"]);
   });
 
@@ -137,7 +137,7 @@ describe("the Settings tabs", () => {
     for (const old of ["claude", "codex", "copilot", "opencode"]) expect(resolveSettingsTab(old)).toBe("providers");
   });
 
-  test("the page links the four tabs and marks the open one", () => {
+  test("the page links the five tabs and marks the open one (AC-1)", () => {
     const claude = links(render("claude"));
     expect(claude.keys).toEqual(new Set(SETTINGS_PANELS));
     expect(claude.current).toEqual(new Set(["providers"]));

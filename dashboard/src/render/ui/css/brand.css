@@ -11,7 +11,7 @@
   color: var(--text); font-size: var(--fs-brand); font-weight: 600;
   letter-spacing: -0.035em; }
 .brand:hover { text-decoration: none; color: var(--text); }
-.brand i { font-style: normal; color: var(--accent); }
+.brand i { font-style: normal; color: var(--logo); }
 /* The surface name, not the product name: ordinary weight and muted, so
    the name stays the wordmark and the suffix says which surface. No
    backticks in here — this file IS a template literal. */

@@ -44,6 +44,8 @@ import { PAGE_DRAWN } from "../../page-contract.ts";
 
   function mark(buttons: NodeListOf<Element>, choice: string): void {
     buttons.forEach((button) => {
+      if (button.tagName === "INPUT" && button.getAttribute("type") === "radio")
+        (button as HTMLInputElement).checked = button.getAttribute("value") === choice;
       if (button.getAttribute("data-theme-choice") === choice) {
         button.setAttribute("aria-current", "true");
       } else {

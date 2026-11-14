@@ -3,6 +3,7 @@ import { esc } from "../../ui/html.ts";
 import { backLink, btn, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
+import { appearancePanel } from "./appearance.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
 import type { ProviderStatus } from "./providers.ts";
 import { providersTab } from "./provider-list.ts";
@@ -21,7 +22,7 @@ export const SETTINGS_ROUTE = "/settings";
  *  application's own tab bar, which this page hides. The models table
  *  keeps the key it had as the page's first tab, so `?tab=phases` still
  *  opens it. */
-export const SETTINGS_PANELS = ["phases", "providers", "process", "notifications"] as const;
+export const SETTINGS_PANELS = ["phases", "providers", "process", "notifications", "appearance"] as const;
 export type SettingsPanel = (typeof SETTINGS_PANELS)[number];
 
 /** The tool tabs the row had once: a link that still names one opens
@@ -225,7 +226,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       ? providersTab({ providers: opts.providers, statuses: opts.providerStatuses, detail: opts.providerDetail, now: Date.parse(generatedAt) }, lang)
       : open === "notifications"
         ? notificationsPanel(opts.pushPublicKey, lang)
-        : opts.process ? processPanel(opts.process, lang) : "";
+        : open === "appearance" ? appearancePanel(lang) : opts.process ? processPanel(opts.process, lang) : "";
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. The row sits directly in it, so page.css's
   // Settings rule centres it, and the panel after it.

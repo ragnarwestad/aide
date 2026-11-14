@@ -22,6 +22,14 @@ const start = () => harness.start();
 
 afterEach(() => harness.cleanup());
 
+test("the installed window uses Default's backgrounds (AC-5)", () => {
+  const block = TOKENS_CSS.match(/:root, \[data-palette="default"\] \{[\s\S]*?\}/)?.[0] ?? "";
+  expect(THEME_COLORS).toEqual({
+    light: block.match(/--bg-l:\s*(#[0-9A-F]{6})/)?.[1]!,
+    dark: block.match(/--bg-d:\s*(#[0-9A-F]{6})/)?.[1]!,
+  });
+});
+
 // --- the eight routes --------------------------------------------------------
 
 describe("the manifest", () => {

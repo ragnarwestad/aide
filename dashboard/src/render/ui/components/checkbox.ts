@@ -57,3 +57,16 @@ export function labelledRadio(o: {
   const words = o.href ? `<a href="${esc(o.href)}">${esc(o.label)}</a>` : `<span>${esc(o.label)}</span>`;
   return `<label class="row">${radio}${words}</label>`;
 }
+
+export function radioCards(o: {
+  label: string;
+  name: string;
+  cards: { value: string; content: string; checked?: boolean; required?: boolean; data?: Record<string, string> }[];
+}): string {
+  return `<div class="radiocards" role="radiogroup" aria-label="${esc(o.label)}">${o.cards.map((card) =>
+    `<label class="radiocard"><input type="radio" name="${esc(o.name)}" value="${esc(card.value)}"` +
+    (card.checked ? " checked" : "") + (card.required ? " required" : "") +
+    Object.entries(card.data ?? {}).map(([key, value]) => ` data-${esc(key)}="${esc(value)}"`).join("") +
+    `>${card.content}</label>`,
+  ).join("")}</div>`;
+}

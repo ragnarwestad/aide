@@ -80,6 +80,7 @@ export function settingsStates(): PageState[] {
     settings("Settings › Models per phase, no model choices", { modelChoices: [] }),
     settings("Settings › Process", { tab: "process", process: { concurrency: 2, cores: 8, min: 1, max: 16 } }),
     settings("Settings › Notifications", { tab: "notifications", pushPublicKey: "nokkel" }),
+    settings("Settings › Appearance", { tab: "appearance" }),
   ];
   const providers = {
     Konto: { name: "Konto", tool: "claude" as const, configDir: "~/.claude-konto" },

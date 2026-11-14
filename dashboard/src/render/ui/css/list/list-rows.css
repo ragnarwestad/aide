@@ -221,9 +221,9 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
    same `pipskim` keyframes the pip uses, painted through the text
    instead of behind it. No delay on either, so the letter and its bar
    move together (the pip's own note says why a delay is never added). */
-.pipletters span.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
+.pipletters span.now { background: linear-gradient(90deg, var(--running), var(--running-skim), var(--running));
   background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: var(--accent);
+  -webkit-text-fill-color: transparent; color: var(--running);
   animation: pipskim 1.6s linear infinite; }
 .pips { display: flex; gap: 3px; }
 /* 21px, not 14: a third of the bar has to be a thing a reader can see,
@@ -253,13 +253,13 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
    animation starts them all together. A delay keyed off a row's index
    or a job's start time is what would make four running specs shimmer
    at random instead of moving as one. */
-.pip.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
+.pip.now { background: linear-gradient(90deg, var(--running), var(--running-skim), var(--running));
   background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
 @keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
 /* Motion off, and the reader can still tell a running phase from a
    waiting one: --accent stays, the mark simply stands still. */
 @media (prefers-reduced-motion: reduce) {
-  .pip.now { animation: none; background: var(--accent); }
+  .pip.now { animation: none; background: var(--running); }
 }
 /* Which THIRD of a running implement is behind it. The parts
    already done stand still in solid --accent; the rest goes on
@@ -272,7 +272,7 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
    Keyed off the running pip and not off every pip: a third belongs to
    the phase that is running, and only a running phase has one. */
 .pip.now[data-third]::after { content: ""; position: absolute; inset: 0 auto 0 0;
-  background: var(--accent); }
+  background: var(--running); }
 .pip.now[data-third="1"]::after { width: 33%; }
 .pip.now[data-third="2"]::after { width: 67%; }
 

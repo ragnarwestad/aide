@@ -27,6 +27,9 @@ export function bindReportFrame(frame: HTMLIFrameElement, env: ReportFrameEnv = 
     // Auto is the ABSENCE of the attribute, so it is removed, not blanked.
     if (theme) root.setAttribute("data-theme", theme);
     else root.removeAttribute("data-theme");
+    const palette = env.page.documentElement.getAttribute("data-palette");
+    if (palette) root.setAttribute("data-palette", palette);
+    else root.removeAttribute("data-palette");
   };
 
   const fitHeight = (): void => {
@@ -50,7 +53,7 @@ export function bindReportFrame(frame: HTMLIFrameElement, env: ReportFrameEnv = 
   frame.addEventListener("load", adopt);
   if (frame.contentDocument?.readyState === "complete") adopt();
   const mutation = new env.MutationObserverCtor(mirrorTheme);
-  mutation.observe(env.page.documentElement, { attributeFilter: ["data-theme"] });
+  mutation.observe(env.page.documentElement, { attributeFilter: ["data-theme", "data-palette"] });
   env.win.addEventListener("resize", fitHeight);
   return () => {
     resizing?.disconnect();

@@ -37,7 +37,7 @@ test("Usage shares the header menus: toggle, switching, outside click and Escape
   await page.keyboard.press("Escape");
   await panel.waitFor({ state: "hidden" });
   await trigger.click();
-  await page.locator("header summary[aria-label='Theme']").click();
+  await page.locator("header summary[aria-label='Color scheme']").click();
   await panel.waitFor({ state: "hidden" });
   await trigger.click();
   await page.getByRole("heading", { name: "Settings", exact: true }).click();

@@ -1,0 +1,7 @@
+.radiocards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--sp-2); }
+.radiocard { position: relative; display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.radiocard:hover, .radiocard:has(input:checked) { background: var(--surface-2); }
+.radiocard:has(input:checked) { border-color: var(--accent); }
+.radiocard:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.radiocard input { position: absolute; opacity: 0; pointer-events: none; }

@@ -1,12 +1,12 @@
 :root {
   color-scheme: light dark;
 /* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F4F4F5;
+  --bg: var(--bg-l); --surface: var(--surface-l); --surface-2: var(--surface-2-l);
   --text: #09090B; --muted: #71717A; --heading: #52525B; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
+  --accent: var(--accent-l); --accent-strong: var(--accent-strong-l); --accent-soft: var(--accent-soft-l); --logo: var(--logo-l);
   --link: #09090B; --link-strong: #3F3F46;
   --link-text: #1D4ED8; --link-text-strong: #1E40AF;
-  --pip-skim: #F0A48B;
+  --running: #A8331A; --running-strong: #8C2B16; --running-soft: #F8E4DD; --running-skim: #F0A48B;
   --on-accent: #FCFAF7;
   --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
@@ -39,6 +39,54 @@
   --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
 }
+:root, [data-palette="default"] {
+/* tokens:start */
+  --accent-l: #27272A; --accent-strong-l: #09090B; --accent-soft-l: #E4E4E7; --logo-l: #A8331A;
+  --bg-l: #EEEEF0; --surface-l: #FFFFFF; --surface-2-l: #F4F4F5;
+  --accent-d: #E4E4E7; --accent-strong-d: #FAFAFA; --accent-soft-d: #2E2E33; --logo-d: #DA5A34;
+  --bg-d: #18181B; --surface-d: #1F1F23; --surface-2-d: #27272A;
+/* tokens:end */
+}
+[data-palette="maroon"] {
+/* tokens:start */
+  --accent-l: #9D174D; --accent-strong-l: #831843; --accent-soft-l: #FCE7F3; --logo-l: #9D174D;
+  --bg-l: #F4ECEF; --surface-l: #FDF9FA; --surface-2-l: #F7EEF2;
+  --accent-d: #F472B6; --accent-strong-d: #F9A8D4; --accent-soft-d: #3B1F2E; --logo-d: #F472B6;
+  --bg-d: #1A1518; --surface-d: #241C21; --surface-2-d: #2E242A;
+/* tokens:end */
+}
+[data-palette="grove"] {
+/* tokens:start */
+  --accent-l: #3A6B35; --accent-strong-l: #2C5229; --accent-soft-l: #E3EEDF; --logo-l: #3A6B35;
+  --bg-l: #ECEFE8; --surface-l: #FAFBF8; --surface-2-l: #F1F4EE;
+  --accent-d: #7BC47F; --accent-strong-d: #9AD49D; --accent-soft-d: #1F3021; --logo-d: #7BC47F;
+  --bg-d: #151A16; --surface-d: #1D231E; --surface-2-d: #262D27;
+/* tokens:end */
+}
+[data-palette="ocean"] {
+/* tokens:start */
+  --accent-l: #1F5F8B; --accent-strong-l: #174A6D; --accent-soft-l: #DCEBF5; --logo-l: #1F5F8B;
+  --bg-l: #E9EEF2; --surface-l: #F8FAFC; --surface-2-l: #EEF3F7;
+  --accent-d: #5AA9E6; --accent-strong-d: #84C0EE; --accent-soft-d: #1A2C3B; --logo-d: #5AA9E6;
+  --bg-d: #14191E; --surface-d: #1B2229; --surface-2-d: #232B33;
+/* tokens:end */
+}
+[data-palette="ember"] {
+/* tokens:start */
+  --accent-l: #A8331A; --accent-strong-l: #8C2B16; --accent-soft-l: #F8E4DD; --logo-l: #A8331A;
+  --bg-l: #EFECE5; --surface-l: #FBFAF7; --surface-2-l: #F4F4F5;
+  --accent-d: #DA5A34; --accent-strong-d: #F0663F; --accent-soft-d: #3A2620; --logo-d: #DA5A34;
+  --bg-d: #16181C; --surface-d: #1F2226; --surface-2-d: #272B30;
+/* tokens:end */
+}
+[data-palette="iris"] {
+/* tokens:start */
+  --accent-l: #6D28D9; --accent-strong-l: #5B21B6; --accent-soft-l: #EDE9FE; --logo-l: #6D28D9;
+  --bg-l: #EEECF4; --surface-l: #FBFAFE; --surface-2-l: #F3F1F9;
+  --accent-d: #A78BFA; --accent-strong-d: #C4B5FD; --accent-soft-d: #2A2342; --logo-d: #A78BFA;
+  --bg-d: #17161D; --surface-d: #1F1D27; --surface-2-d: #282632;
+/* tokens:end */
+}
 /* Dark is the same ramp read from the other end: a dark surface takes a
    light foreground, which is why --danger is a pale peach here and the
    darkest bar tone in light. Not a typo — the same inversion every
@@ -68,12 +116,12 @@
 @media (prefers-color-scheme: dark) {
 :root {
 /* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --bg: var(--bg-d); --surface: var(--surface-d); --surface-2: var(--surface-2-d);
   --text: #FAFAFA; --muted: #A1A1AA; --heading: #A1A1AA; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
+  --accent: var(--accent-d); --accent-strong: var(--accent-strong-d); --accent-soft: var(--accent-soft-d); --logo: var(--logo-d);
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --link-text: #60A5FA; --link-text-strong: #93C5FD;
-  --pip-skim: #FFC4AC;
+  --running: #DA5A34; --running-strong: #F0663F; --running-soft: #3A2620; --running-skim: #FFC4AC;
   --on-accent: #16181C;
   --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
@@ -98,12 +146,12 @@
    falls straight through to the two rules above, unchanged. */
 :root[data-theme="dark"] {
 /* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --bg: var(--bg-d); --surface: var(--surface-d); --surface-2: var(--surface-2-d);
   --text: #FAFAFA; --muted: #A1A1AA; --heading: #A1A1AA; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #DA5A34; --accent-strong: #F0663F; --accent-soft: #3A2620;
+  --accent: var(--accent-d); --accent-strong: var(--accent-strong-d); --accent-soft: var(--accent-soft-d); --logo: var(--logo-d);
   --link: #FAFAFA; --link-strong: #D4D4D8;
   --link-text: #60A5FA; --link-text-strong: #93C5FD;
-  --pip-skim: #FFC4AC;
+  --running: #DA5A34; --running-strong: #F0663F; --running-soft: #3A2620; --running-skim: #FFC4AC;
   --on-accent: #16181C;
   --ok: #6FC08F; --ok-soft: #22352A; --ok-ground: #252F2E;
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
@@ -120,12 +168,12 @@
 :root[data-theme="dark"] .brand .mark-d { display: block; }
 :root[data-theme="light"] {
 /* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F4F4F5;
+  --bg: var(--bg-l); --surface: var(--surface-l); --surface-2: var(--surface-2-l);
   --text: #09090B; --muted: #71717A; --heading: #52525B; --line: #E4E4E7; --line-strong: #D4D4D8;
-  --accent: #A8331A; --accent-strong: #8C2B16; --accent-soft: #F8E4DD;
+  --accent: var(--accent-l); --accent-strong: var(--accent-strong-l); --accent-soft: var(--accent-soft-l); --logo: var(--logo-l);
   --link: #09090B; --link-strong: #3F3F46;
   --link-text: #1D4ED8; --link-text-strong: #1E40AF;
-  --pip-skim: #F0A48B;
+  --running: #A8331A; --running-strong: #8C2B16; --running-soft: #F8E4DD; --running-skim: #F0A48B;
   --on-accent: #FCFAF7;
   --ok: #15803D; --ok-soft: #E3F0E7; --ok-ground: #E3F0E7;
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;

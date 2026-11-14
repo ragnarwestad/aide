@@ -30,12 +30,17 @@ The stylesheet is the twenty `.css` files `src/render/ui/css/index.ts` lists in 
 that order into the one string inlined into every page. The foundation (`tokens.css`, `page.css`, `brand.css`,
 `text-roles.css`) sits beside `index.ts`, and the rest in folders named for what they style: `components/`, `list/`,
 `pages/` and `narrow/`. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
-custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks:
+custom properties, between the `tokens:start` and `tokens:end` sentinels. Four colour-scheme blocks select a light
+or dark side of the chosen theme:
 
 - `:root`.
 - `@media (prefers-color-scheme: dark)` — the same ramp read from the other end.
 - `:root[data-theme="dark"]`.
 - `:root[data-theme="light"]`.
+
+One block per theme sets the light and dark pairs for accent, logo, background and the two surfaces. The themes are
+Default, Maroon, Grove, Ocean, Ember and Iris. Themes never set text, links or the done, failed, held-back and running
+state colours. Default is neutral grey; Ember carries the board's original orange and copper colours.
 
 Every rule in the other sixteen files uses `var(--…)`; none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
@@ -46,8 +51,9 @@ The palette is warm neutrals with zinc ink:
 - `--surface` — card.
 - `--surface-2` — a second surface, for a hover or a table heading.
 - `--text` — ink.
-- `--accent` — vermilion, which marks action and activity and otherwise only the wordmark's own letter and the
-  current tab's underline.
+- `--accent` — the chosen theme's action colour, used by buttons, focus rings and the current tab's underline.
+- `--logo` — the wordmark's coloured letter.
+- `--running`, `--running-strong`, `--running-soft` and `--running-skim` — the running state, unchanged by themes.
 - `--link` — a link that names a thing (a spec title, a tab, the way back) is ink too, so a page of spec titles
   never reads as a page of failures.
 - `--link-text` — blue, for a link inside running text: a scheduled run's report and a message's sentence, where
@@ -91,6 +97,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `facts()`             | a table of label and value, one row each; a value can be a figure                                                                     |
 | `labelledCheckbox()`  | a box and its words in one label, or disabled with a help popover after the words; never the acceptance row's 18px `.checkbox`        |
 | `labelledRadio()`     | a radio button and its words in one label, the words a link when given one; checked, disabled, and `form=`                            |
+| `radioCards()`        | one radio group as cards; each card supplies its own content and receives the shared chosen and keyboard-focus states                 |
 | `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
@@ -281,11 +288,16 @@ or the button that opens one, as Delete on a scheduled job's row and Remove on a
 
 ## Theme choice
 
-The header carries a Dark/Light/Auto control, stored in the browser (`localStorage`), not on the server. An explicit pick sets
+The header and Settings → Appearance carry a Color scheme control with Dark, Light and Auto. The choice is stored in
+the browser (`localStorage`), not on the server. An explicit pick sets
 `data-theme` on `<html>`; two extra token blocks in `tokens.css`,
 `:root[data-theme="dark"]` and `:root[data-theme="light"]`, override the `@media (prefers-color-scheme: dark)` block by
 attribute-selector specificity (0-2-0 beats 0-1-0) regardless of source order. Auto needs no rule at all — no attribute
 set falls straight through to the existing OS-driven CSS.
+
+Settings → Appearance also offers Default, Maroon, Grove, Ocean, Ember and Iris. That choice is stored separately in
+the browser and sets `data-palette` on `<html>`; Default is the absence of the attribute. Each theme supplies light
+and dark pairs, so changing the color scheme keeps the chosen theme.
 
 Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one `<script>` tag in `<head>`, unconditional and shared. `theme-script.ts` is what it
@@ -329,7 +341,7 @@ English fallback for the two of those that are not required to cover every langu
 
 **Adding a sixth language is two separate, catalogue-only changes — not one:**
 
-1. **The UI-string catalogue** (`shell.theme`, `list.search`, and the couple of hundred other keys `en.ts` types):
+1. **The UI-string catalogue** (`shell.colorScheme`, `list.search`, and the couple of hundred other keys `en.ts` types):
    add a `<lang>.ts` file shaped `Record<TranslationKey, string>` (the same shape `nb.ts`/`es.ts`/`de.ts`/`fr.ts`
    already are) and register it in `translations.ts`'s `translations` object and `LANGUAGES` list. A key
    missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does — and the same way a new

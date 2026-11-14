@@ -66,7 +66,7 @@ async function openAdd(): Promise<void> {
 
 test("Add walks the three steps, makes the ID from the name, and lands on the new provider", async () => {
   await openAdd();
-  await dialog().locator(".toolcard", { hasText: "Claude" }).click();
+  await dialog().locator(".radiocard", { hasText: "Claude" }).click();
   await dialog().locator('input[name="name"]').fill("Claude Work");
   expect(await dialog().locator('input[name="providerId"]').inputValue()).toBe("claude-work");
   await next().click();
@@ -87,14 +87,14 @@ test("Next does not leave a step whose fields are not filled in", async () => {
   await openAdd();
   await next().click();
   expect(await dialog().locator('.addstep[data-step="1"]').isVisible()).toBe(true);
-  await dialog().locator(".toolcard", { hasText: "OpenCode" }).click();
+  await dialog().locator(".radiocard", { hasText: "OpenCode" }).click();
   await next().click();
   expect(await dialog().locator('.addstep[data-step="2"]').isVisible()).toBe(true);
 });
 
 test("a refused Add stays in the dialog with the reason, and Cancel starts it over empty", async () => {
   await openAdd();
-  await dialog().locator(".toolcard", { hasText: "Codex" }).click();
+  await dialog().locator(".radiocard", { hasText: "Codex" }).click();
   await dialog().locator('input[name="name"]').fill("Claude");
   await next().click();
   await dialog().locator("#provider-add-form-save").click();

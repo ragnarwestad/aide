@@ -31,7 +31,7 @@
    before (`pipskim`, list.css) and the pips are gone from the list:
    what is happening is said by the word, and the pulse is what makes it
    read as still happening rather than as a state it settled in. */
-.b-running { background: var(--accent-soft); color: var(--accent-strong);
+.b-running { background: var(--running-soft); color: var(--running-strong);
   animation: badgepulse 1.8s ease-in-out infinite; }
 @keyframes badgepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 @media (prefers-reduced-motion: reduce) { .b-running { animation: none; } }

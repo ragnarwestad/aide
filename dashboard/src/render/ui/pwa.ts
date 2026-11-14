@@ -33,15 +33,16 @@ import { rasterizeIcon, rasterizeMark } from "./icon-png.ts";
  *  custom property. `test/pwa.test.ts` pins them to those tokens, so a
  *  palette change that forgets this file fails there rather than
  *  turning up as a seam across the top of the installed app. */
-export const THEME_COLORS = { light: "#EFECE5", dark: "#16181C" };
+export const THEME_COLORS = { light: "#EEEEF0", dark: "#18181B" };
+const ICON_GROUND = "#EFECE5";
 
 /** The icons the manifest names. One SVG per purpose, which `"sizes":
  *  "any"` lets a launcher scale to whatever it is drawing, and PNGs
  *  drawn from those same SVGs at load: Chrome on Android offers an
  *  install rather than a shortcut only when the manifest has raster
  *  icons of 192 and 512 pixels and a maskable one. */
-export const APP_ICON = appIcon(THEME_COLORS.light);
-export const APP_ICON_MASKABLE = appIconMaskable(THEME_COLORS.light);
+export const APP_ICON = appIcon(ICON_GROUND);
+export const APP_ICON_MASKABLE = appIconMaskable(ICON_GROUND);
 export const APP_ICON_PNG_192 = rasterizeIcon(APP_ICON, 192);
 export const APP_ICON_PNG_512 = rasterizeIcon(APP_ICON, 512);
 export const APP_ICON_MASKABLE_PNG_512 = rasterizeIcon(APP_ICON_MASKABLE, 512);

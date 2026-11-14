@@ -49,9 +49,9 @@ tests alone.
 
 No colour literal outside the token block in `src/render/ui/css/tokens.css`,
 no `font-size` outside it that is not a step on the scale, no raw length
-inside a `font` shorthand. The four token blocks are `:root`, the dark
-media query, `[data-theme="dark"]` and `[data-theme="light"]`, and the two
-explicit themes are the media query's ramp colour for colour.
+inside a `font` shorthand. The four colour-scheme token blocks are `:root`, the dark
+media query, `[data-theme="dark"]` and `[data-theme="light"]`. One token block per theme sets the light and dark
+colour pairs selected by those four blocks.
 
 ## A render file does not invent a class name
 

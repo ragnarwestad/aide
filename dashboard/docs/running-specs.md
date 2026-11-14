@@ -620,7 +620,8 @@ the provider.
   a line leads with the same icon and short name, with the model after it where the button has room. The selects on
   Settings → Models per phase and the schedule form show the full name.
 
-- **One row of tabs.** Settings has four tabs on one row: Models per phase, Providers, Process and Notifications. A
+- **One row of tabs.** Settings has five tabs on one row: Models per phase, Providers, Process, Notifications and
+  Appearance. Appearance holds the browser's color scheme and theme choices. A
   link that names the AI tab the row once had (`?tab=ai`) opens Models per phase, and one that names a tool tab
   (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under Settings.
 - **The list.** The Providers tab shows the providers in a list, with the chosen provider beside it (under it on a

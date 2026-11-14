@@ -1,5 +1,6 @@
 import "./start-page.ts";
 import "./theme-script.ts";
+import "./palette-script.ts";
 import "./unit-script.ts";
 import "./menu-script.ts";
 import "./usage-dialog.ts";
