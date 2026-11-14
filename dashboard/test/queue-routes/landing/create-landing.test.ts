@@ -27,6 +27,23 @@ const ownDirs: string[] = [];
 const AUTH = { "content-type": "application/json", accept: "application/json" };
 const SPECS_REPO = "/repos/aide-specs";
 
+const legacyCreateJob = (title = "A new spec", extra: Record<string, unknown> = {}) => ({
+  id: "legacy-create",
+  project: "aide",
+  specFolder: "new-abc123de",
+  steps: ["create"],
+  stepIndex: 0,
+  state: "queued",
+  timeoutSec: {},
+  permissionMode: {},
+  model: {},
+  results: [],
+  createdAt: "2026-10-08T10:00:00Z",
+  createTitle: title,
+  createDescription: "Do the thing",
+  ...extra,
+});
+
 function gitFor({
   conflicting = [],
   needsRealMerge = [],
@@ -65,21 +82,36 @@ const DEFAULT_FINALIZE_CREATE: ServerOptions["finalizeCreateSpec"] = async () =>
 });
 
 function serverWithRunner(
-  start: (options: Partial<ServerOptions>) => { base: string; dir: string },
+  start: (
+    options: Partial<ServerOptions>,
+    alsoProjects?: string[],
+    alsoSpecs?: string[],
+    status?: string,
+    liveState?: string,
+    queueMirror?: string,
+  ) => { base: string; dir: string },
   prefix: string,
   git: { run: (dir: string, args: string[]) => Promise<unknown> },
   extra: Partial<ServerOptions> = {},
+  job = legacyCreateJob(),
 ) {
   const results = mkdtempSync(join(tmpdir(), prefix));
   ownDirs.push(results);
-  const { base, dir } = start({
-    gitRun: git.run as never,
-    queueRunnerBin: WAITING_RUNNER,
-    queueResultDir: results,
-    finalizeCreateSpec: DEFAULT_FINALIZE_CREATE,
-    ...extra,
-  });
-  return { base, dir, results };
+  const { base, dir } = start(
+    {
+      gitRun: git.run as never,
+      queueRunnerBin: WAITING_RUNNER,
+      queueResultDir: results,
+      finalizeCreateSpec: DEFAULT_FINALIZE_CREATE,
+      ...extra,
+    },
+    [],
+    [],
+    undefined,
+    undefined,
+    JSON.stringify([job]),
+  );
+  return { base, dir, results, job };
 }
 
 async function settle(
@@ -159,21 +191,10 @@ describe("landing a created spec", () => {
     repos: [],
   };
 
-  async function createJob(base: string, title = "A new spec"): Promise<{ id: string; specFolder: string }> {
-    const made = (await (
-      await fetch(`${base}/api/queue/create`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ project: "aide", title, description: "Do the thing" }),
-      })
-    ).json()) as { job: { id: string; specFolder: string } };
-    return made.job;
-  }
-
   test("a successful create step is merged into every repo it pushed to, and renamed", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
-    const job = await createJob(base);
+    const { base, results, job } = serverWithRunner(start, "aide-create-results-", git);
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
@@ -199,8 +220,8 @@ describe("landing a created spec", () => {
   // outcome.ok, so this must land exactly as an AI-run create does.
   test("a create result with tool: \"none\" still lands through landNewSpec", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
-    const job = await createJob(base);
+    const { base, results, job } = serverWithRunner(start, "aide-create-results-", git);
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(
       join(results, `${job.id}.json`),
       JSON.stringify({ ...CREATE_RESULT, tool: "none", costUsd: 0 }),
@@ -223,8 +244,8 @@ describe("landing a created spec", () => {
         return inner.run(dir, args);
       },
     };
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git as never);
-    const job = await createJob(base);
+    const { base, results, job } = serverWithRunner(start, "aide-create-results-", git as never);
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     const landed = await settle(base, job.id, (j) => j.specFolder !== job.specFolder || !!j.error);
     expect(landed.error).toBeFalsy();
@@ -233,8 +254,8 @@ describe("landing a created spec", () => {
 
   test("a landing that fails keeps the provisional key and says which repo and why", async () => {
     const git = gitFor({ conflicting: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
-    const job = await createJob(base);
+    const { base, results, job } = serverWithRunner(start, "aide-create-results-", git);
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     const failed = await settle(base, job.id, (j) => !!j.error);
 
@@ -247,8 +268,7 @@ describe("landing a created spec", () => {
 
   test("a landed spec is an ordinary row: analyze runnable, nothing left to merge", async () => {
     const git = gitFor();
-    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git);
-    const job = await createJob(base);
+    const { base, dir, results, job } = serverWithRunner(start, "aide-create-results-", git);
     // The merge really does put the folder on disk, which is the whole
     // reason the landing step exists.
     mkdirSync(join(dir, "root", "aide", "specs", "94-a-new-spec"), { recursive: true });
@@ -256,6 +276,7 @@ describe("landing a created spec", () => {
       join(dir, "root", "aide", "specs", "94-a-new-spec", "1-description.md"),
       "# A new spec - Description\n",
     );
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
@@ -274,56 +295,12 @@ describe("landing a created spec", () => {
     expect(group).not.toContain("ready to merge");
   });
 
-  // Chained: a model picked on the New page for
-  // a phase this create job does not run — Implement's own box left
-  // unticked — is banked as pending under the job's provisional folder,
-  // carried to the real folder once landing assigns it, and shows up on
-  // the landed row's own Implement select with no fresh pick needed.
-  test("a model picked for Implement on the New page pre-fills Implement's select once the spec lands", async () => {
-    const git = gitFor();
-    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git, {
-      queueDefaults: {
-        timeoutSec: { default: 1200 },
-        permissionMode: { default: "acceptEdits" },
-        model: { default: "sonnet" },
-        modelChoices: { sonnet: { }, fable: {  } },
-      },
-    });
-    const made = (await (
-      await fetch(`${base}/api/queue/create`, {
-        method: "POST",
-        headers: AUTH,
-        // No `steps`: only `create` runs. `model.implement` is posted
-        // anyway — the New page draws that select whether or not
-        // Implement's own box is ticked.
-        body: JSON.stringify({ project: "aide", title: "A new spec", description: "Do the thing", model: { implement: "fable" } }),
-      })
-    ).json()) as { job: { id: string; specFolder: string } };
-
-    writeFileSync(join(results, `${made.job.id}.json`), JSON.stringify(CREATE_RESULT));
-    await settle(base, made.job.id, (j) => j.specFolder === "94-a-new-spec");
-    // The landed folder, which the spec's address (where an open row lives) needs on disk.
-    mkdirSync(join(dir, "root", "aide", "specs", "94-a-new-spec"), { recursive: true });
-    writeFileSync(join(dir, "root", "aide", "specs", "94-a-new-spec", "1-description.md"), "# A new spec - Description\n");
-
-    // The scan that finds the folder comes round on its own schedule.
-    let html = "";
-    for (let n = 0; n < 100 && !specControls(html, "94-a-new-spec").includes('name="model.implement"'); n++) {
-      html = await (await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`)).text();
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    const group = specControls(html, "94-a-new-spec");
-    const implementSelect = group.match(/<select name="model\.implement"[^]*?<\/select>/)?.[0] ?? "";
-    expect(implementSelect).not.toBe("");
-    expect(implementSelect).toContain('<option value="fable" data-tool="claude" selected>fable</option>');
-  });
-
   test("a create job that has not landed yet is still a row on the page", async () => {
     // `groupBySpec` drops any job whose spec is not a known target. A
     // create job's spec is unknown BY CONSTRUCTION until it lands, so
     // without an allowance the job running right now renders nothing.
-    const { base } = start();
-    const job = await createJob(base, "A brand new spec");
+    const job = legacyCreateJob("A brand new spec");
+    const { base } = start({}, [], [], undefined, undefined, JSON.stringify([job]));
     const html = await (await fetch(`${base}/specs`, )).text();
     expect(html).toContain(job.specFolder);
     // Labelled by its title: the provisional key says nothing to anyone.
@@ -342,22 +319,11 @@ describe("landing a created spec", () => {
   // trusting the reasoning.
   test("the step after create runs under the spec's real, renamed folder", async () => {
     const git = gitFor();
-    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git);
-    const made = (await (
-      await fetch(`${base}/api/queue/create`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          title: "A new spec",
-          description: "Do the thing",
-          steps: ["analyze"],
-        }),
-      })
-    ).json()) as { job: { id: string; specFolder: string; steps: string[] } };
-    expect(made.job.steps).toEqual(["create", "analyze"]);
-    const job = made.job;
+    const pending = legacyCreateJob("A new spec", { steps: ["create", "analyze"] });
+    const { base, dir, results, job } = serverWithRunner(start, "aide-create-results-", git, {}, pending);
+    expect(job.steps).toEqual(["create", "analyze"]);
 
+    await settle(base, job.id, (j) => j.state === "running");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
     // The landing's merge puts the folder on disk; until it is there, the

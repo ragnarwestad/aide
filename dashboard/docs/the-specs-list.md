@@ -150,9 +150,8 @@ script; everything else on the row does not.
 
 ## What is ticked, and why
 
-The boxes are on the Running tab's open row. What is ticked is a recorded CHOICE, not a fresh guess on every render. It is the phases posted from New spec at
-create time, or the phases ticked on the row itself at whichever Run came after that — whichever happened more
-recently. That choice sticks until the reader changes it, by re-ticking the row's boxes and pressing Run again.
+The boxes are on the Running tab's open row. Before the first Run, every remaining phase is ticked and uses the board's
+default AI and model. After Run, what was ticked is the recorded choice until the reader changes it on a later Run.
 
 A spec with no such choice recorded — no create, no Run — falls back to ticking every phase it has not had. A
 phase already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A
@@ -414,6 +413,11 @@ cost sorts on the sum. A spec's phase lines are the four and nothing else: a ste
 the sum over the four phases, so a step outside them adds nothing to it.
 
 ## A failed create
+
+A refused Create says why beside the New spec form and keeps what was typed. It makes no provisional row or failed
+create job because no job was queued.
+
+## Historical failed creates
 
 A create that ended without a spec (`failed`, `stopped`, `interrupted`, or its own merge failed, still under its
 provisional key, with no merge under way) is not a row in any project: it has no number and nothing to open. The top of

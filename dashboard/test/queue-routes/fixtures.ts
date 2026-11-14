@@ -17,7 +17,18 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultSt
     alsoSpecs: string[] = [],
     status?: string,
     liveState?: string,
-  ) => harness.start({ extra, alsoProjects, alsoSpecs, ...(status ? { status } : {}), ...(liveState ? { liveState } : {}) });
+    queueMirror?: string,
+  ) => harness.start({
+    extra: {
+      directCreateSpec: async (input) => ({ ok: true as const, specFolder: `999-${input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}` }),
+      ...extra,
+    },
+    alsoProjects,
+    alsoSpecs,
+    ...(status ? { status } : {}),
+    ...(liveState ? { liveState } : {}),
+    ...(queueMirror ? { queueMirror } : {}),
+  });
   return { harness, start };
 }
 

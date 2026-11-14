@@ -151,7 +151,14 @@ describe("a chosen dependency reaches the runner and the page", () => {
   });
 
   test("one ticked chip arrives as a list, not a bare string", async () => {
-    const { base } = start({ queueProjects: ["aide"] });
+    let received: import("../../../src/serve/routes/direct-create/index.ts").DirectCreateInput | undefined;
+    const { base } = start({
+      queueProjects: ["aide"],
+      directCreateSpec: async (input) => {
+        received = input;
+        return { ok: true, specFolder: "999-a-new-spec" };
+      },
+    });
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: {
@@ -166,15 +173,23 @@ describe("a chosen dependency reaches the runner and the page", () => {
       }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { createDependsOn: string[] } };
-    expect(body.job.createDependsOn).toEqual(["81-queue-and-runner"]);
+    const body = (await res.json()) as { specFolder: string };
+    expect(body.specFolder).toBe("999-a-new-spec");
+    expect(received?.dependsOn).toEqual(["81-queue-and-runner"]);
   });
 });
 
 describe("a create post fits the description the page lets the user type", () => {
   test("a full-length title and description, every character encoding to the most bytes, is taken", async () => {
     const { DESCRIPTION_MAX, TITLE_MAX } = await import("../../../src/queue/parse-request.ts");
-    const { base } = start({ queueProjects: ["aide"] });
+    let received: import("../../../src/serve/routes/direct-create/index.ts").DirectCreateInput | undefined;
+    const { base } = start({
+      queueProjects: ["aide"],
+      directCreateSpec: async (input) => {
+        received = input;
+        return { ok: true, specFolder: "999-" };
+      },
+    });
     // "—" is three UTF-8 bytes, nine once form-encoded: the most a single
     // character the fields count can cost.
     const title = "—".repeat(TITLE_MAX);
@@ -185,8 +200,9 @@ describe("a create post fits the description the page lets the user type", () =>
       body: new URLSearchParams({ project: "aide", title, description }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { createDescription: string } };
-    expect(body.job.createDescription).toBe(description);
+    expect((await res.json() as { specFolder: string }).specFolder).toBe("999-");
+    expect(received?.title).toBe(title);
+    expect(received?.description).toBe(description);
   });
 });
 
@@ -200,8 +216,15 @@ describe("a create post fits the description the page lets the user type", () =>
 // request built from them still parses to the same job it would have
 // before the reorder.
 describe("a request built from the reordered form's own field names", () => {
-  test("project, title, description, dependencies, acceptance settings and steps all still parse", async () => {
-    const { base } = start({ queueProjects: ["aide"] });
+  test("project, title, description, dependencies and spec settings all still parse", async () => {
+    let received: import("../../../src/serve/routes/direct-create/index.ts").DirectCreateInput | undefined;
+    const { base } = start({
+      queueProjects: ["aide"],
+      directCreateSpec: async (input) => {
+        received = input;
+        return { ok: true, specFolder: "999-a-new-spec" };
+      },
+    });
     const html = await (await fetch(`${base}/new`)).text();
     for (const name of [
       'name="project"',
@@ -209,8 +232,6 @@ describe("a request built from the reordered form's own field names", () => {
       'name="description"',
       'name="dependsOn"',
       'name="acceptanceRequired"',
-      'name="aiFormulateAcceptance"',
-      'name="steps"',
     ]) {
       expect(html).toContain(name);
     }
@@ -220,34 +241,24 @@ describe("a request built from the reordered form's own field names", () => {
     body.set("description", "Do the thing");
     body.set("dependsOn", "81-queue-and-runner");
     body.set("acceptanceRequired", "1");
-    body.set("aiFormulateAcceptance", "1");
-    for (const step of ["analyze", "implement", "archive"]) body.append("steps", step);
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
       body: body.toString(),
     });
     expect(res.status).toBe(200);
-    const parsed = (await res.json()) as {
-      ok: boolean;
-      job: {
-        project: string;
-        createTitle: string;
-        createDescription: string;
-        createDependsOn: string[];
-        steps: string[];
-        acceptanceNotRequired?: boolean;
-        createNoAiFormulate?: boolean;
-      };
-    };
+    const parsed = (await res.json()) as { ok: boolean; specFolder: string };
     expect(parsed.ok).toBe(true);
-    expect(parsed.job.project).toBe("aide");
-    expect(parsed.job.createTitle).toBe("A new spec");
-    expect(parsed.job.createDescription).toBe("Do the thing");
-    expect(parsed.job.createDependsOn).toEqual(["81-queue-and-runner"]);
-    expect(parsed.job.steps).toEqual(["create", "analyze", "implement", "archive"]);
-    expect(parsed.job.acceptanceNotRequired).toBeUndefined();
-    expect(parsed.job.createNoAiFormulate).toBeUndefined();
+    expect(parsed.specFolder).toBe("999-a-new-spec");
+    expect(received).toEqual({
+      project: "aide",
+      title: "A new spec",
+      description: "Do the thing",
+      dependsOn: ["81-queue-and-runner"],
+      acceptanceRequired: true,
+      criteriaChecks: undefined,
+      chooseApproach: false,
+    });
   });
 });
 
@@ -308,7 +319,7 @@ describe("POST /api/queue/create", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
-  test("a create request is accepted and queued as a create job", async () => {
+  test("a create request writes a final folder and queues no job (AC-1)", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
@@ -316,10 +327,9 @@ describe("POST /api/queue/create", () => {
       body: JSON.stringify(CREATE),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; job: { steps: string[]; specFolder: string } };
+    const body = (await res.json()) as { ok: boolean; specFolder: string };
     expect(body.ok).toBe(true);
-    expect(body.job.steps).toEqual(["create"]);
-    expect(body.job.specFolder).toMatch(/^new-[0-9a-f]{8}$/);
+    expect(body.specFolder).toBe("999-a-new-spec");
   });
 
   test("a project that is allowlisted but has never had a spec is still accepted", async () => {
@@ -401,7 +411,7 @@ describe("POST /api/queue/create", () => {
   // The model the create step runs on, chosen on the form
   // itself. Posted form-encoded, as the form posts it, which is the body
   // `bodyToObject` folds `model.create` into the per-step shape on.
-  test("a model picked on the form reaches the stored job", async () => {
+  test("a removed model field does not create queue state", async () => {
     const { base } = start({
       queueDefaults: {
         timeoutSec: { default: 1200 },
@@ -419,8 +429,7 @@ describe("POST /api/queue/create", () => {
       body: new URLSearchParams({ ...CREATE, "model.create": "fable" }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ create: "fable" });
+    expect((await res.json() as { specFolder: string }).specFolder).toBe("999-a-new-spec");
 
     // ...and a name this server does not offer is refused, rather than
     // quietly falling back to the default.
@@ -437,7 +446,7 @@ describe("POST /api/queue/create", () => {
 
   // The provider is posted beside the model as `provider.<step>`, and
   // `bodyToObject` folds it into the per-step shape the parser reads.
-  test("a provider picked on the form reaches the stored job (AC-9)", async () => {
+  test("a removed provider field does not create queue state", async () => {
     const { base } = start({
       queueDefaults: {
         timeoutSec: { default: 1200 },
@@ -453,8 +462,7 @@ describe("POST /api/queue/create", () => {
       body: new URLSearchParams({ ...CREATE, "model.create": "sonnet", "provider.create": "Capra" }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { provider: Record<string, string> } };
-    expect(body.job.provider).toEqual({ create: "Capra" });
+    expect((await res.json() as { specFolder: string }).specFolder).toBe("999-a-new-spec");
   });
 
   test("the form offers every allowlisted project, spec or no spec", async () => {

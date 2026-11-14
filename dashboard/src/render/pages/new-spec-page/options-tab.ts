@@ -31,13 +31,13 @@ export const NEW_SPEC_VALUES: CardValues = {
 export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardView): string {
   return (
     `<span class="frow options-row">` +
-    newSpecPhaseTable(opts, formId) +
     optionsGroup({
       form: formId,
       place: "new-spec",
       locks: card.locks,
       acceptance: card.shown.acceptanceRequired,
       aiFormulate: card.shown.aiFormulate,
+      showAiFormulate: false,
       criteriaChecks: card.shown.criteriaChecks as CriteriaChecks,
       chooseApproach: card.shown.chooseApproach,
       lang: opts.lang ?? "en",
@@ -58,7 +58,7 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
 // page has neither of, so a small, clearly-synthetic row is built once
 // here, and `formIdOverride` (this page's own form id) is what actually
 // ties every select to it.
-function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
+export function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   const lang = opts.lang ?? "en";
   const pickerOpts: PickerOptions = {
     modelChoices: opts.modelChoices,
@@ -117,6 +117,7 @@ export interface OptionsGroupValues {
   form?: string;
   acceptance: boolean;
   aiFormulate: boolean;
+  showAiFormulate?: boolean;
   criteriaChecks: CriteriaChecks;
   chooseApproach: boolean;
   /** The page the group is drawn on, which decides the sentinel and the
@@ -152,7 +153,7 @@ export function optionsGroup(v: OptionsGroupValues): string {
   return (
     `<span class="options-group">` +
     acceptanceField(v) +
-    aiFormulateAcceptanceField(v) +
+    (v.showAiFormulate === false ? "" : aiFormulateAcceptanceField(v)) +
     (v.checksLast ? chooseApproachField(v) + criteriaChecksField(v) : criteriaChecksField(v) + chooseApproachField(v)) +
     `</span>`
   );

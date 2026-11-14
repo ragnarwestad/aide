@@ -350,11 +350,9 @@ function text(raw: unknown, max: number, name: string, multiline = false): strin
   return value;
 }
 
-/** `parseCreateRequest`'s own return shape, widened over the base
- *  `ParseResult`: the picks banked for a phase this create job does not
- *  run are consumed by its one caller, `enqueueCreate()`, not
- *  carried on the job itself. */
 export type CreateParseResult = ParseResult & {
+  create?: { project: string; title: string; description: string; dependsOn: string[];
+    acceptanceRequired: boolean; criteriaChecks?: string; chooseApproach: boolean };
   pendingStepModels?: Record<string, string>;
   pendingStepProviders?: Record<string, string>;
 };
@@ -369,9 +367,6 @@ export function parseCreateRequest(
   const r = raw as Record<string, unknown>;
   const { defaults } = opts;
 
-  // No project named at all: an untouched form posts `project=`, a raw
-  // request may leave the key out. Said in its own words, ahead of "invalid
-  // project", which is for a name that is present and wrong.
   if (r.project === undefined || r.project === null || r.project === "") {
     return { ok: false, ...fixInTheForm("project is required") };
   }
@@ -388,13 +383,14 @@ export function parseCreateRequest(
   // One bad entry refuses the whole list; nothing is silently dropped.
   const dependsOn: string[] = [];
   if (r.dependsOn !== undefined && r.dependsOn !== null) {
-    if (!Array.isArray(r.dependsOn)) return { ok: false, ...invalidRequest("dependsOn must be a list") };
-    if (r.dependsOn.length > 20) return { ok: false, ...invalidRequest("dependsOn: at most 20") };
+    const rawDependencies = typeof r.dependsOn === "string" ? [r.dependsOn] : r.dependsOn;
+    if (!Array.isArray(rawDependencies)) return { ok: false, ...invalidRequest("dependsOn must be a list") };
+    if (rawDependencies.length > 20) return { ok: false, ...invalidRequest("dependsOn: at most 20") };
     // No resolver, no known specs. An archived spec counts: one archived
     // since the form was drawn is a dependency already met.
     const resolved = opts.resolve?.(r.project);
     const known = [...(resolved?.specFolders ?? []), ...(resolved?.archivedFolders ?? [])];
-    for (const d of r.dependsOn) {
+    for (const d of rawDependencies) {
       const folder = typeof d === "string" && FOLDER_RE.test(d)
         ? resolveDependencyFolderName(known, d)
         : undefined;
@@ -406,13 +402,6 @@ export function parseCreateRequest(
     }
   }
 
-  // Which phases this job runs, beyond `create` itself. The
-  // New spec page's own phase table posts the same repeated `steps`
-  // field the Specs list's row does, bounded to the same three phases
-  // that row may tick (`PHASE_STEPS`) — never `create` a second time,
-  // and never a step outside the workflow's own vocabulary. Omitted
-  // entirely, an untouched form's `steps` is exactly `["create"]`,
-  // identical to today's behaviour.
   const extraSteps: WorkflowStep[] = [];
   if (r.steps !== undefined && r.steps !== null) {
     if (!Array.isArray(r.steps)) return { ok: false, error: "steps must be a list" };
@@ -471,6 +460,15 @@ export function parseCreateRequest(
 
   return {
     ok: true,
+    create: {
+      project: r.project,
+      title,
+      description,
+      dependsOn,
+      acceptanceRequired: !choices.fields.acceptanceNotRequired,
+      criteriaChecks: choices.fields.createCriteriaChecks,
+      chooseApproach: choices.fields.createChooseApproach ?? false,
+    },
     job: {
       id: crypto.randomUUID(),
       project: r.project,

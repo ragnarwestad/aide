@@ -64,7 +64,7 @@ describe("parseCreateRequest", () => {
   const allow = (project: string) => project === "aide" || project === "brandnew";
   const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
 
-  test("a project with no spec at all is accepted — the allowlist is the whole test", () => {
+  test("a project with no spec at all returns direct-create data (AC-1)", () => {
     // The resolver every other route uses answers null for this
     // project, which is exactly the gap that makes a project's FIRST
     // spec uncreatable today.
@@ -72,18 +72,15 @@ describe("parseCreateRequest", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.job.project).toBe("brandnew");
-    expect(r.job.steps).toEqual(["create"]);
-    expect(r.job.createTitle).toBe("A new spec");
-    expect(r.job.createDescription).toBe("Do the thing");
-    // A provisional key, and one nobody could mistake for a spec folder.
-    expect(r.job.specFolder).toMatch(/^new-[0-9a-f]{8}$/);
-  });
-
-  test("two create requests never share a key", () => {
-    const a = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
-    const b = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
-    expect(a.ok && b.ok && a.job.specFolder !== b.job.specFolder).toBe(true);
+    expect(r.create).toEqual({
+      project: "brandnew",
+      title: "A new spec",
+      description: "Do the thing",
+      dependsOn: [],
+      acceptanceRequired: false,
+      criteriaChecks: undefined,
+      chooseApproach: false,
+    });
   });
 
   test("a project outside the allowlist is refused", () => {
@@ -191,7 +188,7 @@ describe("parseCreateRequest — dependsOn", () => {
     ).toBe(false);
     expect(
       parseCreateRequest({ ...CREATE, dependsOn: "81-queue-and-runner" }, { allow, resolve, defaults: DEFAULTS }).ok,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   test("nothing chosen means no field at all — exactly today's behaviour", () => {

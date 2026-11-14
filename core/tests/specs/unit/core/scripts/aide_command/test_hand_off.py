@@ -10,8 +10,7 @@ import pytest
 from .conftest import Machine, free_port, make_job
 
 DO_IT_HERE = 3
-CREATE_JOB = make_job(id="c-1", specFolder="new-1a2b3c4d", steps=["create"],
-                      model={"create": "Opus"})
+CREATED_SPEC = {"ok": True, "specFolder": "723-a-title"}
 
 
 @pytest.fixture
@@ -102,7 +101,7 @@ def test_a_reopen_with_a_reset_is_done_in_the_session_when_the_board_does_not_kn
 
 def test_a_create_carries_the_project_the_title_the_description_and_the_dependencies_AC_2(
         handing, board):
-    board.accepts(CREATE_JOB, "/api/queue/create")
+    board.answer("POST", "/api/queue/create", CREATED_SPEC)
 
     result = handing.run("create", "A title", "--depends-on", "721",
                          stdin="The description\nover two lines\n")

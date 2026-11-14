@@ -142,8 +142,8 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
   await postForm(
     form,
     async (body) => {
-      const id = body?.job?.id;
-      await swapPage(id ? `/?created=${encodeURIComponent(id)}` : "/", { history: "push" });
+      const folder = body?.specFolder;
+      await swapPage(folder ? `/?created=${encodeURIComponent(folder)}` : "/", { history: "push" });
     },
     (why) => formNote(form, why),
   );

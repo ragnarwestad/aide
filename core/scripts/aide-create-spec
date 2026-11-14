@@ -100,6 +100,7 @@ folder_name=""; assign_number="no"
 # there is nothing to validate, and its absence is the byte-for-byte
 # behaviour every caller before this flag existed already has.
 acceptance_not_required="no"
+criteria_checks=""; choose_approach=""
 # The description as /aide-create received it, before it added criteria.
 # A flag of its own, so an empty value still counts as given.
 given_description=""; given_set="no"
@@ -132,6 +133,8 @@ USAGE
     --given-description) given_description="${2:-}"; given_set="yes"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; depends_on_given="yes"; shift 2 ;;
     --acceptance-not-required) acceptance_not_required="yes"; shift ;;
+    --criteria-checks) criteria_checks="${2:-}"; shift 2 ;;
+    --choose-approach) choose_approach="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
     --stamp-outcome) stamp_outcome="yes"; shift ;;
     --folder) folder="${2:-}"; shift 2 ;;
@@ -153,6 +156,9 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 source "$SCRIPT_DIR/lib/tracking-info.sh"
 
 [ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+
+case "$criteria_checks" in ""|off|warn|stop) ;; *) aide_spec_refuse "invalid --criteria-checks: $criteria_checks (off, warn or stop)" ;; esac
+case "$choose_approach" in ""|yes|no) ;; *) aide_spec_refuse "invalid --choose-approach: $choose_approach (yes or no)" ;; esac
 
 if [ "$stamp_outcome" = "yes" ]; then
   # Patches an already-created 1-description.md's Tracking info with this
@@ -253,8 +259,8 @@ fi
 # has a unique name (the job's own provisional key), so there is
 # nothing to race over and no lock to take — `--number`'s validation
 # and the auto-pick lock below are both skipped entirely.
-[ -n "$folder_name" ] || [ -n "$slug" ] || aide_spec_refuse "missing --slug"
 [ -n "$title" ] || aide_spec_refuse "missing --title"
+[ -n "$folder_name" ] || [ -n "$slug" ] || slug="$(aide_slug_from_title "$title")"
 [ -n "$description" ] || aide_spec_refuse "missing --description"
 
 if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
@@ -430,6 +436,10 @@ fi
 
 accept_line=""
 [ "$acceptance_not_required" = "yes" ] && accept_line=$'\n- **Acceptance:** not required'
+criteria_line=""
+[ -n "$criteria_checks" ] && criteria_line=$'\n- **Acceptance criteria checks:** '"$criteria_checks"
+approach_line=""
+[ -n "$choose_approach" ] && approach_line=$'\n- **Let me choose the approach:** '"$choose_approach"
 
 # Already made above when this run claimed its own number; `-p` is what
 # makes that case a no-op rather than a second, failing create.
@@ -472,7 +482,7 @@ cat > "$dest/1-description.md" <<AIDE_EOF
 ## Tracking info
 
 - **Task:** \`${folder}/\`
-- **Created:** \`${today}\`${depends_line}${accept_line}
+- **Created:** \`${today}\`${depends_line}${accept_line}${criteria_line}${approach_line}
 
 ---
 

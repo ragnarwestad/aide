@@ -47,33 +47,21 @@ there is a **New spec** button, a link to `/new`, at the right-hand end of the s
 It is not offered when no project on the board may have a spec made in it. The page is the form and nothing else, on
 two tabs with Create above them. **Spec**, the tab it opens on, holds a
 project, a title, a description and a **Depends on** field naming a spec this one has to wait for. **Options**
-(`/new?tab=options`) holds the acceptance and approach settings, then the phase table. Switching tabs keeps what was
-typed, and Create posts both tabs from either. Create posts to `POST /api/queue/create` and goes to the Running tab with
-the new spec's row open (`/?created=<job id>`); Cancel returns having done nothing. A refused submission says why
+(`/new?tab=options`) holds the acceptance and approach settings. Switching tabs keeps what was
+typed, and Create posts both tabs from either. Create posts to `POST /api/queue/create`, writes and pushes the numbered
+spec folder without starting a job, and opens its row (`/?created=<spec folder>`). A refused submission says why
 beside the form, where what was typed can be corrected. The browser holds Create at an empty project, title or
 description.
 
-**The new spec is not on the Specs list yet.** The `create` step has to run first, and its folder has to reach the
-default branch, which the landing does. Until then the job is on the list as a queued create, under a provisional name.
-
-The phase table has one row per phase — create, analyze, implement, archive — each with a tick, an AI choice and a
-model choice, drawn by the same pickers the spec's row on the list uses. `create`'s tick is always on; the other three
-are on by default, so a form submitted without touching them queues all four phases in order. Unticking a box before
-pressing Create is how a `create`-only job is queued. What was ticked is recorded against the spec this job makes, and
-is what the row's own phase boxes show once the spec has a row
-([What is ticked, and why](the-specs-list.md#what-is-ticked-and-why)).
+**The new spec is on the Specs list as soon as Create succeeds.** Its row offers the remaining phases with the board's
+default AI and model. Run starts the chosen work.
 
 - **The project list is the raw allowlist**, `queue-config.json`'s `projects`, seeded from `QUEUE_PROJECTS`: a project
   whose FIRST spec does not exist yet appears here and in no other list. `/api/queue` still refuses a project with no
   discovered spec.
-- **Nothing here names the spec.** The job carries a provisional key (`new-abc123de`) which names its branch, its
-  worktree and its folder on disk; `aide-run-spec` reports that folder as `specFolder` in its result.
-
-**The number and the slug are assigned when the branch lands.** For a `create`, under the specs repo's own merge lock,
-the dashboard counts the folders already there, takes the next number, and renames the provisional folder before the
-merge is pushed. A job that ticked further phases runs its next step under the real folder name. A landing that fails
-leaves the provisional name in place and says which repo and why. Two `create` jobs for one project can start together:
-there is no number for them to collide over.
+**The number and slug are assigned while Create holds the specs checkout lock.** The dashboard writes with
+`aide-create-spec`, commits and pushes before it answers. Two simultaneous creates are serialized and receive different
+numbers.
 
 A landing holds back two things and nothing else: the job being landed and a second `archive` in the same project
 ([Branches and landing](landing.md)).
@@ -155,20 +143,17 @@ spec.
 `aide` is a command installed in `~/.local/bin` with Aide's other commands. It makes the same requests as the page's
 buttons, from a terminal or an AI session, and answers in one sentence with no link.
 
-| Command                                                 | What it queues                                                     |
+| Command                                                 | What it does                                                       |
 |---------------------------------------------------------|--------------------------------------------------------------------|
-| `aide create <project> "<title>"`                       | A create, as the New spec form does                                |
+| `aide create <project> "<title>"`                       | Writes a spec, as the New spec form does                           |
 | `aide analyze`, `implement`, `archive`, `reopen <spec>` | That step, as the button on the spec's row does                    |
 | `aide close <spec> --reason "<why>"`                    | Close, as the Close button does                                    |
 | `aide status <spec>`                                    | Nothing: it says the spec's phase and what its newest job is doing |
 
 - **The description of a create** comes from `--file`, else from standard input, else from `$VISUAL` or `$EDITOR`.
-  `--depends-on <spec>` (repeatable), `--autostart`, `--provider`, `--criteria-checks off|warn|stop`,
-  `--choose-approach`, `--acceptance-not-required` and `--no-ai-criteria` are the form's other settings. Both boxes the
-  form opens ticked are ticked unless the last two flags are given. `--autostart` runs analyze, implement and archive once
-  the spec is made, as Analyze on its new row does.
-- **The model** is the phase's model from Models per phase. `--model <name>` runs the step on that model instead, and on
-  a create it applies to every step the create runs.
+  `--depends-on <spec>` (repeatable), `--criteria-checks off|warn|stop`, `--choose-approach` and
+  `--acceptance-not-required` are the form's other settings. The command writes the spec and starts no job.
+- **The model** is the phase's model from Models per phase. `--model <name>` runs a queued step on that model instead.
 - **A spec** is named by its number or its folder. A number is looked up in the specs root of the checkout the command
   runs in, or of the board host's checkout of the project named with `--project`; when that checkout is missing or
   lacks the number, it is matched against the project's jobs on the board, and otherwise the spec's folder is needed. The project is `--project`, else the one
@@ -571,9 +556,8 @@ The Process tab on Settings shows the number the queue is using, with the machin
 a new one into the queue config. A number outside 1 to 8 is refused. A saved number is used from the next step the queue
 starts. Lowering it stops no step that is running. `1` runs one job at a time.
 
-**A create starts at once and does not count towards `concurrency`.** It takes about a minute and is what gives a new
-spec its number and its row. Every other step takes a slot, the later steps of a New spec's own job included. A create
-still waits while its AI's usage limit is used up.
+Creating a spec does not use `concurrency`: it is a direct repository write, not a queued job. Analyze, Implement and
+Archive each take a slot after Run is pressed.
 
 Two jobs for the same spec are never started at the same time, nor two `archive` steps in the same project: the second is
 held `queued` with the reason on its row until the first has landed. Beyond that the jobs are independent: each run works
@@ -623,8 +607,8 @@ the provider.
   place, from 2 to 9 and then 0 and 1 ("C2"). A provider saved without one gets one made the same way each time the
   settings are read, after every saved short name has kept its own, and it is written the first time the provider is
   saved. No two providers have the same short name, in any case.
-- **What a picker shows.** A closed provider picker, on the phase lines of the Specs list and the Jobs tab, on the
-  Review and Verify lines and on the New spec page, shows the provider's tool icon and short name; its open list shows
+- **What a picker shows.** A closed provider picker, on the phase lines of the Specs list and the Jobs tab and on the
+  Review and Verify lines, shows the provider's tool icon and short name; its open list shows
   every provider's full name, and the full name is shown when the pointer rests on it. The phone's compact button for
   a line leads with the same icon and short name, with the model after it where the button has room. The selects on
   Settings → Models per phase and the schedule form show the full name.
@@ -706,7 +690,7 @@ the provider.
   in the file is deleted on start. A `providers` table emptied by Remove stays empty.
 - **Remove.** A provider that a phase default, a schedule entry or a job that will still run (queued, running, or
   stopped waiting for a reset) uses is not removed; the refusal names what uses it.
-- **Choosing.** The AI choice on a phase line, on the Settings phases table, on New spec and on the Schedule form lists
+- **Choosing.** The AI choice on a phase line, on the Settings phases table and on the Schedule form lists
   the providers that run at least one model choice. Choosing a provider narrows the model choice to the models its tool
   runs. A job, a pending pick and a schedule entry store the provider beside the model.
 - **Where it shows.** The phase line names the provider ("Claude-Capra · opus"). The job's page has a Provider line on

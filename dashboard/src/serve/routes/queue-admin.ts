@@ -17,7 +17,9 @@ import { PICK_PARTS, PLAN_REVIEW, planReviewToSave } from "../../queue/providers
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
-import { enqueueCreateRequest, enqueueRequest } from "../../queue/request/index.ts";
+import { enqueueRequest } from "../../queue/request/index.ts";
+import { parseCreateRequest } from "../../queue/parse-request.ts";
+import { createSpecDirectly } from "./direct-create/index.ts";
 
 export async function handleQueueAdminRoutes(
   ctx: RoutesContext,
@@ -45,10 +47,20 @@ export async function handleQueueAdminRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    const result = enqueueCreateRequest(ctx.queue, raw, "manual");
+    const result = parseCreateRequest(raw, {
+      allow: (project) => ctx.allowed.has(project),
+      resolve: (project) => ({
+        specFolders: ctx.targets().filter((target) => target.project === project).map((target) => target.specFolder),
+        archivedFolders: [],
+      }),
+      defaults: ctx.queue.defaults,
+    });
     if (!result.ok) return refusal(result);
-    await ctx.tickRunner();
-    return json({ ok: true, job: result.job });
+    const created = await createSpecDirectly(ctx, result.create!);
+    if (!created.ok) return json(created, 400);
+    ctx.invalidateScan();
+    ctx.notifyQueueChanged();
+    return json(created);
   }
 
   if (path === "/api/queue/settings") {

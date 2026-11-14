@@ -21,6 +21,7 @@ export const VARIANTS = ["primary", "ok", "danger"];
 export interface ActionResult {
   ok?: boolean;
   spec?: string;
+  specFolder?: string;
   error?: string;
   /** What resolves `error`, when the route knows one. */
   solution?: string;

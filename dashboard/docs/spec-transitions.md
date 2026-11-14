@@ -104,28 +104,17 @@ stateDiagram-v2
     closed --> created: reopen with reset
 ```
 
-**Into `create`.** `POST /api/queue/create` queues a job whose first step is `create`, followed by whatever else
-the New spec form ticked, under a provisional key
-(`new-<id>`) that names its branch, its worktree and its folder on disk: `/aide-create` writes its five files under
-that literal name, choosing no number and no slug itself. The number and the slug are decided at landing instead,
-under the specs repo's own merge lock — the one place two landings for the same repo are already serialized by
-construction, so two `create` jobs for the same project can run at once with nothing to collide over. Landing counts
-the folders already there, assigns the next number, renames the job's folder to it and rewrites its own `Task:`
-lines, all before the merge is pushed. A spec exists once its folder is on the specs repo's default branch — that is
-what puts a row on the list.
-
-A `create` that ends without a spec (`failed`, `stopped`, `interrupted`, or a failed merge with no merge under way, and
-still under its provisional key) has no row. It leaves a message at the top of the specs list and a push notification,
-both offering to try again with what was typed; see [the specs list](the-specs-list.md#a-failed-create).
+**Into `create`.** `POST /api/queue/create` validates the New spec form, writes the numbered folder with
+`aide-create-spec`, commits it and pushes it while holding the specs checkout lock. It queues no job and starts no AI
+session. A spec exists once that push succeeds, which puts its row on the list immediately. A refusal is shown beside
+the unchanged form.
 
 **`create` to `analyze`.** Analyze may run on any active spec, again and again: `created`, `analyzed` and
 `implemented` all take the move. An `analyzed` spec stays `analyzed`, and an `implemented` one goes back to
 `analyzed`: Implement is next, and Archive is refused until implement has completed again. Whether to is the
-reader's choice. `create` itself never runs twice: its box is ticked and locked, and the run route refuses it. The row's boxes
-follow whatever was
-posted from New spec at create time — every phase by default, fewer if the reader unticked one — so an untouched
-create queues analyze, implement and archive as one job. The runner queues each following step the moment the one
-before it completes, and starts it once that step's landing has settled. Until then, that step's own phase line and
+reader's choice. `create` itself never runs twice. Before the first Run, the row ticks every remaining phase with the
+board's default AI and model. The runner queues each following step the moment the one before it completes, and starts
+it once that step's landing has settled. Until then, that step's own phase line and
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
 **`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze

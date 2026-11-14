@@ -6,13 +6,13 @@
 #
 # The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
 # machine (as aide-push-specs reads it). Without it, or with a board that
-# does not know the project, nothing is queued: the command says so, names
+# does not know the project, no request is made: the command says so, names
 # the /aide-<step> skill to run in an AI session instead, and exits 3
 # (NO_BOARD_EXIT in lib/board-request.sh).
 #
 # Every answer is one plain sentence and no link. An accepted request says
-# what was queued, on which model, and whether it starts now or what it
-# waits for. A refusal prints the board's own reason on stderr and exits 1;
+# what was created or queued and, for queued work, which model it uses and
+# whether it starts now or what it waits for. A refusal prints the board's own reason on stderr and exits 1;
 # a mistake in how the command was called exits 2.
 #
 # A spec is named by its number or its folder. A number is looked up in the
@@ -34,17 +34,17 @@ STEPS="analyze implement archive reopen"
 
 usage() {
   cat <<'EOF'
-usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]... [--autostart]
-                   [--model <name>] [--provider <name>] [--criteria-checks off|warn|stop]
-                   [--choose-approach] [--acceptance-not-required] [--no-ai-criteria]
+usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]...
+                   [--criteria-checks off|warn|stop] [--choose-approach]
+                   [--acceptance-not-required]
        aide analyze|implement|archive|reopen <spec> [--project <name>] [--model <name>]
        aide close <spec> --reason "<why>" [--project <name>]
        aide status <spec> [--project <name>]
 
 create reads the description from --file, else from standard input, else from
-$VISUAL / $EDITOR. --autostart runs analyze, implement and archive once the
-spec is made, as Analyze on its row does. A step runs on the phase's model
-unless --model names one. A spec is its number or its folder.
+$VISUAL / $EDITOR. It writes the spec without starting a job; Run on the new
+row starts the work. A step runs on the phase's model unless --model names one.
+A spec is its number or its folder.
 EOF
 }
 
@@ -192,7 +192,7 @@ run_close() {
 read_description() {
   local editor tmp
   if [ -n "$file" ]; then
-    { [ -r "$file" ] && [ ! -d "$file" ]; } || die "$file is not a file, so there is no description to queue"
+    { [ -r "$file" ] && [ ! -d "$file" ]; } || die "$file is not a file, so there is no description to use"
     description="$(cat "$file")"
   elif [ ! -t 0 ]; then
     description="$(cat)"
@@ -201,7 +201,7 @@ read_description() {
     tmp="$(mktemp "${TMPDIR:-/tmp}/aide-description.XXXXXX")" || die "could not make a file for the editor"
     if ! sh -c "$editor \"\$@\"" "$editor" "$tmp"; then
       rm -f "$tmp"
-      die "the editor ($editor) did not finish cleanly, so nothing was queued"
+      die "the editor ($editor) did not finish cleanly, so no spec was created"
     fi
     description="$(cat "$tmp")"
     rm -f "$tmp"
@@ -209,7 +209,7 @@ read_description() {
 }
 
 run_create() {
-  local body then_json depends_json folder_list="" d
+  local body depends_json folder_list="" d spec_folder
   description=""
   read_description
   # Each --depends-on is a spec of the project: a number is looked up like any other.
@@ -222,26 +222,20 @@ run_create() {
     done
     depends_json="$(printf '%s' "$folder_list" | jq -R . | jq -sc .)"
   fi
-  then_json="[]"
-  [ "$autostart" = true ] && then_json='["analyze","implement","archive"]'
   body="$(jq -nc --arg project "$project" --arg title "$title" --arg description "$description" \
-    --argjson depends "$depends_json" --argjson extra "$then_json" --arg model "$model" \
-    --arg provider "$provider" --arg criteria "$criteria" --argjson approach "$choose_approach" \
-    --argjson acceptance "$acceptance_required" --argjson formulate "$ai_criteria" '
+    --argjson depends "$depends_json" --arg criteria "$criteria" --argjson approach "$choose_approach" \
+    --argjson acceptance "$acceptance_required" '
     {project: $project, title: $title, description: $description}
     + (if ($depends | length) > 0 then {dependsOn: $depends} else {} end)
-    + (if ($extra | length) > 0 then {steps: $extra} else {} end)
-    + (if $model != "" then {model: (["create"] + $extra | map({(.): $model}) | add)} else {} end)
-    + (if $provider != "" then {provider: $provider} else {} end)
     + (if $criteria != "" then {criteriaChecks: $criteria} else {} end)
     + (if $approach then {chooseApproach: "1"} else {} end)
-    + (if $acceptance then {acceptanceRequired: "1"} else {} end)
-    + (if $formulate then {aiFormulateAcceptance: "1"} else {} end)')"
+    + (if $acceptance then {acceptanceRequired: "1"} else {} end)')"
   http_or_die POST "/api/queue/create" "$ANSWER_SECONDS" "$body"
   accepted || refuse
-  local what="create of \"$title\""
-  [ "$autostart" = false ] || what="$what, then analyze, implement, archive,"
-  finish "$what in $project"
+  spec_folder="$(jq -r '.specFolder // empty' "$answer_file")"
+  [ -n "$spec_folder" ] && ! printf '%s' "$spec_folder" | grep -q '^new-' \
+    || die "the board did not return the final spec folder; update the board before using aide create"
+  printf 'Created %s in %s.\n' "$spec_folder" "$project"
 }
 
 # The phase from this machine's copy of the spec's repository. Sets
@@ -308,15 +302,12 @@ command=""
 positionals=()
 depends=()
 file=""
-autostart=false
 model=""
-provider=""
 criteria=""
 reason=""
 project_flag=""
 choose_approach=false
 acceptance_required=true
-ai_criteria=true
 title=""
 description=""
 phase_text=""
@@ -345,16 +336,13 @@ parse_args() {
     case "$1" in
       -h|--help) usage; exit 0 ;;
       --project) allow "$1" analyze implement archive reopen close status; need_value "$@"; project_flag="$2"; shift 2 ;;
-      --model) allow "$1" create analyze implement archive reopen close; need_value "$@"; model="$2"; shift 2 ;;
+      --model) allow "$1" analyze implement archive reopen close; need_value "$@"; model="$2"; shift 2 ;;
       --reason) allow "$1" close; need_value "$@"; reason="$2"; shift 2 ;;
       --file) allow "$1" create; need_value "$@"; file="$2"; shift 2 ;;
       --depends-on) allow "$1" create; need_value "$@"; depends+=("$2"); shift 2 ;;
-      --autostart) allow "$1" create; autostart=true; shift ;;
-      --provider) allow "$1" create; need_value "$@"; provider="$2"; shift 2 ;;
       --criteria-checks) allow "$1" create; need_value "$@"; criteria="$2"; shift 2 ;;
       --choose-approach) allow "$1" create; choose_approach=true; shift ;;
       --acceptance-not-required) allow "$1" create; acceptance_required=false; shift ;;
-      --no-ai-criteria) allow "$1" create; ai_criteria=false; shift ;;
       --*) usage_error "unknown option $1" ;;
       *) positionals+=("$1"); shift ;;
     esac

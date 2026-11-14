@@ -105,6 +105,21 @@ def test_substitutes_title_folder_and_date(script, specs_root):
     assert "Problem: X." in desc
 
 
+def test_derives_the_slug_and_records_direct_create_settings_ac_1_ac_5(script, specs_root):
+    args = [
+        str(script), "--specs-root", str(specs_root), "--title", "A Direct Spec",
+        "--description", "Problem: X.", "--criteria-checks", "warn",
+        "--choose-approach", "yes",
+    ]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    answer = json.loads(proc.stdout.strip().splitlines()[-1])
+    assert proc.returncode == 0, answer
+    assert answer["specFolder"] == "01-a-direct-spec"
+    desc = (specs_root / answer["specFolder"] / "1-description.md").read_text()
+    assert "- **Acceptance criteria checks:** warn" in desc
+    assert "- **Let me choose the approach:** yes" in desc
+
+
 # --- depends-on -------------------------------------------------
 
 
@@ -230,7 +245,7 @@ def test_accepts_a_number_above_every_existing_one(script, specs_root):
 # `--number` is deliberately absent from this list: it is optional now,
 # and its own tests below cover what the script picks when it is left
 # out.
-@pytest.mark.parametrize("missing", ["--specs-root", "--slug", "--title", "--description"])
+@pytest.mark.parametrize("missing", ["--specs-root", "--title", "--description"])
 def test_refuses_on_missing_required_flag(script, specs_root, missing):
     args = [
         str(script),

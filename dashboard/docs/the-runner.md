@@ -550,17 +550,13 @@ a line saying the plan has no Plan review section or the section gives no counts
 one `the verification dropped review: …` per defect a verification dropped, `the defect(s) went back to the implement
 session to be fixed`, and one `the implement session found it not a defect: …` per defect the session turned down.
 
-**Let AI formulate acceptance criteria.** A completed create records `yes` or `no` (`--no-ai-formulate`) as the `Let AI
-formulate acceptance criteria:` line in the new spec's Tracking info. The board reads it for the spec's banner; a spec
-without the line is read as `yes`.
-
-**Let me choose the approach.** The New spec form's box is passed to `create` as `--choose-approach yes|no` and recorded
+**Let me choose the approach.** The New spec form's box is passed to `aide-create-spec` as `--choose-approach yes|no` and recorded
 as the `Let me choose the approach:` line. Analyze reads it (`aide_spec_choose_approach`); with `yes` the prompt asks
 the skill to mark each approach `(recommended)`, `(real alternative)` or `(considered and rejected)`.
 `core/tests/fixtures/choose-approach-line.json` is the table the runner and the dashboard both read the line against.
 
 **The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form, passed to
-`create` as `--criteria-checks` and recorded as the `Acceptance criteria checks:` line. Analyze states it in the prompt;
+`aide-create-spec` as `--criteria-checks` and recorded as the `Acceptance criteria checks:` line. Analyze states it in the prompt;
 a spec without the line is read as `off`. At `stop`, a completed analyze whose Plan review `**Criteria check:**` line
 names a fault after ` — ` ends `acceptance-criteria` (`run-spec/record/criteria-check.sh`, after the scope guard): `ok`
 false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
