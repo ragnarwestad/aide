@@ -71,7 +71,7 @@ The user has run:
    aide-generate-pdf "$DIR"
    ```
 
-   **IMPORTANT:** The `aide-generate-pdf` script resolves the specs root the same way (via `aide_specs_root`).
+   The `aide-generate-pdf` script resolves the specs root the same way (via `aide_specs_root`).
 
    The script will:
    - Combine all markdown files (1-description, 2-analysis, 3-solution, 4-status)

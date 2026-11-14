@@ -169,12 +169,11 @@ owns the push and pushes the spec's branch only; the default branch is
 merged by the dashboard once archive has reported success — never by
 this routine, and never half-way.
 
-IMPORTANT:
+Rules:
 
 - Stopping is a successful outcome of this routine, not a failure of
   it — an unresolvable conflict reported plainly is worth more than a
   guess. It does mean archive stops too: a spec whose branch will not
   merge is not a spec that can be archived
 - Never leave `MERGE_HEAD` set: finish the merge or abort it
-- Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the
-  closing fence
+- A code block closes with a bare ` ``` `, not ` ```text `

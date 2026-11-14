@@ -59,11 +59,11 @@ Content...
 ### Table of contents
 
 **Requirements:**
-- ALL documents MUST have a table of contents — no length threshold
-- Include up to 3 levels (`##`, `###` and `####`) whenever they exist — EVERY real heading in the
+- Every document has a table of contents, whatever its length
+- Include up to 3 levels (`##`, `###` and `####`) whenever they exist — every real heading in the
   document gets a TOC entry. Headings inside code fences are not headings and stay out
-- Place it AT THE VERY TOP, directly after the `# Title` — NEVER any chapter, purpose statement or
-  other content before it. An intro/purpose text becomes the FIRST CHAPTER after the TOC, like
+- Place it at the top, directly after the `# Title`, with no chapter, purpose statement or other
+  content before it. An intro/purpose text becomes the first chapter after the TOC, like
   everything else.
 - The heading must be `## Table of contents` (no emoji)
 

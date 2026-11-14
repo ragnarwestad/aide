@@ -167,7 +167,7 @@ the default branch once the session has ended, and the close is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 
-IMPORTANT:
+Rules:
 - Closing is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's

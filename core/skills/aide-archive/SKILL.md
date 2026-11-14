@@ -258,7 +258,7 @@ when they pass do the code and the spec reach the default branch.
 Working interactively, the branches are merged by hand. Either way the
 archive is finished when the merge is, and not before.
 
-IMPORTANT:
+Rules:
 - Archiving is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's

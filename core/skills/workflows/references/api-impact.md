@@ -12,7 +12,7 @@
 
 ## API impact analysis
 
-**IMPORTANT:** Always assess API impact when analyzing an issue!
+Assess the API impact of every issue you analyze.
 
 ### Workflow
 

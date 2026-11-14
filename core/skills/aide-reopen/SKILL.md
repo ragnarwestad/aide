@@ -143,7 +143,7 @@ Not this session's step, and it writes no mark for it. Typed at a
 keyboard there is no such step: the commit in Step 4 is what reaches
 the specs repository.
 
-IMPORTANT:
+Rules:
 - Never delete a commit, and never rewrite the default branch's history.
   The mark is what stops the earlier round counting; the repository keeps
   it.

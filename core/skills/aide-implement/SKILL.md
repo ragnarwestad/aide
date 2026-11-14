@@ -385,8 +385,8 @@ stopping.
 See `references/tdd-phases.md` for the detailed workflow with commands
 and expected output per phase.
 
-IMPORTANT:
-- Run all four steps through WITHOUT stopping to ask for
+Rules:
+- Run all four steps through without stopping to ask for
   confirmation — report each step's result as you pass it. Stop only
   when genuinely blocked (a decision only the user can make, or a
   step that cannot be completed)

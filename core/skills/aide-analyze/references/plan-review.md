@@ -246,7 +246,7 @@ If `3-solution.md` is still an empty template — its bracketed
 placeholder text unfilled — there is nothing to review; go back and
 finish Step 7 (Create the implementation plan) first.
 
-IMPORTANT:
+Rules:
 - Findings about the SOLUTION belong in `3-solution.md` only — never
   touch `1-description.md`, and only touch `2-analysis.md` if the review
   exposed a factual error in it (say so explicitly)

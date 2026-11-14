@@ -91,7 +91,7 @@ pnpm test -- --run <test-file>
 
 ### 3. QUALITY GATE
 
-**Automated checks that MUST pass before REFACTOR**
+**Automated checks that have to pass before REFACTOR**
 
 The project's own type check and lint, and its tests as its rules say
 (inside a spec's /aide-implement run the whole suite is the runner's):
