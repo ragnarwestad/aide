@@ -63,7 +63,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: state + kind + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
+      after: kind + state + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
     },
     lang,
   );
