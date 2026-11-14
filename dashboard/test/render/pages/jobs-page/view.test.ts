@@ -162,6 +162,15 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(view([deploy], { state: "waiting" })).toEqual([]);
   });
 
+  // Active holds what can still be acted on: a spec's row can run its phase
+  // again, while a job that is not a spec's offers nothing once cancelled.
+  test("a cancelled job that is not a spec's is not Active; a spec's cancelled job is", () => {
+    const schedule = jobEntry("schedule", { specFolder: "schedule-nightly-e2e", steps: ["schedule"], state: "cancelled", createdAt: T(6) });
+    const specRow = spec("spec", { specFolder: "147-cancelled", state: "cancelled", createdAt: T(7) });
+    expect(view([schedule, specRow], { state: "not-archived" })).toEqual(["spec"]);
+    expect(view([schedule], { state: "failed" })).toEqual(["schedule"]);
+  });
+
   test("a key the tab does not offer is All, and filters as All does", () => {
     for (const key of [undefined, "", "archived", "closed", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
