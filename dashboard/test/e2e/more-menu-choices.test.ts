@@ -74,14 +74,28 @@ test("the … menu's Usage row opens the Usage panel at phone width (AC-2)", asy
   expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
 });
 
-test("the … menu's Filter row opens the filter list on Jobs and Specs at phone width (AC-4, AC-5)", async () => {
-  for (const path of ["/?live=0", "/specs?live=0"]) {
-    await openMore(PHONE, path);
-    await page.locator(MORE_MENU).getByRole("button", { name: "Filter", exact: true }).click();
-    const filter = page.locator('details.menu[data-filter="state"]');
-    expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-    await filter.locator(".menupanel a").first().waitFor({ state: "visible" });
-  }
+test("the … menu has separate States and Types rows on Jobs and one count outside it (AC-1, AC-6, AC-7)", async () => {
+  await openMore(PHONE);
+  const more = page.locator(MORE_MENU);
+  const count = page.locator("[data-jobs-result-count]");
+  expect(await more.getByRole("button", { name: "States", exact: true }).count()).toBe(1);
+  expect(await more.getByRole("button", { name: "Types", exact: true }).count()).toBe(1);
+  expect(await more.locator("[data-jobs-result-count]").count()).toBe(0);
+  expect(await count.count()).toBe(1);
+
+  await more.getByRole("button", { name: "States", exact: true }).click();
+  expect(await page.locator('details.menu[data-filter="state"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+  await openMore(PHONE);
+  await page.locator(MORE_MENU).getByRole("button", { name: "Types", exact: true }).click();
+  expect(await page.locator('details.menu[data-filter="kind"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+});
+
+test("the … menu keeps one Filter row on Specs at phone width", async () => {
+  await openMore(PHONE, "/specs?live=0");
+  await page.locator(MORE_MENU).getByRole("button", { name: "Filter", exact: true }).click();
+  const filter = page.locator('details.menu[data-filter="state"]');
+  expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+  await filter.locator(".menupanel a").first().waitFor({ state: "visible" });
 });
 
 test("choosing Deutsch reloads in German with the menu open, once", async () => {

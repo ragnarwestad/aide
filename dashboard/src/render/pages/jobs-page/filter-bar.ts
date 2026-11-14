@@ -31,44 +31,40 @@ const KIND_LABELS = {
   group: "jobs.filterKindGroup",
 } as const;
 
-/** The search box with the state dropdown after its help, and New group after the dropdown. */
-export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language): string {
+/** The search box with separate state and type dropdowns after its help, and New group after them. */
+export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, resultCount = facts.length): string {
   const stateOptions = jobsStateOptions(facts, f);
   const kindOptions = jobsKindOptions(facts, f);
-  const kindNarrowed = kindOptions.some((o) => o.on && o.key !== "all");
-  const options = [
-    ...stateOptions.map((o, index) => ({
-      heading: index === 0 ? t(lang, "list.statesLabel") : undefined,
-      label: stateFilterLabel(o.key, lang),
-      count: o.count,
-      on: o.on,
-      summary: o.on && (!kindNarrowed || o.key !== "all"),
-      href: esc(jobsViewPath(f, { state: o.state })),
-    })),
-    ...kindOptions.map((o, index) => ({
-      heading: index === 0 ? t(lang, "jobs.kindHeading") : undefined,
-      label: o.key === "all" ? stateFilterLabel("all", lang) : t(lang, KIND_LABELS[o.key]),
-      count: o.count,
-      on: o.on,
-      summary: o.on && o.key !== "all",
-      href: esc(jobsViewPath(f, { kind: o.kind })),
-    })),
-  ];
   const state = menuDropdown({
     filter: "state",
     ariaLabel: t(lang, "list.statesLabel"),
-    options,
-    multipleLabel: t(lang, "list.statesChosen", {
-      n: options.filter((o) => o.summary).length,
-    }),
+    triggerLabel: t(lang, "list.statesLabel"),
+    options: stateOptions.map((o) => ({
+      label: stateFilterLabel(o.key, lang),
+      count: o.count,
+      on: o.on,
+      href: esc(jobsViewPath(f, { state: o.state })),
+    })),
   });
+  const kind = menuDropdown({
+    filter: "kind",
+    ariaLabel: t(lang, "jobs.typesLabel"),
+    triggerLabel: t(lang, "jobs.typesLabel"),
+    options: kindOptions.map((o) => ({
+      label: o.key === "all" ? stateFilterLabel("all", lang) : t(lang, KIND_LABELS[o.key]),
+      count: o.count,
+      on: o.on,
+      href: esc(jobsViewPath(f, { kind: o.kind })),
+    })),
+  });
+  const count = `<span class="counts" data-jobs-result-count>${t(lang, "jobs.resultCount", { n: resultCount })}</span>`;
   return searchForm(
     {
       action: "/",
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: state + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
+      after: state + kind + count + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
     },
     lang,
   );

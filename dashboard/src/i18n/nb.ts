@@ -152,6 +152,8 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.endedInterrupted": "Jobben ble avbrutt før den var ferdig — loggen viser hvor langt den kom.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
+  "jobs.typesLabel": "Typer",
+  "jobs.resultCount": "{n} resultater",
   "jobs.kindSpec": "Spec",
   "jobs.kindDeploy": "Utrulling",
   "jobs.kindSchedule": "Planlagt jobb",

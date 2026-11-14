@@ -225,7 +225,7 @@ export function renderJobsRows(v: JobsView): string {
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices + executionGroupEditors(v, lang) +
-    jobsFilterBar(all.map((e) => e.facts), f, lang) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, shown.length) +
     `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
 }

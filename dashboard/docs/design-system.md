@@ -391,8 +391,9 @@ Closing it on an outside click or on
 Escape is its own script, `menu-script.ts`, riding in the head tag with the others.
 
 At phone width the header keeps the wordmark, the board line and the "…" menu. Theme, language and unit are rows in
-the "…" menu, and so are Usage and, on Jobs and Specs, Filter: each of those two opens its own panel, the one its
-hidden trigger opens on a wider screen, under the header's right end and under the search line's right end.
+the "…" menu, as is Usage. Specs has one Filter row. Jobs has separate States and Types rows, one for each filter
+panel, while its result count stays above the results outside the menu. Each row opens the panel whose trigger is
+hidden at this width, under the header's right end or the search line's right end.
 
 Every tab strip is `tabBar()` in `tabs.ts`: the header's row (`site`, which leaves out `subtabs`), a page's own tabs,
 and a strip nested under one — a step's Log, Changed files and Errors. A caller

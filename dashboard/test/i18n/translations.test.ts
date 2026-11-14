@@ -28,4 +28,8 @@ describe("t()", () => {
   test("the first tab is named Jobs in every language (AC-1)", () => {
     expect(LANGUAGES.map((lang) => t(lang, "shell.tabRunning"))).toEqual(["Aufträge", "Jobs", "Trabajos", "Tâches", "Jobber"]);
   });
+
+  test("the Jobs kind filter is named Type in every language (AC-3)", () => {
+    expect(LANGUAGES.map((lang) => t(lang, "jobs.kindHeading"))).toEqual(["Typ", "Type", "Tipo", "Type", "Type"]);
+  });
 });

@@ -181,7 +181,7 @@ export interface MenuOption {
 /** The State dropdown. Its checkbox links may be combined, while the trigger
  *  reserves the width of the widest option. `filter` names the control for
  *  the page script and the tests. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; multipleLabel?: string }): string {
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; multipleLabel?: string; triggerLabel?: string }): string {
   const options = o.options
     .map(
       (opt) =>
@@ -191,10 +191,14 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
     )
     .join("");
   const chosen = o.options.filter((opt) => opt.summary ?? opt.on);
-  const visible = chosen.length === 1
-    ? `${esc(chosen[0]!.label)} (${chosen[0]!.count})`
-    : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;
-  const widths = o.options.map((opt) => `<span aria-hidden="true">${esc(opt.label)} (${opt.count})</span>`).join("");
+  const visible = o.triggerLabel
+    ? esc(o.triggerLabel)
+    : chosen.length === 1
+      ? `${esc(chosen[0]!.label)} (${chosen[0]!.count})`
+      : `<span data-state-names hidden>${chosen.map((opt) => esc(opt.label)).join(", ")}</span><span data-state-count>${esc(o.multipleLabel ?? String(chosen.length))}</span>`;
+  const widths = o.triggerLabel
+    ? `<span aria-hidden="true">${esc(o.triggerLabel)}</span>`
+    : o.options.map((opt) => `<span aria-hidden="true">${esc(opt.label)} (${opt.count})</span>`).join("");
   return (
     `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}">` +
     `<summary aria-label="${o.ariaLabel}">` +

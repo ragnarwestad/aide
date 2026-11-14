@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
-test("ticking a state filters the list and leaves the menu open until Escape", async () => {
+test("state and type keep independent multiple selections and their menus stay open (AC-2)", async () => {
   await withBrowser(page.goto(`${base}/?live=0&state=all`), "page.goto(/)");
   const menu = page.locator('details.menu[data-filter="state"]');
   await menu.locator("summary").click();
@@ -28,6 +28,21 @@ test("ticking a state filters the list and leaves the menu open until Escape", a
   await page.locator("#spec-aide\\/81-queue-and-runner").waitFor({ state: "detached" });
   expect(await page.locator('details.menu[data-filter="state"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
 
+  await page.locator('details.menu[data-filter="state"] .menupanel a[href*="stopped"]').click();
+  await page.waitForFunction(() => new URLSearchParams(location.search).get("state")?.split(",").length === 2);
+  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["stopped", "failed"]));
+
   await page.keyboard.press("Escape");
   expect(await page.locator('details.menu[data-filter="state"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(false);
+
+  const typeMenu = page.locator('details.menu[data-filter="kind"]');
+  await typeMenu.locator("summary").click();
+  await typeMenu.locator('.menupanel a[href*="kind=schedule"]').click();
+  await page.waitForFunction(() => new URLSearchParams(location.search).get("kind") === "schedule");
+  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["stopped", "failed"]));
+  expect(await page.locator('details.menu[data-filter="kind"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
+
+  await page.locator('details.menu[data-filter="kind"] .menupanel a[href*="spec"]').click();
+  await page.waitForFunction(() => new URLSearchParams(location.search).get("kind")?.split(",").length === 2);
+  expect(new Set(new URL(page.url()).searchParams.get("kind")?.split(","))).toEqual(new Set(["spec", "schedule"]));
 });

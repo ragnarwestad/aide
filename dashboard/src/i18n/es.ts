@@ -152,6 +152,8 @@ export const es: Record<TranslationKey, string> = {
   "jobs.endedInterrupted": "El trabajo se cortó antes de terminar — su registro dice hasta dónde llegó.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Tipo",
+  "jobs.typesLabel": "Tipos",
+  "jobs.resultCount": "{n} resultados",
   "jobs.kindSpec": "Spec",
   "jobs.kindDeploy": "Despliegue",
   "jobs.kindSchedule": "Trabajo programado",

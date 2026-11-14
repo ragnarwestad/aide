@@ -245,7 +245,9 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
       // triggers, which a phone's stylesheet hides (narrow-rows.css); the
       // menu script opens the `<details>` each names.
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}` +
-        `<button type="button" data-opens="state-filter">${t(lang, "shell.filter")}</button>` +
+        `<button type="button" data-opens="state-filter" data-single-filter>${t(lang, "shell.filter")}</button>` +
+        `<button type="button" data-opens="state-filter" data-jobs-filter>${t(lang, "list.statesLabel")}</button>` +
+        `<button type="button" data-opens="kind-filter">${t(lang, "jobs.typesLabel")}</button>` +
         `<button type="button" data-opens="usage-dialog">${t(lang, "shell.usage")}</button>` +
         `<a href="/settings">${t(lang, "shell.settings")}</a>` +
         `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +

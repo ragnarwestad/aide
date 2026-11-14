@@ -703,17 +703,46 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     expect(listHead).toContain(t("en", "list.colSpec"));
   });
 
+  test("the Jobs filters have fixed labels and separate choices (AC-1, AC-2)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "state=failed&kind=schedule");
+    const state = html.match(/<details[^>]*data-filter="state"[\s\S]*?<\/details>/)?.[0] ?? "";
+    const kind = html.match(/<details[^>]*data-filter="kind"[\s\S]*?<\/details>/)?.[0] ?? "";
+    expect(html.match(/data-filter="/g)).toHaveLength(2);
+    expect(state).toContain(`>${t("en", "list.statesLabel")}<`); expect(kind).toContain(`>${t("en", "jobs.typesLabel")}<`);
+    expect(state).toContain(t("en", "list.state.failed")); expect(kind).toContain(t("en", "jobs.filterKindSchedule"));
+    expect(state).not.toContain(t("en", "jobs.filterKindSchedule"));
+    expect(kind).not.toContain(t("en", "list.state.failed"));
+  });
+
+  test("the Jobs bar shows one filtered result count and keeps choice counts (AC-4, AC-5)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "q=report&state=failed&kind=schedule");
+    expect(html.match(/data-jobs-result-count/g)).toHaveLength(1);
+    expect(html).toContain(t("en", "jobs.resultCount", { n: 1 }));
+    expect(html).toContain(`${t("en", "list.state.failed")} (1)`);
+    expect(html).toContain(`${t("en", "jobs.filterKindSchedule")} (1)`);
+  });
+
+  test("the Jobs filter labels follow the selected language (AC-8)", async () => {
+    const { base } = withBoth();
+    const html = await rowsOf(base, "lang=de");
+    expect(html).toContain(`>${t("de", "list.statesLabel")}<`); expect(html).toContain(`>${t("de", "jobs.typesLabel")}<`);
+    expect(html).toContain(t("de", "jobs.resultCount", { n: 2 }));
+  });
+
   describe("a project key", () => {
     const reportOther = job({ ...report, id: "reporto", project: "other", createdAt: "2026-10-08T10:02:00Z" });
     const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
     const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
 
-    test("the filter bar holds the state dropdown alone, whatever the address carries", async () => {
+    test("the filter bar holds only the state and type dropdowns, whatever the address carries (AC-1)", async () => {
       const { base } = withOther();
       for (const query of ["", "project=other"]) {
         const html = await rowsOf(base, query);
-        expect(html.match(/data-filter="/g)).toHaveLength(1);
+        expect(html.match(/data-filter="/g)).toHaveLength(2);
         expect(html).toContain('data-filter="state"');
+        expect(html).toContain('data-filter="kind"');
         expect(html).not.toContain('data-filter="project"');
       }
     });
