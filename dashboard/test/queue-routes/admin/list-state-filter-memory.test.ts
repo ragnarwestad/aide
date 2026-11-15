@@ -34,16 +34,16 @@ describe("the state filter the reader chose is remembered", () => {
   // the whole page would never be written by the act of choosing.
   test("the rows-only fetch writes it too", async () => {
     const { base, server } = start();
-    const res = await fetch(`${base}/specs?state=waiting&rows=1`);
-    expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=waiting`);
+    const res = await fetch(`${base}/specs?state=created&rows=1`);
+    expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=created`);
   });
 
   test("several states survive the cookie and a later bare visit (AC-7)", async () => {
     const { base, server } = start();
-    const chosen = await fetch(`${base}/specs?state=stopped,failed`);
+    const chosen = await fetch(`${base}/specs?state=analyzed,implemented`);
     const jar = stateCookie(chosen, server.port).split(";")[0]!;
     const plain = await fetch(`${base}/specs`, { headers: { cookie: jar } });
-    expect(tickedLabels(await plain.text())).toEqual(["Stopped", "Failed"]);
+    expect(tickedLabels(await plain.text())).toEqual(["Analyzed", "Implemented"]);
   });
 
   test("a link that names a state still wins over what is remembered, including All", async () => {

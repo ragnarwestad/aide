@@ -25,6 +25,14 @@ describe("t()", () => {
     expect(LANGUAGES.sort()).toEqual(["de", "en", "es", "fr", "nb"]);
   });
 
+  test("every language names the four progress states (AC-15)", () => {
+    for (const lang of LANGUAGES) {
+      for (const key of ["created", "reopened", "analyzed", "implemented"] as const) {
+        expect(t(lang, `list.state.${key}`)).not.toBe(`list.state.${key}`);
+      }
+    }
+  });
+
   test("the first tab is named Jobs in every language (AC-1)", () => {
     expect(LANGUAGES.map((lang) => t(lang, "shell.tabRunning"))).toEqual(["Aufträge", "Jobs", "Trabajos", "Tâches", "Jobber"]);
   });

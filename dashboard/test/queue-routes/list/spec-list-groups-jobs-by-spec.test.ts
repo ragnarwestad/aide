@@ -46,7 +46,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
 
 
 
-  test("a spec with one job in flight is active, one with only finished jobs is not", () => {
+  test("a spec with one job in flight is running, one with only finished jobs is not", () => {
     const html = page(
       [
         job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
@@ -57,7 +57,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
         }),
         job("b1", "bb-spec", { state: "done" }),
       ],
-      { state: "active" },
+      { state: "running" },
     );
     expect(html).toContain("aa-spec");
     expect(html).not.toContain("bb-spec");
@@ -81,7 +81,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
     ]);
     expect(html).toMatch(/>All \(2\)</);
     expect(html).toMatch(/>Running \(1\)</);
-    expect(html).toMatch(/>Waiting \(1\)</);
+    expect(html).toMatch(/>Created \(1\)</);
   });
 
   test("sorting by cost uses the spec's total, not one job's", () => {

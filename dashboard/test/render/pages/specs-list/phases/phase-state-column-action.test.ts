@@ -86,7 +86,7 @@ describe("the row draws one action, on its caption line", () => {
 
   test("the next unstarted phase names the button", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })]);
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Analyzed<");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
 
@@ -96,7 +96,7 @@ describe("the row draws one action, on its caption line", () => {
   // to do. The state is still readable shut — only the action moved.
   test("a shut row draws no action at all, and no form to carry one", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: false });
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Analyzed<");
     // Off the table alone: the search field above it has a Search
     // button, and that is not a row's action.
     expect(html.slice(html.indexOf("<tbody"))).not.toContain("<button");
@@ -108,7 +108,7 @@ describe("the row draws one action, on its caption line", () => {
     // The badge names the next phase here as it does on a
     // row that has run something, so it agrees with the button beside
     // it rather than saying nothing.
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Created<");
     expect(labels(action(html))).toEqual(["Analyze"]);
   });
 
@@ -120,7 +120,7 @@ describe("the row draws one action, on its caption line", () => {
   test("a spec with no job left in memory still says what comes next", () => {
     const html = rows([], [target("157-one-action", { done: BUILT })]);
     expect(state(html)).toContain('class="badge b-ready"');
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Analyzed<");
     expect(state(html)).not.toContain("not started");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
@@ -158,7 +158,7 @@ describe("the row draws one action, on its caption line", () => {
       [lead({ steps: ["archive"] })],
       [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
     );
-    expect(state(html)).toContain("Stopped");
+    expect(state(html)).toContain("Analyzed");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
 
@@ -242,7 +242,7 @@ describe("the row draws one action, on its caption line", () => {
       [],
       [target("191-agree", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Implemented<");
     expect(labels(action(html))).toEqual(["Archive"]);
   });
 
@@ -255,7 +255,7 @@ describe("the row draws one action, on its caption line", () => {
       [],
       [target("191-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(state(html)).toContain(">Ready<");
+    expect(state(html)).toContain(">Implemented<");
     expect(labels(action(html))).toEqual(["Archive"]);
     expect(state(html)).not.toContain("nothing waiting on you");
   });

@@ -19,6 +19,7 @@ import { dependsOnLine } from "./depends-on";
 import { resolveProvider } from "./model-resolve.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
+import { headStateBadge } from "./head-row.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
@@ -92,6 +93,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
   const action = stateAction(g, opts);
+  const openState = headStateBadge(g, opts.lang ?? "en");
   // The spec's own totals stand on this line: an open row hides the head
   // row's second line (list.css), so Time and Cost move here, over the
   // phases' own figures.
@@ -99,7 +101,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action, opts.lang ?? "en", totals),
+      cells: phaseCaptionCells(opts, true, action, opts.lang ?? "en", totals, true, openState),
     });
   } else {
     // No captions to head — one tool configured, nothing to choose
@@ -109,7 +111,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       tag: `<tr class="subrow" data-caption="1">`,
       cells:
         `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
-        `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
+        `<td data-col="state"><span class="row"><span class="badgeslot">${openState}</span>${action ? `<span class="actionslot">${action}</span>` : ""}</span></td>` +
         `<td data-col="started">${totals.started}</td><td class="num" data-col="cost">${totals.cost}</td>`,
     });
   }

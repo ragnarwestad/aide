@@ -4,6 +4,7 @@
 
 import { t, type Language, type TranslationKey } from "../../../../i18n";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, type SpecsFilter, type SpecGroup } from "./types.ts";
+import { specState } from "./spec-state.ts";
 
 // "Failed" holds everything that did not simply finish and did not
 // merely stop on its own terms — a cap-stop reads differently from a
@@ -25,9 +26,11 @@ export const NOT_VERIFIED_KEY = "not-verified";
 
 /** What the state filter and the search read off a row: a spec's group, or a
  *  scheduled job's facts on the Jobs tab. */
-type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed">;
+type FilterFacts = Pick<SpecGroup, "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed" | "lead">
+  & Partial<Pick<SpecGroup, "done" | "reopenedRound">>;
 /** What the column sort reads off a row. */
-type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">;
+type SortFacts = Pick<SpecGroup, "spentUsd" | "specFolder" | "state" | "createdAt" | "totalDurationMs" | "lead">
+  & Partial<Pick<SpecGroup, "done" | "reopenedRound">>;
 
 export type StateFilterEntry = {
   key: string;
@@ -60,17 +63,11 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // here (see below), so "running" already means "running, or a step's
   // branch is still being merged" — queued-with-no-landing is Waiting's to
   // show, not this entry's.
-  { key: "active:all", label: "Running", states: ["running"] },
-  { key: "waiting", label: "Waiting", states: ["queued", "done"] },
-  { key: "stopped", label: "Stopped", states: ["stopped"] },
-  {
-    key: "failed",
-    label: "Failed",
-    // An archive that left its own branch open did not simply finish
-    // either, so it counts as `failed` here rather than getting a
-    // row of its own.
-    states: ["failed", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
-  },
+  { key: "running", label: "Running", where: (g) => specState(g).key === "running" },
+  { key: "created", label: "Created", where: (g) => specState(g).key === "created" },
+  { key: "reopened", label: "Reopened", where: (g) => specState(g).key === "reopened" },
+  { key: "analyzed", label: "Analyzed", where: (g) => specState(g).key === "analyzed" },
+  { key: "implemented", label: "Implemented", where: (g) => specState(g).key === "implemented" },
   { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
   { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
   // Live and archived alike, and never a closed spec.
@@ -90,11 +87,16 @@ export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   all: "list.state.all",
   [ACTIVE_FILTER_KEY]: "list.state.active",
+  running: "list.state.running",
   "active:all": "list.state.running",
   waiting: "list.state.waiting",
   done: "list.done",
   stopped: "list.state.stopped",
   failed: "list.state.failed",
+  created: "list.state.created",
+  reopened: "list.state.reopened",
+  analyzed: "list.state.analyzed",
+  implemented: "list.state.implemented",
   [ARCHIVED_STATE]: "list.state.archived",
   [CLOSED_STATE]: "list.state.closed",
   [NOT_VERIFIED_KEY]: "list.state.notVerified",
@@ -125,7 +127,7 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
   // meant to a reader who never saw the sub-menu — "show me what is
   // running" — so both resolve to the one Running entry rather than
   // silently landing on "All".
-  const resolved = key === "active" || key?.startsWith("active:") ? "active:all" : key;
+  const resolved = key === "active" || key?.startsWith("active:") ? "running" : key;
   return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
 }
 
@@ -174,7 +176,9 @@ export function matchesStateFilter(f: StateFilterEntry, g: FilterFacts): boolean
  *  shows closed rows needs the walk exactly as the Archived entry does —
  *  without this, Closed counted two and listed none. */
 export function filterShowsArchived(state: string | undefined): boolean {
-  return stateFilters(state).some((f) => matchesState(f, ARCHIVED_STATE) || matchesState(f, CLOSED_STATE));
+  return stateFilters(state).some((f) =>
+    f.key === "all" || f.key === ARCHIVED_STATE || f.key === CLOSED_STATE || f.key === NOT_VERIFIED_KEY
+  );
 }
 
 /** Whether a row is LOCKED — built by `readerGroup()` off the archive
@@ -213,6 +217,11 @@ const haystack = (g: FilterFacts): string =>
  *  the list. */
 export const matchesSearch = (g: FilterFacts, f: SpecsFilter): boolean => {
   const term = (f.q ?? "").trim().toLowerCase();
+  const exactSpec = term.match(/^([^:\s]+):(\d+)$/);
+  if (exactSpec) {
+    const [project, number] = [exactSpec[1], exactSpec[2]];
+    return g.project.toLowerCase() === project && g.specFolder.match(/^\d+/)?.[0] === number;
+  }
   return !term || haystack(g).includes(term);
 };
 
@@ -248,7 +257,7 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
   const key = (g: SortFacts): number | string =>
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
-    : sort === "state" ? g.state
+    : sort === "state" ? (g.done ? specState(g).key : g.state)
     // A spec git could not date sorts as the NEWEST, not the oldest.
     // The epoch looks like where "unknown" would surprise least. In
     // use it is the opposite:

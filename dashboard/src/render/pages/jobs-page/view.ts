@@ -10,7 +10,6 @@ import {
   NOT_VERIFIED_KEY,
   SORTS,
   SORT_DEFAULT_DIR,
-  STATE_FILTERS,
   applyFilter,
   chosenStates,
   matchesSearch,
@@ -20,6 +19,7 @@ import {
   type SpecGroup,
   type SpecsFilter,
 } from "../specs-list/data-model";
+import type { StateFilterEntry } from "../specs-list/data-model/filter-sort.ts";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { byTabPlace, jobRowKind, jobTitle, type TabPlace } from "./rows.ts";
 
@@ -43,8 +43,7 @@ export const jobsKindValue = (value: string | undefined): string =>
  *  waits for its next phase, as on the Specs list. Active is every row Done
  *  does not hold and that can still be acted on, under the Specs list's key
  *  so it takes the list's label. */
-const JOBS_STATE_KEYS = ["all", "active:all", "waiting", "stopped", "failed", NOT_VERIFIED_KEY];
-type StateEntry = (typeof STATE_FILTERS)[number];
+type StateEntry = StateFilterEntry;
 const finished = (g: unknown): boolean => {
   const row = g as RowFacts;
   return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound));
@@ -54,9 +53,15 @@ const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
  *  Cancel. A spec's row can always run its phase again. */
 const endedForGood = (g: unknown): boolean => (g as RowFacts).state === "cancelled" && rowKind(g as RowFacts) !== "spec";
 const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknown) => !finished(g) && !endedForGood(g) } as StateEntry;
-const baseJobStates = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key))
-  .map((s) => (s.key === "waiting" ? { ...s, where: (g: unknown) => !finished(g) } as StateEntry : s));
-export const JOBS_STATE_FILTERS = [baseJobStates[0]!, activeState, ...baseJobStates.slice(1, 3), doneState, ...baseJobStates.slice(3)];
+const jobStateEntries: StateEntry[] = [
+  { key: "all", label: "All" },
+  { key: "active:all", label: "Running", states: ["running"] },
+  { key: "waiting", label: "Waiting", states: ["queued", "done"], where: (g) => !finished(g) },
+  { key: "stopped", label: "Stopped", states: ["stopped"] },
+  { key: "failed", label: "Failed", states: ["failed", "interrupted", "cancelled", "archived-unlanded"] },
+  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== "closed" && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
+];
+export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 3), doneState, ...jobStateEntries.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>

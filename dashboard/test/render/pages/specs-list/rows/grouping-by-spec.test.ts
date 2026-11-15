@@ -96,17 +96,16 @@ describe("the queue list groups by spec", () => {
     expect(head).not.toContain('class="badge b-done"');
   });
 
-  test("with nothing in flight the header shows the latest outcome", () => {
+  test("with nothing in flight the header shows the spec's own state", () => {
     const html = rows([
       job("j1", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    // A resting `done` badge reads the resting state and what
-    // is next, so it wears `b-ready` here. What it must not read is the
-    // OLDER job's outcome, which would still be the bare word "failed".
+    // Jobs do not advance a spec's state. Its files contain no completed
+    // phase here, so the row remains Created regardless of job outcomes.
     expect(head).toContain('class="badge b-ready"');
-    expect(head).toContain(">Ready<");
+    expect(head).toContain(">Created<");
     expect(head).not.toContain('class="badge b-refused"');
   });
 

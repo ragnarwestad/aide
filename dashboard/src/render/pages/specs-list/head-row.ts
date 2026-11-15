@@ -5,25 +5,24 @@ import { t, type Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, btnLink, stepLabel } from "../../ui/components";
+import { badge, stepLabel } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
-import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { esc } from "../../ui/html.ts";
-import { inFlight, restingChip } from "../../ui/job-state";
+import { inFlight } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { ARCHIVED_STATE, CLOSED_STATE, isArchivedRow, type SpecGroup } from "./data-model";
+import { isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
   costCell,
   createdLabel,
   phasePips,
-  stateCell,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
-import { archivingAgain, nextPhase, rowAnchorId } from "./row-state.ts";
+import { rowAnchorId } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
+import { specState } from "./data-model/spec-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
 // blank rather than fall back to "no status recorded yet". No phase
@@ -120,8 +119,9 @@ export function specHeadRow(
   // to open yet, so only the project is a link.
   const identifier = `${g.project}:${g.specFolder}`;
   const base = { project: g.project, kind: "spec" as const, name: specName, lang };
+  const jobsHref = `/?q=${encodeURIComponent(`${g.project}:${number}`)}`;
   const spec = g.named && opts.openSpec
-    ? rowLabel({ ...base, title: identifier })
+    ? rowLabel({ ...base, title: identifier, href: g.hasJobs ? jobsHref : undefined })
     : g.named
     ? rowLabel({ ...base, title: identifier, href: `${specPagePath(g.project, g.specFolder)}#${rowAnchorId(g)}` })
     : rowLabel(base);
@@ -152,11 +152,8 @@ export function specHeadRow(
   // A closed row's badge word is CLOSED_STATE
   // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
   // badge already followed for "archived", now told apart by `g.state`.
-  const stateBadge = opts.openSpec ? "" : headStateBadge(g, lang);
+  const stateBadge = headStateBadge(g, lang);
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
-  const jobs = opts.openSpec && g.named && g.hasJobs
-    ? btnLink({ href: `/?q=${encodeURIComponent(`${g.project}:${number}`)}`, label: t(lang, "shell.tabRunning"), variant: "primary", small: true })
-    : "";
   // What goes under the name. A locked row draws nothing here
   // — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -240,7 +237,7 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${jobs || run.control ? `<span class="row">${run.control}${jobs}</span>` : ""}${run.dialog}</td>` +
+    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${run.control ? `<span class="row">${run.control}</span>` : ""}${run.dialog}</td>` +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by
     // it on every run, and the spec's own creation date says nothing about
@@ -265,14 +262,12 @@ export function specHeadRow(
  *  A spec with no job in the queue's memory reads through `restingChip`
  */
 export function headStateBadge(g: SpecGroup, lang: Language): string {
-  const locked = isArchivedRow(g) && !archivingAgain(g);
-  const nextStep = locked ? undefined : nextPhase(g.done);
-  const readyPhase = nextStep ? stepLabel(nextStep, lang) : undefined;
-  const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
-  return locked
-    ? badge("done", capitalizeFirst(g.state === CLOSED_STATE ? CLOSED_STATE : ARCHIVED_STATE))
-    : g.lead
-      ? stateCell(g.lead, lang, { archiveHeldBack: heldBack, readyPhase })
-      : restingChip(lang, { archiveHeldBack: heldBack, readyPhase });
+  const state = specState(g);
+  const label = state.key === "running" && state.phase
+    ? `${t(lang, "list.state.running")}: ${stepLabel(state.phase, lang)}`
+    : t(lang, `list.state.${state.key}` as Parameters<typeof t>[1]);
+  const variant = state.key === "running" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
+  const unverified = (g.notVerified ?? 0) + (g.failed ?? 0);
+  return badge(variant, label) + (unverified > 0 ? `<span class="muted small">${esc(t(lang, "list.notVerifiedMark", { n: unverified }))}</span>` : "");
 }
 

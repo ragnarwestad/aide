@@ -191,14 +191,19 @@ both read "0% done". The spec's own page shows it in full.
 
 The State column carries the spec's own state and nothing else:
 
-- **Running** — a job in flight.
-- **Queued 3/11** — a job waiting for a slot, third of eleven queued — or, when it names the phase instead,
-  "analyzing queued".
-- **Held back** — a job the runner is holding back.
-- **Ready**, **Done**, or **Stopped** — once nothing is running the column is one word.
+- **Created** — no phase has run.
+- **Reopened** — the spec was reopened and no phase has run in the new round.
+- **Analyzed** — analyze is the last completed phase.
+- **Implemented** — implement is the last completed phase and the spec is still active.
+- **Archived** or **Closed** — the spec is finished.
+- **Running: phase** — a phase is running or its branch is landing.
 
-Nothing more goes in the column. Why a spec stopped, and what it is held back on, is the row's notice line
-underneath; which phase a press would run is on the Running tab's button, which is labelled with it.
+When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
+Jobs tab shows what happened to the job. A separate Not verified mark appears beside the state when an acceptance
+criterion still needs checking. The open spec page shows the same state and mark as the list row.
+
+A spec title links to the Jobs tab, filtered to that spec, when the spec has jobs. A spec with no jobs has a plain
+text title. The header row has no separate Jobs button.
 
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
@@ -443,14 +448,15 @@ shows every row that matches any of them. `?state=` holds their keys separated b
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs
 the table shows, in brackets. On Jobs and Specs, a filter with a choice other than All has an accent-coloured dot and
 border; choosing All clears them without changing the button's width. The phone's menu shows the dot beside the
-filter's name. Each entry's count is its own count over the rows the search lets through. The nine entries are:
+filter's name. Each entry's count is its own count over the rows the search lets through. The ten entries are:
 
 - **All** — the default.
 - **Active** — everything not archived and not closed.
-- **Running** — only `running`, or a job whose branch is still landing.
-- **Waiting** — `queued` (in queue or held back), or `done` with no landing in progress.
-- **Stopped**.
-- **Failed** — `failed`, `interrupted`, `cancelled`, or an archived spec whose branch still exists on origin.
+- **Running** — a phase is running or landing.
+- **Created**.
+- **Reopened**.
+- **Analyzed**.
+- **Implemented**.
 - **Archived**.
 - **Closed**.
 - **Not verified**.

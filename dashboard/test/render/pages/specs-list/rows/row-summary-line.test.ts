@@ -49,7 +49,7 @@ describe("one line per row for what is going on and what is next", () => {
   // It used to say "never run — tick a phase
   // and press Run", beside a button that already reads "Analyze". The
   // page says what IS; the controls say what can be done.
-  test("a spec nothing has run is not told what to press", () => {
+  test("a spec nothing has run shows Created (AC-1)", () => {
     const cell = stateCell(rows([], [target("101-never-run")]));
     expect(cell).not.toContain("press Run");
     expect(cell).not.toContain("tick a phase");
@@ -59,7 +59,7 @@ describe("one line per row for what is going on and what is next", () => {
     // The badge and the button are untouched — they are what says it.
     // The words on a never-run row say what comes next, not "not started";
     // the badge itself is still what says it.
-    expect(cell).toContain(">Ready<");
+    expect(cell).toContain(">Created<");
   });
 
   // In flight the sentence says nothing (asked for 2026-08-19): the
@@ -72,7 +72,7 @@ describe("one line per row for what is going on and what is next", () => {
       [target("101-a")],
     );
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)![0];
-    expect(head).toContain(">Analyzing<");
+    expect(head).toContain(">Running: Analyze<");
     expect(head).not.toContain("to follow");
     expect(hint(html)).toBe("");
   });
@@ -87,9 +87,7 @@ describe("one line per row for what is going on and what is next", () => {
       );
       expect(cell).not.toContain("press Run");
       expect(cell).not.toContain('<div class="muted small">');
-      // Which of the four it was is still said, in the badge (a
-      // cap-stop names its cap there too, hence toContain).
-      expect(cell).toContain(state.charAt(0).toUpperCase() + state.slice(1));
+      expect(cell).toContain(">Created<");
     }
   });
 
@@ -98,7 +96,7 @@ describe("one line per row for what is going on and what is next", () => {
   // for a branch left open that is the archive step which lands it.
   test("a finished spec with a branch still out says which phase is next", () => {
     const html = rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]);
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Created");
     expect(html).toContain(">Analyze</button>");
     expect(hint(html)).toBe("");
   });
@@ -118,7 +116,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Implemented");
     expect(chip(html).toLowerCase()).not.toContain("merge");
     expect(hint(html)).toBe("");
   });
@@ -134,7 +132,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toBe("done");
     expect(hint(html)).toBe("");
@@ -145,7 +143,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Implemented");
     expect(html).toContain(">Archive</button>");
   });
 
@@ -157,7 +155,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(hint(html)).toBe("");
   });
@@ -171,7 +169,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Implemented");
     expect(html).toContain(">Archive</button>");
     expect(hint(html)).toBe("");
   });
@@ -184,7 +182,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toContain("nothing waiting on you");
   });
@@ -193,16 +191,37 @@ describe("one line per row for what is going on and what is next", () => {
   // the spec's files say has been done: "ready for X" must not widen
   // into a state that stopped. The badge is what carries it, not a retry
   // sentence below the badge.
-  test("a job that stopped short keeps its own badge, whatever the files say", () => {
+  test("a settled job leaves the spec at its completed phase (AC-7, AC-8)", () => {
     for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["implement"], state })],
         [target("101-a", { done: ["analyze"] })],
       );
-      expect(chip(html)).toContain(state.charAt(0).toUpperCase() + state.slice(1));
-      expect(chip(html)).not.toContain(">Ready<");
+      expect(chip(html)).toBe("Analyzed");
       expect(hint(html)).toBe("");
     }
+  });
+
+  test("the state mark and title link follow the spec, without a Jobs button (AC-9, AC-10, AC-11, AC-12, AC-13)", () => {
+    const withJobsList = [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })];
+    const withJobsTargets = [target("101-a", { done: ["analyze"], notVerified: 2 })];
+    const withJobs = renderSpecsRows(
+      withJobsList,
+      { runnerAvailable: true, targets: withJobsTargets, openSpec: {}, filter: { open: openKeys(withJobsList, withJobsTargets) } },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
+    expect(withJobs).toContain(">Analyzed<");
+    expect(withJobs).toContain("2 not verified");
+    expect(withJobs).toContain('/?q=aide%3A101');
+    expect(withJobs).not.toContain(">Jobs</a>");
+
+    const withoutJobsTargets = [target("102-b", { done: ["analyze"] })];
+    const withoutJobs = renderSpecsRows(
+      [],
+      { runnerAvailable: true, targets: withoutJobsTargets, openSpec: {}, filter: { open: openKeys([], withoutJobsTargets) } },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
+    expect(withoutJobs).not.toContain('/?q=aide%3A102');
   });
 
   // Archive is the one phase whose "done" the job's own exit
@@ -214,7 +233,7 @@ describe("one line per row for what is going on and what is next", () => {
     );
     // The badge keeps the WORD — it is `nowrap`, and the
     // reason is a sentence — and the row's panel says the reason.
-    expect(chip(html)).toBe("Stopped");
+    expect(chip(html)).toBe("Created");
     expect(chip(html)).not.toContain("nothing waiting on you");
     // Once, not twice: the badge says it, so the line below has nothing
     // left to add.
@@ -245,7 +264,7 @@ describe("one line per row for what is going on and what is next", () => {
         }),
       ],
     );
-    expect(chip(html)).toBe("Ready");
+    expect(chip(html)).toBe("Implemented");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
       "Click the link to start a test server running this branch",
     );

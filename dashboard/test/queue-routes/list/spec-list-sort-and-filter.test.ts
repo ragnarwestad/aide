@@ -86,10 +86,10 @@ describe("the job list sorts and filters", () => {
     expect(html).not.toContain("c-spec");
   });
 
-  test("a stopped job shows under its own Stopped chip, not Failed", () => {
+  test("an old stopped filter falls back to All because job outcomes are not spec states", () => {
     const html = page([row("a", { state: "stopped" }), row("b")], { state: "stopped" });
     expect(html).toContain("a-spec");
-    expect(html).not.toContain("b-spec");
+    expect(html).toContain("b-spec");
   });
 
   // The default view is the newest spec MADE at the

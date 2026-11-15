@@ -140,6 +140,14 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(view(rounds, { q: "aide:144" })).toEqual(["round-2", "round-1"]);
   });
 
+  test("a project:number search does not include a longer spec number", () => {
+    const rows = [
+      spec("eight", { specFolder: "8-small", state: "done" }),
+      spec("eighty", { specFolder: "80-large", state: "done" }),
+    ];
+    expect(view(rows, { q: "aide:8" })).toEqual(["eight"]);
+  });
+
   test("Done shows only finished rows and remains the selected state (AC-5)", () => {
     const done = spec("done", { specFolder: "145-done", state: "archived", createdAt: T(6) });
     expect(view([running, done, failedReport], { state: "done" })).toEqual(["done"]);

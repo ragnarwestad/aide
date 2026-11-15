@@ -212,19 +212,11 @@ describe("every spec is a row", () => {
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
-  test("a never-run spec reads what comes next and links to its SPEC", () => {
+  test("a never-run spec shows its own state and links to its spec", () => {
     const html = rows([], [target("90-never-run")]);
     const line = head(html, "90-never-run");
-    // "not started" and "ready for implement" describe the
-    // same kind of situation — nothing running, and here is what could
-    // — so the column says what comes next on both. Nothing has run
-    // here, so the next phase is analyze.
     expect(line).toContain('class="badge b-ready"');
-    expect(line).toContain(">Ready<");
-    expect(line).not.toContain("not started");
-    // It used to link to nothing — "a link to nothing is worse than no
-    // link". Every spec has somewhere to point, so what must
-    // NOT be there is a JOB link: a spec that has never run has no job.
+    expect(line).toContain(">Created<");
     expect(line).toContain('href="/specs/aide/90-never-run');
     expect(line).toContain("90-never-run");
   });
@@ -293,10 +285,10 @@ describe("every spec is a row", () => {
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
     expect(html).toMatch(/>All \(2\)</);
-    expect(html).not.toContain(">Not started");
     expect(html).toMatch(/>Running \(0\)</);
-    expect(html).toMatch(/>Waiting \(1\)</);
-    expect(html).toMatch(/>Failed \(0\)</);
+    expect(html).toMatch(/>Created \(2\)</);
+    expect(html).toMatch(/>Analyzed \(0\)</);
+    expect(html).toMatch(/>Implemented \(0\)</);
 
     expect(html).toContain("90-never-run");
     expect(html).toContain("90-has-run");

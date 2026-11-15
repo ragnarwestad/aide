@@ -215,12 +215,12 @@ describe("the State line says what is happening, or what is next", () => {
 
   // A queued row said one word and nothing else, while
   // the step it was waiting to run was known all along.
-  test("a queued job names the step it is waiting to run", () => {
+  test("a queued job keeps the spec at its completed state", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Implementing queued");
+    expect(chip(html)).toBe("Created");
   });
 
   // A row that carries its place in the queue says so in the
@@ -228,7 +228,7 @@ describe("the State line says what is happening, or what is next", () => {
   // read as a step under way for a job still waiting its turn — the pips
   // already say which phase it waits for. No hover text: it said nothing
   // the word and the number do not, and a phone has no hover.
-  test("a queued job with a queuePosition says it is queued, and its place", () => {
+  test("a queued job with a queuePosition still keeps the spec state", () => {
     const html = rows(
       [
         row({
@@ -242,7 +242,7 @@ describe("the State line says what is happening, or what is next", () => {
       ],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Queued 7/11");
+    expect(chip(html)).toBe("Created");
     expect(chipTitle(html)).toBeFalsy();
   });
 

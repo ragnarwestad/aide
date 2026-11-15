@@ -50,8 +50,9 @@ describe("building the archived rows", () => {
     // A closed spec's folder is under archive/ too: the Closed chip
     // needs the walk, or it counts rows it never lists.
     expect(filterShowsArchived("closed")).toBe(true);
+    expect(filterShowsArchived("not-verified")).toBe(true);
     expect(filterShowsArchived("not-archived")).toBe(false);
-    for (const key of ["active", "waiting", "failed"]) {
+    for (const key of ["active", "running", "created", "reopened", "analyzed", "implemented"]) {
       expect(filterShowsArchived(key)).toBe(false);
     }
     // A stale bookmark falls back to the same default.

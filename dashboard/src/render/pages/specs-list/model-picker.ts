@@ -272,6 +272,7 @@ export function phaseCaptionCells(
   /** A table that shows what each phase runs on, and selects nothing,
    *  has no "Select" column to head. */
   withBox = true,
+  state = "",
 ): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
@@ -295,7 +296,7 @@ export function phaseCaptionCells(
     (withBox ? `<span class="muted small" data-cap="box">${t(lang, "list.captionSelect")}</span>` : "") +
     `</span></td>` +
     (includeListColumns
-      ? `<td data-col="state">${action ? `<span class="actionslot">${action}</span>` : ""}</td>` +
+      ? `<td data-col="state"><span class="row"><span class="badgeslot">${state}</span>${action ? `<span class="actionslot">${action}</span>` : ""}</span></td>` +
         `<td data-col="started">${totals.started}</td>` +
         `<td class="num" data-col="cost">${totals.cost}</td>`
       : "")

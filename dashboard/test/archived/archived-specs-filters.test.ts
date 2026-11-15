@@ -81,10 +81,8 @@ describe("the All chip", () => {
     expect(rows).toEqual([STAMPED, UNSTAMPED, LIVE, SAME_DAY, UNDATED, OTHER, LIVE_OTHER]);
   });
 
-  // The three chips that were here before this spec each list the states
-  // they allow, and none of them lists `archived`.
-  test("the three older chips keep their meaning", async () => {
-    for (const state of ["active", "waiting", "failed"]) {
+  test("the active progress chips exclude archived specs", async () => {
+    for (const state of ["not-archived", "running", "created", "reopened", "analyzed", "implemented"]) {
       const html = await specsList(start().base, `?state=${state}`);
       for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     }
@@ -116,10 +114,10 @@ describe("the Not verified entry", () => {
     expect(html).toContain("1 not verified");
   });
 
-  test("is counted on an archived spec's row, and not yet on a live one's, outside its filter", async () => {
+  test("is marked beside the state of every spec that has it", async () => {
     const html = await specsList(withMarks().base);
     expect(html).toContain("2 not verified");
-    expect(html).not.toContain("1 not verified");
+    expect(html).toContain("1 not verified");
   });
 
   test("counts only the specs with a count, on a view that builds no archived row", async () => {

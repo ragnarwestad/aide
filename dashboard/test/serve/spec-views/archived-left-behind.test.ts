@@ -48,7 +48,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(row?.branchLeftBehind).toBe(true);
     expect(row?.notLanded).toBe(false);
     expect(archivedSpecRows(ctx, "not-archived")).toEqual([]);
-    expect(archivedSpecRows(ctx, "failed")).toEqual([]);
+    expect(archivedSpecRows(ctx, "created")).toEqual([]);
   });
 
   test("not merged, or never asked: not landed, built for the Active filter as today", () => {

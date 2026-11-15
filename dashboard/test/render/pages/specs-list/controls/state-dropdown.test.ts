@@ -77,18 +77,18 @@ describe("the Running entry", () => {
   });
 });
 
-describe("Kjører/Venter split on a landing job", () => {
-  test("a done job whose branch is still landing counts under Running, not Waiting", () => {
+describe("Running and settled spec progress", () => {
+  test("a done job whose branch is still landing counts under Running", () => {
     const jobs: QueueRowView[] = [
       row({ id: "a", specFolder: "1-a", state: "done", landing: true, steps: ["implement"], stepIndex: 0 }),
     ];
     const html = page({}, jobs);
     const panel = panelOf(html);
     expect(optionByLabel(panel, "Running")).toMatch(/Running \(1\)/);
-    expect(optionByLabel(panel, "Waiting")).toMatch(/Waiting \(0\)/);
+    expect(optionByLabel(panel, "Created")).toMatch(/Created \(0\)/);
   });
 
-  test("a held-back queued job counts under Waiting (the explicit held-back wording)", () => {
+  test("a held-back queued job keeps the spec at Created", () => {
     const jobs: QueueRowView[] = [
       row({
         id: "a",
@@ -101,7 +101,7 @@ describe("Kjører/Venter split on a landing job", () => {
     ];
     const html = page({}, jobs);
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Waiting")).toMatch(/Waiting \(1\)/);
+    expect(optionByLabel(panel, "Created")).toMatch(/Created \(1\)/);
   });
 });
 
@@ -112,15 +112,14 @@ describe("old bookmarked state values fall back to All", () => {
   });
 });
 
-test("several states are checkbox links that toggle their key (AC-1, AC-5, AC-10)", () => {
-  const html = page({ filter: { state: "stopped,failed", q: "needle", sort: "state" } });
+test("several states are checkbox links that toggle their key (AC-14)", () => {
+  const html = page({ filter: { state: "created,running", q: "needle", sort: "state" } });
   const panel = panelOf(html);
-  expect(optionByLabel(panel, "Stopped")).toContain('role="checkbox" aria-checked="true"');
-  expect(optionByLabel(panel, "Failed")).toContain('role="checkbox" aria-checked="true"');
-  expect(optionByLabel(panel, "Running")).toContain('aria-checked="false"');
-  const failed = new URL(`http://x${optionByLabel(panel, "Failed").match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&")}`);
-  expect(failed.searchParams.get("state")).toBe("stopped");
-  expect(failed.searchParams.get("q")).toBe("needle");
+  expect(optionByLabel(panel, "Created")).toContain('role="checkbox" aria-checked="true"');
+  expect(optionByLabel(panel, "Running")).toContain('role="checkbox" aria-checked="true"');
+  const running = new URL(`http://x${optionByLabel(panel, "Running").match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&")}`);
+  expect(running.searchParams.get("state")).toBe("created");
+  expect(running.searchParams.get("q")).toBe("needle");
 });
 
 test("the count beside the dropdown is the number of specs the table shows, after the states and the search", () => {
@@ -130,8 +129,8 @@ test("the count beside the dropdown is the number of specs the table shows, afte
     row({ id: "c", specFolder: "3-hay-c", state: "failed", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "d", specFolder: "4-needle-d", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];
-  const html = page({ filter: { state: "stopped,failed", q: "needle" } }, jobs);
-  expect(shownCount(html)).toBe(2);
-  expect(specRows(html)).toBe(2);
+  const html = page({ filter: { state: "created,running", q: "needle" } }, jobs);
+  expect(shownCount(html)).toBe(3);
+  expect(specRows(html)).toBe(3);
   expect(shownCount(page({}, jobs))).toBe(4);
 });
