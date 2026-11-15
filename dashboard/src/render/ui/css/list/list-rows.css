@@ -283,8 +283,10 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
    at. The spec is shown whole: the editor and the viewer grow with their
    text, and the list's scroller scrolls around them. */
 tr.specdetail > td { padding: var(--sp-3); }
-/* A card on the Jobs tab is edged in its kind's colour, the colour of its
-   kind icon, softened halfway towards the ordinary edge. */
+/* A card is edged in its kind's colour, the colour of its kind icon,
+   softened halfway towards the ordinary edge. Every row on the Specs list
+   is a spec's; a Jobs tab row carries its kind. */
+table.speclist[data-list="specs"] > tbody > tr { --card-edge: color-mix(in oklab, var(--kind-spec) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="spec"] { --card-edge: color-mix(in oklab, var(--kind-spec) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="deploy"] { --card-edge: color-mix(in oklab, var(--kind-deploy) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="schedule"] { --card-edge: color-mix(in oklab, var(--kind-schedule) 50%, var(--line)); }

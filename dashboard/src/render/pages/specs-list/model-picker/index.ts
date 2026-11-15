@@ -1,15 +1,13 @@
-import { esc } from "../../ui/html.ts";
-import { durationLabel } from "../../ui/job-state";
-import { aliasLabel, modelName } from "../../ui/components/model-label.ts";
-import { providerFace, providerPick } from "../../ui/components/icons.ts";
-import { t, type Language } from "../../../i18n";
-import type { SpecsPageOptions } from "./";
-import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
-import { runFormId } from "./cells.ts";
+import { esc } from "../../../ui/html.ts";
+import { durationLabel } from "../../../ui/job-state";
+import { aliasLabel, modelName } from "../../../ui/components/model-label.ts";
+import { providerFace } from "../../../ui/components/icons.ts";
+import { t, type Language } from "../../../../i18n";
+import type { SpecsPageOptions } from "../";
+import { groupKey, lockedAsArchived, type SpecGroup } from "../data-model";
+import { runFormId } from "../cells.ts";
 import {
   TOOL_NAMES,
-  defaultModelForTool,
-  offeredProviders,
   providerToolOf,
   resolveChosenModel,
   resolveProvider,
@@ -17,10 +15,13 @@ import {
   shortOf,
   type LineProvider,
   type PickerOptions,
-} from "./model-resolve.ts";
-import { type PickPart } from "../../../queue/providers/side-tools.ts";
-import { RUNNABLE_TOOLS, asProviderTool } from "../../../queue/providers/tools.ts";
-import { shortNameFrom } from "../../../queue/providers/short-name.ts";
+} from "../model-resolve.ts";
+import { type PickPart } from "../../../../queue/providers/side-tools.ts";
+import { RUNNABLE_TOOLS, asProviderTool } from "../../../../queue/providers/tools.ts";
+import { shortNameFrom } from "../../../../queue/providers/short-name.ts";
+import { modelSelect, providerSelect } from "./selects.ts";
+
+export { modelSelect, providerSelect } from "./selects.ts";
 
 export {
   SHORT_TOOL_NAMES,
@@ -34,7 +35,7 @@ export {
   resolveRecordedModel,
   type PickerOptions,
   type ProviderOption,
-} from "./model-resolve.ts";
+} from "../model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase,
@@ -95,29 +96,16 @@ export function modelPicker(
   const chosen = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  return (
-    `<select name="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
-    // Where a live pick goes: the running job's own route, the same
-    // convention the tail box's tick already uses. While a job runs the
-    // run form asks for a SECOND job and the queue refuses it as a
-    // clash, so the select posts itself rather than waiting for a
-    // press this row does not offer. With script off a live pick does
-    // nothing: the run form it names has no press while the job runs.
-    (live ? ` data-post-to="/api/queue/${esc(g.lead!.id)}/model"` : "") +
-    // Whether this select is showing HISTORY or a suggestion, said to
-    // the browser. It scoped the removed "set all" control
-    // to the phases still ahead; it stays because the server saying
-    // which phases have run — derived from the same `used` the
-    // pre-filled value is — is better than the browser re-deriving it.
-    (used !== undefined ? ` data-ran="1"` : "") +
-    // No `title` saying why it is locked: the State column says what is
-    // running, and a phase that has run cannot run again
-    // (`aiModel()` in phase-rows.ts).
-    (locked ? " disabled" : "") +
-    `>` +
-    modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen, ranModelId) +
-    `</select>`
-  );
+  return modelSelect({
+    name: `model.${step}`,
+    form: formIdOverride ?? runFormId(g),
+    opts: { ...opts, modelChoices: pickerModels(models, chosen, archived || alreadyRun, ranModelId) },
+    chosen,
+    disabled: locked,
+    ranModelId,
+    postTo: live ? `/api/queue/${g.lead!.id}/model` : undefined,
+    ran: used !== undefined,
+  });
 }
 
 /** The options as a picker names them, each with a version: what the
@@ -389,38 +377,22 @@ export function aiPicker(
   // by another provider of the same tool.
   const gone = usedProvider !== undefined && !providers.some((p) => p.key === usedProvider);
   const resting = gone ? undefined : resolveProvider(opts, step, on, picks);
-  const offered = offeredProviders(providers, resting?.key);
   // What the closed select shows: the provider it is on, else the first it
   // offers, which is the one a browser shows when none is selected. A
   // removed provider is named by its key, on the tool its model runs.
   const tool = gone ? asProviderTool(providerToolOf(models.find((m) => m.name === on)?.tool)) : undefined;
-  const shown = gone ? { name: usedProvider, short: shortNameFrom(usedProvider), tool } : (resting ?? offered[0]);
-  const select =
-    `<select name="provider.${esc(step)}" data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
-    // Why it is locked, when it is, is said once for the whole phase
-    // line now — not repeated on this select's own `title`.
-    (locked ? " disabled" : "") +
-    titled(shown?.name) +
-    `>` +
-    (gone
-      ? `<option value="${esc(usedProvider)}"${tool ? ` data-tool="${tool}"` : ""} data-short="${esc(shortNameFrom(usedProvider))}" selected>${esc(usedProvider)}</option>`
-      : "") +
-    offered
-      .map(
-        (p) =>
-          `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
-          ` data-default="${esc(defaultModelForTool(models, p.tool, configured) ?? "")}"` +
-          ` data-short="${esc(shortOf(p))}"` +
-          `${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
-      )
-      .join("") +
-    `</select>`;
-  return providerPick(select, shown?.tool, shown && shortOf(shown));
+  if (gone) {
+    return providerSelect({
+      name: `provider.${step}`, modelName: `model.${step}`, form: formIdOverride ?? runFormId(g),
+      opts, configured, disabled: locked,
+      removed: { key: usedProvider, tool, short: shortNameFrom(usedProvider) },
+    });
+  }
+  return providerSelect({
+    name: `provider.${step}`, modelName: `model.${step}`, form: formIdOverride ?? runFormId(g),
+    opts, configured, chosenProvider: resting?.key, disabled: locked,
+  });
 }
-
-/** The chosen provider's full name, as the closed select's hover text and
- *  accessible name. */
-const titled = (name: string | undefined): string => (name ? ` title="${esc(name)}" aria-label="${esc(name)}"` : "");
 
 export function sidePickers(
   g: SpecGroup,
@@ -431,6 +403,7 @@ export function sidePickers(
   ranModelId?: string,
   /** What the line follows with no choice of its own, in place of the default. */
   rests?: { model: string; provider?: string },
+  formId = runFormId(g),
 ): string {
   const models = opts.modelChoices ?? [];
   const choices = models;
@@ -443,18 +416,8 @@ export function sidePickers(
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider, follows?.provider]);
   const disabled = locked || !g.named ? " disabled" : "";
-  const offered = offeredProviders(providers, resting?.key);
-  const shown = resting ?? offered[0];
-  const ai = providers.length === 0 || models.length === 0 ? "" : providerPick(
-    `<select name="provider.${part}" data-ai="model.${part}" form="${esc(runFormId(g))}"${disabled}${titled(shown?.name)}>` +
-    offered.map((p) =>
-      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"` +
-      ` data-short="${esc(shortOf(p))}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
-    ).join("") + `</select>`,
-    shown?.tool, shown && shortOf(shown),
-  );
-  const model = `<select name="model.${part}" form="${esc(runFormId(g))}"${disabled}>` +
-    `${modelOptions(pickerModels(models, chosen, ranModelId !== undefined, ranModelId), chosen, ranModelId)}</select>`;
+  const ai = providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: formId, opts, configured: chosen, chosenProvider: resting?.key, disabled: !!disabled });
+  const model = modelSelect({ name: `model.${part}`, form: formId, opts: { ...opts, modelChoices: pickerModels(models, chosen, ranModelId !== undefined, ranModelId) }, chosen, disabled: !!disabled, ranModelId });
   const tool = models.find((m) => m.name === chosen)?.tool ?? "claude";
   return compactAiModel({
     id: `aim-${key}-${part}`,

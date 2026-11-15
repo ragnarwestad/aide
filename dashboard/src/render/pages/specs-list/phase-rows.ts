@@ -1,4 +1,3 @@
-import { phaseChoiceTable } from "../new-spec-page/options-tab.ts";
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
@@ -10,7 +9,7 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
-import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
+import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker";
 import { chosenSteps, runFormId, specBusy, specRunChoices } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
@@ -365,6 +364,37 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
   return { control, dialog: wiredDialog };
 }
 
+function phaseChoiceTable(
+  row: SpecGroup, pickerOpts: SpecsPageOptions, formId: string,
+  choices: { step: string; checked: boolean; locked: boolean }[], lang: Language,
+): string {
+  const captionRow = (pickerOpts.modelChoices ?? []).length
+    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", lang)}</tr>`
+    : "";
+  const rows: string[] = [];
+  for (const { step, checked, locked } of choices) {
+    const box = phaseChip({
+      dataAttr: "data-phase", value: step, label: "", ariaLabel: stepLabel(step, lang),
+      name: locked ? "" : "steps", form: formId, checked, disabled: locked, plain: true,
+    });
+    rows.push(
+      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, lang))}</td>` +
+      `<td class="modelcell"><span class="row">` +
+      aiModel(row, pickerOpts, step, false, false, undefined, undefined, locked, undefined, undefined, undefined, formId) +
+      `${box}</span></td></tr>`,
+    );
+    for (const part of (pickerOpts.modelChoices ?? []).length ? SIDE_PARTS_OF[step] ?? [] : []) {
+      const rests = part === PLAN_REVIEW ? analyzeRests(row, pickerOpts) : undefined;
+      const pickers = sidePickers(row, pickerOpts, part, false, undefined, rests, formId);
+      rows.push(
+        `<tr class="subrow" data-side="${part}"><td class="phasecell">${esc(t(lang, `settings.side.${part}`))}</td>` +
+        `<td class="modelcell"><span class="row">${pickers}</span></td></tr>`,
+      );
+    }
+  }
+  return `<table class="list phasechoices"><tbody>${captionRow}${rows.join("")}</tbody></table>`;
+}
+
 /** The AI and the model a phase line offers, in one place.
  *
  *  Two shapes out of one DOM. Wide, the two selects stand side by side
@@ -392,10 +422,11 @@ function aiModel(
   usedTool?: string,
   ranModelId?: string,
   usedProvider?: string,
+  formIdOverride?: string,
 ): string {
   const lang = opts.lang ?? "en";
-  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedProvider);
-  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, ranModelId);
+  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, formIdOverride, alreadyRun, usedProvider);
+  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, formIdOverride, alreadyRun, ranModelId);
   const locked = lockedAsArchived(g, step) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to

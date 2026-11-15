@@ -3,14 +3,12 @@
 // it. Kept apart from the page itself, which draws the Spec tab and the
 // frame.
 
-import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
+import { helpPopover, phaseChip } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { CriteriaChecks } from "../../../project/discover";
 import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
-import { PHASE_LINES, type SpecGroup } from "../specs-list/data-model";
-import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
 import type { NewSpecPageOptions } from ".";
 
 /** What New spec's form opens with: the four settings as they stand
@@ -44,74 +42,6 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
     }) +
     `</span>`
   );
-}
-
-// One row per phase — create, analyze, implement, archive — each with a
-// tick, an AI choice and a model choice, drawn by the same
-// `aiPicker`/`modelPicker`/`phaseCaptionCells` the Specs list's own spec
-// row uses: the control this page needs already exists as
-// parts, and the task is reusing them, not writing a second version for
-// a spec that does not exist yet.
-//
-// `aiPicker`/`modelPicker` derive the `<select>`'s `form="..."` from a
-// `SpecGroup`'s own `project`/`specFolder` — real values a spec on this
-// page has neither of, so a small, clearly-synthetic row is built once
-// here, and `formIdOverride` (this page's own form id) is what actually
-// ties every select to it.
-export function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
-  const lang = opts.lang ?? "en";
-  const pickerOpts: PickerOptions = {
-    modelChoices: opts.modelChoices,
-    defaultModels: opts.defaultModels,
-    providerChoices: opts.providerChoices,
-    defaultProviders: opts.defaultProviders,
-    // No `pendingModels`: a spec that does not exist yet has no
-    // `specFolder` to key a pending pick on — the `pending`
-    // tier of `resolveChosenModel` then falls through to `configured`
-    // every time, the same answer `create`'s own picker already gave.
-  };
-  const row: SpecGroup = {
-    project: "", specFolder: "new", named: false, state: "not-started",
-    spentUsd: 0, costUnmeasured: false, phases: [], done: [],
-    dependsOn: [], analyzeStale: false,
-  };
-  return phaseChoiceTable(row, pickerOpts, formId, PHASE_LINES.map((step) => ({ step, checked: true, locked: step === "create" })), lang);
-}
-
-/** The phase choices shared by New spec and an existing spec's Run dialog. */
-export function phaseChoiceTable(
-  row: SpecGroup, pickerOpts: PickerOptions, formId: string,
-  choices: { step: string; checked: boolean; locked: boolean }[], lang: Language,
-): string {
-  const captionRow = (pickerOpts.modelChoices ?? []).length
-    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", lang)}</tr>`
-    : "";
-  const phaseRows = choices.map(({ step, checked, locked }) => {
-    // `create` MADE the spec these lines belong to and cannot be
-    // created again — the same locked, nameless box `phase-rows.ts`'s
-    // own `create` line draws for an existing spec.
-    const box = phaseChip({
-      dataAttr: "data-phase",
-      value: step,
-      label: "",
-      ariaLabel: locked
-        ? t(lang, "newSpec.createLockedAria")
-        : stepLabel(step, lang),
-      name: locked ? "" : "steps",
-      form: formId,
-      checked,
-      disabled: locked,
-      plain: true,
-    });
-    return (
-      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, lang))}</td>` +
-      `<td class="modelcell"><span class="row">` +
-      `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId, locked)}` +
-      `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId, locked)}</span>` +
-      `${box}</span></td></tr>`
-    );
-  }).join("");
-  return `<table class="list phasechoices"><tbody>${captionRow}${phaseRows}</tbody></table>`;
 }
 
 /** What the four settings show, and whether they post. A setting posts its
@@ -168,7 +98,7 @@ export function optionsGroup(v: OptionsGroupValues): string {
 
 // The acceptance switch, drawn separately from the
 // phase table's own rows — neither is about one phase, both are about
-// the spec as a whole. A row inside `newSpecPhaseTable` would split this
+// the spec as a whole. Putting it inside a phase table would split this
 // pair across the phase table, and beside "Depends on" in one row the
 // chip was pushed up against that field's own "(?)" popover. It sits on
 // the acceptance criteria row under the project picker (`newSpecForm`,

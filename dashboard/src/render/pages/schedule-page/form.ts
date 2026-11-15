@@ -9,7 +9,7 @@ import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../qu
 import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
+import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
@@ -82,19 +82,10 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
     "schedule", chosen, [opts.entry?.provider],
   );
   // Drawn only where there is more than one provider to choose between.
-  const aiSelect =
-    providers.length > 1
-      ? `<select name="provider" data-ai="model" form="${SCHEDULE_FORM_ID}">` +
-        offeredProviders(providers, resting?.key)
-          .map(
-            (p) =>
-              `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
-              ` data-default="${esc(defaultModelForTool(models, p.tool, configured) ?? "")}"` +
-              `${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
-          )
-          .join("") +
-        `</select>`
-      : "";
+  const pickerOpts = { modelChoices: models, providerChoices: providers };
+  const aiSelect = providers.length > 1
+    ? providerSelect({ name: "provider", modelName: "model", form: SCHEDULE_FORM_ID, opts: pickerOpts, configured, chosenProvider: resting?.key, wrap: false })
+    : "";
   // The two side by side in ONE grid item, not one per column track.
   // `.scheduleform` is a two-column grid whose tracks are sized by Cron
   // and Prompt file path, so a field dropped straight into it lands
@@ -107,7 +98,7 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
     (aiSelect ? field(t(lang, "schedule.ai"), aiSelect) : "") +
     field(
       t(lang, "schedule.model"),
-      `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`,
+      modelSelect({ name: "model", form: SCHEDULE_FORM_ID, opts: pickerOpts, chosen }),
     ) +
     `</span>`
   );

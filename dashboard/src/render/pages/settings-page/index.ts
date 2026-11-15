@@ -12,7 +12,7 @@ import type { Provider } from "../../../queue/providers/index.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
-import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
+import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF, type PickPart } from "../../../queue/providers/side-tools.ts";
 
@@ -172,13 +172,10 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
     const providers = opts.providerChoices ?? [];
     const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
-    const ai = offeredProviders(providers, resting?.key).map((p) => {
-      const preferred = defaultModelForTool(models, p.tool, configured);
-      return `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(preferred ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`;
-    }).join("");
+    const pickerOpts = { modelChoices: models, providerChoices: providers };
     return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
-      `<td>${providers.length ? `<select aria-label="${esc(t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="provider.${step}" data-ai="model.${step}">${ai}</select>` : ""}</td>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
+      `<td>${providerSelect({ name: `provider.${step}`, modelName: `model.${step}`, form: "settings-form", opts: pickerOpts, configured, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }), wrap: false })}</td>` +
+      `<td>${modelSelect({ name: `model.${step}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }) })}</td>` +
       `${timeoutCell}</tr>`;
   };
   const renderSideRow = (part: PickPart): string => {
@@ -189,13 +186,10 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const label = t(lang, `settings.side.${part}`);
     const providers = opts.providerChoices ?? [];
     const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, restsOn, chosen, []);
-    const ai = offeredProviders(providers, resting?.key).map((provider) =>
-      `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
-    ).join("");
-    const sideOptions = modelOptions(models, chosen);
+    const pickerOpts = { modelChoices: models, providerChoices: providers };
     return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: label }))}" form="settings-form" name="provider.${part}" data-ai="model.${part}">${ai}</select></td>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}">${sideOptions}</select></td><td></td></tr>`;
+      `<td>${providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: "settings-form", opts: pickerOpts, configured: chosen, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: label }), wrap: false })}</td>` +
+      `<td>${modelSelect({ name: `model.${part}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: label }) })}</td><td></td></tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything
