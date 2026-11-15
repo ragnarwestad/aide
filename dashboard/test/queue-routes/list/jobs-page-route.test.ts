@@ -424,7 +424,8 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     expect(tab).toContain("still on origin");
     expect(list).not.toBe("");
     expect(list).toContain("still on origin");
-    expect(tab).toContain(">Archived<");
+    expect(tab).toContain(">Failed<");
+    expect(list).toContain(">Archived<");
   });
 
   // A Reopen or Close is a job of its own, as a scheduled job is: its own row,

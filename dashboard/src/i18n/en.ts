@@ -171,6 +171,7 @@ export const en = {
   "jobs.filterKindCleanup": "Cleanup",
   "jobs.filterKindGroup": "Groups",
   "list.reopen": "Reopen",
+  "list.archiveAgain": "Archive again",
   "list.reopening": "reopening…",
   "list.pullRequest": "pull request",
   "list.notPushed": "not pushed",

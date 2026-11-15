@@ -170,6 +170,7 @@ export const es: Record<TranslationKey, string> = {
   "jobs.filterKindCleanup": "Limpieza",
   "jobs.filterKindGroup": "Grupos",
   "list.reopen": "Reabrir",
+  "list.archiveAgain": "Archivar de nuevo",
   "list.reopening": "reabriendo…",
   "list.pullRequest": "pull request",
   "list.notPushed": "sin hacer push",

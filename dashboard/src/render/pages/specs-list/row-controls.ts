@@ -19,6 +19,7 @@ import { reopenAskDialog } from "../spec-page/ask-dialog.ts";
 import { queuePath } from "./filter-bar.ts";
 import { actionState, archivingAgain, nextPhase, rowAnchorId, runFormId, specBusy } from "./row-state.ts";
 import { specPagePath } from "../spec-page/tabs.ts";
+import { offersReopen } from "./data-model/job-state.ts";
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -134,7 +135,7 @@ function archiveAgainForm(g: SpecGroup, lang: Language): string {
     action: "/api/queue",
     hook: "actionform",
     hidden: { project: g.project, specFolder: g.specFolder, steps: "archive" },
-    button: { label: stepLabel("archive", lang), variant: "primary", pending: t(lang, "list.starting") },
+    button: { label: t(lang, "list.archiveAgain"), variant: "primary", pending: t(lang, "list.starting") },
   });
 }
 
@@ -172,18 +173,12 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
 // written outside its tags, reaching it by `form="…"` — the trick the model select uses.
 export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   const lang = opts.lang ?? "en";
-  // The third branch, and the first thing asked. An archived
-  // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
-  // lets past — so there is no Run form to carry and no phase to name:
-  // the branches below would name one, because `chosenSteps`/`actionState`
-  // answer "what would run next" for a spec whose workflow is over by
-  // falling back to ticking `archive` alone (`defaultTicked`, the
-  // fallback for a spec with no recorded choice).
-  // Nothing while a Close or Reopen is still working on it.
+  // Jobs offers no action on a finished record unless its archive needs
+  // another attempt. Reopen belongs to the spec's own controls.
   if (isArchivedRow(g)) {
     if (archivingAgain(g)) return actionForm(g.lead!, lang);
     if (specBusy(g)) return "";
-    return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : reopenAsk(g, lang);
+    return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : offersReopen(g, !!opts.openSpec) ? reopenAsk(g, lang) : "";
   }
   const busy = specBusy(g);
   // A conflict draws no Resolve control of its own here: `archive`

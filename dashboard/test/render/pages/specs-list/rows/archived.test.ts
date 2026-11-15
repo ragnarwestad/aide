@@ -206,6 +206,22 @@ describe("archived specs on the spec list", () => {
   const rows = (opts: Partial<SpecsPageOptions> = {}): string =>
     renderSpecsRows([], { runnerAvailable: true, targets: [], ...opts });
 
+  test("Jobs uses job outcomes and offers no Reopen, including failed criteria", () => {
+    const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
+    const settled = rows({
+      archivedSpecs: [archivedSpec("50-archived", { failed: 1, acceptance: [failed] })],
+      filter: { state: "archived", open: "aide/50-archived", checks: "aide/50-archived" },
+    });
+    expect(settled).toContain(">Done<");
+    expect(settled).not.toContain(">Reopen</button>");
+    const unlanded = rows({
+      archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
+      filter: { state: "archived", open: "aide/50-archived" },
+    });
+    expect(unlanded).toContain(">Failed<");
+    expect(unlanded).toContain(">Archive again</button>");
+  });
+
   const folders = (html: string): string[] =>
     [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)(?:#[^"]*)?"/g)].map((m) => m[1]!);
 
@@ -275,19 +291,15 @@ describe("archived specs on the spec list", () => {
     expect(shut).not.toContain("<select");
     expect(shut).not.toContain('type="checkbox"');
     expect(shut).not.toContain('class="rowrun"');
-    // A locked row's one action is Reopen, and it rides the caption
-    // line the fold opens like every other row's (2026-09-08). The Run
-    // form is still not there — Reopen carries its own.
     const open = rows({
       archivedSpecs: [archivedSpec("50-archived")],
       filter: { state: "archived", open: "aide/50-archived" },
     });
-    expect(open).toContain("Reopen");
+    expect(open).not.toContain(">Reopen</button>");
     expect(open).not.toContain("<select");
     expect(open).not.toContain('class="rowrun"');
   });
 
-  const openFilter = { state: "archived", open: "aide/50-archived" };
   const dialogById = (html: string, id: string): string =>
     html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
   /** What both of the list's Reopen dialogs carry: the post the page
@@ -298,19 +310,13 @@ describe("archived specs on the spec list", () => {
     expect(form![0]).toContain("data-progress");
   };
 
-  test("an open archived row's Reopen names a dialog over the list", () => {
-    const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
-    const id = open.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
-    expect(id).toBeDefined();
-    expectListParts(dialogById(open, id!));
-  });
-
-  test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form", () => {
+  test("a Failed criterion on Specs opens Reopen outside the checks form", () => {
     const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
     const waiting = { phase: "Acceptance criteria", task: "AC-2", line: "| AC-2 | Not verified | |", note: "", done: true, notVerified: true };
     const html = rows({
       archivedSpecs: [archivedSpec("50-archived", { failed: 1, notVerified: 1, acceptance: [failed, waiting] })],
       filter: { state: "archived", checks: "aide/50-archived" },
+      openSpec: {},
     });
     const panel = html.match(/<form\b[^>]*class="[^"]*\browchecks\b[\s\S]*?<\/form>/)?.[0] ?? "";
     const id = panel.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1];
@@ -341,7 +347,7 @@ describe("archived specs on the spec list", () => {
     const form = open.match(/<form\b[^>]*\sid="rowrun-aide\/50-archived"[^>]*>[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(form).toContain('action="/api/queue"');
     expect(form).toContain('name="steps" value="archive"');
-    expect(form).toContain(">Archive</button>");
+    expect(form).toContain(">Archive again</button>");
     expect(form).not.toContain("<select");
     // The Archive line's own selects, named after that form and open to a pick.
     const archiveModel = open.match(/<select name="model\.archive"[^>]*>/)?.[0] ?? "";
@@ -369,12 +375,12 @@ describe("archived specs on the spec list", () => {
     expect(open).not.toContain("re-run archive");
   });
 
-  test("whose branch is open for review keeps Reopen", () => {
+  test("whose branch is open for review offers neither Reopen nor Archive again on Jobs", () => {
     const open = rows({
       archivedSpecs: [archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" })],
       filter: { state: "archived", open: "aide/50-archived" },
     });
-    expect(open).toContain(">Reopen</button>");
+    expect(open).not.toContain(">Reopen</button>");
     expect(open).not.toContain('name="steps" value="archive"');
   });
 
