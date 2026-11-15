@@ -827,6 +827,9 @@ A standalone spec appears on Jobs when its first job is queued. A spec with only
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
 Prepared group cards and their members remain on Jobs so the group can be started there.
 
+The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and
+sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
+
 Every row starts with an icon for its kind: a spec, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
 

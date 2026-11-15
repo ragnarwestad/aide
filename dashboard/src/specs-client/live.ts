@@ -56,12 +56,37 @@ function clearReconnectTimer(): void {
 // state until it answers, so a swap in that window would put an
 // untouched button back over the "merging…" the press just showed —
 // the click looked unregistered, and then the row jumped.
-export function onChanged(): void {
-  document.dispatchEvent(new Event("aide:queue-changed"));
-  if (press.inFlight === 0) {
-    void swapRows();
+let refreshing = false;
+let refreshAgain = false;
+
+async function refreshRows(): Promise<void> {
+  if (refreshing || press.inFlight > 0) {
+    refreshAgain = true;
+    return;
+  }
+  refreshing = true;
+  try {
+    do {
+      refreshAgain = false;
+      await swapRows();
+    } while (refreshAgain && press.inFlight === 0);
+  } finally {
+    refreshing = false;
+  }
+}
+
+/** Apply changes held back while a row was opening or closing. */
+export function resumeRowUpdates(): void {
+  if (refreshAgain && press.inFlight === 0) {
+    void refreshRows();
     follow.request();
   }
+}
+
+export function onChanged(): void {
+  document.dispatchEvent(new Event("aide:queue-changed"));
+  void refreshRows();
+  if (press.inFlight === 0) follow.request();
 }
 
 // The number a queue move carries for the app's icon is handed to the head
@@ -107,7 +132,7 @@ export function connect(): void {
   source.addEventListener("open", () => {
     backoffMs = RECONNECT_BASE_MS;
     document.dispatchEvent(new Event("aide:queue-changed"));
-    void swapRows();
+    void refreshRows();
     follow.request();
   });
   source.addEventListener("changed", onChanged);
@@ -155,7 +180,7 @@ export function onVisibility(): void {
   // paint is not this: the server has just drawn the page.
   if (wasHidden && press.inFlight === 0) {
     document.dispatchEvent(new Event("aide:queue-changed"));
-    void swapRows();
+    void refreshRows();
     follow.request();
   }
   wasHidden = false;
