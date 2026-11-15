@@ -47,3 +47,68 @@ describe("the Specs list's columns", () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 });
+
+describe("each row's actions act on that row's spec", () => {
+  const archived = (folder: string) => ({
+    project: "aide", folder, title: folder, createdAt: "2026-08-01T09:00:00Z",
+    done: ["create", "analyze", "implement", "archive"], models: {}, phaseOutcomes: {},
+  });
+  const html = renderSpecsRows([ran("81-cheap", 1), ran("82-dear", 9)], {
+    runnerAvailable: true,
+    targets,
+    openSpec: {},
+    archivedSpecs: [archived("50-old"), archived("51-older")],
+    filter: { state: "all" },
+  });
+  /** The dialog a row's button with this label opens, for this spec. */
+  const dialogFor = (folder: string, label: string): string => {
+    const start = html.indexOf(`<tr class="specstate" data-folder="${folder}">`);
+    const end = html.indexOf('<tr class="spechead"', start);
+    const row = start < 0 ? "" : html.slice(start, end < 0 ? undefined : end);
+    const id = row.match(new RegExp(`data-ask="([^"]+)"[^>]*>${label}</button>`))?.[1] ?? "";
+    return html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
+  };
+
+  test("no two elements share an id (AC-4)", () => {
+    const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
+  });
+
+  test("Close opens the dialog that closes its own row's spec (AC-4)", () => {
+    for (const folder of ["81-cheap", "82-dear"]) {
+      expect(dialogFor(folder, "Close")).toContain(`action="/api/queue/specs/aide/${folder}/close"`);
+    }
+  });
+
+  test("Reopen opens the dialog that reopens its own row's spec (AC-4)", () => {
+    for (const folder of ["50-old", "51-older"]) {
+      expect(dialogFor(folder, "Reopen")).toContain(`name="specFolder" value="${folder}"`);
+    }
+  });
+});
+
+describe("what a row's Actions cell offers and where Update writes", () => {
+  /** The Actions cell of this spec's row. */
+  const cell = (html: string, folder: string): string => {
+    const start = html.indexOf(`<tr class="specstate" data-folder="${folder}">`);
+    const from = html.indexOf('<td data-col="actions">', start);
+    const end = html.indexOf('<tr class="spechead"', from);
+    return start < 0 || from < 0 ? "" : html.slice(from, end < 0 ? undefined : end);
+  };
+
+  test("a create job whose folder has not landed offers no Close, Update or PDF (AC-4)", () => {
+    const create = { ...ran("new-abc123", 0), steps: ["create"], state: "running" } as QueueRowView;
+    const actions = cell(renderSpecsRows([create], { runnerAvailable: true, targets, openSpec: {}, pdfAvailable: true }), "new-abc123");
+    for (const absent of [">Close<", ">Update<", "data-pdf"]) expect([absent, actions.includes(absent)]).toEqual([absent, false]);
+  });
+
+  test("Update on a row that is not the open spec writes in lines that row draws (AC-4)", () => {
+    const html = renderSpecsRows([ran("81-cheap", 1), ran("82-dear", 9)], {
+      runnerAvailable: true, targets, openSpec: { key: "aide/82-dear", detail: () => "" },
+    });
+    const actions = cell(html, "81-cheap");
+    const line = actions.match(/<form[^>]*data-line="([^"]+)"[^>]*data-note="([^"]+)"/) ?? actions.match(/<form[^>]*data-note="([^"]+)"[^>]*data-line="([^"]+)"/);
+    expect(line).not.toBeNull();
+    for (const id of [line![1], line![2]]) expect(actions).toContain(`id="${id}"`);
+  });
+});

@@ -540,7 +540,7 @@ draws the acceptance criteria first, as real boxes with a Save of their own (eac
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes while a job is running or landing; a queued job does not lock the editor or the boxes.
 An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
-checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits at the end of the tab row. What a spec runs on and
+checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits in the row's Actions cell. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
 on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
 rather than to one document: whether it is closed, the test server's state and any error. A spec created before a

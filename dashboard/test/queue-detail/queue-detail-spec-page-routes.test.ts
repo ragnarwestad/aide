@@ -228,10 +228,9 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("a live spec offers Close and an archived spec offers Reopen", async () => {
     const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const open = await (await fetch(`${live.base}${PATH}`)).text();
-    expect(open).toContain('data-ask="closeask"');
+    expect(open).toContain(`data-ask="closeask-aide/${SPEC}"`);
     const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();
-    expect(archived).toContain('data-ask="reopenask"');
-    expect(archived).not.toContain('data-ask="reopenask-aide/70-an-old-spec"');
+    expect(archived).toContain('data-ask="reopenask-aide/70-an-old-spec"');
   });
 
   test("a spec archived while the list shows only the active ones is still the open row", async () => {

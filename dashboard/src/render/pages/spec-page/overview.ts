@@ -11,7 +11,7 @@ import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-c
 import { failedCount, notVerifiedCount } from "../../../project/parse-status";
 import { t, type Language } from "../../../i18n";
 import {
-  CLOSE_ASK_ID, closeSentence, REOPEN_ASK_ID, closeAskDialog, reopenAskDialog,
+  closeAskId, closeSentence, reopenAskId, closeAskDialog, reopenAskDialog,
 } from "./ask-dialog.ts";
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
@@ -159,7 +159,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // cannot be drawn here, inside the checks' form, since the parser drops
   // a nested form. A live spec has its actions on its queue row.
   const reopen = (row: SpecCheckView): string =>
-    row.failed && view.archived && !view.closed ? askButton({ label: t(lang, "list.reopen"), dialogId: REOPEN_ASK_ID }) : "";
+    row.failed && view.archived && !view.closed ? askButton({ label: t(lang, "list.reopen"), dialogId: reopenAskId(view.project, view.specFolder) }) : "";
   // The Notes cell, on its own line under the criterion. It is the one
   // thing on the row a reader cannot work out from the criterion itself:
   // what the run actually delivered against it, and any limit on that —
@@ -222,8 +222,8 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  row on the queue list is where its actions are. */
 export function reopenControl(view: SpecActionView, lang: Language = "en"): string {
   return (
-    askButton({ label: t(lang, "list.reopen"), dialogId: REOPEN_ASK_ID }) +
-    reopenAskDialog(view.project, view.specFolder, lang, REOPEN_ASK_ID)
+    askButton({ label: t(lang, "list.reopen"), dialogId: reopenAskId(view.project, view.specFolder) }) +
+    reopenAskDialog(view.project, view.specFolder, lang, reopenAskId(view.project, view.specFolder))
   );
 }
 
@@ -331,7 +331,7 @@ export function closeControl(view: SpecActionView, lang: Language = "en"): strin
   // Close has no fallback page behind it — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
-  return askButton({ label: t(lang, "dialog.close"), dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
+  return askButton({ label: t(lang, "dialog.close"), dialogId: closeAskId(view.project, view.specFolder) }) + closeAskDialog(view.project, view.specFolder, lang);
 }
 
 /** One "(?)" for the whole action row, replacing what used
@@ -357,14 +357,16 @@ export function actionsHelp(view: SpecActionView, lang: Language = "en"): string
   return helpPopover(t(lang, "help.whatButtonsDo"), esc(sentences.join(" ")));
 }
 
-/** The actions shown in a spec's header row, after the row supplies Run. */
-export function specActions(view: SpecActionView, run: string, lang: Language = "en"): string {
+/** The actions shown in a spec's header row, after the row supplies Run.
+ *  `lines` names where Update writes a refusal or its "nothing changed"
+ *  note: the open spec's own lines unless the row names lines of its own. */
+export function specActions(view: SpecActionView, run: string, lang: Language = "en", lines: Record<string, string> = SPEC_LINES): string {
   return (
     actionsHelp(view, lang) +
     run +
     (view.archived ? reopenControl(view, lang) : "") +
     closeControl(view, lang) +
-    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: t(lang, "spec.update"), pending: t(lang, "spec.updating") } }) +
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: lines, button: { label: t(lang, "spec.update"), pending: t(lang, "spec.updating") } }) +
     pdfControl(view, lang)
   );
 }

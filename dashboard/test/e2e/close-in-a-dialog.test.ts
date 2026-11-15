@@ -1,4 +1,4 @@
-// Close on the spec page asks its question in a dialog, and the
+// Close on a spec's row asks its question in a dialog, and the
 // close page stays what it was for a browser with script off.
 //
 // Not run by the session on its own: `make test` runs it, and by hand:
@@ -21,7 +21,10 @@ beforeAll(async () => {
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const SPEC = `/specs/aide/${LIVE}`;
-const dialog = (page: Page) => page.locator("dialog[data-progress-dialog]");
+/** By attribute, since the id holds a `/`, which no CSS `#…` selector takes. */
+const dialog = (page: Page) => page.locator(`dialog[id="closeask-aide/${LIVE}"]`);
+/** The spec's own Close, in its row's Actions cell: every active row has one. */
+const close = (page: Page) => page.locator(`tr.specstate[data-folder="${LIVE}"]`).getByRole("button", { name: "Close" });
 
 /** The spec page, with its Close post answered by `post`. */
 async function open(post: { status: number; json: unknown }): Promise<Page> {
@@ -38,7 +41,7 @@ const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aid
 describe("Close asks in a dialog", () => {
   test("Close opens a modal with the Reason field, OK and Cancel, and the address stays", async () => {
     const page = await open(ACCEPTED);
-    await page.getByRole("button", { name: "Close" }).click();
+    await close(page).click();
     await dialog(page).waitFor({ state: "visible" });
     expect(await dialog(page).evaluate((el) => (el as HTMLDialogElement).matches(":modal"))).toBe(true);
     expect(await dialog(page).locator("textarea[name=reason]").isVisible()).toBe(true);
@@ -51,7 +54,7 @@ describe("Close asks in a dialog", () => {
     const page = await open(ACCEPTED);
     let posts = 0;
     page.on("request", (r) => r.method() === "POST" && (posts += 1));
-    await page.getByRole("button", { name: "Close" }).click();
+    await close(page).click();
     await dialog(page).getByRole("button", { name: "OK" }).click();
     expect(posts).toBe(0);
     expect(await dialog(page).textContent()).toContain("0 of 5000 characters");
@@ -61,7 +64,7 @@ describe("Close asks in a dialog", () => {
 
   test("a refusal is written in the box, which stays open with the reason in it, and Escape closes it", async () => {
     const page = await open({ status: 400, json: { error: "Give a reason that is not blank." } });
-    await page.getByRole("button", { name: "Close" }).click();
+    await close(page).click();
     await dialog(page).locator("textarea").fill("   ");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await dialog(page).getByText("Give a reason that is not blank.").waitFor();
@@ -76,7 +79,7 @@ describe("Close asks in a dialog", () => {
   // The Running page follows the job from there, on the job's own open row.
   test("an accepted post goes to the Running page with the job's row open", async () => {
     const page = await open(ACCEPTED);
-    await page.getByRole("button", { name: "Close" }).click();
+    await close(page).click();
     await dialog(page).locator("textarea").fill("It will not work.");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
@@ -86,7 +89,7 @@ describe("Close asks in a dialog", () => {
   test("Cancel closes the box on every press", async () => {
     const page = await open(ACCEPTED);
     for (let i = 0; i < 2; i++) {
-      await page.getByRole("button", { name: "Close" }).click();
+      await close(page).click();
       await dialog(page).waitFor({ state: "visible" });
       await dialog(page).getByRole("button", { name: "Cancel" }).click();
       await dialog(page).waitFor({ state: "hidden" });

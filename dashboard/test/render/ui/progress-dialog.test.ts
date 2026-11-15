@@ -31,14 +31,14 @@ const projectPage = (opts: Partial<ProjectPageOptions>): string =>
 
 describe("every running step is drawn by the progress dialog", () => {
   test("Close's dialog names its spec by project and number (AC-1)", () => {
-    const box = dialogWith(closeAskDialog("aide", "150-a-very-long-folder-name", "en"), `id="closeask"`);
+    const box = dialogWith(closeAskDialog("aide", "150-a-very-long-folder-name", "en"), `id="closeask-aide/150-a-very-long-folder-name"`);
     expectProgress(box);
     expect(box).toContain("Close aide:150?");
   });
 
   test("Reopen's dialog on the spec page is a progress dialog", () => {
     const html = reopenControl(view({ archived: true }));
-    expectProgress(dialogWith(html, `id="reopenask"`));
+    expectProgress(dialogWith(html, `id="reopenask-aide/150-one-page-shows-the-whole-spec"`));
   });
 
   test("Reopen's dialog on an archived row of the list is a progress dialog", () => {

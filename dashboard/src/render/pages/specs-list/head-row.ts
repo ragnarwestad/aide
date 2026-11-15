@@ -5,12 +5,12 @@ import { t, type Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, stepLabel } from "../../ui/components";
+import { badge, messageSlot, stepLabel } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { isArchivedRow, type SpecGroup } from "./data-model";
+import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -157,7 +157,14 @@ export function specHeadRow(
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
   const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
   const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
-  const actions = opts.openSpec ? specActions({
+  // The open spec's Update writes in the lines its detail draws; any other
+  // row's writes in two of its own, drawn in its Actions cell.
+  const key = groupKey(g.project, g.specFolder);
+  const ownLines = opts.openSpec?.key !== key;
+  const lines = ownLines ? { line: `spec-refused-${key}`, note: `spec-notice-${key}` } : undefined;
+  // A create job whose folder has not landed has no spec to close, pull or
+  // print yet: its row offers Run alone.
+  const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions({
     project: g.project,
     specFolder: g.specFolder,
     archived: locked,
@@ -167,7 +174,10 @@ export function specHeadRow(
       ? "a merge is in progress"
       : specBusy(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
-  }, run.control + run.dialog, lang) : "";
+  }, run.control + run.dialog, lang, lines);
+  const updateLines = opts.openSpec && g.named && lines
+    ? messageSlot("refused", "failed", { id: lines.line }) + messageSlot("notice", "info", { id: lines.note })
+    : "";
   // What goes under the name. A locked row draws nothing here
   // — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -253,7 +263,7 @@ export function specHeadRow(
     // come, and the pips drew that fact a second time.
     `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}</td>` +
     (opts.openSpec
-      ? `<td data-col="actions"><span class="row">${actions}</span></td>`
+      ? `<td data-col="actions"><span class="row">${actions}</span>${updateLines}</td>`
       : "") +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by

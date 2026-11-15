@@ -57,7 +57,7 @@ afterAll(async () => {
 type Box = { name: string; url: string; id: string };
 const BOXES: Box[] = [
   { name: "cancel box", url: `/?live=0&open=aide%2F${FOLDER}`, id: "cancelask-run1" },
-  { name: "close box", url: `/specs/aide/${IDLE}?live=0`, id: "closeask" },
+  { name: "close box", url: `/specs/aide/${IDLE}?live=0`, id: `closeask-aide/${IDLE}` },
 ];
 
 /** By attribute, since an id may hold a `/`, which no CSS `#…` selector takes. */

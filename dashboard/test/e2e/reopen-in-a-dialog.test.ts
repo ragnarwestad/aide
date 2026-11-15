@@ -1,4 +1,4 @@
-// Reopen asks in a dialog, from the spec in its open row, and once the queue
+// Reopen asks in a dialog, from the Actions cell of the spec's row, and once the queue
 // has the job the page goes to the Running page with the job's own row open.
 //
 // `make test` runs it, and by hand:
@@ -60,7 +60,7 @@ async function ok(page: Page): Promise<void> {
 }
 
 async function ask(page: Page): Promise<void> {
-  await page.locator("tr[data-spec-detail]").getByRole("button", { name: "Reopen" }).click();
+  await page.locator(`tr.specstate[data-folder="${STAMPED}"]`).getByRole("button", { name: "Reopen" }).click();
   await dialog(page).waitFor({ state: "visible" });
 }
 

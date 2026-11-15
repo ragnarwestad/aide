@@ -12,7 +12,7 @@ describe("the Close control", () => {
   test("the tab row contains no spec actions (AC-6)", () => {
     const html = page(view({ closeAvailable: true }));
     const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
-    expect(group).not.toMatch(/(?:data-ask="(?:reopenask|closeask)"|>Update<|data-pdf)/);
+    expect(group).not.toMatch(/(?:data-ask="(?:reopenask|closeask)[^"]*"|>Update<|data-pdf)/);
   });
 
   // "whatever phase it is in, including one where no step has
@@ -22,21 +22,21 @@ describe("the Close control", () => {
   // `done` steps at all still gets the control.
   test("present even when no phase has completed yet", () => {
     const html = specActions(view({ closeAvailable: true, done: [] }), "");
-    expect(html).toMatch(/<button\b[^>]*\sdata-ask="closeask"[^>]*>Close<\/button>/);
+    expect(html).toMatch(/<button\b[^>]*\sdata-ask="closeask-aide\/150-one-page-shows-the-whole-spec"[^>]*>Close<\/button>/);
   });
 
   test("absent for an archived spec", () => {
-    expect(specActions(view({ archived: true, closeAvailable: true }), "")).not.toContain("data-ask=\"closeask\"");
+    expect(specActions(view({ archived: true, closeAvailable: true }), "")).not.toContain("data-ask=\"closeask");
   });
 
   test("absent for a closed spec (closed implies archived)", () => {
     const html = specActions(view({ archived: true, closed: true, closeAvailable: true }), "");
-    expect(html).not.toContain("data-ask=\"closeask\"");
+    expect(html).not.toContain("data-ask=\"closeask");
   });
 
   test("disabled with its reason while busy, rather than absent or silently inert", () => {
     const html = specActions(view({ closeAvailable: true, closeUnavailableReason: "a job is running" }), "");
-    expect(html).not.toContain("data-ask=\"closeask\"");
+    expect(html).not.toContain("data-ask=\"closeask");
     expect(html).toContain(btn({ label: "Close", type: "button", disabled: true }));
     // The reason is not a `title`, nor is it Close's own "(?)": it is
     // one sentence inside the action row's single shared mark, naming

@@ -168,10 +168,13 @@ describe("an open row on the Specs list is the spec alone", () => {
       expect(html).toContain("THE-SPEC");
       for (const absent of [
         "phasemsgs",
-        'class="rowrun"', 'data-ask="cancelask-run82"', 'data-ask="reopenask-aide/50-archived"',
+        'class="rowrun"', 'data-ask="cancelask-run82"',
       ]) {
         expect([key, absent, html.includes(absent)]).toEqual([key, absent, false]);
       }
+      // The archived spec's one Reopen is its Actions cell's: no second one rides the row.
+      const reopens = html.split('data-ask="reopenask-aide/50-archived"').length - 1;
+      expect([key, reopens]).toEqual([key, key === "aide/50-archived" ? 1 : 0]);
     }
   });
 

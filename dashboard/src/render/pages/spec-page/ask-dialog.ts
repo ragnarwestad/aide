@@ -10,6 +10,7 @@ import { CLOSE_REASON_MAX } from "../../../queue/parse-request.ts";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 import { specReference } from "../../../project/spec-folder.ts";
+import { groupKey } from "../specs-list/data-model/types.ts";
 
 /** The one sentence stated wherever a reader meets Close: in this
  *  dialog's own body text, and again — via `overview.ts`'s `actionsHelp` —
@@ -21,13 +22,14 @@ export const closeSentence = (lang: Language): string => t(lang, "spec.closeSent
  *  to the spec's files and its code branch. */
 const closeWording = (lang: Language): string => `${closeSentence(lang)} ${t(lang, "spec.closeEffect")}`;
 
-/** Close's dialog, and Reopen's on the spec page: one of each per page. */
-export const CLOSE_ASK_ID = "closeask";
-export const REOPEN_ASK_ID = "reopenask";
+/** Close's and Reopen's dialogs, one of each per spec: every row of the
+ *  Specs list draws its own, so the id names the spec its post is for. */
+export const closeAskId = (project: string, specFolder: string): string => `closeask-${groupKey(project, specFolder)}`;
+export const reopenAskId = (project: string, specFolder: string): string => `reopenask-${groupKey(project, specFolder)}`;
 
 export function closeAskDialog(project: string, specFolder: string, lang: Language): string {
   return progressDialog(lang, {
-    id: CLOSE_ASK_ID,
+    id: closeAskId(project, specFolder),
     title: t(lang, "dialog.closing"),
     ask: {
       title: t(lang, "spec.closeTitle", { spec: specReference(project, specFolder) }),
