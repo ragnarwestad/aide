@@ -86,7 +86,7 @@ describe("the row draws one action, on its caption line", () => {
 
   test("the next unstarted phase names the button", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })]);
-    expect(state(html)).toContain(">Idle<");
+    expect(state(html)).toContain(">Done<");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
 
@@ -96,7 +96,7 @@ describe("the row draws one action, on its caption line", () => {
   // to do. The state is still readable shut — only the action moved.
   test("a shut row draws no action at all, and no form to carry one", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: false });
-    expect(state(html)).toContain(">Idle<");
+    expect(state(html)).toContain(">Done<");
     // Off the table alone: the search field above it has a Search
     // button, and that is not a row's action.
     expect(html.slice(html.indexOf("<tbody"))).not.toContain("<button");
@@ -158,7 +158,7 @@ describe("the row draws one action, on its caption line", () => {
       [lead({ steps: ["archive"] })],
       [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
     );
-    expect(state(html)).toContain("Idle");
+    expect(state(html)).toContain("Done");
     expect(labels(action(html))).toEqual(["Implement"]);
   });
 

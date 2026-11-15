@@ -79,7 +79,8 @@ that is not done, on the Analyze and Implement ticked on its row, or, with neith
 a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
 phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
-waiting until Start resumes the same execution.
+waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
+the same group; it need not be archived separately.
 
 A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
 
@@ -90,20 +91,20 @@ A phase pressed on a grouped spec's own row runs as the group's job, and the car
 A failed member keeps its own recovery controls.
 
 Run on a spec lists the other specs that can join a group under **Run together with**. Ticking one or more makes and
-starts a group with the pressed spec first and the others in the order they were ticked. With nothing ticked, Run
+starts a group in selection order, with dependencies placed before the specs that need them. With nothing ticked, Run
 starts only the pressed spec as before.
 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
-one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
-the starting order. Both ways of making a group automatically move a dependency before the spec that depends on it,
-while keeping unrelated specs in their chosen order. A project with fewer than two
+one line, and under them the project's eligible specs, of which at least two are ticked. There is no order field:
+selected specs keep the order they were added, with dependencies placed before the specs that need them. Save and
+Start check the dependencies; circular dependencies are refused with the affected specs named. A project with fewer than two
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. The group's … menu offers **Edit** until
-the group starts archiving. Edit opens the New group dialog filled with the group's name, members and order. A spec
-that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed or
-moved, and any spec New group would offer can be added after the locked members. Save checks the whole dependency order
-and writes the new membership together.
+the group starts archiving. Edit opens the New group dialog filled with the group's name and members. A spec
+that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed,
+and any spec New group would offer can be added after the locked members. A new dependency can move before an
+unstarted member. Save checks the dependencies and writes the new membership together.
 
 Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
 every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That

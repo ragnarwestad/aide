@@ -213,13 +213,14 @@ describe("the State line says what is happening, or what is next", () => {
   };
   const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
-  // A queued job is active even though its step has not started yet.
-  test("a queued job makes the spec active", () => {
+  // A queued row said one word and nothing else, while
+  // the step it was waiting to run was known all along.
+  test("a queued job names the phase it is waiting to run", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Active: Implement");
+    expect(chip(html)).toBe("Implementing queued");
   });
 
   // A row that carries its place in the queue says so in the
@@ -227,7 +228,7 @@ describe("the State line says what is happening, or what is next", () => {
   // read as a step under way for a job still waiting its turn — the pips
   // already say which phase it waits for. No hover text: it said nothing
   // the word and the number do not, and a phone has no hover.
-  test("a queued job with a queuePosition still makes the spec active", () => {
+  test("a queued job shows its queue position", () => {
     const html = rows(
       [
         row({
@@ -241,7 +242,7 @@ describe("the State line says what is happening, or what is next", () => {
       ],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Active: Implement");
+    expect(chip(html)).toBe("Queued 7/11");
     expect(chipTitle(html)).toBeFalsy();
   });
 

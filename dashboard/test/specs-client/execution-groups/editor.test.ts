@@ -16,24 +16,24 @@ test("filters by project and assigns consecutive saved order (AC-2, AC-4, AC-6)"
   expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => [input.value, input.disabled])).toEqual([["1", false], ["", true], ["2", false]]);
 });
 
-test("changing the name does not replace the order the user entered (AC-1, AC-2)", () => {
-  const window = new Window();
-  window.document.write(`<form data-execution-group-editor><input name="name"><p data-group-project="aide"><input name="member" type="checkbox" checked><input name="position" value="2"></p><p data-group-project="aide"><input name="member" type="checkbox" checked><input name="position" value="1"></p></form>`);
-  const name = window.document.querySelector('input[name="name"]') as unknown as HTMLInputElement;
-  changeExecutionGroupEditor({ target: name } as unknown as Event);
-  const positions = [...window.document.querySelectorAll('input[name="position"]')] as unknown as HTMLInputElement[];
-  expect(positions.map((input) => input.value)).toEqual(["2", "1"]);
-});
-
-test("a locked member keeps its position while unlocked members can move around it (AC-4, AC-5)", () => {
+test("members keep the order they are selected, including after removing and adding again", () => {
   const window = new Window();
   window.document.write(`<form data-execution-group-editor><select name="project"><option value="aide">aide</option></select>
-    <p data-group-project="aide" data-group-locked><input type="checkbox" checked disabled><input name="member" type="hidden" value="1-first"><input name="position" value="1" readonly></p>
-    <p data-group-project="aide"><input name="member" type="checkbox" value="2-second" checked><input name="position" value="3"></p>
-    <p data-group-project="aide"><input name="member" type="checkbox" value="3-third" checked><input name="position" value="2"></p></form>`);
+    <p data-group-project="aide"><input name="member" type="checkbox" value="1-first"><input name="position" type="hidden"></p>
+    <p data-group-project="aide"><input name="member" type="checkbox" value="2-second"><input name="position" type="hidden"></p></form>`);
   const form = window.document.querySelector("form") as unknown as HTMLFormElement;
+  const members = [...form.querySelectorAll<HTMLInputElement>('input[name="member"]')];
+  const positions = () => [...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => input.value);
+  members[1]!.checked = true;
   updateExecutionGroupEditor(form);
-  expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => input.value)).toEqual(["1", "3", "2"]);
+  members[0]!.checked = true;
+  updateExecutionGroupEditor(form);
+  expect(positions()).toEqual(["2", "1"]);
+  members[1]!.checked = false;
+  updateExecutionGroupEditor(form);
+  members[1]!.checked = true;
+  updateExecutionGroupEditor(form);
+  expect(positions()).toEqual(["1", "2"]);
 });
 
 test("removing an unlocked member before a locked member closes the position gap (AC-4, AC-5)", () => {

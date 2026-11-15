@@ -93,7 +93,8 @@ beside it, because a re-run is ordinary.
 
 The Specs header carries the spec state. While a phase runs or lands, it says Active, without the phase name.
 The Jobs header instead names what is happening, such as Analyzing, Implementing or Archiving. The Jobs
-row keeps the detailed state for that run.
+row keeps the detailed state for that run. A finished job says Done, including when its spec is archived or closed.
+An archive that did not land says Failed and offers Archive again. Reopen is offered on Specs, never on Jobs.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
 line. On the Specs list an open row is drawn the same as a shut one. On the Running tab an open row drops the second
@@ -305,7 +306,8 @@ not hold; the note field appears under the criterion while Failed is ticked. Tho
 archived spec accepts. Ticking the last Not verified row removes the line and the spec leaves the
 filter.
 
-**A Failed row keeps the spec in the Not verified filter and carries a Reopen button.** The info line reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
+**A Failed row keeps the spec in the Not verified filter and carries a Reopen button on Specs.** Jobs shows the
+failed criterion without Reopen. The info line reads `N not verified · M failed`, each number only when above zero, and the filter matches a spec with at least
 one row of either kind. A Failed row is open for archive and is drawn read-only with its `Failed:` note. The only
 way out of that state is the Reopen button on the row, which opens the same dialog as the row's own
 Reopen. Reopen puts the Failed rows back to open and keeps their notes; such a note counts as a changed criterion
@@ -491,7 +493,7 @@ Created line of its description's Tracking info.
 
 **An archived spec whose code never landed offers Archive instead of Reopen.** When its own branch is still on
 origin and not open for review (the "not landed" mark) — an archive whose code landing did not finish — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
-The row offers the same: an Archive button, and the Archive line's AI and model open to a pick and posted with it,
+The Jobs row offers Archive again, with the Archive line's AI and model open to a pick and posted with it,
 while every other phase line stays a record with its selects disabled (`offersArchiveAgain` and `lockedAsArchived`,
 `render/pages/specs-list/data-model/filter-sort.ts`). While that archive runs, the job speaks for the row as it does
 for a live one: the badge says what runs, the row offers Cancel, and the "not landed" line waits until the run is

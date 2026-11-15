@@ -1,5 +1,5 @@
 // The New group dialog on the Jobs tab: one project, a name, and the specs a
-// group can be made of, each with its place in the order. The search row's
+// group can be made of, in their insertion order. The search row's
 // New group button opens it (`filter-bar.ts`); the page script keeps the
 // list to the chosen project and numbers the ticked specs
 // (`specs-client/execution-groups/editor.ts`).
@@ -40,7 +40,7 @@ export function executionGroupEditor(options: EditorOptions): string {
         return `<li data-group-project="${esc(candidate.project)}"${candidate.locked ? " data-group-locked" : ""}><label>` +
           (candidate.locked ? `<input type="checkbox" checked disabled><input type="hidden" name="member" value="${esc(candidate.specFolder)}">` : `<input type="checkbox" name="member" value="${esc(candidate.specFolder)}"${candidate.checked ? " checked" : ""}>`) +
           `<strong>${esc(candidate.specFolder)}</strong> ${esc(candidate.title ?? candidate.specFolder)}</label>` +
-          `<label>${t(lang, "list.groupOrder")} <input type="number" name="position" min="1"${candidate.checked ? ` value="${index + 1}"` : ""}${candidate.locked ? " readonly" : ""}></label>` +
+          `<input type="hidden" name="position"${candidate.checked ? ` value="${index + 1}"` : " disabled"}>` +
           (candidate.locked ? `<span class="muted small">${esc(t(lang, "list.groupLocked"))}</span>` : "") + `</li>`;
       }).join("")}</ol>` +
       // Shown by the page script while the chosen project has fewer than two.

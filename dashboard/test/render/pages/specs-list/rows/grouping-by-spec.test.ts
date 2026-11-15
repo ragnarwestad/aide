@@ -96,16 +96,13 @@ describe("the queue list groups by spec", () => {
     expect(head).not.toContain('class="badge b-done"');
   });
 
-  test("with nothing in flight the header shows the spec's own state", () => {
+  test("with nothing in flight the header shows the latest job's outcome", () => {
     const html = rows([
       job("j1", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    // The job history makes the settled spec Idle even when its files
-    // contain no completed phase.
-    expect(head).toContain('class="badge b-ready"');
-    expect(head).toContain(">Idle<");
+    expect(head).toContain(">Done<");
     expect(head).not.toContain('class="badge b-refused"');
   });
 

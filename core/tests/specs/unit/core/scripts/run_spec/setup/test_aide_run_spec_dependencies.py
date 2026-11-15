@@ -10,6 +10,7 @@ import re
 import shlex
 import subprocess
 import json
+import pytest
 from ...conftest import git, run
 from ..run_spec_fakes import git_on_path, writing_claude
 from ..run_spec_invoking import run_traced
@@ -127,6 +128,27 @@ def test_an_earlier_group_dependency_with_implement_done_lets_analyze_start_ac_5
     assert rc == 0, out
     assert out["terminalReason"] != "refused"
     assert fake_claude.calls.exists(), "the dependency gate must let the run reach the AI"
+
+
+@pytest.mark.parametrize("phases", [["analyze", "implement"], ["analyze"]])
+def test_group_dependency_can_be_read_after_analyze_lands_and_deletes_the_specs_branch(
+    runner, workspace, fake_claude, local_origins, phases
+):
+    group_dependency_branch(workspace, phases)
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    git(workspace["specs"], "push", "-q", "origin", "--delete", "aide/group-80-dependency")
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace),
+        command="analyze", branch="aide/group-80-dependency",
+    )
+    if "implement" in phases:
+        assert rc == 0, out
+        assert out["terminalReason"] != "refused"
+        assert fake_claude.calls.exists()
+    else:
+        assert rc == 2, out
+        assert out["terminalReason"] == "refused"
+        assert not fake_claude.calls.exists()
 
 
 def test_an_earlier_group_dependency_without_implement_still_refuses_ac_5(

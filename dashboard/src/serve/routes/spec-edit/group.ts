@@ -71,11 +71,11 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   const project = String(body.project ?? "");
   const name = String(body.name ?? "").trim();
   if (!project || !name) return json({ error: "project and name are required" }, 400);
-  const made = await createExecutionGroup(ctx, { project, name, members: values(body.member), positions: values(body.position).map(Number) });
+  const made = await createExecutionGroup(ctx, { project, name, members: values(body.member), positions: body.position === undefined ? undefined : values(body.position).map(Number) });
   return made.ok ? json({ ok: true, group: made.group }) : made.response;
 }
 
-async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promise<Response> {
+export async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promise<Response> {
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;
   let body: Record<string, unknown>;
@@ -94,7 +94,7 @@ async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promi
     return json({ error: `an unfinished execution group named ${name} already exists` }, 409);
   }
   const requested = values(body.member);
-  const positions = values(body.position).map(Number);
+  const positions = body.position === undefined ? undefined : values(body.position).map(Number);
   const locks = lockedGroupMembers({ group, targets, jobs: ctx.queue.list() });
   if (locks.size && name !== group.name) return json({ error: `the group name cannot change while ${[...locks][0]} is locked` }, 409);
   const checked = validateExecutionGroupEdit({ project, group, members: requested, positions, locked: locks, targets, groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list() });

@@ -132,6 +132,7 @@ export function specNoticeRow(
     /** The row is open on the Specs list, where it is the spec alone: the
      *  approach choice, a press that releases a step, is left out. */
     specOpen?: boolean;
+    onSpecs?: boolean;
     /** How many columns the row spans: the list's own count. */
     columns?: number;
   } = {},
@@ -169,7 +170,7 @@ export function specNoticeRow(
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
   const columns = view.columns ?? LIST_COLUMNS;
-  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath) + shortAnalysisLine(g, lang, columns) + sentBackLine(g, lang, columns);
+  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath, view.onSpecs) + shortAnalysisLine(g, lang, columns) + sentBackLine(g, lang, columns);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.
@@ -177,7 +178,7 @@ export function specNoticeRow(
   // their waiting line.
   const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
     "kind" in p && p.kind === "acceptance-hold"
-      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang) }
+      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang, view.onSpecs) }
       : "kind" in p && p.kind === "branch-left-behind"
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"

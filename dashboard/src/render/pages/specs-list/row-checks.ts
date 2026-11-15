@@ -14,6 +14,7 @@ import { specBusy } from "./row-state.ts";
 import { queuePath } from "./filter-bar.ts";
 import { drawsChecksLine, notVerifiedShown } from "./row-shared.ts";
 import { listReopenDialog } from "./row-controls.ts";
+import { offersReopen } from "./data-model/job-state.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
 export const unfoldedKeys = (f: SpecsFilter): Set<string> =>
@@ -37,7 +38,7 @@ export function checksFold(g: SpecGroup, f: SpecsFilter, lang: Language, path?: 
 }
 
 /** The list under the message, or nothing while it is folded. */
-export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): string {
+export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, onSpecs = false): string {
   const key = groupKey(g.project, g.specFolder);
   if (!unfoldedKeys(f).has(key)) return "";
   const rows = g.acceptance ?? [];
@@ -61,8 +62,8 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
   // A Failed row's Reopen opens a dialog drawn after the panel, never
   // inside its form: the parser drops a nested form.
   const reopenId = `reopenask-checks-${key}`;
-  const reopen = askButton({ label: t(lang, "list.reopen"), dialogId: reopenId });
-  const reopenDialog = archived && rows.some((row) => row.failed) ? listReopenDialog(g, lang, reopenId) : "";
+  const reopen = offersReopen(g, onSpecs) ? askButton({ label: t(lang, "list.reopen"), dialogId: reopenId }) : "";
+  const reopenDialog = reopen && rows.some((row) => row.failed) ? listReopenDialog(g, lang, reopenId) : "";
   // The boxes name the form with `form=`, so they can sit in the list
   // while the row's own table stays outside any form.
   const item = (row: (typeof rows)[number]): string => {
@@ -99,7 +100,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
  *  gets a line of its own with the › and the same unfold a held-back row
  *  has: the choice "under ›" belongs on every row a criterion is decided
  *  on. A closed spec has none, and nothing is drawn without rows to show. */
-export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true, path?: string): string {
+export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true, path?: string, onSpecs = false): string {
   if (!drawsChecksLine(g, f)) return "";
   const notVerified = notVerifiedShown(g, f);
   const parts = [
@@ -110,7 +111,7 @@ export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns:
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}"><td colspan="${columns}">` +
     rowMessageParts("info", [
       fold
-        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang, path), after: checksPanel(g, f, lang) }
+        ? { text: parts.join(" · "), own: true, lead: checksFold(g, f, lang, path), after: checksPanel(g, f, lang, onSpecs) }
         : { text: parts.join(" · "), own: true },
     ]) +
     `</td></tr>`

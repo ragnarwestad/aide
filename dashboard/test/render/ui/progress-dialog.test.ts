@@ -41,7 +41,7 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(dialogWith(html, `id="reopenask-aide/150-one-page-shows-the-whole-spec"`));
   });
 
-  test("Reopen's dialog on an archived row of the list is a progress dialog", () => {
+  test("Reopen's dialog on Specs is a progress dialog", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [],
@@ -57,7 +57,8 @@ describe("every running step is drawn by the progress dialog", () => {
           phaseOutcomes: {},
         },
       ],
-      filter: { state: "archived", open: "aide/50-archived" },
+      filter: { state: "archived" },
+      openSpec: {},
     });
     const box = dialogWith(html, `id="[^"]*reopen[^"]*"`);
     expectProgress(box);

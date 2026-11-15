@@ -1,5 +1,5 @@
 import { specRunDialog } from "./phase-rows.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
 
@@ -8,7 +8,7 @@ import { specPagePath } from "../spec-page";
 import { badge } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
-import { inFlight } from "../../ui/job-state";
+import { inFlight, specStateChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { isArchivedRow, type SpecGroup } from "./data-model";
 import {
@@ -23,6 +23,7 @@ import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specBusy } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState, specStateLabel } from "./data-model/spec-state.ts";
+import { jobState } from "./data-model/job-state.ts";
 import { firstSpecActionLabel, PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
@@ -285,16 +286,13 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
   return firstSpecActionLabel(view, runAvailable, opts.lang ?? "en");
 }
 
-/** The spec's own state badge — what the head row draws in the State
- *  column. Shared with the caption line under an open row
- *  (phase-rows.ts), which draws it again on a phone: there the head
- *  row's badge sits under the name, and the copy stands over the
- *  phases' states so the column reads down (2026-09-10).
- *  A locked row is over — the bare word, always; a
- *  closed row's word is CLOSED_STATE, never ARCHIVED_STATE.
- *  A spec with no job in the queue's memory reads through `restingChip`
- */
+/** Specs shows the spec's own state; Jobs and its open caption show the job's outcome. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
+  if (!onSpecs && (g.lead || isArchivedRow(g))) {
+    const state = jobState(g);
+    if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang);
+    return state === "failed" ? badge("refused", t(lang, "list.state.failed")) : badge("done", t(lang, "list.done"));
+  }
   const state = specState(g);
   const label = specStateLabel(state, lang, onSpecs);
   const variant = state.key === "active" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";

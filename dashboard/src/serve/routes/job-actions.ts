@@ -1,6 +1,7 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
+import { lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit } from "../../queue/execution-groups/eligibility.ts";
 import { previousGroupMember } from "../../project/discover/group.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
@@ -16,7 +17,7 @@ import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
 import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
-import { createExecutionGroup } from "./spec-edit/group.ts";
+import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 
@@ -104,6 +105,26 @@ export async function handleJobActionRoutes(
         ?? historical.find(inFlight);
       if (current) cancelJob(ctx, current);
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
+    }
+    if (action === "start") {
+      const targets = ctx.withFreshness(ctx.targets());
+      const activeGroup = { ...execution, members: members.map((member) => member.specFolder) };
+      const checked = members.length === 1 ? orderGroupMembers(activeGroup.members, members) : validateExecutionGroupEdit({
+        project, group: activeGroup, members: activeGroup.members,
+        locked: lockedGroupMembers({ group: activeGroup, targets, jobs: ctx.queue.list() }),
+        targets, groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(),
+      });
+      if (!checked.ok) return json({ error: checked.error }, 409);
+      if (checked.members.some((folder, index) => folder !== members[index]?.specFolder)) {
+        const saved = await editGroup(ctx, new Request(req.url, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name, member: checked.members }),
+        }), execution.id);
+        if (!saved.ok) return saved;
+        return handleJobActionRoutes(ctx, new Request(req.url, {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
+        }), path);
+      }
     }
     const raw = action === "start"
       ? next ? withRowPicks({
@@ -259,6 +280,7 @@ export async function handleJobActionRoutes(
       if (!made.ok) return made.response;
       createdGroup = made.group;
       askedFor.executionGroupId = made.group.id;
+      askedFor.specFolder = made.group.members[0]!;
     }
     const result = enqueueRequest(ctx.queue, raw, "manual");
     // The row's own Run form is the one HTTP route a reader's

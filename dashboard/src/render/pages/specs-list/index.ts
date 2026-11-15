@@ -345,6 +345,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
     overlappingSpecs: opts.overlappingSpecs,
     listPath: opts.listPath,
     specOpen: !!opts.openSpec && opened.has(groupKey(g.project, g.specFolder)),
+    onSpecs: !!opts.openSpec,
     columns,
   });
   // Each spec ends with an empty row the stylesheet turns into the air
