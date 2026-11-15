@@ -441,8 +441,9 @@ on the queue job, which the queue drops after 200 jobs.
 The state filter is one axis, and `?state=` is where it lives. It is a dropdown of checkbox links. Ticking several
 shows every row that matches any of them. `?state=` holds their keys separated by commas; one key still shows that
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs
-the table shows, in brackets. Each entry's count is its own count over the rows the search lets through. The nine
-entries are:
+the table shows, in brackets. On Jobs and Specs, a filter with a choice other than All has an accent-coloured dot and
+border; choosing All clears them without changing the button's width. The phone's menu shows the dot beside the
+filter's name. Each entry's count is its own count over the rows the search lets through. The nine entries are:
 
 - **All** — the default.
 - **Active** — everything not archived and not closed.

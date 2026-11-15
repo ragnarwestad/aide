@@ -153,6 +153,7 @@ function stateDropdown(
     ariaLabel: t(lang, "list.statesLabel"),
     triggerLabel: t(lang, "list.statesLabel"),
     options: rows.map(({ s, on, count }) => ({
+      key: s.key,
       label: stateFilterLabel(s.key, lang),
       count,
       on,
@@ -168,6 +169,7 @@ function stateDropdown(
 /** One option of a dropdown: its label as plain text, its count, whether it is
  *  the chosen one, and the link that chooses it, already escaped. */
 export interface MenuOption {
+  key: string;
   /** A heading put immediately before this option. */
   heading?: string;
   label: string;
@@ -190,7 +192,7 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
       (opt) =>
         (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
         `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
-        `<span class="check" aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
+        `<span class="check" ${opt.key === "all" ? "" : `data-filter-option="${esc(opt.key)}" `}aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
     )
     .join("");
   const visible = esc(o.triggerLabel);
