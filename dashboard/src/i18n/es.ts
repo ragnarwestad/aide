@@ -13,6 +13,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.about": "Acerca de",
   "shell.usage": "Uso",
   "shell.deployWaiting": "{project} tiene {count} commits nuevos para desplegar",
+  "shell.deployWaitingOne": "{project} tiene {count} commit nuevo para desplegar",
   "shell.filter": "Filtro",
   "shell.themeDark": "Oscuro",
   "shell.themeLight": "Claro",

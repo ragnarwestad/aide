@@ -742,6 +742,10 @@ broadcast, because two independent stores feed a row:
 - `POST /api/aide-run` broadcasts separately, since cost, subagent count and live state arrive there and are invisible
   to the queue's store.
 
+A `deploy` event carries what the board has to deploy, `{"project","commits"}` or `{}`, for the header's Deploy mark
+(`projects.md`, "Deploy"). It is broadcast when the count changes, and sent once on connecting to a stream opened with
+`?deploy=1`, which the page always asks for.
+
 A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
 (`?phases=`) opens the stream with the same query, and on the runner's two-second tick the server compares the size of
 each running step's transcript and run log with the last tick and sends `changed` only to the tabs whose keys name that

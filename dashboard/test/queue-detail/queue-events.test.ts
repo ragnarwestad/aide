@@ -298,3 +298,13 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     expect(html).toContain("Its branch is still on origin — re-run archive");
   });
 });
+
+// The header's Deploy mark is drawn by the process that served the page; a
+// page whose stream reconnects after a Deploy asks the new one what is waiting.
+describe("the deploy event", () => {
+  test("a stream opened with deploy=1 hears what the board has to deploy now", async () => {
+    const { base } = harness.start();
+    const s = await connect(base, "?deploy=1");
+    expect(await s.next()).toBe("event: deploy\ndata: {}\n\n");
+  });
+});

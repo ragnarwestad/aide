@@ -7,6 +7,7 @@ import { isEcho } from "./watch-echo.ts";
 import {
   writeTo as writeToImpl,
   notifyQueueChanged as notifyQueueChangedImpl,
+  notifyDeployWaiting as notifyDeployWaitingImpl,
   scheduleNotify as scheduleNotifyImpl,
   closeSpecWatchers as closeSpecWatchersImpl,
   createStreamGrowth,
@@ -24,6 +25,7 @@ export interface WatchSetup {
   specWatchers: Map<string, ReturnType<typeof watch>>;
   writeTo: (c: ReadableStreamDefaultController<Uint8Array>, text: string) => void;
   notifyQueueChanged: () => void;
+  notifyDeployWaiting: () => void;
   scheduleNotify: () => void;
   closeSpecWatchers: () => void;
 }
@@ -73,6 +75,9 @@ export function setupWatch(
   function notifyQueueChanged() {
     return notifyQueueChangedImpl(sseWatchersCtx);
   }
+  function notifyDeployWaiting() {
+    return notifyDeployWaitingImpl(sseWatchersCtx);
+  }
   function scheduleNotify() {
     return scheduleNotifyImpl(sseWatchersCtx);
   }
@@ -107,5 +112,5 @@ export function setupWatch(
 
   const streamGrowth = (jobs: () => Job[]) => createStreamGrowth(sseWatchersCtx, jobs);
 
-  return { watchers, phaseWatchers, streamGrowth, specWatchers, writeTo, notifyQueueChanged, scheduleNotify, closeSpecWatchers };
+  return { watchers, phaseWatchers, streamGrowth, specWatchers, writeTo, notifyQueueChanged, notifyDeployWaiting, scheduleNotify, closeSpecWatchers };
 }

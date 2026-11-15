@@ -127,10 +127,10 @@ describe("the rows are redrawn on a push, not on a timer", () => {
   });
 
   // The stream is asked with the filter and state the page was.
-  test("the connection carries the page's own query string", () => {
+  test("the connection carries the page's own query string, and asks for what there is to deploy", () => {
     const h = harness(() => ({ ok: true }), "actionform", "?state=active");
     h.visibility("visible");
-    expect(h.sources[0]!.url).toBe("/api/queue/events?state=active");
+    expect(h.sources[0]!.url).toBe("/api/queue/events?state=active&deploy=1");
   });
 
   // Said the only way it can be said: with the connection

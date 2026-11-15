@@ -72,6 +72,8 @@ export interface ScheduleSetupInputs {
   checkoutEnsurer: CheckoutEnsurer;
   gitRun: GitRunner;
   notifyQueueChanged: () => void;
+  /** Tells every open tab that what the board has to deploy changed. */
+  notifyDeployWaiting?: () => void;
   /** The same resolver `LandContext.specsRoot` already gives
    *  `resolveOpenBranchTarget` — what `warmSpec` needs to ask whether a
    *  live spec's own `aide/<folder>` branch is still open. */
@@ -176,6 +178,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   setDeployWaiting(() => (state.stopped ? undefined : waiting));
   async function refreshDrift() {
     await refreshDriftImpl(scheduleCtx);
+    const before = waiting;
     waiting = await deployWaiting({
       projects: [...allowed],
       projectDir: machineryProjectDir,
@@ -184,6 +187,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       defaultBranch: (root) => branchStatus.defaultBranch(root),
       run: gitRun,
     }).catch(() => undefined);
+    if (before?.project !== waiting?.project || before?.commits !== waiting?.commits) inputs.notifyDeployWaiting?.();
   }
   function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
     return warmSpecImpl(scheduleCtx, t);

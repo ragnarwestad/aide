@@ -134,7 +134,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
 | `POST /api/queue/cleanup`                     | action | nothing                                            | `{ ok, job }`; 400 `{ error }`                                             | form      |
 | `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                                     | interface |
-| `GET /api/queue/events`                       | read   | optional `?phases=` and `?open=`                   | a held-open `text/event-stream` of queue changes                           | interface |
+| `GET /api/queue/events`                       | read   | optional `?phases=`, `?open=` and `?deploy=1`      | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                              | form      |
@@ -244,11 +244,12 @@ idle after it.
 Answered by `src/serve/core-routes.ts`. These three are the only API routes that do not go through the queue's
 dispatcher.
 
-| Route                | Kind   | Takes                              | Answers                                                                | Made for  |
-|----------------------|--------|------------------------------------|------------------------------------------------------------------------|-----------|
-| `POST /api/aide-run` | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body                          | interface |
-| `GET /api/aide-runs` | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight                        | interface |
-| `GET /api/version`   | read   | nothing                            | `{ sha, startedAt }`: the commit this process runs, and when it booted | interface |
+| Route                  | Kind   | Takes                              | Answers                                                                | Made for  |
+|------------------------|--------|------------------------------------|------------------------------------------------------------------------|-----------|
+| `POST /api/aide-run`   | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body                          | interface |
+| `GET /api/aide-runs`   | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight                        | interface |
+| `GET /api/deploy-mark` | read   | nothing                            | the header's Deploy mark as HTML, in the reader's language             | interface |
+| `GET /api/version`     | read   | nothing                            | `{ sha, startedAt }`: the commit this process runs, and when it booted | interface |
 
 ### Pages
 

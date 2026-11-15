@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
 import { pageShell } from "../../../src/render/ui/shell.ts";
-import { setDeployWaiting } from "../../../src/render/ui/deploy-mark/index.ts";
+import { deployMark, setDeployWaiting } from "../../../src/render/ui/deploy-mark/index.ts";
 
 const render = (): string => pageShell("Jobs", [{ label: "Projects", path: "/projects" }], "/", "<p>body</p>", "2026-11-15T00:00:00Z");
 const markOf = (html: string): string => html.match(/<(a|span) class="deploymark".*?<\/\1>/s)?.[0] ?? "";
@@ -22,5 +22,9 @@ describe("the header's Deploy mark", () => {
   test("links nowhere when nothing is waiting to be deployed", () => {
     setDeployWaiting(() => undefined);
     expect(markOf(render())).not.toContain("href=");
+  });
+
+  test("names one commit in the singular", () => {
+    expect(deployMark("en", { project: "aide", commits: 1 })).toContain("aide has 1 new commit to deploy");
   });
 });

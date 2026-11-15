@@ -158,6 +158,7 @@ export function createServer(opts: ServerOptions) {
     checkoutEnsurer: resolution.checkoutEnsurer,
     gitRun,
     notifyQueueChanged: watch.notifyQueueChanged,
+    notifyDeployWaiting: watch.notifyDeployWaiting,
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
