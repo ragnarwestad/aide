@@ -418,18 +418,23 @@ describe("--chrome", () => {
 });
 
 describe("--no-sandbox", () => {
-  const argvFor = (noSandbox: boolean | undefined): string[] =>
+  const argvFor = (noSandbox: boolean | undefined, tool: "claude" | "codex" = "claude"): string[] =>
     runnerArgv(
       {
         id: "j1", project: "aide", specFolder: "schedule-nightly-e2e", steps: ["schedule"], stepIndex: 0,
-        model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+        model: { schedule: "chosen" }, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
       } as unknown as Parameters<typeof runnerArgv>[0],
       "schedule", "/tmp/r.json",
-      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", promptFile: "docs/x.md", noSandbox },
+      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", promptFile: "docs/x.md", noSandbox, modelChoices: { chosen: { tool } } },
     );
 
   test("a scheduled job whose entry turns the sandbox off passes it", () => {
     expect(argvFor(true)).toContain("--no-sandbox");
+  });
+  test("Codex runs without the Claude-only flag even when the entry disables the sandbox", () => {
+    const argv = argvFor(true, "codex");
+    expect(argv).toContain("codex");
+    expect(argv).not.toContain("--no-sandbox");
   });
   test("one whose entry does not, does not", () => {
     expect(argvFor(false)).not.toContain("--no-sandbox");

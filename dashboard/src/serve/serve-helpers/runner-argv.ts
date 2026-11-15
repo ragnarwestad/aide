@@ -270,7 +270,7 @@ export function runnerArgv(
     // is the whole of what the step is for.
     ...(o.promptFile ? ["--prompt-file", o.promptFile] : []),
     ...(o.chrome ? ["--chrome"] : []),
-    ...(o.noSandbox ? ["--no-sandbox"] : []),
+    ...(o.noSandbox && tool === "claude" ? ["--no-sandbox"] : []),
     ...(model ? ["--model", model] : []),
     // Only when the job actually named one for this step: a job
     // with nothing chosen produces byte-for-byte the argv it produced
