@@ -360,7 +360,8 @@ table.list td[data-col="cost"] { text-align: center; }
    slot that kept it had nothing left to centre in. Centred, the button
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
-table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
+table.list tr.subrow[data-caption="1"] td[data-col="state"] > .row { justify-content: center; }
+table.list tr.subrow[data-caption="1"] td[data-col="state"] > .row > .actionslot { width: auto; justify-content: center; }
 /* The Running list keeps a job's Stop or Cancel in the state cell, under
    its badge: centred on the column's midline as the badge is, with the
    row gap above it rather than touching the badge. */

@@ -397,7 +397,7 @@ test("a scheduled plan shows waiting steps before their actions start", () => {
   ]);
   const got = scheduleSteps(job({ specFolder: "schedule-news", steps: ["schedule"], streamFile: file }), "en");
   expect(got.map(({ label, state }) => [label, state])).toEqual([
-    ["Preparing", "done"], ["Collect sources", "running"], ["Write report", undefined], ["Tests and commit", undefined],
+    ["Preparing", "done"], ["Collect sources", "running"], ["Write report", undefined], ["Tests and commit files", undefined],
   ]);
   expect(got[2]!.seconds).toBeUndefined();
   expect(got[2]!.since).toBeUndefined();
@@ -424,6 +424,6 @@ test("a schedule that fails preparing retains every fixed prompt step", () => {
   const got = scheduleSteps(job({ specFolder: "schedule-nightly", steps: ["schedule"], state: "failed", streamFile: file }), "en",
     "## Step 1 of 2: Run browser tests\n\n## Step 2 of 2: Write report\n");
   expect(got.map(({ label, state }) => [label, state])).toEqual([
-    ["Preparing", "failed"], ["Run browser tests", undefined], ["Write report", undefined], ["Tests and commit", undefined],
+    ["Preparing", "failed"], ["Run browser tests", undefined], ["Write report", undefined], ["Tests and commit files", undefined],
   ]);
 });

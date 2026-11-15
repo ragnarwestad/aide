@@ -94,9 +94,9 @@ Branch on the JSON's `terminalReason`:
   `specFolder` (the new `archive/NN-slug/` path). Continue straight to
   Step 2, reading from that path.
 
-### Step 2 of 4: Commit
+### Step 2 of 4: Commit spec files
 
-First write `--- Step 2 of 4: Commit — started`, and when this step ends, `--- Step 2 of 4: Commit — done`.
+First write `--- Step 2 of 4: Commit spec files — started`, and when this step ends, `--- Step 2 of 4: Commit spec files — done`.
 
 
 Step 1 left the move and the stamp in the working directory; this step
@@ -142,8 +142,8 @@ at once.
 First write `--- Step 3 of 4: Confirm — started`, and when this step ends, `--- Step 3 of 4: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
-close is finished only once Step 4, the merge into main, is done. So the
-report's first line ends `— not finished, the merge into main is next
+close is finished only once Step 4, the merge of spec files into main, is done. So the
+report's first line ends `— not finished, the merge of spec files into main is next
 (Step 4)`, and the report never calls the close done or complete.
 
 
@@ -157,13 +157,13 @@ Closed: 17-a-spec-that-turned-out-wrong
 The spec stays findable: /aide-to-pdf 17
 ```
 
-### Step 4 of 4: Merge into main
+### Step 4 of 4: Merge spec files into main
 
-Aide writes `--- Step 4 of 4: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 4 of 4: Merge spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
-run Aide merges what this session committed on the spec's branch into
-the default branch once the session has ended, and the close is finished
+run Aide merges the spec files committed on the spec's branch into
+the specs repository's default branch once the session has ended, and the close is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 

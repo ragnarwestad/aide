@@ -91,8 +91,9 @@ Each entry says what the word is and links the page that has the rest.
   the step itself. A step is not finished until it has landed; an
   archive's landing runs the project's tests on the merge first.
   [Landing](../dashboard/docs/landing.md).
-- **Merge into main** — the skill step a landing is marked as in the log:
-  the last step of every skill whose work lands.
+- **Merge spec files into main** — the last step of Create, Analyze, Reopen and Close.
+  Only the spec files reach the default branch. Archive instead says
+  **Merge code and spec files into main**, since it also lands the project changes.
 - **Test server** — a running copy of the project built from a spec's
   branch, offered between implement and archive.
   [Test server](../dashboard/docs/test-server.md).

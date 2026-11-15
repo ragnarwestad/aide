@@ -527,8 +527,9 @@ aide-run-spec: <text>                                                  an older,
 ```
 
 The script marks the parts it runs itself the way a skill's steps are marked: `--- Step Aide: preparing — started` on
-its first line, `— done` just before the AI's first turn; `--- Step Aide: tests and commit — started` after the AI,
-ending `— done`, or `— stopped: <why>` for a step that failed. A model turn closes the part it interrupts and a fix
+its first line, `— done` just before the AI's first turn; `--- Step Aide: tests and commit spec files — started` after an AI that changes only specs,
+ending `— done`, or `— stopped: <why>` for a step that failed. Implement and Archive name
+`tests and commit code and spec files`; scheduled jobs name `tests and commit files`. A model turn closes the part it interrupts and a fix
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).
 
@@ -546,7 +547,7 @@ Every physical line is its own line. Only the `error: ` prefix marks an error an
 the transcript is cut at each turn's byte, and Aide's lines go between the turns. The script writes one `error:` line
 for the step's own failure before its result line, and one for a refused run.
 
-**What the two reviews found** is written in the `tests and commit` part. A completed analyze gets one line, read from
+**What the two reviews found** is written in the publication part. A completed analyze gets one line, read from
 the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec/turn/review.sh`), or
 a line saying the plan has no Plan review section or the section gives no counts. An implement's code review writes
 `the review found no defects` or an `error:` line with the count, one `review: <line>` per line of the reviewer's list,

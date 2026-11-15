@@ -1,11 +1,11 @@
 import { specRunDialog } from "./phase-rows.ts";
-import { t, type Language } from "../../../i18n";
+import type { Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, stepLabel } from "../../ui/components";
+import { badge } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight } from "../../ui/job-state";
@@ -22,7 +22,7 @@ import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specBusy } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { specState } from "./data-model/spec-state.ts";
+import { specState, specStateLabel } from "./data-model/spec-state.ts";
 import { firstSpecActionLabel, PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
@@ -153,7 +153,7 @@ export function specHeadRow(
   // A closed row's badge word is CLOSED_STATE
   // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
   // badge already followed for "archived", now told apart by `g.state`.
-  const stateBadge = headStateBadge(g, lang);
+  const stateBadge = headStateBadge(g, lang, !!opts.openSpec);
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
   const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
   const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
@@ -294,11 +294,9 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
  *  closed row's word is CLOSED_STATE, never ARCHIVED_STATE.
  *  A spec with no job in the queue's memory reads through `restingChip`
  */
-export function headStateBadge(g: SpecGroup, lang: Language): string {
+export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
   const state = specState(g);
-  const label = state.key === "active" && state.phase
-    ? `${t(lang, "list.state.active")}: ${stepLabel(state.phase, lang)}`
-    : t(lang, `list.state.${state.key}` as Parameters<typeof t>[1]);
+  const label = specStateLabel(state, lang, onSpecs);
   const variant = state.key === "active" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
   return badge(variant, label);
 }

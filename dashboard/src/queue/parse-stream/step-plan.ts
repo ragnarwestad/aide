@@ -13,7 +13,8 @@ import type { LogPart } from "./step-log.ts";
 import { stepKey, stepDeclarations } from "./step-marks.ts";
 
 /** The parts aide-run-spec marks itself: `aide_part_open "preparing"` (aide-run-spec), and
- *  `aide_part_open "tests and commit"` once the session is over (run-spec/turn/spec-paths.sh). */
+ *  its publication part once the session is over (run-spec/turn/spec-paths.sh).
+ *  The after key is kept stable across the phase-specific titles. */
 export const AIDE_PARTS = { before: "preparing", after: "tests and commit" } as const;
 
 /** The steps aide-run-spec runs with no model turn, whatever the job asks (spec-paths.sh's reopen branch):
@@ -51,7 +52,7 @@ export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
   } catch {
     return [];
   }
-  const plan = planFrom(text, !NO_MODEL_TURN.has(step));
+  const plan = planFrom(text, !NO_MODEL_TURN.has(step), step);
   kept.set(file, { mtimeMs, plan });
   return plan;
 }
@@ -59,10 +60,10 @@ export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
 /** A schedule declares its steps before starting them; older logs keep their marked-only view. */
 export function schedulePlan(logs: LogPart[], prompt = ""): PlannedStep[] {
   const declared = stepDeclarations(logs);
-  return declared.length ? [part(AIDE_PARTS.before), ...declared, part(AIDE_PARTS.after)] : planFrom(prompt, true);
+  return declared.length ? [part(AIDE_PARTS.before), ...declared, part(commitPartTitle("schedule"))] : planFrom(prompt, true, "schedule");
 }
 
-function planFrom(text: string, hasModelTurn: boolean): PlannedStep[] {
+function planFrom(text: string, hasModelTurn: boolean, step: string): PlannedStep[] {
   const session: PlannedStep[] = [];
   const aide: PlannedStep[] = [];
   for (const match of text.matchAll(HEADING)) {
@@ -71,7 +72,12 @@ function planFrom(text: string, hasModelTurn: boolean): PlannedStep[] {
     (under.startsWith("Aide writes") ? aide : session).push({ key: stepKey(place, title), label: capitalizeFirst(title) });
   }
   if (session.length + aide.length === 0) return [];
-  return [part(AIDE_PARTS.before), ...(hasModelTurn ? session : []), part(AIDE_PARTS.after), ...aide];
+  return [part(AIDE_PARTS.before), ...(hasModelTurn ? session : []), part(commitPartTitle(step)), ...aide];
 }
 
 const part = (name: string): PlannedStep => ({ key: stepKey("Aide", name), label: capitalizeFirst(name) });
+
+/** The publication stage names the files the phase is allowed to change. */
+export const commitPartTitle = (step: string): string =>
+  ["create", "analyze", "reopen", "close"].includes(step) ? "tests and commit spec files"
+    : ["implement", "archive"].includes(step) ? "tests and commit code and spec files" : "tests and commit files";

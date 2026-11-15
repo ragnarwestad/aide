@@ -400,8 +400,8 @@ analysis at once.
 First write `--- Step 10 of 11: Confirm — started`, and when this step ends, `--- Step 10 of 11: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
-analyze is finished only once Step 11, the merge into main, is done. So the
-report's first line ends `— not finished, the merge into main is next
+analyze is finished only once Step 11, the merge of spec files into main, is done. So the
+report's first line ends `— not finished, the merge of spec files into main is next
 (Step 11)`, and the report never calls the analyze done or complete.
 
 
@@ -416,13 +416,13 @@ right and run Analyze again. Working interactively there is no runner
 to stop it: say that the analysis would have ended stopped, and that the
 description is to be put right before `/aide-implement`.
 
-### Step 11 of 11: Merge into main
+### Step 11 of 11: Merge spec files into main
 
-Aide writes `--- Step 11 of 11: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 11 of 11: Merge spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
-run Aide merges what this session committed on the spec's branch into
-the default branch once the session has ended, and the analyze is finished
+run Aide merges the spec files committed on the spec's branch into
+the specs repository's default branch once the session has ended, and the analyze is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 

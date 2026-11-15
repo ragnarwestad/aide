@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { specState } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
+import { specState, specStateLabel } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model/types.ts";
 
 const group = (extra: Partial<SpecGroup> = {}) => ({
@@ -26,4 +26,12 @@ describe("a spec's own state", () => {
     expect(specState(group({ state: "archived", lead: { ...lead!, state: "done", landing: true } })))
       .toEqual({ key: "active", phase: "implement" });
   });
+});
+
+test("Jobs names what is happening while Specs shows only Active", () => {
+  for (const [phase, word] of [["analyze", "Analyzing"], ["implement", "Implementing"], ["archive", "Archiving"]]) {
+    const state = { key: "active" as const, phase };
+    expect(specStateLabel(state, "en", false)).toBe(word!);
+    expect(specStateLabel(state, "en", true)).toBe("Active");
+  }
 });

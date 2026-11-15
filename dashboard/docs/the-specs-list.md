@@ -91,7 +91,8 @@ is readable without counting rows. The phase lines sit directly under the row; i
 A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count
 beside it, because a re-run is ordinary.
 
-The Specs header carries one short state: Not started, Running, Held back, Waiting for Archive or Failed. The Jobs
+The Specs header carries the spec state. While a phase runs or lands, it says Active, without the phase name.
+The Jobs header instead names what is happening, such as Analyzing, Implementing or Archiving. The Jobs
 row keeps the detailed state for that run.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
@@ -200,9 +201,9 @@ The State column carries the spec's own state and nothing else:
 
 - **Created** — no phase has run.
 - **Idle** — a job has run and none is queued or running now.
-- **Active: phase** — a job is queued or running, or its branch is landing.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
+- **Active** — a job is queued or running, or its branch is landing; the phase name is shown on Jobs instead.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
 Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line
@@ -572,7 +573,7 @@ lines tall that opens at its end. The three tabs:
   preparing", "AI (Claude Sonnet)", "Aide: tests and commit"). It is complete: every line, from the first byte of
   the transcript, and every message of the AI's in full, line breaks and all. A command written over several lines shows each break as `⏎`. Each skill-step mark (`--- Step 1 of 9: … — started`) is a line of its own, and so
   are the marks of Aide's own parts around the AI (`--- Step Aide: preparing — started`, then `— done`, and
-  `Aide: tests and commit` after the AI, ending `— done` or `— stopped: <why>`). The step's full final message is
+  a publication part naming spec files or code and spec files after the AI, ending `— done` or `— stopped: <why>`). The step's full final message is
   the last of the AI's lines, with no heading; a last line that only repeats it is replaced by it, so it reads once.
   A subagent the AI started is a part of its own, under the line of the call that started it, with the separator
   "Subagent: <name>": what it was asked, its own lines and what it answered, and the AI's lines go on under a new
