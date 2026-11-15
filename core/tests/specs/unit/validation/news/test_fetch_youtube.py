@@ -210,7 +210,9 @@ today we talk Q&amp;A
 @pytest.fixture
 def yt_dlp(tmp_path, monkeypatch):
     """A fake yt-dlp first on PATH. By the video id's start: `fail` exits 1, `potoken` warns and writes
-    nothing, `none` writes nothing, anything else writes automatic English captions. Each call is logged."""
+    nothing, `none` writes nothing, `manual` has uploaded English captions, anything else has only
+    YouTube's automatic ones, where the original track `en-orig` is written and asking for the automatic
+    `en` track answers 429, as YouTube does. Each call is logged."""
     folder = tmp_path / "bin"
     folder.mkdir()
     calls = tmp_path / "yt-dlp-calls.txt"
@@ -234,7 +236,19 @@ if video.startswith("potoken"):
 if video.startswith("none"):
     print("[info] %s: There are no subtitles for the requested languages" % video)
     sys.exit(0)
-(folder / (video + ".en.vtt")).write_text(open({str(vtt)!r}).read())
+auto = "--write-auto-subs" in args
+langs = args[args.index("--sub-langs") + 1].split(",")
+if video.startswith("manual") and "--write-subs" in args:
+    (folder / (video + ".en.vtt")).write_text(open({str(vtt)!r}).read())
+    sys.exit(0)
+if video.startswith("manual") or not auto:
+    print("[info] %s: There are no subtitles for the requested languages" % video)
+    sys.exit(0)
+if any(lang in ("en", "en.*") for lang in langs):
+    sys.stderr.write("ERROR: Unable to download video subtitles for 'en': HTTP Error 429: Too Many Requests\\n")
+    sys.exit(1)
+if "en-orig" in langs:
+    (folder / (video + ".en-orig.vtt")).write_text(open({str(vtt)!r}).read())
 """)
     fake.chmod(0o755)
     monkeypatch.setenv("PATH", f"{folder}:/usr/bin:/bin")
@@ -258,11 +272,10 @@ def test_more_than_five_links_are_refused_before_yt_dlp_runs_ac_3(module, tmp_pa
     assert not yt_dlp.exists()
 
 
-def test_five_links_run_yt_dlp_once_each_ac_3(module, tmp_path, capsys, yt_dlp):
+def test_five_links_each_get_a_line_ac_3(module, tmp_path, capsys, yt_dlp):
     code, _, lines = run_captions(module, tmp_path, capsys, *(f"none{n}" for n in range(5)))
     assert code == 0
-    assert len(yt_dlp.read_text().splitlines()) == 5
-    assert len(lines) == 5
+    assert [line.split()[1] for line in lines] == [link(f"none{n}") for n in range(5)]
 
 
 def test_automatic_captions_are_written_as_each_spoken_line_once_ac_3(module, tmp_path, capsys, yt_dlp):
@@ -270,6 +283,20 @@ def test_automatic_captions_are_written_as_each_spoken_line_once_ac_3(module, tm
     assert code == 0
     assert lines == ["captions %s %s" % (link("abc123"), out / "abc123.txt")]
     assert (out / "abc123.txt").read_text() == "hello and welcome\ntoday we talk Q&A\n"
+
+
+def test_uploaded_captions_are_taken_and_the_automatic_ones_never_asked_for(module, tmp_path, capsys, yt_dlp):
+    code, out, lines = run_captions(module, tmp_path, capsys, "manual1")
+    assert code == 0
+    assert lines == ["captions %s %s" % (link("manual1"), out / "manual1.txt")]
+    assert "--write-auto-subs" not in yt_dlp.read_text()
+
+
+def test_automatic_captions_come_from_the_original_track_not_the_en_track_youtube_refuses(
+        module, tmp_path, capsys, yt_dlp):
+    code, out, lines = run_captions(module, tmp_path, capsys, "auto1")
+    assert code == 0
+    assert lines == ["captions %s %s" % (link("auto1"), out / "auto1.txt")]
 
 
 def test_a_video_without_captions_is_none_and_not_a_failure_ac_5(module, tmp_path, capsys, yt_dlp):

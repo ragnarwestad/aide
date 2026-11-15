@@ -169,23 +169,29 @@ def vtt_text(vtt):
 
 
 def caption_line(link, out):
-    """Fetch one video's captions: the line that reports them."""
+    """Fetch one video's captions: the line that reports them. Uploaded English captions are asked for
+    first; without them, the automatic original track `en-orig`. YouTube answers 429 for the automatic
+    `en` track, and one refused track fails the whole yt-dlp run."""
     with tempfile.TemporaryDirectory() as folder:
-        command = [YT_DLP, "--skip-download", "--no-playlist", "--js-runtimes", "node", "--write-subs",
-                   "--write-auto-subs", "--sub-langs", "en.*", "--sub-format", "vtt", "--paths", folder,
-                   "-o", "%(id)s.%(ext)s", "--", link]
-        try:
-            done = subprocess.run(command, capture_output=True, text=True, timeout=TIME_LIMIT)
-        except OSError as error:
-            return "failed %s yt-dlp could not be run: %s" % (link, error)
-        except subprocess.TimeoutExpired:
-            return "failed %s yt-dlp ran past %d seconds" % (link, TIME_LIMIT)
-        said = (done.stdout + "\n" + done.stderr).strip().splitlines()
-        if done.returncode != 0:
-            return "failed %s %s" % (link, said[-1] if said else "yt-dlp exit %d" % done.returncode)
-        files = sorted(Path(folder).glob("*.vtt"))
+        heard = []
+        for tracks in (["--write-subs", "--sub-langs", "en.*"], ["--write-auto-subs", "--sub-langs", "en-orig"]):
+            command = [YT_DLP, "--skip-download", "--no-playlist", "--js-runtimes", "node", *tracks,
+                       "--sub-format", "vtt", "--paths", folder, "-o", "%(id)s.%(ext)s", "--", link]
+            try:
+                done = subprocess.run(command, capture_output=True, text=True, timeout=TIME_LIMIT)
+            except OSError as error:
+                return "failed %s yt-dlp could not be run: %s" % (link, error)
+            except subprocess.TimeoutExpired:
+                return "failed %s yt-dlp ran past %d seconds" % (link, TIME_LIMIT)
+            said = (done.stdout + "\n" + done.stderr).strip().splitlines()
+            heard += said
+            if done.returncode != 0:
+                return "failed %s %s" % (link, said[-1] if said else "yt-dlp exit %d" % done.returncode)
+            files = sorted(Path(folder).glob("*.vtt"))
+            if files:
+                break
         if not files:
-            warning = next((line for line in said if LEFT_OUT.search(line)), None)
+            warning = next((line for line in heard if LEFT_OUT.search(line)), None)
             return "failed %s %s" % (link, warning) if warning else "none %s" % link
         chosen = next((f for f in files if f.name.endswith(".en.vtt")), files[0])
         path = Path(out) / (chosen.name.split(".")[0] + ".txt")
