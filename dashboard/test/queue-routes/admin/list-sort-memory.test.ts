@@ -43,13 +43,13 @@ describe("the column the reader sorted by is remembered", () => {
 
   test("a link that names a sort still wins over what is remembered", async () => {
     const { base, server } = start();
-    const res = await fetch(`${base}/specs?sort=state`, {
+    const res = await fetch(`${base}/specs?sort=spec`, {
       headers: { cookie: `aide_sort_${server.port}=started|desc` },
     });
-    expect(sortedBy(await res.text())).toBe("State");
+    expect(sortedBy(await res.text())).toBe("Specification");
     // And it becomes the new memory, so the next bare `/` agrees with
     // what the reader is looking at.
-    expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);
+    expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=spec`);
   });
 
   // The default sort is Created.

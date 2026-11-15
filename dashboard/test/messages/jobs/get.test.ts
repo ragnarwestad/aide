@@ -116,28 +116,28 @@ describe("the line under a job row's state", () => {
     ];
 
     test("a done job whose newest result ran on a provider says so in the info colour, with no log (AC-10)", () => {
-      expect(message(schedule({ state: "done", results: onWork } as never))).toEqual({ variant: "info", text: ranOn("implement", "Work") });
+      expect(message(job({ state: "done", results: onWork } as never))).toEqual({ variant: "info", text: ranOn("implement", "Work") });
     });
 
     test("a failed job names the provider after its own sentence and keeps its log (AC-10)", () => {
-      const row = schedule({ id: "f2", state: "failed", error: said, results: onWork } as never);
+      const row = job({ id: "f2", state: "failed", error: said, results: onWork } as never);
       expect(message(row)).toEqual({
         variant: "failed", text: `${sentenceOf}\n${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
       });
     });
 
     test("a cancelled job names no ran-on sentence, since no step ran on a provider (AC-10)", () => {
-      const row = schedule({ state: "cancelled", provider: "Work", results: [{ step: "analyze", ok: true }] } as never);
+      const row = job({ state: "cancelled", provider: "Work", results: [{ step: "analyze", ok: true }] } as never);
       expect(message(row)).toBeUndefined();
     });
 
     test("a done job whose steps ran on no provider names none (AC-10)", () => {
-      expect(message(schedule({ state: "done", results: [{ step: "implement", ok: true }] } as never))).toBeUndefined();
+      expect(message(job({ state: "done", results: [{ step: "implement", ok: true }] } as never))).toBeUndefined();
     });
 
     test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the provider once (AC-10)", () => {
       const until = new Date(Date.now() + 3_600_000).toISOString();
-      const row = schedule({
+      const row = job({
         id: "u1", state: "stopped", stopReason: "provider-limit", provider: "Work",
         usageLimitWait: { until, resetKnown: true },
         results: [{ step: "implement", ok: false, provider: { key: "Work", name: "Work" }, providerLimit: { tool: "claude", window: "five-hour" } }],
@@ -156,3 +156,9 @@ test("running schedules show no provider caption", () => {
   expect(getJobMessage(row as never, "en")).toBeUndefined();
   expect(getJobMessage({ ...row, steps: ["implement"] } as never, "en")?.variant).toBe("info");
 });
+
+ test("scheduled jobs never add a ran-on caption to a result", () => {
+  const results = [{ step: "schedule", ok: true, provider: { key: "Codex", name: "Codex" } }];
+  expect(getJobMessage(sched({ state: "done", results } as never), "en")).toBeUndefined();
+  expect(getJobMessage(sched({ state: "failed", error: "failed", results } as never), "en")?.text).toBe("failed");
+ });

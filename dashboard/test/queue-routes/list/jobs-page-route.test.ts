@@ -157,18 +157,6 @@ describe("which kind of row a job gets", () => {
     }
   });
 
-  test("a scheduled job's title line holds one link, to the project, shut or open", async () => {
-    const { base } = board([report, sched]);
-    for (const query of ["", OPEN_BOTH]) {
-      const html = await rowsOf(base, query);
-      for (const id of ["spec-aide/schedule-report", "spec-aide/schedule-nightly"]) {
-        const line = group(html, id).match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "";
-        expect(line.match(/<a\b/g)).toHaveLength(1);
-        expect(line).toContain('href="/projects/aide"');
-      }
-    }
-  });
-
   test("shut, by default or with another row open, a job row has no links and no Stop or Cancel", async () => {
     const { base } = board([report, sched]);
     for (const query of ["", "open=aide/81-queue-and-runner"]) {
@@ -184,18 +172,8 @@ describe("which kind of row a job gets", () => {
     }
   });
 
-  test("open or shut, a scheduled job's title line holds no link but the project's; open, it still offers Stop or Cancel", async () => {
+  test("an open scheduled job still offers Stop or Cancel", async () => {
     const { base } = board([report, sched]);
-    for (const query of ["", OPEN_BOTH]) {
-      const html = await rowsOf(base, query);
-      for (const [id, jobId] of [["spec-aide/schedule-report", "report1"], ["spec-aide/schedule-nightly", "sched1"]]) {
-        const g = group(html, id);
-        expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
-        expect(g).not.toContain(`/jobs/${jobId}`);
-        expect(g).not.toContain("tab=schedule");
-      }
-    }
-
     const html = await rowsOf(base, OPEN_BOTH);
     const w = group(html, "spec-aide/schedule-report");
     expect(w).toContain('action="/api/queue/report1/cancel"');
@@ -213,7 +191,6 @@ describe("which kind of row a job gets", () => {
       expect(line).toContain('href="/jobs/reportf?tab=steps"');
       expect(line).not.toContain("dismiss");
       expect(g.match(/<form\b/g) ?? []).toHaveLength(0);
-      expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
       expect(g).not.toContain("/api/queue/reportf/cancel");
       expect(g).not.toContain("data-ask");
     }
@@ -583,7 +560,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(list).not.toContain("data-caption");
     expect(list).not.toContain("data-step=");
     expect(jobsTab).toContain(">Held back<");
-    expect(list).toContain(">Held back<");
   });
 
   test("a spec with no job opened on each: the Jobs tab has its Run, the list has none", async () => {

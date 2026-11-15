@@ -96,16 +96,16 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
 }
 
 /** Every declared schedule step waits until the run marks it. */
-export function scheduleSteps(job: Job, lang: Language): CloseOrReopenStep[] {
+export function scheduleSteps(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {
   if (jobKind(job) === "cleanup") return jobSteps(job, cleanupPlan(lang), lang);
   const { marks, logs } = jobMarks(job, lang);
-  return stepLinesOf(marks, logs, schedulePlan(logs), Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
+  return stepLinesOf(marks, logs, schedulePlan(logs, prompt), Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
 }
 
-export function jobStepLines(job: Job, lang: Language): CloseOrReopenStep[] {
+export function jobStepLines(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {
   const kind = jobKind(job);
   if (kind === "deploy") return deploySteps(job, lang);
-  if (kind === "cleanup" || kind === "schedule") return scheduleSteps(job, lang);
+  if (kind === "cleanup" || kind === "schedule") return scheduleSteps(job, lang, prompt);
   if (kind === "close" || kind === "reopen") return closeOrReopenSteps(job, kind, lang);
   return [];
 }
@@ -119,10 +119,10 @@ const pipsRead = new Map<string, { stamp: string; pips: JobStepPip[] }>();
 /** A job's steps as its row's pips draw them. A finished job's log no longer
  *  changes, so its steps are read once and kept; a queued, running or
  *  landing job's are read every time. */
-export function jobStepPips(job: Job, lang: Language): JobStepPip[] {
-  const read = (): JobStepPip[] => jobStepLines(job, lang).map(({ label, state }) => ({ label, state }));
+export function jobStepPips(job: Job, lang: Language, prompt = ""): JobStepPip[] {
+  const read = (): JobStepPip[] => jobStepLines(job, lang, prompt).map(({ label, state }) => ({ label, state }));
   if (inFlight(job)) return read();
-  const stamp = `${job.state}|${job.finishedAt ?? ""}|${lang}`;
+  const stamp = `${job.state}|${job.finishedAt ?? ""}|${lang}|${prompt}`;
   const kept = pipsRead.get(job.id);
   if (kept?.stamp === stamp) return kept.pips;
   const pips = read();

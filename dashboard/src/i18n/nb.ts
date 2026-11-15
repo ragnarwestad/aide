@@ -214,11 +214,6 @@ export const nb: Record<TranslationKey, string> = {
   "state.cancelled": "avbrutt",
   "state.interrupted": "avbrutt",
   "state.heldBack": "holdt tilbake",
-  "specState.notStarted": "Ikke startet",
-  "specState.running": "Kjører",
-  "specState.heldBack": "Holdt tilbake",
-  "specState.waitingArchive": "Venter på Arkiver",
-  "specState.failed": "Feilet",
   "state.stopped": "stoppet",
 
   "project.deployRestartWaiting":

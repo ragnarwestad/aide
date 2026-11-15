@@ -4,7 +4,7 @@ import { t, type Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, stepLabel } from "../../ui/components";
+import { badge, btnLink, stepLabel } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { esc } from "../../ui/html.ts";
@@ -21,7 +21,7 @@ import {
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
-import { archivingAgain, nextPhase, rowAnchorId, specBusy } from "./row-state.ts";
+import { archivingAgain, nextPhase, rowAnchorId } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
@@ -151,9 +151,9 @@ export function specHeadRow(
   // A closed row's badge word is CLOSED_STATE
   // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
   // badge already followed for "archived", now told apart by `g.state`.
-  const stateBadge = opts.openSpec ? specListStateBadge(g, lang) : headStateBadge(g, lang);
-  const jobs = opts.openSpec && g.named
-    ? ` <a href="/?q=${encodeURIComponent(`${g.project}:${number}`)}">${esc(t(lang, "shell.tabRunning"))}</a>`
+  const stateBadge = opts.openSpec ? "" : headStateBadge(g, lang);
+  const jobs = opts.openSpec && g.named && g.hasJobs
+    ? btnLink({ href: `/?q=${encodeURIComponent(`${g.project}:${number}`)}`, label: t(lang, "shell.tabRunning"), variant: "primary", small: true })
     : "";
   // What goes under the name. A locked row draws nothing here
   // — `specSummary` has no path for it at all: it draws a title
@@ -238,7 +238,7 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    `<td data-col="state"><span class="badgeslot">${stateBadge}</span>${jobs}</td>` +
+    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${jobs}</td>` +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by
     // it on every run, and the spec's own creation date says nothing about
@@ -251,15 +251,6 @@ export function specHeadRow(
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>` +
     `</tr>`
   );
-}
-
-function specListStateBadge(g: SpecGroup, lang: Language): string {
-  const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
-  if (g.failed || g.lead?.state === "failed") return badge("refused", t(lang, "specState.failed"));
-  if (heldBack || g.lead?.errorReason === "held-back") return badge("waiting", t(lang, "specState.heldBack"));
-  if (specBusy(g)) return badge("running", t(lang, "specState.running"));
-  if (nextPhase(g.done) === "archive") return badge("ready", t(lang, "specState.waitingArchive"));
-  return badge("ready", t(lang, "specState.notStarted"));
 }
 
 /** The spec's own state badge — what the head row draws in the State

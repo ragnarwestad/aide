@@ -1,3 +1,4 @@
+import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type ArchivedSpecView, type QueueRowView, type SpecsPageOptions, type SpecTarget } from "../../../../../src/render";
 import { t } from "../../../../../src/i18n";
@@ -174,10 +175,8 @@ describe("an open row on the Specs list is the spec alone", () => {
     }
   });
 
-  test("the Specs row has its short state, filtered Jobs link and Run dialog (AC-2, AC-3, AC-4)", () => {
+  test("the Specs row keeps its Run dialog", () => {
     const html = onList("aide/81-queue-x");
-    expect(html).toContain(">Not started<");
-    expect(html).toContain('href="/?q=aide%3A81"');
     expect(html).toContain('data-ask="runask-aide/81-queue-x"');
     expect(html).toContain('id="runask-aide/81-queue-x"');
   });
@@ -205,18 +204,6 @@ describe("an open row on the Specs list is the spec alone", () => {
 
     expect(html).not.toContain("data-run-dialog");
     expect(html).not.toContain('value="archive"');
-  });
-
-  test("a held-back current job is Held back, not Running", () => {
-    const key = "aide/82-queue-y";
-    const held = row({ id: "held82", specFolder: "82-queue-y", state: "queued", errorReason: "held-back" });
-    const html = group(renderSpecsRows([held], {
-      ...base,
-      openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
-    }, NOW), key);
-
-    expect(html).toContain(">Held back<");
-    expect(html).not.toContain(">Running<");
   });
 
   test("the rows are the title line, the state line, the settings for an active spec, the spec, then the gap", () => {
@@ -269,4 +256,15 @@ describe("an open row on the Specs list is the spec alone", () => {
     }
     expect(onJobsTab("aide/81-queue-x")).toContain("phasemsgs");
   });
+});
+
+test("the Jobs action requires actual history, including on archived specs", () => {
+  const targets = ["81-idle", "82-active"].map((specFolder) => ({ project: "aide", specFolder }));
+  const archived = { project: "aide", folder: "83-archived", done: ["create", "analyze", "implement", "archive"], models: {}, phaseOutcomes: {} } as ArchivedSpecView;
+  const jobs = [row({ specFolder: "82-active", state: "done" }), row({ specFolder: "83-archived", state: "done" })];
+  const groups = groupBySpec(jobs, targets, ["aide/83-archived"], [archived]);
+  expect(groups.find((g) => g.specFolder === "81-idle")?.hasJobs).toBe(false);
+  expect(groups.find((g) => g.specFolder === "82-active")?.hasJobs).toBe(true);
+  expect(groups.find((g) => g.specFolder === "83-archived")?.hasJobs).toBe(true);
+  expect(groupBySpec([], [], ["aide/83-archived"], [archived])[0]?.hasJobs).toBe(false);
 });

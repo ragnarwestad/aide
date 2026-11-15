@@ -28,7 +28,7 @@ import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
-import { jobControl, jobKey, jobRowKind, jobTitle } from "./rows.ts";
+import { jobControl, jobKey, jobRowKind, jobTitle, scheduleJobLinks } from "./rows.ts";
 import { getJobMessage } from "../../../messages/jobs/get.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
@@ -148,10 +148,12 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const open = openKeys(o).includes(key);
   const name = jobTitle(row, lang);
   const kind = open ? jobControl(row) : undefined;
+  const links = scheduleJobLinks(row);
+  const report = links?.report ? `<a data-goto href="${esc(links.report)}">${esc(t(lang, "tab.report"))}</a>` : "";
   return (
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang })}</div></td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang, href: links?.settings })}${report}</div></td></tr>` +
     // When the job was made and a pip per step, where a spec's row has its
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +

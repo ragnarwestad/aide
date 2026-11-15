@@ -297,7 +297,7 @@ export function sortHead(
     now: { sort?: string; dir: "asc" | "desc" };
     href: (key: string) => string;
     specLabel: TranslationKey;
-    /** The Specs list: its State column holds no action. */
+    /** The Specs list: job status is reached through its Jobs links. */
     specsList?: boolean;
   },
   lang: Language = "en",
@@ -360,7 +360,8 @@ export function sortHead(
     columnGroup() +
     `<thead><tr>` +
     HEADINGS.map((h) => {
-      const label = h.key === "spec" ? o.specLabel : h.key === "state" && o.specsList ? "list.colStateAlone" : h.label;
+      if (h.key === "state" && o.specsList) return `<th${h.attrs}>${esc(t(lang, "shell.tabRunning"))}</th>`;
+      const label = h.key === "spec" ? o.specLabel : h.label;
       return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
     }).join("") +
     `</tr></thead>`

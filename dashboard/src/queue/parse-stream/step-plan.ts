@@ -57,9 +57,9 @@ export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
 }
 
 /** A schedule declares its steps before starting them; older logs keep their marked-only view. */
-export function schedulePlan(logs: LogPart[]): PlannedStep[] {
+export function schedulePlan(logs: LogPart[], prompt = ""): PlannedStep[] {
   const declared = stepDeclarations(logs);
-  return declared.length ? [part(AIDE_PARTS.before), ...declared, part(AIDE_PARTS.after)] : [];
+  return declared.length ? [part(AIDE_PARTS.before), ...declared, part(AIDE_PARTS.after)] : planFrom(prompt, true);
 }
 
 function planFrom(text: string, hasModelTurn: boolean): PlannedStep[] {

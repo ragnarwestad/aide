@@ -29,6 +29,7 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
 /** The sentence naming the provider a job's step ran on, from the newest
  *  step result that names one; none when no step ran on an AI. */
 function ranOnSentence(row: MessageRow, lang: Language): string | undefined {
+  if (row.steps.includes("schedule")) return undefined;
   const result = [...(row.results ?? [])].reverse().find((r) => r.provider);
   if (!result?.provider) return undefined;
   return t(lang, "notice.providerRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: result.provider.name });

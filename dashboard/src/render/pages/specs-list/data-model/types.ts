@@ -275,6 +275,8 @@ export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks",
 export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 
 export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
+  /** At least one queue job remains in this spec's history, across all rounds. */
+  hasJobs?: boolean;
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional

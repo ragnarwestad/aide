@@ -1,3 +1,4 @@
+import { scheduleRunPath, scheduleSettingsPath } from "../schedule-page/tabs.ts";
 // The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
 // where every row stands, what a job row is called, what the line under its
 // state says and what the row offers to stop it. They read only the fields a
@@ -212,4 +213,14 @@ export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
   if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
   if (kind === "deploy") return row.state === "queued" ? "cancel" : undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";
+}
+
+/** A schedule's configuration and, after it ends, that run's report page. */
+export function scheduleJobLinks(row: JobLike): { settings: string; report?: string } | undefined {
+  if (jobKind(row) !== "schedule") return undefined;
+  const name = scheduleNameOf(row.specFolder);
+  return {
+    settings: scheduleSettingsPath(row.project, name),
+    ...(!inFlight(row) ? { report: scheduleRunPath(row.project, name, row.id) } : {}),
+  };
 }

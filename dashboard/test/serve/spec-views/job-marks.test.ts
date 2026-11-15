@@ -418,3 +418,12 @@ describe("a job's pips", () => {
     expect(jobStepPips(running, "en")).not.toEqual(before);
   });
 });
+
+test("a schedule that fails preparing retains every fixed prompt step", () => {
+  const file = step([], ["--- Step Aide: preparing — started"]);
+  const got = scheduleSteps(job({ specFolder: "schedule-nightly", steps: ["schedule"], state: "failed", streamFile: file }), "en",
+    "## Step 1 of 2: Run browser tests\n\n## Step 2 of 2: Write report\n");
+  expect(got.map(({ label, state }) => [label, state])).toEqual([
+    ["Preparing", "failed"], ["Run browser tests", undefined], ["Write report", undefined], ["Tests and commit", undefined],
+  ]);
+});

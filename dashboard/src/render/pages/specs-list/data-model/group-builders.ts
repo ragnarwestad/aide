@@ -183,7 +183,7 @@ export function groupBySpec(
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
     }).map((t) => emptyGroup(t, now)),
-  ];
+  ].map((g) => ({ ...g, hasJobs: byKey.has(groupKey(g.project, g.specFolder)) }));
 }
 
 /** An archived spec's row: a record, not a control.

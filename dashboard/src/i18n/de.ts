@@ -212,11 +212,6 @@ export const de: Record<TranslationKey, string> = {
   "state.cancelled": "abgebrochen",
   "state.interrupted": "unterbrochen",
   "state.heldBack": "zurückgehalten",
-  "specState.notStarted": "Nicht gestartet",
-  "specState.running": "Läuft",
-  "specState.heldBack": "Zurückgehalten",
-  "specState.waitingArchive": "Wartet auf Archivieren",
-  "specState.failed": "Fehlgeschlagen",
   "state.stopped": "gestoppt",
 
   "project.deployRestartWaiting":

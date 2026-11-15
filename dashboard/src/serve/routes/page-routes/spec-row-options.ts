@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { scheduleNameOf } from "../../../project/spec-names.ts";
 // What a spec's row is drawn with, whichever page draws it. The Specs list and
 // the Jobs tab both draw a spec's row with the list's row builder, so both
 // take these options from here and add what is their own.
@@ -18,6 +21,13 @@ import type { RoutesContext } from "..";
 import { branchForSpec } from "../../../project/discover/group.ts";
 
 export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): SpecsPageOptions {
+  const schedulePrompt = (job: Parameters<typeof jobStepLines>[0]): string => {
+    if (jobKind(job) !== "schedule") return "";
+    const entry = ctx.scheduleStore.list(job.project).find((e) => e.name === scheduleNameOf(job.specFolder));
+    if (!entry) return "";
+    try { return readFileSync(join(ctx.machineryProjectDir(job.project), entry.prompt), "utf-8"); }
+    catch { return ""; }
+  };
   return {
     runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
     targets: ctx.withFreshness(ctx.targets()),
@@ -35,11 +45,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? jobStepLines(job, lang) : [];
+      return job ? jobStepLines(job, lang, schedulePrompt(job)) : [];
     },
     jobStepPips: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? jobStepPips(job, lang) : [];
+      return job ? jobStepPips(job, lang, schedulePrompt(job)) : [];
     },
     deployCommits: (jobId: string) => {
       const job = ctx.queue.get(jobId);

@@ -7,6 +7,7 @@ import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages
 import {
   byTabPlace,
   jobControl,
+  scheduleJobLinks,
   jobKey,
   jobPlace,
   jobRowKind,
@@ -445,4 +446,13 @@ describe("a deploy's title", () => {
     expect(jobTitle({ ...row, deployCommit: "1cddc87ac0ffee" })).toBe("Deploy aide · 1cddc87");
     expect(jobTitle(row)).toBe("Deploy aide");
   });
+});
+
+test("schedule links name the configuration and the finished run's own report", () => {
+  const finished = sched({ id: "run-1", state: "done" });
+  expect(scheduleJobLinks(finished)).toEqual({ settings: "/schedule/aide/nightly?tab=settings", report: "/schedule/aide/nightly?run=run-1#report" });
+  expect(scheduleJobLinks(sched({ state: "running" }))?.report).toBeUndefined();
+  expect(scheduleJobLinks(sched({ state: "queued" }))?.report).toBeUndefined();
+  expect(scheduleJobLinks(sched({ id: "failed-1", state: "failed" }))?.report).toBe("/schedule/aide/nightly?run=failed-1#report");
+  expect(scheduleJobLinks(job())).toBeUndefined();
 });
