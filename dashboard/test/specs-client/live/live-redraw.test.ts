@@ -130,7 +130,15 @@ describe("the rows are redrawn on a push, not on a timer", () => {
   test("the connection carries the page's own query string, and asks for what there is to deploy", () => {
     const h = harness(() => ({ ok: true }), "actionform", "?state=active");
     h.visibility("visible");
-    expect(h.sources[0]!.url).toBe("/api/queue/events?state=active&deploy=1");
+    expect(h.sources[0]!.url).toBe("/api/queue/events?state=active&deploy=1&counts=1");
+  });
+
+  test("the initial counts event does not fetch or redraw the rows", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.live()!.emit("counts", JSON.stringify({ running: 2 }));
+    await flush();
+    expect(rowFetches(h)).toHaveLength(0);
   });
 
   // Said the only way it can be said: with the connection

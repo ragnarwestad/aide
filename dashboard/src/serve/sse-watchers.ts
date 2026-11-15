@@ -7,6 +7,7 @@
 
 import { statSync } from "node:fs";
 import { phaseKey } from "../render";
+import { readRunningSpecCount } from "../render/ui/running-specs";
 import { readWaitingCount } from "../render/ui/pwa.ts";
 import { runLogPath } from "../queue/runner/run-log-path.ts";
 import type { Job } from "../queue/queue.ts";
@@ -47,7 +48,7 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
  *  set is walked because `writeTo` removes from it. */
 export function notifyQueueChanged(ctx: SseWatchersContext): void {
   // Counted once per broadcast, not once per tab.
-  const event = changedEvent(readWaitingCount());
+  const event = changedEvent(readWaitingCount(), readRunningSpecCount());
   for (const c of [...ctx.watchers]) writeTo(ctx, c, event);
 }
 
@@ -55,12 +56,9 @@ export function notifyQueueChanged(ctx: SseWatchersContext): void {
  *  them. */
 export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 
-/** The signal with how many specs wait for a person, which a page sets on
- *  the app's icon. With no count known it is the bare signal. A queue move
- *  can change the count; a growing log and a recorded run cannot, and keep
- *  the bare one. */
-export const changedEvent = (waiting?: number): string =>
-  waiting === undefined ? CHANGED_EVENT : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
+/** Queue-wide counts for the app icon and Jobs tab. Log growth keeps the bare signal. */
+export const changedEvent = (waiting?: number, running?: number): string =>
+  `event: changed\ndata: ${JSON.stringify({ waiting, running })}\n\n`;
 
 /** The signal that the header's Deploy mark changed: the page asks
  *  `/api/deploy-mark` for it, drawn in its own language. */
