@@ -18,7 +18,7 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specJobCreatedAt, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -83,6 +83,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
     const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
     const key = `execution-group:${group.id}`;
+    const createdAt = specJobCreatedAt(members.flatMap((member) => member.jobs)) ?? group.createdAt;
     // Each member's current row, by its key: an earlier round of a reopened
     // member is a row of its own, and is counted there.
     const current: RowFacts[] = group.members
@@ -91,7 +92,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
     return {
       key,
       html: draws(key)
-        ? executionGroupCard(group, specRows, lang, {
+        ? executionGroupCard({ ...group, createdAt }, specRows, lang, {
           openFor,
           candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
           locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
@@ -101,7 +102,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
       facts: {
         project: group.project, specFolder: group.name,
         state: executionGroupRowState(group, !!failed),
-        title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
+        title: group.name, createdAt, itemCount: group.members.length,
         members: current,
       } as RowFacts,
     };
@@ -134,12 +135,16 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
     bySpec.set(key, [...(bySpec.get(key) ?? []), job]);
   }
   const roundOf = (key: string): QueueRowView[] => currentWorkRoundJobs(bySpec.get(key) ?? []);
-  const rows: SpecRow[] = activeSpecRows(v.specJobs, v.list, now, v.specs, draws).map((row) => ({ ...row, jobs: roundOf(row.key) }));
+  const list: SpecsPageOptions = {
+    ...v.list,
+    jobCreatedAt: (project, folder) => specJobCreatedAt(roundOf(groupKey(project, folder))),
+  };
+  const rows: SpecRow[] = activeSpecRows(v.specJobs, list, now, v.specs, draws).map((row) => ({ ...row, jobs: roundOf(row.key) }));
   const drawn = new Set(rows.map((row) => row.key));
   const history = (v.historySpecs ?? []).filter((spec) => !drawn.has(groupKey(spec.project, spec.folder)));
   const historyKeys = history.map((spec) => groupKey(spec.project, spec.folder));
   const historyGroups = groupBySpec(historyKeys.flatMap((key) => bySpec.get(key) ?? []), [], historyKeys, history, now);
-  rows.push(...specRowsOf(historyGroups, v.list, now, draws).map((row) => ({ ...row, jobs: roundOf(row.key) })));
+  rows.push(...specRowsOf(historyGroups, list, now, draws).map((row) => ({ ...row, jobs: roundOf(row.key) })));
 
   const targets = new Map<string, SpecTarget>(v.list.targets.map((target) => [groupKey(target.project, target.specFolder), target]));
   for (const spec of history) {
@@ -155,7 +160,8 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
     for (const round of specRounds(jobs, target.createdAt).slice(0, -1)) {
       const key = `${baseKey}@${encodeURIComponent(round.startedAt)}`;
       const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
-      const roundTarget = { ...target, createdAt: round.startedAt };
+      const createdAt = specJobCreatedAt(round.jobs) ?? round.startedAt;
+      const roundTarget = { ...target, createdAt };
       const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now), {
         ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
       }, now, () => draws(key))[0];
@@ -163,7 +169,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
       rows.push({
         key,
         jobs: round.jobs,
-        group: { ...built.group, createdAt: round.startedAt },
+        group: { ...built.group, createdAt },
         html: built.html
           .replaceAll(`id="spec-${baseKey}"`, `id="spec-${key}"`)
           .replaceAll(`data-key="${baseKey}"`, `data-key="${key}"`)
@@ -255,7 +261,7 @@ export function renderJobsSpecRows(v: JobsView, key: string): string {
 /** A spec drawn inside a group's card on the page: its own rows, as the card
  *  draws them, while the card itself is shown. */
 function groupMemberRows(v: JobsView, key: string, shown: Set<string>, draws: Draws): string {
-  const specRows = activeSpecRows(v.specJobs, v.list, v.now ?? Date.now(), v.specs, draws);
+  const specRows = roundSpecRows(v, v.now ?? Date.now(), draws);
   const row = specRows.find((s) => s.key === key);
   const inShownGroup = row && activeExecutionGroups(v, specRows).some((group) =>
     shown.has(`execution-group:${group.id}`) && group.project === row.group.project && group.members.includes(row.group.specFolder));

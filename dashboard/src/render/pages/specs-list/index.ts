@@ -100,6 +100,8 @@ import type { LogPart } from "../../../queue/parse-stream";
 export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
+  /** On Jobs, the row's job creation time replaces the spec's creation time. */
+  jobCreatedAt?: (project: string, specFolder: string) => string | undefined;
   /** The creates that ended without a spec and have not been dismissed
    *  each is a message above the filter bar, never a row. */
   failedCreates?: FailedCreate[];
@@ -305,7 +307,9 @@ export function specRowsOf(
   draws: (key: string) => boolean = () => true,
 ): { key: string; group: SpecGroup; html: string }[] {
   const opened = openedKeys(opts);
-  return groups.map((g) => {
+  return groups.map((source) => {
+    const createdAt = opts.jobCreatedAt?.(source.project, source.specFolder);
+    const g = createdAt ? { ...source, createdAt } : source;
     const key = groupKey(g.project, g.specFolder);
     return { key, group: g, html: draws(key) ? groupRow(g, opts, now, opened) : "" };
   });
