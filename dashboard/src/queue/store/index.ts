@@ -88,6 +88,11 @@ export class QueueStore {
     loadJobs(this.mirrorPath, this.jobs);
     for (const [id, job] of this.jobs) if (job.state === "cancelled" && neverStarted(job)) this.jobs.delete(id);
     while (this.jobs.size > this.cap) this.jobs.delete(this.jobs.keys().next().value as string);
+    // A running member decides the group's activity ahead of queued members.
+    for (const state of ["queued", "running"]) for (const job of this.jobs.values()) {
+      const group = job.executionGroupId ? this.executionGroups.get(job.executionGroupId) : undefined;
+      if (job.state === state && group && ["queued", "running", "archiving"].includes(group.state)) this.syncExecutionGroup(job);
+    }
     loadPendingModels(this.pendingModelsPath, this.pendingModels);
     loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
     loadModelIds(this.modelIdsPath, this.modelIds);
