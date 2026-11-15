@@ -15,7 +15,7 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import { createExecutionGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -106,7 +106,10 @@ export async function handleJobActionRoutes(
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
     const raw = action === "start"
-      ? next ? withRowPicks({ project, specFolder: next.specFolder, steps: ["analyze", "implement"], executionGroupId: execution.id }, ctx.queue) : null
+      ? next ? withRowPicks({
+          project, specFolder: next.specFolder, executionGroupId: execution.id,
+          steps: groupMemberSteps(ctx.queue.pendingSteps[`${project}/${next.specFolder}`], next.done ?? []),
+        }, ctx.queue) : null
       : action === "archive" && !members.some((member) => member.acceptanceOpen)
         ? {
             project,

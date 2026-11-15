@@ -75,7 +75,8 @@ A job survives a restart: the result file is the contract, and a job left `runni
 file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
-that is not done, and a member that finishes Implement queues the next one. A group made from Run uses that dialog's
+that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
+a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
 phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution.

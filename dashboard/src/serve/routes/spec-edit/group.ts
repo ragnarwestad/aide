@@ -133,7 +133,8 @@ async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promi
   });
   if ("error" in outcome) return json({ error: outcome.error }, 409);
   await ctx.rereadProject(project);
-  if (continueAfterEdit(ctx.queue, group.id, group.state)) await ctx.tickRunner();
+  const done = (folder: string) => ctx.targets().find((t) => t.project === project && t.specFolder === folder)?.done ?? [];
+  if (continueAfterEdit(ctx.queue, group.id, group.state, done)) await ctx.tickRunner();
   ctx.notifyQueueChanged();
   return json({ ok: true, group: outcome.group });
 }

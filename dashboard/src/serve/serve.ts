@@ -51,6 +51,7 @@ import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover
 import { setBoardInfo } from "../render/ui/board-info.ts";
 import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
 import { navEntries } from "../render";
+import { specsClientScript } from "./serve-helpers/static.ts";
 
 export function createServer(opts: ServerOptions) {
   // A header this process trusts is only trustworthy because
@@ -158,6 +159,7 @@ export function createServer(opts: ServerOptions) {
     checkoutEnsurer: resolution.checkoutEnsurer,
     gitRun,
     notifyQueueChanged: watch.notifyQueueChanged,
+    notifyDeployWaiting: watch.notifyDeployWaiting,
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
@@ -361,6 +363,7 @@ export function createServer(opts: ServerOptions) {
     readServingSha: () => state.servingSha,
   };
 
+  void specsClientScript(); // bundled before the first page, which then carries the same stamp as later ones
   const server = Bun.serve({
     port: opts.port,
     hostname: opts.bindHost ?? DEFAULT_BIND_HOST,

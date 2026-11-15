@@ -13,6 +13,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.about": "Om",
   "shell.usage": "Forbruk",
   "shell.deployWaiting": "{project} har {count} nye commits å deploye",
+  "shell.deployWaitingOne": "{project} har {count} ny commit å deploye",
   "shell.filter": "Filter",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",

@@ -11,6 +11,7 @@
 import { createFollow } from "./follow";
 import { swapRows } from "./row-swap/index.ts";
 import { press } from "./state.ts";
+import { browserMarkIo, refreshDeployMark } from "./deploy/mark.ts";
 
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
@@ -81,11 +82,12 @@ function announceWaiting(e: Event): void {
 // The page's own query goes with it, so the stream is asked with the same
 // filter and state the page was; a followed page adds the phases its marker
 // names.
+// `deploy=1` asks for what the board has to deploy now, for the header's mark.
 function streamUrl(): string {
   streamPhases = follow.phases();
-  if (!streamPhases) return `/api/queue/events${location.search}`;
   const params = new URLSearchParams(location.search);
-  params.set("phases", streamPhases);
+  if (streamPhases) params.set("phases", streamPhases);
+  params.set("deploy", "1");
   return `/api/queue/events?${params}`;
 }
 
@@ -110,6 +112,7 @@ export function connect(): void {
   });
   source.addEventListener("changed", onChanged);
   source.addEventListener("changed", announceWaiting);
+  source.addEventListener("deploy", () => void refreshDeployMark(browserMarkIo()));
   source.addEventListener("error", onError);
 }
 

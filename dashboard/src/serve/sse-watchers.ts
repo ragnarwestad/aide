@@ -62,6 +62,15 @@ export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 export const changedEvent = (waiting?: number): string =>
   waiting === undefined ? CHANGED_EVENT : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
 
+/** The signal that the header's Deploy mark changed: the page asks
+ *  `/api/deploy-mark` for it, drawn in its own language. */
+export const DEPLOY_EVENT = "event: deploy\ndata: {}\n\n";
+
+/** The board's commits to deploy changed: every open tab draws its mark again. */
+export function notifyDeployWaiting(ctx: SseWatchersContext): void {
+  for (const c of [...ctx.watchers]) writeTo(ctx, c, DEPLOY_EVENT);
+}
+
 // --- A spec is a folder, and a folder changes no job -----------
 //
 // The two callers above are both the queue's own: a job moving, and

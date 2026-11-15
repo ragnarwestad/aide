@@ -8,9 +8,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { CLIENT_WORDS, pageShell, siteTabKeys } from "../../../src/render/ui/shell.ts";
-import { esc } from "../../../src/render/ui/html.ts";
-import { t } from "../../../src/i18n";
+import { CLIENT_WORDS, pageShell, siteTabKeys } from "../../../../src/render/ui/shell.ts";
+import { esc } from "../../../../src/render/ui/html.ts";
+import { t } from "../../../../src/i18n";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 

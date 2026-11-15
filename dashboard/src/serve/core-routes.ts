@@ -11,6 +11,7 @@ import {
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers";
 import { languageChoice } from "./serve-helpers/http.ts";
+import { deployMark } from "../render/ui/deploy-mark/index.ts";
 
 export interface CoreRoutesContext {
   store: AideRunStore;
@@ -62,6 +63,15 @@ export async function handleCore(
   if (path === "/api/version") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     return json({ sha: ctx.readServingSha(), startedAt: STARTED_AT });
+  }
+
+  // The header's Deploy mark as the header draws it, in the reader's
+  // language: what a page swaps in when the event stream says it changed.
+  if (path === "/api/deploy-mark") {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    return new Response(deployMark(languageChoice(url, req).lang), {
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
   }
 
   if (req.method !== "GET" && req.method !== "HEAD") {

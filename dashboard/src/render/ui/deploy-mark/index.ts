@@ -21,10 +21,13 @@ export function setDeployWaiting(source: (() => DeployWaiting | undefined) | und
   waitingNow = source;
 }
 
-export function deployMark(lang: Language): string {
-  const waiting = waitingNow?.();
+/** What the drift poll last found, for a page that opens the event stream. */
+export const currentDeployWaiting = (): DeployWaiting | undefined => waitingNow?.();
+
+export function deployMark(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
   if (!waiting) return `<span class="deploymark" aria-hidden="true"></span>`;
-  const label = esc(t(lang, "shell.deployWaiting", { project: waiting.project, count: waiting.commits }));
+  const key = waiting.commits === 1 ? "shell.deployWaitingOne" : "shell.deployWaiting";
+  const label = esc(t(lang, key, { project: waiting.project, count: waiting.commits }));
   const href = `/projects/${encodeURIComponent(waiting.project)}?tab=deploy`;
   return `<a class="deploymark" href="${href}" title="${label}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></a>`;
 }

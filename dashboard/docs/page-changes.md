@@ -48,8 +48,9 @@ The browser loads the address normally in these cases:
 
 - the request fails;
 - the answer is not a dashboard page;
-- the service has restarted since the current page was loaded. Every page carries the time its service started,
-  so after a Deploy the first page change brings in the new service's script as well.
+- the page's own code has changed since the current page was loaded. Every page carries a fingerprint of its
+  stylesheet, its script and the words the script reads, so after a Deploy that changed one of them the first page
+  change brings in the new code as well. A Deploy that changed only the service keeps changing pages in place.
 
 ## Forms and slow answers
 
