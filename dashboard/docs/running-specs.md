@@ -101,7 +101,8 @@ Start check the dependencies; circular dependencies are refused with the affecte
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. The group's … menu offers **Edit** until
-the group starts archiving. Edit opens the New group dialog filled with the group's name and members. A spec
+the group starts archiving. Edit opens the New group dialog filled with the group's name and members. The display
+name can be changed after members have started; the group's branch and the members' stored group identity stay the same. A spec
 that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed,
 and any spec New group would offer can be added after the locked members. A new dependency can move before an
 unstarted member. Save checks the dependencies and writes the new membership together.

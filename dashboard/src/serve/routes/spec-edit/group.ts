@@ -90,24 +90,25 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
   if (!group) return json({ error: "the group no longer exists" }, 409);
   const project = group.project;
   if (group.state === "archiving" || group.state === "completed") return json({ error: `the group ${group.name} cannot be edited while it is ${group.state}` }, 409);
-  if (name !== group.name && (ctx.queue.executionGroups.findUnfinished(project, name) || targets.some((target) => target.project === project && target.group?.name === name && !group.members.includes(target.specFolder)))) {
+  const conflict = ctx.queue.executionGroups.findUnfinished(project, name);
+  if ((conflict && conflict.id !== group.id) || targets.some((target) => target.project === project && target.group?.name === name && !group.members.includes(target.specFolder))) {
     return json({ error: `an unfinished execution group named ${name} already exists` }, 409);
   }
   const requested = values(body.member);
   const positions = body.position === undefined ? undefined : values(body.position).map(Number);
   const locks = lockedGroupMembers({ group, targets, jobs: ctx.queue.list() });
-  if (locks.size && name !== group.name) return json({ error: `the group name cannot change while ${[...locks][0]} is locked` }, 409);
   const checked = validateExecutionGroupEdit({ project, group, members: requested, positions, locked: locks, targets, groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list() });
   if (!checked.ok) return json({ error: checked.error }, 409);
   const firstDir = ctx.specDir(project, group.members[0]!);
   if (!firstDir) return json({ error: `${group.members[0]} is no longer available` }, 409);
   const outcome = await ctx.mergeLock.run(await ctx.specsRoot(firstDir), async () => {
     const latest = ctx.queue.executionGroups.get(group.id) ?? group;
+    const conflict = ctx.queue.executionGroups.findUnfinished(project, name);
+    if (conflict && conflict.id !== latest.id) return { error: `an unfinished execution group named ${name} already exists` };
     const freshTargets = ctx.withFreshness(ctx.targets());
     const freshLocks = lockedGroupMembers({ group: latest, targets: freshTargets, jobs: ctx.queue.list() });
     const rechecked = validateExecutionGroupEdit({ project, group: latest, members: requested, positions, locked: freshLocks, targets: freshTargets, groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list() });
     if (!rechecked.ok) return { error: rechecked.error };
-    if (freshLocks.size && name !== latest.name) return { error: `the group name cannot change while ${[...freshLocks][0]} is locked` };
     const edits: SpecFileEdit[] = [];
     const involved = new Set([...latest.members, ...rechecked.members]);
     for (const folder of involved) {
@@ -118,7 +119,7 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
       try { current = readFileSync(`${dir}/${DESCRIPTION_FILE}`, "utf-8"); }
       catch { return { error: `${folder} could not be read — nothing was saved` }; }
       const position = rechecked.members.indexOf(folder);
-      const text = withGroupLines(current, position < 0 ? undefined : { name, position: position + 1 });
+      const text = withGroupLines(current, position < 0 ? undefined : { name: latest.name, position: position + 1 });
       if (text === null) return { error: `${folder} has no place for group membership — nothing was saved` };
       if (text !== current) {
         const file = relative(firstDir, `${dir}/${DESCRIPTION_FILE}`);
@@ -129,7 +130,7 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
       const saved = await saveSpecFiles(ctx.gitRun, firstDir, (root) => ctx.branchStatus.defaultBranch(root), edits, { specLabel: name, message: editMessage(name, "execution group") });
       if (!saved.ok) return { error: saved.note };
     }
-    return { group: ctx.queue.executionGroups.update(group.id, { name, members: rechecked.members }) };
+    return { group: ctx.queue.executionGroups.update(group.id, { displayName: name === latest.name ? undefined : name, members: rechecked.members }) };
   });
   if ("error" in outcome) return json({ error: outcome.error }, 409);
   await ctx.rereadProject(project);

@@ -111,6 +111,11 @@ describe("ExecutionGroupStore", () => {
     const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
     const made = store.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });
     expect(() => store.create({ project: "aide", name: "Release", members: ["3-third", "4-fourth"], branch: "group/3-third" })).toThrow("already exists");
+    store.update(made.id, { displayName: "Renamed" });
+    expect(new ExecutionGroupStore(path).get(made.id)?.displayName).toBe("Renamed");
+    expect(store.findUnfinished("aide", "Release")?.id).toBe(made.id);
+    expect(store.findUnfinished("aide", "Renamed")?.id).toBe(made.id);
+    expect(() => store.create({ project: "aide", name: "Renamed", members: ["3-third", "4-fourth"], branch: "group/3-third" })).toThrow("already exists");
     expect(store.get(made.id)?.members).toEqual(["1-first", "2-next"]);
   });
 });

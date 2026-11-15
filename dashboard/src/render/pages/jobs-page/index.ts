@@ -94,7 +94,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
     const facts = {
       project: group.project, specFolder: group.name,
       state: executionGroupRowState(group, !!failed),
-      title: group.name, createdAt, itemCount: group.members.length,
+      title: group.displayName ?? group.name, createdAt, itemCount: group.members.length,
       members: current,
     } as RowFacts;
     const searchOpenFor = jobsSearchMatch(facts, v.list.filter ?? {}).member ? "search" : undefined;

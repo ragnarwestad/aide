@@ -84,7 +84,7 @@ export async function jobDetailView(
     ...(await ctx.jobRow(job)),
     tool,
     title: target?.title,
-    ...(executionGroup ? { executionGroup: { id: executionGroup.id, name: executionGroup.name, members: [...(job.groupMembers ?? executionGroup.members)] } } : {}),
+    ...(executionGroup ? { executionGroup: { id: executionGroup.id, name: executionGroup.displayName ?? executionGroup.name, members: [...(job.groupMembers ?? executionGroup.members)] } } : {}),
     finishedAt: job.finishedAt,
     // Each finished step's OWN transcript, read from its
     // own `streamFile` rather than the job's last one — a three-step
