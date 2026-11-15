@@ -4,13 +4,13 @@
 // `null` for a path that is not its own.
 import { refreshTestServerStatus, startTestServer } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
-import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
+import { saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { getErrorMessage } from "../../../messages/shared/written.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, refusal, streamedPage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
 import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import type { Language } from "../../../i18n";
@@ -194,29 +194,6 @@ export async function specPageRoutes(
       failedRest: renderSpecPageFailedRest(ctx.nav(), lang, parts.view.currentUrl),
       headers: listHeaders(parts),
     });
-  }
-
-  const update = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/update$/);
-  if (update) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const [, project, specFolder] = update;
-    const found = ctx.specDir(project!, specFolder!);
-    if (!found) return new Response("not found", { status: 404 });
-    const dir = await ctx.machinerySpecDir(project!, found);
-    // The same lock a merge takes, and for the same hazard: every
-    // spec shares the specs root, so two presses — or a press racing
-    // the `aide-pull-specs` cron — would be two git sequences in one
-    // working tree.
-    const result = await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-      pullFastForward(ctx.gitRun, dir, (root) => ctx.branchStatus.defaultBranch(root)),
-    );
-    if (!result.ok) {
-      logRefusal("update", `${project}/${specFolder}`, result.note);
-      return refusal({ error: result.problem ?? result.note, solution: result.solution });
-    }
-    // `changed` says whether the page has anything new to show: an Update
-    // that moved nothing leaves its sentence instead of loading again.
-    return json({ ok: true, note: result.note, changed: result.moved });
   }
 
   const save = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/save$/);

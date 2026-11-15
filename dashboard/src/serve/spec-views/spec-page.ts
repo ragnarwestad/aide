@@ -269,7 +269,6 @@ export async function specPageView(
     steps,
     // Built from the page's own path, so the two cannot drift into a
     // button that posts where nothing listens.
-    updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
     pdfUnavailableReason: ctx.pdfToolAvailable ? undefined : PDF_UNAVAILABLE,
     // Always available, disabled with a reason while busy —
     // closeControl (overview.ts) is what hides it once the spec is

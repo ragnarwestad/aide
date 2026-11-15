@@ -11,7 +11,6 @@ const baseView = (overrides: Partial<SpecPageView> = {}): SpecPageView => ({
   project: "aide",
   specFolder: "81-queue-and-runner",
   files: [{ label: "1-description.md", text: "# Q\n" }],
-  updateAction: "/update",
   saveAction: "/save",
   tickAction: "/tick",
   trackingAction: "/tracking",

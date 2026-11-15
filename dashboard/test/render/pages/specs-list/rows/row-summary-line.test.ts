@@ -211,7 +211,6 @@ describe("one line per row for what is going on and what is next", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
     expect(withJobs).toContain(">Analyzed<");
-    expect(withJobs).toContain("2 not verified");
     expect(withJobs).toContain('/?q=aide%3A101');
     expect(withJobs).not.toContain(">Jobs</a>");
 

@@ -78,7 +78,7 @@ const view = (extra: Partial<SpecPageView> = {}): SpecPageView => ({
     file("1-description.md", "Fangsten er god."), file("2-analysis.md", "Ingen funn."),
     file("3-solution.md", null), file("4-status.md", "Ingen funn."),
   ],
-  updateAction: "/oppdater", saveAction: "/lagre", tickAction: "/kryss", trackingAction: "/spor",
+  saveAction: "/lagre", tickAction: "/kryss", trackingAction: "/spor",
   closeAvailable: true, steps: [], done: ["create"],
   ...extra,
 });

@@ -225,6 +225,8 @@ table.speclist[data-list="specs"] > colgroup > col[data-col="phase"] { width: 37
 table.speclist[data-list="specs"] > colgroup > col[data-col="state"] { width: 18%; }
 table.speclist[data-list="specs"] > colgroup > col[data-col="actions"] { width: 30%; }
 table.speclist[data-list="specs"] td[data-col="actions"] > .row { flex-wrap: wrap; }
+/* The PDF link at the right end of a spec's title line, the name shortened before it. */
+table.speclist[data-list="specs"] .groupheadline > .iconlink { flex: 0 0 auto; }
 /* Under 848px the list no longer fits the page (its 49rem plus the
    page's own 2 × 32px), and the two figure columns leave one at a
    time from the right — Cost, then Time — rather than all at once at

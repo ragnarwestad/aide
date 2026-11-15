@@ -5,12 +5,12 @@ import { t, type Language } from "../../../i18n";
 
 import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
-import { badge, messageSlot, stepLabel } from "../../ui/components";
+import { badge, stepLabel } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -23,7 +23,7 @@ import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specBusy } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState } from "./data-model/spec-state.ts";
-import { PDF_UNAVAILABLE, specActions } from "../spec-page/overview.ts";
+import { PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
 // blank rather than fall back to "no status recorded yet". No phase
@@ -157,27 +157,21 @@ export function specHeadRow(
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
   const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
   const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
-  // The open spec's Update writes in the lines its detail draws; any other
-  // row's writes in two of its own, drawn in its Actions cell.
-  const key = groupKey(g.project, g.specFolder);
-  const ownLines = opts.openSpec?.key !== key;
-  const lines = ownLines ? { line: `spec-refused-${key}`, note: `spec-notice-${key}` } : undefined;
-  // A create job whose folder has not landed has no spec to close, pull or
-  // print yet: its row offers Run alone.
-  const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions({
+  // A create job whose folder has not landed has no spec to close or print
+  // yet: its row offers Run alone.
+  const actionView: SpecActionView = {
     project: g.project,
     specFolder: g.specFolder,
     archived: locked,
-    updateAction: `/api/queue${specPagePath(g.project, g.specFolder)}/update`,
     closeAvailable: true,
     closeUnavailableReason: projectLanding
       ? "a merge is in progress"
       : specBusy(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
-  }, run.control + run.dialog, lang, lines);
-  const updateLines = opts.openSpec && g.named && lines
-    ? messageSlot("refused", "failed", { id: lines.line }) + messageSlot("notice", "info", { id: lines.note })
-    : "";
+  };
+  const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions(actionView, run.control + run.dialog, lang);
+  // The PDF link stands at the right end of the title line, as a group's menu does on its card.
+  const pdf = opts.openSpec && g.named ? pdfControl(actionView, lang) : "";
   // What goes under the name. A locked row draws nothing here
   // — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -216,8 +210,8 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${columns - 1}"><div class="spec-name">${spec}` +
-    `</div>` +
+    `<td colspan="${columns - 1}">${pdf ? `<div class="groupheadline">` : ""}<div class="spec-name">${spec}` +
+    `</div>${pdf ? `${pdf}</div>` : ""}` +
     under +
     `</td>` +
     `</tr>` +
@@ -263,7 +257,7 @@ export function specHeadRow(
     // come, and the pips drew that fact a second time.
     `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}</td>` +
     (opts.openSpec
-      ? `<td data-col="actions"><span class="row">${actions}</span>${updateLines}</td>`
+      ? `<td data-col="actions"><span class="row">${actions}</span></td>`
       : "") +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by
@@ -294,7 +288,6 @@ export function headStateBadge(g: SpecGroup, lang: Language): string {
     ? `${t(lang, "list.state.running")}: ${stepLabel(state.phase, lang)}`
     : t(lang, `list.state.${state.key}` as Parameters<typeof t>[1]);
   const variant = state.key === "running" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
-  const unverified = (g.notVerified ?? 0) + (g.failed ?? 0);
-  return badge(variant, label) + (unverified > 0 ? `<span class="muted small">${esc(t(lang, "list.notVerifiedMark", { n: unverified }))}</span>` : "");
+  return badge(variant, label);
 }
 

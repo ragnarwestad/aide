@@ -114,12 +114,6 @@ describe("the Not verified entry", () => {
     expect(html).toContain("1 not verified");
   });
 
-  test("is marked beside the state of every spec that has it", async () => {
-    const html = await specsList(withMarks().base);
-    expect(html).toContain("2 not verified");
-    expect(html).toContain("1 not verified");
-  });
-
   test("counts only the specs with a count, on a view that builds no archived row", async () => {
     const html = await specsList(withMarks().base, "?state=not-archived");
     expect(html).toMatch(/>Not verified \(2\)</);

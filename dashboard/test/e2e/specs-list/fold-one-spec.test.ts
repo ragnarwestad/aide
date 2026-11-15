@@ -283,10 +283,10 @@ test("every spec action stays reachable at phone width without horizontal scroll
     await withBrowser(p.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(phone spec)");
     const actions = p.locator('tr.specstate[data-folder="81-queue-and-runner"] td[data-col="actions"]');
     expect(await actions.count()).toBe(1);
-    for (const name of ["Run", "Close", "Update"]) {
+    for (const name of ["Run", "Close"]) {
       expect(await actions.getByRole("button", { name, exact: true }).isVisible()).toBe(true);
     }
-    expect(await actions.locator("a[data-pdf]").isVisible()).toBe(true);
+    expect(await p.locator('tr.spechead[data-folder="81-queue-and-runner"] a[data-pdf]').isVisible()).toBe(true);
     expect(await p.locator("table.speclist").evaluate((table) => table.scrollWidth <= table.clientWidth)).toBe(true);
   } finally {
     await p.close();

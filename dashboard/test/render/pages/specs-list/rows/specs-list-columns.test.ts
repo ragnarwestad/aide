@@ -34,7 +34,7 @@ describe("the Specs list's columns", () => {
     expect(jobs).toContain("sort=cost");
   });
 
-  test("puts help and every action in Actions while State has no control (AC-4, AC-5, AC-7)", () => {
+  test("puts help and every action in Actions while State has no control, and offers the PDF on the title line (AC-4, AC-5, AC-7)", () => {
     const html = renderSpecsRows([ran("81-cheap", 1)], {
       runnerAvailable: true,
       targets,
@@ -43,8 +43,10 @@ describe("the Specs list's columns", () => {
     });
     const state = html.match(/<td data-col="state">([\s\S]*?)<\/td>/)?.[1] ?? "";
     expect(state).not.toMatch(/<(?:form|button|a)\b/);
-    const positions = ["What these buttons do", ">Run<", ">Close<", ">Update<", "data-pdf"].map((part) => html.indexOf(part));
+    const positions = ["What these buttons do", ">Run<", ">Close<"].map((part) => html.indexOf(part));
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    const title = html.match(/<tr class="spechead"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(title).toContain('href="/specs/aide/81-cheap/pdf"');
   });
 });
 
@@ -87,7 +89,7 @@ describe("each row's actions act on that row's spec", () => {
   });
 });
 
-describe("what a row's Actions cell offers and where Update writes", () => {
+describe("what a row's Actions cell offers", () => {
   /** The Actions cell of this spec's row. */
   const cell = (html: string, folder: string): string => {
     const start = html.indexOf(`<tr class="specstate" data-folder="${folder}">`);
@@ -96,19 +98,12 @@ describe("what a row's Actions cell offers and where Update writes", () => {
     return start < 0 || from < 0 ? "" : html.slice(from, end < 0 ? undefined : end);
   };
 
-  test("a create job whose folder has not landed offers no Close, Update or PDF (AC-4)", () => {
+  test("a create job whose folder has not landed offers no Close or PDF (AC-4)", () => {
     const create = { ...ran("new-abc123", 0), steps: ["create"], state: "running" } as QueueRowView;
-    const actions = cell(renderSpecsRows([create], { runnerAvailable: true, targets, openSpec: {}, pdfAvailable: true }), "new-abc123");
-    for (const absent of [">Close<", ">Update<", "data-pdf"]) expect([absent, actions.includes(absent)]).toEqual([absent, false]);
-  });
-
-  test("Update on a row that is not the open spec writes in lines that row draws (AC-4)", () => {
-    const html = renderSpecsRows([ran("81-cheap", 1), ran("82-dear", 9)], {
-      runnerAvailable: true, targets, openSpec: { key: "aide/82-dear", detail: () => "" },
-    });
-    const actions = cell(html, "81-cheap");
-    const line = actions.match(/<form[^>]*data-line="([^"]+)"[^>]*data-note="([^"]+)"/) ?? actions.match(/<form[^>]*data-note="([^"]+)"[^>]*data-line="([^"]+)"/);
-    expect(line).not.toBeNull();
-    for (const id of [line![1], line![2]]) expect(actions).toContain(`id="${id}"`);
+    const html = renderSpecsRows([create], { runnerAvailable: true, targets, openSpec: {}, pdfAvailable: true });
+    expect(cell(html, "new-abc123")).not.toContain(">Close<");
+    const title = html.match(/<tr class="spechead" id="spec-aide\/new-abc123"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(title).toContain("new-abc123");
+    expect(title).not.toContain("data-pdf");
   });
 });

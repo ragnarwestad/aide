@@ -276,7 +276,7 @@ export const columnGroup = (specsList = false): string =>
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one. */
-const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string }[] = [
+const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string; plain?: boolean }[] = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
   { key: "state", label: "list.colState", attrs: ' data-col="state"' },
@@ -294,7 +294,8 @@ const SPEC_HEADINGS: typeof HEADINGS = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
   { key: "state", label: "list.colStateAlone", attrs: ' data-col="state"' },
-  { key: "actions", label: "list.colActions", attrs: ' data-col="actions"' },
+  // Nothing to order by: the heading names the column and links nowhere.
+  { key: "actions", label: "list.colActions", attrs: ' data-col="actions"', plain: true },
 ];
 
 /** The list's table head with a sort link on every heading. `now.sort` is the
@@ -370,6 +371,7 @@ export function sortHead(
     `<thead><tr>` +
     (o.specsList ? SPEC_HEADINGS : HEADINGS).map((h) => {
       const label = h.key === "spec" ? o.specLabel : h.label;
+      if (h.plain) return `<th${h.attrs}>${esc(t(lang, label))}</th>`;
       return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
     }).join("") +
     `</tr></thead>`

@@ -5,6 +5,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { specActions } from "../../../../src/render";
+import { pdfControl } from "../../../../src/render/pages/spec-page/overview.ts";
 import { btn } from "../../../../src/render/ui/components";
 import { page, view } from "../spec-page-fixtures.ts";
 
@@ -51,12 +52,12 @@ describe("the Close control", () => {
 });
 
 describe("the PDF action", () => {
-  test("links to this spec's PDF from the action row (AC-4)", () => {
-    expect(specActions(view(), "")).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec/pdf"');
+  test("links to this spec's PDF", () => {
+    expect(pdfControl(view())).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec/pdf"');
   });
 
   test("shows the unavailable reason before the disabled PDF action (AC-5)", () => {
-    const html = specActions(view({ pdfUnavailableReason: "md-to-pdf is not installed on this host" }), "");
+    const html = pdfControl(view({ pdfUnavailableReason: "md-to-pdf is not installed on this host" }));
     expect(html).not.toContain('href="/specs/aide/150-one-page-shows-the-whole-spec/pdf"');
     expect(html).toContain("md-to-pdf is not installed on this host");
     expect(html.indexOf("md-to-pdf is not installed on this host")).toBeLessThan(html.indexOf('aria-label="Open this spec as a PDF"'));

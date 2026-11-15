@@ -48,7 +48,6 @@ export const view = (extra: Partial<SpecPageView> = {}): SpecPageView => ({
     file("3-solution.md", "## Recommended solution\n\nApproach 1.\n"),
     file("4-status.md", "## Phase 1: RED\n\n| Task | Status |\n"),
   ],
-  updateAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/update",
   saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
   tickAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick",
   trackingAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tracking",

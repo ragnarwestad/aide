@@ -77,15 +77,13 @@ describe("a closed spec's own row", () => {
 
   test("its row reads 'closed', never 'archived'", async () => {
     const html = await specsList(start({}, WITH_CLOSED).base, `?open=aide/${CLOSED_FOLDER}`);
-    const row = html.slice(
-      html.indexOf(`data-folder="${CLOSED_FOLDER}"`),
-      html.indexOf(`data-folder="${CLOSED_FOLDER}"`) + 2000,
-    );
+    // The title line and the state line, up to the end of the second.
+    const from = html.indexOf(`data-folder="${CLOSED_FOLDER}"`);
+    const state = html.indexOf(`<tr class="specstate" data-folder="${CLOSED_FOLDER}"`, from);
+    const row = html.slice(from, html.indexOf("</tr>", state));
     // The WORDS the row shows, not its markup: `archive-date` and
-    // `archive-duration` are class names on the two cells at the end,
-    // and the row is short enough since 2026-09-07 for the slice to
-    // reach them.
-    const words = row.replace(/<[^>]*>/g, " ").toLowerCase();
+    // `archive-duration` are class names on its cells.
+    const words = row.replace(/<svg[\s\S]*?<\/svg>/g, " ").replace(/<[^>]*>/g, " ").toLowerCase();
     expect(words).toContain("closed");
     expect(words).not.toContain("archived");
   });

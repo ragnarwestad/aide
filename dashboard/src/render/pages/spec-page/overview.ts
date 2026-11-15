@@ -18,7 +18,7 @@ import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { writing } from "../../../queue/queue.ts";
 
 export type SpecActionView = Pick<SpecPageView,
-  "project" | "specFolder" | "archived" | "updateAction" | "closeAvailable" | "closeUnavailableReason" | "pdfUnavailableReason"
+  "project" | "specFolder" | "archived" | "closeAvailable" | "closeUnavailableReason" | "pdfUnavailableReason"
 >;
 
 /** What being closed actually means for this spec —
@@ -340,7 +340,7 @@ export function closeControl(view: SpecActionView, lang: Language = "en"): strin
  *  `title` attribute otherwise, which is not
  *  enough; shares its exact wording with the close dialog's own prose,
  *  `CLOSE_SENTENCE` in ask-dialog.ts, so the two places can never say it
- *  differently), and Update's own. Drawn once, before the row's own
+ *  differently). Drawn once, before the row's own
  *  buttons — covering what each button does and, where one will not
  *  take a click right now, why. */
 export function actionsHelp(view: SpecActionView, lang: Language = "en"): string {
@@ -353,20 +353,15 @@ export function actionsHelp(view: SpecActionView, lang: Language = "en"): string
   if (view.closeAvailable && !view.archived && view.closeUnavailableReason) {
     sentences.push(t(lang, "spec.closeUnavailable", { reason: view.closeUnavailableReason }));
   }
-  sentences.push(t(lang, "spec.updateHelp"));
   return helpPopover(t(lang, "help.whatButtonsDo"), esc(sentences.join(" ")));
 }
 
-/** The actions shown in a spec's header row, after the row supplies Run.
- *  `lines` names where Update writes a refusal or its "nothing changed"
- *  note: the open spec's own lines unless the row names lines of its own. */
-export function specActions(view: SpecActionView, run: string, lang: Language = "en", lines: Record<string, string> = SPEC_LINES): string {
+/** The actions shown in a spec's header row, after the row supplies Run. */
+export function specActions(view: SpecActionView, run: string, lang: Language = "en"): string {
   return (
     actionsHelp(view, lang) +
     run +
     (view.archived ? reopenControl(view, lang) : "") +
-    closeControl(view, lang) +
-    buttonForm({ action: view.updateAction, hook: "reloadform", data: lines, button: { label: t(lang, "spec.update"), pending: t(lang, "spec.updating") } }) +
-    pdfControl(view, lang)
+    closeControl(view, lang)
   );
 }

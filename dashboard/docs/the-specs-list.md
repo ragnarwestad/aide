@@ -101,9 +101,10 @@ column at the phase badges' own size, then the total in the Time column.
 
 ## The row's controls
 
-The Specs list puts every action in the Actions column. Its help mark comes first, followed by Run, Reopen, Close,
-Update and the PDF link, each only when it applies. The State column contains the spec's state and no control. The
-open spec's tab row contains navigation only. On a phone the Actions cell takes a full line and wraps its controls,
+The Specs list puts the spec's buttons in the Actions column. Its help mark comes first, followed by Run, Reopen and
+Close, each only when it applies. The PDF link stands at the right end of the title line. The Actions heading does
+not sort. The State column contains the spec's state and no control. The open spec's tab row contains navigation
+only. On a phone the Actions cell takes a full line and wraps its controls,
 so every action remains reachable without scrolling the table sideways.
 
 The Jobs tab's open row adds one line per phase and a caption line above them. Each phase line carries its own tick box, its
@@ -204,8 +205,9 @@ The State column carries the spec's own state and nothing else:
 - **Running: phase** — a phase is running or its branch is landing.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
-Jobs tab shows what happened to the job. A separate Not verified mark appears beside the state when an acceptance
-criterion still needs checking. The open spec page shows the same state and mark as the list row.
+Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line
+(see [Not verified, and Failed](#not-verified-and-failed)), not a mark in the State column. The open spec page shows
+the same state as the list row.
 
 A spec title links to the Jobs tab, filtered to that spec, when the spec has jobs. A spec with no jobs has a plain
 text title. The header row has no separate Jobs button.
@@ -539,8 +541,7 @@ branch where one is open, as of its last fetch, and off the specs checkout where
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
 same criteria without boxes while a job is running or landing; a queued job does not lock the editor or the boxes.
-An old `?tab=checks` link opens the Status tab. Update, which pulls the specs
-checkout (`POST /api/queue/specs/<project>/<spec>/update`), sits in the row's Actions cell. What a spec runs on and
+An old `?tab=checks` link opens the Status tab. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
 on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
 rather than to one document: whether it is closed, the test server's state and any error. A spec created before a

@@ -24,10 +24,9 @@ describe("an archived spec's row", () => {
 
   // `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
-  test("offers Reopen, Update and PDF without a workflow action", async () => {
+  test("offers Reopen and PDF without a workflow action", async () => {
     const shut = blockFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(shut).toContain(">Reopen</button>");
-    expect(shut).toContain(">Update</button>");
     expect(shut).toContain("data-pdf");
     const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
     for (const label of ["Analyze", "Implement", "Archive"]) {

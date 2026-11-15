@@ -105,9 +105,6 @@ export interface SpecPageView {
    *  when — off the `**Closed:**` stamp. Present only when `closed` is. */
   closedDate?: string;
   closeReason?: string;
-  /** Where the Update button posts. Built by the server, because only
-   *  it knows the action's own path. */
-  updateAction: string;
   /** Whether Close is offered for closing a spec that is not going to
    *  work — true while the spec is active, absent
    *  once it is archived (closed included: `closeControl` checks
