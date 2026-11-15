@@ -12,7 +12,7 @@ import { esc } from "../../../ui/html.ts";
 import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecTarget } from "../data-model";
-import { SPECS_LIST_COLUMNS } from "../row-shared.ts";
+import { LIST_COLUMNS } from "../row-shared.ts";
 import { specBusy } from "../row-state.ts";
 
 /** The form's id, which its boxes name with `form=` too, so a tick is
@@ -84,7 +84,7 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
   const settings = settingsGroup(id, view, opts.lang);
   const body = field + settings;
   return (
-    `<tr class="subrow" data-depends-line="1"><td colspan="${SPECS_LIST_COLUMNS}">` +
+    `<tr class="subrow" data-depends-line="1"><td colspan="${LIST_COLUMNS}">` +
     `<form class="actionform dependsform" id="${esc(id)}" method="post" ` +
     (facts.jobInFlight ? `data-job-in-flight="1" ` : "") +
     (facts.analyzeRun ? `data-analyze-run="1" ` : "") +

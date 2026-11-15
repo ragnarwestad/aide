@@ -66,3 +66,9 @@ describe("the settings under Depends on", () => {
     expect(html).toContain(`<select name="criteriaChecks" form="${id}" id="${id}-criteria-checks">`);
   });
 });
+
+test("the line spans every column of the Running tab's table, the tab it is drawn on", async () => {
+  const { columnGroup } = await import("../../../../../src/render/pages/specs-list/filter-bar.ts");
+  const columns = columnGroup(false).match(/<col /g)!.length;
+  expect(lineOf(spec(FOLDER)).match(/<td colspan="(\d+)"/)?.[1]).toBe(String(columns));
+});
