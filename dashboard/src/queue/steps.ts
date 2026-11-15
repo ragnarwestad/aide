@@ -14,9 +14,11 @@ import {
   type StopReason,
 } from "../step-endings.ts";
 import { isScheduleKey } from "../project/spec-names.ts";
+import { JOB_STATES, type JobState } from "../job-states.ts";
 
 export { ACCEPTANCE_CRITERIA_UNTICKED, isRunStop };
 export type { StopReason };
+export { JOB_STATES, type JobState };
 
 // `core/scripts/aide-run-spec` reads the same list from
 // core/scripts/lib/workflow-steps.json — the shared file both
@@ -164,12 +166,6 @@ export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): stri
     (s) => tail.has(s) || (!job.steps.includes(s) && WORKFLOW_STEPS.indexOf(s) > rank),
   );
 }
-
-export const JOB_STATES = [
-  "queued", "running", "done",
-  "stopped", "failed", "cancelled", "interrupted",
-] as const;
-export type JobState = (typeof JOB_STATES)[number];
 
 // Why a run ended early. `stopped` is deliberately not `failed`: with
 // tight caps a cap-stop is a common, healthy outcome, and a reader who

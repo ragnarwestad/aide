@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { JOB_STATES } from "../../../../../src/job-states.ts";
 import { jobState, offersReopen } from "../../../../../src/render/pages/specs-list/data-model/job-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model/types.ts";
 
@@ -18,8 +19,8 @@ test("Reopen belongs to Specs, including a failed archived criterion", () => {
   expect(offersReopen(group({ lead: { state: "running" } as SpecGroup["lead"] }), true)).toBe(false);
 });
 
-test("an unfinished spec follows its latest job, not its completed phases", () => {
-  for (const state of ["queued", "running", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+test("an unfinished spec follows its latest job, not its completed phases (AC-3)", () => {
+  for (const state of JOB_STATES) {
     expect(jobState(group({ state: "not-started", done: ["analyze", "implement"], lead: { state } as SpecGroup["lead"] }))).toBe(state);
   }
   expect(jobState(group({ archive: { notLanded: true, prOpen: true } as SpecGroup["archive"] }))).toBe("done");
