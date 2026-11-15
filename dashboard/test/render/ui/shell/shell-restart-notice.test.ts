@@ -6,9 +6,9 @@
 // list the Deploy tab already reads.
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { pageShell } from "../../../src/render/ui/shell.ts";
-import { setPendingRestartNotice } from "../../../src/render/ui/pending-restart.ts";
-import { createServerState, setPendingRestart, STARTED_AT } from "../../../src/serve/state.ts";
+import { pageShell } from "../../../../src/render/ui/shell.ts";
+import { setPendingRestartNotice } from "../../../../src/render/ui/pending-restart.ts";
+import { createServerState, setPendingRestart, STARTED_AT } from "../../../../src/serve/state.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 const render = (): string => pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-14T00:00:00Z");

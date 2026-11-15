@@ -354,11 +354,20 @@ export interface PageShellOpts {
   startAt?: string;
 }
 
-/** Which server process drew a page: a page drawn in place by a newer one
- *  is loaded whole instead, so the page's script is the new one too
- *  (`specs-client/page-swap/`). Hand-paired with `SERVED_BY_META` there. */
+/** Which page code drew a page: the stylesheet, the head script, the page
+ *  script and the words it reads from `<body>`. A page drawn in place whose
+ *  stamp differs is loaded whole instead, so the page's script is the new
+ *  one too (`specs-client/page-swap/`). Hand-paired with `SERVED_BY_META`
+ *  there. */
 export { SERVED_BY_META };
-const SERVED_BY = new Date().toISOString();
+let pageCode = Bun.hash(CSS + HEAD_SCRIPT);
+
+/** The page script every board page carries, once it is bundled. */
+export function setClientBundle(bundle: string): void {
+  pageCode = Bun.hash(CSS + HEAD_SCRIPT + bundle);
+}
+
+const servedBy = (bodyTag: string): string => Bun.hash(String(pageCode) + bodyTag).toString(36);
 
 /** The document up to and including `<body …>`: what a streamed page can
  *  send before it knows anything about its content. */
@@ -367,6 +376,7 @@ export function shellHead(
   opts: { lang?: Language; docTitle?: string; startAt?: string } = {},
 ): string {
   const lang = opts.lang ?? "en";
+  const body = `<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}"${clientWords(lang)}>`;
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -376,11 +386,11 @@ export function shellHead(
 ${ICON_LINKS}
 ${PWA_LINKS}
 ${waitingMeta()}
-<meta name="${SERVED_BY_META}" content="${SERVED_BY}">
+<meta name="${SERVED_BY_META}" content="${servedBy(body)}">
 ${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
 <script>${HEAD_SCRIPT}</script>
 </head>
-<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}"${clientWords(lang)}>`;
+${body}`;
 }
 
 /** The rest of the document, from the header to `</html>`. `afterMain` is

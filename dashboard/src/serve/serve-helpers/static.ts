@@ -11,6 +11,7 @@ import {
   APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
 } from "../../render";
 import { serviceWorker, webmanifest } from "../../render/ui/pwa.ts";
+import { setClientBundle } from "../../render/ui/shell.ts";
 import type { Language } from "../../i18n";
 
 // Page code is TypeScript, split across src/specs-client/*.ts and bundled
@@ -30,6 +31,10 @@ export function specsClientScript(): Promise<string | undefined> {
     format: "iife",
   })
     .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
+    .then((bundle) => {
+      if (bundle !== undefined) setClientBundle(bundle);
+      return bundle;
+    })
     .catch(() => undefined); // the page is still drawn, without its script
   return specsScript;
 }
