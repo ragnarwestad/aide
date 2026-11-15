@@ -1,3 +1,5 @@
+import { t, type Language } from "../../../../i18n";
+import { gerund } from "../../../../format/gerund.ts";
 import { currentStep } from "../../../ui/job-state";
 import { writing } from "../../../../queue/job-rules/activity.ts";
 import { ARCHIVED_STATE, CLOSED_STATE, type SpecGroup } from "./types.ts";
@@ -22,4 +24,12 @@ export function specState(g: SpecStateFacts): SpecState {
   if (done.includes("implement")) return { key: "implemented" };
   if (done.includes("analyze")) return { key: "analyzed" };
   return { key: "created" };
+}
+
+/** A spec's activity and a job's phase are different labels. */
+export function specStateLabel(state: SpecState, lang: Language, onSpecs: boolean): string {
+  if (state.key === "running") return onSpecs
+    ? t(lang, "list.state.active")
+    : state.phase ? gerund(lang, state.phase) : t(lang, "list.state.running");
+  return t(lang, `list.state.${state.key}` as Parameters<typeof t>[1]);
 }

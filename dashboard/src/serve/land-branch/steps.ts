@@ -242,8 +242,9 @@ const firstLine = (text: string): string => text.split(/\r?\n/, 1)[0] ?? text;
  *  whose work lands, and the phase is finished only when the merge is:
  *  the step's Log marks it in the skill's own words, the heading of that
  *  skill's last step in `core/skills/aide-<step>/SKILL.md`: its place by
- *  step, and one title. */
-export const MERGE_TITLE = "Merge into main";
+ *  step, and a title naming the files it lands. */
+const MERGE_TITLES: Partial<Record<WorkflowStep, string>> = { archive: "Merge code and spec files into main" };
+export const mergeStepTitle = (step: WorkflowStep): string => MERGE_TITLES[step] ?? "Merge spec files into main";
 export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
   create: "7 of 7",
   analyze: "11 of 11",
@@ -262,7 +263,7 @@ async function asMergeStep(
 ): Promise<void> {
   const place = MERGE_STEP[step];
   const mark = (end: string, error = false) => {
-    if (place) stepLogLine(job, stepMarkLine(place, MERGE_TITLE, end), error);
+    if (place) stepLogLine(job, stepMarkLine(place, mergeStepTitle(step), end), error);
   };
   let merged = false;
   mark("started");

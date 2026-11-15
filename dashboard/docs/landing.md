@@ -64,11 +64,13 @@ point.
 The landing is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
 it in the words of that skill's last heading:
 
-- `--- Step 7 of 7: Merge into main — started` when the landing begins
+- `--- Step 7 of 7: Merge spec files into main — started` when a create landing begins
 - `— done` when every repo merged
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 
-The titles are `MERGE_STEP` in `src/serve/land-branch/steps.ts`, one per step that lands (`create`, `analyze`,
+Create, Analyze, Reopen and Close name spec files; Archive says `Merge code and spec files into main`.
+
+The places are `MERGE_STEP` and the titles come from `mergeStepTitle()` in `src/serve/land-branch/steps.ts`, one per step that lands (`create`, `analyze`,
 `reopen`, `archive`, `close`).
 
 Code reaches the default branch through `archive` alone. The landing can only merge the repos it knows about, so it
@@ -211,7 +213,7 @@ commands the change calls for and runs them through `aide-record-test-run`.
 - When the merge broke the tests (`landing.testsRedOnMerge`, `landing.testsRedOnMergeToo`), the job also keeps them,
   each with its file and error, as `landingFailedTests`, for the spec's next implement; at most one job of a spec keeps
   such a list, and a green landing, another red ending, an archive or a close takes it off.
-- The landing writes its test run into the step's Log, under "tests and commit": when it starts, green or red, the
+- The landing writes its test run into the step's Log, under the publication part: when it starts, green or red, the
   run once more, the run on main, and a run it skipped.
 
 **A run the step already made is not made again.** An `implement` that ended green reports `testedGreen` on its

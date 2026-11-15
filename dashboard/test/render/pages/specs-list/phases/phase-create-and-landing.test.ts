@@ -344,7 +344,7 @@ describe("a step still landing reads busy, not ready", () => {
     // being merged is still creating. The merge is not a stage of its
     // own to a reader, and naming it as one asked them to act on a
     // division they have no move in.
-    expect(line).toContain("Running: Create");
+    expect(line).toContain("Creating");
     expect(line).not.toContain('class="badge b-ready"');
     const cell = actionCell(controlsLine(html, "254-landing"));
     expect(cell).not.toContain(">Analyze</button>");
@@ -367,8 +367,8 @@ describe("a step still landing reads busy, not ready", () => {
     );
     const line = head(html, "254-landing");
     expect(line).toContain('class="badge b-running"');
-    expect(line).toContain("Running: Analyze");
-    expect(line).not.toContain("Running: Implement");
+    expect(line).toContain("Analyzing");
+    expect(line).not.toContain("Implementing");
   });
 
   // The regression guard: once `landing` has cleared (the

@@ -302,9 +302,9 @@ with `command -v markdownlint-cli2` before running it. If it is unavailable,
 report that validation was skipped and continue, without `npx` or any
 other package download.
 
-### Step 5 of 7: Stage in git
+### Step 5 of 7: Commit spec files
 
-First write `--- Step 5 of 7: Stage in git — started`, and when this step ends, `--- Step 5 of 7: Stage in git — done`.
+First write `--- Step 5 of 7: Commit spec files — started`, and when this step ends, `--- Step 5 of 7: Commit spec files — done`.
 
 
 Working interactively, before staging, run:
@@ -369,8 +369,8 @@ no `Model (create)` line is written — an absence, never a guess.
 First write `--- Step 6 of 7: Confirm — started`, and when this step ends, `--- Step 6 of 7: Confirm — done`.
 
 In a headless run nothing of this is on the default branch yet: the
-create is finished only once Step 7, the merge into main, is done. So the
-report's first line ends `— not finished, the merge into main is next
+create is finished only once Step 7, the merge of spec files into main, is done. So the
+report's first line ends `— not finished, the merge of spec files into main is next
 (Step 7)`, and the report never calls the create done or complete.
 
 
@@ -397,13 +397,13 @@ Files created:
 Next step: /aide-analyze 55
 ```
 
-### Step 7 of 7: Merge into main
+### Step 7 of 7: Merge spec files into main
 
-Aide writes `--- Step 7 of 7: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 7 of 7: Merge spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
-run Aide merges what this session committed on the spec's branch into
-the default branch once the session has ended, and the create is finished
+run Aide merges the spec files committed on the spec's branch into
+the specs repository's default branch once the session has ended, and the create is finished
 when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 

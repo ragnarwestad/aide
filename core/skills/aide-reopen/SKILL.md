@@ -42,7 +42,7 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-Step 6, the merge into the default branch, is Aide's, after a reopen on
+Step 6, the merge of spec files into the default branch, is Aide's, after a reopen on
 the board: Aide writes its marks there.
 
 ### Step 1 of 6: Find the spec
@@ -109,9 +109,9 @@ modes.
 Either mark is what stops the earlier round's steps counting. On a
 refusal, report the script's `error` and stop.
 
-### Step 4 of 6: Commit
+### Step 4 of 6: Commit spec files
 
-First write `--- Step 4 of 6: Commit — started`, and when this step ends, `--- Step 4 of 6: Commit — done`.
+First write `--- Step 4 of 6: Commit spec files — started`, and when this step ends, `--- Step 4 of 6: Commit spec files — done`.
 
 
 ASK whether to commit, and suggest this message:
@@ -135,9 +135,9 @@ Reopened: 17-clean-up-console-log
 Next: /aide-analyze 17
 ```
 
-### Step 6 of 6: Merge into main
+### Step 6 of 6: Merge spec files into main
 
-Aide writes `--- Step 6 of 6: Merge into main — started` itself, after a reopen on the board, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 6 of 6: Merge spec files into main — started` itself, after a reopen on the board, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. Typed at a
 keyboard there is no such step: the commit in Step 4 is what reaches

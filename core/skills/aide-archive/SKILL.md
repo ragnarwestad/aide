@@ -159,9 +159,9 @@ says so or `AIDE_HEADLESS` is set; then nobody can answer.
   the folder under either the active specs root or its `archive/`
   subfolder automatically). Then continue straight to Step 3.
 
-### Step 3 of 5: Commit
+### Step 3 of 5: Commit spec files and documentation
 
-First write `--- Step 3 of 5: Commit — started`, and when this step ends, `--- Step 3 of 5: Commit — done`.
+First write `--- Step 3 of 5: Commit spec files and documentation — started`, and when this step ends, `--- Step 3 of 5: Commit spec files and documentation — done`.
 
 
 Steps 1 to 4 left their changes in the working directory; this step
@@ -228,7 +228,7 @@ this session did is on the spec's branches. So the report:
   to be merged.
 
 ```text
-Archive of 17-clean-up-console-log not finished — the merge into main is next (Step 5)
+Archive of 17-clean-up-console-log not finished — the merge of code and spec files into main is next (Step 5)
 
 - Spec: 4-status.md stamped (Archived: 2026-08-13) and the folder moved
   to archive/17-clean-up-console-log/, on the spec's branch
@@ -247,9 +247,9 @@ Name the default branch by its own name (`main` above). An
 usually happened seconds before this session, in the same run, and the
 merge is still to come.
 
-### Step 5 of 5: Merge into main
+### Step 5 of 5: Merge code and spec files into main
 
-Aide writes `--- Step 5 of 5: Merge into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 5 of 5: Merge code and spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. In a headless
 run Aide merges the spec's branches into the default branch once this

@@ -72,7 +72,7 @@ describe("one line per row for what is going on and what is next", () => {
       [target("101-a")],
     );
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)![0];
-    expect(head).toContain(">Running: Analyze<");
+    expect(head).toContain(">Analyzing<");
     expect(head).not.toContain("to follow");
     expect(hint(html)).toBe("");
   });

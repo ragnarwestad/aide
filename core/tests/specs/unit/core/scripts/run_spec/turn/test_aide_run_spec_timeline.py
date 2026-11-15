@@ -52,7 +52,7 @@ def test_the_turn_line_says_where_the_transcript_stood_and_the_commit_comes_afte
         "model turn started (transcript at byte 0)",
         f"model turn started (transcript at byte {first})",
     ], stages
-    commit = next(i for i, s in enumerate(stages) if s.startswith("committing in "))
+    commit = next(i for i, s in enumerate(stages) if s.startswith("committing "))
     assert commit > stages.index(turns[-1]), stages
 
 

@@ -397,7 +397,11 @@ context_before_checks="$context_fullest"
 # What Aide does once the AI is done: its own test run, the commit and
 # the push. A step with no AI turn goes straight on from preparing.
 aide_part_close
-aide_part_open "tests and commit"
+case "$command_name" in
+  create|analyze|reopen|close) aide_part_open "tests and commit spec files" ;;
+  implement|archive) aide_part_open "tests and commit code and spec files" ;;
+  *) aide_part_open "tests and commit files" ;;
+esac
 
 ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"

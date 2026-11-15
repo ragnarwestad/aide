@@ -8,13 +8,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { landArchivedSpec, landStepBranch } from "../../../../src/serve/land-branch";
-import { MERGE_STEP, MERGE_TITLE } from "../../../../src/serve/land-branch/steps.ts";
+import { MERGE_STEP, mergeStepTitle } from "../../../../src/serve/land-branch/steps.ts";
 import { stepMarkLine } from "../../../../src/queue/parse-stream/step-marks.ts";
 import { retryArchiveLanding } from "../../../../src/serve/land-branch/retry";
 import type { Job } from "../../../../src/queue/queue.ts";
 
 /** A merge mark for `step` with `ending`, as the landing writes it. */
-const mergeMark = (step: keyof typeof MERGE_STEP, ending: string): string => stepMarkLine(MERGE_STEP[step]!, MERGE_TITLE, ending);
+const mergeMark = (step: keyof typeof MERGE_STEP, ending: string): string => stepMarkLine(MERGE_STEP[step]!, mergeStepTitle(step), ending);
 import { BRANCH, landCtx, landingGit, REPOS } from "../landing-fixtures.ts";
 import type { Answer } from "../../../helpers/fake-git.ts";
 
@@ -76,7 +76,7 @@ describe("the archive's merge is its last step in the log", () => {
       const skill = readFileSync(join(import.meta.dir, `../../../../../core/skills/aide-${step}/SKILL.md`), "utf-8");
       const last = [...skill.matchAll(/^### (Step (\d+) of (\d+): .+)$/gm)].at(-1)!;
       expect(last[2]).toBe(last[3]);
-      expect(last[1], step).toBe(`Step ${place}: ${MERGE_TITLE}`);
+      expect(last[1], step).toBe(`Step ${place}: ${mergeStepTitle(step as keyof typeof MERGE_STEP)}`);
     }
   });
 });

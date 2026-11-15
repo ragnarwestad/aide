@@ -1,3 +1,4 @@
+import { commitPartTitle } from "../../../src/queue/parse-stream/step-plan.ts";
 // Skill-step marks in a transcript: the lines `step_log_note` asks the
 // model to write, one per step start and end. Each is a line of its own
 // in the Log, and no bound on the number of lines drops one.
@@ -276,7 +277,7 @@ describe("stepPlan", () => {
       "Step Aide: tests and commit",
       "Step 4 of 4",
     ]);
-    expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit", "Merge into main"]);
+    expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit spec files", "Merge into main"]);
   });
 
   test("a step that runs no model turn lists Aide's two parts and the heading Aide writes, none of the session's", () => {
@@ -322,8 +323,8 @@ describe("stepPlan", () => {
       readFileSync(join(scripts, f), "utf-8"),
     );
     // The literals `aide_part_open "<name>"` is called with; `"$variable"` names a variable and does not count.
-    const names = sources.flatMap((text) => [...text.matchAll(/^\s*(?:[^#\n]*&&\s*)?aide_part_open "([^"$]+)"/gm)].map((m) => m[1]!));
-    expect(names.sort()).toEqual([AIDE_PARTS.before, AIDE_PARTS.after].sort());
+    const names = sources.flatMap((text) => [...text.replace(/^\s*#.*$/gm, "").matchAll(/\baide_part_open "([^"$]+)"/g)].map((m) => m[1]!));
+    expect(names.sort()).toEqual([AIDE_PARTS.before, commitPartTitle("analyze"), commitPartTitle("implement"), commitPartTitle("schedule")].sort());
 
     const paths = readFileSync(join(scripts, "lib/run-spec/turn/spec-paths.sh"), "utf-8");
     const stretch = paths.slice(paths.indexOf('create_no_ai=""'), paths.indexOf('if [ -n "$skip_ai" ]'));
@@ -336,4 +337,15 @@ describe("stepPlan", () => {
     expect(stepPlan("close", empty)).toEqual([]);
     expect(stepPlan("close", skillsWith("close", "No steps here.\n"))).toEqual([]);
   });
+});
+
+test("old and explicit commit marks refer to one publishing step, retaining state and timing", () => {
+  for (const name of ["tests and commit spec files", "tests and commit code and spec files", "tests and commit files"]) {
+    const marks = stepMarks([{ by: "aide-after", lines: [
+      "00:00:01 +1s --- Step Aide: tests and commit — started",
+      `00:00:05 +5s --- Step Aide: ${name} — done`,
+    ] }]);
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toMatchObject({ key: "Step Aide: tests and commit", state: "done", startedSec: 1, endedSec: 5 });
+  }
 });

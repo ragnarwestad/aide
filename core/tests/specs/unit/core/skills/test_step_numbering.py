@@ -30,9 +30,9 @@ def test_every_step_counts_the_same_total_in_order():
 def test_every_step_opens_with_its_own_log_lines():
     """The line under a heading is what the model writes to the log; a
     renumbered heading with its old line under it logs the wrong step."""
-    for m in (m for skill in _numbered_skills() for m in re.finditer(r"^#+ Step (\d+ of \d+):.*\n\n(.*)$", skill.read_text(), re.M)):
-        if m.group(2).startswith("Aide writes"):  # the merge after the session, marked by the landing
-            assert m.group(2).startswith(f"Aide writes `--- Step {m.group(1)}: Merge into main"), m.group(0)
+    for m in (m for skill in _numbered_skills() for m in re.finditer(r"^#+ Step (\d+ of \d+): ([^\n]+)\n\n(.*)$", skill.read_text(), re.M)):
+        if m.group(3).startswith("Aide writes"):  # the merge after the session, marked by the landing
+            assert m.group(3).startswith(f"Aide writes `--- Step {m.group(1)}: {m.group(2)}"), m.group(0)
             continue
-        assert m.group(2).startswith(f"First write `--- Step {m.group(1)}:"), m.group(0)
-        assert f"`--- Step {m.group(1)}:" in m.group(2).split("and when this step ends")[1], m.group(0)
+        assert m.group(3).startswith(f"First write `--- Step {m.group(1)}:"), m.group(0)
+        assert f"`--- Step {m.group(1)}:" in m.group(3).split("and when this step ends")[1], m.group(0)
