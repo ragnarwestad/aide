@@ -39,15 +39,15 @@ const dialog = (): Locator => page.locator('dialog[id^="edit-group-"]');
 const candidate = (folder: string): Locator => dialog().locator(`input[name="member"][value="${folder}"]`);
 
 /** The Jobs tab of a board with a group of two and one spec in no group, in a specs repository that can save. */
-async function openCard(): Promise<void> {
+async function openCard(locked = false): Promise<void> {
   const { base, dir } = harness.start({
     description: grouped(FIRST, 1),
     alsoSpecs: [SECOND, ADDED],
     alsoDescriptions: { [SECOND]: grouped(SECOND, 2), [ADDED]: plain(ADDED) },
     executionGroups: [{
       id: "group-1", project: "aide", name: "Release", members: [FIRST, SECOND],
-      branch: `aide/group-${FIRST}-release`, state: "prepared", createdAt: "2026-11-11T10:00:00Z",
-      completedMembers: [], jobs: [],
+      branch: `aide/group-${FIRST}-release`, state: locked ? "running" : "prepared", createdAt: "2026-11-11T10:00:00Z",
+      completedMembers: locked ? [FIRST] : [], jobs: [],
     }],
   });
   makeSpecsRepo(dir);
@@ -84,6 +84,16 @@ test("Edit removes one member and adds another (AC-8)", async () => {
   const head = card().locator("tbody[data-group-head]");
   await head.locator(`.pip[title="${ADDED}"]`).waitFor({ state: "attached" });
   expect(await head.locator(`.pip[title="${SECOND}"]`).count()).toBe(0);
+});
+
+test("Edit can rename a group with a locked member and keeps the name after reload", async () => {
+  await openCard(true);
+  await dialog().getByRole("textbox", { name: "Name", exact: true }).fill("Renamed release");
+  await dialog().getByRole("button", { name: "Save", exact: true }).click();
+  await dialog().waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Renamed release", exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole("button", { name: "Renamed release", exact: true }).waitFor();
 });
 
 for (const width of [390, 1440]) {

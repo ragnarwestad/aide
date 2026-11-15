@@ -15,6 +15,7 @@ function parse(value: unknown): ExecutionGroup | undefined {
   if (!value || typeof value !== "object") return undefined;
   const raw = value as Record<string, unknown>;
   if (typeof raw.id !== "string" || typeof raw.project !== "string" || typeof raw.name !== "string") return undefined;
+  if (raw.displayName !== undefined && typeof raw.displayName !== "string") return undefined;
   if (!strings(raw.members) || typeof raw.branch !== "string" || !EXECUTION_GROUP_STATES.includes(raw.state as never)) return undefined;
   if (!strings(raw.completedMembers) || !Array.isArray(raw.jobs)) return undefined;
   if (raw.sharedChoices !== undefined && typeof raw.sharedChoices !== "boolean") return undefined;
@@ -51,7 +52,7 @@ export class ExecutionGroupStore {
     return group ? structuredClone(group) : undefined;
   }
   findUnfinished(project: string, name: string): ExecutionGroup | undefined {
-    return this.list().find((group) => group.project === project && group.name === name && group.state !== "completed");
+    return this.list().find((group) => group.project === project && (group.name === name || group.displayName === name) && group.state !== "completed");
   }
   create(input: PrepareExecutionGroup): ExecutionGroup {
     if (this.findUnfinished(input.project, input.name)) throw new Error(`execution group ${input.name} already exists`);

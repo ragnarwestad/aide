@@ -40,13 +40,13 @@ const repoWith = (implemented: string[]) => (dir: string): void => {
 };
 
 /** A group of two, the first through Implement, and a spec in no group. */
-async function groupOfTwo(state: string, opts: { implemented?: string[]; second?: string } = {}) {
+async function groupOfTwo(state: string, opts: { implemented?: string[]; second?: string; otherGroups?: Record<string, unknown>[] } = {}) {
   const implemented = opts.implemented ?? [FIRST];
   const started = harness.start({
     description: grouped(FIRST, 1),
     alsoSpecs: [SECOND, ADDED],
     alsoDescriptions: { [SECOND]: opts.second ?? grouped(SECOND, 2), [ADDED]: plain(ADDED) },
-    executionGroups: record(state),
+    executionGroups: [...record(state), ...(opts.otherGroups ?? [])],
     before: repoWith(implemented),
   });
   // Every commit is made before the server starts, so the first member's
@@ -95,11 +95,28 @@ describe("editing a group", () => {
     expect(description(dir, SECOND)).toContain("- **Group position:** 3");
   });
 
-  test("refuses renaming once a member is locked (AC-9)", async () => {
+  test("renames the display of a running group without changing its membership files or branch", async () => {
     const { base, dir } = await groupOfTwo("running");
+    const before = [description(dir, FIRST), description(dir, SECOND)];
     const res = await edit(base, [FIRST, SECOND], "Renamed");
+    expect(res.status).toBe(200);
+    expect([description(dir, FIRST), description(dir, SECOND)]).toEqual(before);
+    expect(stored(dir)).toMatchObject({ name: "Release", displayName: "Renamed", branch: `aide/group-${FIRST}-release`, members: [FIRST, SECOND], state: "running", completedMembers: [FIRST] });
+    expect((await edit(base, [FIRST, SECOND], "Renamed again")).status).toBe(200);
+    expect(stored(dir)).toMatchObject({ name: "Release", displayName: "Renamed again" });
+    expect((await edit(base, [FIRST, SECOND], "Release")).status).toBe(200);
+    expect(stored(dir)).toMatchObject({ name: "Release" });
+    expect([description(dir, FIRST), description(dir, SECOND)]).toEqual(before);
+  });
+
+  test("refuses another unfinished group's display name without changing the current group", async () => {
+    const { base, dir } = await groupOfTwo("running", { otherGroups: [{
+      ...record("prepared")[0]!, id: "group-2", name: "Other", displayName: "Taken", members: ["90-other", "91-other"],
+    }] });
+    const before = stored(dir);
+    const res = await edit(base, [FIRST, SECOND], "Taken");
     expect(res.status).toBe(409);
-    expect(description(dir, FIRST)).toContain("`Release`");
-    expect(stored(dir).members).toEqual([FIRST, SECOND]);
+    expect((await res.json() as { error: string }).error).toContain("Taken");
+    expect(stored(dir)).toEqual(before);
   });
 });
