@@ -9,14 +9,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { createdJob, ran, statusSaying } from "../../helpers/queue-server.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { withFreshness } from "../../../src/serve/land-branch";
 import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
 import { specControls, phaseDone, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start: startServer } = setupQueueRoutesHarness();
+const start: typeof startServer = (extra, projects, specs, status, state, mirror) =>
+  startServer(extra, projects, specs, status, state, mirror ?? (extra?.queueMirrorPath ? undefined : JSON.stringify([createdJob()])));
 
 afterEach(() => harness.cleanup());
 

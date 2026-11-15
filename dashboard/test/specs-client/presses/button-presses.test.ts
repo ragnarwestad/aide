@@ -158,7 +158,7 @@ describe("the New-spec form answers for itself", () => {
   test("a created spec takes the reader to its row on the Specs list (AC-3)", async () => {
     const h = harness(() => ({ ok: true, body: { ok: true, specFolder: "805-a-spec" } }));
     await h.submitCreate();
-    expect(h.location.href).toBe("/?created=805-a-spec");
+    expect(h.location.href).toBe("/specs/aide/805-a-spec");
     expect(h.resets).toHaveLength(0);
   });
 
@@ -222,7 +222,7 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
     h.changeProject("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
     await h.submitCreate();
-    expect(h.location.href).toBe("/?created=805-a-spec");
+    expect(h.location.href).toBe("/specs/aide-dashboard/805-a-spec");
     expect(h.projectSelect.value).toBe("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
   });

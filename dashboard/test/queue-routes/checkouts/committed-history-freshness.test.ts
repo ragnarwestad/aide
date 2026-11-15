@@ -4,11 +4,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { t } from "../../../src/i18n";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { createdJob, ran, statusSaying } from "../../helpers/queue-server.ts";
 import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
 import { specControls, phaseDone, OPEN_81, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start: startServer } = setupQueueRoutesHarness();
+const start: typeof startServer = (extra, projects, specs, status, state, mirror) =>
+  startServer(extra, projects, specs, status, state, mirror ?? (extra?.queueMirrorPath ? undefined : JSON.stringify([createdJob()])));
 
 afterEach(() => harness.cleanup());
 

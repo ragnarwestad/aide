@@ -52,6 +52,7 @@ async function openTab(): Promise<void> {
     alsoDescriptions: { [SECOND]: description(SECOND) },
   });
   makeSpecsRepo(dir);
+  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
 }
 

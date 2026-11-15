@@ -58,7 +58,7 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     const shown = async (base: string) => {
       expect((await offeredChoices(base)).Fable).toBe("Fable 5.1");
       expect(await pageText(`${base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Fable 5.1");
-      expect(await pageText(`${base}/?${OPEN_81}`)).toContain(">Fable 5.1</option>");
+      expect(await pageText(`${base}/specs?${OPEN_81}`)).toContain(">Fable 5.1</option>");
     };
     await shown(first.base);
 

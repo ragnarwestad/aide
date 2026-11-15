@@ -313,16 +313,12 @@ describe("nothing running", () => {
   });
 
   test("the full page with a row names no page to start on", async () => {
-    const res = await fetch(`${board().base}/`, { redirect: "manual" });
+    const res = await fetch(`${board([job({})]).base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).not.toContain('<meta name="aide-start"');
   });
 
-  test("an Active spec alone, with no job in the queue, is a row and not the empty sentence", async () => {
-    const busy = await rowsOf(board().base);
-    expect(busy).not.toContain(t("en", "jobs.nothingRunning"));
-    expect(busy).toContain("<table");
-  });
+
 });
 
 describe("New spec", () => {
@@ -341,15 +337,17 @@ const STATE_OF = (done: string[], criteria: { task: string; done: boolean }[] = 
 describe("every spec the Specs list shows under Active has a row, job or not", () => {
   test("a spec implemented and waiting, one held back on an unticked criterion and one analyzed, with no job in the queue", async () => {
     const folders = ["82-implemented", "83-held-back", "84-analyzed"];
-    const { base, dir } = harness.start({ extra: { queueProjects: ["aide"] }, alsoSpecs: folders });
     const states: Record<string, string> = {
       "82-implemented": STATE_OF(["create", "analyze", "implement"]),
       "83-held-back": STATE_OF(["create", "analyze", "implement"], [{ task: "AC-1: it holds", done: false }]),
       "84-analyzed": STATE_OF(["create", "analyze"]),
     };
-    for (const folder of folders) {
-      writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), states[folder]!);
-    }
+    const { base } = harness.start({
+      extra: { queueProjects: ["aide"] }, alsoSpecs: folders,
+      before: (dir) => {
+        for (const folder of folders) writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), states[folder]!);
+      },
+    });
 
     const html = await rowsOf(base);
     for (const folder of folders) {
@@ -359,7 +357,7 @@ describe("every spec the Specs list shows under Active has a row, job or not", (
   });
 });
 
-describe("the Jobs tab and the Specs list's Active entry show the same specs", () => {
+describe("the Jobs tab keeps work records while Specs also shows unstarted specs", () => {
   const UNMERGED = "92-unmerged";
   const specsRepo = join("aide", "specs");
   // The unmerged spec's branch is on origin and not part of the default branch.
@@ -399,13 +397,13 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     }
   }
 
-  test("the Jobs tab keeps the Active rows and adds finished archived and closed rows (AC-3, AC-8)", async () => {
+  test("Jobs leaves a never-run spec on Specs and keeps running and finished work (AC-3, AC-8)", async () => {
     const { base } = everyKind();
     const list = await activeList(base);
     const tab = await rowsOf(base);
-    for (const key of specKeys(list)) expect(specKeys(tab)).toContain(key);
+    expect(specKeys(list)).toContain("aide/82-no-job");
     expect(specKeys(tab)).toContain("aide/81-queue-and-runner");
-    expect(specKeys(tab)).toContain("aide/82-no-job");
+    expect(specKeys(tab)).not.toContain("aide/82-no-job");
     expect(specKeys(tab)).toContain("aide/90-finished");
     expect(specKeys(tab)).toContain("aide/91-closed");
     expect(specKeys(tab)).not.toContain("retired/07-old");
@@ -730,6 +728,7 @@ describe("a search for an execution-group member", () => {
       branch: "aide/group-805-grouped-first", state: "prepared", createdAt: "2026-11-15T10:00:00Z", jobs: [],
     }],
     alsoSpecs: ["804-ungrouped", "805-grouped-first", "806-grouped-second"],
+    queueMirror: JSON.stringify([job({ id: "j804", specFolder: "804-ungrouped", state: "done" })]),
   });
   const opened = (html: string): boolean => html.includes('data-group-open="search"');
   const groupCard = (html: string): string =>

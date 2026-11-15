@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
-import { queueHarness } from "../../helpers/queue-server.ts";
+import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 import { t } from "../../../src/i18n";
 
@@ -57,7 +57,7 @@ afterAll(async () => {
 });
 
 test("a live row update preserves an unsubmitted search", async () => {
-  const { base } = harness.start({});
+  const { base } = harness.start({ queueMirror: JSON.stringify([createdJob()]) });
   const page = await browser.newPage();
   const waiting = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();
@@ -120,11 +120,11 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     await page.close();
   });
 
-  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel removes the job, the row staying, with no page load", async () => {
-    const { base } = harness.start({});
+  test("a first queued job adds its row in place and cancelling it before it starts removes that row", async () => {
+    const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     const page = await browser.newPage();
     await page.goto(`${base}/`);
-    await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
+    expect(await page.locator(SPEC_ROW).count()).toBe(0);
     const loads = countLoads(page);
 
     const id = await queueAnalyze(base);
@@ -139,12 +139,12 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     expect(loads.n).toBe(0);
 
     // Cancel asks first; its OK posts and redraws the rows.
-    await page.locator("tr button[data-ask]").first().click();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
     // A job that never started is removed, not kept as cancelled.
     await page.waitForFunction(async (jobId) => (await fetch(`/api/queue/${jobId}`)).status === 404, id);
-    // The spec is still Active: its row stays, with nothing left to cancel.
-    await page.locator(SPEC_ROW).waitFor({ timeout: 10_000 });
+    // No job ever ran, so the spec returns to Specs alone.
+    await page.locator(SPEC_ROW).waitFor({ state: "detached", timeout: 10_000 });
     await page.locator(`form[action="/api/queue/${id}/cancel"]`).waitFor({ state: "detached", timeout: 10_000 });
     expect(pathOf(page)).toBe("/");
     expect(loads.n).toBe(0);

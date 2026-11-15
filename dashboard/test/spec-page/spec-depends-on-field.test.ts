@@ -58,11 +58,11 @@ describe("the Depends on field", () => {
     [...html.matchAll(/<input [^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]).filter((tag) => /value="[^"]+"/.test(tag));
   const chipFor = (html: string, folder: string) => chips(html).find((tag) => tag.includes(`value="${folder}"`));
   const ticked = (html: string, folder: string) => chipFor(html, folder)?.includes(" checked") ?? false;
-  /** The Running tab's rows, this spec's own row open. */
-  const openRowOf = async (base: string) => (await fetch(`${base}/?rows=1&open=aide/${SPEC}`)).text();
+  /** The Specs list's rows, this spec's own row open. */
+  const openRowOf = async (base: string) => (await fetch(`${base}/specs/aide/${SPEC}?rows=1`)).text();
   /** The Specs list's rows, and this spec's own line among them. */
   const rowOf = async (base: string) => {
-    const html = await (await fetch(`${base}/?rows=1`)).text();
+    const html = await (await fetch(`${base}/specs?rows=1`)).text();
     return html.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
   };
 
@@ -70,7 +70,7 @@ describe("the Depends on field", () => {
   // `resolve_dependency_folder` has always taken a bare number — so the
   // box that gets ticked is the one the RUNNER would resolve the line
   // to, not the one whose folder happens to match the text.
-  test("the Running tab's open row ticks the spec a bare number resolves to", async () => {
+  test("the Specs list's open row ticks the spec a bare number resolves to", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
     expect(ticked(await openRowOf(base), OTHER)).toBe(true);
   });

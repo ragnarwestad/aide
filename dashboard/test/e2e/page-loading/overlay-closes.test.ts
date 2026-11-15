@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
-import { queueHarness } from "../../helpers/queue-server.ts";
+import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
 
@@ -11,7 +11,7 @@ let base: string;
 
 beforeAll(async () => {
   browser = await withBrowser(chromium.launch(), "chromium.launch()");
-  base = harness.start().base;
+  base = harness.start({ queueMirror: JSON.stringify([createdJob()]) }).base;
 });
 
 afterAll(async () => {

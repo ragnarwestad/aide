@@ -11,8 +11,8 @@ import { onOrigin, rootWithOrigin, specBranchAhead, specRelPath, type BranchFixt
 import { DESCRIPTION_TAB, ANALYSIS_TAB, SAVE, SPEC, TRACKING, descriptionPath, post, answer } from "./spec-save-fixtures.ts";
 
 const OTHER = "82-another-spec";
-/** The spec's open row on the Running tab, where its settings are changed. */
-const OPEN_ROW = `/?rows=1&open=aide/${SPEC}`;
+/** The spec's open row on Specs, where its settings are changed. */
+const OPEN_ROW = `/specs/aide/${SPEC}?rows=1`;
 const harness = queueHarness("aide-spec-page-branch-");
 afterEach(() => harness.cleanup());
 
@@ -95,7 +95,7 @@ describe("a spec with a branch of its own", () => {
     expect(onOrigin(fx, "main", SPEC, "1-description.md")).toBe(ON_MAIN);
   });
 
-  test("the open row on the Running tab shows what its own Save wrote to the branch", async () => {
+  test("the open row on Specs shows what its own Save wrote to the branch", async () => {
     const { base } = withBranch(tracked("As the branch has it."));
     expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(true);
 
@@ -124,7 +124,7 @@ describe("a spec with a branch of its own", () => {
   test("a Depends on saved onto the branch is named on the row's own line at once", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     const rowLine = async () => {
-      const rows = await (await fetch(`${base}/?rows=1`)).text();
+      const rows = await (await fetch(`${base}/specs?rows=1`)).text();
       return rows.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
     };
     await draw(base, ANALYSIS_TAB);
