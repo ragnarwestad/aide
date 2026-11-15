@@ -148,6 +148,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.cancelConfirmBody": "Cela l'arrête immédiatement — il peut être relancé depuis la même spec.",
   "jobs.nothingRunning": "Rien ne tourne.",
   "jobs.deployNoCommits": "Aucun nouveau commit",
+  "jobs.showMore": "Afficher plus",
   "jobs.colTitle": "Titre",
   "jobs.noRowMatchesFilter": "Rien sur cet onglet ne correspond à ce filtre.",
   "jobs.foldTitle": "{action} les détails de {name}",

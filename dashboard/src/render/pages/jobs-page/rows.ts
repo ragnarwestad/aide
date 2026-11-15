@@ -240,3 +240,15 @@ export function specJobCreatedAt(jobs: readonly Pick<JobLike, "createdAt">[]): s
   return jobs.reduce<string | undefined>((latest, job) =>
     !latest || Date.parse(job.createdAt) > Date.parse(latest) ? job.createdAt : latest, undefined);
 }
+
+/** A visit starts with 50 cards; invalid limits cannot prevent loading the next page. */
+export function jobWindowLimit(requested?: string): number {
+  const count = Number(requested);
+  return Number.isSafeInteger(count) && count >= 50 ? count : 50;
+}
+
+/** Rows materialized for this visit, after filtering and sorting the whole history. */
+export function jobWindow<T extends { key: string }>(rows: T[], requested?: string, opened: ReadonlySet<string> = new Set()): T[] {
+  const limit = jobWindowLimit(requested);
+  return rows.filter((row, index) => index < limit || opened.has(row.key));
+}

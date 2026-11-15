@@ -336,6 +336,41 @@ describe("a redraw touches only the specs that changed", () => {
     await flush();
   };
 
+  test("a live change during a row fold is applied after the fold finishes", async () => {
+    const pending = Promise.withResolvers<void>();
+    const h = harness((url) => new URL(url, "http://dash.test").searchParams.has("only")
+      ? { ok: true, text: page(group(A, "opened")), hold: pending.promise }
+      : { ok: true, text: page(group(A, "opened"), group(B, "updated")) });
+    await settle(h);
+    const before = h.requests.filter((r) => r.url.includes("rows=1")).length;
+    h.foldAttrs["data-key"] = A;
+    h.clickFold();
+    h.live()!.emit("changed");
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(before + 1);
+    pending.resolve();
+    await flush();
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(before + 2);
+  });
+
+  test("opening another row does not discard the first row's pending answer", async () => {
+    const pending = Promise.withResolvers<void>();
+    const h = harness((url) => {
+      const key = new URL(url, "http://dash.test").searchParams.get("only");
+      return key
+        ? { ok: true, text: page(group(key, `${key}-loaded`)), hold: pending.promise }
+        : { ok: true, text: page(group(A, "queued"), group(B, "queued")) };
+    });
+    await settle(h);
+    h.foldAttrs["data-key"] = A;
+    h.clickFold();
+    h.foldAttrs["data-key"] = B;
+    h.clickFold();
+    pending.resolve();
+    await flush();
+    expect(h.rows.innerHTML).toContain(`${A}-loaded`);
+    expect(h.rows.innerHTML).toContain(`${B}-loaded`);
+  });
+
   test("an unchanged spec keeps its own row nodes across a redraw", async () => {
     const same = page(group(A, "queued"), group(B, "queued"));
     const h = pages(same, same);
@@ -395,6 +430,18 @@ describe("a redraw touches only the specs that changed", () => {
 
     expect(h.rowFor(`spec-${A}`)).toBe(spec);
     expect(h.rowFor("group-g1")).toBe(cardRow);
+  });
+
+  test("nested tables in a group do not replace unrelated row nodes", async () => {
+    const card = (state: string) => `<tr class="execution-group" id="group-g1" data-spec-group="aide\nRelease"><td>` +
+      `<table><tbody><tr><td>${state}</td></tr></tbody></table></td></tr>`;
+    const h = pages(page(group(A, "queued"), card("queued")), page(group(A, "queued"), card("running")));
+    await settle(h);
+    const kept = h.rowFor(`spec-${A}`);
+    h.live()!.emit("changed");
+    await flush();
+    expect(h.rowFor(`spec-${A}`)).toBe(kept);
+    expect(h.rows.innerHTML).toContain("running");
   });
 
   test("a spec whose state moved IS replaced, and no other is", async () => {
@@ -671,4 +718,31 @@ describe("a row the address opens by its job shuts at its chevron", () => {
     expect(now.get("created")).toBeNull();
     expect(now.get("open")).toBeNull();
   });
+});
+
+
+test("repeated fold presses while loading do not queue an open and a close", async () => {
+  const pending = Promise.withResolvers<void>();
+  const h = harness(() => ({ ok: true, text: "<tr>loaded</tr>", hold: pending.promise }));
+  h.clickFold();
+  h.clickFold();
+  expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(1);
+  expect(new URLSearchParams(h.location.search).get("open")).toBe("aide/127-one-ai");
+  pending.resolve();
+  await flush();
+});
+
+
+test("a burst of live changes shares one row request and catches up once", async () => {
+  const pending = Promise.withResolvers<void>();
+  const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>", hold: pending.promise }));
+  h.visibility("visible");
+  const before = h.requests.filter((r) => r.url.includes("rows=1")).length;
+  h.live()!.emit("changed");
+  h.live()!.emit("changed");
+  h.live()!.emit("changed");
+  expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(before + 1);
+  pending.resolve();
+  await flush();
+  expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(before + 2);
 });

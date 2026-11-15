@@ -60,3 +60,34 @@ for (const path of ["/", "/specs"]) {
     }
   });
 }
+
+
+test("Jobs loads further history in place and searches history outside the loaded window", async () => {
+  const history = queueHarness("aide-e2e-job-window-");
+  const folders = Array.from({ length: 65 }, (_, i) => `schedule-window-history-${i}`);
+  const jobs = folders.map((folder, i) => ({ ...createdJob(folder), steps: ["schedule"], createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() }));
+  const { base } = history.start({ queueMirror: JSON.stringify(jobs) });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?live=0`);
+    const older = page.locator('[id="spec-aide/schedule-window-history-0"]');
+    expect(await older.count()).toBe(0);
+    const loaded = page.waitForResponse((res) => new URL(res.url()).searchParams.get("rows") === "1");
+    await page.getByRole("link", { name: "Show more", exact: true }).click();
+    await loaded;
+    await older.waitFor();
+    expect(new URL(page.url()).searchParams.get("limit")).toBe("100");
+
+    await page.goto(`${base}/?live=0`);
+    await page.getByRole("searchbox").fill("window-history-0");
+    await search(page);
+    await older.waitFor();
+    expect(new URL(page.url()).searchParams.get("q")).toBe("window-history-0");
+
+    await page.goto(`${base}/?live=0&open=aide%2Fschedule-window-history-0`);
+    await older.waitFor();
+  } finally {
+    await page.close();
+    history.cleanup();
+  }
+});

@@ -148,6 +148,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.cancelConfirmBody": "Dette stopper det med en gang — det kan kjøres på nytt fra samme spec.",
   "jobs.nothingRunning": "Ingenting kjører.",
   "jobs.deployNoCommits": "Ingen nye commits",
+  "jobs.showMore": "Vis flere",
   "jobs.colTitle": "Tittel",
   "jobs.noRowMatchesFilter": "Ingenting på denne fanen passer med filteret.",
   "jobs.foldTitle": "{action} detaljer for {name}",

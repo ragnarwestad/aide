@@ -6,6 +6,7 @@
 // columns. Both sit in `#jobrows`, in one order, so the page script redraws and
 // presses them as it does the list's.
 
+import { btnLink } from "../../ui/components";
 import { t } from "../../../i18n";
 import type { Language } from "../../../i18n";
 import type { QueueRowView } from "../../ui/job-state";
@@ -18,8 +19,8 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
-import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
+import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, jobWindow, jobWindowLimit, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewPath, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
@@ -42,6 +43,7 @@ export function executionGroupRowState(group: ExecutionGroup, failed: boolean): 
 /** What the page draws: the scheduled jobs it shows, and the Specs
  *  list's options its spec rows are drawn with. */
 export interface JobsView {
+  limit?: string;
   /** The scheduled jobs `jobsShown` picks. */
   shown: QueueRowView[];
   /** Every job a spec's row is drawn from (`listedSpecJobs`): the Active rows are built from them. */
@@ -217,24 +219,34 @@ function activeExecutionGroups(v: JobsView, specRows: { key: string; group: Spec
  *  list by, and what decides whether this tab names the Specs list as the
  *  page a browser tab starts on. A failed create's message is not a row. */
 export function jobsTabHasRows(v: JobsView): boolean {
-  return jobsViewRows(entries(v), v.list.filter ?? {}).length > 0;
+  return jobsViewRows(entries(v, () => false), v.list.filter ?? {}).length > 0;
 }
 
 /** The failed-create messages, the bar and the table, with an empty row
  *  when there is nothing to show. */
 export function renderJobsRows(v: JobsView): string {
   const lang = v.list.lang ?? "en";
-  const all = entries(v);
+  const all = entries(v, () => false);
   const notices = renderFailedCreateNotices(v.list.failedCreates ?? [], lang);
   const f = v.list.filter ?? {};
-  const shown = jobsViewRows(all, f);
+  const matching = jobsViewRows(all, f);
+  const opened = new Set((f.open ?? "").split(",").filter(Boolean));
+  for (const row of matching) {
+    if (row.facts.members?.some((member) => opened.has(groupKey(member.project, member.specFolder)))) opened.add(row.key);
+  }
+  const shown = jobWindow(matching, v.limit, opened);
+  const keys = new Set(shown.flatMap((row) => [row.key, ...(row.facts.members ?? []).map((member) => groupKey(member.project, member.specFolder))]));
+  const drawn = new Map(entries(v, (key) => keys.has(key)).map((row) => [row.key, row.html]));
+  const moreFilter = { ...f, limit: String(jobWindowLimit(v.limit) + 50) };
+  const moreUrl = jobsViewPath(moreFilter, {});
+  const more = matching.length > shown.length ? btnLink({ label: t(lang, "jobs.showMore"), href: moreUrl, data: { nav: "" } }) : "";
   const body = shown.length
-    ? shown.map((r) => r.html).join("")
+    ? shown.map((r) => drawn.get(r.key) ?? "").join("")
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices + executionGroupEditors(v, lang) +
-    jobsFilterBar(all.map((e) => e.facts), f, lang, shown.length) +
-    `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
+    jobsFilterBar(all.map((e) => e.facts), f, lang, matching.length) +
+    `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table>${more ? `<div class="row">${more}</div>` : ""}</div>`
   );
 }
 

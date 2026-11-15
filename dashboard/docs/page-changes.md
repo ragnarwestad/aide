@@ -21,7 +21,9 @@ adding or removing a project, saving project settings, completing an action dial
 
 A row's › on the Running tab or the Specs list asks the page's own address for that one row. The server builds
 that row alone, so the answer does not take longer as the list grows, and the page replaces that row and nothing
-else. [The row, open and shut](the-specs-list.md#the-row-open-and-shut) says what the row shows.
+else. Repeated presses on the same › while its answer is on the way are ignored. Automatic row updates wait
+while a row is opening or closing, and overlapping automatic updates share one request followed by a catch-up.
+[The row, open and shut](the-specs-list.md#the-row-open-and-shut) says what the row shows.
 
 ## Pages shown before their answer
 
