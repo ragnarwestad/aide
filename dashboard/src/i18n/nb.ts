@@ -640,7 +640,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.groupArchiveReady": "Alle specene i gruppen er implementert — trykk {button} på kortet for å lande dem samlet.",
   "list.groupArchiveBusy": "Venter på {jobs}; kortet tilbyr {button} når alle specene er ferdige og avkrysset.",
   "list.groupArchiveAcceptance": "Venter på akseptansekriteriene i {jobs}; kortet tilbyr {button} når alle specene er ferdige og avkrysset.",
-  "list.groupArchivePhase": "Felles Archive",
+  "list.groupArchivePhase": "Archive",
   "job.groupArchiveMembers": "Arkiveres med gruppen {group}: {members}",
   "job.groupArchiveLink": "Vis gruppen på Jobber",
   "job.asConfigured": "som satt opp",

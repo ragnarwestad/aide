@@ -648,7 +648,7 @@ export const en = {
   "list.groupArchiveReady": "Every spec in the group is implemented — press {button} on the card to land them together.",
   "list.groupArchiveBusy": "Waiting for {jobs}; the card offers {button} once every spec is finished and ticked.",
   "list.groupArchiveAcceptance": "Waiting for the acceptance criteria on {jobs}; the card offers {button} once every spec is finished and ticked.",
-  "list.groupArchivePhase": "Shared Archive",
+  "list.groupArchivePhase": "Archive",
   "job.groupArchiveMembers": "Archives with group {group}: {members}",
   "job.groupArchiveLink": "View group on Jobs",
   "job.asConfigured": "as configured",

@@ -637,7 +637,7 @@ export const es: Record<TranslationKey, string> = {
   "list.groupArchiveReady": "Todas las specs del grupo están implementadas — pulsa {button} en la tarjeta para mergearlas juntas.",
   "list.groupArchiveBusy": "Esperando a {jobs}; la tarjeta ofrece {button} cuando todas las specs estén terminadas y marcadas.",
   "list.groupArchiveAcceptance": "Esperando los criterios de aceptación de {jobs}; la tarjeta ofrece {button} cuando todas las specs estén terminadas y marcadas.",
-  "list.groupArchivePhase": "Archive compartido",
+  "list.groupArchivePhase": "Archive",
   "job.groupArchiveMembers": "Se archiva con el grupo {group}: {members}",
   "job.groupArchiveLink": "Ver grupo en Trabajos",
   "job.asConfigured": "según la configuración",

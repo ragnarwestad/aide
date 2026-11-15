@@ -637,7 +637,7 @@ export const de: Record<TranslationKey, string> = {
   "list.groupArchiveReady": "Jede Spec der Gruppe ist implementiert — klicke auf {button} auf der Karte, um sie zusammen zu mergen.",
   "list.groupArchiveBusy": "Wartet auf {jobs}; die Karte bietet {button} an, sobald jede Spec fertig und abgehakt ist.",
   "list.groupArchiveAcceptance": "Wartet auf die Abnahmekriterien von {jobs}; die Karte bietet {button} an, sobald jede Spec fertig und abgehakt ist.",
-  "list.groupArchivePhase": "Gemeinsames Archive",
+  "list.groupArchivePhase": "Archive",
   "job.groupArchiveMembers": "Wird mit Gruppe {group} archiviert: {members}",
   "job.groupArchiveLink": "Gruppe unter Aufträge anzeigen",
   "job.asConfigured": "wie konfiguriert",
