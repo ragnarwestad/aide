@@ -360,7 +360,7 @@ export function stepDoneHandler(
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
     const completedGroupMember = outcome.ok && outcome.terminalReason === "completed" &&
-      (step === "implement" || (step !== undefined && step === job.steps?.at(-1)));
+      (step === "implement" || (step !== undefined && step !== "archive" && step === job.steps?.at(-1)));
     if (completedGroupMember) {
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
       if (group && step === "implement") ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });

@@ -190,3 +190,22 @@ test("a completed Analyze-only member starts the next member (A810 AC-3, A810 AC
     "analyze", { ok: true, terminalReason: "completed" });
   expect(store.list()[0]).toMatchObject({ specFolder: "2-next", steps: ["analyze"] });
 });
+
+test("a group archive that completes leaves the group archiving and queues no member", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.update(group.id, { state: "archiving", currentMember: "1-first" });
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {},
+    // The landing is still on its way: the group is read in the middle of it.
+    landArchivedSpec: () => new Promise(() => {}),
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  void handle({ project: "aide", specFolder: "1-first", steps: ["archive"], executionGroupId: group.id } as Job, "archive", { ok: true, terminalReason: "completed" });
+  expect(store.list()).toHaveLength(0);
+  expect(store.executionGroups.get(group.id)?.state).toBe("archiving");
+});
