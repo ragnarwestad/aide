@@ -391,19 +391,22 @@ export function placeSpecRows(html: string, holdOpen: boolean): boolean {
  *  it to open one row took one to three seconds. Anything this cannot
  *  account for — the spec no longer shown, a failed fetch — redraws the
  *  whole list the old way. */
+/** Each spec's asks so far: an earlier ask's late answer is not drawn. */
+const specAsks = new Map<string, number>();
+
 export async function swapSpec(key: string): Promise<void> {
   const body = document.getElementById("jobrows");
   if (!body) return;
   const gen = press.pressGen;
+  const ask = specAsks.set(key, (specAsks.get(key) ?? 0) + 1).get(key);
   const params = new URLSearchParams(location.search);
   params.set("rows", "1");
   params.set("only", key);
   try {
     const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
     const html = res.ok ? await res.text() : "";
-    // The same rule as `swapRows`: a press that began meanwhile draws
-    // its own answer.
-    if (press.pressGen !== gen) return;
+    // As `swapRows`: a press, or a later ask for this spec, draws its own answer.
+    if (press.pressGen !== gen || specAsks.get(key) !== ask) return;
     // The open spec is not in the answer: it is held across the replace.
     if (!placeSpecRows(html, true)) return swapRows();
   } catch {
@@ -418,18 +421,18 @@ export async function swapRows(): Promise<void> {
   const body = document.getElementById("jobrows");
   if (!body) return;
   const gen = press.pressGen;
-  const params = new URLSearchParams(location.search);
+  const asked = location.search;
+  const params = new URLSearchParams(asked);
   params.set("rows", "1");
   try {
     const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
     const html = await res.text();
-    // A press began while this was in the air, so this answer predates
-    // it and is not the page's current one. The press's own follow-up
-    // swap, or the next thing the server pushes, supplies that; what
-    // must not happen is this one landing on top of what the press just
-    // drew.
-    if (press.pressGen !== gen) return;
+    // A press began, or a › changed the address, while this was in the air:
+    // the answer predates it, and the press's own swap, or the next thing the
+    // server pushes, supplies the page's current one. This one must not land
+    // on top of what the press just drew.
+    if (press.pressGen !== gen || location.search !== asked) return;
     // A progress dialog open on a row — Reopen's, not yet answered, or
     // kept open by a refusal — would go with the rows it sits in, and so
     // would an open dialog that holds a form, with what was typed in it.
