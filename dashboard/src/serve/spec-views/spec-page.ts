@@ -13,6 +13,7 @@ import { phasesFor, specPagePath, resolveSpecTab, EDITABLE_SPEC_FILE, STATUS_SPE
 import type { TestServerStatusView } from "../../render/pages/spec-page/types.ts";
 import { PDF_UNAVAILABLE } from "../../render/pages/spec-page/overview.ts";
 import { jobActivity, landingInProject } from "../../queue/queue.ts";
+import { groupReservesSpec } from "../../queue/execution-groups";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromFetchedBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { refreshTestServerStatus } from "../test-servers/lifecycle.ts";
@@ -217,12 +218,14 @@ export async function specPageView(
   // a board is another lifecycle action against this spec's own branch,
   // and neither should run while a job for it is in flight or a landing
   // is under way.
-  const busyReason = matchingJobs.some((job) => ["queued", "running"].includes(jobActivity(job)))
+  const groupReserved = groupReservesSpec(ctx.queue, project, specFolder);
+  const busyReason = groupReserved || matchingJobs.some((job) => ["queued", "running"].includes(jobActivity(job)))
     ? "another job for this spec is still running"
     : landingInProject(ctx.queue.list(), project)
       ? "a merge is in progress"
       : undefined;
   return {
+    groupReserved,
     project,
     specFolder,
     title: ref?.title ?? undefined,

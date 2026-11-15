@@ -204,13 +204,14 @@ async function resultOnDefaultBranch(
   recorder: string,
   argTail: string[],
   jobs: GateOpts["jobs"],
+  jobId?: string,
 ): Promise<DefaultBranchResult> {
   const ref = await defaultBranchRef(liveRoot);
   if (!ref) return { status: "not-checked", reason: "the default branch was not found" };
   const tree = await checkoutForGate(liveRoot, ref);
   if (tree.dir === liveRoot) return { status: "not-checked", reason: "the default branch could not be checked out" };
   try {
-    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers(jobs));
+    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, jobId, testWorkers(jobs));
     if (out.timedOut) return { status: "not-checked", reason: "the tests on the default branch did not finish" };
     if (out.code === 0) return { status: "green" };
     return { status: "red", failures: recordedFailures(out.stdout) };
@@ -420,7 +421,7 @@ async function runSuiteIn(
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
     if (gate.code !== 0) {
-      const main = await resultOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs);
+      const main = await resultOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs, job.id);
       // One sentence on the row: the tests that failed when the output
       // named them, and what the two runs on the merge say about them —
       // the same tests twice is the merge's doing; different ones point at

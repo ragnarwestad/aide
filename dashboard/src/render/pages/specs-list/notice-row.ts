@@ -22,7 +22,7 @@ import { formatSentence, type Sentence } from "../../../messages/format.ts";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
-import { archivingAgain, nextPhase, specBusy } from "./row-state.ts";
+import { archivingAgain, nextPhase, specLocked } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
 import { approachPanel } from "./approach-choice";
@@ -162,7 +162,7 @@ export function specNoticeRow(
     locked ? undefined : phaseDisagreement(g, lang, sharedFiles),
     isArchivedRow(g) ? (archivingAgain(g) ? [] : archivedRowNotices(g.archive, now, lang)) : errorMarkNotices(g, lang, testServerAvailable, view.branchPreview),
     lang,
-    !isArchivedRow(g) && !archiveHeldBack && !specBusy(g) && nextPhase(g.done) === "archive",
+    !isArchivedRow(g) && !archiveHeldBack && !specLocked(g) && nextPhase(g.done) === "archive",
   );
   const filter = view.filter ?? {};
   // The count and the criteria's own unfold, under whatever notice the row

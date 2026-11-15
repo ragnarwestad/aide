@@ -14,12 +14,13 @@ const endedBadly = (lead: QueueRowView | undefined): boolean =>
   !!lead && ["stopped", "failed", "interrupted", "cancelled"].includes(lead.state);
 
 export function getGroupStopMessage(
-  group: Pick<ExecutionGroup, "project" | "state" | "currentMember" | "error"> & Partial<Pick<ExecutionGroup, "jobs">>,
+  group: Pick<ExecutionGroup, "project" | "state" | "currentMember" | "error"> & Partial<Pick<ExecutionGroup, "jobs" | "stoppedByUser">>,
   members: readonly GroupStopMember[],
   lang: Language,
 ): { specFolder?: string; notice: Message } | undefined {
   const archiveFailed = group.state === "archiving" && !!group.error;
   if (group.state !== "stopped" && !archiveFailed) return undefined;
+  if (group.state === "stopped" && group.stoppedByUser) return { notice: { variant: "info", text: formatMessage(lang, { key: "group.stoppedByUser" }) } };
   const member = group.currentMember
     ? members.find((member) => member.specFolder === group.currentMember)
     : [...(group.jobs ?? [])].reverse().map((job) => members.find((member) =>

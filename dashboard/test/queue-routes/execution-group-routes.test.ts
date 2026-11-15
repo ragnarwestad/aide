@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness, stateSaying, statusSaying } from "../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../helpers/specs-repo.ts";
 import { specGroup } from "../../src/project/discover/group.ts";
+
+import { QueueStore } from "../../src/queue/queue.ts";
+import { handleJobActionRoutes } from "../../src/serve/routes/job-actions.ts";
+import { takeLandingCancel } from "../../src/serve/land-branch/cancel-landing.ts";
 
 const harness = queueHarness("aide-execution-group-routes-");
 afterEach(() => harness.cleanup());
@@ -23,7 +27,7 @@ describe("execution-group HTTP routes", () => {
     const response = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "project=aide&specFolder=81-queue-and-runner&groupName=+Shared+utilities+&member=82-next&position=1&steps=analyze&steps=implement&model.analyze=fable",
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=+Shared+utilities+&member=82-next&position=1&steps=analyze&steps=implement&steps=archive&model.analyze=fable&model.archive=fable",
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
@@ -35,6 +39,7 @@ describe("execution-group HTTP routes", () => {
         executionGroupId: expect.any(String),
       },
     });
+    expect(JSON.parse(readFileSync(join(dir, "execution-groups.json"), "utf8"))[0]).toMatchObject({ archiveModel: "fable" });
     expect(specGroup(join(dir, "root/aide/specs/81-queue-and-runner"))).toEqual({ name: "Shared utilities", position: 1 });
     expect(specGroup(join(dir, "root/aide/specs/82-next"))).toEqual({ name: "Shared utilities", position: 2 });
   });
@@ -205,4 +210,29 @@ describe("execution-group HTTP routes", () => {
       expect(response.status).toBe(403);
     }
   });
+});
+
+test("Stop cancels both a member's landing and the next member's queued job", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aide-group-stop-"));
+  try {
+    const queue = new QueueStore({ mirrorPath: join(dir, "queue.json"),
+      defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+      resolve: () => ({ specFolders: ["81-first", "82-next"] }) });
+    const group = queue.executionGroups.prepare({ project: "aide", name: "Release", members: ["81-first", "82-next"], branch: "aide/group-release" });
+    const first = queue.enqueue({ project: "aide", specFolder: "81-first", steps: ["archive"], executionGroupId: group.id });
+    const next = queue.enqueue({ project: "aide", specFolder: "82-next", steps: ["analyze"], executionGroupId: group.id });
+    if (!first.ok || !next.ok) throw new Error("fixture jobs refused");
+    queue.update(first.job.id, { state: "done", landing: true });
+    queue.executionGroups.update(group.id, { state: "running", jobs: [{ id: first.job.id, specFolder: "81-first", logs: [] }, { id: next.job.id, specFolder: "82-next", logs: [] }] });
+    const path = `/api/queue/groups/${group.id}/action`;
+    const response = await handleJobActionRoutes({ queue,
+      targets: () => group.members.map((specFolder, i) => ({ project: "aide", specFolder, group: { name: "Release", position: i + 1 } })),
+      withFreshness: (targets: unknown) => targets, specRef: () => undefined,
+    } as unknown as Parameters<typeof handleJobActionRoutes>[0],
+      new Request(`http://localhost${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "stop" }) }), path);
+    expect(response?.status).toBe(200);
+    expect(queue.list().some((job) => job.id === next.job.id && job.state === "queued")).toBe(false);
+    expect(takeLandingCancel(first.job.id)).toBe(true);
+    expect(queue.executionGroups.get(group.id)).toMatchObject({ state: "stopped", stoppedByUser: true });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

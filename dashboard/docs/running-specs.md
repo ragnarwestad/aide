@@ -85,7 +85,7 @@ the same group; it need not be archived separately.
 A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
 
 - It is refused while the group already has a job queued or running.
-- It never includes Archive; a press that asked for Archive runs the other phases it asked for.
+- It never includes Archive, including the first Run that creates a group; a press that asked for Archive runs the other phases it asked for.
 - A press for Archive alone is refused, and points to the group's card.
 
 A failed member keeps its own recovery controls.
@@ -108,13 +108,16 @@ and any spec New group would offer can be added after the locked members. A new 
 unstarted member. Save checks the dependencies and writes the new membership together.
 
 Grouped member rows offer no Archive. An open group has one shared Archive line immediately below its header. The line
-uses the same AI and model choices, state, time, usage and log fold as a spec phase. Its saved choice belongs to the
+uses the same AI and model choices, state, time, usage and log fold as a spec phase. Its state and the members' Archive
+pips follow only attempts that have reached Archive; a later Archive selected in an Analyze or Implement job is not an attempt. Its saved choice belongs to the
 group; before one is saved, it uses the first member's Archive choice. The line remains after retries and completion.
 Once the last member has finished Implement, the card waits for Archive. When every member has finished Implement and
 every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
 together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
 and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
+Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
+Cancel also stops a landing's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
 
 A completed group's … menu offers Remove, and no other state does. It asks in the shared progress dialog, blocks input
 while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the
@@ -860,6 +863,7 @@ implemented and Archive on the card lands them together, or which members are st
 acceptance rows left to tick, each member a link to its spec page.
 When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
 is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
+When the user presses Stop on the group, the message says so instead of attributing the cancelled member job as the cause.
 The same notice covers failed, interrupted and cancelled member jobs, and a failed Archive landing even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.

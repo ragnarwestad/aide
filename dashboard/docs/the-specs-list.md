@@ -207,6 +207,9 @@ The State column carries the spec's own state and nothing else:
 - **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving; the phase name is shown on Jobs instead.
 
 Members waiting for their turn in an active execution group also show Active and have no individual Run button.
+They have the same protection as a spec with a job in flight: Close and document editing are unavailable, and the
+spec's settings, dependencies and acceptance criteria cannot be changed. The server also refuses direct write requests.
+The group's own controls remain available; choices a queued job is waiting for keep their ordinary rules.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
 Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line

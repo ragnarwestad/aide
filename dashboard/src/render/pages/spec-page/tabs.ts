@@ -130,7 +130,7 @@ export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
  *  nothing in this spec reads it and no REQ asks for that consolidation;
  *  named so it is not mistaken for a gap this move should have closed. */
 export function activeJob(view: SpecPageView): boolean {
-  return !!view.lead && inFlight(view.lead);
+  return !!view.groupReserved || (!!view.lead && inFlight(view.lead));
 }
 
 export type DocumentTabScript = "editor" | "viewer";

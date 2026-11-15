@@ -4,7 +4,7 @@
 
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import { executionGroupActivity, type ExecutionGroup } from "../../../../queue/execution-groups";
+import { activeGroupForSpec, type ExecutionGroup } from "../../../../queue/execution-groups";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
@@ -103,9 +103,6 @@ export function groupBySpec(
   only?: ReadonlySet<string>,
   executionGroups: readonly ExecutionGroup[] = [],
 ): SpecGroup[] {
-  const activeMembers = new Set(executionGroups
-    .filter((execution) => !execution.removedAt && executionGroupActivity(execution.state) !== "idle")
-    .flatMap((execution) => execution.members.map((folder) => groupKey(execution.project, folder))));
   const wanted = (key: string): boolean => !only || only.has(key);
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
@@ -189,7 +186,7 @@ export function groupBySpec(
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
     }).map((t) => emptyGroup(t, now)),
   ].map((g) => ({ ...g, hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
-    ...(activeMembers.has(groupKey(g.project, g.specFolder)) ? { executionGroupActive: true } : {}) }));
+    ...(activeGroupForSpec(executionGroups, g.project, g.specFolder) ? { executionGroupActive: true } : {}) }));
 }
 
 /** An archived spec's row: a record, not a control.

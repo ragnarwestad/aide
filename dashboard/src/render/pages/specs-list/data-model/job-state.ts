@@ -10,5 +10,5 @@ export function jobState(g: SpecGroup): QueueRowView["state"] | undefined {
 }
 
 export function offersReopen(g: SpecGroup, onSpecs: boolean): boolean {
-  return onSpecs && isArchivedRow(g) && !offersArchiveAgain(g) && !(g.lead && inFlight(g.lead));
+  return onSpecs && !g.executionGroupActive && isArchivedRow(g) && !offersArchiveAgain(g) && !(g.lead && inFlight(g.lead));
 }

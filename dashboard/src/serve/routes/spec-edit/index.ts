@@ -10,6 +10,7 @@ import { specPageRoutes } from "./spec-page.ts";
 import { trackingRoutes } from "./tracking.ts";
 import { handleSpecGroupRoute } from "./group.ts";
 import type { RoutesContext } from "..";
+import { refuseReservedSpecWrite } from "../../serve-helpers/spec-writes";
 
 /** The spec's own pages and their edit routes, asked family by family.
  *  Each answers `null` for a path that is not its own, so the chain
@@ -20,6 +21,8 @@ export async function handleSpecEditRoutes(
   url: URL,
   path: string,
 ): Promise<Response | null> {
+  const refused = refuseReservedSpecWrite(ctx.queue, req, path);
+  if (refused) return refused;
   return (
     (await runControlRoutes(ctx, req, path)) ??
     (await closeControlRoutes(ctx, req, path)) ??

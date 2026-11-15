@@ -172,6 +172,7 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
 // fields, and the button that submits it and the boxes that fill it are
 // written outside its tags, reaching it by `form="…"` — the trick the model select uses.
 export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
+  if (g.executionGroupActive && !specBusy(g)) return "";
   const lang = opts.lang ?? "en";
   // Jobs offers no action on a finished record unless its archive needs
   // another attempt. Reopen belongs to the spec's own controls.
