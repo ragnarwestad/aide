@@ -29,6 +29,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
   "shell.modelsGoneWhere": "siden til en provider, under Providere-fanen i Settings",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
+  "shell.checkoutNotChecked": "{project}: dashbordet har ikke fått sjekket sin egen utsjekk ennå — {said}",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
   "deploy.stepInstall": "Installer",

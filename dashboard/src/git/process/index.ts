@@ -9,7 +9,8 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
  *
  *  `stderr` is optional so a runner that does not set it — the fakes
  *  most tests use — still fits: a caller reads an absent `stderr` as
- *  git having given no reason. */
+ *  git having given no reason. `unfinished` is optional for the same
+ *  reason: absent is git having run to its own end. */
 export type GitRunner = (
   dir: string,
   args: string[],
@@ -28,7 +29,14 @@ export type GitRunner = (
    *  every existing fake `GitRunner` in the test suite (declared with
    *  fewer parameters) stays valid under TypeScript's structural typing. */
   env?: Record<string, string>,
-) => Promise<{ code: number; stdout: string; stderr?: string }>;
+) => Promise<{ code: number; stdout: string; stderr?: string; unfinished?: GitUnfinished }>;
+
+/** Why git ended without answering: the runner's own timer stopped it, a
+ *  signal from elsewhere did, or it never started. A killed call exits
+ *  143 with nothing on stdout and a failed spawn is given 128 — codes git
+ *  can give on its own — so the code alone cannot say which happened.
+ *  Absent when git ran to its own end: its exit code is then its answer. */
+export type GitUnfinished = "timed-out" | "killed" | "not-started";
 
 const DEFAULT_TIMEOUT_MS = 4000;
 
@@ -59,16 +67,21 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
         env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...env },
       });
     } catch (e) {
-      return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}` };
+      return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}`, unfinished: "not-started" };
     }
-    const killer = setTimeout(() => proc.kill(), callTimeoutMs ?? timeoutMs);
+    let timedOut = false;
+    const killer = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, callTimeoutMs ?? timeoutMs);
     try {
       const [stdout, stderr] = await Promise.all([
         new Response(proc.stdout).text(),
         new Response(proc.stderr).text(),
       ]);
       const code = await proc.exited;
-      return { code, stdout, stderr };
+      const unfinished: GitUnfinished | undefined = timedOut ? "timed-out" : proc.signalCode ? "killed" : undefined;
+      return unfinished ? { code, stdout, stderr, unfinished } : { code, stdout, stderr };
     } finally {
       clearTimeout(killer);
     }

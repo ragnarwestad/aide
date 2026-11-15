@@ -134,12 +134,16 @@ export function complain(
    *  has not been made yet, on a project the board can still read, is
    *  said in the log and nowhere else — see `EnsureResult.absent`. */
   banner = true,
+  /** `recheck`: the check did not finish, so the warning is asked again
+   *  soon. `detail`: the failed check and git's own words, for the log. */
+  more: { recheck?: boolean; detail?: string } = {},
 ): void {
   // Set on every call, not only a changed one: it is the state as it is
   // now, and the log line is the one thing being kept quiet here.
-  if (banner) setCheckoutFault(project, said);
+  if (banner) setCheckoutFault(project, said, more.recheck === true);
   else clearCheckoutFault(project);
   if (ctx.saidAbout.get(project) === said) return;
   ctx.saidAbout.set(project, said);
-  console.error(`queue: the dashboard's own checkout of ${project} — ${said}`);
+  const detail = more.detail && !said.includes(more.detail) ? ` (${more.detail})` : "";
+  console.error(`queue: the dashboard's own checkout of ${project} — ${said}${detail}`);
 }

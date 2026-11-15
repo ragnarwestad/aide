@@ -29,6 +29,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
   "shell.modelsGoneWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
+  "shell.checkoutNotChecked": "{project}: das Dashboard konnte seinen eigenen Checkout noch nicht prüfen — {said}",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
   "deploy.stepInstall": "Installieren",

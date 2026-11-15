@@ -12,11 +12,15 @@
 // `pending-restart.ts`'s precedent: `complain` (serve/project-checkout.ts)
 // is the one writer, and a project whose checkout is answered for again
 // clears its own entry.
+//
+// `recheck` marks a warning left by a check git did not finish: nothing
+// is known yet, and the drift poll asks again rather than leaving it to
+// the five-minute sweep.
 
-const faults = new Map<string, string>();
+const faults = new Map<string, { said: string; recheck: boolean }>();
 
-export function setCheckoutFault(project: string, said: string): void {
-  faults.set(project, said);
+export function setCheckoutFault(project: string, said: string, recheck = false): void {
+  faults.set(project, { said, recheck });
 }
 
 export function clearCheckoutFault(project: string): void {
@@ -31,6 +35,11 @@ export function clearCheckoutFaults(): void {
 }
 
 /** One entry per project, in the order they were first reported. */
-export function checkoutFaults(): { project: string; said: string }[] {
-  return [...faults].map(([project, said]) => ({ project, said }));
+export function checkoutFaults(): { project: string; said: string; recheck: boolean }[] {
+  return [...faults].map(([project, fault]) => ({ project, ...fault }));
+}
+
+/** The projects whose warning is marked to be checked again soon. */
+export function checkoutsToRecheck(): string[] {
+  return [...faults].filter(([, fault]) => fault.recheck).map(([project]) => project);
 }

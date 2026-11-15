@@ -29,6 +29,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} ya no se ofrece — quítalo en {where}",
   "shell.modelsGoneWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
   "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",
+  "shell.checkoutNotChecked": "{project}: el panel aún no ha podido comprobar su propia copia — {said}",
   "deploy.title": "Desplegando…",
   "deploy.stepFetch": "Traer desde origin",
   "deploy.stepInstall": "Instalar",

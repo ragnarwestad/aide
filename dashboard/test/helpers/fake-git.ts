@@ -6,7 +6,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { GitRunner } from "../../src/git/process/index.ts";
+import type { GitRunner, GitUnfinished } from "../../src/git/process/index.ts";
 
 export interface GitCall {
   dir: string;
@@ -17,6 +17,8 @@ export interface Answer {
   code: number;
   stdout?: string;
   stderr?: string;
+  /** A call git did not finish — the runner's timer stopped it, say. */
+  unfinished?: GitUnfinished;
 }
 
 /** A runner that answers from a table of `argv` prefixes and records
@@ -45,7 +47,8 @@ export function fakeGit(answers: Record<string, Answer | Answer[]>) {
         // `stderr` only where a table says so: the one code path that
         // reads it (branch-merge's index.lock retry) must behave for an
         // absent field exactly as it did before the field existed.
-        return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+        const result = { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+        return answer.unfinished ? { ...result, unfinished: answer.unfinished } : result;
       }
     }
     return { code: 1, stdout: "" };

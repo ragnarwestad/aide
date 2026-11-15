@@ -114,8 +114,12 @@ function missingModelsNotices(lang: Language): string {
  *  whole answer to "why is this project's list wrong". */
 function checkoutFaultNotices(lang: Language): string {
   return checkoutFaults()
-    .map(({ project, said }) =>
-      rowMessage("failed", t(lang, "shell.checkoutFault", { project, said }), { tag: "p", hook: "checkout-fault" }),
+    .map(({ project, said, recheck }) =>
+      // A marked warning is a check git did not finish, not a failure.
+      rowMessage("failed", t(lang, recheck ? "shell.checkoutNotChecked" : "shell.checkoutFault", { project, said }), {
+        tag: "p",
+        hook: "checkout-fault",
+      }),
     )
     .join("");
 }

@@ -7,7 +7,7 @@
 // and nothing anywhere said why. The board's own state belongs beside
 // the install warning and the tool faults, where every visit sees it.
 
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +18,7 @@ import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts"
 import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault } from "../../../src/render/ui/checkout-faults.ts";
 import { complain } from "../../../src/serve/project-checkout.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
+import { t } from "../../../src/i18n/index.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
 const AT = "2026-09-21T09:03:03Z";
@@ -68,6 +69,39 @@ describe("what complain() sets", () => {
 
     const lines = shell().match(/<p class="checkout-fault rowmsg failed">[\s\S]*?<\/p>/g) ?? [];
     expect(lines).toHaveLength(1);
+  });
+});
+
+// The banner carries the dashboard's own sentence; what git said about
+// the failed check goes to the log, where somebody looking into it reads.
+describe("what complain() keeps for diagnosis", () => {
+  test("the log line carries a detail its sentence does not already hold (AC-2)", () => {
+    const ctx = { saidAbout: new Map<string, string>() } as Parameters<typeof complain>[0];
+    const logged = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      complain(ctx, "woodstack", "the checkout is broken", true, { detail: "exit 128: fatal: not a git repository" });
+      complain(ctx, "aide", "it did not answer in time", true, { detail: "it did not answer in time" });
+      const lines = logged.mock.calls.map((c) => String(c[0]));
+      expect(lines[0]).toContain("exit 128: fatal: not a git repository");
+      expect(lines[1]!.split("it did not answer in time")).toHaveLength(2);
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  test("a warning marked to be checked again is drawn from its own words (AC-2)", () => {
+    const ctx = { saidAbout: new Map<string, string>() } as Parameters<typeof complain>[0];
+    const logged = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      complain(ctx, "woodstack", "not checked yet", true, { recheck: true });
+    } finally {
+      logged.mockRestore();
+    }
+    // The line starts with a capital letter, whatever the entry starts with.
+    const values = { project: "woodstack", said: "not checked yet" };
+    const page = shell().toLowerCase();
+    expect(page).toContain(t("en", "shell.checkoutNotChecked", values).toLowerCase());
+    expect(page).not.toContain(t("en", "shell.checkoutFault", values).toLowerCase());
   });
 });
 

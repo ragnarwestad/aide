@@ -35,6 +35,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./process/index.ts";
 import { carryManifest, excludeDerivedManifest } from "./checkout-manifest.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "./checkout-lock/index.ts";
+import { askTop, checkUsable, looksCloned, notCheckedYet } from "./checkout-usable/index.ts";
 import { configValue, resolveWorktreeLinks } from "../project/discover";
 import { writeAideConfig } from "../project/aide-config.ts";
 
@@ -96,6 +97,12 @@ export interface EnsureResult {
    *  what keeps the banner (`render/ui/checkout-faults.ts`) for the
    *  checkouts that ARE there and cannot be used. */
   absent?: boolean;
+  /** A check git did not finish: nothing is known, and nothing was done
+   *  because of it. The warning it leaves is checked again soon. */
+  inconclusive?: boolean;
+  /** The failed check and what came back, git's own words included —
+   *  for the log, not the page. */
+  detail?: string;
 }
 
 /** Pure path resolution, so every reader that only needs to KNOW the
@@ -173,37 +180,6 @@ async function cloneFrom(run: GitRunner, url: string, dest: string): Promise<str
   return null;
 }
 
-const topOf = async (run: GitRunner, dir: string): Promise<string | null> => {
-  if (!existsSync(dir)) return null;
-  const top = await run(dir, ["rev-parse", "--show-toplevel"]);
-  return top.code === 0 && top.stdout.trim() ? real(top.stdout.trim()) : null;
-};
-
-/** Whether there is anything here claiming to be a checkout. The
- *  ordinary first use answers `false`, and it answers without a
- *  subprocess and without suspending — which the caller depends on:
- *  the cold-render budget counts the git commands a cold page render spawns, and an
- *  `await` reached on the nothing-is-there path moves the first clone's
- *  own git call out of boot and into the next request. */
-const looksCloned = (dir: string): boolean => existsSync(join(dir, ".git"));
-
-/** Whether a checkout is one a run can work in — present is not the
- *  same as finished. A clone killed part-way through leaves a `.git`
- *  holding `objects` and no `HEAD`, which `existsSync` reads as done
- *  and git reads as no repository at all.
- *
- *  `topOf` asked TWICE before its `null` is believed, because this is
- *  the answer that decides whether the directory gets deleted. A run's
- *  worktree is cut from `code` with `git worktree add` and goes on
- *  reading `code/.git` for its whole duration, so a single flaky
- *  `rev-parse` must not turn a healthy, live checkout into a removed
- *  one. Two failures in a row is "git cannot answer this question",
- *  which is the same bar `aide-run-spec` accepts before it refuses. */
-async function isUsable(run: GitRunner, dir: string): Promise<boolean> {
-  if (await topOf(run, dir)) return true;
-  return (await topOf(run, dir)) !== null;
-}
-
 /** The gitignored paths the project's own commands need, linked in from
  *  the person's checkout.
  *
@@ -277,7 +253,13 @@ async function bringUpToDate(run: GitRunner, dir: string, wait?: EnsureRequest["
 export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest): Promise<EnsureResult> {
   const code = dashboardCheckoutRoot(req.base, req.project);
   let cloned = false;
-  if (!looksCloned(code) || !(await isUsable(run, code))) {
+  const verdict = looksCloned(code) ? await checkUsable(run, code) : null;
+  if (!verdict?.usable) {
+    // A check git did not finish is no answer: said as such, and nothing
+    // is decided from it — not the own-checkout sentence, not a clone.
+    if (verdict?.inconclusive) return notKnown(verdict.detail, cloned);
+    const why = verdict ? "git rev-parse --show-toplevel fails in it" : "it has no .git";
+    const detail = verdict?.detail;
     // On a host whose projects root is the dashboard's own directory of
     // links, the person's checkout IS this one — `cloneDestination`
     // (`project-admin/add-project.ts`) clones into
@@ -288,7 +270,8 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     if (real(req.personDir) === real(code)) {
       return {
         ok: false,
-        error: `${code} is the project's own checkout, not a copy of one, so the dashboard will not touch it — look at what git says about it`,
+        error: `${code} is the project's own checkout, not a copy of one, and ${why}, so the dashboard will not touch it — look at what git says about it`,
+        detail,
         cloned: false,
       };
     }
@@ -302,7 +285,8 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     if (existsSync(code)) {
       return {
         ok: false,
-        error: `${code} is not a checkout git can answer for — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+        error: `${code} is not a checkout git can answer for (${why}) — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+        detail,
         cloned: false,
       };
     }
@@ -368,11 +352,17 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     specsRepo = code;
     specs = join(code, "specs");
   } else {
-    const personTop = await topOf(run, req.personDir);
-    const specsTop = await topOf(run, personSpecs);
-    if (!specsTop) {
-      return { ok: false, error: `${personSpecs} is in no git repository, so there is nothing to clone`, cloned };
+    const person = await askTop(run, req.personDir);
+    const asked = await askTop(run, personSpecs);
+    // Before either answer is read: a `null` from a check that did not
+    // finish would say "in no git repository", or send a press to clone a
+    // separate specs repository the project does not have.
+    for (const a of [person, asked]) if (a.top === null && !a.finished) return notKnown(a.detail, cloned);
+    if (asked.top === null) {
+      return { ok: false, error: `${personSpecs} is in no git repository, so there is nothing to clone`, detail: asked.detail, cloned };
     }
+    const personTop = person.top;
+    const specsTop = asked.top;
     if (personTop && specsTop === personTop) {
       // The specs are in the project's own repository — one clone, and
       // the same relative path inside it.
@@ -380,7 +370,11 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
       specs = join(code, relative(personTop, real(personSpecs)));
     } else {
       specsRepo = dashboardSpecsRepo(req.base, req.project);
-      if (!looksCloned(specsRepo) || !(await isUsable(run, specsRepo))) {
+      const specsVerdict = looksCloned(specsRepo) ? await checkUsable(run, specsRepo) : null;
+      if (!specsVerdict?.usable) {
+        if (specsVerdict?.inconclusive) return notKnown(specsVerdict.detail, cloned);
+        const why = specsVerdict ? "git rev-parse --show-toplevel fails in it" : "it has no .git";
+        const detail = specsVerdict?.detail;
         // The same three answers the code checkout gives above, for the
         // same reasons. The first one is not hypothetical here: this
         // function REWRITES `AIDE_SPECS_PATH` to name this very clone,
@@ -389,14 +383,16 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
         if (real(specsTop) === real(specsRepo)) {
           return {
             ok: false,
-            error: `${specsRepo} is the project's own specs checkout, not a copy of one, so the dashboard will not touch it — look at what git says about it`,
+            error: `${specsRepo} is the project's own specs checkout, not a copy of one, and ${why}, so the dashboard will not touch it — look at what git says about it`,
+            detail,
             cloned,
           };
         }
         if (existsSync(specsRepo)) {
           return {
             ok: false,
-            error: `${specsRepo} is not a checkout git can answer for — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+            error: `${specsRepo} is not a checkout git can answer for (${why}) — the dashboard clones only into a directory that is not there, so remove it by hand once you have seen what is in it`,
+            detail,
             cloned,
           };
         }
@@ -438,6 +434,11 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
   writeCheckoutConfig(code, personConfigText, specs, { project: req.project, specsRepo });
   return { ok: true, cloned, checkout: { code, specs, specsRepo } };
 }
+
+/** What a check git did not finish answers: not known, and nothing done. */
+const notKnown = (detail: string, cloned: boolean): EnsureResult => ({
+  ok: false, inconclusive: true, error: notCheckedYet(detail), detail, cloned,
+});
 
 /** The checkout's `.aide/config`: the person's file with
  *  `AIDE_SPECS_PATH` replaced by the dashboard's own specs checkout,

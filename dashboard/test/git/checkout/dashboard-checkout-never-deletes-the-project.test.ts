@@ -24,7 +24,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
-import { createGitRunner } from "../../../src/git/process/index.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
+import { configValue } from "../../../src/project/discover";
 
 const run = createGitRunner();
 const dirs: string[] = [];
@@ -77,8 +78,7 @@ function linkedLayout(where: string, project: string): { base: string; personDir
 }
 
 /** What an interrupted clone leaves: a `.git` with no `HEAD`, which
- *  `existsSync` reads as done and git reads as no repository — the same
- *  answer a `rev-parse` that timed out under load gives. */
+ *  `existsSync` reads as done and git reads as no repository. */
 function unanswerable(dir: string): void {
   rmSync(join(dir, ".git", "HEAD"), { force: true });
 }
@@ -158,5 +158,190 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     expect(result.cloned).toBe(true);
     expect(readFileSync(join(result.checkout!.code, "README.md"), "utf-8")).toBe("# aide\n");
     expect(readdirSync(join(base, "aide"))).toEqual(["code"]);
+  });
+});
+
+// A `rev-parse` the runner's timer cut off is no answer at all. Under load
+// on the serving host both attempts were killed, and the board said the
+// project's own checkout was "not a copy" — of a checkout that answered
+// every git command a moment later. A check that did not finish is said
+// as such, and nothing is decided from it.
+
+const TOPLEVEL = "rev-parse --show-toplevel";
+
+/** The real runner, except that the `rev-parse --show-toplevel` calls
+ *  `stall` picks — by directory and by how many times that directory has
+ *  been asked — come back as a call the runner's timer stopped. Every
+ *  call is recorded. */
+function stalling(stall: (dir: string, attempt: number) => boolean) {
+  const calls: { dir: string; args: string[] }[] = [];
+  const asked = new Map<string, number>();
+  let on = true;
+  const runner: GitRunner = async (dir, args, timeoutMs, env) => {
+    calls.push({ dir, args });
+    if (args.join(" ") === TOPLEVEL) {
+      const n = asked.get(dir) ?? 0;
+      asked.set(dir, n + 1);
+      if (on && stall(dir, n)) return { code: 143, stdout: "", stderr: "", unfinished: "timed-out" as const };
+    }
+    return run(dir, args, timeoutMs, env);
+  };
+  return { run: runner, calls, release: () => { on = false; } };
+}
+
+/** A working dashboard checkout of its own, made by the press that adds
+ *  the project, beside the person's clone. */
+async function separateLayout(where: string, project: string) {
+  const { clone } = repoWithClone(where, project);
+  const base = join(where, "owned");
+  const made = await ensureDashboardCheckout(run, { base, project, personDir: clone, mayClone: true });
+  expect(made.ok).toBe(true);
+  return { base, personDir: clone, code: dashboardCheckoutRoot(base, project) };
+}
+
+const INVALID_WORDS = ["not a copy", "remove it by hand", "not a checkout git can answer for", "in no git repository"];
+
+describe("a check git did not finish is not known, not broken", () => {
+  test("two timed-out attempts on the project's own checkout say not known (AC-1)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = linkedLayout(where, "woodstack");
+    const git = stalling((dir) => dir === code);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "woodstack", personDir });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBe(true);
+    expect(result.error).toContain(code);
+    for (const words of INVALID_WORDS) expect(result.error).not.toContain(words);
+  });
+
+  test("two timed-out attempts on a separate checkout say not known (AC-1)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = await separateLayout(where, "aide");
+    const git = stalling((dir) => dir === code);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "aide", personDir });
+
+    expect(result.inconclusive).toBe(true);
+    for (const words of INVALID_WORDS) expect(result.error).not.toContain(words);
+  });
+
+  test("one timed-out attempt and one finished no is still not known (AC-1)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = linkedLayout(where, "woodstack");
+    unanswerable(code);
+    const git = stalling((dir, attempt) => dir === code && attempt === 0);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "woodstack", personDir });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBe(true);
+  });
+
+  test("the detail names the check, the directory and how it ended (AC-2)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = linkedLayout(where, "woodstack");
+    const git = stalling((dir) => dir === code);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "woodstack", personDir });
+
+    expect(result.detail).toContain("git rev-parse --show-toplevel");
+    expect(result.detail).toContain(code);
+    expect(result.detail).toContain("did not answer in time");
+  });
+
+  test("a check git finished keeps git's exit code and its own words (AC-2)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = await separateLayout(where, "aide");
+    unanswerable(code);
+
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir });
+
+    expect(result.detail).toContain("git rev-parse --show-toplevel");
+    expect(result.detail).toContain("exit 128");
+    expect(result.detail).toContain("not a git repository");
+  });
+
+  test("git saying no on the project's own checkout keeps its refusal, unmarked (AC-5)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = linkedLayout(where, "woodstack");
+    unanswerable(code);
+
+    const result = await ensureDashboardCheckout(run, { base, project: "woodstack", personDir });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBeUndefined();
+    expect(result.error).toContain("not a copy");
+    expect(result.error).toContain("git rev-parse --show-toplevel");
+  });
+
+  test("git saying no on a separate checkout keeps its refusal, unmarked (AC-5)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = await separateLayout(where, "aide");
+    unanswerable(code);
+
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBeUndefined();
+    expect(result.error).toContain("remove it by hand");
+    expect(result.error).toContain("git rev-parse --show-toplevel");
+  });
+
+  test("a press under load asks git nothing but the check, and every file stays (AC-6)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code } = await separateLayout(where, "aide");
+    const before = readdirSync(code).sort();
+    const git = stalling((dir) => dir === code);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "aide", personDir, mayClone: true });
+
+    expect(result.inconclusive).toBe(true);
+    expect(git.calls.map((c) => c.args.join(" "))).toEqual([TOPLEVEL, TOPLEVEL]);
+    expect(readdirSync(code).sort()).toEqual(before);
+    expect(readFileSync(join(code, "README.md"), "utf-8")).toBe("# aide\n");
+  });
+});
+
+describe("a specs-root question git did not finish", () => {
+  /** Specs inside the project's own repository: one clone, and the
+   *  dashboard's config names the specs folder inside it. */
+  async function specsInsideLayout(where: string) {
+    const { clone } = repoWithClone(where, "aide");
+    const personSpecs = join(clone, "specs");
+    mkdirSync(join(personSpecs, "archive"), { recursive: true });
+    mkdirSync(join(clone, ".aide"), { recursive: true });
+    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${personSpecs}\n`);
+    const base = join(where, "owned");
+    const made = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
+    expect(made.ok).toBe(true);
+    const code = dashboardCheckoutRoot(base, "aide");
+    return { base, personDir: clone, personSpecs, code, specsPath: configValue(code, "AIDE_SPECS_PATH") };
+  }
+
+  test("for the specs root is not known, not \"in no git repository\" (AC-1)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, personSpecs } = await specsInsideLayout(where);
+    const git = stalling((dir) => dir === personSpecs);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "aide", personDir });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBe(true);
+    expect(result.error).not.toContain("in no git repository");
+  });
+
+  test("for the person's checkout under a press clones no second specs repository (AC-1, AC-6)", async () => {
+    const where = tmp("aide-unfinished-");
+    const { base, personDir, code, specsPath } = await specsInsideLayout(where);
+    const git = stalling((dir) => dir === personDir);
+
+    const result = await ensureDashboardCheckout(git.run, { base, project: "aide", personDir, mayClone: true });
+
+    expect(result.ok).toBe(false);
+    expect(result.inconclusive).toBe(true);
+    expect(git.calls.some((c) => c.args.includes("clone"))).toBe(false);
+    expect(existsSync(join(base, "aide", "specs"))).toBe(false);
+    expect(configValue(code, "AIDE_SPECS_PATH")).toBe(specsPath);
   });
 });
