@@ -83,3 +83,9 @@ test("an archive failure can name its member after the member's job has left the
     { specFolder: "805-first" },
   ], "en")?.specFolder).toBe("805-first");
 });
+
+test("a user stop is reported as the cause even when cancelling the member ended its job", () => {
+  const result = getGroupStopMessage({ ...group, stoppedByUser: true }, [{ specFolder: "805-first", lead: { ...failed, state: "cancelled" } }], "en");
+  expect(result?.specFolder).toBeUndefined();
+  expect(result?.notice.text).toBe(formatMessage("en", { key: "group.stoppedByUser" }));
+});

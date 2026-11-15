@@ -230,3 +230,15 @@ describe("a group's job ending", () => {
     expect(queue.executionGroups.get(group.id)?.state).toBe("stopped");
   });
 });
+
+test("a user stop survives cancellation callbacks and reloads but clears when the group resumes", () => {
+  const store = new ExecutionGroupStore(path);
+  const group = store.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/release" });
+  store.stop(group.id, true);
+  store.stop(group.id);
+  const restored = new ExecutionGroupStore(path);
+  expect(restored.get(group.id)?.stoppedByUser).toBe(true);
+  restored.queueMember(group.id, "2-next");
+  restored.stop(group.id);
+  expect(restored.get(group.id)?.stoppedByUser).toBeUndefined();
+});

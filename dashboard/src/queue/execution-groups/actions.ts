@@ -1,4 +1,5 @@
 import type { ExecutionGroup } from "./types.ts";
+import { inFlight } from "../job-rules/activity.ts";
 
 export type ExecutionGroupAction = "start" | "stop" | "archive" | "remove";
 export type ExecutionGroupMenuAction = "edit" | "remove";
@@ -14,6 +15,21 @@ export const executionGroupActivity = (state: ExecutionGroup["state"]): "running
   if (state === "running" || state === "archiving") return "running";
   return state === "queued" ? "queued" : "idle";
 };
+
+export function activeGroupForSpec(groups: readonly ExecutionGroup[], project: string, specFolder: string): ExecutionGroup | undefined {
+  return groups.find((group) => group.project === project && !group.removedAt &&
+    executionGroupActivity(group.state) !== "idle" && group.members.includes(specFolder));
+}
+
+/** Members without their own live job are reserved by the active group.
+ *  A queued member keeps its ordinary controls for choices the job awaits. */
+export function groupReservesSpec(queue: {
+  list(): readonly { project: string; specFolder: string; state: string; landing?: boolean }[];
+  executionGroups?: { list(): ExecutionGroup[] };
+}, project: string, specFolder: string): boolean {
+  return !!activeGroupForSpec(queue.executionGroups?.list() ?? [], project, specFolder) &&
+    !queue.list().some((job) => job.project === project && job.specFolder === specFolder && inFlight(job));
+}
 
 export function executionGroupAction(
   group: Pick<ExecutionGroup, "state">,
@@ -50,4 +66,10 @@ export function groupMemberSteps(ticked: readonly string[] | undefined, done: re
   const chosen = MEMBER_STEPS.filter((step) => ticked?.includes(step));
   if (chosen.length) return chosen;
   return MEMBER_STEPS.filter((step) => !done.includes(step));
+}
+
+/** A member's old bundled phase list must never start its own Archive.
+ *  The shared Archive has groupMembers, or an Archive-only phase list. */
+export function isGroupMemberRun(job: { executionGroupId?: string; groupMembers?: string[]; steps: readonly string[] }): boolean {
+  return !!job.executionGroupId && !job.groupMembers?.length && job.steps.some((step) => step === "analyze" || step === "implement");
 }

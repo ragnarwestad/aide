@@ -10,7 +10,7 @@ import { checkColumns, checkControls, checkReadOnlyMark } from "../../ui/check-c
 import { t, type Language } from "../../../i18n";
 import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
-import { specBusy } from "./row-state.ts";
+import { specLocked } from "./row-state.ts";
 import { queuePath } from "./filter-bar.ts";
 import { drawsChecksLine, notVerifiedShown } from "./row-shared.ts";
 import { listReopenDialog } from "./row-controls.ts";
@@ -56,7 +56,7 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language, onSpec
   // job runs the boxes are drawn disabled and nothing is posted: the run
   // owns the spec's files until it ends.
   const archived = isArchivedRow(g);
-  const locked = specBusy(g);
+  const locked = specLocked(g);
   const boxed = (row: (typeof rows)[number]): boolean => !row.failed && (!archived || !!row.notVerified);
   const drawn = rows.filter(boxed).map((row) => row.line);
   // A Failed row's Reopen opens a dialog drawn after the panel, never

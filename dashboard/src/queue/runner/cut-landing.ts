@@ -6,6 +6,7 @@
 // step's work on its branch for good. Running one twice is safe: a branch
 // already merged and gone is nothing to land.
 
+import { isGroupMemberRun } from "../execution-groups/actions.ts";
 import type { WorkflowStep } from "../queue.ts";
 import type { RunnerOptions, StepOutcome } from "./types.ts";
 import { holdLanding, stampStep } from "./landing.ts";
@@ -17,6 +18,10 @@ export function resumeCutLandings(
   for (const job of o.store.list()) {
     if (!job.landingCut) continue;
     const step = job.results.at(-1)?.step as WorkflowStep | undefined;
+    if (step === "archive" && isGroupMemberRun(job)) {
+      o.store.transition(job.id, "landing-cancelled", { landingCut: undefined, finishedAt: now() });
+      continue;
+    }
     const landed = step ? { index: job.results.length - 1, step, now } : undefined;
     const raw = job.resultFile ? o.readResult(job.resultFile) : null;
     if (!step || !raw) {

@@ -3,11 +3,14 @@
 // the sentence says so: a browser test broken on main stopped an archive
 // as if the spec had broken it (2026-09-27).
 import { afterEach, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 import { namingRecorder } from "../../../helpers/naming-recorder.ts";
+
+import { cancelLanding, landingProcessGroups, takeLandingCancel } from "../../../../src/serve/land-branch/cancel-landing.ts";
+import { signalGroup } from "../../../../src/serve/serve-helpers/signal-group.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -122,3 +125,33 @@ test("red on main too, main unnamed and main not checked keep no list (AC-7)", a
   recorder("with the spec");
   expect((await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
 }, 90_000);
+
+test("Cancel stops the tests running on main after a red merge", async () => {
+  const root = merged();
+  recorder("always");
+  const marker = join(root, "main-test-pid");
+  writeFileSync(process.env.AIDE_RECORD_TEST_RUN_BIN!, namingRecorder(
+    `if [ -f "$2/spec-change" ]; then echo "(fail) merge"; exit 1; fi; echo "$$" > "${marker}"; sleep 20; exit 1`
+  ), { mode: 0o755 });
+  const id = "cancel-main-test";
+  let settled = false;
+  const work = runProjectSuiteBeforePush(root, { ...job, id }, "aide/81-x", { button: "Archive" }).finally(() => { settled = true; });
+  let pid = 0;
+  let tracked = false;
+  let stopped = false;
+  try {
+    for (let i = 0; i < 200 && !existsSync(marker); i++) await Bun.sleep(10);
+    expect(existsSync(marker)).toBe(true);
+    pid = Number(readFileSync(marker, "utf8").trim());
+    tracked = landingProcessGroups().includes(pid);
+    cancelLanding(id);
+    for (let i = 0; i < 100 && !settled; i++) await Bun.sleep(10);
+    stopped = settled;
+  } finally {
+    if (pid > 1) signalGroup(pid, "SIGKILL");
+    await work;
+    takeLandingCancel(id);
+  }
+  expect(tracked).toBe(true);
+  expect(stopped).toBe(true);
+}, 30_000);

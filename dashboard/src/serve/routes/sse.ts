@@ -2,6 +2,7 @@
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
 import { parsePhaseKeys, scheduleStreamKey } from "../../render";
+import { readRunningSpecCount } from "../../render/ui/running-specs";
 import { DEPLOY_EVENT } from "../sse-watchers.ts";
 import type { RoutesContext } from "./";
 
@@ -31,6 +32,7 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         // registration and wait for an event that was broadcast
         // before it was listening. A comment, so no client sees it.
         ctx.writeTo(controller, ": open\n\n");
+        if (url.searchParams.get("counts") === "1") ctx.writeTo(controller, `event: counts\ndata: {"running":${readRunningSpecCount()}}\n\n`);
         // A page that draws the Deploy mark is told to ask for it now:
         // after a restart its mark was drawn by the process that went.
         if (url.searchParams.get("deploy") === "1") ctx.writeTo(controller, DEPLOY_EVENT);

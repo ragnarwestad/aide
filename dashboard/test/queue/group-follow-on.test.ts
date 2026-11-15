@@ -209,3 +209,35 @@ test("a group archive that completes leaves the group archiving and queues no me
   expect(store.list()).toHaveLength(0);
   expect(store.executionGroups.get(group.id)?.state).toBe("archiving");
 });
+
+test("an Analyze-only member with a legacy trailing Archive queues the next member", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const handle = stepDoneHandler({
+    store, machinerySpecsRoot: () => join(root, "specs"), specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landStepBranch: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: "group-1", steps: ["analyze", "archive"] } as Job,
+    "analyze", { ok: true, terminalReason: "completed" });
+  expect(store.list().map((job) => job.specFolder)).toEqual(["2-next"]);
+});
+
+test("a cancelled Archive landing leaves the group stopped", async () => {
+  member("1-first", 1);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.update(group.id, { state: "archiving" });
+  const queued = store.enqueue({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["archive"] });
+  if (!queued.ok) throw new Error(queued.error);
+  store.update(queued.job.id, { state: "done" });
+  const job = store.get(queued.job.id)!;
+  const handle = stepDoneHandler({
+    store, machinerySpecsRoot: () => join(root, "specs"), specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {},
+    landArchivedSpec: async () => { store.update(job.id, { state: "cancelled" }); },
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle(job, "archive", { ok: true, terminalReason: "completed" });
+  await Promise.resolve();
+  expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
+});

@@ -43,6 +43,7 @@ import { clearStaleHolds, holdFor, holdJob, type HoldAnswers } from "./holds.ts"
 import { holdLanding } from "./landing.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, endStep, stepResultEntry } from "./step-result.ts";
+import { isGroupMemberRun } from "../execution-groups/actions.ts";
 import { WaitLog } from "./wait-log.ts";
 import { aiWorkRetryDecision, attemptOf, attemptsLeft, queueVanishedRetry, stepRetryRecord } from "./retry.ts";
 
@@ -168,8 +169,8 @@ export class Runner {
   /** Start one job's next step. Returns whether a slot was taken. */
   private startOne(job: Job): boolean {
     const step = job.steps[job.stepIndex];
-    if (!step) {
-      this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now() });
+    if (!step || (step === "archive" && isGroupMemberRun(job))) {
+      this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now(), stepIndex: Math.max(0, job.stepIndex - (step === "archive" ? 1 : 0)) });
       return false;
     }
 
@@ -380,7 +381,7 @@ export class Runner {
     }
 
     const nextIndex = job.stepIndex + 1;
-    if (nextIndex >= job.steps.length) {
+    if (nextIndex >= job.steps.length || (isGroupMemberRun(job) && job.steps.slice(nextIndex).every((next) => next === "archive"))) {
       const result = endStep(this.o.store, job.id, "step-succeeded-last", {
         ...base,
         retry: landingWork ? job.retry : undefined,

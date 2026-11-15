@@ -19,6 +19,7 @@ import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../../step-endings.ts";
  *  THIS, so a control added later has one question to ask rather than a
  *  rule to remember. */
 export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
+export const specLocked = (g: SpecGroup): boolean => !!g.executionGroupActive || specBusy(g);
 
 export function groupActionState(members: SpecGroup[]): "start" | "archive" | undefined {
   if (members.every(isArchivedRow)) return undefined;

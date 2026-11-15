@@ -44,6 +44,10 @@ describe("documentTabScript", () => {
     expect(documentTabScript(view, "description")).toBe("viewer");
   });
 
+  test("viewer for a member waiting in an active execution group without its own job", () => {
+    expect(documentTabScript(baseView({ groupReserved: true }), "description")).toBe("viewer");
+  });
+
   test("editor for an Analysis tab whose 2-analysis.md has been written, active spec, no job", () => {
     const view = baseView({
       files: [

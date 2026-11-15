@@ -89,19 +89,25 @@ export function onChanged(): void {
   if (press.inFlight === 0) follow.request();
 }
 
-// The number a queue move carries for the app's icon is handed to the head
-// script as an event on the document; the two cannot share a function. It is
-// not held back by a press in flight, which only holds the redraw. 0 is a
-// number to announce, and a `changed` without one announces nothing.
-function announceWaiting(e: Event): void {
+// Queue counts update independently of row redraws and presses in flight.
+// The app icon receives its waiting count as an event; the Jobs tab shows
+// the running count directly, including zero.
+function announceCounts(e: Event): void {
   let waiting: unknown;
+  let running: unknown;
   try {
-    waiting = JSON.parse(String((e as MessageEvent).data)).waiting;
+    const counts = JSON.parse(String((e as MessageEvent).data));
+    waiting = counts.waiting;
+    running = counts.running;
   } catch {
     return;
   }
-  if (typeof waiting !== "number" || !Number.isInteger(waiting) || waiting < 0) return;
-  document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
+  if (typeof waiting === "number" && Number.isInteger(waiting) && waiting >= 0) {
+    document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
+  }
+  if (typeof running === "number" && Number.isInteger(running) && running >= 0) {
+    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${running})`;
+  }
 }
 
 // The page's own query goes with it, so the stream is asked with the same
@@ -113,6 +119,7 @@ function streamUrl(): string {
   const params = new URLSearchParams(location.search);
   if (streamPhases) params.set("phases", streamPhases);
   params.set("deploy", "1");
+  params.set("counts", "1");
   return `/api/queue/events?${params}`;
 }
 
@@ -136,7 +143,8 @@ export function connect(): void {
     follow.request();
   });
   source.addEventListener("changed", onChanged);
-  source.addEventListener("changed", announceWaiting);
+  source.addEventListener("changed", announceCounts);
+  source.addEventListener("counts", announceCounts);
   source.addEventListener("deploy", () => void refreshDeployMark(browserMarkIo()));
   source.addEventListener("error", onError);
 }

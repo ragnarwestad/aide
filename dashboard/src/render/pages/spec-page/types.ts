@@ -57,6 +57,8 @@ export interface SpecChecksView {
 }
 
 export interface SpecPageView {
+  /** Waiting for its turn while another member of its execution group runs. */
+  groupReserved?: boolean;
   project: string;
   specFolder: string;
   /** The spec's H1, when 1-description.md has one. */

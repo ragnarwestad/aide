@@ -10,7 +10,7 @@ import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
 import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker";
-import { chosenSteps, runFormId, specBusy, specRunChoices } from "./row-state.ts";
+import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
@@ -60,7 +60,7 @@ function finishedPhaseChip(step: string, lang: Language): string {
 // The leading cell is the phase's NAME, hard left and alone: the row's
 // one button sits beside the state.
 export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, mode: { groupArchive?: boolean } = {}): string {
-  const busy = specBusy(g);
+  const busy = specLocked(g);
   // The row is a record, not a control. Read once here, like
   // `busy` beside it, and consulted where a line would otherwise offer a
   // press the server refuses.

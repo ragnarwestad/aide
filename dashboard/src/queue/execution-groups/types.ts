@@ -35,6 +35,7 @@ export interface ExecutionGroup {
   /** When Remove took the completed group off the Jobs tab. Everything else in the record stays. */
   removedAt?: string;
   error?: string;
+  stoppedByUser?: boolean;
   /** Run-created groups reuse the first Run dialog's choices for every member. */
   sharedChoices?: boolean;
   /** The choice owned by the group's shared Archive line. */

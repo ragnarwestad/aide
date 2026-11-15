@@ -20,7 +20,7 @@ import {
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
-import { rowAnchorId, specBusy } from "./row-state.ts";
+import { rowAnchorId, specLocked } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState, specStateLabel } from "./data-model/spec-state.ts";
 import { jobState } from "./data-model/job-state.ts";
@@ -167,7 +167,7 @@ export function specHeadRow(
     closeAvailable: true,
     closeUnavailableReason: projectLanding
       ? "a merge is in progress"
-      : specBusy(g) ? "another job for this spec is still running" : undefined,
+      : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
   };
   const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions(actionView, run.control + run.dialog, lang);
@@ -279,7 +279,7 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
   const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
   const view: SpecActionView = {
     project: g.project, specFolder: g.specFolder, archived: locked, closeAvailable: g.named,
-    closeUnavailableReason: projectLanding ? "a merge is in progress" : specBusy(g) ? "another job for this spec is still running" : undefined,
+    closeUnavailableReason: projectLanding ? "a merge is in progress" : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
   };
   const runAvailable = !!specRunDialog(g, { ...opts, openSpec: opts.openSpec ?? {} }).control;
@@ -293,7 +293,7 @@ export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): s
     if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang);
     return state === "failed" ? badge("refused", t(lang, "list.state.failed")) : badge("done", t(lang, "list.done"));
   }
-  const state = specState(g);
+  const state = specState(onSpecs ? g : { ...g, executionGroupActive: false });
   const label = specStateLabel(state, lang, onSpecs);
   const variant = state.key === "active" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
   return badge(variant, label);

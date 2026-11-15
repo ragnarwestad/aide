@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { specState, specStateLabel } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model/types.ts";
 import { groupBySpec, applyFilter } from "../../../../../src/render/pages/specs-list/data-model";
-import { specRunChoices } from "../../../../../src/render/pages/specs-list/row-state.ts";
+import { specRunChoices, specLocked, specBusy } from "../../../../../src/render/pages/specs-list/row-state.ts";
 import type { ExecutionGroup } from "../../../../../src/queue/execution-groups";
 
 const group = (extra: Partial<SpecGroup> = {}) => ({
@@ -49,6 +49,8 @@ test("waiting members of an active execution group are Active and offer no indiv
     expect(applyFilter([row], { state: "active" })).toEqual([row]);
     expect(applyFilter([row], { state: "idle" })).toEqual([]);
     expect(specRunChoices(row, {})).toEqual([]);
+    expect(specLocked(row)).toBe(true);
+    expect(specBusy(row)).toBe(false);
   }
 });
 
