@@ -36,14 +36,14 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultSt
  *  collapsed row leaves in the page. Its Run control moved onto the
  *  caption line the fold opens (2026-09-08). */
 export const specHead = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
+  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}"[^>]*>.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
 
 /** The row's message panel: the full-width row under the
  *  head, where every long message a row has to say is written — and
  *  that includes the queue's refusal of a press, which
  *  used to be squeezed into the name cell above. */
 export const specPanel = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}"[^>]*>.*?</tr>`))?.[0] ?? "";
 
 /** Everything an OPEN row draws: its header line and the phase lines
  *  under it. The row's controls are split across the
@@ -53,7 +53,7 @@ export const specPanel = (html: string, folder: string): string =>
 export const specControls = (html: string, folder: string): string =>
   html.match(
     new RegExp(
-      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}"[^>]*>[\\s\\S]*?` +
         `(?=<tr class="[^"]*spechead|</tbody>)`,
     ),
   )?.[0] ?? "";
@@ -67,7 +67,7 @@ export const group = (html: string, id: string): string =>
  *  beside it carries no second mark, so it is never said twice. */
 export const phaseDone = (group: string, step: string): boolean =>
   (
-    group.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
+    group.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}"[^>]*>[\\s\\S]*?</tr>`))?.[0] ?? ""
   ).includes('class="badge b-done"');
 
 /** A row is COLLAPSED unless the view names it, and the

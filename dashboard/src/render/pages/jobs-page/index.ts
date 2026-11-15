@@ -18,7 +18,7 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specJobCreatedAt, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -115,7 +115,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
     return {
       key,
       html: draws(key)
-        ? jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key })
+        ? markedWithKind(jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key }), jobRowKind(job))
         : "",
       place: jobPlace(job, v.shown, v.scheduleEntryExists),
       facts: jobFacts(job, now),
@@ -179,7 +179,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
       });
     }
   }
-  return rows;
+  return rows.map((row) => ({ ...row, html: markedWithKind(row.html, "spec") }));
 }
 
 function activeExecutionGroups(v: JobsView, specRows: { key: string; group: SpecGroup; html: string }[] = roundSpecRows(v, v.now ?? Date.now())): ExecutionGroup[] {

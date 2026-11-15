@@ -283,6 +283,12 @@ tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
    at. The spec is shown whole: the editor and the viewer grow with their
    text, and the list's scroller scrolls around them. */
 tr.specdetail > td { padding: var(--sp-3); }
+/* A card on the Jobs tab is edged in its kind's colour, the colour of its
+   kind icon, softened halfway towards the ordinary edge. */
+table.speclist > tbody > tr[data-kind="spec"] { --card-edge: color-mix(in oklab, var(--kind-spec) 50%, var(--line)); }
+table.speclist > tbody > tr[data-kind="deploy"] { --card-edge: color-mix(in oklab, var(--kind-deploy) 50%, var(--line)); }
+table.speclist > tbody > tr[data-kind="schedule"] { --card-edge: color-mix(in oklab, var(--kind-schedule) 50%, var(--line)); }
+table.speclist > tbody > tr[data-kind="cleanup"] { --card-edge: color-mix(in oklab, var(--kind-cleanup) 50%, var(--line)); }
 @media (min-width: 40.0625rem) {
   table.speclist { border: 0; background: none; border-collapse: separate; border-spacing: 0; }
   /* The chevron stands as far below the row's top open as shut. Centred in
@@ -297,17 +303,17 @@ tr.specdetail > td { padding: var(--sp-3); }
   table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
   /* The fold cell spans the title and the state line, so the state
      line's own first cell is not at the card's left edge. */
-  table.speclist > tbody > tr:not(.specgap):not(.specstate) > td:first-child { border-left: 1px solid var(--line); }
-  table.speclist > tbody > tr:not(.specgap) > td:last-child { border-right: 1px solid var(--line); }
-  table.speclist > tbody > tr.spechead > td { border-top: 1px solid var(--line); }
+  table.speclist > tbody > tr:not(.specgap):not(.specstate) > td:first-child { border-left: 1px solid var(--card-edge, var(--line)); }
+  table.speclist > tbody > tr:not(.specgap) > td:last-child { border-right: 1px solid var(--card-edge, var(--line)); }
+  table.speclist > tbody > tr.spechead > td { border-top: 1px solid var(--card-edge, var(--line)); }
   table.speclist > tbody > tr.spechead > td:first-child { border-top-left-radius: var(--r); }
   table.speclist > tbody > tr.spechead > td:last-child { border-top-right-radius: var(--r); }
-  table.speclist > tbody > tr:has(+ tr.specgap) > td { border-bottom: 1px solid var(--line); }
+  table.speclist > tbody > tr:has(+ tr.specgap) > td { border-bottom: 1px solid var(--card-edge, var(--line)); }
   table.speclist > tbody > tr:has(+ tr.specgap) > td:last-child { border-bottom-right-radius: var(--r); }
   table.speclist > tbody > tr:has(+ tr.specgap):not(.specstate) > td:first-child { border-bottom-left-radius: var(--r); }
   /* A shut spec ends on its state line, whose left corner is the fold cell's. */
   table.speclist > tbody > tr.spechead:has(+ tr.specstate + tr.specgap) > td.foldcell {
-    border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); }
+    border-bottom: 1px solid var(--card-edge, var(--line)); border-bottom-left-radius: var(--r); }
   /* Whatever comes under a spec's own two lines — the open detail, or the
      message a shut spec shows — gets air above it, and no line. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) > td { padding-top: var(--sp-2); }

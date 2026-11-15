@@ -70,7 +70,7 @@ const rowsOf = async (base: string, query = ""): Promise<string> => {
 const headOf = (g: string): string => (g.split('<tr class="specstate"')[0] ?? "").replace(/<td class="foldcell"[\s\S]*?<\/td>/, "");
 const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="([^"]*)"/g)].map((m) => m[1]);
 /** The line under a row's state that says why the job ended. */
-const noticeOf = (g: string): string => g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
+const noticeOf = (g: string): string => g.match(/<tr class="specnotice"[^>]*>[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
   test("keeps a completed cleanup in job history (AC-2)", async () => {
