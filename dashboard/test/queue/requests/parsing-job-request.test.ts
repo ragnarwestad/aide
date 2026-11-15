@@ -113,6 +113,31 @@ describe("persistQueueSettings", () => {
 });
 
 describe("parseJobRequest", () => {
+  test("keeps Run-dialog Review and Verify choices on the job (AC-2, AC-3)", () => {
+    const defaults: QueueDefaults = {
+      ...DEFAULTS,
+      modelChoices: {
+        sonnet: { model: "sonnet" },
+        opus: { model: "opus" },
+        codex: { tool: "codex", model: "gpt-6.1-sol" },
+      },
+      providers: {
+        Claude: { name: "Claude", tool: "claude" },
+        Codex: { name: "Codex", tool: "codex" },
+      },
+    };
+    const parsed = parseJobRequest({
+      ...REQ,
+      steps: ["analyze", "implement"],
+      model: { analyze: "sonnet", implement: "opus", "plan-review": "codex", review: "codex", verify: "sonnet" },
+      provider: { analyze: "Claude", implement: "Claude", "plan-review": "Codex", review: "Codex", verify: "Claude" },
+    }, { resolve, defaults });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.job.model).toMatchObject({ "plan-review": "codex", review: "codex", verify: "sonnet" });
+    expect(parsed.job.provider).toMatchObject({ "plan-review": "Codex", review: "Codex", verify: "Claude" });
+  });
+
   test("accepts only the cleanup step under the cleanup key (AC-3)", () => {
     const accepted = parseJobRequest({ ...REQ, specFolder: "cleanup", steps: ["cleanup"] }, { resolve, defaults: DEFAULTS });
     expect(accepted.ok).toBe(true);

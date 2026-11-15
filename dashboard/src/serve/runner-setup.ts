@@ -33,6 +33,7 @@ import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./land-branch/policy/index.ts";
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
 import type { TestServerStore } from "./test-servers/store.ts";
+import { PICK_PARTS } from "../queue/providers/side-tools.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -265,8 +266,14 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,
             model: ctx.store.defaults.model,
-            sidePicks: ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
-            sideProviders: ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
+            sidePicks: {
+              ...ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
+              ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.model[part] ? [[part, job.model[part]]] : [])),
+            },
+            sideProviders: {
+              ...ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
+              ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.provider?.[part] ? [[part, job.provider[part]]] : [])),
+            },
             providers: ctx.store.defaults.providers,
             provider: ctx.store.defaults.provider,
             acceptanceNotRequiredForAnalyze:

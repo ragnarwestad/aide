@@ -44,6 +44,7 @@ export function parseProviderPick(
   models: Record<string, string>,
   defaults: Defaults,
   pendingModels?: Record<string, string>,
+  extraParts: readonly string[] = [],
 ): { provider: Record<string, string>; pending: Record<string, string> } | RequestRefusal {
   const provider: Record<string, string> = {};
   const pending: Record<string, string> = {};
@@ -52,7 +53,7 @@ export function parseProviderPick(
   const picks: [string, unknown][] = typeof raw === "string" ? steps.map((s) => [s, raw]) : Object.entries(raw);
   for (const [step, value] of picks) {
     if (value === undefined || value === null || value === "") continue;
-    const runsNow = steps.includes(step);
+    const runsNow = steps.includes(step) || extraParts.includes(step);
     if (!runsNow && !(pendingModels && (PHASE_STEPS as readonly string[]).includes(step))) continue;
     const found = providerKeyFrom(defaults, value, ` for ${step}`);
     if ("error" in found) return found;

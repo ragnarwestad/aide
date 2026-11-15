@@ -29,7 +29,7 @@
 // one function that has to know about both a filtered/sorted list AND
 // a single row's markup.
 
-import type { ProviderOption } from "./model-picker.ts";
+import type { ProviderOption } from "./model-picker";
 import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
@@ -44,17 +44,19 @@ import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page/` and `settings-page.ts` — so the split
-// between this file and `specs-list/model-picker.ts` is invisible to
+// between this file and `specs-list/model-picker` is invisible to
 // them. Nothing here uses these locally.
 export {
   TOOL_NAMES,
   defaultModelForTool,
   modelOptions,
+  modelSelect,
   offeredProviders,
+  providerSelect,
   resolveChosenModel,
   resolveProvider,
   type ProviderOption,
-} from "./model-picker.ts";
+} from "./model-picker";
 import {
   ACTIVE_FILTER_KEY,
   applyFilter,

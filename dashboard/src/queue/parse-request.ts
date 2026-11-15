@@ -17,6 +17,7 @@ import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS,
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { resolveDependencyFolderName, specReference } from "../project/spec-folder.ts";
 import { isScheduleKey, newProvisionalKey } from "../project/spec-names.ts";
+import { PICK_PARTS } from "./providers/side-tools.ts";
 
 export type ParseResult = { ok: true; job: Job } | ({ ok: false } & RequestRefusal);
 
@@ -198,7 +199,7 @@ export function parseJobRequest(
       // Skipped, not refused: since the phase lines' selects are always
       // pre-filled (2026-08-19), every Run posts a name for all five
       // steps, whichever are ticked. Only the ticked ones apply.
-      if (!steps.includes(step as WorkflowStep)) continue;
+      if (!steps.includes(step as WorkflowStep) && !(PICK_PARTS as readonly string[]).includes(step)) continue;
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, ...invalidRequest(`invalid model for ${step}`) };
       const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, ...found };
@@ -209,7 +210,7 @@ export function parseJobRequest(
   const jobModel: Record<string, string> = modelChoice
     ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
     : { ...perStep(steps, defaults.model), ...stepModels };
-  const picked = parseProviderPick(r.provider, steps, jobModel, defaults);
+  const picked = parseProviderPick(r.provider, steps, jobModel, defaults, undefined, PICK_PARTS);
   if ("error" in picked) return { ok: false, ...picked };
 
   // The effort level a step runs at, per step — the same
