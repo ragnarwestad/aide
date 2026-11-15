@@ -35,6 +35,10 @@ export interface JobLike {
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string };
 
+/** A card's rows, each marked with the kind of job it is, which colours the card's edge. */
+export const markedWithKind = (html: string, kind: RowKind): string =>
+  html.replace(/<tr(\s[^>]*)?>/g, (_, attrs = "") => `<tr${attrs} data-kind="${kind}">`);
+
 /** The kind a job's row is marked as. A Close or a Reopen is work on a spec. */
 export function jobRowKind(row: Pick<JobLike, "steps" | "stepIndex" | "specFolder">): RowKind {
   const kind = jobKind(row);

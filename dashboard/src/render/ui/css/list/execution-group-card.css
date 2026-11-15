@@ -3,11 +3,11 @@
    specs drawn as their own cards inside it, inset from its edges. */
 table.speclist > tbody > tr.execution-group > td.groupcell {
   padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
-/* Its edge is the theme's accent, all the way round, so a member is told
-   from a spec on its own. The `:not()`s outweigh a spec card's own first-
-   and last-cell edges. */
+/* Its edge is the group icon's colour, softened as a spec card's is, all
+   the way round, so a member is told from a spec on its own. The `:not()`s
+   outweigh a spec card's own first- and last-cell edges. */
 table.speclist > tbody > tr.execution-group:not(.specgap):not(.specstate) > td.groupcell {
-  border: 2px solid var(--accent); }
+  border: 2px solid color-mix(in oklab, var(--kind-group) 50%, var(--line)); }
 table.speclist.groupcard { width: 100%; }
 /* Specific enough to beat the spec cards' own edge rules, `:first-child`
    and `:last-child` included. */
@@ -30,7 +30,7 @@ table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] > :is(.ba
   display: none; }
 /* The first member is the first row of its table, which the list's own
    first row gives up its top edge for; a member's card keeps it. */
-table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--line); }
+table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--card-edge, var(--line)); }
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   vertical-align: top; text-align: center; line-height: 0; padding: 14px var(--sp-1) 0; }
 @media (min-width: 40.0625rem) { /* Offset the group's inset to align its fold with the other cards. */
