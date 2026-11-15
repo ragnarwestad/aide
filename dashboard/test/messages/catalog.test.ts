@@ -51,12 +51,11 @@ describe("every {placeholder} in an English string is present in every other lan
 
 const LANGS = ["en", "nb", "es", "de", "fr"] as const;
 
-// A used-up usage limit starts again by itself, so no sentence about it
-// asks the reader to act: each has `solution: null` and says why.
+// A job held behind a used-up usage limit starts by itself, so no sentence
+// about the wait asks the reader to act: each has no solution and says why.
 describe("the sentences about a used-up usage limit ask for no press", () => {
   const KEYS: (keyof typeof MESSAGES)[] = [
     "runner.usageLimitHeld", "runner.usageLimitHeldNoReset", "runner.usageLimitHeldProbe",
-    "runner.usageLimitRestarts", "runner.usageLimitRestartsNoReset",
     "wordPhase.stopProviderLimit", "push.stoppedProviderLimit",
   ];
 

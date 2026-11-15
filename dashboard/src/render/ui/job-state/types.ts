@@ -7,6 +7,8 @@ import type { Sentence } from "../../../messages/types.ts";
 
 export interface QueueRowView {
   id: string;
+  /** The execution group the job runs for, when it is a group member's. */
+  executionGroupId?: string;
   project: string;
   specFolder: string;
   /** What a `create` job is making, in words. A create job's
