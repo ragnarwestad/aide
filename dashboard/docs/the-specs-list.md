@@ -320,14 +320,15 @@ a › that adds `<project>/<folder>:implement.review` (or `.verify`) to `?phases
 session's own bytes of the step's transcript, cut by the range the result carries and read as the tool that session ran
 on (`sideMessagesFor`, `serve/spec-views/phase-messages.ts`); the implement session's log stays the Implement line's
 own. The step's cost and tokens are the total over all three, which is what every total on the board adds up, and the
-Implement line shows the total less the two side sessions. A session that did not run keeps its pickers and no figures. An archived or
+Implement line shows the total less the two side sessions. A session that did not run keeps its pickers, and its State and Time read "–" as a phase not run does. An archived or
 closed spec shows the figures only while the queue still holds the run, since the phase file records the phase as one
 figure.
 
 **The Review line under Analyze chooses the AI and model of the plan review.** It offers the same AI and model pickers
 as Implement's Review line, and they are locked where Analyze's own are. With no pick of its own and none in Settings,
-it shows the AI and model Analyze runs on next. It has no figures and no ›: the review session's cost and log are
-Analyze's.
+it shows the AI and model Analyze runs on next. Its State is Done once the spec's `3-solution.md` holds a Plan review
+section with a `**Findings:**` line, and "–" before that. Its Time reads "–", and it has no cost and no ›: the review
+session's time, cost and log are Analyze's.
 
 **The phase line's State/Action cell says the standard state alone; what explains it is in the unfolded row.** After the
 `Model:` line come the phase's explanations, one info line each: the description changed since the analysis (analyze

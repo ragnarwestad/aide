@@ -126,3 +126,41 @@ export function specPhaseOutcome(dir: string, step: string): PhaseOutcome {
   const text = specFileText(dir, name);
   return text ? parsePhaseOutcome(text) : {};
 }
+
+/** Whether the spec's plan has been reviewed: the newest Plan review section
+ *  of `3-solution.md` carries a `**Findings:**` line with a value. Read as
+ *  the runner reads it (`plan_review_field`, run-spec/turn/plan-review.sh):
+ *  fenced blocks are examples, and a `## Round N` heading starts over. */
+export function planReviewed(text: string): boolean {
+  let fence = false;
+  let inside = false;
+  let at = 0;
+  let seen = false;
+  for (const line of text.split("\n")) {
+    if (/^(```|~~~)/.test(line)) {
+      fence = !fence;
+      continue;
+    }
+    if (fence) continue;
+    if (/^## Round [0-9]/.test(line)) seen = false;
+    const heading = line.match(/^(#{2,})/);
+    if (heading) {
+      const level = heading[1]!.length;
+      if (inside && level <= at) inside = false;
+      if (!inside && /plan review/i.test(line)) {
+        inside = true;
+        at = level;
+        seen = false;
+      }
+      continue;
+    }
+    if (inside && line.startsWith("**Findings:**") && line.slice("**Findings:**".length).trim()) seen = true;
+  }
+  return seen;
+}
+
+/** `planReviewed` off the spec's own `3-solution.md` in `dir`. */
+export function specPlanReviewed(dir: string): boolean {
+  const text = specFileText(dir, SOLUTION_FILE);
+  return text ? planReviewed(text) : false;
+}

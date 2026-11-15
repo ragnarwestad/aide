@@ -123,4 +123,8 @@ export interface Phase {
    *  the phase's file is — read regardless of the queue's attempts, like
    *  `fileAnalysis`. Only the create phase carries one. */
   fileSentBack?: string;
+  /** Whether the spec's plan review has been written into `3-solution.md`
+   *  (`planReviewed`). Only the analyze phase carries one: the review runs
+   *  inside Analyze and records no figures of its own. */
+  planReviewed?: boolean;
 }

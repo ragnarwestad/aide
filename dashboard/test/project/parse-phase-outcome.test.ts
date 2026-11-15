@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parsePhaseOutcome, specPhaseOutcome } from "../../src/project/parse-phase-outcome.ts";
+import { parsePhaseOutcome, planReviewed, specPhaseOutcome } from "../../src/project/parse-phase-outcome.ts";
 
 const ANALYSIS_LINE = JSON.parse(
   readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "analysis-line.json"), "utf-8"),
@@ -237,5 +237,24 @@ describe("specPhaseOutcome", () => {
     const empty = mkdtempSync(join(tmpdir(), "aide-phase-outcome-empty-"));
     expect(specPhaseOutcome(empty, "create")).toEqual({});
     rmSync(empty, { recursive: true, force: true });
+  });
+});
+
+describe("planReviewed", () => {
+  const solution = (...lines: string[]) => ["# 809 - Solution", "", "## Plan", "", "Steps.", "", ...lines].join("\n");
+
+  test("is true once the plan review section carries its Findings line", () => {
+    expect(planReviewed(solution("## Plan review", "", "**Findings:** 3 must-fix, 2 should-fix, 5 acted on"))).toBe(true);
+  });
+
+  test("is false with no plan review section, or one without findings", () => {
+    expect(planReviewed(solution())).toBe(false);
+    expect(planReviewed(solution("## Plan review", "", "Not reviewed yet."))).toBe(false);
+    expect(planReviewed(solution("## Plan review", "", "**Findings:**"))).toBe(false);
+  });
+
+  test("reads no example in a fenced block, and starts over at a new round", () => {
+    expect(planReviewed(solution("```markdown", "## Plan review", "**Findings:** 1 must-fix", "```"))).toBe(false);
+    expect(planReviewed(solution("## Plan review", "**Findings:** 1 must-fix", "", "## Round 2", "", "## Plan"))).toBe(false);
   });
 });

@@ -199,6 +199,8 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  `readerGroup()` builds `Phase.model`. A step the file names nothing
    *  for is absent from the map, exactly as `models` leaves one out. */
   phaseOutcomes: Record<string, PhaseOutcome>;
+  /** Whether the spec's `3-solution.md` holds its plan review (`planReviewed`). */
+  planReviewed?: boolean;
   /** Closed rather than archived — the `**Closed:**`
    *  stamp's presence. `readerGroup()` reads this before `notLanded` to
    *  pick `CLOSED_STATE` over either archived state: a closed spec's
