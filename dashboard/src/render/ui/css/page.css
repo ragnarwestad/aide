@@ -34,9 +34,9 @@ header { display: flex; align-items: center; justify-content: space-between;
 header .brand { margin: 0; padding: 0; }
 /* The Deploy mark: the deploy icon and the commit count, one link, just
    right of the board's name. Out of the header's flow, so the name stays
-   where it is whether the mark is there or not; on a phone, where the
-   name sits against the menu, it stands under the name (narrow-rows.css). */
-header > .boardline { position: relative; }
+   where it is whether the mark is there or not; the room it takes is kept
+   beside the name, empty or not, so it never covers the controls. */
+header > .boardline { position: relative; margin-inline-end: 3.5em; }
 header .deploymark { position: absolute; left: 100%; margin-left: var(--sp-2); display: inline-flex; align-items: center;
   gap: 2px; color: var(--kind-deploy); text-decoration: none; white-space: nowrap; }
 header .deploymark svg { width: 16px; height: 16px; }
