@@ -14,8 +14,6 @@ function rows(form: HTMLFormElement): HTMLElement[] {
 
 export function updateExecutionGroupEditor(form: HTMLFormElement): void {
   const project = form.querySelector<HTMLSelectElement>('select[name="project"]')?.value;
-  const edit = rows(form).some((row) => row.hasAttribute("data-group-locked"));
-  let position = 0;
   for (const row of rows(form)) {
     row.hidden = !!project && row.dataset.groupProject !== project;
     const member = row.querySelector<HTMLInputElement>('input[type="checkbox"]');
@@ -25,9 +23,8 @@ export function updateExecutionGroupEditor(form: HTMLFormElement): void {
     if (row.hidden) member.checked = false;
     order.disabled = !member.checked;
     if (!member.checked) order.value = "";
-    else if (!edit) order.value = String(++position);
   }
-  if (edit) {
+  {
     const selected = rows(form).filter((row) => {
       const box = row.querySelector<HTMLInputElement>('input[type="checkbox"]');
       return !row.hidden && !!box?.checked;

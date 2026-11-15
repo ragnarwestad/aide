@@ -135,7 +135,8 @@ group_line() {
 }
 
 # True when the dependency is an earlier member of this spec's group
-# whose Implement step is recorded on the group's shared origin branch.
+# whose Implement step is recorded on the shared origin branch, or on
+# origin's default branch after the specs branch has landed and been deleted.
 dependency_done_in_group() {
   local dep_folder="$1" group dep_group position dep_position
   local ref="refs/aide-dep/group-$$" done=1 state_json="" state_json_found=""
@@ -148,7 +149,14 @@ dependency_done_in_group() {
   dep_position="$(group_line "$dep_folder" 'Group position')"
   [[ "$position" =~ ^[1-9][0-9]*$ && "$dep_position" =~ ^[1-9][0-9]*$ ]] || return 1
   [ "$dep_position" -lt "$position" ] || return 1
-  git -C "$specs_root" fetch -q origin "refs/heads/$branch_arg:$ref" >/dev/null 2>&1 || return 1
+  if ! git -C "$specs_root" fetch -q origin "refs/heads/$branch_arg:$ref" >/dev/null 2>&1; then
+    # Analyze may land and delete a specs-only branch. Its confirmed
+    # Implement record then lives on origin's default branch instead.
+    local remote_status=0
+    git -C "$specs_root" ls-remote --exit-code --heads origin "$branch_arg" >/dev/null 2>&1 || remote_status=$?
+    [ "$remote_status" -eq 2 ] || return 1
+    git -C "$specs_root" fetch -q origin "refs/heads/$(default_branch "$specs_root"):$ref" >/dev/null 2>&1 || return 1
+  fi
   read_spec_state_at_ref "$specs_root/$dep_folder" "$ref" "$AIDE_STATUS_FILE"
   jq -e '(.completedPhases // []) | index("implement") != null' <<<"$state_json" >/dev/null 2>&1 && done=0
   git -C "$specs_root" update-ref -d "$ref" >/dev/null 2>&1 || true

@@ -36,6 +36,34 @@ describe("execution-group HTTP routes", () => {
     });
   });
 
+  test("Run starts a required peer first with the submitted choices and refuses a cycle", async () => {
+    for (const cycle of [false, true]) {
+      const first = "81-queue-and-runner", second = "82-next";
+      const { base, dir } = harness.start({
+        description: description(first) + `- **Depends on:** \`${second}\`\n`,
+        alsoSpecs: [second],
+        alsoDescriptions: { [second]: description(second) + (cycle ? `- **Depends on:** \`${first}\`\n` : "") },
+        extra: { queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {} } } },
+      });
+      makeSpecsRepo(dir);
+      const response = await fetch(`${base}/api/queue`, {
+        method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `project=aide&specFolder=${first}&member=${second}&steps=analyze&steps=implement&model.analyze=fable`,
+      });
+      if (cycle) {
+        expect(response.status).toBe(409);
+        expect(await response.json()).toMatchObject({ error: expect.stringContaining("circular dependencies") });
+        const queue = await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] };
+        expect(queue.jobs).toEqual([]);
+      } else {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({ job: {
+          specFolder: second, steps: ["analyze", "implement"], model: { analyze: "fable" },
+        } });
+      }
+    }
+  });
+
   test("create and lifecycle action keep their JSON response forms (AC-2)", async () => {
     const { base, dir } = harness.start({
       description: description("81-queue-and-runner"),
@@ -115,6 +143,33 @@ describe("execution-group HTTP routes", () => {
     expect(await start({})).toMatchObject({ specFolder: "81-queue-and-runner", steps: ["implement"] });
     expect(await start({ "aide/81-queue-and-runner": ["implement"] })).toMatchObject({ steps: ["implement"] });
     rmSync(ticks, { recursive: true, force: true });
+  });
+
+  test("Start orders changed dependencies before queuing and refuses cycles without a job", async () => {
+    const first = "81-queue-and-runner", second = "82-next";
+    for (const cycle of [false, true]) {
+      const grouped = (folder: string, position: number, dependency?: string) =>
+        `${description(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n${dependency ? `- **Depends on:** \`${dependency}\`\n` : ""}`;
+      const { base, dir } = harness.start({
+        description: grouped(first, 1, second), alsoSpecs: [second],
+        alsoDescriptions: { [second]: grouped(second, 2, cycle ? first : undefined) },
+        executionGroups: [{ id: "group-1", project: "aide", name: "Release", members: [first, second],
+          branch: "aide/group-81", state: "prepared", createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [] }],
+      });
+      makeSpecsRepo(dir);
+      const response = await fetch(`${base}/api/queue/groups/group-1/action`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
+      });
+      if (cycle) {
+        expect(response.status).toBe(409);
+        expect(await response.json()).toMatchObject({ error: expect.stringContaining("circular dependencies") });
+        const queue = await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] };
+        expect(queue.jobs).toEqual([]);
+      } else {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({ job: { specFolder: second } });
+      }
+    }
   });
 
   test("all recognised group routes refuse GET with the documented response (AC-3)", async () => {

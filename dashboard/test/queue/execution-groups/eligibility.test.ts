@@ -79,7 +79,7 @@ test("an edit keeps locked positions, allows new candidates, and checks dependen
   const base = { project: "aide", group, targets, groups: [group], jobs: [], locked: new Set(["1-first"]) };
   expect(validateExecutionGroupEdit({ ...base, members: ["1-first", "3-new", "2-second"], positions: [1, 2, 3] })).toEqual({ ok: true, members: ["1-first", "3-new", "2-second"] });
   expect(validateExecutionGroupEdit({ ...base, members: ["2-second", "1-first"], positions: [1, 2] })).toMatchObject({ ok: false });
-  expect(validateExecutionGroupEdit({ ...base, members: ["1-first", "2-second", "3-new"], positions: [1, 2, 3] })).toEqual({ ok: false, error: "2-second depends on 3-new, so 3-new must come before 2-second in the group's order" });
+  expect(validateExecutionGroupEdit({ ...base, members: ["1-first", "2-second", "3-new"], positions: [1, 2, 3] })).toEqual({ ok: true, members: ["1-first", "3-new", "2-second"] });
 });
 
 test("removing an unlocked member before a locked member closes the position gap (AC-4, AC-5)", () => {
@@ -89,4 +89,17 @@ test("removing an unlocked member before a locked member closes the position gap
     project: "aide", group, members: ["2-locked", "3-third"], positions: [1, 2], locked: new Set(["2-locked"]),
     targets, groups: [group], jobs: [],
   })).toEqual({ ok: true, members: ["2-locked", "3-third"] });
+});
+
+
+test("keeps insertion order among ready members and names a dependency cycle", () => {
+  const base = { project: "aide", groups: [], jobs: [], members: ["1-first", "2-second", "3-third"] };
+  expect(validateExecutionGroupRequest({ ...base, targets: [target("1-first"), target("2-second"), target("3-third")] })).toEqual({ ok: true, members: base.members });
+  const cycle = validateExecutionGroupRequest({ ...base, targets: [target("1-first", { dependsOn: ["2-second"] }), target("2-second", { dependsOn: ["1-first"] }), target("3-third")] });
+  expect(cycle).toMatchObject({ ok: false });
+  if (!cycle.ok) {
+    expect(cycle.error).toContain("circular dependencies");
+    expect(cycle.error).toContain("1-first");
+    expect(cycle.error).toContain("2-second");
+  }
 });

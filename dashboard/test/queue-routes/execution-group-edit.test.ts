@@ -87,14 +87,12 @@ describe("editing a group", () => {
     expect([description(dir, FIRST), description(dir, SECOND), stored(dir)]).toEqual(before);
   });
 
-  test("refuses dependency order and leaves the group unchanged (AC-7)", async () => {
+  test("places a newly added dependency before its unlocked dependent", async () => {
     const { base, dir } = await groupOfTwo("running", { second: grouped(SECOND, 2, `- **Depends on:** \`${ADDED}\`\n`) });
     const res = await edit(base, [FIRST, SECOND, ADDED]);
-    expect(res.status).toBe(409);
-    const { error } = await res.json() as { error: string };
-    expect(error).toContain(`${SECOND} depends on ${ADDED}`);
-    expect(description(dir, ADDED)).toBe(plain(ADDED));
-    expect(stored(dir).members).toEqual([FIRST, SECOND]);
+    expect(res.status).toBe(200);
+    expect(stored(dir).members).toEqual([FIRST, ADDED, SECOND]);
+    expect(description(dir, SECOND)).toContain("- **Group position:** 3");
   });
 
   test("refuses renaming once a member is locked (AC-9)", async () => {

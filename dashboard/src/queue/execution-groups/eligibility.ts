@@ -61,38 +61,40 @@ function creationOrder(members: string[], positions: number[] | undefined, targe
   const base = validPositions
     ? members.map((member, index) => ({ member, position: positions![index]! })).sort((a, b) => a.position - b.position).map(({ member }) => member)
     : [...members];
-  const byFolder = new Map(targets.map((target) => [target.specFolder, target]));
-  const memberSet = new Set(base);
-  const visiting = new Set<string>();
-  const added = new Set<string>();
-  const result: string[] = [];
-  const add = (member: string): void => {
-    if (added.has(member) || visiting.has(member)) return;
-    visiting.add(member);
-    for (const dependency of byFolder.get(member)?.dependsOn ?? []) if (memberSet.has(dependency)) add(dependency);
-    visiting.delete(member);
-    added.add(member);
-    result.push(member);
-  };
-  for (const member of base) add(member);
-  return { ok: true, members: result };
+  return orderGroupMembers(base, targets);
 }
 
-function dependencyOrder(ordered: string[], targets: SpecTarget[]): ValidationResult {
+export function orderGroupMembers(ordered: string[], targets: SpecTarget[]): ValidationResult {
   const byFolder = new Map(targets.map((target) => [target.specFolder, target]));
-  const position = new Map(ordered.map((member, index) => [member, index]));
-  for (const member of ordered) for (const dependency of byFolder.get(member)?.dependsOn ?? []) {
-    const dependencyPosition = position.get(dependency);
-    if (dependencyPosition !== undefined && dependencyPosition >= position.get(member)!) {
-      return { ok: false, error: `${member} depends on ${dependency}, so ${dependency} must come before ${member} in the group's order` };
+  const memberSet = new Set(ordered);
+  const path: string[] = [];
+  const added = new Set<string>();
+  const result: string[] = [];
+  let cycle: string[] = [];
+  const add = (member: string): boolean => {
+    if (added.has(member)) return true;
+    if (path.includes(member)) {
+      cycle = [...path.slice(path.indexOf(member)), member];
+      return false;
     }
+    path.push(member);
+    for (const dependency of byFolder.get(member)?.dependsOn ?? []) {
+      if (memberSet.has(dependency) && !add(dependency)) return false;
+    }
+    path.pop();
+    added.add(member);
+    result.push(member);
+    return true;
+  };
+  for (const member of ordered) {
+    if (!add(member)) return { ok: false, error: `circular dependencies in the group: ${cycle.join(" → ")} — remove the circular dependencies before starting` };
   }
-  return { ok: true, members: ordered };
+  return { ok: true, members: result };
 }
 
 export function validateExecutionGroupRequest(input: EligibilityInput & { members: string[]; positions?: number[]; lead?: string }):
   ValidationResult {
-  const checked = creationOrder(input.members, input.positions, input.targets);
+  const checked = creationOrder(input.members, input.positions, input.targets.filter((target) => target.project === input.project));
   if (!checked.ok) return checked;
   const ordered = checked.members;
   const eligible = new Map(eligibleGroupMembers(input).map((target) => [target.specFolder, target]));
@@ -120,5 +122,12 @@ export function validateExecutionGroupEdit(input: EligibilityInput & {
   const own = new Set(input.group.members);
   const offered = new Set(eligibleGroupMembers(input).map((target) => target.specFolder));
   for (const member of ordered) if (!own.has(member) && !offered.has(member)) return { ok: false, error: `${member} is no longer eligible for this group` };
-  return dependencyOrder(ordered, input.targets.filter((target) => target.project === input.project));
+  const result = orderGroupMembers(ordered, input.targets.filter((target) => target.project === input.project));
+  if (!result.ok) return result;
+  for (const member of input.locked) {
+    if (result.members.indexOf(member) !== ordered.indexOf(member)) {
+      return { ok: false, error: `${member} is locked; its dependencies cannot move it after work has started` };
+    }
+  }
+  return result;
 }

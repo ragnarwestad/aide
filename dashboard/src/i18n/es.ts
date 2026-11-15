@@ -625,7 +625,6 @@ export const es: Record<TranslationKey, string> = {
   "list.groupCreate": "Grupo nuevo",
   "list.groupProject": "Proyecto",
   "list.groupName": "Nombre",
-  "list.groupOrder": "Orden",
   "list.groupTooFew": "Este proyecto tiene menos de dos specs que se pueden agrupar. Una spec puede unirse a un grupo hasta que se haya analizado.",
   "list.groupMenu": "Más acciones para {group}",
   "list.groupEdit": "Editar",

@@ -636,7 +636,6 @@ export const en = {
   "list.groupCreate": "New group",
   "list.groupProject": "Project",
   "list.groupName": "Name",
-  "list.groupOrder": "Order",
   "list.groupTooFew": "This project has fewer than two specs that can be grouped. A spec can join a group until it has been analysed.",
   "list.groupMenu": "More actions for {group}",
   "list.groupEdit": "Edit",

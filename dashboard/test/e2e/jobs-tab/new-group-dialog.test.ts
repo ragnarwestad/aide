@@ -60,13 +60,12 @@ async function openDialog(): Promise<void> {
   await dialog().waitFor({ state: "visible" });
 }
 
-test("New group opens a dialog with Project, Name, the eligible specs and their order, Save and Cancel (AC-2)", async () => {
+test("New group opens a dialog with Project, Name, the eligible specs, Save and Cancel (AC-2)", async () => {
   await openTab();
   await openDialog();
   expect(await dialog().locator('select[name="project"]').isVisible()).toBe(true);
   expect(await name().isVisible()).toBe(true);
   for (const folder of [FIRST, SECOND]) expect(await member(folder).isVisible()).toBe(true);
-  expect(await dialog().locator('input[name="position"]').count()).toBe(2);
   expect(await save().isVisible()).toBe(true);
   expect(await cancel().isVisible()).toBe(true);
 });
@@ -103,13 +102,15 @@ test("a refused Save keeps the dialog open with what was typed and the reason in
   expect(await member(FIRST).isChecked()).toBe(true);
 });
 
-test("Save with a name and two specs closes the dialog and the tab shows the group's card (AC-4)", async () => {
+test("Save keeps the order the specs were selected", async () => {
   await openTab();
   await openDialog();
   await name().fill("Release");
-  await member(FIRST).check();
   await member(SECOND).check();
+  await member(FIRST).check();
+  const response = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/queue/groups" && r.request().method() === "POST");
   await save().click();
+  expect(await (await response).json()).toMatchObject({ group: { members: [SECOND, FIRST] } });
   await card().waitFor({ state: "visible" });
   expect(await dialog().isVisible()).toBe(false);
 });
