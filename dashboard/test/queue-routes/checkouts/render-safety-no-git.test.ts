@@ -146,7 +146,7 @@ describe("no render path runs git or a network command", () => {
    *  phase is the first one still ahead. Both come from the same
    *  `done` this test is about. */
   const phaseBadge = (html: string, step: string): string =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "")
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}"[^>]*>[\\s\\S]*?</tr>`))?.[0] ?? "")
       .match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
   const buttonLabels = (html: string): string[] =>
     [...html.matchAll(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/g)].map((match) => match[1]);

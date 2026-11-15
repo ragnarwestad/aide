@@ -45,7 +45,7 @@ export const jobsKindValue = (value: string | undefined): string =>
 type StateEntry = StateFilterEntry;
 const finished = (g: unknown): boolean => {
   const row = g as RowFacts;
-  return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound));
+  return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound || !!row.ownJob));
 };
 const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
 /** A cancelled job that is not a spec's offers nothing more: no Run, no
@@ -88,6 +88,8 @@ export type RowFacts = Pick<
   members?: RowFacts[];
   /** Set on the row of a spec's earlier round, which is over whatever the spec does now. */
   pastRound?: boolean;
+  /** Set on a row that is one job of its own, a Close or Reopen among them: done, it is over. */
+  ownJob?: boolean;
 };
 
 /** What the state entries match and count for a row: a group's member specs, any other row itself. */
@@ -121,6 +123,7 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
     createdAt: row.createdAt,
     totalDurationMs: jobDurationMs(row, now),
     lead: row,
+    ownJob: true,
   };
 }
 

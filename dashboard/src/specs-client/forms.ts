@@ -43,7 +43,8 @@ export async function submitAction(event: Event): Promise<void> {
       cardAnswered(form, "saved");
       // Its close redraws the rows (`bindLists`).
       if (held && form.dataset.goto) {
-        location.href = form.dataset.goto;
+        held.close();
+        await swapPage(form.dataset.goto, { history: "push" });
         return;
       }
       if (held) return held.close();

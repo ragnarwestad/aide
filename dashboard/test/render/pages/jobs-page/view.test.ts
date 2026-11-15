@@ -170,6 +170,15 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(view([deploy], { state: "waiting" })).toEqual([]);
   });
 
+  test("a Close or Reopen job that ended done is Done, not Active or Waiting", () => {
+    for (const step of ["close", "reopen"]) {
+      const row = jobEntry(step, { specFolder: "148-moved", steps: [step], state: "done", createdAt: T(6) });
+      expect(view([row], { state: "done" })).toEqual([step]);
+      expect(view([row], { state: "not-archived" })).toEqual([]);
+      expect(view([row], { state: "waiting" })).toEqual([]);
+    }
+  });
+
   // Active holds what can still be acted on: a spec's row can run its phase
   // again, while a job that is not a spec's offers nothing once cancelled.
   test("a cancelled job that is not a spec's is not Active; a spec's cancelled job is", () => {

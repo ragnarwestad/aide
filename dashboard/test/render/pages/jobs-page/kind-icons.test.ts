@@ -67,3 +67,15 @@ test("every Specs list row draws the project icon in its link and the spec icon 
     expect(new Set(rowKinds(html))).toEqual(new Set(["spec"]));
   }
 });
+
+test("every row of a Jobs tab card carries its kind, the kind its icon names, for the card's edge", () => {
+  const body = new Window().document.body;
+  body.innerHTML = `<table>${renderJobsRows(view)}</table>`;
+  const heads = [...body.querySelectorAll("tr.spechead")];
+  expect(heads.length).toBeGreaterThan(0);
+  for (const head of heads) {
+    expect(head.getAttribute("data-kind")).toBe(head.querySelector(".kindicon[data-kind]")!.getAttribute("data-kind"));
+  }
+  expect(new Set(heads.map((head) => head.getAttribute("data-kind")))).toEqual(new Set(["spec", "deploy", "schedule", "cleanup"]));
+  expect(body.querySelector("tr.specstate:not([data-kind])")).toBeNull();
+});

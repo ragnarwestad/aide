@@ -407,8 +407,6 @@ export const fr: Record<TranslationKey, string> = {
   "settings.providers.card.codex": "L'agent de code d'OpenAI.",
   "settings.providers.card.opencode": "Un agent open source qui exécute les modèles d'autres fournisseurs.",
   "job.provider": "Fournisseur",
-  "notice.providerRuns": "{step} s'exécute sur {who}",
-  "notice.providerRan": "{step} s'est exécuté sur {who}",
   "settings.models.supported": "Actuellement pris en charge par Aide",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Plus disponibles",

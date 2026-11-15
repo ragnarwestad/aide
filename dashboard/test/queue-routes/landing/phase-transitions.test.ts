@@ -104,7 +104,7 @@ const rowOf = (html: string): string =>
     .join("\n");
 
 const stateOf = (html: string, step: string): string =>
-  html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?<td data-col="state">([\\s\\S]*?)</td>`))?.[1] ?? "";
+  html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}"[^>]*>[\\s\\S]*?<td data-col="state">([\\s\\S]*?)</td>`))?.[1] ?? "";
 
 describe("a chained job's row between its phases", () => {
   test("no point between analyze and implement reads as a fault", async () => {

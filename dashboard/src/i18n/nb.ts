@@ -410,8 +410,6 @@ export const nb: Record<TranslationKey, string> = {
   "settings.providers.card.codex": "Kodeagenten fra OpenAI.",
   "settings.providers.card.opencode": "En åpen kildekode-agent som kjører modellene til andre leverandører.",
   "job.provider": "Provider",
-  "notice.providerRuns": "{step} kjører på {who}",
-  "notice.providerRan": "{step} kjørte på {who}",
   "settings.models.supported": "Støttes av Aide nå",
   "settings.models.available": "Tilgjengelig",
   "settings.models.gone": "Ikke lenger tilgjengelig",

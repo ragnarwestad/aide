@@ -418,8 +418,6 @@ export const en = {
   "settings.providers.card.codex": "OpenAI's coding agent.",
   "settings.providers.card.opencode": "An open-source agent that runs other providers' models.",
   "job.provider": "Provider",
-  "notice.providerRuns": "{step} runs on {who}",
-  "notice.providerRan": "{step} ran on {who}",
   "settings.models.supported": "Currently supported by Aide",
   "settings.models.available": "Available",
   "settings.models.gone": "No longer available",

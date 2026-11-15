@@ -389,16 +389,16 @@
   table.speclist > tbody > tr > td { border-bottom: 0; }
   table.speclist > tbody > tr.spechead,
   table.speclist > tbody tr.spechead:first-child { border-top: 0; }
-  table.speclist > tbody > tr.spechead > td { background: var(--surface); border-top: 1px solid var(--line); }
-  table.speclist > tbody > tr.spechead > td:first-child { border-left: 1px solid var(--line); border-top-left-radius: var(--r); }
+  table.speclist > tbody > tr.spechead > td { background: var(--surface); border-top: 1px solid var(--card-edge, var(--line)); }
+  table.speclist > tbody > tr.spechead > td:first-child { border-left: 1px solid var(--card-edge, var(--line)); border-top-left-radius: var(--r); }
   /* The title row is a table of its own here, only as wide as its title
      — a short one left the card's top edge short of its sides. The title
      cell takes the whole width, so the row always spans the card. */
-  table.speclist > tbody > tr.spechead > td:last-child { width: 100%; border-right: 1px solid var(--line); border-top-right-radius: var(--r); }
+  table.speclist > tbody > tr.spechead > td:last-child { width: 100%; border-right: 1px solid var(--card-edge, var(--line)); border-top-right-radius: var(--r); }
   table.speclist > tbody > tr:not(.spechead):not(.specgap) {
-    background: var(--surface); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    background: var(--surface); border-left: 1px solid var(--card-edge, var(--line)); border-right: 1px solid var(--card-edge, var(--line)); }
   table.speclist > tbody > tr:not(.spechead):has(+ tr.specgap) {
-    border-bottom: 1px solid var(--line); border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
+    border-bottom: 1px solid var(--card-edge, var(--line)); border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
   /* Whatever comes under a spec's own two lines — the open detail, or the
      message a shut spec shows — gets air above it, and no line. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) { padding-top: var(--sp-2); }
