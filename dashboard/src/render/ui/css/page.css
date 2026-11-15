@@ -32,6 +32,14 @@ a:hover { color: var(--link-strong); text-decoration: underline; }
 header { display: flex; align-items: center; justify-content: space-between;
   gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) var(--sp-3); }
 header .brand { margin: 0; padding: 0; }
+/* The Deploy mark: the deploy icon and the commit count, one link, just
+   right of the board's name. Out of the header's flow, so the name stays
+   where it is whether the mark is there or not; on a phone, where the
+   name sits against the menu, it stands under the name (narrow-rows.css). */
+header > .boardline { position: relative; }
+header .deploymark { position: absolute; left: 100%; margin-left: var(--sp-2); display: inline-flex; align-items: center;
+  gap: 2px; color: var(--kind-deploy); text-decoration: none; white-space: nowrap; }
+header .deploymark svg { width: 16px; height: 16px; }
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
    tab bar being the reference (2026-08-19). Centred deliberately:

@@ -37,6 +37,9 @@ import {
 import { BRANCH_PREVIEW_POLL_MS, dropPreviewsOfRunningSteps, refreshBranchPreviews, type BranchPreviewContext } from "../schedules/branch-previews.ts";
 import { keptEntries, readAllUsage, USAGE_POLL_MS, usageReader, type UsageRead } from "../providers/usage-kept.ts";
 import { setUsageEntries } from "../../render/ui/usage-dialog/index.ts";
+import { setDeployWaiting, type DeployWaiting } from "../../render/ui/deploy-mark/index.ts";
+import { deployWaiting } from "../deploy-job/waiting.ts";
+import { resolveInstallCmd } from "../../project/discover";
 import { runScript } from "../process";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
@@ -167,8 +170,20 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     branchPreviews: state.branchPreviews,
     notifyQueueChanged,
   };
-  function refreshDrift() {
-    return refreshDriftImpl(scheduleCtx);
+  // What the header's Deploy mark shows: asked after each fetch of origin,
+  // so a page render only reads it.
+  let waiting: DeployWaiting | undefined;
+  setDeployWaiting(() => (state.stopped ? undefined : waiting));
+  async function refreshDrift() {
+    await refreshDriftImpl(scheduleCtx);
+    waiting = await deployWaiting({
+      projects: [...allowed],
+      projectDir: machineryProjectDir,
+      serving: { sha: state.servingSha, repoRoot: state.servingRepoRoot },
+      canDeploy: (root) => !!resolveInstallCmd(root).value,
+      defaultBranch: (root) => branchStatus.defaultBranch(root),
+      run: gitRun,
+    }).catch(() => undefined);
   }
   function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
     return warmSpecImpl(scheduleCtx, t);
