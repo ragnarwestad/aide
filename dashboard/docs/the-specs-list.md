@@ -37,7 +37,8 @@ One row per spec, not per job, and shut by default. A shut row shows the Project
 icon before the spec's name and title, followed by one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
 orders by), its state and its actions. The list has four headings: Created, Specification, State and Actions. It sorts
-by Created, Specification and State. On the Running tab the line is the created stamp with the phase pips at its
+by Created, Specification, State and Actions. Actions sorts by the localized name of the first action the row offers.
+On the Running tab the line is the created stamp with the phase pips at its
 right, the state, the time and the cost; a phone shows the pips without the stamp. Under the row sit its notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
@@ -102,8 +103,8 @@ column at the phase badges' own size, then the total in the Time column.
 ## The row's controls
 
 The Specs list puts the spec's buttons in the Actions column. Its help mark comes first, followed by Run, Reopen and
-Close, each only when it applies. The PDF link stands at the right end of the title line. The Actions heading does
-not sort. The State column contains the spec's state and no control. The open spec's tab row contains navigation
+Close, each only when it applies. The PDF link stands at the right end of the title line. The Actions heading sorts
+by the first action's name, and the controls align with the right edge. The State column contains the spec's state and no control. The open spec's tab row contains navigation
 only. On a phone the Actions cell takes a full line and wraps its controls,
 so every action remains reachable without scrolling the table sideways.
 
@@ -198,11 +199,10 @@ both read "0% done". The spec's own page shows it in full.
 The State column carries the spec's own state and nothing else:
 
 - **Created** — no phase has run.
+- **Idle** — a job has run and none is queued or running now.
+- **Active: phase** — a job is queued or running, or its branch is landing.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
-- **Analyzed** — analyze is the last completed phase.
-- **Implemented** — implement is the last completed phase and the spec is still active.
 - **Archived** or **Closed** — the spec is finished.
-- **Running: phase** — a phase is running or its branch is landing.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
 Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line
@@ -456,15 +456,14 @@ shows every row that matches any of them. `?state=` holds their keys separated b
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs
 the table shows, in brackets. On Jobs and Specs, a filter with a choice other than All has an accent-coloured dot and
 border; choosing All clears them without changing the button's width. The phone's menu shows the dot beside the
-filter's name. Each entry's count is its own count over the rows the search lets through. The ten entries are:
+filter's name. Each entry's count is its own count over the rows the search lets through. The nine entries are:
 
 - **All** — the default.
-- **Active** — everything not archived and not closed.
-- **Running** — a phase is running or landing.
+- **Not archived** — everything not archived and not closed.
+- **Active** — a job is queued or running, or its branch is landing.
 - **Created**.
+- **Idle**.
 - **Reopened**.
-- **Analyzed**.
-- **Implemented**.
 - **Archived**.
 - **Closed**.
 - **Not verified**.

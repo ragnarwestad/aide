@@ -84,6 +84,8 @@ export const en = {
   "list.state.active": "Active",
   "list.state.running": "Running",
   "list.state.created": "Created",
+  "list.state.idle": "Idle",
+  "list.state.notArchived": "Not archived",
   "list.state.reopened": "Reopened",
   "list.state.analyzed": "Analyzed",
   "list.state.implemented": "Implemented",

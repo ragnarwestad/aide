@@ -57,7 +57,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
         }),
         job("b1", "bb-spec", { state: "done" }),
       ],
-      { state: "running" },
+      { state: "active" },
     );
     expect(html).toContain("aa-spec");
     expect(html).not.toContain("bb-spec");
@@ -80,8 +80,9 @@ describe("filtering and sorting work on specs, not jobs", () => {
       job("b1", "bb-spec", { state: "running" }),
     ]);
     expect(html).toMatch(/>All \(2\)</);
-    expect(html).toMatch(/>Running \(1\)</);
-    expect(html).toMatch(/>Created \(1\)</);
+    expect(html).toMatch(/>Active \(1\)</);
+    expect(html).toMatch(/>Idle \(1\)</);
+    expect(html).toMatch(/>Created \(0\)</);
   });
 
   test("sorting by cost uses the spec's total, not one job's", () => {
@@ -168,6 +169,6 @@ describe("filtering and sorting work on specs, not jobs", () => {
       ],
       { sort: "state" },
     );
-    expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
+    expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
   });
 });

@@ -260,7 +260,7 @@ describe("archived specs on the spec list", () => {
   });
 
   test("the active progress chips exclude archived rows", () => {
-    for (const state of ["not-archived", "running", "created", "reopened", "analyzed", "implemented"]) {
+    for (const state of ["not-archived", "active", "created", "idle", "reopened"]) {
       const html = rows({
         archivedSpecs: [archivedSpec("50-archived")],
         targets: [live("60-live")],
@@ -433,7 +433,7 @@ describe("archived specs on the spec list", () => {
     const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
     expect(html).toMatch(/>Archived \(2\)</);
     expect(html).toMatch(/>All \(3\)</);
-    expect(html).toMatch(/>Active \(1\)</);
+    expect(html).toMatch(/>Not archived \(1\)</);
   });
 
   test("and never twice, once those rows are actually on the page", () => {
@@ -555,11 +555,11 @@ describe("an archived spec whose merged branch is still on origin", () => {
     renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state } }, NOW);
   const DELETE_ACTION = 'action="/api/queue/specs/aide/570-x/delete-branch"';
 
-  test("is archived, and the Active and Implemented chips cut it", () => {
+  test("is archived, and the Not archived and Idle entries cut it", () => {
     const left = spec({ branchLeftBehind: true });
     expect(groupBySpec([], [], undefined, [left], NOW)[0]?.state).toBe(ARCHIVED_STATE);
     expect(listed(left, "not-archived")).not.toContain('data-folder="570-x"');
-    expect(listed(left, "implemented")).not.toContain('data-folder="570-x"');
+    expect(listed(left, "idle")).not.toContain('data-folder="570-x"');
     expect(listed(left, "archived")).toContain('data-folder="570-x"');
   });
 

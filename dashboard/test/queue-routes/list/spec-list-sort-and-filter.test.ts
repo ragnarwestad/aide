@@ -78,12 +78,12 @@ describe("the job list sorts and filters", () => {
     ...extra,
   });
 
-  test("the legacy active key (now Running) shows only what is actually running, not queued or done", () => {
+  test("Active shows queued and running specs, not settled ones", () => {
     const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
     expect(html).toContain("a-spec");
     expect(html).not.toContain("b-spec");
-    expect(html).not.toContain("c-spec");
+    expect(html).toContain("c-spec");
   });
 
   test("an old stopped filter falls back to All because job outcomes are not spec states", () => {

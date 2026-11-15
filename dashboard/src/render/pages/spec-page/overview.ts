@@ -365,3 +365,9 @@ export function specActions(view: SpecActionView, run: string, lang: Language = 
     closeControl(view, lang)
   );
 }
+
+export function firstSpecActionLabel(view: SpecActionView, runAvailable: boolean, lang: Language = "en"): string {
+  if (runAvailable) return t(lang, "shell.runTestRound");
+  if (view.archived) return t(lang, "list.reopen");
+  return view.closeAvailable ? t(lang, "dialog.close") : "";
+}

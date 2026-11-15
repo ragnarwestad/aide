@@ -20,6 +20,11 @@ describe("the Specs list's columns", () => {
     expect(html).not.toContain('data-col="cost"');
   });
 
+  test("makes Actions a sortable heading with direction toggling (AC-9)", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {}, filter: { sort: "actions" } });
+    expect(html).toMatch(/<th[^>]*data-col="actions"[^>]*><a[^>]*href="[^"]*dir=desc[^"]*"[^>]*>Actions/);
+  });
+
   test("falls back from removed Specs sorts while Jobs keeps them (AC-2)", () => {
     const rows = [ran("81-cheap", 1), ran("82-dear", 9)];
     const specs = renderSpecsRows(rows, {

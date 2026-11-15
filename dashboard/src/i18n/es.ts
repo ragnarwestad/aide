@@ -83,6 +83,8 @@ export const es: Record<TranslationKey, string> = {
   "list.state.active": "Activas",
   "list.state.running": "En curso",
   "list.state.created": "Creada",
+  "list.state.idle": "Inactiva",
+  "list.state.notArchived": "No archivadas",
   "list.state.reopened": "Reabierta",
   "list.state.analyzed": "Analizada",
   "list.state.implemented": "Implementada",

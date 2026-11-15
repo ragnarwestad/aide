@@ -82,7 +82,7 @@ describe("the All chip", () => {
   });
 
   test("the active progress chips exclude archived specs", async () => {
-    for (const state of ["not-archived", "running", "created", "reopened", "analyzed", "implemented"]) {
+    for (const state of ["not-archived", "active", "created", "idle", "reopened"]) {
       const html = await specsList(start().base, `?state=${state}`);
       for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     }

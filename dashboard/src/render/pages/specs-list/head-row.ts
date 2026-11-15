@@ -23,7 +23,7 @@ import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specBusy } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState } from "./data-model/spec-state.ts";
-import { PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
+import { firstSpecActionLabel, PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
 // blank rather than fall back to "no status recorded yet". No phase
@@ -273,6 +273,18 @@ export function specHeadRow(
   );
 }
 
+export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
+  const locked = isArchivedRow(g);
+  const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
+  const view: SpecActionView = {
+    project: g.project, specFolder: g.specFolder, archived: locked, closeAvailable: g.named,
+    closeUnavailableReason: projectLanding ? "a merge is in progress" : specBusy(g) ? "another job for this spec is still running" : undefined,
+    pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
+  };
+  const runAvailable = !!specRunDialog(g, { ...opts, openSpec: opts.openSpec ?? {} }).control;
+  return firstSpecActionLabel(view, runAvailable, opts.lang ?? "en");
+}
+
 /** The spec's own state badge — what the head row draws in the State
  *  column. Shared with the caption line under an open row
  *  (phase-rows.ts), which draws it again on a phone: there the head
@@ -284,10 +296,10 @@ export function specHeadRow(
  */
 export function headStateBadge(g: SpecGroup, lang: Language): string {
   const state = specState(g);
-  const label = state.key === "running" && state.phase
-    ? `${t(lang, "list.state.running")}: ${stepLabel(state.phase, lang)}`
+  const label = state.key === "active" && state.phase
+    ? `${t(lang, "list.state.active")}: ${stepLabel(state.phase, lang)}`
     : t(lang, `list.state.${state.key}` as Parameters<typeof t>[1]);
-  const variant = state.key === "running" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
+  const variant = state.key === "active" ? "running" : state.key === "archived" || state.key === "closed" ? "done" : "ready";
   return badge(variant, label);
 }
 

@@ -294,8 +294,7 @@ const SPEC_HEADINGS: typeof HEADINGS = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
   { key: "state", label: "list.colStateAlone", attrs: ' data-col="state"' },
-  // Nothing to order by: the heading names the column and links nowhere.
-  { key: "actions", label: "list.colActions", attrs: ' data-col="actions"', plain: true },
+  { key: "actions", label: "list.colActions", attrs: ' data-col="actions"' },
 ];
 
 /** The list's table head with a sort link on every heading. `now.sort` is the

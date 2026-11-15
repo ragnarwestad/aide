@@ -22,11 +22,11 @@ describe("the state filter the reader chose is remembered", () => {
     const { base, server } = start();
     const chosen = await fetch(`${base}/specs?state=not-archived`);
     expect(stateCookie(chosen, server.port)).toContain(`aide_state_${server.port}=not-archived`);
-    expect(tickedLabels(await chosen.text())).toEqual(["Active"]);
+    expect(tickedLabels(await chosen.text())).toEqual(["Not archived"]);
     const jar = stateCookie(chosen, server.port).split(";")[0]!;
     // The Specs tab: `/` with nothing on it.
     const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
-    expect(tickedLabels(await plain.text())).toEqual(["Active"]);
+    expect(tickedLabels(await plain.text())).toEqual(["Not archived"]);
   });
 
   // Pressing an option never reloads the page — the script rewrites
@@ -40,10 +40,10 @@ describe("the state filter the reader chose is remembered", () => {
 
   test("several states survive the cookie and a later bare visit (AC-7)", async () => {
     const { base, server } = start();
-    const chosen = await fetch(`${base}/specs?state=analyzed,implemented`);
+    const chosen = await fetch(`${base}/specs?state=active,idle`);
     const jar = stateCookie(chosen, server.port).split(";")[0]!;
     const plain = await fetch(`${base}/specs`, { headers: { cookie: jar } });
-    expect(tickedLabels(await plain.text())).toEqual(["Analyzed", "Implemented"]);
+    expect(tickedLabels(await plain.text())).toEqual(["Active", "Idle"]);
   });
 
   test("a link that names a state still wins over what is remembered, including All", async () => {
@@ -71,7 +71,7 @@ describe("the state filter the reader chose is remembered", () => {
     const jar = stateCookie(chosen, server.port).split(";")[0]!;
     const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
     const html = await plain.text();
-    expect(tickedLabels(html)).toEqual(["Active"]);
+    expect(tickedLabels(html)).toEqual(["Not archived"]);
     expect(html).not.toContain('value="foo"');
   });
 });

@@ -52,7 +52,7 @@ describe("building the archived rows", () => {
     expect(filterShowsArchived("closed")).toBe(true);
     expect(filterShowsArchived("not-verified")).toBe(true);
     expect(filterShowsArchived("not-archived")).toBe(false);
-    for (const key of ["active", "running", "created", "reopened", "analyzed", "implemented"]) {
+    for (const key of ["active", "created", "idle", "reopened"]) {
       expect(filterShowsArchived(key)).toBe(false);
     }
     // A stale bookmark falls back to the same default.

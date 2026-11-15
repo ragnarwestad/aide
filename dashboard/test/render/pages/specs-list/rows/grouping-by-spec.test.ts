@@ -102,10 +102,10 @@ describe("the queue list groups by spec", () => {
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    // Jobs do not advance a spec's state. Its files contain no completed
-    // phase here, so the row remains Created regardless of job outcomes.
+    // The job history makes the settled spec Idle even when its files
+    // contain no completed phase.
     expect(head).toContain('class="badge b-ready"');
-    expect(head).toContain(">Created<");
+    expect(head).toContain(">Idle<");
     expect(head).not.toContain('class="badge b-refused"');
   });
 

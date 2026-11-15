@@ -36,59 +36,41 @@ const shownCount = (html: string): number => Number(html.match(/data-result-coun
 /** The spec rows the table draws. */
 const specRows = (html: string): number => html.match(/<tr[^>]*\bid="spec-/g)?.length ?? 0;
 
-describe("the Running entry", () => {
+describe("the Active entry", () => {
   const jobs: QueueRowView[] = [
     row({ id: "a", specFolder: "1-a", state: "running", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "b", specFolder: "2-b", state: "queued", steps: ["implement"], stepIndex: 0 }),
     row({ id: "c", specFolder: "3-c", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];
 
-  test("Running counts only running or landing jobs, never a plain queued one, with no per-step option beside it", () => {
+  test("Active counts queued, running and landing jobs (AC-7)", () => {
     const html = page({}, jobs);
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Running")).toMatch(/Running \(2\)/);
-    expect(panel).not.toMatch(/Running-\w/);
+    expect(optionByLabel(panel, "Active")).toMatch(/Active \(3\)/);
   });
 
-  test("choosing Running shows only the running/landing specs, not the plain queued one, and counts them", () => {
-    const html = page({ filter: { state: "active:all" } }, jobs);
+  test("choosing Active shows queued and running specs and counts them (AC-7)", () => {
+    const html = page({ filter: { state: "active" } }, jobs);
     expect(html).toContain("1-a");
-    expect(html).not.toContain("2-b");
+    expect(html).toContain("2-b");
     expect(html).toContain("3-c");
-    expect(shownCount(html)).toBe(2);
-    expect(optionByLabel(panelOf(html), "Running")).toContain('aria-checked="true"');
-  });
-
-  test("the legacy bare active key behaves exactly as active:all", () => {
-    const withLegacy = page({ filter: { state: "active" } }, jobs);
-    const withNew = page({ filter: { state: "active:all" } }, jobs);
-    expect(shownCount(withLegacy)).toBe(shownCount(withNew));
-    expect(optionByLabel(panelOf(withLegacy), "Running")).toContain('aria-checked="true"');
-  });
-
-  test("an old per-step key (kept in a bookmark or the aide_state cookie) renders exactly as active:all, not as All", () => {
-    const withOldStep = page({ filter: { state: "active:analyze" } }, jobs);
-    const withNew = page({ filter: { state: "active:all" } }, jobs);
-    expect(withOldStep).toContain("1-a");
-    expect(withOldStep).not.toContain("2-b");
-    expect(withOldStep).toContain("3-c");
-    expect(shownCount(withOldStep)).toBe(shownCount(withNew));
-    expect(optionByLabel(panelOf(withOldStep), "Running")).toContain('aria-checked="true"');
+    expect(shownCount(html)).toBe(3);
+    expect(optionByLabel(panelOf(html), "Active")).toContain('aria-checked="true"');
   });
 });
 
-describe("Running and settled spec progress", () => {
-  test("a done job whose branch is still landing counts under Running", () => {
+describe("Active and settled spec progress", () => {
+  test("a done job whose branch is still landing counts under Active", () => {
     const jobs: QueueRowView[] = [
       row({ id: "a", specFolder: "1-a", state: "done", landing: true, steps: ["implement"], stepIndex: 0 }),
     ];
     const html = page({}, jobs);
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Running")).toMatch(/Running \(1\)/);
+    expect(optionByLabel(panel, "Active")).toMatch(/Active \(1\)/);
     expect(optionByLabel(panel, "Created")).toMatch(/Created \(0\)/);
   });
 
-  test("a held-back queued job keeps the spec at Created", () => {
+  test("a held-back queued job is Active", () => {
     const jobs: QueueRowView[] = [
       row({
         id: "a",
@@ -101,7 +83,7 @@ describe("Running and settled spec progress", () => {
     ];
     const html = page({}, jobs);
     const panel = panelOf(html);
-    expect(optionByLabel(panel, "Created")).toMatch(/Created \(1\)/);
+    expect(optionByLabel(panel, "Active")).toMatch(/Active \(1\)/);
   });
 });
 
@@ -112,14 +94,14 @@ describe("old bookmarked state values fall back to All", () => {
   });
 });
 
-test("several states are checkbox links that toggle their key (AC-14)", () => {
-  const html = page({ filter: { state: "created,running", q: "needle", sort: "state" } });
+test("several states are checkbox links that toggle their key (AC-5)", () => {
+  const html = page({ filter: { state: "created,active", q: "needle", sort: "state" } });
   const panel = panelOf(html);
   expect(optionByLabel(panel, "Created")).toContain('role="checkbox" aria-checked="true"');
-  expect(optionByLabel(panel, "Running")).toContain('role="checkbox" aria-checked="true"');
-  const running = new URL(`http://x${optionByLabel(panel, "Running").match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&")}`);
-  expect(running.searchParams.get("state")).toBe("created");
-  expect(running.searchParams.get("q")).toBe("needle");
+  expect(optionByLabel(panel, "Active")).toContain('role="checkbox" aria-checked="true"');
+  const active = new URL(`http://x${optionByLabel(panel, "Active").match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&")}`);
+  expect(active.searchParams.get("state")).toBe("created");
+  expect(active.searchParams.get("q")).toBe("needle");
 });
 
 test("the count beside the dropdown is the number of specs the table shows, after the states and the search", () => {
@@ -129,7 +111,7 @@ test("the count beside the dropdown is the number of specs the table shows, afte
     row({ id: "c", specFolder: "3-hay-c", state: "failed", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "d", specFolder: "4-needle-d", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];
-  const html = page({ filter: { state: "created,running", q: "needle" } }, jobs);
+  const html = page({ filter: { state: "idle,active", q: "needle" } }, jobs);
   expect(shownCount(html)).toBe(3);
   expect(specRows(html)).toBe(3);
   expect(shownCount(page({}, jobs))).toBe(4);

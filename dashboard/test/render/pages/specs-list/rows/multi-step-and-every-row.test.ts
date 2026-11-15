@@ -280,15 +280,14 @@ describe("every spec is a row", () => {
     expect(order).toEqual(["aa-spec", "bb-spec"]);
   });
 
-  test("Active includes never-run specs without a separate chip", () => {
+  test("Not archived includes every live spec and states split Created from Idle", () => {
     const list = [job("j1", "analyze", { state: "done" })];
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
     expect(html).toMatch(/>All \(2\)</);
-    expect(html).toMatch(/>Running \(0\)</);
-    expect(html).toMatch(/>Created \(2\)</);
-    expect(html).toMatch(/>Analyzed \(0\)</);
-    expect(html).toMatch(/>Implemented \(0\)</);
+    expect(html).toMatch(/>Active \(0\)</);
+    expect(html).toMatch(/>Created \(1\)</);
+    expect(html).toMatch(/>Idle \(1\)</);
 
     expect(html).toContain("90-never-run");
     expect(html).toContain("90-has-run");

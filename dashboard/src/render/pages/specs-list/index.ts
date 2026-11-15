@@ -91,7 +91,7 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { firstActionLabel, LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
 import { SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { dependsOnLine } from "./depends-on";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
@@ -397,7 +397,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
     : requested;
   const normalizedOpts = f === requested ? opts : { ...opts, filter: f };
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const matched = sortGroups(shownGroups(groups, normalizedOpts), f);
+  const matched = sortGroups(shownGroups(groups, normalizedOpts), f, (group) => firstActionLabel(group, normalizedOpts), opts.lang ?? "en");
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.

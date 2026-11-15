@@ -12,31 +12,31 @@ import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-
 
 const rows = [
   { project: "aide", specFolder: "1-created", state: "not-started", done: [] },
-  { project: "aide", specFolder: "2-analyzed", state: "failed", done: ["analyze"] },
-  { project: "aide", specFolder: "3-implemented", state: "stopped", done: ["analyze", "implement"] },
+  { project: "aide", specFolder: "2-idle", state: "failed", done: ["analyze"] },
+  { project: "aide", specFolder: "3-active", state: "running", done: ["analyze"], lead: { state: "running", steps: ["implement"], stepIndex: 0 } },
 ] as SpecGroup[];
 
 describe("a state value names every ticked entry", () => {
-  test("offers and matches the spec states in their fixed order (AC-14)", () => {
+  test("offers and matches the requested spec states in their fixed order (AC-5, AC-6, AC-7)", () => {
     expect(STATE_FILTERS.map((entry) => entry.key)).toEqual([
-      "all", "not-archived", "running", "created", "reopened", "analyzed", "implemented", "archived", "closed", "not-verified",
+      "all", "not-archived", "active", "created", "idle", "reopened", "archived", "closed", "not-verified",
     ]);
-    expect(applyFilter(rows, { state: "analyzed,implemented" }).map((row) => row.specFolder))
-      .toEqual(["2-analyzed", "3-implemented"]);
+    expect(applyFilter(rows, { state: "idle,active" }).map((row) => row.specFolder))
+      .toEqual(["2-idle", "3-active"]);
   });
 
   test("drops All beside another state and keeps dropdown order (AC-3, AC-6)", () => {
-    expect(stateFilters("all,implemented").map((entry) => entry.key)).toEqual(["implemented"]);
-    expect(stateFilters("implemented,analyzed").map((entry) => entry.key)).toEqual(["analyzed", "implemented"]);
-    expect(stateFilters("implemented,no-such-entry").map((entry) => entry.key)).toEqual(["implemented"]);
+    expect(stateFilters("all,idle").map((entry) => entry.key)).toEqual(["idle"]);
+    expect(stateFilters("idle,active").map((entry) => entry.key)).toEqual(["active", "idle"]);
+    expect(stateFilters("idle,no-such-entry").map((entry) => entry.key)).toEqual(["idle"]);
   });
 
   test("adds and removes entries and returns to All (AC-3, AC-4)", () => {
-    expect(toggledState(STATE_FILTERS, chosenStates(STATE_FILTERS, "all"), "implemented")).toBe("implemented");
-    expect(toggledState(STATE_FILTERS, stateFilters("analyzed"), "implemented")).toBe("analyzed,implemented");
-    expect(toggledState(STATE_FILTERS, stateFilters("implemented"), "implemented")).toBe("all");
-    expect(toggledState(STATE_FILTERS, stateFilters("analyzed,implemented"), "implemented")).toBe("analyzed");
-    expect(toggledState(STATE_FILTERS, stateFilters("analyzed,implemented"), "all")).toBe("all");
+    expect(toggledState(STATE_FILTERS, chosenStates(STATE_FILTERS, "all"), "idle")).toBe("idle");
+    expect(toggledState(STATE_FILTERS, stateFilters("active"), "idle")).toBe("active,idle");
+    expect(toggledState(STATE_FILTERS, stateFilters("idle"), "idle")).toBe("all");
+    expect(toggledState(STATE_FILTERS, stateFilters("active,idle"), "idle")).toBe("active");
+    expect(toggledState(STATE_FILTERS, stateFilters("active,idle"), "all")).toBe("all");
   });
 
   test("keeps the Jobs state labels while Specs uses progress states", () => {
@@ -46,6 +46,21 @@ describe("a state value names every ticked entry", () => {
 
   test("sorts State by the state shown for the spec", () => {
     const sorted = sortGroups(rows, { sort: "state", dir: "asc" });
-    expect(sorted.map((row) => row.specFolder)).toEqual(["2-analyzed", "1-created", "3-implemented"]);
+    expect(sorted.map((row) => row.specFolder)).toEqual(["3-active", "1-created", "2-idle"]);
+  });
+
+  test("sorts by localized first action in either direction (AC-10)", () => {
+    const labels = new Map([["1-created", "Run"], ["2-idle", "Close"], ["3-active", "Reopen"]]);
+    expect(sortGroups(rows, { sort: "actions", dir: "asc" }, (row) => labels.get(row.specFolder)!, "en").map((row) => row.specFolder))
+      .toEqual(["2-idle", "3-active", "1-created"]);
+    expect(sortGroups(rows, { sort: "actions", dir: "desc" }, (row) => labels.get(row.specFolder)!, "en").map((row) => row.specFolder))
+      .toEqual(["1-created", "3-active", "2-idle"]);
+  });
+
+  test("translates Created, Idle, Active and Not archived in every language (AC-12)", () => {
+    for (const lang of ["en", "nb", "es", "de", "fr"] as const) {
+      for (const key of ["created", "idle", "active", "not-archived"])
+        expect(stateFilterLabel(key, lang)).not.toBe("");
+    }
   });
 });

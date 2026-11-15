@@ -57,17 +57,16 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // is no more "everything still going on" than an archived one is, but
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
   // just to be kept out of this entry.
-  { key: ACTIVE_FILTER_KEY, label: "Active", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
+  { key: ACTIVE_FILTER_KEY, label: "Not archived", excludeStates: [ARCHIVED_STATE, CLOSED_STATE] },
   // `["running"]` alone, not IN_FLIGHT (queued+running): `group-builders.ts`
   // now folds a job's `landing` flag into this same state before it reaches
   // here (see below), so "running" already means "running, or a step's
   // branch is still being merged" — queued-with-no-landing is Waiting's to
   // show, not this entry's.
-  { key: "running", label: "Running", where: (g) => specState(g).key === "running" },
+  { key: "active", label: "Active", where: (g) => specState(g).key === "active" },
   { key: "created", label: "Created", where: (g) => specState(g).key === "created" },
+  { key: "idle", label: "Idle", where: (g) => specState(g).key === "idle" },
   { key: "reopened", label: "Reopened", where: (g) => specState(g).key === "reopened" },
-  { key: "analyzed", label: "Analyzed", where: (g) => specState(g).key === "analyzed" },
-  { key: "implemented", label: "Implemented", where: (g) => specState(g).key === "implemented" },
   { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
   { key: CLOSED_STATE, label: "Closed", states: [CLOSED_STATE] },
   // Live and archived alike, and never a closed spec.
@@ -86,14 +85,15 @@ export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
  *  it always has. */
 const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   all: "list.state.all",
-  [ACTIVE_FILTER_KEY]: "list.state.active",
-  running: "list.state.running",
+  [ACTIVE_FILTER_KEY]: "list.state.notArchived",
+  active: "list.state.active",
   "active:all": "list.state.running",
   waiting: "list.state.waiting",
   done: "list.done",
   stopped: "list.state.stopped",
   failed: "list.state.failed",
   created: "list.state.created",
+  idle: "list.state.idle",
   reopened: "list.state.reopened",
   analyzed: "list.state.analyzed",
   implemented: "list.state.implemented",
@@ -106,7 +106,7 @@ export function stateFilterLabel(key: string, lang: Language): string {
   return t(lang, STATE_FILTER_LABEL_KEYS[key] ?? "list.state.all");
 }
 
-export const SORTS = ["started", "spec", "state", "cost", "created"];
+export const SORTS = ["started", "spec", "state", "cost", "created", "actions"];
 // The default view: the newest spec MADE at the top.
 // Folder order was the default from 2026-08-19 (chosen over "last
 // activity", which put a spec that had just been created at the bottom
@@ -117,7 +117,7 @@ export const DEFAULT_SORT = "created";
 // Each column has the direction you almost always want first: newest
 // run, dearest job, but names from A.
 export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
-  started: "desc", cost: "desc", spec: "desc", state: "asc", created: "desc",
+  started: "desc", cost: "desc", spec: "desc", state: "asc", created: "desc", actions: "asc",
 };
 
 export function stateFilter(key: string | undefined): StateFilterEntry {
@@ -127,8 +127,7 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
   // meant to a reader who never saw the sub-menu — "show me what is
   // running" — so both resolve to the one Running entry rather than
   // silently landing on "All".
-  const resolved = key === "active" || key?.startsWith("active:") ? "running" : key;
-  return STATE_FILTERS.find((f) => f.key === resolved) ?? DEFAULT_STATE_FILTER;
+  return STATE_FILTERS.find((f) => f.key === key) ?? DEFAULT_STATE_FILTER;
 }
 
 export function chosenStates<E extends { key: string }>(offered: readonly E[], value: string | undefined): E[] {
@@ -245,7 +244,7 @@ function compareFolders(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
-export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[] {
+export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter, actionLabel: (g: T) => string = () => "", lang: Language = "en"): T[] {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
@@ -254,10 +253,11 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
   // matching the archived one) — a column that DRAWS one
   // figure has to SORT by that figure, for both kinds of row alike, or
   // a click on "Time" reorders the page by a number nobody can see.
-  const key = (g: SortFacts): number | string =>
+  const key = (g: T): number | string =>
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? (g.done ? specState(g).key : g.state)
+    : sort === "actions" ? actionLabel(g)
     // A spec git could not date sorts as the NEWEST, not the oldest.
     // The epoch looks like where "unknown" would surprise least. In
     // use it is the opposite:
@@ -280,7 +280,7 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);
     const cmp =
-      (typeof x === "string" ? compareFolders(String(x), String(y)) : (x as number) - (y as number)) * sign;
+      (typeof x === "string" ? (sort === "actions" ? String(x).localeCompare(String(y), lang) : compareFolders(String(x), String(y))) : (x as number) - (y as number)) * sign;
     if (cmp !== 0) return cmp;
     // Only between two specs that have BOTH never run AND that git
     // could date neither of. A general folder tie-break is not free: 29

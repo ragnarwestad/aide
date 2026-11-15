@@ -83,6 +83,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.active": "Aktive",
   "list.state.running": "Kjører",
   "list.state.created": "Opprettet",
+  "list.state.idle": "Inaktiv",
+  "list.state.notArchived": "Ikke arkivert",
   "list.state.reopened": "Gjenåpnet",
   "list.state.analyzed": "Analysert",
   "list.state.implemented": "Implementert",
