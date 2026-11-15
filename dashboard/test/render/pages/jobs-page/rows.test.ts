@@ -1,3 +1,6 @@
+import { specRowsOf } from "../../../../src/render/pages/specs-list";
+import { groupBySpec } from "../../../../src/render/pages/specs-list/data-model";
+import { jobFacts, jobsViewRows } from "../../../../src/render/pages/jobs-page/view.ts";
 // Which scheduled jobs the Jobs tab shows, where every row
 // stands, what a job row is called, what it says under its state and what it
 // offers. One test per rule, on plain job-shaped objects.
@@ -18,6 +21,7 @@ import {
   specPlace,
   specsStoodForByJobs,
   specRounds,
+  specJobCreatedAt,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
 import { jobDismissible } from "../../../../src/queue/queue.ts";
 
@@ -455,4 +459,32 @@ test("schedule links name the configuration and the finished run's own report", 
   expect(scheduleJobLinks(sched({ state: "queued" }))?.report).toBeUndefined();
   expect(scheduleJobLinks(sched({ id: "failed-1", state: "failed" }))?.report).toBe("/schedule/aide/nightly?run=failed-1#report");
   expect(scheduleJobLinks(job())).toBeUndefined();
+});
+
+test("a spec's Jobs date is its newest job creation, not its spec date or completion", () => {
+  const jobs = [job({ createdAt: T(2), finishedAt: T(9) }), job({ createdAt: T(7), startedAt: T(8) })];
+  expect(specJobCreatedAt(jobs)).toBe(T(7));
+  expect(specJobCreatedAt([...jobs].reverse())).toBe(T(7));
+  expect(specJobCreatedAt([])).toBeUndefined();
+  const rounds = specRounds([
+    job({ createdAt: T(2), state: "done" }),
+    job({ createdAt: T(5), steps: ["reopen"], state: "done", finishedAt: T(6) }),
+    job({ createdAt: T(7), state: "done" }),
+  ], T(1));
+  expect(rounds.map((round) => specJobCreatedAt(round.jobs))).toEqual([T(2), T(7)]);
+});
+
+test("Jobs dates drive both the spec row and its position relative to Deploy, while Specs keeps its own date", () => {
+  const groups = groupBySpec([], [{ project: "aide", specFolder: "807-search", createdAt: T(1) }]);
+  const opts = { runnerAvailable: true, targets: [] };
+  const [onJobs] = specRowsOf(groups, { ...opts, jobCreatedAt: () => T(7) });
+  const [onSpecs] = specRowsOf(groups, opts);
+  expect(onJobs!.group.createdAt).toBe(T(7));
+  expect(onSpecs!.group.createdAt).toBe(T(1));
+  const deploy = job({ specFolder: "deploy", steps: ["deploy"], createdAt: T(6), state: "done" });
+  const place = { band: 2 as const, changedAt: 0 };
+  expect(jobsViewRows([
+    { key: "deploy", facts: jobFacts(deploy as never, Date.parse(T(8))), place },
+    { key: "807", facts: onJobs!.group, place },
+  ], { sort: "created", dir: "desc" }).map((row) => row.key)).toEqual(["807", "deploy"]);
 });

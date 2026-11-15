@@ -224,3 +224,9 @@ export function scheduleJobLinks(row: JobLike): { settings: string; report?: str
     ...(!inFlight(row) ? { report: scheduleRunPath(row.project, name, row.id) } : {}),
   };
 }
+
+/** The most recently created job in this row's round, independent of when it ran or ended. */
+export function specJobCreatedAt(jobs: readonly Pick<JobLike, "createdAt">[]): string | undefined {
+  return jobs.reduce<string | undefined>((latest, job) =>
+    !latest || Date.parse(job.createdAt) > Date.parse(latest) ? job.createdAt : latest, undefined);
+}
