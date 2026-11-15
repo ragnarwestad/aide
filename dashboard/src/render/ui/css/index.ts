@@ -50,6 +50,7 @@ const SECTIONS = [
   "components/form-dialog.css",
   "components/provider-face.css",
   "list/list.css",
+  "list/execution-group-card.css",
   "list/execution-group-editor.css",
   "list/list-spec-head.css",
   "list/list-rows.css",
