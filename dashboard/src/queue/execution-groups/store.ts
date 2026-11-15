@@ -18,6 +18,7 @@ function parse(value: unknown): ExecutionGroup | undefined {
   if (raw.displayName !== undefined && typeof raw.displayName !== "string") return undefined;
   if (!strings(raw.members) || typeof raw.branch !== "string" || !EXECUTION_GROUP_STATES.includes(raw.state as never)) return undefined;
   if (!strings(raw.completedMembers) || !Array.isArray(raw.jobs)) return undefined;
+  if (raw.stoppedByUser !== undefined && typeof raw.stoppedByUser !== "boolean") return undefined;
   if (raw.sharedChoices !== undefined && typeof raw.sharedChoices !== "boolean") return undefined;
   if (raw.archiveModel !== undefined && typeof raw.archiveModel !== "string") return undefined;
   if (raw.archiveProvider !== undefined && typeof raw.archiveProvider !== "string") return undefined;
@@ -91,7 +92,7 @@ export class ExecutionGroupStore {
   update(id: string, patch: Partial<Omit<ExecutionGroup, "id" | "project">>): ExecutionGroup {
     const current = this.groups.get(id);
     if (!current) throw new Error(`no such execution group: ${id}`);
-    const next = { ...current, ...structuredClone(patch), id: current.id, project: current.project };
+    const next = { ...current, ...structuredClone(patch), ...(patch.state && patch.state !== "stopped" ? { stoppedByUser: undefined } : {}), id: current.id, project: current.project };
     this.groups.set(id, next);
     this.write();
     return structuredClone(next);
@@ -105,7 +106,7 @@ export class ExecutionGroupStore {
   queueMember(id: string, member: string): ExecutionGroup {
     return this.update(id, { state: "queued", currentMember: member, error: undefined });
   }
-  stop(id: string): ExecutionGroup { return this.update(id, { state: "stopped", error: undefined }); }
+  stop(id: string, byUser = false): ExecutionGroup { return this.update(id, { state: "stopped", error: undefined, stoppedByUser: byUser || this.get(id)?.stoppedByUser || undefined }); }
   remove(id: string, at = this.now()): ExecutionGroup { return this.update(id, { removedAt: at }); }
   complete(id: string, result: { completedAt?: string; prUrl?: string }): ExecutionGroup {
     return this.update(id, { state: "completed", completedAt: result.completedAt ?? this.now(), prUrl: result.prUrl, error: undefined });

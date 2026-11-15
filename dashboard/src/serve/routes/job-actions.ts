@@ -16,7 +16,7 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { executionGroupAction, groupMemberSteps, groupReservesSpec, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -104,10 +104,8 @@ export async function handleJobActionRoutes(
     const action = askedAction ?? (available === "remove" ? undefined : available);
     if (!action || action !== available) return json({ error: `the execution group cannot ${askedAction ?? "run"} while it is ${execution.state}` }, 409);
     if (action === "stop") {
-      ctx.queue.executionGroups.stop(execution.id);
-      const current = historical.find((job) => job.id === execution.jobs.at(-1)?.id)
-        ?? historical.find(inFlight);
-      if (current) cancelJob(ctx, current);
+      ctx.queue.executionGroups.stop(execution.id, true);
+      for (const job of historical.filter(inFlight)) cancelJob(ctx, job);
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
     if (action === "start") {
@@ -181,6 +179,13 @@ export async function handleJobActionRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const askedFor = raw as Record<string, unknown> | null;
+    if (typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string" &&
+      groupReservesSpec(ctx.queue, askedFor.project, askedFor.specFolder)) {
+      const spec = `${askedFor.project}/${askedFor.specFolder}`;
+      const error = "this spec belongs to an active group — start or stop it from the group";
+      logRefusal("run", spec, error);
+      return json({ error, spec }, 409);
+    }
     // A backward move — `analyze` or `create`
     // requested on a spec that has already reached a later phase — is
     // refused before the job ever reaches the queue, naming `reset` (or
@@ -286,6 +291,9 @@ export async function handleJobActionRoutes(
     if (peers.length && typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string") {
       const groupName = typeof askedFor.groupName === "string" ? askedFor.groupName.trim() : "";
       if (!groupName) return json({ error: "group name is required" }, 400);
+      const steps = selected(askedFor.steps).filter((step) => step !== "archive");
+      if (!steps.length) return json({ error: "a group starts with Analyze or Implement; Archive runs on the group" }, 409);
+      askedFor.steps = steps;
       const positions = selected(askedFor.position).map(Number);
       const orderedPeers = peers.map((member, index) => ({ member, position: positions[index] ?? index + 1 }))
         .sort((a, b) => a.position - b.position).map(({ member }) => member);
@@ -297,7 +305,12 @@ export async function handleJobActionRoutes(
         sharedChoices: true,
       });
       if (!made.ok) return made.response;
-      createdGroup = made.group;
+      const archiveModel = typeof askedFor.model === "string" ? askedFor.model : (askedFor.model as Record<string, unknown> | undefined)?.archive;
+      const archiveProvider = (askedFor.provider as Record<string, unknown> | undefined)?.archive;
+      createdGroup = ctx.queue.executionGroups.update(made.group.id, {
+        ...(typeof archiveModel === "string" && archiveModel ? { archiveModel } : {}),
+        ...(typeof archiveProvider === "string" && archiveProvider ? { archiveProvider } : {}),
+      });
       askedFor.executionGroupId = made.group.id;
       askedFor.specFolder = made.group.members[0]!;
     }

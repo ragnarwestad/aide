@@ -122,7 +122,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // Running, or landing — not queued: a queued job writes nothing yet,
   // and an archive job parked on this very tick is queued (the same
   // rule the tick route applies, `specWriteInFlight`).
-  const activeJob = !!view.lead && writing(view.lead);
+  const activeJob = !!view.groupReserved || (!!view.lead && writing(view.lead));
   // An archived spec's rows stay, and nothing on them presses.
   // A job in flight is writing the file this form would commit onto.
   //

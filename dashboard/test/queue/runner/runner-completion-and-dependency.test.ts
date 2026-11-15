@@ -27,6 +27,25 @@ const resolve = (project: string) =>
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
+test("a group member finishes after Implement without running a trailing Archive", () => {
+  const job = enqueue({ steps: ["analyze", "implement", "archive"] });
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: [job.specFolder], branch: "aide/group-1" });
+  store.update(job.id, { executionGroupId: group.id });
+  const runner = makeRunner({ readResult: () => okResult(0.1) });
+  for (let i = 0; i < 3; i++) { runner.tick(); runner.poll(); }
+  expect(spawns.map((spawn) => spawn.step)).toEqual(["analyze", "implement"]);
+  expect(store.get(job.id)).toMatchObject({ state: "done", stepIndex: 1 });
+});
+
+test("a restored group member queued at its trailing Archive never starts it", () => {
+  const job = enqueue({ steps: ["analyze", "implement", "archive"] });
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: [job.specFolder], branch: "aide/group-1" });
+  store.update(job.id, { executionGroupId: group.id, stepIndex: 2 });
+  makeRunner().tick();
+  expect(spawns).toEqual([]);
+  expect(store.get(job.id)).toMatchObject({ state: "done", stepIndex: 1 });
+});
+
 describe("the completion hook and the landing window", () => {
   const outcome = (extra: Record<string, unknown> = {}) => ({ ...okResult(0.1), ...extra });
 

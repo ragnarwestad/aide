@@ -78,6 +78,7 @@ export function tabBar<T extends string>(
     data?: Record<string, string>;
     /** The header's own row: `tabbar` without `subtabs`. */
     site?: boolean;
+    showZero?: boolean;
   } = {},
 ): string {
   // A real tab bar, the same one the site's own two tabs are: the row
@@ -103,12 +104,14 @@ export function tabBar<T extends string>(
     tabs
       .map((t) => {
         const label = o.label ? o.label(t) : tabWord(o.lang ?? "en", t);
-        const n = counts[t] || undefined;
+        const n = counts[t] === 0 && o.showZero ? 0 : counts[t] || undefined;
         const to = href(t);
         const here = t === current ? ` aria-current="page"` : "";
         const text = `${esc(label)}${n === undefined ? "" : ` (${n})`}`;
         const icon = o.icon?.(t);
-        const body = icon ? `${icon}<span>${text}</span>` : text;
+        const body = o.site && n !== undefined
+          ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${n})</span>`
+          : icon ? `${icon}<span>${text}</span>` : text;
         const title = icon ? ` title="${esc(label)}"` : "";
         // data-goto: a real page load — nav-busy.ts marks it waiting.
         return to === undefined

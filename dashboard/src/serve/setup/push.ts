@@ -2,6 +2,8 @@
 // store, which takes its `observe` on its change hook, and read from the
 // store lazily so neither has to wait for the other.
 import { createPush, type Push } from "../../push";
+import { runningSpecCount } from "../../queue/job-rules/running-specs.ts";
+import { setRunningSpecCount } from "../../render/ui/running-specs";
 import { waitingCount } from "../../push/attention.ts";
 import { setWaitingCount } from "../../render/ui/pwa.ts";
 import type { Job } from "../../queue/queue.ts";
@@ -18,6 +20,7 @@ export function setupPush(
   // push sends for the app's icon.
   const waiting = () => waitingCount(inputs.jobs(), (project) => inputs.served.has(project));
   setWaitingCount(waiting);
+  setRunningSpecCount(() => runningSpecCount(inputs.jobs(), (project) => inputs.served.has(project)));
   return createPush({
     waiting,
     jobs: inputs.jobs,

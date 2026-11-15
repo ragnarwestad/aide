@@ -15,6 +15,14 @@ export const JOBS_CATALOG = {
       fr: "ouvre la spécification pour en voir la raison",
     },
   },
+  "group.stoppedByUser": {
+    en: "the group stopped because you pressed Stop",
+    nb: "gruppa stoppet fordi du trykket Stopp",
+    es: "el grupo se detuvo porque pulsaste Detener",
+    de: "die Gruppe wurde angehalten, weil du auf Stoppen geklickt hast",
+    fr: "le groupe s’est arrêté parce que vous avez appuyé sur Arrêter",
+    statement: "a user-requested stop is information, not a failure to resolve",
+  },
   "group.stopped": {
     en: "the group is stopped",
     nb: "gruppa er stoppet",

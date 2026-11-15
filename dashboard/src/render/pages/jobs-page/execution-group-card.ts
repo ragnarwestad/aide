@@ -6,6 +6,7 @@ import { badge, buttonForm, foldButton, headerMenu, pips, progressDialog, stepLa
 import type { SpecGroup, SpecTarget, SpecsPageOptions } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
 import { phaseSubRows } from "../specs-list/phase-rows.ts";
+import { groupArchiveAttempts } from "../specs-list/group-archive-projection.ts";
 import { specBusy } from "../specs-list/row-state.ts";
 import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
@@ -71,7 +72,9 @@ export function executionGroupCard(
   opts: { openFor?: string; candidates?: SpecTarget[]; locked?: ReadonlySet<string>; jobs?: QueueRowView[]; list?: SpecsPageOptions } = {},
 ): string {
   const members = group.members.map((folder) => rows.find((row) => row.group.project === group.project && row.group.specFolder === folder)).filter((row): row is ExecutionGroupMemberRow => !!row);
-  const archiveJob = opts.jobs?.filter((job) => job.executionGroupId === group.id && job.steps.includes("archive")).at(-1);
+  const archiveChoice = opts.jobs?.filter((job) => job.executionGroupId === group.id && job.steps.includes("archive")).at(-1);
+  const archiveAttempts = groupArchiveAttempts(group.id, opts.jobs ?? []);
+  const archiveJob = archiveAttempts[0];
   const totalDurationMs = members.reduce((sum, member) => sum + (member.group.totalDurationMs ?? 0), 0);
   const liveMember = members.find((member) => member.group.totalDurationSince);
   const otherDurationMs = liveMember
@@ -144,12 +147,13 @@ export function executionGroupCard(
     executionGroupStopRows(group, members.map((member) => member.group), lang as Language) +
     `</tbody>`;
   const archiveBase = members[0]?.group;
-  const archiveModel = archiveJob?.stepModels?.archive ?? (typeof archiveJob?.model === "string" ? archiveJob.model : undefined) ?? group.archiveModel;
+  const archiveModel = archiveChoice?.stepModels?.archive ?? (typeof archiveChoice?.model === "string" ? archiveChoice.model : undefined) ?? group.archiveModel;
   const archiveRow = archiveBase ? phaseSubRows({
     ...archiveBase,
+    executionGroupActive: false,
     lead: archiveJob,
     done: group.state === "completed" ? [...new Set([...archiveBase.done, "archive"])] : archiveBase.done.filter((step) => step !== "archive"),
-    phases: [{ step: "archive", attempts: archiveJob ? [archiveJob] : [], history: {}, model: archiveModel }],
+    phases: [{ step: "archive", attempts: archiveAttempts, history: {}, model: archiveModel }],
   }, {
     ...(opts.list ?? { runnerAvailable: true, targets: [] }),
     executionGroups: [],

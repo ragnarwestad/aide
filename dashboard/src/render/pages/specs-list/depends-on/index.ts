@@ -13,7 +13,7 @@ import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecTarget } from "../data-model";
 import { LIST_COLUMNS } from "../row-shared.ts";
-import { specBusy } from "../row-state.ts";
+import { specLocked } from "../row-state.ts";
 
 /** The form's id, which its boxes name with `form=` too, so a tick is
  *  remembered per spec across a redraw. */
@@ -67,7 +67,7 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
   const id = dependsOnFormId(g);
   const facts = {
     place: "running-row",
-    jobInFlight: specBusy(g),
+    jobInFlight: specLocked(g),
     analyzeRun: g.done.includes("analyze"),
     started: g.done.some((step) => step !== "create"),
   } as const;

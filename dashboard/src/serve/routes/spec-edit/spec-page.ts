@@ -18,6 +18,7 @@ import type { RoutesContext } from "..";
 import { afterTick } from "./checks.ts";
 import { writing } from "../../../queue/queue.ts";
 import { branchForSpec } from "../../../project/discover/group.ts";
+import { groupReservesSpec } from "../../../queue/execution-groups";
 
 type SpecView = NonNullable<Awaited<ReturnType<RoutesContext["specPageView"]>>>;
 
@@ -73,6 +74,7 @@ export async function specPageRoutes(
     // repeat of this same URL — a reload of the Steps
     // tab it redirects to included — is a no-op read, not a second round.
     if (url.searchParams.get("startTestServer") === "1") {
+      if (groupReservesSpec(ctx.queue, project!, specFolder!)) return json({ error: "this spec belongs to an active group" }, 409);
       const ref = ctx.specRef(project!, specFolder!);
       const capable =
         !ref?.archived &&

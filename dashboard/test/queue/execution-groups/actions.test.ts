@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { executionGroupControls, groupMemberSteps, type ExecutionGroupMemberState } from "../../../src/queue/execution-groups/actions.ts";
+import { executionGroupControls, groupMemberSteps, groupReservesSpec, type ExecutionGroupMemberState } from "../../../src/queue/execution-groups/actions.ts";
+import type { ExecutionGroup } from "../../../src/queue/execution-groups";
 
 const member = (o: Partial<ExecutionGroupMemberState> = {}): ExecutionGroupMemberState => ({
   implemented: false, archived: false, acceptanceOpen: false, busy: false, ...o,
@@ -23,4 +24,18 @@ test("a member with neither ticked starts on the ones it has not done", () => {
   expect(groupMemberSteps(undefined, ["create"])).toEqual(["analyze", "implement"]);
   expect(groupMemberSteps(undefined, ["create", "analyze"])).toEqual(["implement"]);
   expect(groupMemberSteps(["archive"], ["create", "analyze"])).toEqual(["implement"]);
+});
+
+test("active groups reserve waiting members but preserve a member's own queued choices", () => {
+  const group = { project: "aide", members: ["1-first", "2-next"] } as ExecutionGroup;
+  const job = { project: "aide", specFolder: "2-next", state: "queued" };
+  for (const state of ["queued", "running", "archiving"] as const) {
+    const executionGroups = { list: () => [{ ...group, state }] };
+    expect(groupReservesSpec({ executionGroups, list: () => [] }, "aide", "2-next")).toBe(true);
+    expect(groupReservesSpec({ executionGroups, list: () => [job] }, "aide", "2-next")).toBe(false);
+    expect(groupReservesSpec({ executionGroups, list: () => [] }, "another", "2-next")).toBe(false);
+  }
+  for (const state of ["prepared", "stopped", "waiting-acceptance", "completed"] as const) {
+    expect(groupReservesSpec({ executionGroups: { list: () => [{ ...group, state }] }, list: () => [] }, "aide", "2-next")).toBe(false);
+  }
 });
