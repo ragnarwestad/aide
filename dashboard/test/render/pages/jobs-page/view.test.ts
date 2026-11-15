@@ -218,6 +218,32 @@ describe("a group stands for its member specs, each by its own state", () => {
   const counts = (rows: Entry[], f: JobsFilter = {}): Record<string, number> =>
     Object.fromEntries(jobsStateOptions(factsOf(rows), f).map((o) => [o.key, o.count]));
 
+  test("a member reference, title or description finds its group while existing searches still work (AC-1, AC-2, AC-3)", () => {
+    const grouped = group("specs-jobs-improvements", "stopped", [
+      member("805-member-reference", "stopped", { title: "Grouped title" }),
+      member("806-member-title", "queued", { title: "Distinct member title", description: "Distinct member description" }),
+    ]);
+    const ungrouped = spec("aide:804", { specFolder: "804-ungrouped", state: "stopped", title: "Outside the group" });
+
+    for (const q of ["aide:805", "distinct member title", "distinct member description", "specs-jobs-improvements"]) {
+      expect(view([ungrouped, grouped], { q })).toEqual(["specs-jobs-improvements"]);
+    }
+    expect(view([ungrouped, grouped], { q: "aide:804" })).toEqual(["aide:804"]);
+  });
+
+  test("member searches feed displayed rows and state and type counts before selected filters (AC-4)", () => {
+    const grouped = group("specs-jobs-improvements", "stopped", [
+      member("805-waiting", "queued"), member("806-failed", "failed"),
+    ]);
+    const filter = { q: "aide:805", state: "waiting", kind: "group" };
+
+    expect(view([grouped], filter)).toEqual(["specs-jobs-improvements"]);
+    expect(counts([grouped], filter)).toMatchObject({ all: 2, waiting: 1, failed: 1 });
+    expect(jobsKindOptions(factsOf([grouped]), filter).map((option) => [option.key, option.count])).toEqual([
+      ["all", 2], ["spec", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 2],
+    ]);
+  });
+
   test("a prepared group counts its members under their own states, never its own (AC-1)", () => {
     const prepared = group("prepared", "stopped", [member("82-queued", "queued"), member("83-new", "not-started")]);
     const c = counts([prepared]);

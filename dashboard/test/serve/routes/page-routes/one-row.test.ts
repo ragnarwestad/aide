@@ -104,16 +104,15 @@ describe("one row of the Jobs tab", () => {
     await sameAsWholeList(`${base}/`, "lang=nb", KEYS, { shown: KEYS });
   });
 
-  test("a group member answers no row while the view hides its group's card (AC-5, AC-6)", async () => {
+  test("a group member follows the group card retained by its search match (AC-5, AC-6)", async () => {
     const { base } = board();
-    // The term matches the member's folder and not its group's name.
-    await sameAsWholeList(`${base}/`, "q=82-first", MEMBERS, { hidden: MEMBERS });
+    await sameAsWholeList(`${base}/`, "q=82-first", MEMBERS, { shown: MEMBERS });
   });
 
   test("a member of a group that is one by its name alone follows its card too (AC-5, AC-6)", async () => {
     const { base } = board({ registered: false });
     await sameAsWholeList(`${base}/`, "", MEMBERS, { shown: MEMBERS });
-    await sameAsWholeList(`${base}/`, "q=82-first", MEMBERS, { hidden: MEMBERS });
+    await sameAsWholeList(`${base}/`, "q=82-first", MEMBERS, { shown: MEMBERS });
   });
 });
 

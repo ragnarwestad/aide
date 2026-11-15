@@ -19,7 +19,7 @@ import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobPlace, jobRowKeys, specPlace, specRounds, specsStoodForByJobs, type TabPlace } from "./rows.ts";
-import { jobFacts, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
+import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
@@ -88,22 +88,24 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
     const current: RowFacts[] = group.members
       .map((folder) => specRows.find((row) => row.key === groupKey(group.project, folder))?.group)
       .filter((member): member is SpecGroup => !!member);
+    const facts = {
+      project: group.project, specFolder: group.name,
+      state: executionGroupRowState(group, !!failed),
+      title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
+      members: current,
+    } as RowFacts;
+    const searchOpenFor = jobsSearchMatch(facts, v.list.filter ?? {}).member ? "search" : undefined;
     return {
       key,
       html: draws(key)
         ? executionGroupCard(group, specRows, lang, {
-          openFor,
+          openFor: openFor ?? searchOpenFor,
           candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
           locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
         })
         : "",
       place: executionGroupPlace(group, members),
-      facts: {
-        project: group.project, specFolder: group.name,
-        state: executionGroupRowState(group, !!failed),
-        title: group.name, createdAt: group.createdAt, itemCount: group.members.length,
-        members: current,
-      } as RowFacts,
+      facts,
     };
   });
   const rowKeys = v.rowKeys ?? jobRowKeys(v.shown);

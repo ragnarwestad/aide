@@ -11,7 +11,6 @@ import {
   SORTS,
   SORT_DEFAULT_DIR,
   STATE_FILTERS,
-  applyFilter,
   chosenStates,
   matchesSearch,
   matchesStateFilter,
@@ -120,14 +119,15 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
   };
 }
 
-/** The view with its state entry resolved for this tab: an entry the tab does
- *  not offer (an old `archived` or `closed` link) is All, before anything is
- *  filtered or counted. The tab's view holds no project: the search finds one. */
-const onTab = (f: JobsFilter): SpecsFilter => ({ ...f, state: "all", project: undefined });
-
 const rowKind = (facts: RowFacts): Exclude<JobsKind, "all"> => {
   if (facts.itemCount !== undefined && !facts.lead) return "group";
   return facts.lead ? jobRowKind(facts.lead) : "spec";
+};
+
+/** Whether a Jobs row's own facts or one of a group's member rows matches the search. */
+export const jobsSearchMatch = (row: RowFacts, f: SpecsFilter): { matches: boolean; member: boolean } => {
+  const member = !!f.q?.trim() && (row.members?.some((candidate) => matchesSearch(candidate, f)) ?? false);
+  return { matches: matchesSearch(row, f) || member, member };
 };
 
 /** The rows the view shows, in its order: the search cuts them as
@@ -139,7 +139,7 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
   const tabFilters = jobsStateFilters(f.state);
   const kinds = jobsKindFilters(f.kind);
-  const searched = applyFilter(inOrder.map((e) => e.facts), { ...onTab(f), state: "all" });
+  const searched = inOrder.map((e) => e.facts).filter((facts) => jobsSearchMatch(facts, f).matches);
   const kept = searched.filter((facts) =>
     (choosesAll(f.state) || stateRows(facts).some((row) => tabFilters.some((entry) => matchesStateFilter(entry, row)))) &&
     kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts))
@@ -152,7 +152,7 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
  *  counting the specs and jobs the searched rows stand for, each once, by its own state. */
 export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean; state: string }[] {
   const chosen = jobsStateFilters(f.state);
-  const counted = facts.filter((g) => matchesSearch(g, f));
+  const counted = facts.filter((g) => jobsSearchMatch(g, f).matches);
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
     count: counted.reduce((sum, g) => sum + stateRows(g).filter((row) => matchesStateFilter(s, row)).length, 0),
@@ -164,7 +164,7 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
 /** What the Kind part offers, counted over the same searched rows as State. */
 export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKind; count: number; on: boolean; kind: string }[] {
   const chosen = jobsKindFilters(f.kind);
-  const counted = facts.filter((row) => matchesSearch(row, f));
+  const counted = facts.filter((row) => jobsSearchMatch(row, f).matches);
   return JOBS_KIND_FILTERS.map((key) => ({
     key,
     count: counted
