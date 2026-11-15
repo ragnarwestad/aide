@@ -89,7 +89,6 @@ export {
   type SpecGroup,
 };
 import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
-import { specRunDialogRow } from "./phase-rows.ts";
 import { dependsOnLine } from "./depends-on";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
@@ -353,7 +352,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
       (opts.openSpec.detail?.() ?? "") +
       `</td></tr>`
     : "";
-  const runs = opts.openSpec ? dependsOnLine(g, opts) + specRunDialogRow(g, opts) : phaseSubRows(g, opts, now);
+  const runs = opts.openSpec ? dependsOnLine(g, opts) : phaseSubRows(g, opts, now);
   return opened.has(key)
     ? head + runs + notice + detail + gap
     : head + notice + gap;

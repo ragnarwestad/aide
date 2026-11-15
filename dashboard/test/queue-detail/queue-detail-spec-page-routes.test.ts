@@ -225,19 +225,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(html).toContain("It shows nothing about");
   });
 
-  // `<select` is not checked here: the banner carries the create choices'
-  // disabled criteria-checks select. The caption line is looked for as a
-  // row, since the page's stylesheet names `data-caption` too.
-  test("the open row is the spec alone: no phase line and no Run, and Close or Reopen at the end of its tabs", async () => {
+  test("a live spec offers Close and an archived spec offers Reopen", async () => {
     const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const open = await (await fetch(`${live.base}${PATH}`)).text();
     expect(open).toContain('data-ask="closeask"');
-    // The spec's own phase table sits inside its detail row; the list row
-    // around it has no phase line of its own.
-    const row = open.replace(/<tr class="specdetail"[\s\S]*?(?=<tr class="specgap")/, "");
-    for (const absent of ['<tr class="subrow" data-caption', '<tr class="subrow" data-step=', 'class="rowrun"']) {
-      expect([absent, row.includes(absent)]).toEqual([absent, false]);
-    }
     const archived = await (await fetch(`${live.base}/specs/aide/70-an-old-spec`)).text();
     expect(archived).toContain('data-ask="reopenask"');
     expect(archived).not.toContain('data-ask="reopenask-aide/70-an-old-spec"');

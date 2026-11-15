@@ -3,7 +3,7 @@
 // run.
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
-import { groupKey, isArchivedRow, offersArchiveAgain, type SpecGroup } from "./data-model";
+import { groupKey, isArchivedRow, offersArchiveAgain, PHASE_LINES, type SpecGroup } from "./data-model";
 import { nextPhase, phasesAhead, runButton } from "./data-model/phase.ts";
 import type { Language } from "../../../i18n";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
@@ -182,4 +182,11 @@ export function roundUnderWay(g: SpecGroup): boolean {
   const lead = g.lead;
   if (!lead || !inFlight(lead)) return false;
   return lead.steps.slice(lead.stepIndex).some((s) => s === "analyze" || s === "implement");
+}
+
+/** Run keeps the whole workflow visible; Create already made this spec. */
+export function specRunChoices(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): { step: string; checked: boolean; locked: boolean }[] {
+  if (isArchivedRow(g) || specBusy(g) || !g.named) return [];
+  const ticked = chosenSteps(g, opts);
+  return PHASE_LINES.map((step) => ({ step, checked: step === "create" || ticked.has(step), locked: step === "create" }));
 }

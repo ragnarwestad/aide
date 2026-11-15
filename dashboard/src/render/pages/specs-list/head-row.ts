@@ -1,3 +1,4 @@
+import { specRunDialog } from "./phase-rows.ts";
 import { t, type Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
@@ -152,6 +153,7 @@ export function specHeadRow(
   // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
   // badge already followed for "archived", now told apart by `g.state`.
   const stateBadge = opts.openSpec ? "" : headStateBadge(g, lang);
+  const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
   const jobs = opts.openSpec && g.named && g.hasJobs
     ? btnLink({ href: `/?q=${encodeURIComponent(`${g.project}:${number}`)}`, label: t(lang, "shell.tabRunning"), variant: "primary", small: true })
     : "";
@@ -238,7 +240,7 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${jobs}</td>` +
+    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${jobs || run.control ? `<span class="row">${run.control}${jobs}</span>` : ""}${run.dialog}</td>` +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by
     // it on every run, and the spec's own creation date says nothing about

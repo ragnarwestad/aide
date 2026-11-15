@@ -9,7 +9,7 @@ import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import type { CriteriaChecks } from "../../../project/discover";
 import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
-import { PHASE_LINES, type SpecGroup } from "../specs-list";
+import { PHASE_LINES, type SpecGroup } from "../specs-list/data-model";
 import { aiPicker, modelPicker, phaseCaptionCells, type PickerOptions } from "../specs-list/model-picker.ts";
 import type { NewSpecPageOptions } from ".";
 
@@ -75,14 +75,21 @@ export function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): str
     spentUsd: 0, costUnmeasured: false, phases: [], done: [],
     dependsOn: [], analyzeStale: false,
   };
-  const captionRow = (opts.modelChoices ?? []).length
+  return phaseChoiceTable(row, pickerOpts, formId, PHASE_LINES.map((step) => ({ step, checked: true, locked: step === "create" })), lang);
+}
+
+/** The phase choices shared by New spec and an existing spec's Run dialog. */
+export function phaseChoiceTable(
+  row: SpecGroup, pickerOpts: PickerOptions, formId: string,
+  choices: { step: string; checked: boolean; locked: boolean }[], lang: Language,
+): string {
+  const captionRow = (pickerOpts.modelChoices ?? []).length
     ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", lang)}</tr>`
     : "";
-  const phaseRows = PHASE_LINES.map((step) => {
+  const phaseRows = choices.map(({ step, checked, locked }) => {
     // `create` MADE the spec these lines belong to and cannot be
     // created again — the same locked, nameless box `phase-rows.ts`'s
     // own `create` line draws for an existing spec.
-    const locked = step === "create";
     const box = phaseChip({
       dataAttr: "data-phase",
       value: step,
@@ -92,19 +99,19 @@ export function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): str
         : stepLabel(step, lang),
       name: locked ? "" : "steps",
       form: formId,
-      checked: true,
+      checked,
       disabled: locked,
       plain: true,
     });
     return (
       `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, lang))}</td>` +
       `<td class="modelcell"><span class="row">` +
-      `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}` +
-      `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}</span>` +
+      `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId, locked)}` +
+      `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId, locked)}</span>` +
       `${box}</span></td></tr>`
     );
   }).join("");
-  return `<table class="list"><tbody>${captionRow}${phaseRows}</tbody></table>`;
+  return `<table class="list phasechoices"><tbody>${captionRow}${phaseRows}</tbody></table>`;
 }
 
 /** What the four settings show, and whether they post. A setting posts its

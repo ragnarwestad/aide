@@ -557,8 +557,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(jobsTab).toContain("data-caption");
     expect(jobsTab).toContain("data-step=");
     expect(list).toContain('class="checklist"');
-    expect(list).not.toContain("data-caption");
-    expect(list).not.toContain("data-step=");
     expect(jobsTab).toContain(">Held back<");
   });
 
@@ -570,7 +568,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(jobsTab).toContain('class="rowrun"');
     expect(list).not.toBe("");
     expect(list).not.toContain('class="rowrun"');
-    expect(list).not.toContain("data-caption");
     expect(jobsTab).toContain("83-idle");
     expect(list).toContain("83-idle");
   });

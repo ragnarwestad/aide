@@ -167,7 +167,7 @@ describe("an open row on the Specs list is the spec alone", () => {
       const html = onList(key);
       expect(html).toContain("THE-SPEC");
       for (const absent of [
-        "data-caption", "data-step", "phasemsgs",
+        "phasemsgs",
         'class="rowrun"', 'data-ask="cancelask-run82"', 'data-ask="reopenask-aide/50-archived"',
       ]) {
         expect([key, absent, html.includes(absent)]).toEqual([key, absent, false]);
@@ -192,31 +192,6 @@ describe("an open row on the Specs list is the spec alone", () => {
     expect(html).toMatch(/value="implement" checked/);
     expect(html).not.toMatch(/value="analyze" checked/);
     expect(html).toMatch(/name="model\.implement"[\s\S]*?<option value="codex-fast"[^>]* selected/);
-  });
-
-  test("a spec waiting for Archive has no Run dialog on the Specs list", () => {
-    const key = "aide/81-queue-x";
-    const html = group(renderSpecsRows([], {
-      ...base,
-      targets: [{ project: "aide", specFolder: "81-queue-x", done: ["create", "analyze", "implement"] }],
-      openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
-    }, NOW), key);
-
-    expect(html).not.toContain("data-run-dialog");
-    expect(html).not.toContain('value="archive"');
-  });
-
-  test("the rows are the title line, the state line, the settings for an active spec, the spec, then the gap", () => {
-    for (const key of specs) {
-      const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map((m) => m[1]);
-      const expected = key === "aide/50-archived"
-        ? ["spechead", "specstate", "specdetail", "specgap"]
-        : key === "aide/81-queue-x"
-          ? ["spechead", "specstate", "subrow", "subrow", "specdetail", "specgap"]
-          : ["spechead", "specstate", "subrow", "specdetail", "specgap"];
-      expect(classes.filter((c) => c !== "specnotice")).toEqual(expected);
-      expect(classes.indexOf("specdetail")).toBeGreaterThan(classes.lastIndexOf("specnotice"));
-    }
   });
 
   test("the approach choice's form is on the shut row and the Running tab's open row, not the Specs list's open row", () => {

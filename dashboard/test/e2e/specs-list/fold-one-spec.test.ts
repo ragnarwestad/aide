@@ -256,3 +256,23 @@ test("Back from a spec opened in place shuts its row without loading the list ag
   expect(await p.getAttribute(fold("81-queue-and-runner"), "aria-expanded")).toBe("false");
   await p.close();
 });
+
+test("Run from a closed spec can submit Archive without rerunning Create", async () => {
+  const p = await browser.newPage();
+  try {
+    await p.goto(`${base}/specs?live=0`);
+    const row = p.locator('tr.specstate[data-folder="81-queue-and-runner"]');
+    await row.getByRole("button", { name: "Run", exact: true }).click();
+    const dialog = p.getByRole("dialog");
+    await dialog.getByRole("checkbox", { name: "Analyze", exact: true }).uncheck();
+    await dialog.getByRole("checkbox", { name: "Implement", exact: true }).uncheck();
+    await dialog.getByRole("checkbox", { name: "Archive", exact: true }).check();
+    await p.route("**/api/queue", (route) => route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "Captured submission" }) }));
+    const sent = p.waitForRequest((r) => new URL(r.url()).pathname === "/api/queue" && r.method() === "POST");
+    await dialog.getByRole("button", { name: "Run", exact: true }).click();
+    const form = new URLSearchParams((await sent).postData() ?? "");
+    expect(form.getAll("steps")).toEqual(["archive"]);
+    expect(form.get("model.archive")).toBe("sonnet");
+    expect(form.get("specFolder")).toBe("81-queue-and-runner");
+  } finally { await p.close(); }
+});

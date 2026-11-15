@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
-import { actionState, chosenSteps, nextPhase } from "../../../../../src/render/pages/specs-list/row-state";
+import { actionState, chosenSteps, nextPhase, specRunChoices } from "../../../../../src/render/pages/specs-list/row-state";
 import { phasesAhead, RUN_STEPS } from "../../../../../src/render/pages/specs-list/data-model/phase.ts";
 import { stepButton } from "../../../../../src/format/step-label.ts";
 import {
@@ -386,4 +386,15 @@ test("with no recorded choice the default ticks are the phases ahead, and the bu
     expect(RUN_STEPS.filter((s) => ticks.has(s))).toEqual(phasesAhead(done));
     expect(actionState(group!, {})?.label).toBe(stepButton(nextPhase(done)!));
   }
+});
+
+test("Run offers every phase, with Create finished and Archive selectable", () => {
+  const [g] = groupBySpec([], [{ project: "aide", specFolder: "807-search", done: ["create"] }]);
+  expect(specRunChoices(g!, {})).toEqual([
+    { step: "create", checked: true, locked: true },
+    { step: "analyze", checked: true, locked: false },
+    { step: "implement", checked: true, locked: false },
+    { step: "archive", checked: true, locked: false },
+  ]);
+  expect(specRunChoices({ ...g!, done: ["create", "analyze", "implement"] }, {}).filter((p) => p.checked && !p.locked).map((p) => p.step)).toEqual(["archive"]);
 });

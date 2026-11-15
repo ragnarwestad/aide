@@ -412,3 +412,14 @@
 /* The open row's four settings one under the other on a phone: two side by
    side are wider than the screen. */
 @media (max-width: 40rem) { .dependsform .options-group { grid-template-columns: max-content; } }
+
+/* A phase-choice table keeps its columns inside a narrow dialog. */
+@media (max-width: 40rem) {
+  table.list.phasechoices tr.subrow { display: table-row; }
+  table.list.phasechoices tr.subrow[data-caption="1"] { display: none; }
+  table.list.phasechoices tr.subrow > td.phasecell { min-width: 0; max-width: none; width: auto; }
+  table.list.phasechoices tr.subrow .modelcell { display: table-cell; }
+  table.list.phasechoices tr.subrow .modelcell > .row { display: flex; flex-wrap: nowrap; }
+  table.list.phasechoices tr.subrow .aimodel { display: flex; flex-direction: column; gap: var(--sp-1); flex: 1; order: 0; }
+  table.list.phasechoices tr.subrow .modelcell > .row > .phase[data-phase] { order: 0; flex: none; }
+}
