@@ -201,17 +201,14 @@ type DefaultBranchResult =
  *  were red. Anything that prevents the check stays distinct from green. */
 async function resultOnDefaultBranch(
   liveRoot: string,
-  recorder: string,
-  argTail: string[],
-  jobs: GateOpts["jobs"],
-  jobId?: string,
+  runOnce: (label: string, root: string) => Promise<Awaited<ReturnType<typeof runScript>>>,
 ): Promise<DefaultBranchResult> {
   const ref = await defaultBranchRef(liveRoot);
   if (!ref) return { status: "not-checked", reason: "the default branch was not found" };
   const tree = await checkoutForGate(liveRoot, ref);
   if (tree.dir === liveRoot) return { status: "not-checked", reason: "the default branch could not be checked out" };
   try {
-    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, jobId, testWorkers(jobs));
+    const out = await runOnce(" on main alone", tree.dir);
     if (out.timedOut) return { status: "not-checked", reason: "the tests on the default branch did not finish" };
     if (out.code === 0) return { status: "green" };
     return { status: "red", failures: recordedFailures(out.stdout) };
@@ -269,7 +266,7 @@ function stepStreamFile(job: GatedJob): string | undefined {
 
 /** The test run's progress (`aide-record-test-run --progress-file`) into
  *  the step's Log as it comes, every two seconds and once more at the end. */
-function followProgress(job: GatedJob, file: string): { stop: () => void } {
+function followProgress(job: GatedJob, file: string, label: string): { stop: () => void } {
   let seen = 0;
   const drain = () => {
     let lines: string[];
@@ -279,7 +276,7 @@ function followProgress(job: GatedJob, file: string): { stop: () => void } {
       return;
     }
     const complete = lines.slice(0, -1); // the last is empty, or a line still being written
-    for (const line of complete.slice(seen)) if (line.trim()) stepLogLine(job, `tests: ${line}`);
+    for (const line of complete.slice(seen)) if (line.trim()) stepLogLine(job, `tests${label}: ${line}`);
     seen = Math.max(seen, complete.length);
   };
   const timer = setInterval(drain, 2000);
@@ -378,11 +375,13 @@ async function runSuiteIn(
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
-    const runOnce = async (label: string) => {
+    const runOnce = async (label: string, runRoot = root) => {
       const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
       writeFileSync(progress, "");
-      const follow = followProgress(job, progress);
-      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers(opts.jobs)).finally(follow.stop);
+      const follow = followProgress(job, progress, label === " (retry)" ? " on the merge (retry)" : label || " on the merge");
+      const runArgv = [...argv];
+      runArgv[2] = runRoot;
+      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers(opts.jobs)).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
@@ -421,7 +420,7 @@ async function runSuiteIn(
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
     if (gate.code !== 0) {
-      const main = await resultOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs, job.id);
+      const main = await resultOnDefaultBranch(liveRoot, runOnce);
       // One sentence on the row: the tests that failed when the output
       // named them, and what the two runs on the merge say about them —
       // the same tests twice is the merge's doing; different ones point at
@@ -448,6 +447,8 @@ async function runSuiteIn(
           stepLogLine(job, "the same tests are red on main as well", true);
           return { ok: false, error: { key: "landing.testsRedOnMainToo", values: { branch, button } }, detail };
         }
+        const noun = mergeOnly.length === 1 ? "test is" : "tests are";
+        stepLogLine(job, `the tests are red on main; ${mergeOnly.length} failing ${noun} unique to the merge`, true);
         return {
           ok: false,
           error: (() => { const tests = namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }); return { key: "landing.testsRedOnMergeToo", values: { count: mergeOnly.length, branch, button }, lists: { tests } }; })(),

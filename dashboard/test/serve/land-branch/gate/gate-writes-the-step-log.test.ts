@@ -90,6 +90,31 @@ test("the run's progress is in the Log between its start and its end, and its wh
   const lines = readFileSync(runLog, "utf-8").split("\n").map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, ""));
   const start = lines.findIndex((l) => l.startsWith("the landing runs the project's tests"));
   const end = lines.indexOf("the landing's tests are green");
-  expect(lines.slice(start + 1, end)).toEqual(["tests: running make test", "tests: pytest 50%"]);
+  expect(lines.slice(start + 1, end)).toEqual(["tests on the merge: running make test", "tests on the merge: pytest 50%"]);
   expect(readFileSync(runLog.replace(/\.run\.log$/, ".tests.log"), "utf-8")).toContain("the whole output");
+}, 30_000);
+
+test("main-only progress is labelled, retained and stops with its run (AC-1, AC-2, AC-3, AC-5)", async () => {
+  const root = repo();
+  Bun.spawnSync({ cmd: ["git", "-C", root, "switch", "-qc", "merge"] });
+  writeFileSync(join(root, "spec-change"), "x\n");
+  Bun.spawnSync({ cmd: ["git", "-C", root, "add", "spec-change"] });
+  Bun.spawnSync({ cmd: ["git", "-C", root, "commit", "-qm", "merge"] });
+  scripts(
+    'while [ $# -gt 0 ]; do [ "$1" = --project-dir ] && root="$2"; [ "$1" = --progress-file ] && p="$2"; shift; done\n' +
+      'if [ -f "$root/spec-change" ]; then echo "merge progress" >> "$p"; echo "merge output"; else echo "main progress" >> "$p"; echo "main output"; (sleep 0.1; echo "late main progress" >> "$p") >/dev/null 2>&1 & fi\n' +
+      'echo "(fail) same test"\nexit 1',
+  );
+  const { job: j, runLog } = job(root);
+  await runProjectSuiteBeforePush(root, j, "aide/81-x", { button: "Archive" });
+  await Bun.sleep(150);
+  const log = readFileSync(runLog, "utf-8");
+  expect(log).toContain("tests on the merge: merge progress");
+  expect(log).toContain("tests on the merge (retry): merge progress");
+  expect(log).toContain("tests on main alone: main progress");
+  expect(log).toContain("the tests are red on main");
+  expect(log).not.toContain("late main progress");
+  const output = readFileSync(runLog.replace(/\.run\.log$/, ".tests.log"), "utf-8");
+  expect(output).toContain("merge output");
+  expect(output).toContain("main output");
 }, 30_000);
