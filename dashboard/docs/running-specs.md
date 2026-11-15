@@ -75,8 +75,9 @@ A job survives a restart: the result file is the contract, and a job left `runni
 file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
-that is not done, and a member that finishes Implement queues the next one. Each runs on the models picked on its own
-row. Every member uses the branch named for the group's first member. Stop ends the current job and keeps later members
+that is not done, and a member that finishes Implement queues the next one. A group made from Run uses that dialog's
+phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
+member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution.
 
 A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
@@ -87,10 +88,14 @@ A phase pressed on a grouped spec's own row runs as the group's job, and the car
 
 A failed member keeps its own recovery controls.
 
+Run on a spec lists the other specs that can join a group under **Run together with**. Ticking one or more makes and
+starts a group with the pressed spec first and the others in the order they were ticked. With nothing ticked, Run
+starts only the pressed spec as before.
+
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. The numbered member list is
-the execution order. A group may include a spec and the spec it depends on when the dependency comes first in that
-order. An order that puts a spec before its dependency is refused and names both specs. A project with fewer than two
+the starting order. Both ways of making a group automatically move a dependency before the spec that depends on it,
+while keeping unrelated specs in their chosen order. A project with fewer than two
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. The group's … menu offers **Edit** until

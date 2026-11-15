@@ -40,20 +40,31 @@ test("accepts a dependency before its dependent (AC-1)", () => {
   })).toEqual({ ok: true, members: ["2-required", "1-first"] });
 });
 
-test("refuses a dependent before its dependency and names the order (AC-2)", () => {
+test("normalizes positions and moves dependencies before dependents (A810 AC-5, A810 AC-6)", () => {
   const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
   expect(validateExecutionGroupRequest({
-    project: "aide", members: ["1-first", "2-required"], positions: [1, 2], targets, groups: [], jobs: [],
-  })).toEqual({
-    ok: false,
-    error: "1-first depends on 2-required, so 2-required must come before 1-first in the group's order",
-  });
+    project: "aide", members: ["1-first", "2-required"], positions: [4, 4], targets, groups: [], jobs: [],
+  })).toEqual({ ok: true, members: ["2-required", "1-first"] });
 });
 
-test("refuses duplicates and missing positions before save", () => {
-  const targets = [target("1-first", { dependsOn: ["2-required"] }), target("2-required")];
+test("keeps unrelated selection order while normalizing transitive dependencies (A810 AC-5, A810 AC-6)", () => {
+  const targets = [target("1-dependent", { dependsOn: ["2-middle"] }), target("2-middle", { dependsOn: ["3-required"] }), target("3-required"), target("4-unrelated")];
+  expect(validateExecutionGroupRequest({
+    project: "aide", members: ["4-unrelated", "1-dependent", "2-middle", "3-required"], targets, groups: [], jobs: [],
+  })).toEqual({ ok: true, members: ["4-unrelated", "3-required", "2-middle", "1-dependent"] });
+});
+
+test("refuses duplicate members but accepts missing positions (A810 AC-6)", () => {
+  const targets = [target("1-first"), target("2-required")];
   expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "1-first"], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
-  expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first"], positions: [2], targets, groups: [], jobs: [] })).toMatchObject({ ok: false });
+  expect(validateExecutionGroupRequest({ project: "aide", members: ["1-first", "2-required"], targets, groups: [], jobs: [] })).toEqual({ ok: true, members: ["1-first", "2-required"] });
+});
+
+test("a Run group may use its already-analyzed lead while peers stay eligible (A810 AC-2, A810 AC-3)", () => {
+  const targets = [target("1-lead", { done: ["create", "analyze"] }), target("2-peer")];
+  expect(validateExecutionGroupRequest({
+    project: "aide", members: ["1-lead", "2-peer"], lead: "1-lead", targets, groups: [], jobs: [],
+  })).toEqual({ ok: true, members: ["1-lead", "2-peer"] });
 });
 
 test("only members through Implement, in flight, or no longer active are locked (AC-4, AC-5)", () => {

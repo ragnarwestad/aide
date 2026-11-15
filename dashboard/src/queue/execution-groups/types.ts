@@ -33,6 +33,8 @@ export interface ExecutionGroup {
   /** When Remove took the completed group off the Jobs tab. Everything else in the record stays. */
   removedAt?: string;
   error?: string;
+  /** Run-created groups reuse the first Run dialog's choices for every member. */
+  sharedChoices?: boolean;
 }
 
-export type PrepareExecutionGroup = Pick<ExecutionGroup, "project" | "name" | "members" | "branch">;
+export type PrepareExecutionGroup = Pick<ExecutionGroup, "project" | "name" | "members" | "branch" | "sharedChoices">;

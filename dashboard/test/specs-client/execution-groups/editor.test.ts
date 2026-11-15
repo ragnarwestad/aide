@@ -94,3 +94,17 @@ test("a project with fewer than two specs to group says so and cannot be saved; 
   updateExecutionGroupEditor(form);
   expect([save.disabled, none.hidden]).toEqual([false, true]);
 });
+
+test("Run members keep checkbox click order and reset it (A810 AC-4)", () => {
+  const window = new Window();
+  window.document.body.innerHTML = `<dialog><form data-run-group><p><input name="member" value="2-second" type="checkbox"><input name="position" type="hidden" disabled></p><p><input name="member" value="3-third" type="checkbox"><input name="position" type="hidden" disabled></p></form></dialog>`;
+  const form = window.document.querySelector("form") as unknown as HTMLFormElement;
+  const members = [...form.querySelectorAll<HTMLInputElement>('input[name="member"]')];
+  members[1]!.checked = true;
+  changeExecutionGroupEditor({ target: members[1] } as unknown as Event);
+  members[0]!.checked = true;
+  changeExecutionGroupEditor({ target: members[0] } as unknown as Event);
+  expect([...form.querySelectorAll<HTMLInputElement>('input[name="position"]')].map((input) => [input.value, input.disabled])).toEqual([["2", false], ["1", false]]);
+  expect(closeExecutionGroupEditor({ target: form.closest("dialog") } as unknown as Event)).toBe(true);
+  expect(members.map((member) => member.checked)).toEqual([false, false]);
+});

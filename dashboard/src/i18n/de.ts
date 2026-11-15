@@ -718,6 +718,7 @@ export const de: Record<TranslationKey, string> = {
   "list.alreadyDone": "bereits erledigt",
   "list.starting": "startet…",
   "list.runDialogTitle": "Spec ausführen",
+  "list.runTogetherWith": "Zusammen ausführen mit",
   "message.itsButton": "die Schaltfläche",
   "message.thisPhase": "diese Phase",
   "testServers.cleanUp": "Aufräumen",

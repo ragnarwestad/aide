@@ -93,7 +93,7 @@ test("a live row update preserves an unsubmitted search", async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
-  test("Run on Specs asks for phases and models, starts the job on Jobs and the Jobs link filters the spec (AC-3, AC-4)", async () => {
+  test("Run on Specs asks for phases and models, starts the job on Jobs and the title link filters the spec (AC-3, AC-4)", async () => {
     const queueDefaults = {
       timeoutSec: { default: 1200 },
       permissionMode: { default: "acceptEdits" },
@@ -114,7 +114,7 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     await page.goto(`${base}/specs/aide/${SPEC}`);
     await Promise.all([
       page.waitForURL((url) => url.searchParams.get("q") === "aide:81"),
-      page.locator("#jobrows").getByRole("link", { name: "Jobs", exact: true }).click(),
+      page.locator("#jobrows").getByRole("link", { name: /81.*Queue/ }).click(),
     ]);
     expect(new URL(page.url()).searchParams.get("q")).toBe("aide:81");
     await page.close();

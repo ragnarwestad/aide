@@ -17,6 +17,7 @@ function parse(value: unknown): ExecutionGroup | undefined {
   if (typeof raw.id !== "string" || typeof raw.project !== "string" || typeof raw.name !== "string") return undefined;
   if (!strings(raw.members) || typeof raw.branch !== "string" || !EXECUTION_GROUP_STATES.includes(raw.state as never)) return undefined;
   if (!strings(raw.completedMembers) || !Array.isArray(raw.jobs)) return undefined;
+  if (raw.sharedChoices !== undefined && typeof raw.sharedChoices !== "boolean") return undefined;
   const dates = [raw.createdAt, raw.startedAt, raw.completedAt, raw.removedAt];
   if (dates.some((date) => date !== undefined && typeof date !== "string")) return undefined;
   return structuredClone(raw) as unknown as ExecutionGroup;

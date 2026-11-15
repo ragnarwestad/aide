@@ -181,6 +181,16 @@ describe("an open row on the Specs list is the spec alone", () => {
     expect(html).toContain('id="runask-aide/81-queue-x"');
   });
 
+  test("the Run dialog offers eligible peers without an order control (A810 AC-1, A810 AC-7, A810 AC-9)", () => {
+    const html = onList("aide/81-queue-x");
+    expect(html).toContain('action="/api/queue"');
+    expect(html).toContain('data-run-group');
+    expect(html).toContain('value="82-queue-y"');
+    expect(html).not.toContain('name="member" value="81-queue-x"');
+    expect(html).toContain('name="position" type="hidden"');
+    expect(html).not.toContain('name="position" type="number"');
+  });
+
   test("the Run dialog keeps a recorded phase choice and configured models (AC-5)", () => {
     const key = "aide/81-queue-x";
     const html = group(renderSpecsRows([], {

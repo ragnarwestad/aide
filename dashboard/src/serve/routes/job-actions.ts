@@ -15,35 +15,14 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
-import { ExecutionGroupStore, executionGroupAction, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
-import type { SpecTarget } from "../../render";
+import { executionGroupAction, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { createExecutionGroup } from "./spec-edit/group.ts";
+import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
+export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
 const PHASE_STEPS = new Set(workflowArc().map((step) => step.name));
-
-export function executionGroupForAction(
-  store: ExecutionGroupStore,
-  id: string,
-  targets: Pick<SpecTarget, "project" | "specFolder" | "group">[],
-): ExecutionGroup | undefined {
-  const registered = store.get(id);
-  if (registered) return registered;
-  if (!id.startsWith("membership:")) return undefined;
-  const rest = id.slice("membership:".length);
-  const split = rest.indexOf(":");
-  if (split < 1) return undefined;
-  const project = rest.slice(0, split);
-  const name = rest.slice(split + 1);
-  const members = targets
-    .filter((target) => target.project === project && target.group?.name === name)
-    .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
-  if (members.length < 2) return undefined;
-  return store.prepare({
-    project, name, members: members.map((member) => member.specFolder),
-    branch: groupBranch(members[0]!.specFolder, name),
-  });
-}
 
 /** A press on a grouped spec's own row runs as its group's job: the card
  *  follows it, it waits while the group already has a job, and it never
@@ -259,6 +238,25 @@ export async function handleJobActionRoutes(
       }
     }
 
+    const selected = (value: unknown): string[] =>
+      (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
+    const peers = selected(askedFor?.member);
+    let createdGroup: ExecutionGroup | undefined;
+    if (peers.length && typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string") {
+      const positions = selected(askedFor.position).map(Number);
+      const orderedPeers = peers.map((member, index) => ({ member, position: positions[index] ?? index + 1 }))
+        .sort((a, b) => a.position - b.position).map(({ member }) => member);
+      const made = await createExecutionGroup(ctx, {
+        project: askedFor.project,
+        name: askedFor.specFolder,
+        members: [askedFor.specFolder, ...orderedPeers],
+        lead: askedFor.specFolder,
+        sharedChoices: true,
+      });
+      if (!made.ok) return made.response;
+      createdGroup = made.group;
+      askedFor.executionGroupId = made.group.id;
+    }
     const result = enqueueRequest(ctx.queue, raw, "manual");
     // The row's own Run form is the one HTTP route a reader's
     // phase-checkbox tick actually reaches after create, so it is the
@@ -268,6 +266,7 @@ export async function handleJobActionRoutes(
     // and must never overwrite a recorded choice with one.
     if (result.ok) {
       ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
+      if (createdGroup) ctx.queue.executionGroups.queueMember(createdGroup.id, result.job.specFolder);
     }
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two

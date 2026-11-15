@@ -6,12 +6,54 @@ import { withGroupLines } from "../../../project/discover/group.ts";
 import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
 import { lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../queue/execution-groups";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
-import { executionGroupForAction } from "../job-actions.ts";
+import { executionGroupForAction } from "./execution-group-action.ts";
 import { continueAfterEdit } from "./group-continue.ts";
 import type { RoutesContext } from "..";
 
 const values = (value: unknown): string[] =>
   (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
+
+export async function createExecutionGroup(
+  ctx: RoutesContext,
+  input: { project: string; name: string; members: string[]; positions?: number[]; lead?: string; sharedChoices?: boolean },
+): Promise<{ ok: true; group: ReturnType<RoutesContext["queue"]["executionGroups"]["create"]> } | { ok: false; response: Response }> {
+  const { project, name } = input;
+  const targets = ctx.withFreshness(ctx.targets());
+  if (ctx.queue.executionGroups.findUnfinished(project, name) ||
+    targets.some((target) => target.project === project && target.group?.name === name)) {
+    return { ok: false, response: json({ error: `an unfinished execution group named ${name} already exists` }, 409) };
+  }
+  const checked = validateExecutionGroupRequest({
+    project, members: input.members, positions: input.positions, lead: input.lead, targets,
+    groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(),
+  });
+  if (!checked.ok) return { ok: false, response: json({ error: checked.error }, 409) };
+  const firstDir = ctx.specDir(project, checked.members[0]!);
+  if (!firstDir) return { ok: false, response: json({ error: `${checked.members[0]} is no longer available` }, 409) };
+  const edits: SpecFileEdit[] = [];
+  for (const [index, folder] of checked.members.entries()) {
+    const dir = ctx.specDir(project, folder);
+    if (!dir) return { ok: false, response: json({ error: `${folder} is no longer available` }, 409) };
+    let current: string;
+    try { current = readFileSync(`${dir}/${DESCRIPTION_FILE}`, "utf-8"); }
+    catch { return { ok: false, response: json({ error: `${folder} could not be read — nothing was saved` }, 409) }; }
+    const text = withGroupLines(current, { name, position: index + 1 });
+    if (text === null) return { ok: false, response: json({ error: `${folder} has no place for group membership — nothing was saved` }, 409) };
+    const file = relative(firstDir, `${dir}/${DESCRIPTION_FILE}`);
+    edits.push({ file, text, baseSha: (await lastCommitOf(ctx.gitRun, firstDir, file))?.sha ?? null });
+  }
+  const saved = await ctx.mergeLock.run(await ctx.specsRoot(firstDir), () => saveSpecFiles(
+    ctx.gitRun, firstDir, (root) => ctx.branchStatus.defaultBranch(root), edits,
+    { specLabel: name, message: editMessage(name, "execution group") },
+  ));
+  if (!saved.ok) return { ok: false, response: json({ error: saved.note }, 409) };
+  const group = ctx.queue.executionGroups.create({
+    project, name, members: checked.members, branch: groupBranch(checked.members[0]!, name), sharedChoices: input.sharedChoices,
+  });
+  await ctx.rereadProject(project);
+  ctx.notifyQueueChanged();
+  return { ok: true, group };
+}
 
 export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   const edit = path.match(/^\/api\/queue\/groups\/([^/]+)$/);
@@ -26,44 +68,11 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   let body: Record<string, unknown>;
   try { body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>; }
   catch { return json({ error: "malformed body" }, 400); }
-  const targets = ctx.withFreshness(ctx.targets());
   const project = String(body.project ?? "");
   const name = String(body.name ?? "").trim();
   if (!project || !name) return json({ error: "project and name are required" }, 400);
-  if (ctx.queue.executionGroups.findUnfinished(project, name) ||
-    targets.some((target) => target.project === project && target.group?.name === name)) {
-    return json({ error: `an unfinished execution group named ${name} already exists` }, 409);
-  }
-  const checked = validateExecutionGroupRequest({
-    project, members: values(body.member), positions: values(body.position).map(Number), targets,
-    groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(),
-  });
-  if (!checked.ok) return json({ error: checked.error }, 409);
-
-  const firstDir = ctx.specDir(project, checked.members[0]!);
-  if (!firstDir) return json({ error: `${checked.members[0]} is no longer available` }, 409);
-  const edits: SpecFileEdit[] = [];
-  for (const [index, folder] of checked.members.entries()) {
-    const dir = ctx.specDir(project, folder);
-    if (!dir) return json({ error: `${folder} is no longer available` }, 409);
-    let current: string;
-    try { current = readFileSync(`${dir}/${DESCRIPTION_FILE}`, "utf-8"); }
-    catch { return json({ error: `${folder} could not be read — nothing was saved` }, 409); }
-    const text = withGroupLines(current, { name, position: index + 1 });
-    if (text === null) return json({ error: `${folder} has no place for group membership — nothing was saved` }, 409);
-    const file = relative(firstDir, `${dir}/${DESCRIPTION_FILE}`);
-    edits.push({ file, text, baseSha: (await lastCommitOf(ctx.gitRun, firstDir, file))?.sha ?? null });
-  }
-  const saved = await ctx.mergeLock.run(await ctx.specsRoot(firstDir), () => saveSpecFiles(
-    ctx.gitRun, firstDir, (root) => ctx.branchStatus.defaultBranch(root), edits,
-    { specLabel: name, message: editMessage(name, "execution group") },
-  ));
-  if (!saved.ok) return json({ error: saved.note }, 409);
-  const branch = groupBranch(checked.members[0]!, name);
-  const group = ctx.queue.executionGroups.create({ project, name, members: checked.members, branch });
-  await ctx.rereadProject(project);
-  ctx.notifyQueueChanged();
-  return json({ ok: true, group });
+  const made = await createExecutionGroup(ctx, { project, name, members: values(body.member), positions: values(body.position).map(Number) });
+  return made.ok ? json({ ok: true, group: made.group }) : made.response;
 }
 
 async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promise<Response> {

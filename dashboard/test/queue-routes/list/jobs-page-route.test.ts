@@ -720,6 +720,37 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
   });
 });
 
+describe("a search for an execution-group member", () => {
+  const groupedBoard = () => harness.start({
+    extra: { queueProjects: ["aide"] },
+    executionGroups: [{
+      id: "group-1", project: "aide", name: "specs-jobs-improvements",
+      members: ["805-grouped-first", "806-grouped-second"], completedMembers: [],
+      branch: "aide/group-805-grouped-first", state: "prepared", createdAt: "2026-11-15T10:00:00Z", jobs: [],
+    }],
+    alsoSpecs: ["804-ungrouped", "805-grouped-first", "806-grouped-second"],
+  });
+  const opened = (html: string): boolean => html.includes('data-group-open="search"');
+  const groupCard = (html: string): string =>
+    html.match(/<tr class="execution-group"[^>]*id="group-group-1"[\s\S]*?<tr class="specgap"[^>]*>.*?<\/tr>/)?.[0] ?? "";
+
+  test("reported grouped references retain their history and open the existing group disclosure (AC-1, AC-2)", async () => {
+    const ordinary = await rowsOf(groupedBoard().base, "q=aide%3A804");
+    expect(ordinary).toContain('id="spec-aide/804-ungrouped"');
+    harness.cleanup();
+
+    for (const folder of ["805-grouped-first", "806-grouped-second"]) {
+      const { base } = groupedBoard();
+      const html = await rowsOf(base, `q=${encodeURIComponent(`aide:${folder.split("-")[0]}`)}`);
+      const card = groupCard(html);
+      expect(card).not.toBe("");
+      expect(opened(card)).toBe(true);
+      expect(html).toContain(`data-folder="${folder}"`);
+      harness.cleanup();
+    }
+  });
+});
+
 describe("the spec a Create just queued is open on arrival, found by its job", () => {
   const create = (specFolder: string) =>
     job({ id: "c1", specFolder, steps: ["create", "analyze"], state: specFolder.startsWith("new-") ? "running" : "queued", createTitle: "A new spec" });

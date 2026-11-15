@@ -40,6 +40,7 @@ import type { FailedCreate } from "../../../push/failed-creates.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
+import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
 // list — `new-spec-page/` and `settings-page.ts` — so the split
@@ -109,6 +110,8 @@ export interface SpecsPageOptions {
    *  "queued" with no explanation. */
   runnerAvailable: boolean;
   targets: SpecTarget[];
+  executionGroups?: ExecutionGroup[];
+  groupJobs?: { project: string; specFolder: string; state: string }[];
   /** `project/folder` keys of ARCHIVED specs. A create job normally
    *  keeps its group visible even though its spec is not a target (the
    *  folder does not exist until it lands) — but once the spec has been
