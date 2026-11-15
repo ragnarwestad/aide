@@ -94,6 +94,7 @@ export function executionGroupCard(
     busy: specBusy(member),
   }));
   const controls = executionGroupControls(group, states);
+  const name = group.displayName ?? group.name;
   const key = `${group.project}\n${group.name}`;
   const created = createdLabel(group.createdAt);
   const control = controls.action ? buttonForm({
@@ -112,7 +113,7 @@ export function executionGroupCard(
   const menuContent = controls.menu.map((item) => item === "edit"
     ? `<button type="button" data-ask="${esc(editDialogId)}">${esc(t(lang as Language, "list.groupEdit"))}</button>`
     : `<button type="button" data-ask="${esc(removeDialogId)}">${esc(t(lang as Language, "project.remove"))}</button>`).join("");
-  const menu = menuContent ? headerMenu({ label: t(lang as Language, "list.groupMenu", { group: group.name }), icon: ICON_MORE, content: menuContent }) : "";
+  const menu = menuContent ? headerMenu({ label: t(lang as Language, "list.groupMenu", { group: name }), icon: ICON_MORE, content: menuContent }) : "";
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
   // card. A cell has one border, so the card around the specs cannot be
@@ -130,8 +131,8 @@ export function executionGroupCard(
     return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: specNumber(folder) };
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
-    `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: group.name, open, data: { "group-toggle": key } })}</td>` +
-    `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name: group.name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
+    `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
+    `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
     `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span>` +
@@ -166,12 +167,12 @@ export function executionGroupCard(
   return `<tr class="execution-group" id="${esc(anchor)}" data-spec-group="${esc(key)}"${opts.openFor ? ` data-group-open="${esc(opts.openFor)}"` : ""}>` +
     `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table>` +
     (controls.menu.includes("edit") ? executionGroupEditor({ projects: [group.project], candidates: opts.candidates ?? [], group: {
-      id: group.id, anchor, project: group.project, name: group.name,
+      id: group.id, anchor, project: group.project, name,
       members: group.members.map((folder) => ({ specFolder: folder, title: members.find((row) => row.group.specFolder === folder)?.group.title, locked: opts.locked?.has(folder) ?? false })),
     }, lang: lang as Language }) : "") +
     (controls.menu.includes("remove") ? progressDialog(lang as Language, {
       id: removeDialogId, title: t(lang as Language, "dialog.removing"),
-      ask: { title: `${t(lang as Language, "project.remove")} ${group.name}`,
+      ask: { title: `${t(lang as Language, "project.remove")} ${name}`,
         ok: { variant: "primary", pending: t(lang as Language, "dialog.removing") },
         post: { action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`, hook: "actionform", hidden: { action: "remove" } } },
     }) : "") +

@@ -35,7 +35,7 @@ export function executionGroupEditor(options: EditorOptions): string {
       `<div class="execution-group-editor">` +
       `<label class="field">${t(lang, "list.groupProject")}<select name="project"${group ? " disabled" : ""}>${(group ? [group.project] : options.projects).map((project) => `<option value="${esc(project)}">${esc(project)}</option>`).join("")}</select></label>` +
       (group ? `<input type="hidden" name="project" value="${esc(group.project)}">` : "") +
-      `<label class="field">${t(lang, "list.groupName")}<input name="name" required${group ? ` value="${esc(group.name)}"${group.members.some((member) => member.locked) ? " readonly" : ""}` : ""}></label>` +
+      `<label class="field">${t(lang, "list.groupName")}<input name="name" required${group ? ` value="${esc(group.name)}"` : ""}></label>` +
       `<ol>${rows.map((candidate, index) => {
         return `<li data-group-project="${esc(candidate.project)}"${candidate.locked ? " data-group-locked" : ""}><label>` +
           (candidate.locked ? `<input type="checkbox" checked disabled><input type="hidden" name="member" value="${esc(candidate.specFolder)}">` : `<input type="checkbox" name="member" value="${esc(candidate.specFolder)}"${candidate.checked ? " checked" : ""}>`) +

@@ -20,6 +20,8 @@ export interface ExecutionGroup {
   id: string;
   project: string;
   name: string;
+  /** The editable label; name remains the stable membership identifier. */
+  displayName?: string;
   members: string[];
   branch: string;
   state: ExecutionGroupState;
