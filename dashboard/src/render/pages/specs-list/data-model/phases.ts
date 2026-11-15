@@ -3,7 +3,7 @@
 // is still one spec, and how far it has got — and what its phases cost
 // in time — should read without counting rows.
 
-import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
+import { specPhaseOutcome, specPlanReviewed } from "../../../../project/parse-phase-outcome.ts";
 import { archiveHeldBackApplies } from "../../../../project/parse-status";
 import { currentStep, inFlight, sidesSpent, type QueueRowView, type StepResultView } from "../../../ui/job-state";
 import { landingStep } from "../../../ui/job-state/resting.ts";
@@ -306,6 +306,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       fileResult: fileOutcome?.result,
       fileAnalysis: fileOutcome?.analysis,
       fileSentBack: fileOutcome?.sentBack,
+      ...(step === "analyze" && dir ? { planReviewed: specPlanReviewed(dir) } : {}),
     };
   });
 }

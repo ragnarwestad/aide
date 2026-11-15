@@ -100,16 +100,26 @@ describe("a job held behind it", () => {
   });
 });
 
-describe("the sentences ask for no press", () => {
-  test("not the stopped job's, nor a held job's (AC-10)", () => {
+describe("what the sentences ask of the reader", () => {
+  test("a held job's asks for no press (AC-10)", () => {
     const all = [
-      getUsageLimitMessage(stoppedView(), "en", NOW, TZ)!,
-      getUsageLimitMessage(stoppedView({ usageLimitWait: { until: "2026-08-16T02:10:00.000Z", resetKnown: false } }), "en", NOW, TZ)!,
       getUsageLimitMessage(heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
       getUsageLimitMessage(heldView("runner.usageLimitHeldNoReset", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
       getUsageLimitMessage(heldView("runner.usageLimitHeldProbe", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
     ];
     for (const text of all) expect(text.toLowerCase()).not.toContain("press");
+  });
+
+  test("the stopped job's says it can run sooner on another AI, by its step's own button", () => {
+    for (const resetKnown of [true, false]) {
+      const text = getUsageLimitMessage(stoppedView({ usageLimitWait: { until: "2026-08-16T05:00:00.000Z", resetKnown } }), "en", NOW, TZ)!;
+      expect(text).toContain("choose another AI on the Implement line and press Implement");
+    }
+  });
+
+  test("a group member's stopped job points at its group's Start", () => {
+    const text = getUsageLimitMessage(stoppedView({ executionGroupId: "group-1" }), "en", NOW, TZ)!;
+    expect(text).toContain("choose another AI on the Implement line and press Start");
   });
 });
 

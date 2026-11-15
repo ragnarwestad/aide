@@ -22,6 +22,7 @@ import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
+import { deployMark } from "./deploy-mark/index.ts";
 import { ICON_MORE } from "./components/icons.ts";
 
 export interface NavEntry {
@@ -166,7 +167,7 @@ function boardTitle(): string {
 function boardText(lang: Language): string {
   const board = getBoardInfo();
   const machine = esc(process.env.AIDE_DASH_HOST ?? hostname());
-  if (!board) return `${machine} - Prod`;
+  if (!board) return `${machine} - Prod${deployMark(lang)}`;
   const which = isSpecFolder(board.specFolder)
     ? ` - ${esc(specNumber(board.specFolder))}`
     : ` - ${esc(t(lang, "shell.testRound"))}`;

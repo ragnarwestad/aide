@@ -246,6 +246,10 @@ lines of the row (`running-specs.md`, "The Running tab"): fetch from origin, ins
 the service to answer, and check that the service runs the newest commit. Closing the tab stops nothing. While a
 deploy is queued or running a second press is refused, and the button's hover line says where to follow the first.
 
+While there are such commits, every page's header shows the deploy icon and their count in parentheses beside the
+board's name, as one link to this tab. The count follows the background check of origin; with nothing to deploy, the
+mark is gone and the name stays where it was.
+
 The job waits for a merge into the same checkout to finish, and its row says it is held back meanwhile. The restart runs until `/api/version` stops answering or answers a
 new `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout
 against origin on the process that will serve the page, so the page that loads next never says the check has not been

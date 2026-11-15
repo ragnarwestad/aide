@@ -4,7 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { specCloseReason, specFileText } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
-import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
+import { specPhaseOutcome, specPlanReviewed, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
 import { STATUS_FILE } from "../../project/spec-names.ts";
@@ -176,6 +176,7 @@ export function archivedSpecRows(
       done: archivedSteps(ref.dir),
       models: archivedModels(ref.dir),
       phaseOutcomes: archivedPhaseOutcomes(ref.dir),
+      planReviewed: specPlanReviewed(ref.dir),
       // Off the same `SpecRef` the scan already carries
       // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
       // what turns this into the row's own `CLOSED_STATE`.

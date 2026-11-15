@@ -66,6 +66,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     pushError: job.pushError,
     stopReason: job.stopReason,
     usageLimitWait: job.usageLimitWait,
+    executionGroupId: job.executionGroupId,
     // The provider the step runs, or ran, on, as it is named now.
     provider: providerKey ? (ctx.queue.defaults.providers?.[providerKey]?.name ?? providerKey) : undefined,
     error: job.error,

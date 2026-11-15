@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { phasesFor, renderSpecsRows, type QueueRowView, type SpecsPageOptions, type StepResultView } from "../../../../../src/render";
-import { sideRunOf, sideState } from "../../../../../src/render/pages/specs-list/phase-messages/side-lines.ts";
+import { sideLineState, sideRunOf, sideState } from "../../../../../src/render/pages/specs-list/phase-messages/side-lines.ts";
 import { row } from "../../fixtures.ts";
 
 const FOLDER = "500-side-lines";
@@ -57,6 +60,29 @@ describe("what a side line takes from the newest implement attempt", () => {
       ],
     });
     expect(sideRunOf(implementPhase([job]), "review")?.costUsd).toBe(2);
+  });
+});
+
+describe("the state a side line shows", () => {
+  const analyzePhase = (planReviewed?: boolean) => ({ ...phasesFor([], undefined).find((p) => p.step === "analyze")!, planReviewed });
+
+  test("Review under Analyze is done once the spec's plan review is written, and has no state before", () => {
+    expect(sideLineState(analyzePhase(true), "plan-review")).toBe("done");
+    expect(sideLineState(analyzePhase(false), "plan-review")).toBeUndefined();
+  });
+
+  test("the analyze phase reads its plan review off the spec's own 3-solution.md", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-plan-reviewed-"));
+    writeFileSync(join(dir, "3-solution.md"), "# Solution\n\n## Plan review\n\n**Findings:** 1 must-fix\n");
+    const analyze = phasesFor([], { project: "aide", specFolder: FOLDER, dir }).find((p) => p.step === "analyze")!;
+    rmSync(dir, { recursive: true, force: true });
+    expect(sideLineState(analyze, "plan-review")).toBe("done");
+  });
+
+  test("Review and Verify under Implement have no state until their session has run", () => {
+    expect(sideLineState(implementPhase([implemented({})]), "review")).toBeUndefined();
+    expect(sideLineState(implementPhase([implemented({ review: REVIEW })]), "review")).toBe("done");
+    expect(sideLineState(implementPhase([implemented({ review: REVIEW })]), "verify")).toBeUndefined();
   });
 });
 

@@ -81,7 +81,8 @@ const HELD_FOR_USAGE_LIMIT = new Set(["runner.usageLimitHeld", "runner.usageLimi
  *  behind it. The times are stored plain and put in the reader's language
  *  here; any other job gets nothing. */
 export function getUsageLimitMessage(
-  view: Pick<QueueRowView, "state" | "stopReason" | "usageLimitWait" | "provider" | "results" | "steps" | "stepIndex" | "stepModels" | "model" | "error">,
+  view: Pick<QueueRowView, "state" | "stopReason" | "usageLimitWait" | "provider" | "results" | "steps" | "stepIndex" | "stepModels" | "model" | "error"> &
+    Partial<Pick<QueueRowView, "executionGroupId">>,
   lang: Language,
   now: number,
   timeZone?: string,
@@ -97,6 +98,8 @@ export function getUsageLimitMessage(
         limit: windowPhrase(record?.providerLimit?.window ?? "", lang),
         step: stepLabel(step, lang),
         at: when(view.usageLimitWait.until, now, lang, timeZone),
+        // A group member is started from its group's card, any other job by its step's own button.
+        button: view.executionGroupId ? t(lang, "list.groupStart") : stepLabel(step, lang),
       },
     });
   }
