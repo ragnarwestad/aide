@@ -109,7 +109,7 @@ export function executionGroupCard(
   const menuContent = controls.menu.map((item) => item === "edit"
     ? `<button type="button" data-ask="${esc(editDialogId)}">${esc(t(lang as Language, "list.groupEdit"))}</button>`
     : `<button type="button" data-ask="${esc(removeDialogId)}">${esc(t(lang as Language, "project.remove"))}</button>`).join("");
-  const menu = headerMenu({ label: t(lang as Language, "list.groupMenu", { group: group.name }), icon: ICON_MORE, content: menuContent });
+  const menu = menuContent ? headerMenu({ label: t(lang as Language, "list.groupMenu", { group: group.name }), icon: ICON_MORE, content: menuContent }) : "";
   // The card is one cell of the list holding a table of its own: the group's
   // two lines, then its members drawn exactly as on the list, each its own
   // card. A cell has one border, so the card around the specs cannot be

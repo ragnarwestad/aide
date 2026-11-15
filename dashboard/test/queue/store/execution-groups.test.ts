@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ExecutionGroupStore } from "../../../src/queue/execution-groups/index.ts";
 import { QueueStore } from "../../../src/queue/queue.ts";
+import { executionGroupControls } from "../../../src/queue/execution-groups/actions.ts";
 
 let dir: string;
 let path: string;
@@ -144,6 +145,21 @@ describe("a group's job ending", () => {
     queue.executionGroups.waitForAcceptance(group.id);
     queue.transition(id, "step-succeeded-last");
     expect(queue.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+  });
+
+  test("keeps Edit available until a combined run reaches Archive", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["analyze", "implement", "archive"]);
+    const current = () => queue.executionGroups.get(group.id)!;
+    expect(current().state).toBe("running");
+    expect(executionGroupControls(current(), []).menu).toEqual(["edit"]);
+    queue.transition(id, "step-succeeded", { stepIndex: 1 });
+    expect(current().state).toBe("queued");
+    queue.transition(id, "start");
+    expect(current().state).toBe("running");
+    queue.transition(id, "step-succeeded", { stepIndex: 2 });
+    expect(current().state).toBe("archiving");
+    expect(executionGroupControls(current(), []).menu).toEqual([]);
   });
 
   test("keeps the group archiving from its archive job's start until the landing settles", () => {
