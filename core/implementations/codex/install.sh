@@ -7,6 +7,7 @@ set -e  # Exit on error
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
+source "$SCRIPT_DIR/lib/optional-mcp.sh"
 install_steps_begin codex
 
 # 2. Install global Codex instructions (AGENTS.md)
@@ -49,99 +50,30 @@ install_steps_finish codex
 echo "7️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
 
 CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
-BROWSER_MCP_INSTALLED=false
 
-if [ -f "$CODEX_CONFIG_FILE" ]; then
-  if grep -qF '[mcp_servers.playwright]' "$CODEX_CONFIG_FILE" && grep -qF '[mcp_servers.chrome-devtools]' "$CODEX_CONFIG_FILE"; then
-    echo "   ✅ Playwright and Chrome DevTools MCP are already configured"
-    BROWSER_MCP_INSTALLED=true
-  fi
-fi
-
-if [ "$BROWSER_MCP_INSTALLED" = false ]; then
-  echo "   ⚠️  Browser Testing MCP is NOT configured"
-  echo ""
-  echo "   Playwright & Chrome DevTools provide:"
-  echo "   - Browser automation (navigate, click, fill out forms)"
-  echo "   - Generate E2E tests automatically"
-  echo "   - Chrome DevTools debugging (Console, Network, Performance)"
-  echo "   - Accessibility analysis"
-  echo ""
-  echo "   Do you want to add Browser Testing MCP now? [y/N]"
-  if [ -t 0 ]; then
-    read -r INSTALL_BROWSER_MCP
-  else
-    INSTALL_BROWSER_MCP="N"   # non-interactive (install-all/CI): skip
-  fi
-
-  if [[ "$INSTALL_BROWSER_MCP" =~ ^[Yy]$ ]]; then
-    echo ""
-    echo "   🔧 Adding Browser Testing MCP..."
-
-    # Create config.toml if it does not exist
-    mkdir -p "$HOME/.codex"
-
-    cat "$SCRIPT_DIR/mcp/browser-testing.toml" >> "$CODEX_CONFIG_FILE"
-    echo "   ✅ Added Playwright and Chrome DevTools to $CODEX_CONFIG_FILE"
-
-    BROWSER_MCP_INSTALLED=true
-    echo ""
-    echo "   📚 More info: $WORKSPACE_ROOT/core/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
-  else
-    echo "   ⏭️  Skipped Browser Testing MCP configuration"
-    echo "   💡 You can add it later in $CODEX_CONFIG_FILE"
-    echo ""
-    echo "   📚 See: $WORKSPACE_ROOT/core/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
-  fi
-fi
+offer_optional_mcp "$CODEX_CONFIG_FILE" "Browser Testing MCP" "Playwright and Chrome DevTools" \
+  "playwright chrome-devtools" \
+  "$SCRIPT_DIR/mcp/browser-testing.toml" \
+  "$WORKSPACE_ROOT/core/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md" \
+  "Playwright & Chrome DevTools provide:" \
+  "- Browser automation (navigate, click, fill out forms)" \
+  "- Generate E2E tests automatically" \
+  "- Chrome DevTools debugging (Console, Network, Performance)" \
+  "- Accessibility analysis"
+BROWSER_MCP_INSTALLED=$MCP_CONFIGURED
 
 # 8. Check if Context7 MCP is configured
 echo "8️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 
-CONTEXT7_INSTALLED=false
-
-if [ -f "$CODEX_CONFIG_FILE" ]; then
-  if grep -qF '[mcp_servers.context7]' "$CODEX_CONFIG_FILE"; then
-    echo "   ✅ Context7 MCP is already configured"
-    CONTEXT7_INSTALLED=true
-  fi
-fi
-
-if [ "$CONTEXT7_INSTALLED" = false ]; then
-  echo "   ⚠️  Context7 MCP is NOT configured"
-  echo ""
-  echo "   Context7 provides:"
-  echo "   - Up-to-date, version-specific documentation for libraries"
-  echo "   - React, TypeScript, Spring Boot, etc."
-  echo "   - Injects automatically into prompts with 'use context7'"
-  echo ""
-  echo "   Do you want to add Context7 MCP now? [y/N]"
-  if [ -t 0 ]; then
-    read -r INSTALL_CONTEXT7
-  else
-    INSTALL_CONTEXT7="N"   # non-interactive (install-all/CI): skip
-  fi
-
-  if [[ "$INSTALL_CONTEXT7" =~ ^[Yy]$ ]]; then
-    echo ""
-    echo "   🔧 Adding Context7 MCP..."
-
-    # Create config.toml if it does not exist
-    mkdir -p "$HOME/.codex"
-
-    cat "$SCRIPT_DIR/mcp/context7.toml" >> "$CODEX_CONFIG_FILE"
-    echo "   ✅ Added Context7 to $CODEX_CONFIG_FILE"
-
-    CONTEXT7_INSTALLED=true
-    echo ""
-    echo "   📚 More info: $WORKSPACE_ROOT/core/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
-  else
-    echo "   ⏭️  Skipped Context7 MCP configuration"
-    echo "   💡 You can add it later in $CODEX_CONFIG_FILE"
-    echo ""
-    echo "   📚 See: $WORKSPACE_ROOT/core/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
-  fi
-fi
+offer_optional_mcp "$CODEX_CONFIG_FILE" "Context7 MCP" "Context7" \
+  "context7" \
+  "$SCRIPT_DIR/mcp/context7.toml" \
+  "$WORKSPACE_ROOT/core/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md" \
+  "Context7 provides:" \
+  "- Up-to-date, version-specific documentation for libraries" \
+  "- React, TypeScript, Spring Boot, etc." \
+  "- Injects automatically into prompts with 'use context7'"
+CONTEXT7_INSTALLED=$MCP_CONFIGURED
 
 echo ""
 echo "✅ Setup complete!"
