@@ -6,6 +6,7 @@
 import { writeLine } from "../press.ts";
 
 const EDITOR = "form[data-execution-group-editor]";
+const RUN_GROUP = "form[data-run-group]";
 
 function rows(form: HTMLFormElement): HTMLElement[] {
   return [...form.querySelectorAll<HTMLElement>("[data-group-project]")];
@@ -49,6 +50,28 @@ export function updateExecutionGroupEditor(form: HTMLFormElement): void {
 
 export function changeExecutionGroupEditor(event: Event): boolean {
   const target = event.target as HTMLInputElement | HTMLSelectElement | null;
+  const runForm = target?.closest?.(RUN_GROUP) as HTMLFormElement | null;
+  if (runForm && target?.tagName === "INPUT" && target.getAttribute("name") === "member") {
+    const changed = target as HTMLInputElement;
+    const selected = [...runForm.querySelectorAll<HTMLInputElement>('input[name="member"]')]
+      .filter((member) => member.checked)
+      .sort((a, b) => Number(a.dataset.selectedAt ?? Number.MAX_SAFE_INTEGER) - Number(b.dataset.selectedAt ?? Number.MAX_SAFE_INTEGER));
+    if (changed.checked && !changed.dataset.selectedAt) {
+      const last = Math.max(0, ...[...runForm.querySelectorAll<HTMLInputElement>('input[name="member"]')]
+        .map((member) => Number(member.dataset.selectedAt) || 0));
+      changed.dataset.selectedAt = String(last + 1);
+    }
+    if (!changed.checked) delete changed.dataset.selectedAt;
+    selected.sort((a, b) => Number(a.dataset.selectedAt ?? Number.MAX_SAFE_INTEGER) - Number(b.dataset.selectedAt ?? Number.MAX_SAFE_INTEGER));
+    for (const member of runForm.querySelectorAll<HTMLInputElement>('input[name="member"]')) {
+      const order = member.parentElement?.querySelector<HTMLInputElement>('input[name="position"]');
+      if (!order) continue;
+      const index = selected.indexOf(member);
+      order.disabled = index < 0;
+      order.value = index < 0 ? "" : String(index + 1);
+    }
+    return true;
+  }
   const form = target?.closest?.(EDITOR) as HTMLFormElement | null;
   if (!form?.matches?.(EDITOR)) return false;
   if (!["member", "project"].includes(target?.getAttribute("name") ?? "")) return true;
@@ -66,10 +89,12 @@ export function syncExecutionGroupEditors(root: ParentNode): void {
  *  emptied, its reason with it, so the dialog opens again as new. Says
  *  whether the event was such a dialog's. */
 export function closeExecutionGroupEditor(event: Event): boolean {
-  const form = (event.target as Element | null)?.querySelector?.(EDITOR) as HTMLFormElement | null;
+  const form = (event.target as Element | null)?.querySelector?.(`${EDITOR}, ${RUN_GROUP}`) as HTMLFormElement | null;
   if (!form) return false;
   form.reset();
+  for (const member of form.querySelectorAll<HTMLInputElement>('input[name="member"]')) delete member.dataset.selectedAt;
   writeLine(form.querySelector(".refused"), "");
-  updateExecutionGroupEditor(form);
+  if (form.matches(EDITOR)) updateExecutionGroupEditor(form);
+  else for (const order of form.querySelectorAll<HTMLInputElement>('input[name="position"]')) { order.value = ""; order.disabled = true; }
   return true;
 }

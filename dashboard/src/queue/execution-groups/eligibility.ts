@@ -53,6 +53,31 @@ function orderedMembers(members: string[], positions?: number[]): ValidationResu
   return { ok: true, members: members.map((member, index) => ({ member, position: actual[index]! })).sort((a, b) => a.position - b.position).map(({ member }) => member) };
 }
 
+function creationOrder(members: string[], positions: number[] | undefined, targets: SpecTarget[]): ValidationResult {
+  if (members.length < 2) return { ok: false, error: "an execution group needs at least two specs" };
+  if (new Set(members).size !== members.length) return { ok: false, error: "a spec can belong to the group only once" };
+  const validPositions = positions?.length === members.length &&
+    [...positions].sort((a, b) => a - b).every((value, index) => value === index + 1);
+  const base = validPositions
+    ? members.map((member, index) => ({ member, position: positions![index]! })).sort((a, b) => a.position - b.position).map(({ member }) => member)
+    : [...members];
+  const byFolder = new Map(targets.map((target) => [target.specFolder, target]));
+  const memberSet = new Set(base);
+  const visiting = new Set<string>();
+  const added = new Set<string>();
+  const result: string[] = [];
+  const add = (member: string): void => {
+    if (added.has(member) || visiting.has(member)) return;
+    visiting.add(member);
+    for (const dependency of byFolder.get(member)?.dependsOn ?? []) if (memberSet.has(dependency)) add(dependency);
+    visiting.delete(member);
+    added.add(member);
+    result.push(member);
+  };
+  for (const member of base) add(member);
+  return { ok: true, members: result };
+}
+
 function dependencyOrder(ordered: string[], targets: SpecTarget[]): ValidationResult {
   const byFolder = new Map(targets.map((target) => [target.specFolder, target]));
   const position = new Map(ordered.map((member, index) => [member, index]));
@@ -65,14 +90,17 @@ function dependencyOrder(ordered: string[], targets: SpecTarget[]): ValidationRe
   return { ok: true, members: ordered };
 }
 
-export function validateExecutionGroupRequest(input: EligibilityInput & { members: string[]; positions?: number[] }):
+export function validateExecutionGroupRequest(input: EligibilityInput & { members: string[]; positions?: number[]; lead?: string }):
   ValidationResult {
-  const checked = orderedMembers(input.members, input.positions);
+  const checked = creationOrder(input.members, input.positions, input.targets);
   if (!checked.ok) return checked;
   const ordered = checked.members;
   const eligible = new Map(eligibleGroupMembers(input).map((target) => [target.specFolder, target]));
-  for (const member of ordered) if (!eligible.has(member)) return { ok: false, error: `${member} is no longer eligible for this group` };
-  return dependencyOrder(ordered, [...eligible.values()]);
+  for (const member of ordered) {
+    if (member === input.lead && input.targets.some((target) => target.project === input.project && target.specFolder === member)) continue;
+    if (!eligible.has(member)) return { ok: false, error: `${member} is no longer eligible for this group` };
+  }
+  return { ok: true, members: ordered };
 }
 
 export function validateExecutionGroupEdit(input: EligibilityInput & {

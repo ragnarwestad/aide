@@ -32,4 +32,10 @@ describe("t()", () => {
   test("the Jobs kind filter is named Type in every language (AC-3)", () => {
     expect(LANGUAGES.map((lang) => t(lang, "jobs.kindHeading"))).toEqual(["Typ", "Type", "Tipo", "Type", "Type"]);
   });
+
+  test("every language has the Run-together catalogue keys (A810 AC-10)", () => {
+    for (const lang of LANGUAGES) {
+      expect(t(lang, "list.runTogetherWith")).not.toBe("list.runTogetherWith");
+    }
+  });
 });

@@ -714,6 +714,7 @@ export const es: Record<TranslationKey, string> = {
   "list.alreadyDone": "ya hecho",
   "list.starting": "iniciando…",
   "list.runDialogTitle": "Ejecutar spec",
+  "list.runTogetherWith": "Ejecutar junto con",
   "message.itsButton": "su botón",
   "message.thisPhase": "esta fase",
   "testServers.cleanUp": "Limpiar",

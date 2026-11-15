@@ -31,6 +31,8 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
   return {
     runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
     targets: ctx.withFreshness(ctx.targets()),
+    executionGroups: ctx.queue.executionGroups.list(),
+    groupJobs: ctx.queue.list(),
     archived: ctx.readScan()?.archived ?? [],
     lang,
     modelChoices: modelChoiceOptions(ctx.queue),

@@ -8,6 +8,31 @@ afterEach(() => harness.cleanup());
 const description = (folder: string) => `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n`;
 
 describe("execution-group HTTP routes", () => {
+  test("Run creates and starts a group with the submitted choices (A810 AC-3, A810 AC-8)", async () => {
+    const { base, dir } = harness.start({
+      description: description("81-queue-and-runner"),
+      alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") },
+      extra: { queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {} } } },
+    });
+    makeSpecsRepo(dir);
+    const response = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&member=82-next&position=1&steps=analyze&steps=implement&model.analyze=fable",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      job: {
+        specFolder: "81-queue-and-runner",
+        steps: ["analyze", "implement"],
+        model: { analyze: "fable" },
+        executionGroupId: expect.any(String),
+      },
+    });
+  });
+
   test("create and lifecycle action keep their JSON response forms (AC-2)", async () => {
     const { base, dir } = harness.start({
       description: description("81-queue-and-runner"),

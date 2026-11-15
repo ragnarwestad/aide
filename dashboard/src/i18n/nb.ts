@@ -717,6 +717,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.alreadyDone": "allerede gjort",
   "list.starting": "starter…",
   "list.runDialogTitle": "Kjør spec",
+  "list.runTogetherWith": "Kjør sammen med",
   "message.itsButton": "knappen",
   "message.thisPhase": "denne fasen",
   "testServers.cleanUp": "Rydd opp",

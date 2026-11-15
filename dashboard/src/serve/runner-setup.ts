@@ -352,11 +352,16 @@ export function stepDoneHandler(
     if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(job)) {
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
-    if (step === "implement" && outcome.ok && outcome.terminalReason === "completed") {
+    const completedGroupMember = outcome.ok && outcome.terminalReason === "completed" &&
+      (step === "implement" || (step !== undefined && step === job.steps?.at(-1)));
+    if (completedGroupMember) {
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
-      if (group) ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
+      if (group && step === "implement") ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
       const hasNext = group?.state === "stopped" ? false : queueNextGroupMember(job);
-      if (!hasNext && group && group.state !== "stopped") ctx.store.executionGroups.waitForAcceptance(group.id);
+      if (!hasNext && group && group.state !== "stopped") {
+        if (step === "implement") ctx.store.executionGroups.waitForAcceptance(group.id);
+        else ctx.store.executionGroups.stop(group.id);
+      }
     }
     if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
@@ -373,11 +378,12 @@ export function stepDoneHandler(
       .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
       .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
     if (!next) return false;
-    const made = enqueueRequest(
-      ctx.store,
-      withRowPicks(followOnRequest(job.project, next.folder, ["analyze", "implement"], job), ctx.store),
-      "automatic",
-    );
+    const steps = job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
+    const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
+    const request = group?.sharedChoices
+      ? followOnRequest(job.project, next.folder, steps, job)
+      : withRowPicks({ project: job.project, specFolder: next.folder, steps, executionGroupId: job.executionGroupId }, ctx.store);
+    const made = enqueueRequest(ctx.store, request, "automatic");
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
     return made.ok; }
 

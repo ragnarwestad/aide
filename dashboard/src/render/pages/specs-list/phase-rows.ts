@@ -19,6 +19,7 @@ import { dependsOnLine } from "./depends-on";
 import { resolveProvider } from "./model-resolve.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
+import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
@@ -333,21 +334,33 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
   const lang = opts.lang ?? "en";
   const id = `runask-${groupKey(g.project, g.specFolder)}`;
   const formId = `${id}-form`;
+  const peers = eligibleGroupMembers({
+    project: g.project,
+    targets: opts.targets,
+    groups: opts.executionGroups ?? [],
+    jobs: opts.groupJobs ?? [],
+  }).filter((target) => target.specFolder !== g.specFolder);
+  const together = peers.length
+    ? `<fieldset class="options-group" data-run-group-options><legend>${esc(t(lang, "list.runTogetherWith"))}</legend>${peers.map((target) =>
+      `<label class="phase"><input type="checkbox" name="member" value="${esc(target.specFolder)}"> <span>${esc(target.specFolder)}</span><input name="position" type="hidden" disabled></label>`,
+    ).join("")}</fieldset>`
+    : "";
   const fields =
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    phaseChoiceTable(g, opts, formId, phases, lang);
+    phaseChoiceTable(g, opts, formId, phases, lang) + together;
   const control = askButton({ label: t(lang, "shell.runTestRound"), dialogId: id, variant: "primary" });
   const dialog = formDialog(lang, {
     id,
     title: t(lang, "list.runDialogTitle"),
     action: "/api/queue",
-    hook: "actionform",
+    hook: `actionform${peers.length ? "" : ""}`,
     data: { goto: "/" },
     fields,
     save: { label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
   });
-  return { control, dialog };
+  const wiredDialog = peers.length ? dialog.replace(`<form id="${formId}"`, `<form data-run-group id="${formId}"`) : dialog;
+  return { control, dialog: wiredDialog };
 }
 
 /** The AI and the model a phase line offers, in one place.

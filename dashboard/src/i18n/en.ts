@@ -725,6 +725,7 @@ export const en = {
   "list.alreadyDone": "already done",
   "list.starting": "starting…",
   "list.runDialogTitle": "Run spec",
+  "list.runTogetherWith": "Run together with",
   "message.itsButton": "its button",
   "message.thisPhase": "this phase",
   "testServers.cleanUp": "Clean up",
