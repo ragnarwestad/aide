@@ -108,3 +108,27 @@ test("Run members keep checkbox click order and reset it (A810 AC-4)", () => {
   expect(closeExecutionGroupEditor({ target: form.closest("dialog") } as unknown as Event)).toBe(true);
   expect(members.map((member) => member.checked)).toEqual([false, false]);
 });
+
+test("Run requires and submits a group name only while peers are selected, and clears it on close", () => {
+  const window = new Window();
+  window.document.body.innerHTML = `<dialog><form data-run-group><label data-run-group-name hidden><input name="groupName" required disabled></label><label><input name="member" type="checkbox" value="2-next"><input name="position" type="hidden" disabled></label></form></dialog>`;
+  const form = window.document.querySelector("form") as unknown as HTMLFormElement;
+  const name = form.querySelector<HTMLInputElement>('input[name="groupName"]')!;
+  const member = form.querySelector<HTMLInputElement>('input[name="member"]')!;
+  member.checked = true;
+  changeExecutionGroupEditor({ target: member } as unknown as Event);
+  expect(name.disabled).toBe(false);
+  expect(form.checkValidity()).toBe(false);
+  name.value = "Release";
+  expect(form.checkValidity()).toBe(true);
+  member.checked = false;
+  changeExecutionGroupEditor({ target: member } as unknown as Event);
+  expect(name.disabled).toBe(true);
+  expect(form.checkValidity()).toBe(true);
+  member.checked = true;
+  changeExecutionGroupEditor({ target: member } as unknown as Event);
+  expect(name.value).toBe("Release");
+  closeExecutionGroupEditor({ target: form.closest("dialog") } as unknown as Event);
+  expect(name.value).toBe("");
+  expect(name.disabled).toBe(true);
+});

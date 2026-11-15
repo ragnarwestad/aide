@@ -8,6 +8,15 @@ import { writeLine } from "../press.ts";
 const EDITOR = "form[data-execution-group-editor]";
 const RUN_GROUP = "form[data-run-group]";
 
+function updateRunGroupName(form: HTMLFormElement): void {
+  const field = form.querySelector<HTMLElement>("[data-run-group-name]");
+  const name = field?.querySelector<HTMLInputElement>('input[name="groupName"]');
+  if (!field || !name) return;
+  const grouping = !!form.querySelector('input[name="member"]:checked');
+  field.hidden = !grouping;
+  name.disabled = !grouping;
+}
+
 function rows(form: HTMLFormElement): HTMLElement[] {
   return [...form.querySelectorAll<HTMLElement>("[data-group-project]")];
 }
@@ -67,6 +76,7 @@ export function changeExecutionGroupEditor(event: Event): boolean {
       order.disabled = index < 0;
       order.value = index < 0 ? "" : String(index + 1);
     }
+    updateRunGroupName(runForm);
     return true;
   }
   const form = target?.closest?.(EDITOR) as HTMLFormElement | null;
@@ -80,6 +90,7 @@ export function changeExecutionGroupEditor(event: Event): boolean {
  *  when the page is mounted, and after the rows it is drawn with are replaced. */
 export function syncExecutionGroupEditors(root: ParentNode): void {
   for (const form of root.querySelectorAll<HTMLFormElement>(EDITOR)) updateExecutionGroupEditor(form);
+  for (const form of root.querySelectorAll<HTMLFormElement>(RUN_GROUP)) updateRunGroupName(form);
 }
 
 /** A `close` event from the dialog that holds a New group form: the form is
@@ -92,6 +103,9 @@ export function closeExecutionGroupEditor(event: Event): boolean {
   for (const member of form.querySelectorAll<HTMLInputElement>('input[name="member"]')) delete member.dataset.selectedAt;
   writeLine(form.querySelector(".refused"), "");
   if (form.matches(EDITOR)) updateExecutionGroupEditor(form);
-  else for (const order of form.querySelectorAll<HTMLInputElement>('input[name="position"]')) { order.value = ""; order.disabled = true; }
+  else {
+    for (const order of form.querySelectorAll<HTMLInputElement>('input[name="position"]')) { order.value = ""; order.disabled = true; }
+    updateRunGroupName(form);
+  }
   return true;
 }

@@ -284,12 +284,14 @@ export async function handleJobActionRoutes(
     const peers = selected(askedFor?.member);
     let createdGroup: ExecutionGroup | undefined;
     if (peers.length && typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string") {
+      const groupName = typeof askedFor.groupName === "string" ? askedFor.groupName.trim() : "";
+      if (!groupName) return json({ error: "group name is required" }, 400);
       const positions = selected(askedFor.position).map(Number);
       const orderedPeers = peers.map((member, index) => ({ member, position: positions[index] ?? index + 1 }))
         .sort((a, b) => a.position - b.position).map(({ member }) => member);
       const made = await createExecutionGroup(ctx, {
         project: askedFor.project,
-        name: askedFor.specFolder,
+        name: groupName,
         members: [askedFor.specFolder, ...orderedPeers],
         lead: askedFor.specFolder,
         sharedChoices: true,

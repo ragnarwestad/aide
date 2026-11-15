@@ -90,9 +90,9 @@ A phase pressed on a grouped spec's own row runs as the group's job, and the car
 
 A failed member keeps its own recovery controls.
 
-Run on a spec lists the other specs that can join a group under **Run together with**. Ticking one or more makes and
-starts a group in selection order, with dependencies placed before the specs that need them. With nothing ticked, Run
-starts only the pressed spec as before.
+Run on a spec lists the other specs that can join a group under **Run together in a group**. Ticking one or more shows a
+required **Group name** field above those checkboxes. Run saves that name and starts the group in selection order, with dependencies placed before
+the specs that need them. With nothing ticked, Run starts only the pressed spec and needs no group name.
 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. There is no order field:

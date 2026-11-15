@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness, stateSaying, statusSaying } from "../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../helpers/specs-repo.ts";
+import { specGroup } from "../../src/project/discover/group.ts";
 
 const harness = queueHarness("aide-execution-group-routes-");
 afterEach(() => harness.cleanup());
@@ -22,7 +23,7 @@ describe("execution-group HTTP routes", () => {
     const response = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "project=aide&specFolder=81-queue-and-runner&member=82-next&position=1&steps=analyze&steps=implement&model.analyze=fable",
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=+Shared+utilities+&member=82-next&position=1&steps=analyze&steps=implement&model.analyze=fable",
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
@@ -34,6 +35,19 @@ describe("execution-group HTTP routes", () => {
         executionGroupId: expect.any(String),
       },
     });
+    expect(specGroup(join(dir, "root/aide/specs/81-queue-and-runner"))).toEqual({ name: "Shared utilities", position: 1 });
+    expect(specGroup(join(dir, "root/aide/specs/82-next"))).toEqual({ name: "Shared utilities", position: 2 });
+  });
+
+  test("Run refuses a missing or blank group name before creating a group or job", async () => {
+    const { base, dir } = harness.start({ description: description("81-queue-and-runner"), alsoSpecs: ["82-next"], alsoDescriptions: { "82-next": description("82-next") } });
+    for (const name of ["", "&groupName=+++"]) {
+      const response = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `project=aide&specFolder=81-queue-and-runner&member=82-next&steps=analyze${name}` });
+      expect(response.status).toBe(400);
+      expect(specGroup(join(dir, "root/aide/specs/81-queue-and-runner"))).toBeUndefined();
+      expect((await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] }).jobs).toEqual([]);
+    }
   });
 
   test("Run starts a required peer first with the submitted choices and refuses a cycle", async () => {
@@ -48,7 +62,7 @@ describe("execution-group HTTP routes", () => {
       makeSpecsRepo(dir);
       const response = await fetch(`${base}/api/queue`, {
         method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: `project=aide&specFolder=${first}&member=${second}&steps=analyze&steps=implement&model.analyze=fable`,
+        body: `project=aide&specFolder=${first}&groupName=Release&member=${second}&steps=analyze&steps=implement&model.analyze=fable`,
       });
       if (cycle) {
         expect(response.status).toBe(409);

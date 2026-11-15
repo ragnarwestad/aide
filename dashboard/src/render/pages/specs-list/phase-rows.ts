@@ -345,9 +345,11 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
     jobs: opts.groupJobs ?? [],
   }).filter((target) => target.specFolder !== g.specFolder);
   const together = peers.length
-    ? `<fieldset class="options-group" data-run-group-options><legend>${esc(t(lang, "list.runTogetherWith"))}</legend>${peers.map((target) =>
+    ? `<fieldset class="options-group" data-run-group-options><legend>${esc(t(lang, "list.runTogetherWith"))}</legend>` +
+      `<div class="field" data-run-group-name hidden><label for="${esc(formId)}-group-name">${esc(t(lang, "list.runGroupName"))}</label><input id="${esc(formId)}-group-name" name="groupName" required disabled></div>` +
+      `<div role="group" aria-labelledby="${esc(formId)}-specs"><span id="${esc(formId)}-specs">${esc(t(lang, "shell.tabSpecs"))}</span><div class="options-group">${peers.map((target) =>
       `<label class="phase"><input type="checkbox" name="member" value="${esc(target.specFolder)}"> <span>${esc(target.specFolder)}</span><input name="position" type="hidden" disabled></label>`,
-    ).join("")}</fieldset>`
+    ).join("")}</div></div></fieldset>`
     : "";
   const fields =
     `<input type="hidden" name="project" value="${esc(g.project)}">` +

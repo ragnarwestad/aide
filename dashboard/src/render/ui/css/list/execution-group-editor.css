@@ -19,6 +19,12 @@
 .execution-group-editor li { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: var(--sp-3); align-items: center; }
 .execution-group-editor li > label:first-child { min-width: 0; overflow-wrap: anywhere; }
 
+.options-group[data-run-group-options] { display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--sp-2); row-gap: var(--sp-3); align-items: start; }
+[data-run-group-name]:not([hidden]), [data-run-group-options] > [role="group"] { display: contents; }
+[data-run-group-name] > label { align-self: center; }
+[data-run-group-name] > input { width: 100%; min-width: 0; box-sizing: border-box; }
+
 @media (max-width: 620px) {
   .execution-group-editor { grid-template-columns: minmax(0, 1fr); }
   .execution-group-editor li { grid-template-columns: 1fr; gap: var(--sp-1); }
