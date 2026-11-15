@@ -3,10 +3,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { createdJob, ran, statusSaying } from "../../helpers/queue-server.ts";
 import { JOB, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness();
+const { harness, start: startServer } = setupQueueRoutesHarness();
+const start: typeof startServer = (extra, projects, specs, status, state, mirror) =>
+  startServer(extra, projects, specs, status, state, mirror ?? (extra?.queueMirrorPath ? undefined : JSON.stringify([createdJob()])));
 
 afterEach(() => harness.cleanup());
 
@@ -77,8 +79,9 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
     // Finished, not still queued: a spec with a job in
     // flight pre-ticks nothing at all — every box on the row is locked.
-    mirror[0].state = "done";
-    mirror[0].results = [
+    const completed = mirror.find((job) => job.id === made.job.id)!;
+    completed.state = "done";
+    completed.results = [
       { step: "implement", ok: true, costUsd: 12.34, costMeasured: true,
         terminalReason: "completed", at: "2026-08-16T18:00:00Z" },
     ];

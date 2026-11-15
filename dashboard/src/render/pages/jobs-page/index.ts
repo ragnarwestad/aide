@@ -1,5 +1,5 @@
-// The Jobs tab: the board's first page. Every spec the Specs list shows under
-// Active, with the list's own row, and the scheduled jobs that
+// The Jobs tab: the board's first page. Specs with recorded work,
+// prepared groups, and the scheduled jobs that
 // are in flight or wait for the user, whatever started them. Which jobs live
 // in `rows.ts`. A spec's row is drawn by the list's row builder from the same
 // options; a scheduled job's row is `job-row.ts`'s, in the same
@@ -18,7 +18,7 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -74,7 +74,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
   const specRows = roundSpecRows(v, now, draws);
   const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
-  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key)).map((s) => ({
+  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key) && specHasWork(s.group)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group, s.jobs),
     facts: s.key.includes("@") ? { ...s.group, pastRound: true } : s.group,
   }));

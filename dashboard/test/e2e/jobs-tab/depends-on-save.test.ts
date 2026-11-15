@@ -1,4 +1,4 @@
-// The Depends on picker on the Running tab's open row, in a real browser:
+// The Depends on picker on the Specs list's open row, in a real browser:
 // Save writes the line without loading the page again and the row keeps the
 // tick, and Cancel unticks what was ticked.
 
@@ -31,7 +31,7 @@ afterAll(async () => {
 async function openRow(): Promise<{ page: Page; dir: string; loads: { n: number } }> {
   const { base, dir } = harness.start({ description: TRACKED, alsoSpecs: [OTHER], extra: { gitRun: savable("/host") } });
   const page = await browser.newPage();
-  await page.goto(`${base}/?open=aide/${SPEC}&live=0`);
+  await page.goto(`${base}/specs/aide/${SPEC}?live=0`);
   await page.locator(FORM).waitFor({ timeout: 10_000 });
   const loads = { n: 0 };
   page.on("load", () => loads.n++);

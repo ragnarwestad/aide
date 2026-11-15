@@ -27,7 +27,7 @@ const CARD = "execution-group:g1";
 
 test("a member's rows are answered while its group's card is on the list", () => {
   expect(rowsOf(view([release]), "aide/82-first")).toContain('id="spec-aide/82-first"');
-  expect(rowsOf(view([release]), "aide/81-alone")).toContain('id="spec-aide/81-alone"');
+  expect(rowsOf(view([release]), "aide/81-alone")).toBe("");
   expect(rowsOf(view([release]), "aide/99-missing")).toBe("");
 });
 
@@ -67,10 +67,12 @@ const removed: ExecutionGroup = {
 };
 
 test("a removed group draws no card, and its members are drawn as their own rows (AC-4)", () => {
-  const withCard = renderJobsRows(view([{ ...removed, removedAt: undefined }]));
+  const completed = view([{ ...removed, removedAt: undefined }]);
+  completed.list.targets.forEach((target) => { target.done = ["create", "analyze", "implement", "archive"]; });
+  const withCard = renderJobsRows(completed);
   expect(withCard).toContain('data-spec-group="aide\nRelease"');
 
-  const html = renderJobsRows(view([removed]));
+  const html = renderJobsRows({ ...completed, executionGroups: [removed] });
   expect(html).not.toContain('data-spec-group="aide\nRelease"');
   expect(html).toContain('id="spec-aide/82-first"');
   expect(html).toContain('id="spec-aide/83-second"');

@@ -9,6 +9,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../../src/serve/serve.ts";
 
+/** A completed Create job keeps a legacy spec on Jobs before Analyze has run. */
+export const createdJob = (specFolder = "81-queue-and-runner") => ({
+  id: `created-${specFolder}`, project: "aide", specFolder, steps: ["create"], stepIndex: 0, state: "done",
+  timeoutSec: {}, permissionMode: {}, model: {}, results: [], createdAt: "2026-08-01T10:00:00Z",
+  finishedAt: "2026-08-01T10:00:01Z",
+});
+
 export interface StartOptions {
   extra?: Partial<ServerOptions>;
   /** Further discoverable projects, for jobs that span repos. */

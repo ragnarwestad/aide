@@ -49,7 +49,7 @@ two tabs with Create above them. **Spec**, the tab it opens on, holds a
 project, a title, a description and a **Depends on** field naming a spec this one has to wait for. **Options**
 (`/new?tab=options`) holds the acceptance and approach settings. Switching tabs keeps what was
 typed, and Create posts both tabs from either. Create posts to `POST /api/queue/create`, writes and pushes the numbered
-spec folder without starting a job, and opens its row (`/?created=<spec folder>`). A refused submission says why
+spec folder without starting a job, and opens its row on Specs (`/specs/<project>/<spec folder>`). A refused submission says why
 beside the form, where what was typed can be corrected. The browser holds Create at an empty project, title or
 description.
 
@@ -822,6 +822,10 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
+
+A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
+Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
+Prepared group cards and their members remain on Jobs so the group can be started there.
 
 Every row starts with an icon for its kind: a spec, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.

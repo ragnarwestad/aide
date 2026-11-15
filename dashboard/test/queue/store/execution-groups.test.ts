@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ExecutionGroupStore } from "../../../src/queue/execution-groups/index.ts";
 import { QueueStore } from "../../../src/queue/queue.ts";
+import { executionGroupControls } from "../../../src/queue/execution-groups/actions.ts";
 
 let dir: string;
 let path: string;
@@ -114,6 +115,33 @@ describe("ExecutionGroupStore", () => {
   });
 });
 
+describe("loading a group's active job", () => {
+  for (const state of ["queued", "running"] as const) {
+    test(`corrects a saved Archiving group from its ${state} Implement job`, () => {
+      const options = { mirrorPath: join(dir, "queue.json"), executionGroupsPath: path,
+        defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+        resolve: () => ({ specFolders: ["1-first"] }) };
+      const queue = new QueueStore(options);
+      const group = queue.executionGroups.create({ project: "aide", name: "Release", members: ["1-first"], branch: "group/release" });
+      const made = queue.enqueue({ project: "aide", specFolder: "1-first", steps: ["analyze", "implement", "archive"], executionGroupId: group.id });
+      if (!made.ok) throw new Error(made.error);
+      queue.update(made.job.id, { state, stepIndex: 1 });
+      queue.executionGroups.update(group.id, { state: "archiving" });
+      let changes = 0;
+      const restored = new QueueStore({ ...options, onChange: () => { changes++; } });
+      expect(restored.executionGroups.get(group.id)?.state).toBe(state);
+      expect(new ExecutionGroupStore(path).get(group.id)?.state).toBe(state);
+      expect(restored.get(made.job.id)?.stepIndex).toBe(1);
+      expect(changes).toBe(0);
+
+      for (const settled of ["stopped", "completed", "waiting-acceptance"] as const) {
+        restored.executionGroups.update(group.id, { state: settled });
+        expect(new QueueStore(options).executionGroups.get(group.id)?.state).toBe(settled);
+      }
+    });
+  }
+});
+
 describe("a group's job ending", () => {
   const queueWithGroup = () => {
     const queue = new QueueStore({
@@ -155,6 +183,21 @@ describe("a group's job ending", () => {
     queue.executionGroups.waitForAcceptance(group.id);
     queue.transition(id, "step-succeeded-last");
     expect(queue.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+  });
+
+  test("keeps Edit available until a combined run reaches Archive", () => {
+    const { queue, group, run } = queueWithGroup();
+    const id = run("1-first", ["analyze", "implement", "archive"]);
+    const current = () => queue.executionGroups.get(group.id)!;
+    expect(current().state).toBe("running");
+    expect(executionGroupControls(current(), []).menu).toEqual(["edit"]);
+    queue.transition(id, "step-succeeded", { stepIndex: 1 });
+    expect(current().state).toBe("queued");
+    queue.transition(id, "start");
+    expect(current().state).toBe("running");
+    queue.transition(id, "step-succeeded", { stepIndex: 2 });
+    expect(current().state).toBe("archiving");
+    expect(executionGroupControls(current(), []).menu).toEqual([]);
   });
 
   test("keeps the group archiving from its archive job's start until the landing settles", () => {

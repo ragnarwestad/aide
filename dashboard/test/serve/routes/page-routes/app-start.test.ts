@@ -52,8 +52,8 @@ const launch = async (base: string, headers: Record<string, string> = {}) => {
 };
 
 describe("the installed app's start address sends it to the tab or the list", () => {
-  test("a board with an Active spec opens the Running tab", async () => {
-    const { base } = board();
+  test("a board with a running job opens Jobs", async () => {
+    const { base } = board([job({})]);
     expect(await launch(base)).toEqual({ status: 302, location: "/" });
   });
 
@@ -74,19 +74,19 @@ describe("the installed app's start address sends it to the tab or the list", ()
   };
 
   test("a saved view that hides every row opens the Specs list (AC-1)", async () => {
-    const { base } = board();
+    const { base } = board([job({})]);
     const cookie = await savedView(base, "/?q=nothing-matches");
     expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/specs" });
   });
 
   test("a saved view that leaves a row opens the Running tab (AC-2)", async () => {
-    const { base } = board();
+    const { base } = board([job({})]);
     const cookie = await savedView(base, "/?q=queue-and-runner");
     expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/" });
   });
 
   test("a browser tab's first page names the Specs list when the saved view hides every row (AC-1)", async () => {
-    const { base } = board();
+    const { base } = board([job({})]);
     const cookie = await savedView(base, "/?q=nothing-matches");
     const hiding = await (await fetch(`${base}/`, { headers: { cookie } })).text();
     expect(hiding).toContain('<meta name="aide-start" content="/specs">');

@@ -203,7 +203,7 @@ describe("POST /api/queue records the row's own choice", () => {
     // Nothing was ticked before this, and the refused press must not
     // have written an empty choice over what a later, real Run would
     // otherwise have found unset — the fallback stays available for it.
-    const html = await (await fetch(`${base}/?${openQuery}`, )).text();
+    const html = await (await fetch(`${base}/specs?rows=1`, )).text();
     expect(html).toContain('value="analyze" checked');
   });
 });

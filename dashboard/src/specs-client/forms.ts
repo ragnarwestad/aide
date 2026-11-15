@@ -137,18 +137,18 @@ export function syncDependsOn(): void {
 // The one control in this file that deliberately NAVIGATES on success,
 // against the rule at the top — because this form is a page,
 // not a panel on one. There is nothing here to put back into a clean
-// state and no #jobrows beside it to refresh: the spec that was just
-// made is a row on the Running tab, opened by its job, and following it
-// there is what pressing Create asked for. A refusal still answers in
+// state and no #jobrows beside it to refresh: the new spec opens on
+// Specs, where its first run can be started. A refusal still answers in
 // place, where what was typed is still typed.
 export async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
+  const project = form.querySelector<HTMLSelectElement>("select[name=project]")?.value;
   await postForm(
     form,
     async (body) => {
       const folder = body?.specFolder;
-      await swapPage(folder ? `/?created=${encodeURIComponent(folder)}` : "/", { history: "push" });
+      await swapPage(folder && project ? `/specs/${encodeURIComponent(project)}/${encodeURIComponent(folder)}` : "/specs", { history: "push" });
     },
     (why) => formNote(form, why),
   );
