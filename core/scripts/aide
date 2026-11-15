@@ -67,6 +67,10 @@ project=""
 target_root=""
 spec_folder=""
 spec_path=""
+status_root=""
+status_repo=""
+status_ref=""
+status_fetched=no
 
 # The checkout whose specs root answers for the named project: this one when
 # it is the project, else the board host's own checkout of it, when this
@@ -91,6 +95,54 @@ number_from_board() {
     | first // empty' "$answer_file" 2>/dev/null
 }
 
+# Fetch the specs repository once for status. Resolution and phase reading use
+# the same ref, so a number and the state reported for it come from one view.
+prepare_status_ref() {
+  local candidate branch
+  status_root=""
+  status_repo=""
+  status_ref=""
+  status_fetched=no
+  [ -n "$target_root" ] || return 0
+  status_root="$(aide_specs_root "$target_root")"
+  status_repo="$(git -C "$status_root" rev-parse --show-toplevel 2>/dev/null)" || return 0
+  if GIT_TERMINAL_PROMPT=0 git -C "$status_repo" fetch -q origin >/dev/null 2>&1; then
+    status_fetched=yes
+  fi
+  status_ref="$(git -C "$status_repo" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)"
+  if [ -z "$status_ref" ]; then
+    for candidate in origin/main origin/master; do
+      git -C "$status_repo" rev-parse --verify -q "$candidate" >/dev/null 2>&1 \
+        && { status_ref="$candidate"; break; }
+    done
+  fi
+  if [ -n "$status_ref" ] && [ "$status_fetched" = "no" ]; then
+    branch="${status_ref#origin/}"
+    git -C "$status_repo" rev-parse --verify -q "$branch" >/dev/null 2>&1 && status_ref="$branch"
+  fi
+  [ -n "$status_ref" ] || status_fetched=no
+}
+
+# Resolve a numeric spec at the fetched default branch, active before archive.
+number_from_status_ref() {
+  local n="$1" relative area tree treeish entry
+  [ "$status_fetched" = "yes" ] || return 0
+  n="$(printf '%02d' "$((10#$n))")"
+  relative="$(git -C "$status_root" rev-parse --show-prefix 2>/dev/null)"
+  relative="${relative%/}"
+  for area in "" archive; do
+    tree="${relative:+$relative${area:+/}}$area"
+    treeish="$status_ref"
+    [ -z "$tree" ] || treeish="$status_ref:$tree"
+    entry="$(git -C "$status_repo" ls-tree -d --name-only "$treeish" 2>/dev/null \
+      | awk -v n="$n" 'index($0, n "-") == 1 { print; exit }')"
+    if [ -n "$entry" ]; then
+      [ -z "$area" ] && printf '%s\n' "$entry" || printf 'archive/%s\n' "$entry"
+      return 0
+    fi
+  done
+}
+
 # resolve_spec <number or folder>: sets spec_folder (what the board takes)
 # and spec_path (where its files sit in the specs root, archive/ included).
 resolve_spec() {
@@ -106,17 +158,32 @@ resolve_spec() {
       return 0
     fi
     root="$(aide_specs_root "$target_root")"
-    resolved="$(aide_resolve_spec "$arg" "$root")"
-    if [ -n "$resolved" ] && { [ -d "$root/$resolved" ] || [ -d "$root/archive/$resolved" ]; }; then
-      spec_path="$resolved"
-      spec_folder="${resolved#archive/}"
-      return 0
+    if [ "$command" = "status" ] && [ "$status_fetched" = "yes" ] \
+        && printf '%s' "$arg" | grep -qE '^[0-9]+$'; then
+      resolved="$(number_from_status_ref "$arg")"
+      if [ -n "$resolved" ]; then
+        spec_path="$resolved"
+        spec_folder="${resolved#archive/}"
+        return 0
+      fi
+    else
+      resolved="$(aide_resolve_spec "$arg" "$root")"
+      if [ -n "$resolved" ] && { [ -d "$root/$resolved" ] || [ -d "$root/archive/$resolved" ]; }; then
+        spec_path="$resolved"
+        spec_folder="${resolved#archive/}"
+        return 0
+      fi
     fi
     # A spec the board made since this machine last pulled its specs, or a
     # project whose specs are not on this machine at all.
     resolved=""
     printf '%s' "$arg" | grep -qE '^[0-9]+$' && resolved="$(number_from_board "$arg")"
-    [ -n "$resolved" ] || die "no spec numbered $arg in $root, nor in a job the board holds for $project"
+    if [ -z "$resolved" ]; then
+      if [ "$command" = "status" ] && [ "$status_fetched" != "yes" ]; then
+        die "could not refresh the specs for $project, so whether spec $arg exists is not known"
+      fi
+      die "no spec numbered $arg in $root, nor in a job the board holds for $project"
+    fi
     spec_path="$resolved"
     spec_folder="$resolved"
   else
@@ -242,18 +309,14 @@ run_create() {
 # phase_text; the phase is "not known here" when the repository is not on
 # this machine.
 read_phase() {
-  local root repo ref branch fetched=yes main_json branch_json candidate found=no
+  local root repo ref branch fetched main_json branch_json candidate found=no
   phase_text="not known here"
   [ -n "$target_root" ] || return 0
-  root="$(aide_specs_root "$target_root")"
-  repo="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)" || return 0
-  GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch -q origin >/dev/null 2>&1 || fetched=no
-  ref="$(git -C "$repo" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)"
-  if [ -z "$ref" ]; then
-    for candidate in origin/main origin/master; do
-      git -C "$repo" rev-parse --verify -q "$candidate" >/dev/null 2>&1 && { ref="$candidate"; break; }
-    done
-  fi
+  root="$status_root"
+  repo="$status_repo"
+  ref="$status_ref"
+  fetched="$status_fetched"
+  [ -n "$repo" ] || return 0
   [ -n "$ref" ] || return 0
   if [ "$fetched" = "no" ]; then
     branch="${ref#origin/}"
@@ -389,6 +452,7 @@ main() {
       run_create ;;
     status)
       require_board "ask about $spec_arg" ""
+      prepare_status_ref
       resolve_spec "$spec_arg"
       run_status ;;
     close)
