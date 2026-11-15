@@ -18,8 +18,8 @@ table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.specgap, .
 table.speclist.groupcard > tbody[data-group-head] > tr.specnotice > td:nth-child(n) { border: 0; background: none; }
 /* The fold is centred across both header lines; the title reaches left of an ordinary job. */
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
-.groupheadline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
-  margin-left: calc(-1 * var(--sp-5)); }
+.groupheadline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+table.speclist.groupcard > tbody > tr.grouphead .groupheadline { margin-left: calc(-1 * var(--sp-5)); }
 .groupheadline > .menu { flex: 0 0 auto; }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 0; padding-bottom: var(--sp-3); }
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
@@ -55,7 +55,7 @@ table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   table.speclist.groupcard > tbody > tr.groupline > td:nth-child(n+4) { display: none; }
   table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline) > td[data-col="state"] { text-align: center; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: 0; transform: translateY(calc(var(--sp-3) + var(--sp-2))); }
-  .groupheadline { margin-left: calc(-1 * var(--sp-2)); }
+  table.speclist.groupcard > tbody > tr.grouphead .groupheadline { margin-left: calc(-1 * var(--sp-2)); }
   table.speclist.groupcard > tbody > tr.groupline > td:first-child { grid-column: 2; }
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
   table.speclist.groupcard > tbody > tr.grouphead > td:nth-child(2) { grid-column: 2 / -1; }
