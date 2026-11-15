@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { queueHarness } from "../helpers/queue-server.ts";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { queueHarness, stateSaying, statusSaying } from "../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../helpers/specs-repo.ts";
 
 const harness = queueHarness("aide-execution-group-routes-");
@@ -79,6 +82,39 @@ describe("execution-group HTTP routes", () => {
     });
     expect(action.status).toBe(200);
     expect(await action.json()).toMatchObject({ ok: true, job: { specFolder: "81-queue-and-runner" } });
+  });
+
+  test("Start runs the steps the member's row has ticked, and no Analyze it has done", async () => {
+    const grouped = (folder: string, position: number) =>
+      `${description(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
+    const group = {
+      id: "group-1", project: "aide", name: "Release", members: ["81-queue-and-runner", "82-next"],
+      branch: "aide/group-81-queue-and-runner-release", state: "prepared" as const,
+      createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [],
+    };
+    const ticks = mkdtempSync(join(tmpdir(), "aide-group-ticks-"));
+    const start = async (pending: Record<string, string[]>) => {
+      const pendingStepsPath = join(ticks, `${Object.keys(pending).length}.json`);
+      writeFileSync(pendingStepsPath, JSON.stringify(pending));
+      const { base } = harness.start({
+        description: grouped("81-queue-and-runner", 1),
+        status: statusSaying(["create", "analyze"]),
+        liveState: stateSaying(["create", "analyze"]),
+        alsoSpecs: ["82-next"],
+        alsoDescriptions: { "82-next": grouped("82-next", 2) },
+        executionGroups: [group],
+        extra: { pendingStepsPath },
+      });
+      const action = await fetch(`${base}/api/queue/groups/group-1/action`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      return ((await action.json()) as { job: { specFolder: string; steps: string[] } }).job;
+    };
+    expect(await start({})).toMatchObject({ specFolder: "81-queue-and-runner", steps: ["implement"] });
+    expect(await start({ "aide/81-queue-and-runner": ["implement"] })).toMatchObject({ steps: ["implement"] });
+    rmSync(ticks, { recursive: true, force: true });
   });
 
   test("all recognised group routes refuse GET with the documented response (AC-3)", async () => {

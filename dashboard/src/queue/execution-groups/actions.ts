@@ -41,3 +41,13 @@ export function executionGroupControls(
     menu: group.state === "completed" ? ["remove"] : group.state === "archiving" ? [] : ["edit"],
   };
 }
+
+const MEMBER_STEPS = ["analyze", "implement"] as const;
+
+/** The steps a group's Start runs on a member: the Analyze and Implement
+ *  ticked on its row, or, with neither ticked, the ones it has not done. */
+export function groupMemberSteps(ticked: readonly string[] | undefined, done: readonly string[]): string[] {
+  const chosen = MEMBER_STEPS.filter((step) => ticked?.includes(step));
+  if (chosen.length) return chosen;
+  return MEMBER_STEPS.filter((step) => !done.includes(step));
+}
