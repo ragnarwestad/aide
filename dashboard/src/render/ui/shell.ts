@@ -9,6 +9,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
+import { readRunningSpecCount } from "./running-specs";
 import { tabBar } from "./tabs.ts";
 import { buttonForm, confirmDialog, headerMenu, messageSlot, tabIcon, type SiteTab } from "./components";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
@@ -317,8 +318,8 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
     [entries[0]!.path, tabIcon("projects")],
     ...sections.flatMap((entry): [string, string][] => entry.icon ? [[entry.path, tabIcon(entry.icon)]] : []),
   ]);
-  return tabBar(keys, (path) => path, current, {}, "", {
-    label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true,
+  return tabBar(keys, (path) => path, current, { "/": readRunningSpecCount() }, "", {
+    label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true, showZero: true,
   });
 }
 
