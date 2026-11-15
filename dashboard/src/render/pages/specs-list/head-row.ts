@@ -19,10 +19,11 @@ import {
   phasePips,
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
-import { LIST_COLUMNS } from "./row-shared.ts";
-import { rowAnchorId } from "./row-state.ts";
+import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
+import { rowAnchorId, specBusy } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState } from "./data-model/spec-state.ts";
+import { PDF_UNAVAILABLE, specActions } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
 // blank rather than fall back to "no status recorded yet". No phase
@@ -154,6 +155,19 @@ export function specHeadRow(
   // badge already followed for "archived", now told apart by `g.state`.
   const stateBadge = headStateBadge(g, lang);
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
+  const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
+  const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
+  const actions = opts.openSpec ? specActions({
+    project: g.project,
+    specFolder: g.specFolder,
+    archived: locked,
+    updateAction: `/api/queue${specPagePath(g.project, g.specFolder)}/update`,
+    closeAvailable: true,
+    closeUnavailableReason: projectLanding
+      ? "a merge is in progress"
+      : specBusy(g) ? "another job for this spec is still running" : undefined,
+    pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
+  }, run.control + run.dialog, lang) : "";
   // What goes under the name. A locked row draws nothing here
   // — `specSummary` has no path for it at all: it draws a title
   // for an unnamed create job and the dependency list, and an archived
@@ -192,7 +206,7 @@ export function specHeadRow(
     // also gives the title and the pips below it the same left edge for
     // nothing — they both start where this cell ends.
     `<td class="foldcell" rowspan="2" data-col="fold">${foldControl(g, opts.filter ?? {}, opened, lang, opts.listPath, !!opts.openSpec)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${spec}` +
+    `<td colspan="${columns - 1}"><div class="spec-name">${spec}` +
     `</div>` +
     under +
     `</td>` +
@@ -237,17 +251,20 @@ export function specHeadRow(
     // and the badge over the phases' own state column). A desktop hides
     // them: there the button's label already says how far the spec has
     // come, and the pips drew that fact a second time.
-    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}${run.control ? `<span class="row">${run.control}</span>` : ""}${run.dialog}</td>` +
+    `<td data-col="state">${stateBadge ? `<span class="badgeslot">${stateBadge}</span>` : ""}</td>` +
+    (opts.openSpec
+      ? `<td data-col="actions"><span class="row">${actions}</span></td>`
+      : "") +
     // How long the spec's phases have come to, summed. The most recent
     // job's own start would throw the row to the top of a list sorted by
     // it on every run, and the spec's own creation date says nothing about
     // the work. A dash
     // where nothing has settled yet. The spec's PDF is among the open
     // spec's actions, beside Close and Update.
-    (locked
+    (!opts.openSpec ? (locked
       ? `<td class="archive-date" data-col="started">${archiveDateCell(g.totalDurationMs ?? 0)}</td>`
-      : `<td data-col="started">${activeDurationCell(g)}</td>`) +
-    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>` +
+      : `<td data-col="started">${activeDurationCell(g)}</td>`) : "") +
+    (!opts.openSpec ? `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0)}</td>` : "") +
     `</tr>`
   );
 }

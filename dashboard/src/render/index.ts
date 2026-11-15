@@ -132,6 +132,7 @@ export {
   TAB_FILES,
   documentTabScript,
   renderSpecDetail,
+  specActions,
   renderSpecPageFailedRest,
   listViewIn,
   specDetailPath,

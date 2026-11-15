@@ -92,6 +92,7 @@ export {
   type SpecGroup,
 };
 import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { dependsOnLine } from "./depends-on";
 import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
@@ -113,7 +114,7 @@ export interface SpecsPageOptions {
   runnerAvailable: boolean;
   targets: SpecTarget[];
   executionGroups?: ExecutionGroup[];
-  groupJobs?: { project: string; specFolder: string; state: string }[];
+  groupJobs?: { project: string; specFolder: string; state: string; landing?: boolean }[];
   /** `project/folder` keys of ARCHIVED specs. A create job normally
    *  keeps its group visible even though its spec is not a target (the
    *  folder does not exist until it lands) — but once the spec has been
@@ -336,7 +337,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
   // message rows; on the Specs list it reads head row, message rows, then
   // the spec, with no phase lines, since what runs is followed on the
   // Running tab. Every message keeps that one place.
-  const columns = LIST_COLUMNS;
+  const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
   const head = specHeadRow(g, opts, opened);
   const notice = specNoticeRow(g, now, opts.lang ?? "en", testServerAvailable, {
     filter: opts.filter,
@@ -390,14 +391,18 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 // server-side — send only the rows that changed, or cache the fragment
 // — never a cap again.
 export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
-  const f = opts.filter ?? {};
+  const requested = opts.filter ?? {};
+  const f = opts.openSpec && (requested.sort === "started" || requested.sort === "cost")
+    ? { ...requested, sort: "created" as const, dir: undefined }
+    : requested;
+  const normalizedOpts = f === requested ? opts : { ...opts, filter: f };
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
-  const matched = sortGroups(shownGroups(groups, opts), f);
+  const matched = sortGroups(shownGroups(groups, normalizedOpts), f);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
-      groupRows(matched, opts, now, openedKeys(opts), groups)
-    : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
+      groupRows(matched, normalizedOpts, now, openedKeys(normalizedOpts), groups)
+    : `<tr><td colspan="${opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
       // all" is not, and telling that reader to pick one above is

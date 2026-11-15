@@ -276,3 +276,19 @@ test("Run from a closed spec can submit Archive without rerunning Create", async
     expect(form.get("specFolder")).toBe("81-queue-and-runner");
   } finally { await p.close(); }
 });
+
+test("every spec action stays reachable at phone width without horizontal scrolling (AC-8)", async () => {
+  const p = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  try {
+    await withBrowser(p.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(phone spec)");
+    const actions = p.locator('tr.specstate[data-folder="81-queue-and-runner"] td[data-col="actions"]');
+    expect(await actions.count()).toBe(1);
+    for (const name of ["Run", "Close", "Update"]) {
+      expect(await actions.getByRole("button", { name, exact: true }).isVisible()).toBe(true);
+    }
+    expect(await actions.locator("a[data-pdf]").isVisible()).toBe(true);
+    expect(await p.locator("table.speclist").evaluate((table) => table.scrollWidth <= table.clientWidth)).toBe(true);
+  } finally {
+    await p.close();
+  }
+});

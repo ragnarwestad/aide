@@ -1,7 +1,7 @@
 // Split out of spec-page.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { type SpecPageView } from "../../../../src/render";
+import { specActions, type SpecPageView } from "../../../../src/render";
 import { page, view } from "../spec-page-fixtures.ts";
 
 const FOLDER = "150-one-page-shows-the-whole-spec";
@@ -21,8 +21,10 @@ const dialogById = (html: string, id: string): string =>
 // textarea on the Description tab, the same read-only note, and checks
 // that are shown but cannot be ticked.
 describe("the Reopen control", () => {
-  const archived = (extra: Partial<SpecPageView> = {}, tab?: string) =>
-    page(view({ archived: true, ...extra }), tab);
+  const archived = (extra: Partial<SpecPageView> = {}, tab?: string) => {
+    const archivedView = view({ archived: true, ...extra });
+    return page(archivedView, tab) + specActions(archivedView, "");
+  };
 
   test("the action row's Reopen names a progress dialog whose OK posts the reopen, and the box belongs to that post", () => {
     const html = archived();

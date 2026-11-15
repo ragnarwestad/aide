@@ -36,9 +36,9 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 One row per spec, not per job, and shut by default. A shut row shows the Projects icon before the project and the spec
 icon before the spec's name and title, followed by one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
-orders by), its state, how long its phases have taken and what they cost; the list has five headings, Created,
-Specification, State, Time and Cost, and sorts by each. On the Running tab it is the created stamp with the phase
-pips at its right, the state, the time and the cost; a phone shows the pips without the stamp. The spec's PDF is an icon after Update among the open spec's actions. The row carries no control but the one that opens it: a chevron in front of the name. Under it sit the row's notice lines, the `N not verified`
+orders by), its state and its actions. The list has four headings: Created, Specification, State and Actions. It sorts
+by Created, Specification and State. On the Running tab the line is the created stamp with the phase pips at its
+right, the state, the time and the cost; a phone shows the pips without the stamp. Under the row sit its notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 
@@ -100,6 +100,11 @@ only say it twice. A phone lays the caption line out the same way: the captions,
 column at the phase badges' own size, then the total in the Time column.
 
 ## The row's controls
+
+The Specs list puts every action in the Actions column. Its help mark comes first, followed by Run, Reopen, Close,
+Update and the PDF link, each only when it applies. The State column contains the spec's state and no control. The
+open spec's tab row contains navigation only. On a phone the Actions cell takes a full line and wraps its controls,
+so every action remains reachable without scrolling the table sideways.
 
 The Jobs tab's open row adds one line per phase and a caption line above them. Each phase line carries its own tick box, its
 own AI select and its own model select — the AI select only when more than one tool is configured, since one tool

@@ -103,6 +103,7 @@ export const es: Record<TranslationKey, string> = {
   "list.colSpec": "Especificación",
   "list.colState": "Estado/Acción",
   "list.colStateAlone": "Estado",
+  "list.colActions": "Acciones",
   "list.colCreated": "Creada",
   "list.colTime": "Tiempo",
   "list.colCost": "Coste",

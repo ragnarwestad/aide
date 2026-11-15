@@ -269,8 +269,10 @@ export function searchForm(
 }
 
 /** The columns' widths are declared on the column group, in this order. */
-const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
-export const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
+const JOB_COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
+const SPEC_COLUMNS = ["fold", "spec", "phase", "state", "actions"];
+export const columnGroup = (specsList = false): string =>
+  `<colgroup>${(specsList ? SPEC_COLUMNS : JOB_COLUMNS).map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one. */
@@ -286,6 +288,13 @@ const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: strin
     attrs: ' data-col="cost"',
     labelHtml: (lang) => `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
   },
+];
+
+const SPEC_HEADINGS: typeof HEADINGS = [
+  { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
+  { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
+  { key: "state", label: "list.colStateAlone", attrs: ' data-col="state"' },
+  { key: "actions", label: "list.colActions", attrs: ' data-col="actions"' },
 ];
 
 /** The list's table head with a sort link on every heading. `now.sort` is the
@@ -357,10 +366,9 @@ export function sortHead(
     // not information, so it stands outside the title rather than inside
     // it — which also gives it a cell's worth of height to be hit in,
     // across both of the header's two lines.
-    columnGroup() +
+    columnGroup(!!o.specsList) +
     `<thead><tr>` +
-    HEADINGS.map((h) => {
-      if (h.key === "state" && o.specsList) return `<th${h.attrs}></th>`;
+    (o.specsList ? SPEC_HEADINGS : HEADINGS).map((h) => {
       const label = h.key === "spec" ? o.specLabel : h.label;
       return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
     }).join("") +
@@ -371,7 +379,8 @@ export function sortHead(
 /** The Specs list's head: the column the view is sorted by, marked, and a
  *  heading's link turning it round when it is the one already sorted by. */
 export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = false): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
+  const requested = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
+  const sort = specsList && (requested === "started" || requested === "cost") ? DEFAULT_SORT : requested;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   return sortHead(
     {

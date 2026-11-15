@@ -1,9 +1,5 @@
-// The Specs list has Time and Cost on a spec's second line and sorts by
-// them; the spec's PDF is among the open spec's actions.
-
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { page, view } from "../../spec-page-fixtures.ts";
 
 const targets: SpecTarget[] = [
   { project: "aide", specFolder: "81-cheap", createdAt: "2026-10-05T10:00:00Z" },
@@ -15,22 +11,39 @@ const ran = (specFolder: string, spentUsd: number): QueueRowView => ({
 }) as QueueRowView;
 
 describe("the Specs list's columns", () => {
-  test("a sort by Cost orders the Specs list by what each spec cost", () => {
-    const html = renderSpecsRows([ran("81-cheap", 1), ran("82-dear", 9)], {
+  test("draws Created, Specification, State and Actions without totals (AC-1, AC-3)", () => {
+    const html = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {} });
+    const headings = [...html.matchAll(/<th[^>]*>(?:<a[^>]*>)?([^<]*)/g)].map((m) => m[1]).filter(Boolean);
+    expect(headings).toEqual(["Created", "Specification", "State", "Actions"]);
+    expect(html.match(/<col data-col=/g)?.length).toBe(5);
+    expect(html).not.toContain('data-col="started"');
+    expect(html).not.toContain('data-col="cost"');
+  });
+
+  test("falls back from removed Specs sorts while Jobs keeps them (AC-2)", () => {
+    const rows = [ran("81-cheap", 1), ran("82-dear", 9)];
+    const specs = renderSpecsRows(rows, {
       runnerAvailable: true, targets, openSpec: {}, filter: { sort: "cost", dir: "desc" },
     });
-    expect(html.indexOf('data-folder="82-dear"')).toBeLessThan(html.indexOf('data-folder="81-cheap"'));
+    const jobs = renderSpecsRows(rows, {
+      runnerAvailable: true, targets, filter: { sort: "cost", dir: "desc" },
+    });
+    expect(specs.indexOf('data-folder="81-cheap"')).toBeLessThan(specs.indexOf('data-folder="82-dear"'));
+    expect(specs).not.toContain("sort=cost");
+    expect(jobs.indexOf('data-folder="82-dear"')).toBeLessThan(jobs.indexOf('data-folder="81-cheap"'));
+    expect(jobs).toContain("sort=cost");
   });
-});
 
-describe("the spec's PDF, among the open spec's actions", () => {
-  test("links to the spec's PDF", () => {
-    expect(page(view())).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec/pdf"');
-  });
-
-  test("a host without the PDF tool says why", () => {
-    const html = page(view({ pdfUnavailableReason: "md-to-pdf is not installed on this host" }));
-    expect(html).not.toContain('href="/specs/aide/150-one-page-shows-the-whole-spec/pdf"');
-    expect(html).toContain("md-to-pdf is not installed on this host");
+  test("puts help and every action in Actions while State has no control (AC-4, AC-5, AC-7)", () => {
+    const html = renderSpecsRows([ran("81-cheap", 1)], {
+      runnerAvailable: true,
+      targets,
+      openSpec: {},
+      pdfAvailable: true,
+    });
+    const state = html.match(/<td data-col="state">([\s\S]*?)<\/td>/)?.[1] ?? "";
+    expect(state).not.toMatch(/<(?:form|button|a)\b/);
+    const positions = ["What these buttons do", ">Run<", ">Close<", ">Update<", "data-pdf"].map((part) => html.indexOf(part));
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 });

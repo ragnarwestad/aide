@@ -47,7 +47,7 @@
 // that assembles all of them, into the open row of the Specs list — stays
 // here.
 
-import { buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
+import { helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import type { Language } from "../../../i18n";
 import { shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE } from "../../ui/loading.ts";
@@ -55,12 +55,11 @@ import { t } from "../../../i18n";
 import { groupKey } from "../specs-list/data-model";
 import { tabBar } from "../job-page";
 import {
-  actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
-  reopenControl,
+  testServerStatus, closedLine, specActions,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, TAB_FILES, tabHelp,
+  resolveSpecTab, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, TAB_FILES, tabHelp,
   type ListView,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
@@ -115,21 +114,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
     messageSlot("notice", "info", { id: SPEC_NOTICE_LINE });
 
-  // The spec's own actions, at the end of the tab row. Reopen goes BEFORE
-  // Update, so the control that is always there keeps the same spot: an
-  // Update that slid left whenever a spec was archived would be a
-  // button moving because something else appeared.
-  // Every "(?)" first, then every button: a mark between two buttons
-  // reads as belonging to the one before it.
-  const actions =
-    actionsHelp(view, opts.lang ?? "en") +
-    (view.archived ? reopenControl(view, opts.lang ?? "en") : "") +
-    closeControl(view, opts.lang ?? "en") +
-    // A GET would let a reload re-run the pull, so this is a form and
-    // not a link, exactly as every other action on this dashboard is.
-    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: t(opts.lang ?? "en", "spec.update"), pending: t(opts.lang ?? "en", "spec.updating") } }) +
-    // Last, so it is not between two buttons.
-    pdfControl(view, opts.lang ?? "en");
+  const actions = "";
 
   // Every tab says what it is for: a "(?)" at the right end of
   // the tab's own first line, using the same shared component the search
@@ -165,6 +150,9 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     `</div>`
   );
 }
+
+/** The actions shown in a spec's header row, after the row supplies Run. */
+export { specActions };
 
 /** What ends a spec page whose second half failed after the head was sent:
  *  the loading element hidden and one sentence saying what to do. */

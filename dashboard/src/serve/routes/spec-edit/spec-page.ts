@@ -152,7 +152,6 @@ export async function specPageRoutes(
     // the spec, and building its view on every change would read git for each.
     const key = `${project}/${specFolder}`;
     const parts = await specsListParts(ctx, req, url, key, oneRowKey(url, key));
-    if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
     const lang = parts.view.lang ?? "en";
     const inRow = (view: SpecView) =>
       specInRow(view, {
@@ -162,6 +161,11 @@ export async function specPageRoutes(
         steptab: url.searchParams.get("steptab") ?? undefined,
         listView,
       });
+    if (url.searchParams.get("rows")) {
+      const view = await ctx.specPageView(project!, specFolder!, url.searchParams.get("tab") ?? undefined);
+      if (!view) return new Response("not found", { status: 404 });
+      return specsRowsAnswer(parts, url);
+    }
     // `?detail=1`: this spec's rows with the spec drawn in its row, and the
     // tab's script after them, for the page script that opens a shut row in
     // place. A view that cannot be built is a 404 the script reads as "could
@@ -173,7 +177,7 @@ export async function specPageRoutes(
       ]);
       if (!view) return new Response("not found", { status: 404 });
       const { detail, scriptSrc } = inRow(view);
-      const html = renderSpecGroupRows(rows, { ...parts.view, openSpec: { key, detail } }, key);
+      const html = renderSpecGroupRows(rows, { ...parts.view, openSpec: { ...parts.view.openSpec, key, detail } }, key);
       return new Response(html + (scriptSrc ? `<script src="${scriptSrc}"></script>` : ""), {
         headers: listHeaders(parts),
       });
@@ -189,7 +193,7 @@ export async function specPageRoutes(
         ]);
         if (!view) throw new Error("spec folder disappeared while the page was built");
         const { detail, scriptSrc } = inRow(view);
-        return renderSpecsPageRest(rows, ctx.nav(), { ...parts.view, openSpec: { key, detail }, scriptSrc });
+        return renderSpecsPageRest(rows, ctx.nav(), { ...parts.view, openSpec: { ...parts.view.openSpec, key, detail }, scriptSrc });
       },
       failedRest: renderSpecPageFailedRest(ctx.nav(), lang, parts.view.currentUrl),
       headers: listHeaders(parts),

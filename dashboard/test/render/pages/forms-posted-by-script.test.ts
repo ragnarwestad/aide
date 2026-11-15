@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderJobDetailPage, modelsBlock, renderProjectPage, type ProjectView } from "../../../src/render";
+import { renderJobDetailPage, modelsBlock, renderProjectPage, specActions, type ProjectView } from "../../../src/render";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
@@ -62,7 +62,7 @@ const projectPage = (opts: Record<string, unknown>) =>
 
 describe("each form the page script posts and loads again", () => {
   const FORMS: [string, () => string, string][] = [
-    ["Update", () => page(view(), "description"), `${SPEC}/update`],
+    ["Update", () => page(view(), "description") + specActions(view(), ""), `${SPEC}/update`],
     ["a document tab's Save", () => page(view(), "description"), `${SPEC}/save`],
     ["the Status tab's tick", () => page(view(CHECKS), "status"), `${SPEC}/tick`],
     ["Stop test server", () => page(view(TEST_SERVER), "description"), `${SPEC}/test-server/stop`],

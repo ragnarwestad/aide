@@ -17,6 +17,10 @@ import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 import { writing } from "../../../queue/queue.ts";
 
+export type SpecActionView = Pick<SpecPageView,
+  "project" | "specFolder" | "archived" | "updateAction" | "closeAvailable" | "closeUnavailableReason" | "pdfUnavailableReason"
+>;
+
 /** What being closed actually means for this spec —
  *  Names the reason and
  *  the date (which "travel with the spec"), never the word
@@ -216,7 +220,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
  *  Description tab, the same read-only note above this, the checks shown
  *  but not tickable. And nothing here is drawn for a live spec: its own
  *  row on the queue list is where its actions are. */
-export function reopenControl(view: SpecPageView, lang: Language = "en"): string {
+export function reopenControl(view: SpecActionView, lang: Language = "en"): string {
   return (
     askButton({ label: t(lang, "list.reopen"), dialogId: REOPEN_ASK_ID }) +
     reopenAskDialog(view.project, view.specFolder, lang, REOPEN_ASK_ID)
@@ -243,8 +247,8 @@ export function pdfLink(action: string, unavailableReason?: string, lang: Langua
   const what = t(lang, "spec.openPdf");
   if (unavailableReason) {
     return (
-      `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>` +
-      helpPopover(t(lang, "help.whyUnavailable"), esc(unavailableReason))
+      helpPopover(t(lang, "help.whyUnavailable"), esc(unavailableReason)) +
+      `<span class="iconlink" aria-disabled="true" aria-label="${esc(what)}">${ICON_PDF}</span>`
     );
   }
   return (
@@ -254,7 +258,7 @@ export function pdfLink(action: string, unavailableReason?: string, lang: Langua
 }
 
 /** The open spec's PDF, among its actions. */
-export function pdfControl(view: SpecPageView, lang: Language = "en"): string {
+export function pdfControl(view: SpecActionView, lang: Language = "en"): string {
   return pdfLink(`${specPagePath(view.project, view.specFolder)}/pdf`, view.pdfUnavailableReason, lang);
 }
 
@@ -319,7 +323,7 @@ export function testServerStatus(view: SpecPageView, lang: Language = "en"): str
  *  not right now" — `view.archived` hides it for an archived OR
  *  a closed spec alike, since the move does not apply once a spec has
  *  left the active list. */
-export function closeControl(view: SpecPageView, lang: Language = "en"): string {
+export function closeControl(view: SpecActionView, lang: Language = "en"): string {
   if (!view.closeAvailable || view.archived) return "";
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
@@ -339,7 +343,7 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
  *  differently), and Update's own. Drawn once, before the row's own
  *  buttons — covering what each button does and, where one will not
  *  take a click right now, why. */
-export function actionsHelp(view: SpecPageView, lang: Language = "en"): string {
+export function actionsHelp(view: SpecActionView, lang: Language = "en"): string {
   const sentences: string[] = [];
   if (view.archived) {
     sentences.push(t(lang, "spec.reopenHelp"));
@@ -351,4 +355,16 @@ export function actionsHelp(view: SpecPageView, lang: Language = "en"): string {
   }
   sentences.push(t(lang, "spec.updateHelp"));
   return helpPopover(t(lang, "help.whatButtonsDo"), esc(sentences.join(" ")));
+}
+
+/** The actions shown in a spec's header row, after the row supplies Run. */
+export function specActions(view: SpecActionView, run: string, lang: Language = "en"): string {
+  return (
+    actionsHelp(view, lang) +
+    run +
+    (view.archived ? reopenControl(view, lang) : "") +
+    closeControl(view, lang) +
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: t(lang, "spec.update"), pending: t(lang, "spec.updating") } }) +
+    pdfControl(view, lang)
+  );
 }

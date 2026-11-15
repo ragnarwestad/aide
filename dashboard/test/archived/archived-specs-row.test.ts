@@ -12,11 +12,10 @@ afterEach(() => harness.cleanup());
 // --- It is a READER row ---------------------------------------
 
 describe("an archived spec's row", () => {
-  test("draws no model select, no tick box and no Run", async () => {
+  test("draws no model select or Run controls", async () => {
     const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain("<select");
-    expect(row).not.toContain('type="checkbox"');
     // The Run form is a carrier with an id of its own; a reader row must
     // not carry one, nor the button that submits it.
     expect(row).not.toContain('class="rowrun"');
@@ -25,9 +24,11 @@ describe("an archived spec's row", () => {
 
   // `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
-  test("offers no Analyze, Implement or Archive button — Reopen and nothing else", async () => {
+  test("offers Reopen, Update and PDF without a workflow action", async () => {
     const shut = blockFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
-    expect(shut).not.toContain("<button");
+    expect(shut).toContain(">Reopen</button>");
+    expect(shut).toContain(">Update</button>");
+    expect(shut).toContain("data-pdf");
     const open = blockFor(await specsList(start().base, `${ARCHIVED_VIEW}${opened(STAMPED)}`), STAMPED);
     for (const label of ["Analyze", "Implement", "Archive"]) {
       expect(open).not.toContain(`>${label}</button>`);

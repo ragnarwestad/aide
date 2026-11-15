@@ -219,6 +219,12 @@ table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
    a neighbouring column. */
 table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
 table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
+table.speclist[data-list="specs"] > colgroup > col[data-col="fold"] { width: 4%; }
+table.speclist[data-list="specs"] > colgroup > col[data-col="spec"] { width: 11%; }
+table.speclist[data-list="specs"] > colgroup > col[data-col="phase"] { width: 37%; }
+table.speclist[data-list="specs"] > colgroup > col[data-col="state"] { width: 18%; }
+table.speclist[data-list="specs"] > colgroup > col[data-col="actions"] { width: 30%; }
+table.speclist[data-list="specs"] td[data-col="actions"] > .row { flex-wrap: wrap; }
 /* Under 848px the list no longer fits the page (its 49rem plus the
    page's own 2 × 32px), and the two figure columns leave one at a
    time from the right — Cost, then Time — rather than all at once at

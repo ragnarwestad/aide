@@ -104,6 +104,7 @@ export const en = {
   "list.colSpec": "Specification",
   "list.colState": "State/Action",
   "list.colStateAlone": "State",
+  "list.colActions": "Actions",
   "list.colCreated": "Created",
   "list.colTime": "Time",
   "list.colCost": "Cost",

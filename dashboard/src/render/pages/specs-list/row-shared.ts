@@ -76,4 +76,5 @@ export const drawsChecksLine = (g: SpecGroup, f: SpecsFilter): boolean =>
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
 export const LIST_COLUMNS = 6;
+export const SPECS_LIST_COLUMNS = 5;
 
