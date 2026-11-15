@@ -106,11 +106,14 @@ that has run or has a queued or running job is locked in its current place. Spec
 and any spec New group would offer can be added after the locked members. A new dependency can move before an
 unstarted member. Save checks the dependencies and writes the new membership together.
 
-Grouped member rows offer no Archive. Once the last member has finished Implement, the card waits for Archive. When
-every member has finished Implement and every required acceptance row is ticked, the group card offers Archive. That
-press validates and moves every member together, runs the project's test gate once and lands the shared branch once. A
-member already archived counts as done, and Archive moves the rest. The card shows the group as archiving from the
-press until the landing has settled. A failed landing leaves every member active and shows the reason on the group.
+Grouped member rows offer no Archive. An open group has one shared Archive line immediately below its header. The line
+uses the same AI and model choices, state, time, usage and log fold as a spec phase. Its saved choice belongs to the
+group; before one is saved, it uses the first member's Archive choice. The line remains after retries and completion.
+Once the last member has finished Implement, the card waits for Archive. When every member has finished Implement and
+every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
+together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
+and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
+A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 
 A completed group's … menu offers Remove, and no other state does. It asks in the shared progress dialog, blocks input
 while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the

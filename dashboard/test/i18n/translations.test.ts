@@ -47,6 +47,13 @@ describe("t()", () => {
     }
   });
 
+  test("every language names a group's shared Archive details (AC-15)", () => {
+    for (const lang of LANGUAGES) {
+      expect(t(lang, "list.groupArchivePhase")).not.toBe("list.groupArchivePhase");
+      expect(t(lang, "job.groupArchiveMembers", { group: "Release", members: "1, 2" })).not.toContain("job.groupArchiveMembers");
+    }
+  });
+
   test("every language names the Actions column (AC-9)", () => {
     expect(LANGUAGES.map((lang) => t(lang, "list.colActions" as Parameters<typeof t>[1]))).toEqual([
       "Aktionen", "Actions", "Acciones", "Actions", "Handlinger",

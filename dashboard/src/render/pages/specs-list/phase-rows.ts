@@ -59,7 +59,7 @@ function finishedPhaseChip(step: string, lang: Language): string {
 //
 // The leading cell is the phase's NAME, hard left and alone: the row's
 // one button sits beside the state.
-export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number): string {
+export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, mode: { groupArchive?: boolean } = {}): string {
   const busy = specBusy(g);
   // The row is a record, not a control. Read once here, like
   // `busy` beside it, and consulted where a line would otherwise offer a
@@ -98,12 +98,12 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // row's second line (list.css), so Time and Cost move here, over the
   // phases' own figures.
   const totals = { started: specTotalCell(g), cost: costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0) };
-  if ((opts.modelChoices ?? []).length) {
+  if (!mode.groupArchive && (opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
       cells: phaseCaptionCells(opts, true, action, opts.lang ?? "en", totals, true, openState),
     });
-  } else {
+  } else if (!mode.groupArchive) {
     // No captions to head — one tool configured, nothing to choose
     // between — and the line is still drawn: it carries the totals, and
     // the press when there is one.
@@ -115,7 +115,10 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         `<td data-col="started">${totals.started}</td><td class="num" data-col="cost">${totals.cost}</td>`,
     });
   }
+  const sharedGroup = g.group && (opts.executionGroups ?? []).find((group) =>
+    group.project === g.project && group.name === g.group?.name && group.members.length > 1);
   g.phases
+    .filter((phase) => !(sharedGroup && phase.step === "archive"))
     .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step }, opts.lang);
@@ -168,7 +171,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // one phase already behind you. It carries no `name`, so no
       // press can ever post `steps=create` — a disabled input is not
       // submitted either, and this is the belt as well as the braces.
-      const box = locked
+      const box = mode.groupArchive ? "" : locked
         ? phaseChip({
             dataAttr: "data-phase",
             value: p.step,
@@ -323,7 +326,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
-  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + dependsOnLine(g, opts);
+  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + (mode.groupArchive ? "" : dependsOnLine(g, opts));
 }
 
 /** The Specs list's Run control. The dialog reuses the same saved/default

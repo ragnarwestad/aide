@@ -77,10 +77,14 @@ export async function jobDetailView(
   const currentJob = (ctx.queue.list?.() ?? [job]).find((candidate) =>
     candidate.project === job.project && candidate.specFolder === job.specFolder
   );
+  const executionGroup = job.executionGroupId && job.steps.includes("archive")
+    ? ctx.queue.executionGroups?.get(job.executionGroupId)
+    : undefined;
   return {
     ...(await ctx.jobRow(job)),
     tool,
     title: target?.title,
+    ...(executionGroup ? { executionGroup: { id: executionGroup.id, name: executionGroup.name, members: [...(job.groupMembers ?? executionGroup.members)] } } : {}),
     finishedAt: job.finishedAt,
     // Each finished step's OWN transcript, read from its
     // own `streamFile` rather than the job's last one — a three-step

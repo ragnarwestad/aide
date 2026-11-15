@@ -103,6 +103,8 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
           openFor: openFor ?? searchOpenFor,
           candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
           locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
+          jobs: v.specJobs,
+          list: v.list,
         })
         : "",
       place: executionGroupPlace(group, members),

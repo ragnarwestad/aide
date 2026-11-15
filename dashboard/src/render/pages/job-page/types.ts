@@ -91,6 +91,8 @@ export interface SpecFileView {
 }
 
 export interface JobDetailView extends QueueRowView {
+  /** The durable identity and attempted members for a shared group Archive. */
+  executionGroup?: { id: string; name: string; members: string[] };
   /** Which CLI is running (or last ran) this job's current step. Absent
    *  means claude. `none` is a finished `create` step that skipped the
    *  AI session entirely — never a step actually IN FLIGHT,

@@ -30,6 +30,17 @@ describe("ExecutionGroupStore", () => {
     expect(new ExecutionGroupStore(path).get(made.id)).toEqual(store.get(made.id));
   });
 
+  test("persists the optional Archive choice and still reads old records (AC-4, AC-5)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "group/1-first" });
+    store.update(made.id, { archiveModel: "fable", archiveProvider: "openai" });
+
+    expect(new ExecutionGroupStore(path).get(made.id)).toMatchObject({ archiveModel: "fable", archiveProvider: "openai" });
+
+    writeFileSync(path, JSON.stringify([{ id: "legacy", project: "aide", name: "Old", members: ["1-first"], branch: "group/1-first", state: "prepared", jobs: [], completedMembers: [] }]));
+    expect(new ExecutionGroupStore(path).get("legacy")).toMatchObject({ name: "Old" });
+  });
+
   test("resumes without replacing identity or first start (AC-5)", () => {
     const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
     const made = store.prepare({ project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first" });

@@ -55,9 +55,13 @@ export async function handleJobActionRoutes(
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     let askedAction: ExecutionGroupAction | undefined;
+    let askedModel: string | undefined;
+    let askedProvider: string | undefined;
     try {
       const body = sent.text ? bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown> : {};
       if (body.action === "start" || body.action === "stop" || body.action === "archive" || body.action === "remove") askedAction = body.action;
+      if (typeof body.model === "string" && body.model) askedModel = body.model;
+      if (typeof body.provider === "string" && body.provider) askedProvider = body.provider;
     } catch { return json({ error: "malformed body" }, 400); }
     let groupId: string;
     try { groupId = decodeURIComponent(groupAction[1]!); } catch { return json({ error: "invalid group" }, 400); }
@@ -132,7 +136,8 @@ export async function handleJobActionRoutes(
           steps: groupMemberSteps(ctx.queue.pendingSteps[`${project}/${next.specFolder}`], next.done ?? []),
         }, ctx.queue) : null
       : action === "archive" && !members.some((member) => member.acceptanceOpen)
-        ? {
+        ? (() => {
+          const base = withRowPicks({
             project,
             specFolder: members[0]!.specFolder,
             steps: ["archive"],
@@ -140,7 +145,19 @@ export async function handleJobActionRoutes(
             // branch through its record: a group archive moves two or more.
             ...(members.length > 1 ? { groupMembers: members.map((member) => member.specFolder), groupBranch: execution.branch } : {}),
             executionGroupId: execution.id,
-          }
+          }, ctx.queue);
+          const model = askedModel ?? execution.archiveModel ?? base.model.archive;
+          const provider = askedProvider ?? execution.archiveProvider ?? base.provider.archive;
+          if (askedModel) ctx.queue.executionGroups.update(execution.id, {
+            archiveModel: askedModel,
+            archiveProvider: askedProvider,
+          });
+          return {
+            ...base,
+            model: { ...base.model, ...(model ? { archive: model } : {}) },
+            provider: { ...base.provider, ...(provider ? { archive: provider } : {}) },
+          };
+        })()
         : null;
     if (!raw) return json({ error: "every acceptance criterion in the group must be ticked before Archive" }, 409);
     const result = enqueueRequest(ctx.queue, raw, "manual");

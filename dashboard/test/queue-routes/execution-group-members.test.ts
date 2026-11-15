@@ -38,15 +38,20 @@ const implemented = (base: string) => listUntil(base, rowSaysDone("implement"), 
 
 /** Two grouped specs, the first one through Implement. */
 async function twoMembers(state: string, extra: Record<string, unknown> = {}) {
+  const { allImplemented = false, ...serverExtra } = extra;
   const started = harness.start({
     description: grouped("81-queue-and-runner", 1),
     alsoSpecs: ["82-next"],
     alsoDescriptions: { "82-next": grouped("82-next", 2) },
-    executionGroups: record(state, undefined, ["81-queue-and-runner"]),
-    extra: { queueDefaults: DEFAULTS, ...extra },
+    executionGroups: record(state, undefined, allImplemented ? ["81-queue-and-runner", "82-next"] : ["81-queue-and-runner"]),
+    extra: { queueDefaults: DEFAULTS, ...serverExtra },
     before: (dir) => {
       writeFileSync(join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"), statusSaying(["create", "analyze", "implement"]));
       ran(dir, ["analyze", "implement"], "81-queue-and-runner");
+      if (allImplemented) {
+        writeFileSync(join(dir, "root", "aide", "specs", "82-next", "4-status.md"), statusSaying(["create", "analyze", "implement"]));
+        ran(dir, ["analyze", "implement"], "82-next");
+      }
     },
   });
   await implemented(started.base);
@@ -55,8 +60,8 @@ async function twoMembers(state: string, extra: Record<string, unknown> = {}) {
 
 const press = (base: string, body: object) =>
   fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
-const groupAction = (base: string, action: string) =>
-  fetch(`${base}/api/queue/groups/group-1/action`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action }) });
+const groupAction = (base: string, action: string, picks: Record<string, string> = {}) =>
+  fetch(`${base}/api/queue/groups/group-1/action`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action, ...picks }) });
 
 describe("a press on a grouped spec's own row", () => {
   test("runs as the group's job, and never archives the spec on its own", async () => {
@@ -99,6 +104,27 @@ describe("the group card's Start", () => {
 });
 
 describe("the group card's Archive", () => {
+  test("saves and uses the group's Archive choice on later attempts (AC-4)", async () => {
+    const { base, dir } = await twoMembers("waiting-acceptance", { allImplemented: true });
+    const res = await groupAction(base, "archive", { model: "fable" });
+    expect(res.status).toBe(200);
+    const { job } = await res.json() as { job: { model: Record<string, string>; provider?: Record<string, string> } };
+    expect(job.model.archive).toBe("fable");
+    expect(job.provider?.archive).toBeUndefined();
+    expect(JSON.parse(readFileSync(join(dir, "execution-groups.json"), "utf-8"))[0]).toMatchObject({ archiveModel: "fable" });
+  });
+
+  test("uses the first member's Archive choice until the group has one (AC-5)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-group-archive-picks-"));
+    dirs.push(dir);
+    const pendingModelsPath = join(dir, "pending-models.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({ "aide/81-queue-and-runner": { archive: "fable" } }));
+    const { base } = await twoMembers("waiting-acceptance", { pendingModelsPath, allImplemented: true });
+    const res = await groupAction(base, "archive");
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { job: { model: Record<string, string> } }).job.model.archive).toBe("fable");
+  });
+
   test("archives the members still active when another member is already archived", async () => {
     const { base } = harness.start({
       description: grouped("81-queue-and-runner", 2),

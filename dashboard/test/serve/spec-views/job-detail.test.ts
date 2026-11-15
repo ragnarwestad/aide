@@ -79,6 +79,15 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
 }
 
 describe("jobDetailView's per-step fields", () => {
+  test("names a shared Archive's group and immutable attempted members (AC-14)", async () => {
+    const job = makeJob({ steps: ["archive"], executionGroupId: "group-1", groupMembers: ["1-first", "2-next"] });
+    const view = await jobDetailView(makeCtx({
+      queue: { defaults: {}, list: () => [job], executionGroups: { get: () => ({ id: "group-1", name: "Release" }) } } as never,
+    }), job);
+
+    expect(view.executionGroup).toEqual({ id: "group-1", name: "Release", members: ["1-first", "2-next"] });
+  });
+
   test("offers Archive only on the newest job for the spec", async () => {
     const older = makeJob({ id: "older", createdAt: "2026-09-12T10:00:00Z" });
     const newest = makeJob({ id: "newest", createdAt: "2026-09-13T10:00:00Z" });

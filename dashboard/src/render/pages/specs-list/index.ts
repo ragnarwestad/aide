@@ -20,14 +20,12 @@
 // filters and the sort are ordinary links, and every Run control is a
 // plain form.
 //
-// This file is now the composition root for four siblings under
-// `specs-list/`: `data-model.ts` (SpecGroup and its types), `cells.ts`
-// (the row and its cells), `filter-bar.ts` (the controls above the
+// This file is the composition root for four siblings under `specs-list/`:
+// `data-model.ts` (SpecGroup and its types), `cells.ts` (the row and its cells), `filter-bar.ts` (the controls above the
 // rows) and `model-picker.ts` (the AI/model selects a phase line
 // carries). It keeps the page's own options type, the two entry points
 // (`renderSpecsPage`, `renderSpecsRows`) and `groupRows`, which is the
-// one function that has to know about both a filtered/sorted list AND
-// a single row's markup.
+// one function that knows about both a filtered/sorted list AND a single row's markup.
 
 import type { ProviderOption } from "./model-picker";
 import { esc } from "../../ui/html.ts";
@@ -101,6 +99,8 @@ export { phasePips };
 import { filterBar, sortableHead } from "./filter-bar.ts";
 import type { PhaseMessages } from "./phase-messages";
 import type { LogPart } from "../../../queue/parse-stream";
+import { withGroupArchive } from "./group-archive-projection.ts";
+import type { Job } from "../../../queue/queue.ts";
 export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
@@ -114,7 +114,7 @@ export interface SpecsPageOptions {
   runnerAvailable: boolean;
   targets: SpecTarget[];
   executionGroups?: ExecutionGroup[];
-  groupJobs?: { project: string; specFolder: string; state: string; landing?: boolean }[];
+  groupJobs?: (QueueRowView | Job)[];
   /** `project/folder` keys of ARCHIVED specs. A create job normally
    *  keeps its group visible even though its spec is not a target (the
    *  folder does not exist until it lands) — but once the spec has been
@@ -313,7 +313,8 @@ export function specRowsOf(
   draws: (key: string) => boolean = () => true,
 ): { key: string; group: SpecGroup; html: string }[] {
   const opened = openedKeys(opts);
-  return groups.map((source) => {
+  return groups.map((unprojected) => {
+    const source = withGroupArchive(unprojected, opts);
     const createdAt = opts.jobCreatedAt?.(source.project, source.specFolder);
     const g = createdAt ? { ...source, createdAt } : source;
     const key = groupKey(g.project, g.specFolder);

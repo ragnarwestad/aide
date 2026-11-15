@@ -3,8 +3,9 @@ import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
 import { badge, buttonForm, foldButton, headerMenu, pips, progressDialog, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
-import type { SpecGroup, SpecTarget } from "../specs-list";
+import type { SpecGroup, SpecTarget, SpecsPageOptions } from "../specs-list";
 import { isArchivedRow } from "../specs-list";
+import { phaseSubRows } from "../specs-list/phase-rows.ts";
 import { specBusy } from "../specs-list/row-state.ts";
 import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
@@ -14,6 +15,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 import { ICON_MORE } from "../../ui/components/icons.ts";
 import { executionGroupStopRows, executionGroupWaitRows } from "./execution-group-waiting.ts";
+import type { QueueRowView } from "../../ui/job-state";
 
 export interface ExecutionGroupMemberRow {
   key: string;
@@ -66,9 +68,10 @@ export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupM
 /** `openFor`: the chosen state entries the card is shown for, which draw it open. */
 export function executionGroupCard(
   group: ExecutionGroup, rows: ExecutionGroupMemberRow[], lang = "en",
-  opts: { openFor?: string; candidates?: SpecTarget[]; locked?: ReadonlySet<string> } = {},
+  opts: { openFor?: string; candidates?: SpecTarget[]; locked?: ReadonlySet<string>; jobs?: QueueRowView[]; list?: SpecsPageOptions } = {},
 ): string {
   const members = group.members.map((folder) => rows.find((row) => row.group.project === group.project && row.group.specFolder === folder)).filter((row): row is ExecutionGroupMemberRow => !!row);
+  const archiveJob = opts.jobs?.filter((job) => job.executionGroupId === group.id && job.steps.includes("archive")).at(-1);
   const totalDurationMs = members.reduce((sum, member) => sum + (member.group.totalDurationMs ?? 0), 0);
   const liveMember = members.find((member) => member.group.totalDurationSince);
   const otherDurationMs = liveMember
@@ -139,7 +142,22 @@ export function executionGroupCard(
     executionGroupWaitRows(group, states, lang as Language) +
     executionGroupStopRows(group, members.map((member) => member.group), lang as Language) +
     `</tbody>`;
-  const memberRows = `<tbody data-group-members data-group-body${shut}>` + members.map((member) => {
+  const archiveBase = members[0]?.group;
+  const archiveModel = archiveJob?.stepModels?.archive ?? (typeof archiveJob?.model === "string" ? archiveJob.model : undefined) ?? group.archiveModel;
+  const archiveRow = archiveBase ? phaseSubRows({
+    ...archiveBase,
+    lead: archiveJob,
+    done: group.state === "completed" ? [...new Set([...archiveBase.done, "archive"])] : archiveBase.done.filter((step) => step !== "archive"),
+    phases: [{ step: "archive", attempts: archiveJob ? [archiveJob] : [], history: {}, model: archiveModel }],
+  }, {
+    ...(opts.list ?? { runnerAvailable: true, targets: [] }),
+    executionGroups: [],
+    pendingModels: archiveModel ? { [`${group.project}/${archiveBase.specFolder}`]: { archive: archiveModel } } : opts.list?.pendingModels,
+    pendingProviders: group.archiveProvider ? { [`${group.project}/${archiveBase.specFolder}`]: { archive: group.archiveProvider } } : opts.list?.pendingProviders,
+  }, Date.now(), { groupArchive: true })
+    .replace(`<span class="phasefold">${esc(stepLabel("archive", lang as Language))}</span>`, `<span class="phasefold">${esc(t(lang as Language, "list.groupArchivePhase"))}</span>`)
+    .replace("<tr", "<tr data-group-archive") : "";
+  const memberRows = `<tbody data-group-members data-group-body${shut}>${archiveRow}` + members.map((member) => {
     const membership = ` data-spec-group-member="${esc(key)}"`;
     return member.html.includes(" data-spec-group-member=")
       ? member.html.replace(/ data-spec-group-member="[^"]*"/, membership)

@@ -125,6 +125,33 @@ test("a card ready to archive offers Archive and says the group lands together (
   expect(html).toContain(t("en", "list.groupArchiveReady", { button: stepLabel("archive") }));
 });
 
+test("an opened group shows one shared Archive line above its members without a checkbox (AC-1, AC-3, AC-6)", () => {
+  const archiveJob = {
+    id: "archive-1", project: "aide", specFolder: "1-first", steps: ["archive"], stepIndex: 0,
+    state: "running", createdAt: "2026-11-15T10:00:00Z", startedAt: "2026-11-15T10:00:00Z",
+    spentUsd: 1.5, timeoutSec: {}, permissionMode: {}, model: { archive: "fable" }, results: [],
+    executionGroupId: "group-1", groupMembers: ["1-first", "2-second"],
+  } as never;
+  const html = executionGroupCard(group("archiving"), [implemented("1-first"), implemented("2-second")], "en", { openFor: "active", jobs: [archiveJob] });
+  const archiveAt = html.indexOf('data-group-archive');
+  expect(archiveAt).toBeGreaterThan(-1);
+  expect(archiveAt).toBeLessThan(html.indexOf('data-spec-group-member'));
+  expect(html.match(/data-group-archive/g)).toHaveLength(1);
+  expect(html.slice(archiveAt, html.indexOf('data-spec-group-member'))).not.toContain('type="checkbox"');
+});
+
+test("a shared Archive attempt contributes to group totals exactly once (AC-13)", () => {
+  const archiveJob = {
+    id: "archive-1", project: "aide", specFolder: "1-first", steps: ["archive"], stepIndex: 1,
+    state: "done", createdAt: "2026-11-15T10:00:00Z", startedAt: "2026-11-15T10:00:00Z", finishedAt: "2026-11-15T10:01:00Z",
+    spentUsd: 2, timeoutSec: {}, permissionMode: {}, model: {}, results: [], executionGroupId: "group-1",
+  } as never;
+  const first = implemented("1-first", { spentUsd: 5, totalDurationMs: 90_000 });
+  const second = implemented("2-second", { spentUsd: 4, totalDurationMs: 30_000 });
+  const html = executionGroupCard(group("completed"), [first, second], "en", { openFor: "done", jobs: [archiveJob] });
+  expect(html).toContain(costCell(9, undefined, "–"));
+});
+
 test("a card ready to archive names its own button in the page's language (AC-1)", () => {
   const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")], "nb");
   expect(html).toContain(t("nb", "list.groupArchiveReady", { button: stepLabel("archive", "nb") }));

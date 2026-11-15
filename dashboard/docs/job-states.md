@@ -161,7 +161,9 @@ An execution group's state is separate from any one job. `prepared` has durable 
 `waiting-acceptance` has finished member work but still has open acceptance criteria; `archiving` is attempting the
 single group landing; and `completed` means that landing succeeded and the shared pull request, when required, was
 opened. A failed Archive remains `archiving` or becomes `stopped`; it never becomes `completed` from a process result
-alone.
+alone. The group header follows this state through landing instead of inferring it from a member that has finished.
+The shared Archive line keeps the actual stopped or failed reason and the retry action allowed by the same job rules.
+The group's totals count the shared Archive attempt once.
 
 ---
 

@@ -117,6 +117,10 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
     head +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "") +
+    (job.executionGroup
+      ? `<p class="desc">${esc(t(lang, "job.groupArchiveMembers", { group: job.executionGroup.name, members: job.executionGroup.members.join(", ") }))} ` +
+        `<a href="/#group-${esc(job.executionGroup.id)}">${esc(t(lang, "job.groupArchiveLink"))}</a></p>`
+      : "") +
     (job.archiveAction
       ? buttonForm({
           action: job.archiveAction,

@@ -35,6 +35,9 @@ export interface ExecutionGroup {
   error?: string;
   /** Run-created groups reuse the first Run dialog's choices for every member. */
   sharedChoices?: boolean;
+  /** The choice owned by the group's shared Archive line. */
+  archiveModel?: string;
+  archiveProvider?: string;
 }
 
 export type PrepareExecutionGroup = Pick<ExecutionGroup, "project" | "name" | "members" | "branch" | "sharedChoices">;
