@@ -3,16 +3,17 @@
 // that leaves the page — is `nav-busy.ts`'s now, run on every page
 // rather than wired up here.
 
-import { connect, disconnect } from "./live.ts";
+import { connect, disconnect, resumeRowUpdates } from "./live.ts";
 import { SPINNER } from "./press.ts";
 import { swapRows, swapSpec } from "./row-swap/index.ts";
 import { openSpecInPlace } from "./spec-detail/open.ts";
-import { AWAITING } from "./state.ts";
+import { AWAITING, press } from "./state.ts";
 
 /** The parts of the address one spec's › opens or shuts, and so the only
  *  ones a swap of that spec alone leaves stale in every OTHER link's
  *  href: the links are taken from the address instead. */
 const FOLDS = ["open", "checks"] as const;
+const folding = new Set<string>();
 
 // A filter link is a real link and works without this. Intercepting it
 // keeps the promise the rest of this file makes: never reload the page
@@ -78,32 +79,42 @@ export function submitSearch(event: Event): boolean {
  *  until the row is back, which a phone shows as well as a desktop; the
  *  busy mouse pointer the whole list wore said nothing on a phone. */
 async function foldOne(link: HTMLAnchorElement, fold: string, key: string): Promise<void> {
-  const params = new URLSearchParams(location.search);
-  const keys = (params.get(fold) ?? "").split(",").filter(Boolean);
-  // A row the address opens by `created` (the spec a Create just queued) is
-  // open without its key in `open`, so the chevron's own state says which
-  // way this press goes, and shutting it lets go of `created` as well.
-  const isOpen = keys.includes(key) || link.getAttribute("aria-expanded") === "true";
-  const next = isOpen ? keys.filter((k) => k !== key) : [...keys, key];
-  if (isOpen && fold === "open") params.delete("created");
-  if (next.length) params.set(fold, next.join(","));
-  else params.delete(fold);
-  const query = params.toString();
-  history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}`);
-  const onJobRow = fold === "open" && link.closest("tr[data-job]") !== null;
-  const chevron = link.innerHTML;
-  link.innerHTML = SPINNER;
-  await swapSpec(key);
-  // A job row's key in `open` is what the event stream listens on for the
-  // job's log, so opening or shutting one asks the stream again.
-  if (onJobRow) {
-    disconnect();
-    connect();
+  const pending = `${fold}:${key}`;
+  if (folding.has(pending)) return;
+  folding.add(pending);
+  press.inFlight++;
+  try {
+    const params = new URLSearchParams(location.search);
+    const keys = (params.get(fold) ?? "").split(",").filter(Boolean);
+    // A row the address opens by `created` (the spec a Create just queued) is
+    // open without its key in `open`, so the chevron's own state says which
+    // way this press goes, and shutting it lets go of `created` as well.
+    const isOpen = keys.includes(key) || link.getAttribute("aria-expanded") === "true";
+    const next = isOpen ? keys.filter((k) => k !== key) : [...keys, key];
+    if (isOpen && fold === "open") params.delete("created");
+    if (next.length) params.set(fold, next.join(","));
+    else params.delete(fold);
+    const query = params.toString();
+    history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}`);
+    const onJobRow = fold === "open" && link.closest("tr[data-job]") !== null;
+    const chevron = link.innerHTML;
+    link.innerHTML = SPINNER;
+    await swapSpec(key);
+    // A job row's key in `open` is what the event stream listens on for the
+    // job's log, so opening or shutting one asks the stream again.
+    if (onJobRow) {
+      disconnect();
+      connect();
+    }
+    // Still on the page only when no swap drew the row again — offline, or
+    // the server restarting — and a spinner left there would say it is
+    // still working on something that is over.
+    if (link.isConnected) link.innerHTML = chevron;
+  } finally {
+    folding.delete(pending);
+    press.inFlight--;
+    resumeRowUpdates();
   }
-  // Still on the page only when no swap drew the row again — offline, or
-  // the server restarting — and a spinner left there would say it is
-  // still working on something that is over.
-  if (link.isConnected) link.innerHTML = chevron;
 }
 
 /** A link's href with the folds taken from the address. */

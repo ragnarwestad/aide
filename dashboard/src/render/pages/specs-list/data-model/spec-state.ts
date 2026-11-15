@@ -10,7 +10,7 @@ export type SpecState = {
   phase?: string;
 };
 
-type SpecStateFacts = Pick<SpecGroup, "state" | "lead"> & Partial<Pick<SpecGroup, "done" | "reopenedRound">>;
+type SpecStateFacts = Pick<SpecGroup, "state" | "lead"> & Partial<Pick<SpecGroup, "done" | "reopenedRound" | "executionGroupActive">>;
 
 export function specState(g: SpecStateFacts): SpecState {
   const done = g.done ?? [];
@@ -20,6 +20,7 @@ export function specState(g: SpecStateFacts): SpecState {
   }
   if (g.state === CLOSED_STATE) return { key: "closed" };
   if (g.state === ARCHIVED_STATE || g.state === "archived-unlanded") return { key: "archived" };
+  if (g.executionGroupActive) return { key: "active" };
   if (g.reopenedRound && !done.includes("analyze") && !done.includes("implement")) return { key: "reopened" };
   return done.length || g.lead ? { key: "idle" } : { key: "created" };
 }

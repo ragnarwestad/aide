@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { jobsTabHasRows, type JobsView } from "../../../../src/render/pages/jobs-page";
-import { specHasWork } from "../../../../src/render/pages/jobs-page/rows.ts";
+import { jobWindow, specHasWork } from "../../../../src/render/pages/jobs-page/rows.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list/data-model";
 import type { QueueRowView } from "../../../../src/render";
 
@@ -50,4 +50,14 @@ test("prepared groups remain on Jobs before any member has run", () => {
   view.executionGroups = [];
   view.list.targets.forEach((target, position) => { target.group = { name: "Release", position }; });
   expect(jobsTabHasRows(view)).toBe(true);
+});
+
+
+test("the Jobs window limits rendering while keeping explicitly opened cards", () => {
+  const all = Array.from({ length: 125 }, (_, i) => ({ key: String(i) }));
+  expect(jobWindow(all).map((row) => row.key)).toEqual(all.slice(0, 50).map((row) => row.key));
+  expect(jobWindow(all, "100")).toHaveLength(100);
+  expect(jobWindow(all, "invalid")).toHaveLength(50);
+  expect(jobWindow(all, "-1")).toHaveLength(50);
+  expect(jobWindow(all, undefined, new Set(["124"])).map((row) => row.key)).toEqual([...all.slice(0, 50).map((row) => row.key), "124"]);
 });

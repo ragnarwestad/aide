@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { specState, specStateLabel } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model/types.ts";
+import { groupBySpec, applyFilter } from "../../../../../src/render/pages/specs-list/data-model";
+import { specRunChoices } from "../../../../../src/render/pages/specs-list/row-state.ts";
+import type { ExecutionGroup } from "../../../../../src/queue/execution-groups";
 
 const group = (extra: Partial<SpecGroup> = {}) => ({
   state: "not-started",
@@ -33,5 +36,32 @@ test("Jobs names what is happening while Specs shows only Active", () => {
     const state = { key: "active" as const, phase };
     expect(specStateLabel(state, "en", false)).toBe(word!);
     expect(specStateLabel(state, "en", true)).toBe("Active");
+  }
+});
+
+test("waiting members of an active execution group are Active and offer no individual Run", () => {
+  const targets = [{ project: "aide", specFolder: "820-next", done: ["create"] }];
+  const execution = { project: "aide", members: ["821-first", "820-next"] } as ExecutionGroup;
+  for (const state of ["queued", "running", "archiving"] as const) {
+    const row = groupBySpec([], targets, undefined, undefined, Date.now(), undefined, [{ ...execution, state }])[0]!;
+    expect(row.lead).toBeUndefined();
+    expect(specState(row)).toEqual({ key: "active" });
+    expect(applyFilter([row], { state: "active" })).toEqual([row]);
+    expect(applyFilter([row], { state: "idle" })).toEqual([]);
+    expect(specRunChoices(row, {})).toEqual([]);
+  }
+});
+
+test("inactive, removed and other projects' groups do not reserve a spec", () => {
+  const targets = [{ project: "aide", specFolder: "820-next", done: ["create"] }];
+  const execution = { project: "aide", members: ["821-first", "820-next"] } as ExecutionGroup;
+  for (const entry of [
+    ...(["prepared", "stopped", "waiting-acceptance", "completed"] as const).map((state) => ({ ...execution, state })),
+    { ...execution, state: "running" as const, removedAt: "2026-11-15T20:00:00Z" },
+    { ...execution, state: "running" as const, project: "another" },
+  ]) {
+    const row = groupBySpec([], targets, undefined, undefined, Date.now(), undefined, [entry])[0]!;
+    expect(specState(row).key).toBe("idle");
+    expect(specRunChoices(row, {}).length).toBeGreaterThan(0);
   }
 });

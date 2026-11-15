@@ -186,7 +186,7 @@ export function roundUnderWay(g: SpecGroup): boolean {
 
 /** Run keeps the whole workflow visible; Create already made this spec. */
 export function specRunChoices(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): { step: string; checked: boolean; locked: boolean }[] {
-  if (isArchivedRow(g) || specBusy(g) || !g.named) return [];
+  if (isArchivedRow(g) || specBusy(g) || g.executionGroupActive || !g.named) return [];
   const ticked = chosenSteps(g, opts);
   return PHASE_LINES.map((step) => ({ step, checked: step === "create" || ticked.has(step), locked: step === "create" }));
 }

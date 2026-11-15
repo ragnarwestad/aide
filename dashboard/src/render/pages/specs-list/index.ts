@@ -300,7 +300,7 @@ export function activeSpecRows(
   only?: ReadonlySet<string>,
   draws?: (key: string) => boolean,
 ): { key: string; group: SpecGroup; html: string }[] {
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, only);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, only, opts.openSpec ? opts.executionGroups : undefined);
   return specRowsOf(applyFilter(groups, { state: ACTIVE_FILTER_KEY }), opts, now, draws);
 }
 
@@ -398,7 +398,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
     ? { ...requested, sort: "created" as const, dir: undefined }
     : requested;
   const normalizedOpts = f === requested ? opts : { ...opts, filter: f };
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, undefined, opts.openSpec ? opts.executionGroups : undefined);
   const matched = sortGroups(shownGroups(groups, normalizedOpts), f, (group) => firstActionLabel(group, normalizedOpts), opts.lang ?? "en");
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
@@ -432,7 +432,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
  *  The table is empty when the filter does not show that spec, and the
  *  page then redraws the whole list instead. */
 export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, new Set([key]));
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, new Set([key]), opts.openSpec ? opts.executionGroups : undefined);
   const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
   return `<table><tbody>${one.map((g) => groupRow(g, opts, now, openedKeys(opts))).join("")}</tbody></table>`;
 }

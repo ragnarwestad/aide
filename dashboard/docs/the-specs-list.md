@@ -204,7 +204,9 @@ The State column carries the spec's own state and nothing else:
 - **Idle** — a job has run and none is queued or running now.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
-- **Active** — a job is queued or running, or its branch is landing; the phase name is shown on Jobs instead.
+- **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving; the phase name is shown on Jobs instead.
+
+Members waiting for their turn in an active execution group also show Active and have no individual Run button.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
 Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line
@@ -463,7 +465,7 @@ filter's name. Each entry's count is its own count over the rows the search lets
 
 - **All** — the default.
 - **Not archived** — everything not archived and not closed.
-- **Active** — a job is queued or running, or its branch is landing.
+- **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving.
 - **Created**.
 - **Idle**.
 - **Reopened**.

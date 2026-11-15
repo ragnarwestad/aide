@@ -76,6 +76,7 @@ export async function jobsPage(
   );
   const rowOptions = specRowOptions(ctx, url, langResult.lang);
   const view = {
+    limit: url.searchParams.get("limit") ?? undefined,
     shown: kept.shown.map((j) => built.get(j.id)!),
     specJobs: kept.specJobs.map((j) => built.get(j.id)!),
     specs: cut?.specs,
