@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { archivedSpecRows, type SpecViewsContext } from "../../../src/serve/spec-views";
+import type { ExecutionGroup } from "../../../src/queue/execution-groups";
 import type { SpecRef } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
@@ -13,7 +14,7 @@ const FOLDER = "300-left-behind";
 const KEY = `aide/${FOLDER}`;
 const PR_URL = "https://github.com/example/aide/pull/37";
 
-function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewing?: boolean }): {
+function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewing?: boolean; groupState?: ExecutionGroup["state"] }): {
   ctx: SpecViewsContext;
   deleteErrorAsked: string[];
 } {
@@ -28,6 +29,10 @@ function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewin
     readScan: () => ({ archived: [KEY], refs: new Map([[KEY, ref]]) }),
     queue: {
       list: () => [],
+      executionGroups: { list: () => o.groupState ? [{
+        id: "group-1", project: "aide", name: "Release", state: o.groupState,
+        members: [FOLDER, "301-next"], branch: "aide/group-release", completedMembers: [], jobs: [],
+      }] : [] },
       branchDeleteErrorFor: (_project: string, folder: string) => {
         deleteErrorAsked.push(folder);
         return { key: "landing.branchDeleteFailed", values: {} };
@@ -100,4 +105,20 @@ describe("an archived spec of a project that reviews its code", () => {
     expect(row?.prOpen).toBe(true);
     expect(row?.branchLeftBehind).toBeFalsy();
   });
+});
+
+test("an archived member waiting for its group's Archive stays visible without an individual landing failure", () => {
+  for (const groupState of ["running", "stopped", "waiting-acceptance", "archiving"] as const) {
+    const { ctx, deleteErrorAsked } = ctxFor({ merged: false, groupState });
+    const [row] = archivedSpecRows(ctx, "not-archived");
+    expect(row?.folder).toBe(FOLDER);
+    expect(row?.notLanded).toBe(false);
+    expect(row?.branchDeleteError).toBeUndefined();
+    expect(deleteErrorAsked).toEqual([]);
+  }
+});
+
+test("a completed group does not hide a member whose branch still has unlanded work", () => {
+  const { ctx } = ctxFor({ merged: false, groupState: "completed" });
+  expect(archivedSpecRows(ctx, "not-archived")[0]?.notLanded).toBe(true);
 });
