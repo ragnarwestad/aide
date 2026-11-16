@@ -13,7 +13,8 @@ type Land = typeof landBranch;
 export function createLandJob(ctx: LandContext, land: Land = landBranch) {
   return {
     start(job: Job, resultFile: string, streamFile: string): SpawnResult {
-      const output = boardStep({ resultFile, streamFile });
+      const stepStartedAt = job.stepStartedAt ?? new Date().toISOString();
+      const output = boardStep({ resultFile, streamFile, startedAt: stepStartedAt });
       const branch = job.branch;
       if (!branch) {
         output.failed("invalid-request", "the Land job has no branch");
@@ -35,7 +36,7 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
       };
       output.note(`Land branch: ${branch}`);
       output.mark("1 of 4", TASKS[0]!, "started");
-      const work = land(ctx, job, {
+      const work = land(ctx, { ...job, resultFile, streamFile, stepStartedAt }, {
         branch,
         branchUrls: [{ root, url: `origin/${branch}` }],
       }, {
