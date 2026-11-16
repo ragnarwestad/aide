@@ -163,7 +163,7 @@ function decidePhase(
       };
     }
     return {
-      pip: "now",
+      pip: attempt!.state === "queued" ? "queued" : "now",
       badge: {
         variant: BADGE_VARIANT[attempt!.state],
         // Which third of an implement is running, in the word as well as

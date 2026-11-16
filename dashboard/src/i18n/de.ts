@@ -89,6 +89,7 @@ export const de: Record<TranslationKey, string> = {
   "list.state.reopened": "Wieder geöffnet",
   "list.state.analyzed": "Analysiert",
   "list.state.implemented": "Implementiert",
+  "list.state.queued": "In der Warteschlange",
   "list.state.waiting": "Wartet",
   "list.state.stopped": "Gestoppt",
   "list.state.failed": "Fehlgeschlagen",

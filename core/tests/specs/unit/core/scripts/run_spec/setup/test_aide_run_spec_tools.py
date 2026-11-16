@@ -18,8 +18,9 @@ from ..run_spec_status_files import (
 )
 
 
+@pytest.mark.parametrize("grouped", [False, True])
 def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
-    runner, workspace, fake_claude, origin
+    runner, workspace, fake_claude, origin, grouped
 ):
     """Archive lands in a worktree that is
     mid-merge, with MERGE_HEAD set and the conflict markers still in the
@@ -28,6 +29,10 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     project = workspace["project"]
     with_status(workspace, ["create", "analyze", "implement"])
     branch = conflicting_branch(workspace, published=True)
+    if grouped:
+        shared = "aide/group-81-queue-and-runner"
+        git(project, "branch", "-m", branch, shared)
+        branch = shared
     claude = fake_claude(
         "cat > /dev/null\n"
         # Recorded DURING the run: the worktree is gone by the time the
@@ -45,7 +50,7 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
         + '&& git -C "$specs" commit -q -m "archive"\n'
         f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch", branch=branch)
     assert rc == 0, out
     assert out["ok"] is True, out
     merge_head = (workspace["project"].parent / "merge-head.txt")

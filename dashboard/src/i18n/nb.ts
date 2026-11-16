@@ -89,6 +89,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.reopened": "Gjenåpnet",
   "list.state.analyzed": "Analysert",
   "list.state.implemented": "Implementert",
+  "list.state.queued": "I kø",
   "list.state.waiting": "Venter",
   "list.state.stopped": "Stoppet",
   "list.state.failed": "Feilet",

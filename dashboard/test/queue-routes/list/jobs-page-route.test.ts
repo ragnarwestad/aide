@@ -11,7 +11,7 @@ import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
 import { newSpecLink } from "../../../src/render/pages/specs-list/filter-bar.ts";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
+import { pageUntil, ran, statusSaying } from "../../helpers/queue-server.ts";
 import { dated, group, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -349,7 +349,7 @@ describe("every spec the Specs list shows under Active has a row, job or not", (
       },
     });
 
-    const html = await rowsOf(base);
+    const html = await pageUntil(base, "/?rows=1", (rows) => folders.every((folder) => rows.includes(`id="spec-aide/${folder}"`)));
     for (const folder of folders) {
       expect(html).toContain(`id="spec-aide/${folder}"`);
       expect(html).toContain(`data-folder="${folder}"`);
