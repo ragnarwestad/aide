@@ -15,9 +15,9 @@ echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - Skills from ~/.claude/skills/ (17 named directories)"
+echo "   - Skills recorded in ~/.claude/skills/$AIDE_SKILL_MANIFEST_NAME"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
-echo "   - Rules from ~/.claude/rules/ (5 named files)"
+echo "   - Rules recorded in ~/.claude/rules/$AIDE_RULE_MANIFEST_NAME"
 echo "   - ~/.claude/docs/ and ~/.claude/api-mapping/ (legacy)"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
@@ -84,15 +84,7 @@ echo ""
 # 7. Remove rules from ~/.claude/rules/
 echo "7️⃣  Removing rules from ~/.claude/rules/..."
 
-for rule in $(rule_names); do
-  rule="$rule.md"
-  if [ -f "$HOME/.claude/rules/$rule" ]; then
-    rm "$HOME/.claude/rules/$rule"
-    echo "   ✅ Removed: ~/.claude/rules/$rule"
-  else
-    echo "   ⏭️  Did not exist: ~/.claude/rules/$rule"
-  fi
-done
+uninstall_rules "$HOME/.claude/rules"
 
 echo ""
 

@@ -1,22 +1,4 @@
-"""Tests for prune_retired_skills in core/scripts/_install-skills.sh —
-the half of the install that SUBTRACTS.
-
-Four skills left core/skills/ on 2026-08-20 (commit ae42856). The
-installed copies stayed in ~/.claude/skills/ and ~/.agents/skills/ on
-both machines until someone deleted them by hand, and the uninstaller
-could not have removed them either: the same commit took their names out
-of its own list. The installers copy in and never remove, and the list
-that says what to remove is a snapshot of what is shipped TODAY.
-
-The manifest is the memory that snapshot never had: written on the
-target machine by each install, naming exactly what that install
-shipped, read by the NEXT one before it is overwritten. So these tests
-are about the diff — what a name in the manifest but not in the source
-means — and about the guards around an `rm -rf` driven by a file.
-
-Run against /bin/bash on purpose, not `bash`: this machine's /bin/bash
-is 3.2, and aide-run-spec already had to work around it once.
-"""
+"""Tests for the production skill install and uninstall functions."""
 import subprocess
 
 import pytest
@@ -43,21 +25,6 @@ def installed(target_dir, name):
     d.mkdir(parents=True, exist_ok=True)
     (d / "SKILL.md").write_text("# installed\n")
     return d
-
-
-def prune(helper, source_dir, target_dir, manifest):
-    """Source the shared file and call the helper, the way an installer
-    does — nothing else in the file runs."""
-    return subprocess.run(
-        [
-            BASH,
-            "-c",
-            f'set -e; source "{helper}"; '
-            f'prune_retired_skills "{source_dir}" "{target_dir}" "{manifest}"',
-        ],
-        capture_output=True,
-        text=True,
-    )
 
 
 def run_function(helper, source_dir, function, target_dir, *excluded):
@@ -130,129 +97,61 @@ def dirs(tmp_path):
 
 
 @pytest.mark.unit
-class TestPruneRetiredSkills:
-    def test_a_skill_that_left_the_source_is_removed(self, helper, dirs):
-        """The manifest names four, the source ships three."""
-        source, target, manifest = dirs
-        for name in ("aide-create", "aide-analyze", "aide-implement"):
-            skill(source, name)
-            installed(target, name)
-        installed(target, "aide-to-html")
-        manifest.write_text("aide-create\naide-analyze\naide-implement\naide-to-html\n")
-
-        result = prune(helper, source, target, manifest)
-
-        assert result.returncode == 0, result.stderr
-        assert not (target / "aide-to-html").exists()
-        for name in ("aide-create", "aide-analyze", "aide-implement"):
-            assert (target / name).exists(), f"{name} is still shipped and must stay"
-
-    def test_the_manifest_is_rewritten_to_what_is_shipped_now(self, helper, dirs):
-        """And the next install has a current memory to diff
-        against, or the same name is pruned forever."""
-        source, target, manifest = dirs
-        skill(source, "aide-create")
-        skill(source, "aide-analyze")
-        manifest.write_text("aide-create\naide-analyze\naide-to-html\n")
-
-        prune(helper, source, target, manifest)
-
-        assert sorted(manifest.read_text().split()) == ["aide-analyze", "aide-create"]
-
-    def test_a_first_install_removes_nothing_and_writes_a_manifest(self, helper, dirs):
-        """A machine with no history yet has nothing to
-        accuse. Whatever is in the target was not put there by a prior
-        install this mechanism knows about."""
+class TestProductionSkillManifest:
+    def test_reinstall_removes_a_retired_skill_and_rewrites_the_manifest_ac_1(self, helper, dirs):
         source, target, manifest = dirs
         skill(source, "aide-create")
         installed(target, "aide-create")
-        installed(target, "somebody-elses-skill")
+        installed(target, "retired")
+        manifest.write_text("aide-create\nretired\n")
 
-        result = prune(helper, source, target, manifest)
-
-        assert result.returncode == 0, result.stderr
-        assert (target / "somebody-elses-skill").exists()
-        assert manifest.read_text().split() == ["aide-create"]
-
-    def test_a_skill_never_named_by_the_manifest_is_never_touched(self, helper, dirs):
-        """The no---delete guarantee the rsync already gives: ~/.claude/
-        skills/ is allowed to hold skills aide did not put there."""
-        source, target, manifest = dirs
-        skill(source, "aide-create")
-        installed(target, "aide-create")
-        installed(target, "dataviz")
-        manifest.write_text("aide-create\n")
-
-        result = prune(helper, source, target, manifest)
+        result = run_function(helper, source, "install_skills", target)
 
         assert result.returncode == 0, result.stderr
-        assert (target / "dataviz").exists()
+        assert not (target / "retired").exists()
+        assert manifest.read_text().splitlines() == ["aide-create"]
 
-    def test_a_name_whose_directory_is_already_gone_is_not_an_error(self, helper, dirs):
-        """Removal is idempotent — somebody deleted it by
-        hand, which is exactly what happened on 2026-08-20."""
+    @pytest.mark.parametrize("function", ["install_skills", "uninstall_skills"])
+    def test_invalid_manifest_names_cannot_escape_the_target_ac_3(self, helper, dirs, function):
         source, target, manifest = dirs
-        skill(source, "aide-create")
-        installed(target, "aide-create")
-        manifest.write_text("aide-create\naide-to-html\n")
-
-        result = prune(helper, source, target, manifest)
-
-        assert result.returncode == 0, result.stderr
-        assert (target / "aide-create").exists()
-
-    def test_an_empty_manifest_line_removes_nothing(self, helper, dirs):
-        """A blank line must never resolve to the target directory
-        itself. This is an `rm -rf` driven by a file."""
-        source, target, manifest = dirs
-        skill(source, "aide-create")
-        installed(target, "aide-create")
-        manifest.write_text("\n\naide-create\n\n")
-
-        result = prune(helper, source, target, manifest)
-
-        assert result.returncode == 0, result.stderr
-        assert target.exists()
-        assert (target / "aide-create").exists()
-
-    def test_a_manifest_name_that_is_a_path_is_refused(self, helper, dirs):
-        """Same reason: a name is a directory name, and nothing else. A
-        `..` in it would walk out of the skills directory."""
-        source, target, manifest = dirs
-        outside = target.parent / "not-a-skill"
+        outside = target.parent / "outside"
         outside.mkdir()
         skill(source, "aide-create")
-        manifest.write_text("../not-a-skill\n/etc\n.\n")
+        installed(target, "aide-create")
+        manifest.write_text("\n.\n..\n../outside\n/etc\naide-create\n")
 
-        result = prune(helper, source, target, manifest)
+        result = run_function(helper, source, function, target)
 
         assert result.returncode == 0, result.stderr
         assert outside.exists()
+        assert target.exists()
 
-    def test_every_shipped_skill_survives_when_nothing_was_retired(self, helper, dirs):
-        source, target, manifest = dirs
-        for name in ("aide-create", "aide-analyze"):
-            skill(source, name)
-            installed(target, name)
-        manifest.write_text("aide-create\naide-analyze\n")
-
-        result = prune(helper, source, target, manifest)
-
-        assert result.returncode == 0, result.stderr
-        assert (target / "aide-create").exists()
-        assert (target / "aide-analyze").exists()
-
-    def test_a_source_directory_without_a_skill_md_is_not_a_skill(self, helper, dirs):
-        """The install loop skips those, so the manifest must too — a
-        name in the manifest that the install never copied would be
-        pruned on the load after."""
+    def test_first_install_keeps_unrecorded_skills_and_skips_non_skills_ac_7(self, helper, dirs):
         source, target, manifest = dirs
         skill(source, "aide-create")
         (source / "references").mkdir()
+        installed(target, "user-owned")
 
-        prune(helper, source, target, manifest)
+        result = run_function(helper, source, "install_skills", target)
 
-        assert manifest.read_text().split() == ["aide-create"]
+        assert result.returncode == 0, result.stderr
+        assert (target / "user-owned").exists()
+        assert manifest.read_text().splitlines() == ["aide-create"]
+
+    def test_uninstall_ignores_a_recorded_skill_that_is_already_missing_ac_2(self, helper, dirs):
+        source, target, manifest = dirs
+        manifest.write_text("missing\n")
+
+        result = run_function(helper, source, "uninstall_skills", target)
+
+        assert result.returncode == 0, result.stderr
+        assert not manifest.exists()
+
+    def test_duplicate_skill_manifest_functions_are_absent_ac_4(self, helper):
+        text = helper.read_text()
+
+        assert "prune_retired_skills" not in text
+        assert "_write_skill_manifest" not in text
 
 
 @pytest.mark.unit

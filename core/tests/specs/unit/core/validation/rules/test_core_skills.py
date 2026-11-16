@@ -173,18 +173,7 @@ def test_every_core_skill_has_the_frontmatter_the_loaders_read():
 
 @pytest.mark.validation
 class TestUninstallReadsTheManifest:
-    """The static SKILLS list is a snapshot of what is shipped
-    TODAY, and a name is taken out of it by the very commit that stops
-    shipping the skill — which is the moment removal starts to matter.
-    That is what happened on 2026-08-20: four skills left core/skills/
-    and their installed copies could no longer be removed by the
-    uninstaller at all.
-
-    The manifest each install writes on the target machine is the record
-    the list cannot be. uninstall.sh reads it IN ADDITION to the static
-    list, so a machine with an orphaned copy is cleaned up without
-    waiting for another install first.
-    """
+    """The uninstaller removes only entries recorded by the install."""
 
     @staticmethod
     def uninstall(workspace_root, home):
@@ -224,6 +213,61 @@ class TestUninstallReadsTheManifest:
         assert result.returncode == 0, result.stderr
         assert (skills / "dataviz").exists()
 
+    def test_declining_confirmation_removes_nothing_ac_7(self, workspace_root, tmp_path):
+        home = tmp_path / "home"
+        skills = home / ".claude" / "skills"
+        skills.mkdir(parents=True)
+        (skills / "owned").mkdir()
+        (skills / ".aide-installed-manifest").write_text("owned\n")
+
+        result = subprocess.run(
+            [str(workspace_root / "core/implementations/claude-code/uninstall.sh")],
+            input="n\n",
+            capture_output=True,
+            text=True,
+            env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert (skills / "owned").is_dir()
+        assert (skills / ".aide-installed-manifest").is_file()
+
+    def test_preview_names_manifests_without_inventory_counts_ac_5(self, workspace_root, tmp_path):
+        result = subprocess.run(
+            [str(workspace_root / "core/implementations/claude-code/uninstall.sh")],
+            input="n\n",
+            capture_output=True,
+            text=True,
+            env={"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"},
+        )
+
+        assert "skills/.aide-installed-manifest" in result.stdout
+        assert "rules/.aide-installed-manifest" in result.stdout
+        assert "named directories" not in result.stdout
+        assert "named files" not in result.stdout
+
+    def test_claude_scripts_use_shared_rule_manifest_helpers_ac_6(self, workspace_root):
+        install = (workspace_root / "core/implementations/claude-code/install.sh").read_text()
+        uninstall = (workspace_root / "core/implementations/claude-code/uninstall.sh").read_text()
+
+        assert 'install_rules "$GLOBAL_CLAUDE/rules"' in install
+        assert 'uninstall_rules "$HOME/.claude/rules"' in uninstall
+
+    def test_uninstall_before_the_first_rule_manifest_removes_shipped_rules_ac_6(
+        self, workspace_root, tmp_path
+    ):
+        home = tmp_path / "home"
+        rules = home / ".claude" / "rules"
+        rules.mkdir(parents=True)
+        (rules / "testing.md").write_text("# installed by an older version\n")
+        (rules / "user-owned.md").write_text("# user owned\n")
+
+        result = self.uninstall(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        assert not (rules / "testing.md").exists()
+        assert (rules / "user-owned.md").is_file()
+
 @pytest.mark.validation
 class TestInstallRetiresTheRulesThatBecameSkills:
     """Four rules became skills, and the rules side has no
@@ -250,7 +294,7 @@ class TestInstallRetiresTheRulesThatBecameSkills:
             env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
         )
 
-    def test_a_retired_rule_from_an_earlier_install_is_removed(self, workspace_root, tmp_path):
+    def test_a_retired_rule_from_an_earlier_install_is_removed_ac_6(self, workspace_root, tmp_path):
         home = tmp_path / "home"
         rules = home / ".claude" / "rules"
         rules.mkdir(parents=True)
