@@ -27,7 +27,7 @@ export interface JobsFilter extends SpecsFilter {
   kind?: string;
 }
 
-export const JOBS_KIND_FILTERS = ["all", "spec", "deploy", "schedule", "cleanup", "group"] as const;
+export const JOBS_KIND_FILTERS = ["all", "spec", "land", "deploy", "schedule", "cleanup", "group"] as const;
 type JobsKind = (typeof JOBS_KIND_FILTERS)[number];
 const kindEntries = JOBS_KIND_FILTERS.map((key) => ({ key }));
 

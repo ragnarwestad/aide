@@ -338,7 +338,7 @@ describe("TOOL_ICONS is keyed by the provider tools", () => {
 });
 
 describe("kindIcon()", () => {
-  const kinds: RowKind[] = ["spec", "deploy", "schedule", "cleanup", "group"];
+  const kinds: RowKind[] = ["spec", "land", "deploy", "schedule", "cleanup", "group"];
 
   test("uses the translated kind as both its accessible name and hover text (AC-4)", () => {
     const norwegian = first(kindIcon("schedule", "nb"), ".kindicon");

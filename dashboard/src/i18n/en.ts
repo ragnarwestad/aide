@@ -168,6 +168,8 @@ export const en = {
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Deploy",
   "jobs.kindSchedule": "Scheduled job",
   "jobs.kindCleanup": "Cleanup",

@@ -39,6 +39,8 @@ export interface QueueRowView {
   queuePosition?: { n: number; total: number };
   state: JobState;
   landing?: boolean;
+  branch?: string;
+  landPushStarted?: boolean;
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored
    *  split: the page shows a compact total and nothing else, and the

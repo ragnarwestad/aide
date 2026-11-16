@@ -103,7 +103,7 @@ export const ICON_MORE =
   `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
   `<circle cx="8" cy="13" r="1.4"></circle></svg>`;
 
-export type RowKind = "spec" | "deploy" | "schedule" | "cleanup" | "group";
+export type RowKind = "spec" | "deploy" | "land" | "schedule" | "cleanup" | "group";
 
 const stroke = (body: string): string =>
   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" ` +
@@ -111,6 +111,7 @@ const stroke = (body: string): string =>
 
 export const KIND_ICONS: Record<RowKind, string> = {
   spec: stroke('<path d="M4 2.5h5l3 3V13.5H4zM9 2.5v3h3"></path>'),
+  land: stroke('<circle cx="4" cy="3" r="1.5"></circle><circle cx="12" cy="3" r="1.5"></circle><circle cx="8" cy="13" r="1.5"></circle><path d="M4 4.5v1c0 3 4 2 4 5.5M12 4.5v1c0 3-4 2-4 5.5"></path>'),
   deploy: stroke('<path d="M8 10.5v-8M5 5.5l3-3 3 3M3 9.5v4h10v-4"></path>'),
   schedule: stroke('<rect x="2.5" y="3.5" width="11" height="10" rx="1"></rect><path d="M5 2v3M11 2v3M2.5 6.5h11M5 9h2M9 9h2M5 11.5h2"></path>'),
   cleanup: stroke('<path d="M6.5 2.5h3l.5 4H6zM5.5 6.5h5l1.5 7H4zM6 10h4"></path>'),
@@ -120,6 +121,7 @@ export const KIND_ICONS: Record<RowKind, string> = {
 const KIND_KEYS: Record<RowKind, TranslationKey> = {
   spec: "jobs.kindSpec",
   deploy: "jobs.kindDeploy",
+  land: "jobs.kindLand",
   schedule: "jobs.kindSchedule",
   cleanup: "jobs.kindCleanup",
   group: "jobs.kindGroup",

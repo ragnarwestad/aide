@@ -1,3 +1,4 @@
+import { beginLand, checkLandStop, endLand } from "./control.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { SpawnResult } from "../../queue/runner";
 import { boardStep } from "../board-step.ts";
@@ -12,32 +13,41 @@ type Land = typeof landBranch;
 export function createLandJob(ctx: LandContext, land: Land = landBranch) {
   return {
     start(job: Job, resultFile: string, streamFile: string): SpawnResult {
-      const output = boardStep({ resultFile, streamFile });
+      const stepStartedAt = job.stepStartedAt ?? new Date().toISOString();
+      const output = boardStep({ resultFile, streamFile, startedAt: stepStartedAt });
       const branch = job.branch;
       if (!branch) {
         output.failed("invalid-request", "the Land job has no branch");
         return { pid: process.pid, pgid: 0 };
       }
+      beginLand(job.id);
       const root = ctx.machineryProjectDir(job.project);
       let currentTask = 0;
       const progress = (stage: "tests" | "push" | "delete"): void => {
+        checkLandStop(job.id);
+        if (stage === "push") {
+          ctx.queue.update(job.id, { landPushStarted: true });
+        }
         const next = { tests: 1, push: 2, delete: 3 }[stage];
         if (next <= currentTask) return;
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "done");
         currentTask = next;
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "started");
       };
+      output.note(`Land branch: ${branch}`);
       output.mark("1 of 4", TASKS[0]!, "started");
-      const work = land(ctx, job, {
+      const work = land(ctx, { ...job, resultFile, streamFile, stepStartedAt }, {
         branch,
         branchUrls: [{ root, url: `origin/${branch}` }],
       }, {
         step: "land",
+        cancelled: () => ctx.queue.get(job.id)?.state === "cancelled",
         repos: [{ root, url: `origin/${branch}` }],
         progress,
         failedNote: (why) => ({ key: "landing.stepLandingFailed", values: { step: "Land", why, button: "Land" } }),
       }).then(() => {
         const settled = ctx.queue.get(job.id);
+        if (settled?.state === "cancelled") return stopped();
         if (settled?.branchDeleteError) {
           const deleteError = Array.isArray(settled.branchDeleteError) ? settled.branchDeleteError[0] : settled.branchDeleteError;
           output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "stopped: branch delete failed");
@@ -51,7 +61,12 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
         }
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "done");
         output.done();
-      }).catch((error) => output.failed("landing-failed", String(error)));
+      }).catch((error) => ctx.queue.get(job.id)?.state === "cancelled" ? stopped() : output.failed("landing-failed", String(error)))
+        .finally(() => endLand(job.id));
+      function stopped(): void {
+        output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "stopped: cancelled by user");
+        output.failed("cancelled", "Land stopped by user");
+      }
       const held = holdLanding(ctx.queue, job.id, work);
       ctx.queue.update(job.id, held.patch);
       void held.settled;

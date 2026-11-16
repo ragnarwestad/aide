@@ -308,3 +308,22 @@ test("a description changed since the analysis is in the analysis log, opened wi
     }
   }
 });
+
+test("Types can select Land separately and its card names the source branch", async () => {
+  const baseJob = { project: "aide", stepIndex: 0, state: "queued", timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-16T12:00:00Z" };
+  const { base } = harness.start({ queueMirror: JSON.stringify([
+    { ...baseJob, id: "land-filter", specFolder: "land", steps: ["land"], branch: "fix/example" },
+    { ...baseJob, id: "deploy-filter", specFolder: "deploy", steps: ["deploy"] },
+  ]) });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?live=0`);
+    const menu = page.locator('details.menu[data-filter="kind"]');
+    await menu.locator("summary").click();
+    await menu.getByRole("checkbox", { name: "Land (1)", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("kind") === "land");
+    await page.getByText("Land: fix/example", { exact: true }).waitFor();
+    expect(new URL(page.url()).searchParams.get("kind")).toBe("land");
+    await page.getByText("Deploy aide", { exact: true }).waitFor({ state: "hidden" });
+  } finally { await page.close(); }
+});

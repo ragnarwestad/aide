@@ -842,7 +842,11 @@ Prepared group cards and their members remain on Jobs so the group can be starte
 The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
-Every row starts with an icon for its kind: a spec, a deploy, a scheduled job, the cleanup or an execution group.
+A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
+such as `Land: fix/example`. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
+after push begins the Stop control is unavailable. A stopped Land needs a new request to run again.
+
+Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
 
 When the board starts with nothing running, the first page a browser tab loads, if it is the Jobs tab with no row left
@@ -933,7 +937,7 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
-Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
+Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Land, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is

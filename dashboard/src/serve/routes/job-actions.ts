@@ -1,3 +1,4 @@
+import { stopLand } from "../land-job/control.ts";
 import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
@@ -385,6 +386,9 @@ export async function handleJobActionRoutes(
       logRefusal("cancel", `${job.project}/${job.specFolder}`, reason);
       return json({ error: reason, spec: `${job.project}/${job.specFolder}` }, 409);
     }
+    if (jobKind(job) === "land" && job.state === "running" && job.landPushStarted) {
+      return json({ error: "Land cannot be stopped after push has begun", spec: `${job.project}/${job.specFolder}` }, 409);
+    }
     // Only a job that still owns its work can be cancelled. A finished
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had
@@ -471,6 +475,7 @@ export async function handleJobActionRoutes(
 }
 
 function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
+  if (job.state === "running" && jobKind(job) === "land") stopLand(job.id);
   const result = endStep(ctx.queue, job.id, "cancel", {
     finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined,
   });
