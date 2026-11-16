@@ -59,7 +59,7 @@ const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
 export function memberPipKind(member: SpecGroup | undefined, completed: boolean): PipKind {
   if (completed || (member && isArchivedRow(member))) return "past";
   if (!member) return "todo";
-  if (specBusy(member)) return "now";
+  if (specBusy(member)) return member.lead?.state === "queued" && !member.lead.landing ? "queued" : "now";
   if (["failed", "cancelled", "interrupted", "archived-unlanded"].includes(member.state)) return "refused";
   const heldBack = !!member.phases.find((p) => p.step === "archive")?.heldBack;
   return member.state === "stopped" || heldBack ? "waiting" : "todo";
