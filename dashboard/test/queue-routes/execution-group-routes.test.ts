@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { queueHarness, stateSaying, statusSaying } from "../helpers/queue-server.ts";
+import { pageUntil, queueHarness, stateSaying, statusSaying } from "../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../helpers/specs-repo.ts";
 import { specGroup } from "../../src/project/discover/group.ts";
 
@@ -246,6 +246,9 @@ describe("execution-group HTTP routes", () => {
         executionGroups: [group],
         extra: { pendingStepsPath },
       });
+      // Analyze unticked on the row is the specs scan having read that 81 has done it.
+      await pageUntil(base, "/specs?rows=1",
+        (html) => html.includes('name="steps" value="analyze" form="runask-aide/81-queue-and-runner-form"'));
       const action = await fetch(`${base}/api/queue/groups/group-1/action`, {
         method: "POST",
         headers: { "content-type": "application/json" },
