@@ -32,8 +32,8 @@ export interface JobLike {
   results?: readonly { terminalReason?: string }[];
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string };
+type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & { steps: readonly string[] };
+type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec. */
 export function specHasWork(g: SpecGroup): boolean {
@@ -48,7 +48,7 @@ export const markedWithKind = (html: string, kind: RowKind): string =>
 /** The kind a job's row is marked as. A Close or a Reopen is work on a spec. */
 export function jobRowKind(row: Pick<JobLike, "steps" | "stepIndex" | "specFolder">): RowKind {
   const kind = jobKind(row);
-  return kind === "close" || kind === "reopen" ? "spec" : kind === "land" ? "deploy" : kind;
+  return kind === "close" || kind === "reopen" ? "spec" : kind;
 }
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a
@@ -172,6 +172,7 @@ export function jobTitle(row: TitleRow, lang: Language = "en"): string {
     const named = `${stepLabel("deploy", lang)} ${row.project}`.trim();
     return row.deployCommit ? `${named} · ${row.deployCommit.slice(0, 7)}` : named;
   }
+  if (kind === "land") return row.branch ? `${stepLabel("land", lang)}: ${row.branch}` : stepLabel("land", lang);
   if (kind === "cleanup") return stepLabel("cleanup", lang);
   const step = kind === "close" || kind === "reopen" ? kind : undefined;
   return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);
@@ -220,6 +221,7 @@ export function scheduleStreamKey(key: string): string | undefined {
 export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
   const step = row.steps[row.stepIndex];
   const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
+  if (step === "land" && row.landPushStarted) return undefined;
   if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
   if (kind === "deploy") return row.state === "queued" ? "cancel" : undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";

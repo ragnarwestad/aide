@@ -290,6 +290,7 @@ tr.specdetail > td { padding: var(--sp-3); }
    is a spec's; a Jobs tab row carries its kind. */
 table.speclist[data-list="specs"] > tbody > tr { --card-edge: color-mix(in oklab, var(--kind-spec) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="spec"] { --card-edge: color-mix(in oklab, var(--kind-spec) 50%, var(--line)); }
+table.speclist > tbody > tr[data-kind="land"],
 table.speclist > tbody > tr[data-kind="deploy"] { --card-edge: color-mix(in oklab, var(--kind-deploy) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="schedule"] { --card-edge: color-mix(in oklab, var(--kind-schedule) 50%, var(--line)); }
 table.speclist > tbody > tr[data-kind="cleanup"] { --card-edge: color-mix(in oklab, var(--kind-cleanup) 50%, var(--line)); }

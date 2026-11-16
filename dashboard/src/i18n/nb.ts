@@ -167,6 +167,8 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Typer",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Utrulling",
   "jobs.kindSchedule": "Planlagt jobb",
   "jobs.kindCleanup": "Opprydding",

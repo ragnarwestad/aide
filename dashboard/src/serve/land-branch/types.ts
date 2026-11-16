@@ -83,6 +83,8 @@ export interface LandContext {
  *  else — which repos, the retries, the per-repo report — is the same
  *  for every step, and is `landBranch`'s. */
 export interface Landing {
+  /** A standalone operation may be cancelled while its merge or tests run. */
+  cancelled?: () => boolean;
   /** Progress boundaries used by a standalone Land row. */
   progress?: (stage: "tests" | "push" | "delete") => void;
   /** Beyond the standard `branchUrl`/`branchUrls`/`error` reset. A
