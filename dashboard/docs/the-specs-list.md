@@ -413,7 +413,7 @@ history, which counts only the runner's
 own commits, so a spec written by hand has no create commit and would show grey. Create gets the LINE's rule instead,
 and a spec that exists was created, so the pip is past unless a create job is queued or running right now.
 
-Queued phases and queued group members use the running colour without motion, on both the letter and the bar.
+Queued phases and queued group members use orange without motion, on both the letter and the bar.
 
 **The running phase's own pip carries the motion.** The closed row is the whole interface for
 the ordinary case, so "this is running" cannot live on a phase line that only exists once a row is expanded — a reader

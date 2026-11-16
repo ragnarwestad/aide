@@ -211,7 +211,7 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
 /* A letter takes its own pip's colour, so the pair reads as one mark
    rather than a grey label over a coloured bar. `todo` keeps `--muted`:
    nothing has happened there, and the pip beside it is the same grey. */
-.pipletters span.queued { color: var(--running); }
+.pipletters span.queued { color: var(--warn); }
 .pipletters span.past { color: var(--ok); }
 .pipletters span.waiting { color: var(--warn); }
 .pipletters span.refused { color: var(--danger); }
@@ -232,7 +232,7 @@ button.fold { border: 0; padding: 0; background: none; font: inherit; cursor: po
    the fill below is drawn inside. */
 .pip { width: var(--pip-width, 21px); flex-shrink: 0; height: 4px; border-radius: 2px; background: var(--line-strong);
   position: relative; overflow: hidden; }
-.pip.queued { background: var(--running); }
+.pip.queued { background: var(--warn); }
 .pip.past { background: var(--ok); }
 /* The badge's own colours on the pip beside it: amber for a phase held
    back or stopped, red for one that failed (2026-09-11). */
