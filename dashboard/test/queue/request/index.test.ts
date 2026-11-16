@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { enqueueCreateRequest, enqueueRequest, followOnRequest } from "../../../src/queue/request/index.ts";
+import { enqueueCreateRequest, enqueueRequest, followOnRequest, groupRowPicks } from "../../../src/queue/request/index.ts";
 
 const defaults: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -41,4 +41,14 @@ test("a follow-up keeps only the remaining step choices (AC-4)", () => {
     provider: { implement: "Codex" },
     effort: { implement: "high" },
   });
+});
+
+test("a whole-job model writes the steps but not their side parts", () => {
+  expect(groupRowPicks({ model: "fable" }, {
+    steps: ["analyze", "implement"],
+    model: { analyze: "fable", implement: "fable" },
+  })).toEqual([
+    { part: "analyze", model: "fable", provider: undefined },
+    { part: "implement", model: "fable", provider: undefined },
+  ]);
 });

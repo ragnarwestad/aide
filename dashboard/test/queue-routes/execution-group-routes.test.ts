@@ -16,6 +16,70 @@ afterEach(() => harness.cleanup());
 const description = (folder: string) => `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n`;
 
 describe("execution-group HTTP routes", () => {
+  test("Run writes every submitted choice to every member and leaves other choices alone (AC-1, AC-3, AC-5)", async () => {
+    const pendingModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-picks-")), "pending-models.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({
+      "aide/81-queue-and-runner": { archive: "sonnet", "plan-review": "opus" },
+      "aide/82-next": { archive: "sonnet", "plan-review": "opus", review: "sonnet" },
+    }));
+    const { base, dir } = harness.start({
+      description: description("81-queue-and-runner"), alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") },
+      extra: { pendingModelsPath, queueDefaults: {
+        timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
+        modelChoices: { sonnet: {}, fable: {}, opus: {} },
+        providers: { Claude: { name: "Claude", tool: "claude" } },
+      } },
+    });
+    makeSpecsRepo(dir);
+    const response = await fetch(`${base}/api/queue`, {
+      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&steps=implement&model.analyze=fable&provider.analyze=Claude&model.implement=opus&provider.implement=Claude&model.plan-review=sonnet&provider.plan-review=Claude&model.verify=fable&provider.verify=Claude",
+    });
+    expect(response.status).toBe(200);
+    const models = JSON.parse(readFileSync(pendingModelsPath, "utf8"));
+    const providers = JSON.parse(readFileSync(join(pendingModelsPath, "../pending-providers.json"), "utf8"));
+    for (const folder of ["81-queue-and-runner", "82-next"]) {
+      expect(models[`aide/${folder}`]).toMatchObject({ analyze: "fable", implement: "opus", "plan-review": "sonnet", verify: "fable", archive: "sonnet" });
+      expect(providers[`aide/${folder}`]).toMatchObject({ analyze: "Claude", implement: "Claude", "plan-review": "Claude", verify: "Claude" });
+    }
+    expect(models["aide/82-next"].review).toBe("sonnet");
+  });
+
+  test("Run clears a member's plan review when it follows Analyze (AC-1)", async () => {
+    const pendingModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-plan-review-")), "pending-models.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({ "aide/82-next": { "plan-review": "opus" } }));
+    const { base, dir } = harness.start({
+      description: description("81-queue-and-runner"), alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") },
+      extra: { pendingModelsPath, queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {}, opus: {} } } },
+    });
+    makeSpecsRepo(dir);
+    const response = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&model.analyze=fable&model.plan-review=fable" });
+    expect(response.status).toBe(200);
+    expect(JSON.parse(readFileSync(pendingModelsPath, "utf8"))["aide/82-next"]["plan-review"]).toBeUndefined();
+  });
+
+  test("Start after Stop uses the choices Run wrote to the member row (AC-4)", async () => {
+    const pendingModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-restart-")), "pending-models.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({ "aide/81-queue-and-runner": { analyze: "sonnet" } }));
+    const { base, dir } = harness.start({
+      description: description("81-queue-and-runner"), alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") },
+      extra: { pendingModelsPath, queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {} } } },
+    });
+    makeSpecsRepo(dir);
+    const run = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&model.analyze=fable" });
+    const groupId = ((await run.json()) as { job: { executionGroupId: string } }).job.executionGroupId;
+    await fetch(`${base}/api/queue/groups/${groupId}/action`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "stop" }) });
+    const start = await fetch(`${base}/api/queue/groups/${groupId}/action`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }) });
+    expect(await start.json()).toMatchObject({ ok: true, job: { model: { analyze: "fable" } } });
+  });
+
   test("Run creates and starts a group with the submitted choices (A810 AC-3, A810 AC-8)", async () => {
     const { base, dir } = harness.start({
       description: description("81-queue-and-runner"),
@@ -53,6 +117,36 @@ describe("execution-group HTTP routes", () => {
       expect(specGroup(join(dir, "root/aide/specs/81-queue-and-runner"))).toBeUndefined();
       expect((await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] }).jobs).toEqual([]);
     }
+  });
+
+  test("a refused Run leaves every member's choices unchanged (AC-6)", async () => {
+    const pendingModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-refused-")), "pending-models.json");
+    const seeded = { "aide/81-queue-and-runner": { analyze: "sonnet" }, "aide/82-next": { analyze: "opus" } };
+    writeFileSync(pendingModelsPath, JSON.stringify(seeded));
+    const { base, dir } = harness.start({
+      description: description("81-queue-and-runner"), alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") },
+      extra: { pendingModelsPath, queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" }, modelChoices: { sonnet: {}, opus: {} } } },
+    });
+    makeSpecsRepo(dir);
+    const response = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&model.analyze=unknown" });
+    expect(response.status).toBe(400);
+    expect(JSON.parse(readFileSync(pendingModelsPath, "utf8"))).toEqual(seeded);
+
+    const cycleModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-cycle-")), "pending-models.json");
+    writeFileSync(cycleModelsPath, JSON.stringify(seeded));
+    const cycle = harness.start({
+      description: description("81-queue-and-runner") + "- **Depends on:** `82-next`\n", alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": description("82-next") + "- **Depends on:** `81-queue-and-runner`\n" },
+      extra: { pendingModelsPath: cycleModelsPath },
+    });
+    makeSpecsRepo(cycle.dir);
+    const cycleResponse = await fetch(`${cycle.base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze" });
+    expect(cycleResponse.status).toBe(409);
+    expect(JSON.parse(readFileSync(cycleModelsPath, "utf8"))).toEqual(seeded);
   });
 
   test("Run starts a required peer first with the submitted choices and refuses a cycle", async () => {

@@ -76,8 +76,10 @@ file. A step that hits its own time limit is `stopped`, not `failed` ([A job's s
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
-a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
-phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
+a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group
+made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
+every member's own row; the rows show those choices, and Start uses them. A group made on Jobs uses the choices on
+each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
