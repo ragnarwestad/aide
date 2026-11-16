@@ -154,6 +154,7 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
     expect(event).toStartWith("event: counts\n");
     expect(event).toContain('"running":0');
     expect(event).toContain('"queued":0');
+    expect(event).toContain('"openSpecs":1');
   });
 
   test("another spec's job is queued while one spec has failed: the event says 1 waits", async () => {

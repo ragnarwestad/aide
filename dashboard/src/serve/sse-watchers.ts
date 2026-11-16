@@ -7,8 +7,7 @@
 
 import { statSync } from "node:fs";
 import { phaseKey } from "../render";
-import type { SpecActivityCounts } from "../queue/job-rules/running-specs.ts";
-import { readSpecActivityCounts } from "../render/ui/running-specs";
+import { readSpecActivityCounts, type SpecTabCounts } from "../render/ui/running-specs";
 import { readWaitingCount } from "../render/ui/pwa.ts";
 import { runLogPath } from "../queue/runner/run-log-path.ts";
 import type { Job } from "../queue/queue.ts";
@@ -58,7 +57,7 @@ export function notifyQueueChanged(ctx: SseWatchersContext): void {
 export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 
 /** Queue-wide counts for the app icon and Jobs tab. Log growth keeps the bare signal. */
-export const changedEvent = (waiting?: number, activity?: SpecActivityCounts): string =>
+export const changedEvent = (waiting?: number, activity?: SpecTabCounts): string =>
   `event: changed\ndata: ${JSON.stringify({ waiting, ...activity })}\n\n`;
 
 /** The signal that the header's Deploy mark changed: the page asks
