@@ -319,7 +319,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
     ...sections.flatMap((entry): [string, string][] => entry.icon ? [[entry.path, tabIcon(entry.icon)]] : []),
   ]);
   const activity = readSpecActivityCounts();
-  return tabBar(keys, (path) => path, current, { "/": `${activity.running}+${activity.queued}` }, "", {
+  return tabBar(keys, (path) => path, current, { "/": `${activity.running}+${activity.queued}`, "/specs": activity.openSpecs }, "", {
     label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true, showZero: true,
   });
 }

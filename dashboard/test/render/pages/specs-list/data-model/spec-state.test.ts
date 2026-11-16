@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { specState, specStateLabel } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
+import { specState, specStateLabel, openSpecCount } from "../../../../../src/render/pages/specs-list/data-model/spec-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model/types.ts";
 import { groupBySpec, applyFilter } from "../../../../../src/render/pages/specs-list/data-model";
 import { specRunChoices, specLocked, specBusy } from "../../../../../src/render/pages/specs-list/row-state.ts";
@@ -66,4 +66,30 @@ test("inactive, removed and other projects' groups do not reserve a spec", () =>
     expect(specState(row).key).toBe("idle");
     expect(specRunChoices(row, {}).length).toBeGreaterThan(0);
   }
+});
+
+
+test("open specs are Created plus Idle plus Reopened, excluding queued, running and group-reserved members", () => {
+  const targets = [
+    { project: "aide", specFolder: "1-created", done: [] },
+    { project: "aide", specFolder: "2-idle", done: ["analyze"] },
+    { project: "aide", specFolder: "3-reopened", done: ["create"], reopenedRound: true },
+    { project: "aide", specFolder: "4-queued" },
+    { project: "aide", specFolder: "5-running" },
+    { project: "aide", specFolder: "6-reserved" },
+  ];
+  const jobs: Parameters<typeof openSpecCount>[1] = [
+    { project: "aide", specFolder: "4-queued", state: "queued", steps: ["analyze"], stepIndex: 0, createdAt: "2026-11-16T08:00:00Z" },
+    { project: "aide", specFolder: "5-running", state: "running", steps: ["implement"], stepIndex: 0, createdAt: "2026-11-16T08:00:00Z" },
+  ];
+  const groups = [{ project: "aide", state: "running", members: ["5-running", "6-reserved"] }] as ExecutionGroup[];
+  expect(openSpecCount(targets, jobs, groups)).toBe(3);
+});
+
+
+test("a reopened spec counts as open after its previous round's queued job was discarded", () => {
+  expect(openSpecCount([{ project: "aide", specFolder: "1-reopened", reopenedRound: true }], [
+    { project: "aide", specFolder: "1-reopened", state: "queued", steps: ["analyze"], stepIndex: 0, createdAt: "2026-11-15T08:00:00Z" },
+    { project: "aide", specFolder: "1-reopened", state: "done", steps: ["reopen"], stepIndex: 0, resetFiles: true, createdAt: "2026-11-16T08:00:00Z" },
+  ], [])).toBe(1);
 });

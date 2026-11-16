@@ -1,11 +1,13 @@
 import type { SpecActivityCounts } from "../../../queue/job-rules/running-specs.ts";
 
-let read: (() => SpecActivityCounts) | undefined;
+export interface SpecTabCounts extends SpecActivityCounts { openSpecs: number }
 
-export function setSpecActivityCounts(source: (() => SpecActivityCounts) | undefined): void {
+let read: (() => SpecTabCounts) | undefined;
+
+export function setSpecActivityCounts(source: (() => SpecTabCounts) | undefined): void {
   read = source;
 }
 
-export function readSpecActivityCounts(): SpecActivityCounts {
-  return read?.() ?? { running: 0, queued: 0 };
+export function readSpecActivityCounts(): SpecTabCounts {
+  return read?.() ?? { running: 0, queued: 0, openSpecs: 0 };
 }

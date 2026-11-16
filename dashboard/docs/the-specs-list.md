@@ -30,6 +30,10 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 [Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
 [Error sentences](error-sentences.md).
 
+The Specs tab shows the number of open specs: Created, Idle and Reopened. The total updates live across all
+projects on the board and does not change with the page's search or filters. Active, archived and closed specs
+are excluded; on a phone the number stays beside the Specs icon.
+
 
 ## The row, open and shut
 
