@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB_STATES, QueueStore, TRANSITIONS, type QueueDefaults, type TransitionEvent } from "../../../src/queue/queue.ts";
 import { STEP_ENDINGS } from "../../../src/step-endings.ts";
+import { ERROR_REASONS } from "../../../src/job-states.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -216,14 +217,6 @@ describe("no state write outside the store", () => {
 // check above does.
 describe("the documented reasons and the unions agree", () => {
   const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
-  const typesPath = join(import.meta.dir, "..", "..", "..", "src", "queue", "types.ts");
-
-  /** The members of a `"a" | "b"` union, read as text off its declaration. */
-  function members(file: string, declaration: RegExp): string[] {
-    const line = readFileSync(file, "utf-8").match(declaration);
-    expect(line).not.toBeNull();
-    return [...line![1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!).sort();
-  }
 
   /** The values the doc lists for a field: the run of `` `name` `` right
    *  after "is", up to the ", set" that starts saying when it is written.
@@ -241,7 +234,7 @@ describe("the documented reasons and the unions agree", () => {
     );
   });
 
-  test("errorReason: every member is named where the field is described", () => {
-    expect(documented("errorReason")).toEqual(members(typesPath, /^\s*errorReason\?:([^;]*);/m));
+  test("errorReason: every shared member is named where the field is described (AC-8)", () => {
+    expect(documented("errorReason")).toEqual([...ERROR_REASONS].sort());
   });
 });

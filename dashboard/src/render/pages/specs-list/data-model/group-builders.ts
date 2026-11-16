@@ -4,7 +4,7 @@
 
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import { activeGroupForSpec, type ExecutionGroup } from "../../../../queue/execution-groups";
+import { activeGroupForSpec, executionGroupActivity, type ExecutionGroup } from "../../../../queue/execution-groups";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
@@ -185,8 +185,17 @@ export function groupBySpec(
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
     }).map((t) => emptyGroup(t, now)),
-  ].map((g) => ({ ...g, hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
-    ...(activeGroupForSpec(executionGroups, g.project, g.specFolder) ? { executionGroupActive: true } : {}) }));
+  ].map((g) => {
+    const executionGroup = activeGroupForSpec(executionGroups, g.project, g.specFolder);
+    return {
+      ...g,
+      hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
+      ...(executionGroup ? {
+        executionGroupActive: true,
+        executionGroupReserved: executionGroupActivity(executionGroup.state) !== "idle",
+      } : {}),
+    };
+  });
 }
 
 /** An archived spec's row: a record, not a control.

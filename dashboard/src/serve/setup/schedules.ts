@@ -184,6 +184,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       projectDir: machineryProjectDir,
       serving: { sha: state.servingSha, repoRoot: state.servingRepoRoot },
       canDeploy: (root) => !!resolveInstallCmd(root).value,
+      reachedOrigin: (root) => branchStatus.reachedOrigin(root),
       defaultBranch: (root) => branchStatus.defaultBranch(root),
       run: gitRun,
     }).catch(() => undefined);

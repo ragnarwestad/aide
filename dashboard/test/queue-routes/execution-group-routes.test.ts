@@ -246,9 +246,10 @@ describe("execution-group HTTP routes", () => {
         executionGroups: [group],
         extra: { pendingStepsPath },
       });
-      // Analyze unticked on the row is the specs scan having read that 81 has done it.
+      // The Active row means the specs scan has read 81. Group membership
+      // removes its individual Run form, including its phase checkboxes.
       await pageUntil(base, "/specs?rows=1",
-        (html) => html.includes('name="steps" value="analyze" form="runask-aide/81-queue-and-runner-form"'));
+        (html) => html.includes("81-queue-and-runner") && html.includes(">Active<"));
       const action = await fetch(`${base}/api/queue/groups/group-1/action`, {
         method: "POST",
         headers: { "content-type": "application/json" },

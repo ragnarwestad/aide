@@ -108,13 +108,15 @@ describe("an archived spec of a project that reviews its code", () => {
 });
 
 test("an archived member waiting for its group's Archive stays visible without an individual landing failure", () => {
-  for (const groupState of ["running", "stopped", "waiting-acceptance", "archiving"] as const) {
-    const { ctx, deleteErrorAsked } = ctxFor({ merged: false, groupState });
-    const [row] = archivedSpecRows(ctx, "not-archived");
-    expect(row?.folder).toBe(FOLDER);
-    expect(row?.notLanded).toBe(false);
-    expect(row?.branchDeleteError).toBeUndefined();
-    expect(deleteErrorAsked).toEqual([]);
+  for (const closed of [false, true]) {
+    for (const groupState of ["prepared", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
+      const { ctx, deleteErrorAsked } = ctxFor({ merged: false, groupState, closed });
+      const [row] = archivedSpecRows(ctx, "not-archived");
+      expect(row?.folder).toBe(FOLDER);
+      expect(row?.notLanded).toBe(false);
+      expect(row?.branchDeleteError).toBeUndefined();
+      expect(deleteErrorAsked).toEqual([]);
+    }
   }
 });
 

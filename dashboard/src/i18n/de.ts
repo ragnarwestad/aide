@@ -14,6 +14,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.usage": "Nutzung",
   "shell.deployWaiting": "{project} hat {count} neue Commits zum Bereitstellen",
   "shell.deployWaitingOne": "{project} hat {count} neuen Commit zum Bereitstellen",
+  "shell.deployUpToDate": "{project} ist auf dem Stand von {branch}",
   "shell.filter": "Filter",
   "shell.themeDark": "Dunkel",
   "shell.themeLight": "Hell",

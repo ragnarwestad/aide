@@ -11,6 +11,7 @@ import type { HasNotVerified } from "./not-verified.ts";
 import type { HasApproachChoice, HasCreateChoices } from "./approach-choice.ts";
 import type { Phase } from "./phase.ts";
 import type { SpecGroupMembership } from "../../../../project/discover/group.ts";
+import type { ErrorReason } from "../../../../job-states.ts";
 
 export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   project: string;
@@ -277,8 +278,10 @@ export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks",
 export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 
 export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
-  /** Controls are reserved while this spec belongs to an active execution group. */
+  /** The spec belongs to an unfinished execution group, so individual Run is unavailable. */
   executionGroupActive?: boolean;
+  /** The group's queued, running or archiving work reserves the spec's other controls. */
+  executionGroupReserved?: boolean;
   /** At least one queue job remains in this spec's history, across all rounds. */
   hasJobs?: boolean;
   project: string;
@@ -379,7 +382,7 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
    *  field the notice line reads. `tests-red` is the one member that
    *  makes the landing mark amber instead of red: the suite went red on
    *  the merged result, nothing was pushed, and implement runs again. */
-  errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
+  errorReason?: ErrorReason;
   phases: Phase[];
   /** Steps this spec has already had, from its matching target: what its
    *  own files show, and what the queue actually ran. Marked on the

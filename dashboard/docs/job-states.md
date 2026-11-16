@@ -13,8 +13,8 @@
 A job carries a `state`, and only the queue's own state machine moves it. This page says what that state can be,
 when it moves, and which fields beside it behave like a state without being one.
 
-The states and transitions are `JOB_STATES` and `TRANSITIONS` in `src/queue/steps.ts`. Every write goes through
-`QueueStore.transition()` in `src/queue/store/index.ts`.
+The states are `JOB_STATES` in `src/job-states.ts`; the transitions are `TRANSITIONS` in `src/queue/steps.ts`.
+Every write goes through `QueueStore.transition()` in `src/queue/store/index.ts`.
 
 Three pages sit beside this one:
 
@@ -204,7 +204,8 @@ the last of them.
   the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded`
   are resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
   `held-back` clears itself on a later tick. A landing held for a red suite sets it beside `stopReason: tests-red`.
-  It is declared in `src/queue/types.ts` and in `src/render/ui/job-state/types.ts`; a test asserts they agree.
+  The values are defined once in `src/job-states.ts`. When the queue reads a stored job, it removes an
+  `errorReason` outside this list and keeps the job.
   `error` is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that is held
   back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own error
   through. It is a `Sentence`, or several, translated where it is drawn.

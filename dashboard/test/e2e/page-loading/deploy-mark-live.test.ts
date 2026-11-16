@@ -21,13 +21,13 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a deploy event draws the header's mark in place", async () => {
+test("a deploy event draws the header's button in place (AC-6)", async () => {
   const page = await browser.newPage();
   let navigations = 0;
   page.on("request", (r) => {
     if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navigations++;
   });
-  let mark = '<a class="deploymark" href="/projects/aide?tab=deploy">(2)</a>';
+  let mark = '<button class="deploymark iconlink" type="button" data-ask="deploymarkask">(2)</button>';
   await page.route(
     (url) => url.pathname === "/api/queue/events",
     (route) => route.fulfill({ contentType: "text/event-stream", body: ": open\n\nevent: deploy\ndata: {}\n\n" }),
@@ -37,12 +37,12 @@ test("a deploy event draws the header's mark in place", async () => {
     (route) => route.fulfill({ contentType: "text/html", body: mark }),
   );
   await withBrowser(page.goto(`${base}/specs`), "page.goto(Specs)");
-  const link = page.locator('header a.deploymark[href="/projects/aide?tab=deploy"]');
-  await link.waitFor({ state: "attached" });
-  expect(await link.textContent()).toContain("(2)");
+  const button = page.locator("header button.deploymark");
+  await button.waitFor({ state: "attached" });
+  expect(await button.textContent()).toContain("(2)");
 
   mark = '<span class="deploymark" aria-hidden="true"></span>';
-  await link.waitFor({ state: "detached" });
+  await button.waitFor({ state: "detached" });
   expect(await page.locator("header span.deploymark").count()).toBe(1);
   expect(navigations).toBe(1);
   await page.close();

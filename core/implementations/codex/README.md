@@ -132,6 +132,7 @@ the rest without saying so, so the file is kept well inside that budget
 Codex supports MCP servers for extended functionality. Each server is a `[mcp_servers.<name>]` table in
 `~/.codex/config.toml`:
 
+<!-- fragment: context7.toml -->
 ```toml
 [mcp_servers.context7]
 command = "npx"

@@ -32,17 +32,19 @@ for (const [action, body] of actions) {
   });
 }
 
-test("a direct Run cannot start a member reserved by an active group", async () => {
-  const { base } = harness.start({ alsoSpecs: [folder], executionGroups: [{
-    id: "group-1", project: "aide", name: "Release", members: ["81-queue-and-runner", folder],
-    branch: "group/release", state: "queued", completedMembers: [], jobs: [],
-  }] });
-  for (const [type, body] of [
-    ["application/json", JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] })],
-    ["application/x-www-form-urlencoded", `project=aide&specFolder=${folder}&steps=analyze`],
-  ]) {
-    const res = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": type! }, body });
-    expect(res.status).toBe(409);
-  }
-  expect((await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] }).jobs).toEqual([]);
-});
+for (const state of ["queued", "stopped"] as const) {
+  test(`a direct Run cannot start a member of a ${state} group (AC-2)`, async () => {
+    const { base } = harness.start({ alsoSpecs: [folder], executionGroups: [{
+      id: "group-1", project: "aide", name: "Release", members: ["81-queue-and-runner", folder],
+      branch: "group/release", state, completedMembers: [], jobs: [],
+    }] });
+    for (const [type, body] of [
+      ["application/json", JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] })],
+      ["application/x-www-form-urlencoded", `project=aide&specFolder=${folder}&steps=analyze`],
+    ]) {
+      const res = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": type! }, body });
+      expect(res.status).toBe(409);
+    }
+    expect((await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] }).jobs).toEqual([]);
+  });
+}

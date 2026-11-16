@@ -133,7 +133,7 @@ export function archivedSpecRows(
     const prWaiting = reviewing.has(key) && !merged;
     const branchOpen = open.has(key) && !prWaiting;
     const branchLeftBehind = branchOpen && merged;
-    const groupAwaitingArchive = !ref?.closed && ctx.queue.executionGroups?.list().some((group) =>
+    const groupAwaitingArchive = ctx.queue.executionGroups?.list().some((group) =>
       group.project === project && group.state !== "completed" && !group.removedAt && group.members.includes(key.slice(cut + 1)));
     const notLanded = branchOpen && !branchLeftBehind && !groupAwaitingArchive;
     // The gate, and it is BEFORE the two file reads under it — after

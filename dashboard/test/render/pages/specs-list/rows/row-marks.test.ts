@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import type { ErrorReason } from "../../../../../src/job-states.ts";
 import { noPullRequest, row } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
@@ -420,7 +421,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
 // and keep the amber "archive held back" warning triangle.
 describe("a job the scheduler is holding is info when it resolves on its own, waiting when a person must act", () => {
   const FOLDER = "81-queue-and-runner";
-  const notice = (error: QueueRowView["error"], errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
+  const notice = (error: QueueRowView["error"], errorReason?: ErrorReason) =>
     noticeCellHtml(
       renderSpecsRows([row({ state: "queued", error, errorReason })], { runnerAvailable: true, targets: [] }),
       FOLDER,

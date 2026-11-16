@@ -4,6 +4,7 @@
 import type { ProviderLimit } from "../../../queue/queue.ts";
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
 import type { Sentence } from "../../../messages/types.ts";
+import type { ErrorReason, JobState } from "../../../job-states.ts";
 
 export interface QueueRowView {
   id: string;
@@ -36,9 +37,7 @@ export interface QueueRowView {
    *  a different reason (`errorReason === "held-back"`) gets
    *  none either, however `queuePriorityOrder()` would have sorted it. */
   queuePosition?: { n: number; total: number };
-  state:
-    | "queued" | "running" | "done"
-    | "stopped" | "failed" | "cancelled" | "interrupted";
+  state: JobState;
   landing?: boolean;
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored
@@ -82,11 +81,8 @@ export interface QueueRowView {
    *  and read from here: a landing happens with nobody's
    *  browser attached, so the reason cannot ride in a redirect the way
    *  a button's refusal does.
-   *
-   *  Hand-paired with the same union on `Job` in `queue.ts` — the two
-   *  layers deliberately do not import each other, so change one and
-   *  change the other. */
-  errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
+   */
+  errorReason?: ErrorReason;
   /** The job's own persisted landing failure, independent of
    *  `state`/`error` — see `Job.landingError`. */
   landingError?: Sentence | Sentence[];

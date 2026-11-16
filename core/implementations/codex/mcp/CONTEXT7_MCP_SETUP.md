@@ -63,6 +63,7 @@ The script offers to add the Context7 MCP automatically.
 
 Add to `~/.codex/config.toml`:
 
+<!-- fragment: context7.toml -->
 ```toml
 # Context7 MCP Server
 [mcp_servers.context7]

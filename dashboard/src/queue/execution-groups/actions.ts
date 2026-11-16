@@ -18,17 +18,31 @@ export const executionGroupActivity = (state: ExecutionGroup["state"]): "running
 
 export function activeGroupForSpec(groups: readonly ExecutionGroup[], project: string, specFolder: string): ExecutionGroup | undefined {
   return groups.find((group) => group.project === project && !group.removedAt &&
-    executionGroupActivity(group.state) !== "idle" && group.members.includes(specFolder));
+    group.state !== "completed" && group.members.includes(specFolder));
 }
 
-/** Members without their own live job are reserved by the active group.
- *  A queued member keeps its ordinary controls for choices the job awaits. */
-export function groupReservesSpec(queue: {
+type GroupQueue = {
   list(): readonly { project: string; specFolder: string; state: string; landing?: boolean }[];
   executionGroups?: { list(): ExecutionGroup[] };
-}, project: string, specFolder: string): boolean {
+};
+
+function memberHasLiveJob(queue: GroupQueue, project: string, specFolder: string): boolean {
+  return queue.list().some((job) => job.project === project && job.specFolder === specFolder && inFlight(job));
+}
+
+/** An unfinished group owns individual Run until completion or removal.
+ *  A member's own live job keeps its ordinary controls. */
+export function groupBlocksIndividualRun(queue: GroupQueue, project: string, specFolder: string): boolean {
   return !!activeGroupForSpec(queue.executionGroups?.list() ?? [], project, specFolder) &&
-    !queue.list().some((job) => job.project === project && job.specFolder === specFolder && inFlight(job));
+    !memberHasLiveJob(queue, project, specFolder);
+}
+
+/** Members without their own live job are reserved while the group has work in flight.
+ *  Prepared and stopped groups do not block the other spec actions that use this guard. */
+export function groupReservesSpec(queue: GroupQueue, project: string, specFolder: string): boolean {
+  return !!queue.executionGroups?.list().find((group) => group.project === project && !group.removedAt &&
+    executionGroupActivity(group.state) !== "idle" && group.members.includes(specFolder)) &&
+    !memberHasLiveJob(queue, project, specFolder);
 }
 
 export function executionGroupAction(

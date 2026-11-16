@@ -15,6 +15,8 @@ export interface DeployWaitingInputs {
   serving: { sha: string | null; repoRoot: string | null };
   /** Whether Deploy is offered for a project's checkout: it needs an install command. */
   canDeploy: (root: string) => boolean;
+  /** Whether the latest drift check fetched origin successfully. */
+  reachedOrigin: (root: string) => boolean;
   defaultBranch: (root: string) => Promise<string | null>;
   run: GitRunner;
 }
@@ -29,7 +31,9 @@ export async function deployWaiting(o: DeployWaitingInputs): Promise<DeployWaiti
   if (!o.canDeploy(root)) return undefined;
   const base = await o.defaultBranch(root).catch(() => null);
   if (!base) return undefined;
+  if (!o.reachedOrigin(root)) return undefined;
   const count = await o.run(root, ["rev-list", "--count", `${sha}..refs/remotes/origin/${base}`]).catch(() => null);
   const ahead = count?.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
-  return ahead > 0 ? { project, commits: ahead } : undefined;
+  if (ahead > 0) return { project, commits: ahead, branch: base };
+  return ahead === 0 ? { project, commits: 0, branch: base } : undefined;
 }
