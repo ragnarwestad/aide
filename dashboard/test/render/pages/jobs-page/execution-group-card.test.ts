@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { QueueRowView } from "../../../../src/render/ui/job-state";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
-import { executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import { executionGroupMemberJob, executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
 import { pips, rowMessage, stepLabel } from "../../../../src/render/ui/components";
@@ -310,4 +310,19 @@ test("a queued shared Archive sets the group label and current member pip before
   expect(memberPipKind(first.group, true, { ...job, state: "running" })).toBe("now");
   expect(executionGroupStateLabel(execution, [first], "en", { ...job, state: "running" })).toBe(t("en", "list.groupState.archiving"));
   expect(executionGroupStateLabel(execution, [first], "en", { ...job, landing: true })).toBe(t("en", "list.groupState.archiving"));
+});
+
+
+test("every member's header pip follows the shared Archive while it runs or lands", () => {
+  for (const job of [
+    { state: "running", steps: ["archive"], stepIndex: 0 },
+    { state: "done", steps: ["archive"], stepIndex: 1, landing: true },
+  ] as QueueRowView[]) {
+    for (const folder of ["1-first", "2-second"]) {
+      const selected = executionGroupMemberJob({ state: "archiving", currentMember: "1-first" }, folder, undefined, job);
+      expect(selected).toBe(job);
+      expect(memberPipKind(undefined, true, selected)).toBe("now");
+      expect(memberPipLabel(folder, selected)).toBe(folder === "1-first" ? "1 A" : "2 A");
+    }
+  }
 });

@@ -1,6 +1,6 @@
 import type { SpecsPageOptions } from "./index.ts";
 import type { SpecGroup } from "./data-model";
-import type { QueueRowView } from "../../ui/job-state";
+import { inFlight, type QueueRowView } from "../../ui/job-state";
 import type { Job } from "../../../queue/queue.ts";
 import { isGroupMemberRun } from "../../../queue/execution-groups/actions.ts";
 import { attemptsPerStep } from "./data-model/phases.ts";
@@ -30,6 +30,7 @@ export function withGroupArchive(source: SpecGroup, opts: Pick<SpecsPageOptions,
   const attempts = groupArchiveAttempts(execution.id, opts.groupJobs ?? []);
   return {
     ...source,
+    lead: attempts[0] && inFlight(attempts[0]) ? attempts[0] : source.lead,
     phases: source.phases.map((phase) => phase.step === "archive" ? { ...phase, attempts, history: {}, fileResult: undefined } : phase),
     done: execution.state === "completed"
       ? [...new Set([...source.done, "archive"])]

@@ -73,6 +73,10 @@ export function memberPipKind(member: SpecGroup | undefined, completed: boolean,
   return member.state === "stopped" || heldBack ? "waiting" : "todo";
 }
 
+export function executionGroupMemberJob(group: Pick<ExecutionGroup, "state" | "currentMember">, folder: string, memberJob?: QueueRowView, archiveJob?: QueueRowView): QueueRowView | undefined {
+  return group.state === "archiving" ? archiveJob : folder === group.currentMember ? memberJob : undefined;
+}
+
 export function memberPipLabel(folder: string, job?: QueueRowView, lang: Language = "en"): string {
   const number = specNumber(folder);
   return job && inFlight(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
@@ -152,7 +156,7 @@ export function executionGroupCard(
   // or, while the card is open, its action.
   const memberPips = pips(group.members.map((folder) => {
     const row = members.find((member) => member.group.specFolder === folder);
-    const job = folder === group.currentMember ? group.state === "archiving" ? archiveJob : row?.group.lead : undefined;
+    const job = executionGroupMemberJob(group, folder, row?.group.lead, archiveJob);
     return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder), job), title: folder, label: memberPipLabel(folder, job, lang as Language) };
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
