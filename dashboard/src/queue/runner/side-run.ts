@@ -5,7 +5,7 @@
 // is dropped alone.
 
 import type { ResultTool } from "../providers/tools.ts";
-import type { ProviderLimit, TokenUsage } from "../queue.ts";
+import type { ProviderLimit, StepResult, TokenUsage } from "../queue.ts";
 import { asResultTool } from "../steps.ts";
 import { providerError, providerLimit, timeLimit, tokenUsage, type ProviderError, type TimeLimit } from "./types.ts";
 
@@ -19,6 +19,7 @@ export interface SideRun {
   tokens?: TokenUsage;
   sessionId?: string;
   modelId?: string;
+  provider?: StepResult["provider"];
   error?: string;
   errorSolution?: string;
   atCapacity?: string;
@@ -32,11 +33,12 @@ export interface SideRun {
 const count = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
 
 /** `outcome.review` or `outcome.verify`, or nothing when it names no outcome. */
-export function sideRun(raw: unknown): SideRun | undefined {
+export function sideRun(raw: unknown, provider?: StepResult["provider"]): SideRun | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
   if (typeof r.outcome !== "string" || r.outcome === "") return undefined;
   const out: SideRun = { outcome: r.outcome };
+  if (provider) out.provider = provider;
   const tool = asResultTool(r.tool);
   if (tool) out.tool = tool;
   const durationSec = count(r.durationSec);

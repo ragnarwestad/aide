@@ -274,6 +274,21 @@ describe("the round's reset and the checkout's lock", () => {
     return { gitRun, calls };
   };
 
+  test("reset removes fixture worktrees before deleting their branches", async () => {
+    const root = join(fixtures, "code");
+    mkdirSync(root);
+    repoWithHistory(root, join(fixtures, "origin.git"), true);
+    const worktree = join(fixtures, "worker");
+    git(root, "worktree", "add", worktree, "aide/01-something");
+    await resetRepo({ gitRun: async (dir, args) => {
+      try { return { code: 0, stdout: git(dir, ...args) }; }
+      catch (e) { return { code: 1, stdout: "", stderr: String(e) }; }
+    } }, root, "baseline");
+    expect(existsSync(worktree)).toBe(false);
+    expect(git(root, "branch", "--list", "aide/*")).toBe("");
+    expect(git(root, "worktree", "list", "--porcelain")).not.toContain("refs/heads/aide/");
+  });
+
   test("waits for a lock another process holds, and resets only while holding it (AC-1)", async () => {
     const held = heldLock();
     try {

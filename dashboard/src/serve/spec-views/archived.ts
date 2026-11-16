@@ -4,6 +4,7 @@
 // lines; every function is unchanged and keeps its name.
 import { specCloseReason, specFileText } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
+import { readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import { specPhaseOutcome, specPlanReviewed, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
@@ -188,7 +189,7 @@ export function archivedSpecRows(
       // Read for the specs that have something to unfold, no others.
       acceptance:
         (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
-          ? acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? "")
+          ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir))
           : undefined,
       closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });

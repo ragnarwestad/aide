@@ -34,6 +34,9 @@ const BY_WORD: [RegExp, string][] = [
   [stateWords("state.cancelled", "state.interrupted"), "ban"],
   [/^(not verified|ikke verifisert)/, "help"],
   [/^(not started|ikke startet)/, "dashed"],
+  // Standing still until another spec is done: no icon, though the word
+  // would otherwise fall to the "-ing" catch below.
+  [stateWords("list.state.waiting"), ""],
   [stateWords("state.running"), "loader"],
   [/^\w+ing\b|^\w+er\b/, "loader"],
 ];

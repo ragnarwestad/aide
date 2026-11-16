@@ -215,21 +215,21 @@ export function getSpecMessage(
     // record, in place of the runner's one-line summary of the same.
     const limited =
       lead.state === "stopped" && lead.stopReason === "provider-limit"
-        ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit)
+        ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit)
         : undefined;
     // A usage-limit stop the board starts again by itself, and a job held
     // behind one, say so — with the time — in place of the run's own words.
     const usageText = getUsageLimitMessage(lead, lang, Date.now())?.text;
     const text = usageText !== undefined
       ? lead.errorReason === "held-back" ? `${stepLabel(currentStep(lead), lang)} ${usageText}` : usageText
-      : limited?.providerLimit
+      : limited?.providerLimit || limited?.review?.providerLimit || limited?.verify?.providerLimit
       ? getProviderLimitMessage(
-          limited.providerLimit,
+          limited.review?.providerLimit ?? limited.verify?.providerLimit ?? limited.providerLimit!,
           (limited.step && lead.stepModels?.[limited.step]) || lead.model,
           lang,
           Date.now(),
           undefined,
-          limited.provider?.name ?? lead.provider,
+          limited.review?.provider?.name ?? limited.verify?.provider?.name ?? limited.provider?.name ?? lead.provider,
         ).text
       : lead.errorReason === "held-back"
         ? formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!

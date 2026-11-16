@@ -288,3 +288,12 @@ test("a queued member shows the phase it is waiting to start", () => {
   const job = { state: "queued", steps: ["analyze", "implement"], stepIndex: 0 } as SpecGroup["lead"];
   expect(memberPipLabel("817-member", job)).toBe("817 A");
 });
+
+
+test("a group paused for a provider retry shows Waiting while a manual stop stays Stopped", () => {
+  const execution = { ...group("stopped"), currentMember: "1-first" };
+  const first = member("1-first", "", { lead: { state: "stopped", stopReason: "provider-limit",
+    usageLimitWait: { until: "2026-11-17T14:30:00Z", resetKnown: true } } as SpecGroup["lead"] });
+  expect(executionGroupStateLabel(execution, [first], "en")).toBe(t("en", "list.state.waiting"));
+  expect(executionGroupStateLabel({ ...execution, stoppedByUser: true }, [first], "en")).toBe(t("en", "list.groupState.stopped"));
+});

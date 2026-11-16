@@ -196,7 +196,9 @@ export class Runner {
     const streamFile = `${this.o.resultDir}/${job.id}.${step}${attempt > 1 ? `.${attempt}` : ""}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
-    const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
+    const prepared = this.o.spawn(job, step, resultFile, sessionId, streamFile);
+    this.o.store.update(job.id, { provider: { ...job.provider, ...prepared.providers } });
+    const { pid, pgid } = prepared.start();
     if (job.executionGroupId) this.o.store.executionGroups.start(job.executionGroupId, job.startedAt ?? this.o.now());
     this.o.store.transition(job.id, "start", {
       pid,

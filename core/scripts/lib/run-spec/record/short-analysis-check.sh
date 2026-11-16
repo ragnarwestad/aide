@@ -62,7 +62,9 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
       && sa_cross "it was sent back to a full analysis"
   fi
 
-  sa_said="short analysis: $sa_analysis — grade ${sa_grade:-unrecorded}, $sa_criteria acceptance criteria, $sa_files files to change, $sa_source_count of them source files"
+  sa_kind="$sa_analysis"
+  [ "$sa_analysis" = "short" ] && sa_kind="short (the files to change and where the tests sit; no step-by-step plan, so no plan review)"
+  sa_said="analysis: $sa_kind — grade ${sa_grade:-unrecorded}, $sa_criteria acceptance criteria, $sa_files files to change, $sa_source_count of them source files"
   if [ "$sa_analysis" = "full" ]; then
     stage "$sa_said — the step completes"
   elif [ -z "$sa_crossed" ]; then

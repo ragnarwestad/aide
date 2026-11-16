@@ -59,6 +59,9 @@ export function phaseMessagesFor(
             ? queue.defaults.modelChoices?.[resolveStepModel(job, step, queue.defaults.model) ?? ""]?.tool
             : result?.tool,
           resolveStepModel(job, step, queue.defaults.model ?? {}),
+          (running ? job.provider?.[step] : result?.provider?.key)
+            ? (running ? queue.defaults.providers?.[job.provider![step]!] ?.name ?? job.provider![step] : result?.provider?.name)
+            : undefined,
         ),
         running ? undefined : result?.modelId,
       ),
@@ -92,7 +95,7 @@ export function sideMessagesFor(
     if (to <= 0) continue;
     const text = bytes.subarray(from, Math.max(from, to)).toString("utf-8");
     const { logs } = stepLog({ text, start: 0 }, undefined, { tool: side.tool ?? result.tool, final: true });
-    return { logs, steps: [], running: false };
+    return { logs, steps: [], running: false, aiModel: aiLabel(side.tool ?? result.tool, undefined, side.provider?.name) };
   }
   return undefined;
 }
