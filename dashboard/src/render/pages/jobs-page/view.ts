@@ -169,15 +169,13 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
   }));
 }
 
-/** What the Kind part offers, counted over the same searched rows as State. */
+/** Types count cards, including one per group, over the same searched rows as State. */
 export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKind; count: number; on: boolean; kind: string }[] {
   const chosen = jobsKindFilters(f.kind);
   const counted = facts.filter((row) => jobsSearchMatch(row, f).matches);
   return JOBS_KIND_FILTERS.map((key) => ({
     key,
-    count: counted
-      .filter((row) => key === "all" || rowKind(row) === key)
-      .reduce((sum, row) => sum + (row.itemCount ?? 1), 0),
+    count: counted.filter((row) => key === "all" || rowKind(row) === key).length,
     on: chosen.some((entry) => entry.key === key),
     kind: toggledState(kindEntries, chosen, key),
   }));

@@ -110,10 +110,20 @@ describe("kind choices narrow rows independently of state", () => {
     expect(view(kinds, { kind: "group" })).toEqual(["group"]);
   });
 
+  test("three group cards containing eight specs count as three Groups", () => {
+    const groups = [3, 3, 2].map((itemCount, index) => spec(`group-${index}`, {
+      specFolder: `Release-${index}`, state: "running", itemCount,
+    }));
+    const options = jobsKindOptions(factsOf(groups), {});
+    expect(options.find((option) => option.key === "group")!.count).toBe(3);
+    expect(options.find((option) => option.key === "all")!.count).toBe(3);
+    expect(view(groups, { kind: "group" })).toHaveLength(3);
+  });
+
   test("kind counts use the rows left by search and mark every chosen kind (AC-6, AC-7)", () => {
     const options = jobsKindOptions(factsOf(kinds), { q: "aide", kind: "spec,group" });
     expect(options.map((option) => [option.key, option.count])).toEqual([
-      ["all", 8], ["spec", 3], ["deploy", 1], ["schedule", 1], ["cleanup", 1], ["group", 2],
+      ["all", 7], ["spec", 3], ["deploy", 1], ["schedule", 1], ["cleanup", 1], ["group", 1],
     ]);
     expect(options.filter((option) => option.on).map((option) => option.key)).toEqual(["spec", "group"]);
   });
@@ -257,7 +267,7 @@ describe("a group stands for its member specs, each by its own state", () => {
     expect(view([grouped], filter)).toEqual(["specs-jobs-improvements"]);
     expect(counts([grouped], filter)).toMatchObject({ all: 2, waiting: 1, failed: 1 });
     expect(jobsKindOptions(factsOf([grouped]), filter).map((option) => [option.key, option.count])).toEqual([
-      ["all", 2], ["spec", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 2],
+      ["all", 1], ["spec", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 1],
     ]);
   });
 
