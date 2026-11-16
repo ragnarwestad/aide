@@ -50,3 +50,13 @@ describe("groupBySpec given the keys to build for", () => {
     expect(build(new Set())).toEqual([]);
   });
 });
+
+test("automatic waiting fixes the phase choices for every group member until Stop", () => {
+  const waiting = job({ state: "stopped", stopReason: "provider-limit",
+    usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } });
+  const group = { id: "g", project: "aide", name: "Release", members: ["01-one", "02-two"],
+    branch: "group/release", state: "stopped" as const, currentMember: "01-one", completedMembers: [], jobs: [] };
+  const build = (stoppedByUser: boolean) => groupBySpec([waiting], targets.slice(0, 2), undefined, undefined, NOW, undefined, [{ ...group, stoppedByUser }]);
+  expect(build(false).map((member) => member.executionGroupAutomaticWait)).toEqual([true, true]);
+  expect(build(true).map((member) => member.executionGroupAutomaticWait)).toEqual([false, false]);
+});

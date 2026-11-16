@@ -5,6 +5,10 @@
 // `null` for a path that is not its own.
 import { ARCHIVED_REFUSAL, bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
+import { activeGroupForSpec, waitingGroupJob } from "../../../queue/execution-groups";
+import { stepTool } from "../../serve-helpers/runner-argv.ts";
+import { resolveStepProvider } from "../../../queue/providers";
+
 import type { RoutesContext } from "..";
 
 export async function runControlRoutes(
@@ -41,6 +45,23 @@ export async function runControlRoutes(
     if (!result.ok) {
       logRefusal("model", spec, result.error);
       return json({ error: result.error, spec }, 400);
+    }
+    const group = activeGroupForSpec(ctx.queue.executionGroups.list(), project!, specFolder!);
+    const waiting = group && waitingGroupJob(group, ctx.queue.list());
+    if (waiting) ctx.queue.executionGroups.update(group!.id, { sharedChoices: false });
+    if (waiting?.specFolder === specFolder) {
+      const current = waiting.steps[waiting.stepIndex]!;
+      const { [step]: _old, ...providers } = waiting.provider ?? {};
+      const next = { ...waiting, model: { ...waiting.model, [step]: model },
+        provider: { ...providers, ...(provider ? { [step]: provider } : {}) } };
+      const providerOf = (job: typeof waiting) => resolveStepProvider(job, current, ctx.queue.defaults) ?? stepTool(job, current, ctx.queue.defaults);
+      const changedProvider = providerOf(waiting) !== providerOf(next);
+      ctx.queue.update(waiting.id, { model: next.model, provider: next.provider });
+      if (changedProvider) {
+        ctx.queue.transition(waiting.id, "limit-reset", { usageLimitWait: undefined, usageLimitProbe: undefined,
+          stopReason: undefined, finishedAt: undefined, error: undefined, errorReason: undefined, errorDetail: undefined });
+        await ctx.tickRunner();
+      }
     }
     return json({ ok: true });
   }

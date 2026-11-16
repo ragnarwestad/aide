@@ -1,3 +1,4 @@
+import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
 // The one rule for what a phase shows.
 
 import type { BadgeVariant, PipKind } from "../components";
@@ -147,6 +148,9 @@ function decidePhase(
   // State column says is archiving is the row saying two things at once
   // (reported 2026-08-23). Only the pip moved before, and a pip is not
   // a word.
+  if (attempt && automaticProviderWait(attempt) && attempt.steps[attempt.stepIndex] === history.step) {
+    return { pip: "waiting", badge: { variant: "waiting", label: stateWord(attempt, lang) }, qualifier: filesDisagree };
+  }
   if (running) {
     // A step whose own process already ended is still "running" from a
     // reader's chair while its work is being merged:

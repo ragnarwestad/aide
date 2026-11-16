@@ -12,6 +12,7 @@
 // (`docs/job-states.md`), so an OpenCode or Copilot job never makes a
 // wait and is never held by one made on another AI.
 
+import { automaticProviderWait } from "../job-rules/activity.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import { type Job, type QueueStore } from "../queue.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
@@ -48,8 +49,7 @@ export function usageLimitWait(
 }
 
 /** A stopped job the board will start again. */
-const isWaiting = (job: Job): boolean =>
-  job.state === "stopped" && job.stopReason === "provider-limit" && Number.isFinite(ms(job.usageLimitWait?.until));
+const isWaiting = automaticProviderWait;
 
 /** A job started again with no reset time to go on, whose step has not
  *  ended yet: no result exists at the index the probe recorded. */

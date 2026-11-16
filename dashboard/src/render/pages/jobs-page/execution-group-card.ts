@@ -1,5 +1,5 @@
 import { groupProviderLimitWait } from "../../../messages/jobs/group-stop.ts";
-import { inFlight } from "../../../queue/job-rules/activity.ts";
+import { automaticProviderWait, inFlight } from "../../../queue/job-rules/activity.ts";
 import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
@@ -79,7 +79,7 @@ export function executionGroupMemberJob(group: Pick<ExecutionGroup, "state" | "c
 
 export function memberPipLabel(folder: string, job?: QueueRowView, lang: Language = "en"): string {
   const number = specNumber(folder);
-  return job && inFlight(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
+  return job && (inFlight(job) || automaticProviderWait(job)) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
 }
 
 export function executionGroupMemberPip(group: ExecutionGroup, folder: string, member?: SpecGroup, archiveJob?: QueueRowView, lang: Language = "en") {
@@ -124,12 +124,14 @@ export function executionGroupCard(
     ? members.reduce((sum, member) => sum + (member.group.spentTokens ?? 0), 0)
     : undefined;
   const costSettled = members.some((member) => member.group.done.length > 0);
+  const waiting = groupProviderLimitWait(group, members.map((member) => member.group));
   const states = members.map(({ group: member }) => ({
     specFolder: member.specFolder,
     implemented: member.done.includes("implement"),
     archived: isArchivedRow(member),
     acceptanceOpen: !!member.acceptanceOpen,
     busy: specBusy(member),
+    automaticWaiting: waiting?.specFolder === member.specFolder,
   }));
   const controls = executionGroupControls(group, states);
   const name = group.displayName ?? group.name;
@@ -139,6 +141,7 @@ export function executionGroupCard(
     action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`,
     hook: "actionform",
     hidden: { action: controls.action },
+    data: { "group-default-action": controls.action, "group-label-start": t(lang as Language, "list.groupStart"), "group-label-archive": stepLabel("archive", lang as Language) },
     // Primary, as a spec's own action is.
     button: {
       label: controls.action === "archive" ? stepLabel("archive", lang as never) : controls.action === "stop" ? t(lang as Language, "jobs.stop") : t(lang as Language, "list.groupStart"),

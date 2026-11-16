@@ -1,3 +1,5 @@
+import { checkboxKey, chosenSteps } from "../state.ts";
+
 /** The reader's own choice per card, with the chosen state the card carried
  *  (`data-group-open`, empty under All) when it was made. */
 const expanded = new Map<string, { open: boolean; under: string }>();
@@ -17,6 +19,8 @@ export function syncSpecGroups(root: ParentNode): void {
     button?.classList.toggle("shut", !open);
     for (const part of group.querySelectorAll<HTMLElement>("[data-group-body]")) part.hidden = !open;
     const action = group.querySelector<HTMLElement>("[data-group-action]");
+    const actionForm = action?.querySelector<HTMLFormElement>("form");
+    if (actionForm) syncGroupPhaseAction(actionForm);
     const state = group.querySelector<HTMLElement>("[data-group-state]");
     if (action) action.hidden = !open;
     if (state) state.hidden = open && !!action;
@@ -30,4 +34,43 @@ export function toggleSpecGroup(event: MouseEvent): void {
   const under = button.closest("tr[data-spec-group]")?.getAttribute("data-group-open") ?? "";
   expanded.set(button.getAttribute("data-group-toggle")!, { open: button.getAttribute("aria-expanded") !== "true", under });
   syncSpecGroups(button.ownerDocument);
+}
+
+/** Keep the whole member choice when any box changes, including an empty choice. */
+export function rememberGroupPhases(box: HTMLInputElement): void {
+  const card = box.closest("tr[data-spec-group]");
+  if (!card) return;
+  for (const input of card.querySelectorAll<HTMLInputElement>('input[name="steps"]')) {
+    if (input.getAttribute("form") === box.getAttribute("form")) chosenSteps.set(checkboxKey(input), input.checked);
+  }
+  const form = card.querySelector<HTMLFormElement>("[data-group-action] form");
+  if (form) syncGroupPhaseAction(form);
+}
+
+export function groupPhaseForms(form: HTMLFormElement): { folder: string; id: string }[] {
+  const card = form.closest("tr[data-spec-group]");
+  const project = card?.getAttribute("data-spec-group")?.split("\n")[0];
+  return !card || !project ? [] : Array.from(card.querySelectorAll<HTMLElement>("tr[data-folder]")).map((row) => ({
+    folder: row.dataset.folder!, id: `rowrun-${project}/${row.dataset.folder}`,
+  }));
+}
+
+/** Only a person's changed choices can request a rerun of completed work. */
+export function groupPhaseChoices(form: HTMLFormElement): Record<string, string[]> {
+  return Object.fromEntries(groupPhaseForms(form).flatMap(({ folder, id }) => {
+    const choices = [...chosenSteps].filter(([key]) => key.startsWith(`${id}|steps|`));
+    return choices.length ? [[folder, choices.filter(([key, checked]) => checked &&
+      ["analyze", "implement"].includes(key.split("|")[2]!)).map(([key]) => key.split("|")[2]!)]] : [];
+  }));
+}
+
+function syncGroupPhaseAction(form: HTMLFormElement): void {
+  const original = form.dataset.groupDefaultAction;
+  if (original !== "start" && original !== "archive") return;
+  const rerun = Object.values(groupPhaseChoices(form)).some((steps) => steps.length > 0);
+  const action = rerun ? "start" : original;
+  const field = form.querySelector<HTMLInputElement>('input[name="action"]');
+  const button = form.querySelector("button");
+  if (field) field.value = action;
+  if (button) button.textContent = action === "start" ? form.dataset.groupLabelStart! : form.dataset.groupLabelArchive!;
 }

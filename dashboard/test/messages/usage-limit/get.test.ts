@@ -110,17 +110,14 @@ describe("what the sentences ask of the reader", () => {
     for (const text of all) expect(text.toLowerCase()).not.toContain("press");
   });
 
-  test("the stopped job's says it can run sooner on another AI, by its step's own button", () => {
+  test("automatic retries are informational catalogue statements", () => {
     for (const resetKnown of [true, false]) {
-      const text = getUsageLimitMessage(stoppedView({ usageLimitWait: { until: "2026-08-16T05:00:00.000Z", resetKnown } }), "en", NOW, TZ)!;
-      expect(text).toContain("choose another AI on the Implement line and press Implement");
+      const notice = message(stoppedView({ usageLimitWait: { until: "2026-08-16T05:00:00.000Z", resetKnown } }), "en", NOW, TZ)!;
+      expect(notice.variant).toBe("info");
+      expect(notice.text).not.toMatch(/Problem:|Solution:/);
     }
   });
 
-  test("a group member's stopped job points at its group's Start", () => {
-    const text = getUsageLimitMessage(stoppedView({ executionGroupId: "group-1" }), "en", NOW, TZ)!;
-    expect(text).toContain("choose another AI on the Implement line and press Start");
-  });
 });
 
 describe("where the sentence is drawn", () => {
@@ -205,4 +202,9 @@ test("automatic usage-limit waiting carries its catalogue message and offers no 
   expect(result?.sentence).toMatchObject({ key: "runner.usageLimitRestarts" });
   expect(result?.log).toBeUndefined();
   expect(result?.dismiss).toBeUndefined();
+});
+
+test("an older step's limit cannot name the current step's retry", () => {
+  const view = stoppedView({ steps: ["analyze", "implement"], stepIndex: 0 });
+  expect(message(view, "en", NOW, TZ)?.sentence).toMatchObject({ values: { step: "Analyze" } });
 });
