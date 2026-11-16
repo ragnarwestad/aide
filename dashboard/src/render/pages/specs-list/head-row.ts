@@ -22,7 +22,7 @@ import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specLocked } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { specState, specStateLabel } from "./data-model/spec-state.ts";
+import { specState, specStateLabel, waitingForGroup } from "./data-model/spec-state.ts";
 import { jobState } from "./data-model/job-state.ts";
 import { firstSpecActionLabel, PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
@@ -288,6 +288,7 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
 
 /** Specs shows the spec's own state; Jobs and its open caption show the job's outcome. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
+  if (!onSpecs && waitingForGroup(g)) return badge("waiting", t(lang, "list.state.waiting"));
   if (!onSpecs && (g.lead || isArchivedRow(g))) {
     const state = jobState(g);
     if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang);

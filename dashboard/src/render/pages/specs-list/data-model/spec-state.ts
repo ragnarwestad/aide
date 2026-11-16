@@ -16,6 +16,10 @@ export type SpecState = {
 
 type SpecStateFacts = Pick<SpecGroup, "state"> & { lead?: Pick<NonNullable<SpecGroup["lead"]>, "state" | "steps" | "stepIndex" | "landing"> } & Partial<Pick<SpecGroup, "done" | "reopenedRound" | "executionGroupActive">>;
 
+export function waitingForGroup(g: Pick<SpecStateFacts, "state" | "lead" | "executionGroupActive">): boolean {
+  return !!g.executionGroupActive && (!g.lead || !inFlight(g.lead)) && (g.state === "not-started" || g.state === "done");
+}
+
 export function specState(g: SpecStateFacts): SpecState {
   const done = g.done ?? [];
   if (g.lead && (g.lead.state === "queued" || writing(g.lead))) {
