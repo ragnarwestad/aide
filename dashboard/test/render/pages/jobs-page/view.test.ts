@@ -76,7 +76,7 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
     expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
     expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
-    expect(view(tab, { state: "waiting", q: "night" })).toEqual(["nightly"]);
+    expect(view(tab, { state: "queued", q: "night" })).toEqual(["nightly"]);
   });
 
   test("a project in the filter narrows neither the rows nor the counts", () => {
@@ -101,7 +101,7 @@ describe("kind choices narrow rows independently of state", () => {
   });
 
   test("kind and state both have to match (AC-4)", () => {
-    expect(view(kinds, { kind: "spec", state: "waiting" })).toEqual(["reopen"]);
+    expect(view(kinds, { kind: "spec", state: "queued" })).toEqual(["reopen"]);
     expect(view(kinds, { kind: "deploy,spec", state: "failed" })).toEqual(["close", "deploy"]);
   });
 
@@ -136,8 +136,8 @@ describe("kind choices narrow rows independently of state", () => {
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries are All, Active, Running, Waiting, Done, Stopped, Failed and Not verified, All selected by default (AC-5)", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "waiting", "done", "stopped", "failed", "not-verified"]);
+  test("its entries are All, Active, Running, Queued, Waiting, Done, Stopped, Failed and Not verified, All selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "queued", "waiting", "done", "stopped", "failed", "not-verified"]);
     expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
     expect(jobsStateFilters("not-archived").map((entry) => entry.key)).toEqual(["not-archived"]);
   });
@@ -210,7 +210,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["not-archived", 1], ["active:all", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
+      ["all", 1], ["not-archived", 1], ["active:all", 0], ["queued", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
@@ -220,12 +220,12 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["waiting", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
+    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["queued", 1], ["waiting", 0], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
     for (const q of [undefined, "", "   "]) {
-      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 4, 1, 1, 0, 1, 1, 0]);
+      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 4, 1, 1, 0, 0, 1, 1, 0]);
     }
   });
 
@@ -245,6 +245,19 @@ describe("a group stands for its member specs, each by its own state", () => {
   const counts = (rows: Entry[], f: JobsFilter = {}): Record<string, number> =>
     Object.fromEntries(jobsStateOptions(factsOf(rows), f).map((o) => [o.key, o.count]));
 
+  test("Queued counts only queued work while Waiting counts members awaiting their next phase", () => {
+    const release = group("release", "queued", [
+      member("818-done", "done"), member("815-done", "done"), member("816-done", "done"),
+      member("817-queued", "queued"),
+    ]);
+    const queued = spec("829-queued", { specFolder: "829-queued", state: "queued" });
+    const rows = [release, queued];
+    expect(counts(rows)).toMatchObject({ queued: 2, waiting: 3 });
+    expect(view(rows, { state: "queued" }).sort()).toEqual(["829-queued", "release"]);
+    expect(view(rows, { state: "waiting" })).toEqual(["release"]);
+    expect(view([queued], { state: "waiting" })).toEqual([]);
+  });
+
   test("a member reference, title or description finds its group while existing searches still work (AC-1, AC-2, AC-3)", () => {
     const grouped = group("specs-jobs-improvements", "stopped", [
       member("805-member-reference", "stopped", { title: "Grouped title" }),
@@ -262,10 +275,10 @@ describe("a group stands for its member specs, each by its own state", () => {
     const grouped = group("specs-jobs-improvements", "stopped", [
       member("805-waiting", "queued"), member("806-failed", "failed"),
     ]);
-    const filter = { q: "aide:805", state: "waiting", kind: "group" };
+    const filter = { q: "aide:805", state: "queued", kind: "group" };
 
     expect(view([grouped], filter)).toEqual(["specs-jobs-improvements"]);
-    expect(counts([grouped], filter)).toMatchObject({ all: 2, waiting: 1, failed: 1 });
+    expect(counts([grouped], filter)).toMatchObject({ all: 2, queued: 1, waiting: 0, failed: 1 });
     expect(jobsKindOptions(factsOf([grouped]), filter).map((option) => [option.key, option.count])).toEqual([
       ["all", 1], ["spec", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 1],
     ]);
@@ -274,12 +287,12 @@ describe("a group stands for its member specs, each by its own state", () => {
   test("a prepared group counts its members under their own states, never its own (AC-1)", () => {
     const prepared = group("prepared", "stopped", [member("82-queued", "queued"), member("83-new", "not-started")]);
     const c = counts([prepared]);
-    expect([c.waiting, c.stopped, c.all]).toEqual([1, 0, 2]);
+    expect([c.queued, c.stopped, c.all]).toEqual([1, 0, 2]);
   });
 
-  test("a failed member counts under Failed and a queued one under Waiting (AC-1)", () => {
+  test("a failed member counts under Failed and a queued one under Queued (AC-1)", () => {
     const c = counts([group("broken", "failed", [member("82-failed", "failed"), member("83-queued", "queued")])]);
-    expect([c.failed, c.waiting]).toEqual([1, 1]);
+    expect([c.failed, c.queued]).toEqual([1, 1]);
   });
 
   test("a member with an open criterion counts under Not verified, whatever its group's state (AC-1)", () => {
@@ -296,9 +309,9 @@ describe("a group stands for its member specs, each by its own state", () => {
 
   test("a chosen state shows a group when at least one member has it (AC-3)", () => {
     const mixed = group("mixed", "stopped", [member("82-q", "queued"), member("83-s", "stopped")]);
-    expect(view([mixed], { state: "waiting" })).toEqual(["mixed"]);
+    expect(view([mixed], { state: "queued" })).toEqual(["mixed"]);
     expect(view([mixed], { state: "failed" })).toEqual([]);
-    expect(view([mixed], { state: "waiting,failed" })).toEqual(["mixed"]);
+    expect(view([mixed], { state: "queued,failed" })).toEqual(["mixed"]);
   });
 
   test("All shows every group, one with no member row found among them too (AC-3)", () => {

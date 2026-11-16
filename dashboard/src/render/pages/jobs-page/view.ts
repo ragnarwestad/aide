@@ -36,7 +36,7 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
 export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
-/** The state entries the Jobs tab offers: All, Active, Running, Waiting,
+/** The state entries the Jobs tab offers: All, Active, Running, Queued, Waiting,
  *  Done, Stopped, Failed, Not verified. Done is a spec archived or closed, or
  *  any other row's job that has ended done; a spec whose last job ended done
  *  waits for its next phase, as on the Specs list. Active is every row Done
@@ -55,12 +55,13 @@ const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknow
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
-  { key: "waiting", label: "Waiting", states: ["queued", "done"], where: (g) => !finished(g) },
+  { key: "queued", label: "Queued", states: ["queued"] },
+  { key: "waiting", label: "Waiting", states: ["done"], where: (g) => !finished(g) },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "cancelled", "archived-unlanded"] },
   { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== "closed" && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
 ];
-export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 3), doneState, ...jobStateEntries.slice(3)];
+export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 4), doneState, ...jobStateEntries.slice(4)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>

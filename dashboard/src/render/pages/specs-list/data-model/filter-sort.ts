@@ -88,6 +88,7 @@ const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   [ACTIVE_FILTER_KEY]: "list.state.notArchived",
   active: "list.state.active",
   "active:all": "list.state.running",
+  queued: "list.state.queued",
   waiting: "list.state.waiting",
   done: "list.done",
   stopped: "list.state.stopped",
