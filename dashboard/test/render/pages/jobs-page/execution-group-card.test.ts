@@ -228,6 +228,8 @@ test("a member's pip takes the colour of its own state", () => {
   expect(memberPipKind(spec({}), true)).toBe("past");
   expect(memberPipKind(spec({ state: "archived" }), false)).toBe("past");
   expect(memberPipKind(spec({ lead: { state: "running" } as never }), false)).toBe("now");
+  expect(memberPipKind(spec({ lead: { state: "queued" } as never }), false)).toBe("queued");
+  expect(memberPipKind(spec({ lead: { state: "queued", landing: true } as never }), false)).toBe("now");
   expect(memberPipKind(spec({ state: "failed" }), false)).toBe("refused");
   expect(memberPipKind(spec({ state: "stopped" }), false)).toBe("waiting");
   expect(memberPipKind(spec({ phases: [{ step: "archive", heldBack: { reason: "x" } }] as never }), false)).toBe("waiting");
