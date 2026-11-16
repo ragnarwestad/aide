@@ -270,7 +270,7 @@ test("a running member adds its current phase's letter to the spec number", () =
 
 test("a member without an active step keeps just its number", () => {
   expect(memberPipLabel("825-member")).toBe("825");
-  for (const state of ["queued", "stopped", "failed", "done"]) {
+  for (const state of ["stopped", "failed", "done"]) {
     expect(memberPipLabel("825-member", { state, steps: ["implement"], stepIndex: 0 } as SpecGroup["lead"])).toBe("825");
   }
 });
@@ -279,4 +279,10 @@ test("phase letters follow the existing phase labels", () => {
   for (const [step, letter] of [["analyze", "A"], ["archive", "A"], ["create", "C"]]) {
     expect(memberPipLabel("825-member", { state: "running", steps: [step], stepIndex: 0 } as SpecGroup["lead"])).toBe(`825 ${letter}`);
   }
+});
+
+
+test("a queued member shows the phase it is waiting to start", () => {
+  const job = { state: "queued", steps: ["analyze", "implement"], stepIndex: 0 } as SpecGroup["lead"];
+  expect(memberPipLabel("817-member", job)).toBe("817 A");
 });
