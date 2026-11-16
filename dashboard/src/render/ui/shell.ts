@@ -9,7 +9,7 @@ import { CSS } from "./css";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { readRunningSpecCount } from "./running-specs";
+import { readSpecActivityCounts } from "./running-specs";
 import { tabBar } from "./tabs.ts";
 import { buttonForm, confirmDialog, headerMenu, messageSlot, tabIcon, type SiteTab } from "./components";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
@@ -23,7 +23,7 @@ import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
-import { deployMark } from "./deploy-mark/index.ts";
+import { deployMark, deployMarkDialog } from "./deploy-mark/index.ts";
 import { ICON_MORE } from "./components/icons.ts";
 
 export interface NavEntry {
@@ -233,7 +233,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   // a time as the page narrows — unit first, then language, then theme
   // — at the same widths the specs list drops its figure columns.
   return (
-    `<header>${WORDMARK}${tabs}${boardLine(lang)}` +
+    `<header>${WORDMARK}${tabs}${boardLine(lang)}${getBoardInfo() ? "" : deployMarkDialog(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
     // header's right-hand end —
     // header-level controls the reader reaches without opening the menu
@@ -318,7 +318,8 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
     [entries[0]!.path, tabIcon("projects")],
     ...sections.flatMap((entry): [string, string][] => entry.icon ? [[entry.path, tabIcon(entry.icon)]] : []),
   ]);
-  return tabBar(keys, (path) => path, current, { "/": readRunningSpecCount() }, "", {
+  const activity = readSpecActivityCounts();
+  return tabBar(keys, (path) => path, current, { "/": `${activity.running}+${activity.queued}`, "/specs": activity.openSpecs }, "", {
     label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true, showZero: true,
   });
 }

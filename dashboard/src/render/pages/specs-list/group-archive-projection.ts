@@ -24,13 +24,13 @@ export function groupArchiveAttempts(id: string, jobs: (QueueRowView | Job)[]): 
 
 /** Give grouped members the shared Archive attempt while retaining their fourth pip. */
 export function withGroupArchive(source: SpecGroup, opts: Pick<SpecsPageOptions, "executionGroups" | "groupJobs">): SpecGroup {
-  const execution = source.group && opts.executionGroups?.find((group) =>
-    group.project === source.project && group.name === source.group?.name && group.members.length > 1);
+  const execution = opts.executionGroups?.find((group) =>
+    !group.removedAt && group.project === source.project && group.members.includes(source.specFolder) && group.members.length > 1);
   if (!execution) return source;
   const attempts = groupArchiveAttempts(execution.id, opts.groupJobs ?? []);
   return {
     ...source,
-    phases: source.phases.map((phase) => phase.step === "archive" ? { ...phase, attempts } : phase),
+    phases: source.phases.map((phase) => phase.step === "archive" ? { ...phase, attempts, history: {}, fileResult: undefined } : phase),
     done: execution.state === "completed"
       ? [...new Set([...source.done, "archive"])]
       : source.done.filter((step) => step !== "archive"),

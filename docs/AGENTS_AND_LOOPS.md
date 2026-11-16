@@ -127,10 +127,12 @@ No subagents and no review.
 
 ## The loops
 
-Every loop that sends work back goes to the session that did the work, and every one has an end:
+Every loop that sends work back has an end:
 
 - **After the review in Implement:** at most one turn to fix what the review found.
-- **After red tests in Implement:** at most two more turns, each within what is left of the step's time limit.
+- **After red tests in Implement:** at most two more turns, each within what is left of the step's time limit. Once
+  the implement session has used `AIDE_TEST_FIX_FRESH_PERCENT` of its context window, a fresh session of the same
+  AI and model takes over the test fixes and keeps them for later rounds.
 - **After the plan review in Analyze:** inside the same session, once.
 - **Inside every session:** the agent's own loop of reading, changing and checking, until it answers without asking for
   another tool. The step's time limit is what ends it.
@@ -141,6 +143,8 @@ Every loop that sends work back goes to the session that did the work, and every
   the same AI and the analysis ended within the hour. Off unless set
   ([running specs](../dashboard/docs/running-specs.md)).
 - **`AIDE_TEST_FIX_ROUNDS`**: how many more turns red tests get. 2 unless set.
+- **`AIDE_TEST_FIX_FRESH_PERCENT`**: how full the implement session may be before red tests go to a fresh session of
+  the same AI and model. 85 unless set. When the AI states no context figure, the implement session keeps the fixes.
 - **`AIDE_TEST_RUN_LIMIT_SEC`**: how long one of the runner's own test runs may take. An hour unless set; the step's
   own time limit does not count it.
 - **The AI, model and effort for each step**, chosen per spec. Review and Verify can also be chosen per spec; otherwise

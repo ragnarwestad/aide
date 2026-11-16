@@ -26,7 +26,7 @@ import type { Notifier } from "../integrations/notify.ts";
 import { specAcceptanceNotRequired, specFolders, type CodeLanding } from "../project/discover";
 import { groupBranchForJob } from "../queue/execution-groups";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
-import { analysisSessionToResume, archiveFailureContext, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
+import { analysisSessionToResume, archiveFailureContext, launchProviders, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { enqueueRequest, followOnRequest, withRowPicks } from "../queue/request/index.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
@@ -162,9 +162,14 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     now: () => new Date().toISOString(),
     today: () => new Date().toISOString().slice(0, 10),
     spawn: (job, step, resultFile, sessionId, streamFile) => {
+      const sidePicks = { ...ctx.store.pendingModels[`${job.project}/${job.specFolder}`], ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.model[part] ? [[part, job.model[part]]] : [])) };
+      const sideProviders = { ...ctx.store.pendingProviders[`${job.project}/${job.specFolder}`], ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.provider?.[part] ? [[part, job.provider[part]]] : [])) };
+      const providers = launchProviders(job, step, { model: ctx.store.defaults.model, modelChoices: ctx.store.defaults.modelChoices, sidePicks, sideProviders, providers: ctx.store.defaults.providers, provider: ctx.store.defaults.provider });
+      const launchJob = { ...job, provider: { ...job.provider, ...providers } };
+      return { providers, start: () => {
       mkdirSync(dirname(resultFile), { recursive: true });
-      if (step === "deploy") return ctx.startDeploy(job, resultFile);
-      if (step === "cleanup") return cleanupJob.start(job, resultFile, streamFile);
+      if (step === "deploy") return ctx.startDeploy(launchJob, resultFile);
+      if (step === "cleanup") return cleanupJob.start(launchJob, resultFile, streamFile);
       // `aide-emit-run` reports each TDD phase and is
       // inert unless `AIDE_RUN_URL` says where — so a headless step
       // reported into silence, because nothing from launchd down to
@@ -208,7 +213,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       // A Codex step on a provider with a shadow home links in whatever the
       // shared CODEX_HOME gained since it was saved. A conflict is left: the
       // step runs on its login without the shared sessions.
-      const provider = ctx.store.defaults.providers?.[resolveStepProvider(job, step, ctx.store.defaults) ?? ""];
+      const provider = ctx.store.defaults.providers?.[providers[step] ?? ""];
       if (provider?.tool === "codex" && provider.shadowHome) {
         prepareShadowHome(expandDir(provider.codexHome || NORMAL_CODEX_HOME, homedir()), expandDir(provider.shadowHome, homedir()));
       }
@@ -230,7 +235,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       }
       const proc = Bun.spawn({
         cmd: scriptArgv(runnerArgv(
-          job,
+          launchJob,
           step,
           resultFile,
           {
@@ -266,14 +271,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,
             model: ctx.store.defaults.model,
-            sidePicks: {
-              ...ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
-              ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.model[part] ? [[part, job.model[part]]] : [])),
-            },
-            sideProviders: {
-              ...ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
-              ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.provider?.[part] ? [[part, job.provider[part]]] : [])),
-            },
+            sidePicks,
+            sideProviders: { ...sideProviders, ...providers },
             providers: ctx.store.defaults.providers,
             provider: ctx.store.defaults.provider,
             acceptanceNotRequiredForAnalyze:
@@ -299,6 +298,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       });
       proc.unref();
       return { pid: proc.pid, pgid: proc.pid };
+      } };
     },
     isAlive: (pid) => {
       try {

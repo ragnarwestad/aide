@@ -146,6 +146,22 @@ describe("a busy row offers only what its state allows", () => {
     expect(line).toContain(">Cancel</button>");
   });
 
+  test("grouped queued and running jobs keep their ordinary busy controls (AC-4)", () => {
+    for (const state of ["queued", "running"] as const) {
+      const job = spec(state);
+      const line = controlsLine(rows([job], [target("105-busy")], {
+        executionGroups: [{
+          id: "group-1", project: "aide", name: "Release", members: ["105-busy", "106-next"],
+          branch: "group/release", state: "stopped", completedMembers: [], jobs: [],
+        }],
+      }), "105-busy");
+      expect(line).toContain(">Cancel</button>");
+      expect(runBtn(line)).toBe("");
+      for (const step of ["analyze", "implement", "archive"])
+        expect(box(line, step)).toContain("disabled");
+    }
+  });
+
   test("the model select locks", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     // The model select is on the phase lines; the rule

@@ -67,7 +67,9 @@ Two pages sit beside this one:
 
 1. The checkouts it will touch are put onto their default branch and brought up to date, under the per-root lock.
 2. A `git worktree` is cut from each one. An ordinary spec uses `aide/<spec-folder>`; every member of a group uses
-   `aide/group-<first-member-folder>`.
+   `aide/group-<first-member-folder>`. Analyze and Implement reuse the group's code branch without merging the
+   default branch into it. The shared Archive brings it up to date; a separate specs repository stays up to date
+   throughout.
 3. The gitignored paths the project needs are symlinked into each worktree, and the dashboard's own
    `.aide/project.yaml` and a repointed `.aide/config` are copied in.
 4. The step runs there — one turn of the chosen CLI, under the step's time limit.
@@ -428,9 +430,11 @@ evidence that the phase happened:
   - **A fix turn.** The defects that are kept go back to the ORIGINAL implement session as one follow-up turn, which
     fixes them or turns one down on a `not a defect: <number>. <why>` line. The review itself is best-effort: a
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
-  - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
-    to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit, which the test runs themselves do not use up. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
+  - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red gets at
+    most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time limit, which the test runs themselves do not
+    use up. Once the implement session has used `AIDE_TEST_FIX_FRESH_PERCENT` (85 unless set) of its context window,
+    a fresh session of the same AI and model takes over these rounds. With no context figure, the implement session
+    keeps them. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
     file. Before a still-red step ends, each named red file is run once more alone when the project has an
@@ -589,8 +593,9 @@ no plan and no plan review. The limits and the grade are the `SHORT_ANALYSIS_*` 
 approach, the analyze prompt says `A short analysis is allowed for this spec`; any other spec gets the full analysis.
 After the turn (`run-spec/record/short-analysis-check.sh`) the runner reads `Analysis:`, `Grade:` and the acceptance
 criteria count, and counts the source files under `### Files to change` (a test or a Markdown file is not counted).
-Every completed analyze is logged as `short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to
-change, <s> of them source files`. A short one over a limit, with no grade or no files recorded, or on a spec that asks
+Every completed analyze is logged as `analysis: <short (…)|full> — grade <g>, <n> acceptance criteria, <m> files to
+change, <s> of them source files`, where a short one says in brackets that it has no step-by-step plan and so no plan
+review. A short one over a limit, with no grade or no files recorded, or on a spec that asks
 to choose the approach, ends `short-analysis-over-limit`: `ok` false, the error naming each limit crossed. The runner
 writes `- **Sent back to a full analysis:** …` into the description (`record_sent_back`), unless it already carries
 the line, and the board queues Analyze and the steps the stopped job had not run, once per spec

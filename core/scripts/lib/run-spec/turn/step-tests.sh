@@ -18,10 +18,10 @@
 # is the button to press again. A project whose changes fall under no
 # test command has nothing to run and passes as before.
 #
-# Red does not end the step at once: the failing lines go BACK to the
-# same session (claude `--resume <session id>`, codex
-# `exec resume <thread> -`, opencode `--session <id>`; the step's own
-# transcript appended to), which fixes what it broke and runs the suite
+# Red does not end the step at once: the failing lines go back to the
+# step's session, unless that session has used AIDE_TEST_FIX_FRESH_PERCENT
+# of its context window (85); then a fresh session of the same tool and
+# model takes over. The chosen session fixes what the step broke and runs the suite
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
 # is left of the step's time limit, which the test runs do not use up. The record on the branch is always
 # the runner's last run. Each red run's failing tests are read by name
@@ -245,7 +245,13 @@ $(printf '%s' "$step_tests_resolved" | jq -r '.commands[]?' 2>/dev/null)
 EOF_CMDS
     if [ "$step_test_count" -gt 0 ]; then
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
+      step_fix_fresh_threshold="${AIDE_TEST_FIX_FRESH_PERCENT:-85}"
       step_fix_round=0
+      step_main_session="$session_out"
+      step_main_model="${model:-${model_id_out:-}}"
+      step_fix_session="$session_out"
+      step_fix_fresh="no"
+      step_fix_fresh_pct=""
       step_cost_total="$cost"
       step_tokens_total="${tokens_json:-}"
       # The tests each red run named (lib/failing-tests.sh).
@@ -257,6 +263,38 @@ EOF_CMDS
         sed -n 's/^Failed: *\([^ ]*\)#\([^ ]*\) *$/\1:\2:/p' "$log" 2>/dev/null | while IFS= read -r task; do
           grep -F -- "$task" "$log" | grep -iE 'error|fail'
         done | sed $'s/\033\\[[0-9;]*m//g' | awk '!seen[$0]++' | head -8
+      }
+      fresh_fix_prompt() {   # $1 = prompt path, $2 = failing tests, $3 = instructions
+        local out="$1" failed="$2" ask="$3" base fork description solution
+        base="$(default_ref "$project_wt" "$project_root")"
+        fork="$(git -C "$project_wt" merge-base "$base" HEAD 2>/dev/null)" || fork="HEAD"
+        description="$specs_root_wt/$spec_label/${AIDE_DESCRIPTION_FILE}"
+        solution="$specs_root_wt/$spec_label/${AIDE_SOLUTION_FILE}"
+        printf '%s\n' \
+          "Continue the implement whose tests are red." \
+          "Read the spec's description at $description and its solution plan at $solution." \
+          "The change is committed on this branch. See every change since the branch left $base with: git diff $fork" \
+          "See new files with: git status --porcelain" \
+          "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$failed" "" \
+          "$ask" "Do not commit: the runner commits the finished work." "" "$headless_note" > "$out"
+      }
+      commit_for_fresh_fix() {
+        local message="" head_before="" head_after="" commit_rc=0
+        git -C "$project_wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
+          2>"$work_dir/fresh-fix-commit.err" || true
+        git -C "$project_wt" diff --cached --quiet && return 0
+        head_before="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null)" || return 1
+        [ -s "${commit_message_file:-}" ] && message="$(sed -e '/[^[:space:]]/,$!d' "$commit_message_file")"
+        [ -n "$message" ] || message="$(sed -n '1s/^# //; 1s/ - Description$//p' \
+          "$specs_root_wt/$spec_label/${AIDE_DESCRIPTION_FILE}")"
+        [ -n "$message" ] || message="$spec_label"
+        git -C "$project_wt" commit -q -F - <<<"$message" 2>"$work_dir/fresh-fix-commit.err" || commit_rc=$?
+        head_after="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null)" || return 1
+        if [ "$head_after" = "$head_before" ]; then
+          printf 'git commit exited %s without creating a commit' "$commit_rc" > "$work_dir/fresh-fix-commit.err"
+          return 1
+        fi
+        return 0
       }
       while :; do
         stage "running the project's tests on $command_name's result ($step_test_count command(s))"
@@ -337,10 +375,29 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
           error_log="${error_msg#*$'\n'}"
           break
         fi
+        # Choose once. A fresh session has no id until its first turn ends;
+        # later rounds resume the id that turn reported.
+        if [ "$step_fix_round" -eq 0 ]; then
+          step_fix_pct=""
+          case "$step_fix_fresh_threshold" in
+            ''|*[!0-9]*) ;;
+            *) if [ -n "$context_fullest" ] && [ "${context_window:-0}" -gt 0 ]; then
+                 step_fix_pct="$(jq -nr --argjson used "$context_fullest" --argjson window "$context_window" \
+                   '($used * 1000 / $window | round) / 10')"
+               fi
+               if [ -n "$step_fix_pct" ] \
+                  && [ $(( context_fullest * 100 )) -ge $(( step_fix_fresh_threshold * context_window )) ]; then
+                 step_fix_fresh="yes"
+                 step_fix_fresh_pct="$step_fix_pct"
+                 step_fix_session=""
+               fi ;;
+          esac
+        fi
         # Another turn, or the end: the cap, a session the runner cannot
-        # resume, and what the step has left of its time.
+        # start or resume, and what the step has left of its time.
         step_time_left=$(( $(step_deadline) - $(date +%s) ))
-        if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
+        if [ "$step_fix_round" -ge "$step_fix_rounds" ] \
+           || { [ -z "$step_fix_session" ] && { [ "$step_fix_fresh" != "yes" ] || [ "$step_fix_round" -gt 0 ]; }; } \
            || [ "$step_time_left" -le 0 ]; then
           stop_step tests-red "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
 $step_tests_failing" "if the fault is in the code, press $step_button again; if something on the machine stopped the tests, such as a port in use or a service that is down, fix that first"
@@ -353,7 +410,25 @@ $step_tests_failing" "if the fault is in the code, press $step_button again; if 
           break
         fi
         step_fix_round=$((step_fix_round + 1))
-        stage_error "the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)"
+        if [ "$step_fix_fresh" = "yes" ] && [ "$step_fix_round" -eq 1 ]; then
+          if ! commit_for_fresh_fix; then
+            step_fix_commit_error="$(head -1 "$work_dir/fresh-fix-commit.err" 2>/dev/null)"
+            stop_step unpushed "the runner could not commit the change before handing its red tests to a fresh session${step_fix_commit_error:+ — $step_fix_commit_error}" \
+              "fix the checkout on the serving host, then press $step_button again"
+            break
+          fi
+        fi
+        if [ "$step_fix_fresh" = "yes" ]; then
+          if [ "$step_fix_round" -eq 1 ]; then
+            stage_error "the tests are red — handing them back to a fresh session at $step_fix_fresh_pct % (round $step_fix_round of $step_fix_rounds)"
+          else
+            stage_error "the tests are red — handing them back to the fresh session, which took over at $step_fix_fresh_pct % (round $step_fix_round of $step_fix_rounds)"
+          fi
+        elif [ -n "$step_fix_pct" ]; then
+          stage_error "the tests are red — handing them back to the step's session at $step_fix_pct % (round $step_fix_round of $step_fix_rounds)"
+        else
+          stage_error "the tests are red — handing them back to the step's session; it states no context figure (round $step_fix_round of $step_fix_rounds)"
+        fi
         # The failing tests, then ONE full run: the runner runs the whole
         # suite again after this turn anyway. "Until it is green" sent
         # an archive and an implement round and round the full
@@ -372,12 +447,24 @@ $step_tests_failing" "if the fault is in the code, press $step_button again; if 
 
 $step_tests_failing"
         fi
-        printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_fix_what" "" \
-          "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
-        # The same argv, resumed: the session the step's own turns ran in.
-        resume_argv "$session_out"
-        argv=("${resumed_argv[@]}")
+        if [ "$step_fix_fresh" = "yes" ] && [ "$step_fix_round" -eq 1 ]; then
+          fresh_fix_prompt "$work_dir/prompt-fix-$step_fix_round" "$step_fix_what" "$step_fix_ask"
+          invocation_build "$tool" "${argv[0]}" "$permission_mode" "$step_main_model" "$effort" "" "" \
+            "${session_project:-} ${spec_id:-} test fix"
+          argv=("${invocation_argv[@]}")
+        else
+          printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_fix_what" "" \
+            "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
+          resume_argv "$step_fix_session"
+          argv=("${resumed_argv[@]}")
+        fi
+        [ "$step_fix_fresh" = "yes" ] && context_use_skip="yes"
         run_model_turn "$work_dir/prompt-fix-$step_fix_round" step_fix_result
+        if [ "$step_fix_fresh" = "yes" ]; then
+          context_use_skip=""
+          step_fix_session="$session_out"
+          session_out="$step_main_session"
+        fi
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"
         sides_priced_again

@@ -171,6 +171,7 @@ remove_worktrees() {
 delete_empty_branches() {
   local root base
   for root in ${created_wt_root[@]+"${created_wt_root[@]}"}; do
+    preserves_group_code "$root" && continue
     base="$(default_branch "$root")"
     [ -n "$base" ] || continue
     base_ref_for "$root" "$base"

@@ -126,7 +126,10 @@ export function resolveStepProvider(
   defaults: Pick<QueueDefaults, "model" | "modelChoices" | "providers" | "provider">,
 ): string | undefined {
   const own = job.provider?.[step];
-  if (own) return own;
+  // An empty stored value is a launch snapshot too: the step used the
+  // tool's normal login. Only an absent key belongs to an older job and
+  // falls through to today's settings.
+  if (own !== undefined) return own || undefined;
   const providers = defaults.providers;
   if (!providers) return undefined;
   const model = resolveStepModel(job as Job, step, defaults.model);

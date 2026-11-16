@@ -4,6 +4,7 @@
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
+import { waitingForGroup } from "../specs-list/data-model/spec-state.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   ACTIVE_FILTER_KEY,
@@ -36,7 +37,7 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
 export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
-/** The state entries the Jobs tab offers: All, Active, Running, Waiting,
+/** The state entries the Jobs tab offers: All, Active, Running, Queued, Waiting,
  *  Done, Stopped, Failed, Not verified. Done is a spec archived or closed, or
  *  any other row's job that has ended done; a spec whose last job ended done
  *  waits for its next phase, as on the Specs list. Active is every row Done
@@ -55,12 +56,13 @@ const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknow
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
-  { key: "waiting", label: "Waiting", states: ["queued", "done"], where: (g) => !finished(g) },
+  { key: "queued", label: "Queued", states: ["queued"] },
+  { key: "waiting", label: "Waiting", where: (g) => (g.state === "done" && !finished(g)) || waitingForGroup(g as RowFacts) },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "cancelled", "archived-unlanded"] },
   { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== "closed" && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
 ];
-export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 3), doneState, ...jobStateEntries.slice(3)];
+export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 4), doneState, ...jobStateEntries.slice(4)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>
@@ -84,6 +86,7 @@ export type RowFacts = Pick<
 > & {
   /** Group members represented by this row; an ordinary spec or job counts as one. */
   itemCount?: number;
+  executionGroupActive?: boolean;
   /** The member specs a group's row stands for, each its current row with its own state; absent on every other row. */
   members?: RowFacts[];
   /** Set on the row of a spec's earlier round, which is over whatever the spec does now. */
@@ -169,15 +172,13 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
   }));
 }
 
-/** What the Kind part offers, counted over the same searched rows as State. */
+/** Types count cards, including one per group, over the same searched rows as State. */
 export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKind; count: number; on: boolean; kind: string }[] {
   const chosen = jobsKindFilters(f.kind);
   const counted = facts.filter((row) => jobsSearchMatch(row, f).matches);
   return JOBS_KIND_FILTERS.map((key) => ({
     key,
-    count: counted
-      .filter((row) => key === "all" || rowKind(row) === key)
-      .reduce((sum, row) => sum + (row.itemCount ?? 1), 0),
+    count: counted.filter((row) => key === "all" || rowKind(row) === key).length,
     on: chosen.some((entry) => entry.key === key),
     kind: toggledState(kindEntries, chosen, key),
   }));

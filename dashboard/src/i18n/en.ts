@@ -15,6 +15,7 @@ export const en = {
   "shell.usage": "Usage",
   "shell.deployWaiting": "{project} has {count} new commits to deploy",
   "shell.deployWaitingOne": "{project} has {count} new commit to deploy",
+  "shell.deployUpToDate": "{project} is up to date with {branch}",
   "shell.filter": "Filter",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
@@ -90,6 +91,7 @@ export const en = {
   "list.state.reopened": "Reopened",
   "list.state.analyzed": "Analyzed",
   "list.state.implemented": "Implemented",
+  "list.state.queued": "Queued",
   "list.state.waiting": "Waiting",
   "list.state.stopped": "Stopped",
   "list.state.failed": "Failed",
@@ -135,7 +137,8 @@ export const en = {
   "checks.failNote": "What did not hold",
   "checks.failedCount": "{n} failed",
   "list.checksOpenTab": "Open the Status tab",
-  "list.shortAnalysis": "short analysis: no plan and no plan review",
+  "list.planReviewSkipped": "Skipped",
+  "list.planReviewSkippedTitle": "A short analysis writes no step-by-step plan, so there is no plan to review",
   "list.sentBack": "sent back to a full analysis: {why}",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
@@ -191,7 +194,6 @@ export const en = {
     "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
     "then push it again from a terminal.",
   "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
-  "list.landedAfterRetry": "Merged after a retry: the project's tests were red on the first run and green on the second.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "No test names {id}.",
   "list.branchLeftBehind":

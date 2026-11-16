@@ -14,6 +14,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.usage": "Uso",
   "shell.deployWaiting": "{project} tiene {count} commits nuevos para desplegar",
   "shell.deployWaitingOne": "{project} tiene {count} commit nuevo para desplegar",
+  "shell.deployUpToDate": "{project} está al día con {branch}",
   "shell.filter": "Filtro",
   "shell.themeDark": "Oscuro",
   "shell.themeLight": "Claro",
@@ -89,6 +90,7 @@ export const es: Record<TranslationKey, string> = {
   "list.state.reopened": "Reabierta",
   "list.state.analyzed": "Analizada",
   "list.state.implemented": "Implementada",
+  "list.state.queued": "En cola",
   "list.state.waiting": "Esperando",
   "list.state.stopped": "Detenidas",
   "list.state.failed": "Fallidas",
@@ -134,7 +136,8 @@ export const es: Record<TranslationKey, string> = {
   "checks.failNote": "¿Qué no se cumplió?",
   "checks.failedCount": "{n} fallida(s)",
   "list.checksOpenTab": "Abrir la pestaña Status",
-  "list.shortAnalysis": "análisis corto: sin plan y sin revisión del plan",
+  "list.planReviewSkipped": "Omitida",
+  "list.planReviewSkippedTitle": "Un análisis corto no escribe un plan paso a paso, así que no hay plan que revisar",
   "list.sentBack": "devuelta a un análisis completo: {why}",
   "list.phaseFoldTitle": "{action} los últimos mensajes de {phase}",
   "list.phaseNoneKept": "No se conservan mensajes de esta fase.",
@@ -190,7 +193,6 @@ export const es: Record<TranslationKey, string> = {
     "El push de un paso no llegó a origin. — Actualiza la branch en el checkout del servidor, " +
     "y vuelve a hacer push desde una terminal.",
   "list.prError": "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
-  "list.landedAfterRetry": "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Ningún test nombra {id}.",
   "list.branchLeftBehind":

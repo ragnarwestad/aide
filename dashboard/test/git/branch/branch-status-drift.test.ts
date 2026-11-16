@@ -28,6 +28,26 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
     expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
   });
 
+  test("records whether the latest drift check reached origin (AC-5)", async () => {
+    const state = { fetch: 0 };
+    const run: GitRunner = async (_dir, args) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("fetch")) return { code: state.fetch, stdout: "" };
+      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: "0\n" };
+      return { code: 1, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run });
+
+    expect(checker.reachedOrigin("/repo")).toBe(false);
+    await checker.commitsBehindOrigin("/repo", true);
+    expect(checker.reachedOrigin("/repo")).toBe(true);
+    state.fetch = 128;
+    await checker.commitsBehindOrigin("/repo", true);
+    expect(checker.reachedOrigin("/repo")).toBe(false);
+  });
+
   test("a checkout three commits behind says three", async () => {
     const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
     const checker = new BranchStatusChecker({ run: git.run });

@@ -120,7 +120,7 @@ export function createServer(opts: ServerOptions) {
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // the spec's own files are the only answer to that now.
-  const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore, served: allowed });
+  const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore, served: allowed, targets, groups: () => queue.executionGroups.list() });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     executionGroupsPath: opts.executionGroupsPath,

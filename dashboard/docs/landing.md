@@ -126,10 +126,15 @@ spec's cached git answers are read again, so no row is drawn from what was true 
 
 ## Archive and implement resolve the conflict themselves
 
-A spec's branch is brought up to date with the default branch before a step's own work starts. A step other than
+An ordinary spec's branch is brought up to date with the default branch before a step's own work starts. A step other than
 `archive` and `implement` treats a conflict there as a user's problem: the merge is aborted and the run refuses with
 `errorReason: "conflict"`. `archive` lands the branch, and `implement` writes its code, so a conflict is theirs to
 settle. A `close` skips the code repository's branch, since it deletes that branch unmerged.
+
+A group keeps its shared code branch throughout Analyze and Implement, without bringing in new default-branch
+changes between steps or members. Even a code branch with no commits of its own is kept. The shared Archive
+brings the default branch in and handles any conflict before the landing tests run. A separate specs repository
+continues to receive default-branch updates during the group's work.
 
 `core/scripts/aide-run-spec` hands `archive` and `implement` the worktree with the merge still open. A conflict
 confined to the status files of the specs the run covers (its own, and a group's members) it settles itself: the
@@ -198,8 +203,8 @@ that carries the project's `worktreeLinks` and `.aide/config`. When `git worktre
 checkout and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
 commands the change calls for and runs them through `aide-record-test-run`.
 
-- A red run gets the whole command once more, unless it timed out. Green on the second run lands, with the archived row
-  reading "merged after a retry" and the job keeping the lines the first run failed on (`testsGreenOnRetry`).
+- A red run gets the whole command once more, unless it timed out. Green on the second run lands without a notice
+  on the archived row. The job keeps the lines the first run failed on (`testsGreenOnRetry`).
 - Red on both runs pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
   the default branch alone (`redOnDefaultBranch`); red there too, the sentence says main is red as well, and archive

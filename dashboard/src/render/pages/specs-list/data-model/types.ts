@@ -278,8 +278,10 @@ export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks",
 export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 
 export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
-  /** Controls are reserved while this spec belongs to an active execution group. */
+  /** The spec belongs to an unfinished execution group, so individual Run is unavailable. */
   executionGroupActive?: boolean;
+  /** The group's queued, running or archiving work reserves the spec's other controls. */
+  executionGroupReserved?: boolean;
   /** At least one queue job remains in this spec's history, across all rounds. */
   hasJobs?: boolean;
   project: string;

@@ -14,6 +14,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.usage": "Forbruk",
   "shell.deployWaiting": "{project} har {count} nye commits å deploye",
   "shell.deployWaitingOne": "{project} har {count} ny commit å deploye",
+  "shell.deployUpToDate": "{project} er à jour med {branch}",
   "shell.filter": "Filter",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",
@@ -89,6 +90,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.reopened": "Gjenåpnet",
   "list.state.analyzed": "Analysert",
   "list.state.implemented": "Implementert",
+  "list.state.queued": "I kø",
   "list.state.waiting": "Venter",
   "list.state.stopped": "Stoppet",
   "list.state.failed": "Feilet",
@@ -134,7 +136,8 @@ export const nb: Record<TranslationKey, string> = {
   "checks.failNote": "Hva holdt ikke?",
   "checks.failedCount": "{n} feilet",
   "list.checksOpenTab": "Åpne Status-fanen",
-  "list.shortAnalysis": "kort analyse: ingen plan og ingen gjennomgang av planen",
+  "list.planReviewSkipped": "Hoppet over",
+  "list.planReviewSkippedTitle": "En kort analyse skriver ingen trinnvis plan, så det er ingen plan å gå gjennom",
   "list.sentBack": "sendt tilbake til en full analyse: {why}",
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",
@@ -192,7 +195,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.prError":
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
-  "list.landedAfterRetry": "Merget etter et nytt forsøk: testene var røde første gang og grønne andre gang.",
   "checks.coveredBy": "Tester: {names}",
   "checks.noTestNames": "Ingen test nevner {id}.",
   "list.branchLeftBehind":

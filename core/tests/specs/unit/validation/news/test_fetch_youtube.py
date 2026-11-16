@@ -178,7 +178,10 @@ def test_the_videos_command_lists_every_channel_s_videos_and_a_line_each_ac_2(mo
     assert [line.split()[:2] for line in lines] == [["listed", "1"], ["listed", "1"]]
 
 
-def test_a_channel_that_cannot_be_read_is_named_and_the_others_are_still_listed_ac_6(module, tmp_path, capsys, monkeypatch):
+def test_a_channel_that_cannot_be_read_is_named_and_the_others_are_still_listed_ac_6(
+        module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    for channel_id in (A[1], B[1]):
+        yt_dlp_listing[0][page(channel_id)] = (1, "", "ERROR: unavailable\n")
     answers = {
         FEED % A[1]: (None, "curl: (22) The requested URL returned error: 404"),
         FEED % B[1]: ("<html>not a feed", None),
@@ -363,9 +366,87 @@ def test_the_installer_declares_the_command_the_script_runs_ac_7(module, workspa
     assert module.YT_DLP in declared
 
 
-def test_a_channel_answering_a_page_that_is_not_a_feed_is_named_as_a_gap_ac_6(module, tmp_path, capsys, monkeypatch):
+def test_a_channel_answering_a_page_that_is_not_a_feed_is_named_as_a_gap_ac_6(
+        module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    yt_dlp_listing[0][page(A[1])] = (1, "", "ERROR: unavailable\n")
     answers = {FEED % A[1]: ("<html><body>Temporarily unavailable</body></html>", None)}
     code, report, lines = run_videos(module, tmp_path, [A], answers, capsys, monkeypatch)
     assert code == 1
     assert report["channels"][0]["error"] and "videos" not in report["channels"][0]
     assert lines[0].startswith("failed")
+
+
+def listing(*videos):
+    """yt-dlp's `-j` answer for a channel's videos tab: one JSON object a line; each video is (id, title, day)."""
+    return "".join(json.dumps({
+        "id": video, "title": title, "description": "about " + title, "upload_date": day.replace("-", ""),
+        "timestamp": None, "webpage_url": "https://www.youtube.com/watch?v=" + video,
+    }) + "\n" for video, title, day in videos)
+
+
+@pytest.fixture
+def yt_dlp_listing(module, monkeypatch):
+    """yt-dlp's listing answered per channel page from `answers` as (exit code, stdout, stderr); each command is kept."""
+    answers, commands = {}, []
+
+    def run(command, **_):
+        commands.append(command)
+        code, out, err = answers[command[-1]]
+        return module.subprocess.CompletedProcess(command, code, out, err)
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+    return answers, commands
+
+
+def page(channel_id):
+    return "https://www.youtube.com/channel/%s/videos" % channel_id
+
+
+def test_a_channel_whose_feed_fails_is_listed_through_yt_dlp_instead(module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    answers, commands = yt_dlp_listing
+    answers[page(A[1])] = (0, listing(("a2", "Codex", "2026-11-15"), ("a1", "Claude Code", "2026-11-13")), "")
+    feeds = {FEED % A[1]: (None, "curl: (56) The requested URL returned error: 404")}
+    code, report, lines = run_videos(module, tmp_path, [A], feeds, capsys, monkeypatch)
+    assert code == 0
+    videos = report["channels"][0]["videos"]
+    assert [(v["id"], v["published"][:10], v["link"]) for v in videos] == [
+        ("a2", "2026-11-15", "https://www.youtube.com/watch?v=a2"),
+        ("a1", "2026-11-13", "https://www.youtube.com/watch?v=a1")]
+    assert videos[0]["title"] == "Codex" and videos[0]["description"] == "about Codex"
+    assert lines[0].startswith("listed   2 AI Engineer") and "404" in lines[0]
+
+
+def test_the_yt_dlp_listing_stops_at_the_first_video_older_than_the_period(module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    answers, commands = yt_dlp_listing
+    answers[page(A[1])] = (0, "", "")
+    run_videos(module, tmp_path, [A], {FEED % A[1]: (None, "404")}, capsys, monkeypatch)
+    command = commands[0]
+    assert command[command.index("--break-match-filters") + 1] == "upload_date>=20261113"
+    assert command[command.index("--playlist-end") + 1] == "15"
+
+
+def test_a_channel_neither_the_feed_nor_yt_dlp_can_read_names_both_failures(module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    answers, _ = yt_dlp_listing
+    answers[page(A[1])] = (1, "", "ERROR: [youtube:tab] This channel does not exist\n")
+    code, report, lines = run_videos(module, tmp_path, [A], {FEED % A[1]: (None, "curl: 404")}, capsys, monkeypatch)
+    assert code == 1
+    assert "404" in report["channels"][0]["error"] and "does not exist" in report["channels"][0]["error"]
+    assert lines[0].startswith("failed")
+
+
+def test_a_full_yt_dlp_listing_says_more_videos_may_exist(module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    answers, _ = yt_dlp_listing
+    answers[page(A[1])] = (0, listing(*[(f"v{n}", "t", "2026-11-14") for n in range(15)]), "")
+    _, report, lines = run_videos(module, tmp_path, [A], {FEED % A[1]: (None, "404")}, capsys, monkeypatch)
+    assert report["channels"][0]["more_may_exist"] is True
+    assert "more may exist" in lines[0]
+
+
+def test_a_channel_with_no_video_in_the_period_is_listed_empty_not_failed(module, tmp_path, capsys, monkeypatch, yt_dlp_listing):
+    """yt-dlp exits 101 when its first video is already older than the period: it stopped, nothing failed."""
+    answers, _ = yt_dlp_listing
+    answers[page(A[1])] = (101, "", "")
+    code, report, lines = run_videos(module, tmp_path, [A], {FEED % A[1]: (None, "404")}, capsys, monkeypatch)
+    assert code == 0
+    assert report["channels"][0]["videos"] == []
+    assert lines[0].startswith("listed   0")

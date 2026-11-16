@@ -1,6 +1,7 @@
 import type { ParseResult } from "../parse-request.ts";
 import type { QueueStore } from "../store/index.ts";
 import type { Job } from "../types.ts";
+import { PLAN_REVIEW, SIDE_PARTS_OF, planReviewToSave } from "../providers/side-tools.ts";
 
 export type RequestOrigin = "manual" | "automatic";
 
@@ -42,6 +43,39 @@ export function followOnRequest(
     effort: forSteps(from.effort),
     executionGroupId: from.executionGroupId,
   };
+}
+
+/** The choices a group's Run request writes to every member's own row. */
+export function groupRowPicks(
+  posted: Record<string, unknown>,
+  job: Pick<Job, "steps" | "model" | "provider">,
+): { part: string; model: string; provider?: string }[] {
+  const postedModels = typeof posted.model === "object" && posted.model !== null
+    ? posted.model as Record<string, unknown>
+    : undefined;
+  const picks: { part: string; model: string; provider?: string }[] = [];
+  for (const step of job.steps) {
+    if ((typeof posted.model === "string" || typeof postedModels?.[step] === "string") && job.model[step]) {
+      picks.push({ part: step, model: job.model[step]!, provider: job.provider?.[step] });
+    }
+    for (const part of SIDE_PARTS_OF[step] ?? []) {
+      if (typeof postedModels?.[part] !== "string" || !job.model[part]) continue;
+      if (part === PLAN_REVIEW) {
+        const saved = planReviewToSave(
+          { model: job.model[part]!, provider: job.provider?.[part] },
+          { model: job.model[step]!, provider: job.provider?.[step] },
+          { model: job.model[step]!, provider: job.provider?.[step] },
+          true,
+        );
+        picks.push(saved
+          ? { part, model: saved.model, provider: saved.provider }
+          : { part, model: "", provider: undefined });
+      } else {
+        picks.push({ part, model: job.model[part]!, provider: job.provider?.[part] });
+      }
+    }
+  }
+  return picks;
 }
 
 /** `request` on the models picked on its spec's own row, for the steps it

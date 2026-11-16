@@ -76,19 +76,16 @@ file. A step that hits its own time limit is `stopped`, not `failed` ([A job's s
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
-a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
-phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
+a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group
+made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
+every member's own row; the rows show those choices, and Start uses them. A group made on Jobs uses the choices on
+each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
 
-A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
-
-- It is refused while the group already has a job queued or running.
-- It never includes Archive, including the first Run that creates a group; a press that asked for Archive runs the other phases it asked for.
-- A press for Archive alone is refused, and points to the group's card.
-
-A failed member keeps its own recovery controls.
+A spec that belongs to an unfinished group has no Run on its own row. Start, Stop and Archive for the members are on
+the group's card. A member's own queued or running job keeps its ordinary controls on the spec row.
 
 Run on a spec lists the other specs that can join a group under **Run together in a group**. Ticking one or more shows a
 required **Group name** field above those checkboxes. Run saves that name and starts the group in selection order, with dependencies placed before
@@ -115,6 +112,8 @@ Once the last member has finished Implement, the card waits for Archive. When ev
 every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
 together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
 and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
+While Archive is queued, the collapsed card shows Queued with its queue position and an orange current-member pip;
+it shows Archiving with a moving pip only once the job runs or lands.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 An archived member waiting for the group's shared Archive is not reported as an individual landing failure merely because the branch is still open.
 Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
@@ -137,6 +136,8 @@ queue state and that every dependency inside the group comes earlier in the exec
 member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
+A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
+A manual stop remains Stopped.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
 the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
@@ -830,8 +831,9 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
-The Jobs tab shows the current number of running specs in parentheses, including zero. The count updates live,
-includes specs being landed, and excludes queued specs and other kinds of jobs. On a phone it stays beside the Jobs icon.
+The Jobs tab shows running and queued specs as `Jobs (4+6)`, including zero on either side. Both counts update live.
+Specs being landed count as running; a spec counts on only one side. Other kinds of jobs are excluded. On a phone
+the counts stay beside the Jobs icon.
 
 A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
@@ -859,7 +861,7 @@ the group's creation date, its progress and the one action allowed by its curren
 menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
-it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. Each pip has the colour
+it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs or is queued, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
@@ -926,11 +928,13 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
-Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
+Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
-Waiting for its next phase. Active holds every row Done does not, except a cancelled job that is not a spec's: its
+Waiting for its next phase. Members reserved by an active group also show Waiting while they await their turn or the shared Archive; their own queued, running or failed job keeps its own state.
+Queued holds only jobs in the queue; they do not count under Waiting.
+Group members count under their own states. Active holds every row Done does not, except a cancelled job that is not a spec's: its
 row offers nothing more, while a spec's row can run its phase again. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view. A

@@ -60,7 +60,7 @@ export function tabBar<T extends string>(
    *  Solution and Status count nothing, and a tab with no entry renders
    *  its label with no `(N)` suffix — exactly as Activity does
    *  for a job that has captured nothing. */
-  counts: Partial<Record<T, number>>,
+  counts: Partial<Record<T, number | string>>,
   /** Extra markup at the row's right end — a spec's own Reopen/Close/
    *  Update, right-aligned by the shared ".row" class.
    *  Absent for every caller but the spec page. */
@@ -107,10 +107,10 @@ export function tabBar<T extends string>(
         const n = counts[t] === 0 && o.showZero ? 0 : counts[t] || undefined;
         const to = href(t);
         const here = t === current ? ` aria-current="page"` : "";
-        const text = `${esc(label)}${n === undefined ? "" : ` (${n})`}`;
+        const text = `${esc(label)}${n === undefined ? "" : ` (${esc(String(n))})`}`;
         const icon = o.icon?.(t);
         const body = o.site && n !== undefined
-          ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${n})</span>`
+          ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${esc(String(n))})</span>`
           : icon ? `${icon}<span>${text}</span>` : text;
         const title = icon ? ` title="${esc(label)}"` : "";
         // data-goto: a real page load — nav-busy.ts marks it waiting.

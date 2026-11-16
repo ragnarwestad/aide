@@ -83,9 +83,9 @@ export function makeRunner(opts: {
     newSessionId: opts.newSessionId ?? (() => `sess-${spawns.length + 1}`),
     spawn:
       opts.spawn ??
-      ((job, step, resultFile, sessionId, streamFile): SpawnResult => {
+      ((job, step, resultFile, sessionId, streamFile) => {
         spawns.push({ jobId: job.id, step, resultFile, sessionId, streamFile });
-        return { pid: 1000 + spawns.length, pgid: 1000 + spawns.length };
+        return { providers: {}, start: (): SpawnResult => ({ pid: 1000 + spawns.length, pgid: 1000 + spawns.length }) };
       }),
     isAlive: opts.alive ?? (() => true),
     readResult: opts.readResult ?? (() => null),

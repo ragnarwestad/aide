@@ -15,8 +15,9 @@ import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
-import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, groupMemberSteps, groupReservesSpec, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { enqueueRequest, groupRowPicks, withRowPicks } from "../../queue/request/index.ts";
+import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
 import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -180,7 +181,7 @@ export async function handleJobActionRoutes(
     }
     const askedFor = raw as Record<string, unknown> | null;
     if (typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string" &&
-      groupReservesSpec(ctx.queue, askedFor.project, askedFor.specFolder)) {
+      groupBlocksIndividualRun(ctx.queue, askedFor.project, askedFor.specFolder)) {
       const spec = `${askedFor.project}/${askedFor.specFolder}`;
       const error = "this spec belongs to an active group — start or stop it from the group";
       logRefusal("run", spec, error);
@@ -323,7 +324,15 @@ export async function handleJobActionRoutes(
     // and must never overwrite a recorded choice with one.
     if (result.ok) {
       ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
-      if (createdGroup) ctx.queue.executionGroups.queueMember(createdGroup.id, result.job.specFolder);
+      if (createdGroup) {
+        ctx.queue.executionGroups.queueMember(createdGroup.id, result.job.specFolder);
+        for (const pick of groupRowPicks(askedFor ?? {}, result.job)) {
+          for (const folder of createdGroup.members) {
+            const saved = ctx.queue.setPendingModel(createdGroup.project, folder, pick.part, pick.model, pick.provider);
+            if (!saved.ok) logRefusal("model", `${createdGroup.project}/${folder}`, saved.error);
+          }
+        }
+      }
     }
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two

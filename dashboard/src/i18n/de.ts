@@ -14,6 +14,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.usage": "Nutzung",
   "shell.deployWaiting": "{project} hat {count} neue Commits zum Bereitstellen",
   "shell.deployWaitingOne": "{project} hat {count} neuen Commit zum Bereitstellen",
+  "shell.deployUpToDate": "{project} ist auf dem Stand von {branch}",
   "shell.filter": "Filter",
   "shell.themeDark": "Dunkel",
   "shell.themeLight": "Hell",
@@ -89,6 +90,7 @@ export const de: Record<TranslationKey, string> = {
   "list.state.reopened": "Wieder geöffnet",
   "list.state.analyzed": "Analysiert",
   "list.state.implemented": "Implementiert",
+  "list.state.queued": "In der Warteschlange",
   "list.state.waiting": "Wartet",
   "list.state.stopped": "Gestoppt",
   "list.state.failed": "Fehlgeschlagen",
@@ -134,7 +136,8 @@ export const de: Record<TranslationKey, string> = {
   "checks.failNote": "Was hat nicht gehalten?",
   "checks.failedCount": "{n} fehlgeschlagen",
   "list.checksOpenTab": "Den Tab „Status“ öffnen",
-  "list.shortAnalysis": "kurze Analyse: kein Plan und keine Planprüfung",
+  "list.planReviewSkipped": "Übersprungen",
+  "list.planReviewSkippedTitle": "Eine kurze Analyse schreibt keinen Schritt-für-Schritt-Plan, also gibt es keinen Plan zu prüfen",
   "list.sentBack": "zu einer vollständigen Analyse zurückgeschickt: {why}",
   "list.phaseFoldTitle": "{action} die letzten Meldungen von {phase}",
   "list.phaseNoneKept": "Für diese Phase sind keine Meldungen gespeichert.",
@@ -190,7 +193,6 @@ export const de: Record<TranslationKey, string> = {
     "Der Push eines Schritts hat origin nicht erreicht. — Hole den Branch im Checkout auf dem Server, " +
     "und pushe ihn erneut von einem Terminal aus.",
   "list.prError": "Für diesen Branch konnte kein Pull Request geöffnet werden. — Öffne ihn von Hand, im Checkout auf dem Server.",
-  "list.landedAfterRetry": "Nach einem zweiten Versuch gemergt: die Tests waren beim ersten Lauf rot und beim zweiten grün.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Kein Test nennt {id}.",
   "list.branchLeftBehind":

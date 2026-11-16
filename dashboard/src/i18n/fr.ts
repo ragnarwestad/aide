@@ -14,6 +14,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.usage": "Utilisation",
   "shell.deployWaiting": "{project} a {count} nouveaux commits à déployer",
   "shell.deployWaitingOne": "{project} a {count} nouveau commit à déployer",
+  "shell.deployUpToDate": "{project} est à jour avec {branch}",
   "shell.filter": "Filtre",
   "shell.themeDark": "Sombre",
   "shell.themeLight": "Clair",
@@ -89,6 +90,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.state.reopened": "Rouverte",
   "list.state.analyzed": "Analysée",
   "list.state.implemented": "Implémentée",
+  "list.state.queued": "En file d’attente",
   "list.state.waiting": "En attente",
   "list.state.stopped": "Arrêtées",
   "list.state.failed": "Échouées",
@@ -134,7 +136,8 @@ export const fr: Record<TranslationKey, string> = {
   "checks.failNote": "Qu'est-ce qui n'a pas tenu ?",
   "checks.failedCount": "{n} échouée(s)",
   "list.checksOpenTab": "Ouvrir l'onglet Status",
-  "list.shortAnalysis": "analyse courte : pas de plan et pas de revue du plan",
+  "list.planReviewSkipped": "Ignorée",
+  "list.planReviewSkippedTitle": "Une analyse courte n’écrit pas de plan étape par étape, il n’y a donc pas de plan à relire",
   "list.sentBack": "renvoyée vers une analyse complète : {why}",
   "list.phaseFoldTitle": "{action} les derniers messages de {phase}",
   "list.phaseNoneKept": "Aucun message n'est conservé pour cette phase.",
@@ -190,7 +193,6 @@ export const fr: Record<TranslationKey, string> = {
     "Le push d'une étape n'a pas atteint origin. — Récupérez la branch dans le checkout sur le serveur, " +
     "puis repoussez-la depuis un terminal.",
   "list.prError": "Aucune pull request n'a pu être ouverte pour cette branch. — Ouvrez-en une à la main, dans le checkout sur le serveur.",
-  "list.landedAfterRetry": "Intégrée après une nouvelle tentative : les tests étaient rouges au premier passage et verts au second.",
   "checks.coveredBy": "Tests : {names}",
   "checks.noTestNames": "Aucun test ne nomme {id}.",
   "list.branchLeftBehind":

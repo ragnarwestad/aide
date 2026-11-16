@@ -348,8 +348,9 @@ export interface Job {
    *  probe is over once a result exists at that index — `at` is when
    *  the board tried again and `since` the stop it came from. */
   usageLimitProbe?: { results: number; at: string; since: string };
-  /** The provider each step runs on, as a key, resolved at creation like
-   *  `model`. A step with none runs on the phase default. */
+  /** The provider each step runs on, as a key. An empty value records that
+   *  the launched step used the tool's normal login; an absent key on an
+   *  older job still falls back to the current phase default. */
   provider?: Record<string, string>;
   /** Queued by a person's press, not by the board itself. A press made
    *  after a usage-limit stop is not held by it. */
