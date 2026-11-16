@@ -30,6 +30,10 @@ The queue behind the rows is on [Running specs](running-specs.md); how a step's 
 [Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
 [Error sentences](error-sentences.md).
 
+The Specs tab shows the number of open specs: Created, Idle and Reopened. The total updates live across all
+projects on the board and does not change with the page's search or filters. Active, archived and closed specs
+are excluded; on a phone the number stays beside the Specs icon.
+
 
 ## The row, open and shut
 
@@ -200,8 +204,8 @@ both read "0% done". The spec's own page shows it in full.
 
 The State column carries the spec's own state and nothing else:
 
-- **Created** — no phase has run.
-- **Idle** — a job has run and none is queued or running now.
+- **Created** — only Create has completed, or no job has run.
+- **Idle** — work beyond Create has been attempted and none is queued or running now.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
 - **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group;
@@ -410,8 +414,9 @@ cost, link), and a spec made by hand shows the line inert, the same way any phas
 queue does. It has no checkbox. It has a pip like the other four, but not on their rule: `done` comes from the git
 history, which counts only the runner's
 own commits, so a spec written by hand has no create commit and would show grey. Create gets the LINE's rule instead,
-and it has only two states — a spec that exists was created, so the pip is past unless a create job is running right
-now.
+and a spec that exists was created, so the pip is past unless a create job is queued or running right now.
+
+Queued phases and queued group members use orange without motion, on both the letter and the bar.
 
 **The running phase's own pip carries the motion.** The closed row is the whole interface for
 the ordinary case, so "this is running" cannot live on a phase line that only exists once a row is expanded — a reader

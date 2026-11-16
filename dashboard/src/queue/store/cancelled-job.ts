@@ -1,15 +1,14 @@
-// What becomes of a cancelled job: one that never started holds nothing
-// worth keeping — no log, no cost, no result — and cannot be started
-// again, so it is removed. Either way the cancel leaves one line saying
-// which job, in which state, and what it was waiting for.
+// Cancelled schedules keep their records so the same fire is not queued
+// again. Other jobs with no run, log, cost or result are removed.
+// Every cancel logs the job, its state and what it was waiting for.
 
+import { jobKind } from "../steps.ts";
 import { formatSentence } from "../../messages/format.ts";
 import type { Job } from "../queue.ts";
 
-/** A job with nothing to show for itself: no step ever started, and no
- *  landing of its own. */
-export function neverStarted(job: Job): boolean {
-  return !job.startedAt && job.results.length === 0 && !job.landing;
+/** A cancelled schedule keeps its record so the same fire is not queued again. */
+export function discardOnCancel(job: Job): boolean {
+  return jobKind(job) !== "schedule" && !job.startedAt && job.results.length === 0 && !job.landing;
 }
 
 /** The line a cancel leaves, from the job as it was the moment before. */

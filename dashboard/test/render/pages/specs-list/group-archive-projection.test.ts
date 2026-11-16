@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { groupBySpec } from "../../../../src/render/pages/specs-list/data-model";
 import { withGroupArchive } from "../../../../src/render/pages/specs-list/group-archive-projection.ts";
+import { wordPhase } from "../../../../src/render/ui/job-state";
 import { phasePipKind } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { row } from "../fixtures.ts";
@@ -61,4 +62,26 @@ test("an old individual Archive on a member is not the group's shared Archive", 
     expect(archive.attempts).toEqual([]);
     expect(phasePipKind(archive, member.done)).toBe("todo");
   }
+});
+
+
+test("membership determines shared Archive even without matching description metadata", () => {
+  for (const group of [undefined, { name: "Old name", position: 1 }]) {
+    const source = { ...members[0]!, group, done: ["create", "archive"] };
+    const member = withGroupArchive(source, { executionGroups: [execution], groupJobs: [] });
+    expect(phasePipKind(member.phases.find((p) => p.step === "archive")!, member.done)).toBe("todo");
+    const finished = withGroupArchive(source, { executionGroups: [{ ...execution, state: "completed" }], groupJobs: [] });
+    expect(phasePipKind(finished.phases.find((p) => p.step === "archive")!, finished.done)).toBe("past");
+  }
+});
+
+
+test("an individual Archive outcome cannot mark the shared Archive as finished", () => {
+  const source = { ...members[0]!, phases: members[0]!.phases.map((phase) => phase.step === "archive"
+    ? { ...phase, fileResult: "completed" as const } : phase) };
+  const member = withGroupArchive(source, { executionGroups: [execution], groupJobs: [] });
+  const archive = member.phases.find((phase) => phase.step === "archive")!;
+  expect(wordPhase(member.done.includes("archive"), archive.heldBack, archive.attempts[0], {
+    ...archive.history, fileResult: archive.fileResult, step: "archive",
+  }).pip).toBe("todo");
 });

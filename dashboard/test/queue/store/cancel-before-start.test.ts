@@ -1,12 +1,13 @@
 // A job cancelled before it started holds nothing worth keeping — no log,
 // no cost, no result — and cannot be started again, so the store removes
-// it. A job that had started keeps its record. Every cancel leaves one
+// it. A scheduled job or a job that had started keeps its record. Every cancel leaves one
 // line saying which job, in which state, and what it was waiting for.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { isDue } from "../../../src/queue/schedule.ts";
 import { endStep } from "../../../src/queue/runner/step-result.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -79,13 +80,28 @@ describe("cancelling a job that never started", () => {
 
 describe("loading the queue", () => {
   test("drops a cancelled job that never started and keeps one that did", () => {
-    const base = { project: "aide", steps: ["schedule"], stepIndex: 0, state: "cancelled", timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-10T02:00:00.000Z", spentUsd: 0 };
+    const base = { project: "aide", steps: ["analyze"], stepIndex: 0, state: "cancelled", timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-10T02:00:00.000Z", spentUsd: 0 };
     writeFileSync(mirror, JSON.stringify([
-      { ...base, id: "never-started", specFolder: "schedule-nightly-e2e", results: [] },
-      { ...base, id: "had-started", specFolder: "schedule-Nyhetssjekk", results: [], startedAt: "2026-11-10T04:30:00.000Z" },
+      { ...base, id: "never-started", specFolder: "1-first", results: [] },
+      { ...base, id: "had-started", specFolder: "2-next", results: [], startedAt: "2026-11-10T04:30:00.000Z" },
     ]));
     const store = storeAt();
     expect(store.get("never-started")).toBeUndefined();
     expect(store.get("had-started")?.state).toBe("cancelled");
   });
+});
+
+test("cancelling a queued schedule consumes its fire window, including after restart, but not tomorrow's", () => {
+  const store = storeAt();
+  const made = store.enqueue({ project: "aide", specFolder: "schedule-daily", steps: ["schedule"] });
+  if (!made.ok) throw new Error(made.error);
+  store.update(made.job.id, { createdAt: "2026-11-16T06:00:01.000Z" });
+  endStep(store, made.job.id, "cancel", { finishedAt: "2026-11-16T06:01:00.000Z" });
+  const entry = { name: "daily", cron: "0 6 * * *", prompt: "daily.md", enabled: true };
+  for (const queue of [store, storeAt()]) {
+    expect(queue.get(made.job.id)?.state).toBe("cancelled");
+    expect(isDue(entry, new Date("2026-11-16T06:02:00.000Z"), queue.list())).toBe(false);
+    expect(isDue(entry, new Date("2026-11-17T06:00:01.000Z"), queue.list())).toBe(true);
+    expect(queue.enqueue({ project: "aide", specFolder: "schedule-daily", steps: ["schedule"] }).ok).toBe(true);
+  }
 });

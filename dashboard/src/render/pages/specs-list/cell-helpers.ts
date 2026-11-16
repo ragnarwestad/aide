@@ -176,7 +176,7 @@ export const costCell = (
  *  own.
  *
  *  It does not go through `wordPhase` with them, though: create has
- *  only two states, past and running. A spec that exists was created,
+ *  past, queued and running states. A spec that exists was created,
  *  so the pip is past unless a create job is in flight right now.
  *  `done` used to be the reason — it comes from the git history, which
  *  counts only the runner's own `Run /aide-<step> for <folder>` commits,
@@ -184,7 +184,7 @@ export const costCell = (
  *  those showed a grey pip saying the spec had not been made yet.
  *  That gap is closed one layer down (`withFreshness` puts create into
  *  the set for any spec whose folder is on disk), so the phase LINE
- *  agrees now; the two states above are what is left. */
+ *  agrees now. */
 export function phasePips(phases: Phase[], done: string[], lang: Language = "en"): string {
   return pips(
     phases.map((p) => ({
@@ -215,7 +215,10 @@ const pipAttempt = (p: Phase): QueueRowView | undefined =>
  *  say about the phase, which is grey for a phase that has not run. The
  *  motion is for a phase whose job is running right now. */
 export function phasePipKind(p: Phase, done: string[]): PipKind {
-  if (p.step === "create") return p.attempts.some(inFlight) ? "now" : "past";
+  if (p.step === "create") {
+    const attempt = pipAttempt(p);
+    return attempt && inFlight(attempt) ? attempt.state === "queued" && !attempt.landing ? "queued" : "now" : "past";
+  }
   // One rule, one function: what the FILES say, qualified by the
   // most relevant attempt (whatever is in flight, else the latest).
   // The pips used to read the job history alone, so a spec analysed

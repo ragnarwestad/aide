@@ -7,7 +7,7 @@
 
 import { statSync } from "node:fs";
 import { phaseKey } from "../render";
-import { readRunningSpecCount } from "../render/ui/running-specs";
+import { readSpecActivityCounts, type SpecTabCounts } from "../render/ui/running-specs";
 import { readWaitingCount } from "../render/ui/pwa.ts";
 import { runLogPath } from "../queue/runner/run-log-path.ts";
 import type { Job } from "../queue/queue.ts";
@@ -48,7 +48,7 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
  *  set is walked because `writeTo` removes from it. */
 export function notifyQueueChanged(ctx: SseWatchersContext): void {
   // Counted once per broadcast, not once per tab.
-  const event = changedEvent(readWaitingCount(), readRunningSpecCount());
+  const event = changedEvent(readWaitingCount(), readSpecActivityCounts());
   for (const c of [...ctx.watchers]) writeTo(ctx, c, event);
 }
 
@@ -57,8 +57,8 @@ export function notifyQueueChanged(ctx: SseWatchersContext): void {
 export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 
 /** Queue-wide counts for the app icon and Jobs tab. Log growth keeps the bare signal. */
-export const changedEvent = (waiting?: number, running?: number): string =>
-  `event: changed\ndata: ${JSON.stringify({ waiting, running })}\n\n`;
+export const changedEvent = (waiting?: number, activity?: SpecTabCounts): string =>
+  `event: changed\ndata: ${JSON.stringify({ waiting, ...activity })}\n\n`;
 
 /** The signal that the header's Deploy mark changed: the page asks
  *  `/api/deploy-mark` for it, drawn in its own language. */

@@ -90,6 +90,7 @@ export const en = {
   "list.state.reopened": "Reopened",
   "list.state.analyzed": "Analyzed",
   "list.state.implemented": "Implemented",
+  "list.state.queued": "Queued",
   "list.state.waiting": "Waiting",
   "list.state.stopped": "Stopped",
   "list.state.failed": "Failed",

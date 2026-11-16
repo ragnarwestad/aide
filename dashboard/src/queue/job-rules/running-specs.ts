@@ -4,11 +4,16 @@ import type { Job } from "../types.ts";
 
 type CountedJob = Pick<Job, "project" | "specFolder" | "steps" | "stepIndex" | "state" | "landing" | "groupMembers">;
 
-export function runningSpecCount(jobs: readonly CountedJob[], serves: (project: string) => boolean): number {
-  const specs = new Set<string>();
+export interface SpecActivityCounts { running: number; queued: number }
+
+export function specActivityCounts(jobs: readonly CountedJob[], serves: (project: string) => boolean): SpecActivityCounts {
+  const running = new Set<string>();
+  const queued = new Set<string>();
   for (const job of jobs) {
-    if (!serves(job.project) || !writing(job) || jobKind(job) !== "spec") continue;
+    if (!serves(job.project) || (job.state !== "queued" && !writing(job)) || jobKind(job) !== "spec") continue;
+    const specs = writing(job) ? running : queued;
     for (const folder of job.groupMembers?.length ? job.groupMembers : [job.specFolder]) specs.add(`${job.project}/${folder}`);
   }
-  return specs.size;
+  for (const key of running) queued.delete(key);
+  return { running: running.size, queued: queued.size };
 }

@@ -53,6 +53,13 @@ describe("the pip of a phase on the Running tab", () => {
     expect(pipOf(jobs, "archive", ["create", "analyze", "implement"])).toBe("todo");
   });
 
+  test("a queued phase has a distinct stationary pip, including Create", () => {
+    for (const step of ["create", "analyze", "implement", "archive"]) {
+      const jobs = [row({ id: "queued", specFolder: "05-spec", steps: [step], stepIndex: 0, state: "queued" })];
+      expect(pipOf(jobs, step, ["create"])).toBe("queued");
+    }
+  });
+
   test("a phase whose job is running draws the running pip", () => {
     const jobs = [row({ id: "live", specFolder: "05-spec", steps: ["analyze"], stepIndex: 0, state: "running" })];
     expect(pipOf(jobs, "analyze", ["create"])).toBe("now");
