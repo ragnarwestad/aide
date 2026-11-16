@@ -213,8 +213,9 @@ commands the change calls for and runs them through `aide-record-test-run`.
 - When the merge broke the tests (`landing.testsRedOnMerge`, `landing.testsRedOnMergeToo`), the job also keeps them,
   each with its file and error, as `landingFailedTests`, for the spec's next implement; at most one job of a spec keeps
   such a list, and a green landing, another red ending, an archive or a close takes it off.
-- The landing writes its test run into the step's Log, under the publication part: when it starts, green or red, the
-  run once more, the run on main, and a run it skipped.
+- The landing writes each test run into the step's Log, under the publication part: when it starts, green or red, the
+  run once more, the run on main, and a run it skipped. Progress lines say whether they come from the merge, its retry
+  or main alone. Every run keeps its complete output beside the step log and stops following its progress when it ends.
 
 **A run the step already made is not made again.** An `implement` that ended green reports `testedGreen` on its
 result: the tree, hashed by `aide_tree_hash` with the worktree links left out, and the commands. When the landing is

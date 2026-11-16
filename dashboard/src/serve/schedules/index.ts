@@ -37,6 +37,7 @@ import {
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import { logRefusal } from "../serve-helpers";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
+import { checkoutsToRecheck } from "../../render/ui/checkout-faults.ts";
 
 export {
   approachChoiceHolds, archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze,
@@ -115,6 +116,13 @@ export interface ScheduleContext {
 }
 
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
+  // A checkout whose last check git did not finish is asked again on
+  // this poll, not left to the five-minute sweep. Started, not awaited:
+  // neither the poll nor a page waits on it, and `ensureCheckout` runs
+  // at most one check per project at a time and never rejects.
+  for (const project of checkoutsToRecheck()) {
+    if (ctx.allowed.has(project)) void ctx.ensureCheckout(project);
+  }
   if (!ctx.projectRoot) return;
   await Promise.all(
     buildProjectViews(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map(async (p) => {

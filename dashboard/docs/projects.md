@@ -82,8 +82,14 @@ to look at, and the message says so.
 **What is reported, and where.** A checkout git cannot answer for, and a clone that failed, are named at the top of
 every page. A missing dashboard checkout is named there only when the project's own entry under the projects root is
 gone as well: while that entry is there, every reader falls back to it, and the missing checkout goes to the server's
-log alone. The sentence at the top of the page is the dashboard's own, naming the path and what to do about it —
-except for a failed clone, where it quotes what git said.
+log alone. The sentence at the top of the page is the dashboard's own, naming the path, the check that failed and
+what to do about it — except for a failed clone, where it quotes what git said. Git's own words for a failed check
+are in the server's log.
+
+**A check git did not finish is not a broken checkout.** When git is stopped before it answers — it took longer than
+its time limit, was killed, or could not start — the line at the top of the page says the dashboard could not check
+its checkout yet, names the check and how it ended, and leaves the checkout as it is. That checkout is checked again
+about every 30 seconds, and the line goes away as soon as a check succeeds.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What the form sets is
 saved after the clone by the same save the Config tab makes. The name, description, worktree links, code landing,

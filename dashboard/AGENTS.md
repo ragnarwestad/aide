@@ -119,6 +119,12 @@ before starting:
   git's own words appear only for a clone that failed — and left alone. A checkout that IS
   the project's own entry gets its own sentence, because the advice
   "remove it by hand" would be advice to delete the project.
+- **A check git did not finish is no answer.** A call the runner's timer
+  stopped, a killed one and one that could not start carry `unfinished`
+  on the runner's result (`git/process/`); the usability check
+  (`git/checkout-usable/`) reads either attempt carrying it as "not
+  known", and nothing is cloned or written because of it. Its warning is
+  marked, and the drift poll checks it again.
 - **A path handed to git has both sides resolved first.** git answers
   with every symlink resolved; a path off the scan of the projects root
   does not — that root is a directory of LINKS on a serving host, and on

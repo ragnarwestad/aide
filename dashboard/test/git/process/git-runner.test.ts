@@ -58,6 +58,30 @@ describe("one call can ask for longer than the default", () => {
   });
 });
 
+// A killed call comes back as exit 143 with nothing on stdout, and a
+// spawn that failed as exit 128 — codes git can give on its own. Read as
+// git's answer, a `rev-parse` cut off under load says "not a repository".
+// So the result says when git did not run to its own end.
+describe("a call that did not finish says so", () => {
+  test("a call the runner's own timer stopped is marked timed out (AC-1)", async () => {
+    const res = await createGitRunner(1)(process.cwd(), ["log", "-1", "--format=%H"]);
+    expect(res.unfinished).toBe("timed-out");
+  });
+
+  test("a call in a directory that is not there is marked not started (AC-1)", async () => {
+    const res = await createGitRunner()("/no/such/directory/anywhere", ["rev-parse", "HEAD"]);
+    expect(res.unfinished).toBe("not-started");
+  });
+
+  test("a call that ran to its end carries no mark, whatever its exit code (AC-1)", async () => {
+    const ok = await createGitRunner()(process.cwd(), ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const no = await createGitRunner()(process.cwd(), ["rev-parse", "--verify", "no-such-ref-anywhere"]);
+    expect(ok.unfinished).toBeUndefined();
+    expect(no.code).not.toBe(0);
+    expect(no.unfinished).toBeUndefined();
+  });
+});
+
 // `GIT_INDEX_FILE` scoping has no CLI-flag equivalent — the
 // plumbing in `branch-file.ts` needs it to build a commit without ever
 // touching the shared checkout's real index, so `GitRunner` grew one

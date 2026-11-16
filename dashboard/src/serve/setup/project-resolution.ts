@@ -120,9 +120,9 @@ export function setupProjectResolution(
   function machinerySpecsRoot(project: string) {
     return machinerySpecsRootImpl(projectCheckoutCtx, project);
   }
-  function complain(project: string, said: string, banner = true) {
+  function complain(project: string, said: string, banner = true, more?: Parameters<typeof complainImpl>[4]) {
     if (state.stopped) return;
-    return complainImpl(projectCheckoutCtx, project, said, banner);
+    return complainImpl(projectCheckoutCtx, project, said, banner, more);
   }
   const checkoutEnsurer = new CheckoutEnsurer((project, mayClone) =>
     ensureDashboardCheckout(gitRun, {
@@ -135,7 +135,12 @@ export function setupProjectResolution(
         if (result.ok) {
           saidAbout.delete(project);
           clearCheckoutFault(project);
-        } else complain(project, result.error ?? "it could not be made", !result.absent);
+        } else {
+          complain(project, result.error ?? "it could not be made", !result.absent, {
+            recheck: result.inconclusive === true,
+            detail: result.detail,
+          });
+        }
         if (result.checkout) resolvedCheckouts.set(project, result.checkout);
         return result.checkout;
       })

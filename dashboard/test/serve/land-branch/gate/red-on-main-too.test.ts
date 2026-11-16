@@ -78,14 +78,18 @@ test("main's result records green, red and not checked with its reason (AC-1, AC
   });
 }, 30_000);
 
-test("when main and the merge fail different tests, the merge-only test is named (AC-4)", async () => {
+test("when main and the merge fail different tests, the merge-only test and main outcome are recorded (AC-3, AC-4)", async () => {
   recorder("different");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
+  const root = merged();
+  const streamFile = join(root, "different.archive.stream.jsonl");
+  writeFileSync(join(root, "different.archive.run.log"), "");
+  const verdict = await runProjectSuiteBeforePush(root, { ...job, streamFile, stepStartedAt: new Date().toISOString() }, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeToo",
     values: { count: 1, branch: "aide/81-x", button: "Archive" },
     lists: { tests: ["merge only"] },
   });
+  expect(readFileSync(join(root, "different.archive.run.log"), "utf-8")).toContain("the tests are red on main; 1 failing test is unique to the merge");
 }, 30_000);
 
 test("an unnamed failure on red main does not make a named merge failure unique (AC-4)", async () => {

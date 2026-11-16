@@ -170,10 +170,12 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
   `--depends-on <spec>` (repeatable), `--criteria-checks off|warn|stop`, `--choose-approach` and
   `--acceptance-not-required` are the form's other settings. The command writes the spec and starts no job.
 - **The model** is the phase's model from Models per phase. `--model <name>` runs a queued step on that model instead.
-- **A spec** is named by its number or its folder. A number is looked up in the specs root of the checkout the command
-  runs in, or of the board host's checkout of the project named with `--project`; when that checkout is missing or
-  lacks the number, it is matched against the project's jobs on the board, and otherwise the spec's folder is needed. The project is `--project`, else the one
-  the current directory belongs to.
+- **A spec** is named by its number or its folder. A number for `aide status` is looked up in the fetched default branch
+  of the specs repository before the project's jobs on the board. A successful refresh with no match means the spec
+  is missing; when the refresh is unavailable and no job matches, the command says that existence is not known. Other
+  commands look in the specs root of the checkout the command runs in, or of the board host's checkout of the project
+  named with `--project`, then fall back to the project's jobs. The project is `--project`, else the one the current
+  directory belongs to.
 - **The board** is `AIDE_BOARD_URL` in `~/.aide/config` ([Configuration](../../docs/CONFIGURATION.md)). The command
   asks the board to fetch the project's specs first.
 - **An accepted request** is answered by what was queued, on which model (and provider, when the job has one), and
@@ -190,8 +192,9 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
   does the step in the session. A headless run never hands its step over, since it is the board's own step. A reopen that
   asks for a reset is not handed over, because `aide reopen` cannot carry it: the answer says it is chosen with Reopen
   on the spec's page, and nothing is queued. This holds for every AI tool that reads the skills.
-- **`aide status`** reads the phase from the spec's repository on this machine, after fetching origin, and says so when
-  it had to use this machine's copy. For a project with no checkout here it says only what the job is doing.
+- **`aide status`** fetches origin once and uses that result for both a numeric lookup and the phase it reports. It says
+  when it had to use this machine's copy for the phase. For a project with no checkout here it says only what the job
+  is doing.
 
 Another program called `aide` earlier on `PATH` hides this one.
 

@@ -54,7 +54,81 @@ def test_the_phase_is_read_from_origin_after_a_fetch_AC_7(machine, board):
     assert "implemented" in lines[0]
 
 
-def test_an_archived_spec_reads_as_archived_AC_7(machine, board):
+def test_a_number_finds_an_origin_only_spec_without_a_job_AC_1(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+    machine.advance_origin("814-new", ["create"])
+
+    result = machine.run("status", "814")
+
+    assert result.returncode == 0, result.stderr
+    assert "814-new is created" in result.stdout
+    assert "no job on the board" in result.stdout
+
+
+def test_number_and_folder_match_for_an_origin_only_spec_AC_2(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+    machine.advance_origin("814-new", ["create", "analyze"])
+
+    by_number = machine.run("status", "814")
+    by_folder = machine.run("status", "814-new")
+
+    assert by_number.returncode == 0, by_number.stderr
+    assert by_folder.returncode == 0, by_folder.stderr
+    assert by_number.stdout == by_folder.stdout
+
+
+def test_a_confirmed_missing_number_is_reported_as_missing_AC_3(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+
+    result = machine.run("status", "814")
+
+    assert result.returncode == 1
+    assert "no spec numbered 814" in result.stderr
+    assert "could not refresh" not in result.stderr
+
+
+def test_a_stale_local_match_does_not_override_a_confirmed_origin_miss_AC_3(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+    (machine.specs / "814-old").mkdir()
+
+    result = machine.run("status", "814")
+
+    assert result.returncode == 1
+    assert "no spec numbered 814" in result.stderr
+
+
+def test_a_number_keeps_zero_padding_when_it_finds_an_origin_only_spec_AC_1(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+    machine.advance_origin("05-new", ["create"])
+
+    result = machine.run("status", "5")
+
+    assert result.returncode == 0, result.stderr
+    assert "05-new is created" in result.stdout
+
+
+def test_an_unavailable_refresh_is_not_reported_as_a_missing_spec_AC_4(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": []})
+    machine.lose_origin()
+
+    result = machine.run("status", "814")
+
+    assert result.returncode == 1
+    assert "could not refresh" in result.stderr
+    assert "no spec numbered 814" not in result.stderr
+
+
+def test_a_board_job_remains_the_fallback_when_origin_has_no_match_AC_3_AC_4(machine, board):
+    board.answer("GET", "/api/queue", {"jobs": [make_job(specFolder="814-new")]})
+    machine.lose_origin()
+
+    result = machine.run("status", "814")
+
+    assert result.returncode == 0, result.stderr
+    assert "814-new" in result.stdout
+
+
+def test_an_archived_spec_reads_as_archived_AC_5(machine, board):
     board.answer("GET", "/api/queue", {"jobs": []})
 
     result = machine.run("status", "720")
@@ -94,7 +168,7 @@ def test_without_a_board_status_says_so_and_names_no_skill_AC_11(no_board_machin
     assert "/aide-" not in result.stderr
 
 
-def test_the_phase_of_a_spec_in_another_project_comes_from_its_checkout_here_AC_7(machine, board):
+def test_the_phase_of_a_spec_in_another_project_comes_from_its_checkout_here_AC_5(machine, board):
     other = machine.home / ".aide" / "dashboard" / "checkouts" / "other" / "code" / ".aide"
     other.mkdir(parents=True)
     (other / "config").write_text(f"AIDE_SPECS_PATH={machine.specs}\n")
