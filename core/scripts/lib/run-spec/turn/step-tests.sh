@@ -273,10 +273,28 @@ EOF_CMDS
         printf '%s\n' \
           "Continue the implement whose tests are red." \
           "Read the spec's description at $description and its solution plan at $solution." \
-          "The change is already on this branch, but the latest work may not be committed yet. See every change since the branch left $base with: git diff $fork" \
+          "The change is committed on this branch. See every change since the branch left $base with: git diff $fork" \
           "See new files with: git status --porcelain" \
           "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$failed" "" \
           "$ask" "Do not commit: the runner commits the finished work." "" "$headless_note" > "$out"
+      }
+      commit_for_fresh_fix() {
+        local message="" head_before="" head_after="" commit_rc=0
+        git -C "$project_wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
+          2>"$work_dir/fresh-fix-commit.err" || true
+        git -C "$project_wt" diff --cached --quiet && return 0
+        head_before="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null)" || return 1
+        [ -s "${commit_message_file:-}" ] && message="$(sed -e '/[^[:space:]]/,$!d' "$commit_message_file")"
+        [ -n "$message" ] || message="$(sed -n '1s/^# //; 1s/ - Description$//p' \
+          "$specs_root_wt/$spec_label/${AIDE_DESCRIPTION_FILE}")"
+        [ -n "$message" ] || message="$spec_label"
+        git -C "$project_wt" commit -q -F - <<<"$message" 2>"$work_dir/fresh-fix-commit.err" || commit_rc=$?
+        head_after="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null)" || return 1
+        if [ "$head_after" = "$head_before" ]; then
+          printf 'git commit exited %s without creating a commit' "$commit_rc" > "$work_dir/fresh-fix-commit.err"
+          return 1
+        fi
+        return 0
       }
       while :; do
         stage "running the project's tests on $command_name's result ($step_test_count command(s))"
@@ -392,6 +410,14 @@ $step_tests_failing" "if the fault is in the code, press $step_button again; if 
           break
         fi
         step_fix_round=$((step_fix_round + 1))
+        if [ "$step_fix_fresh" = "yes" ] && [ "$step_fix_round" -eq 1 ]; then
+          if ! commit_for_fresh_fix; then
+            step_fix_commit_error="$(head -1 "$work_dir/fresh-fix-commit.err" 2>/dev/null)"
+            stop_step unpushed "the runner could not commit the change before handing its red tests to a fresh session${step_fix_commit_error:+ — $step_fix_commit_error}" \
+              "fix the checkout on the serving host, then press $step_button again"
+            break
+          fi
+        fi
         if [ "$step_fix_fresh" = "yes" ]; then
           if [ "$step_fix_round" -eq 1 ]; then
             stage_error "the tests are red — handing them back to a fresh session at $step_fix_fresh_pct % (round $step_fix_round of $step_fix_rounds)"

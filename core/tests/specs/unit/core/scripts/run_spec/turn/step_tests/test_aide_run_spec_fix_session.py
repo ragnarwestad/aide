@@ -82,11 +82,13 @@ def _claude_fix(
         'prompt="$(cat)"\n'
         f"printf '%s\\n---PROMPT---\\n' \"$prompt\" >> {shlex.quote(str(prompt_log))}\n"
         "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        "  git diff --quiet && git diff --cached --quiet && "
+        "git ls-files --error-unmatch implemented.txt >/dev/null || exit 1\n"
         f"  {second_fix}"
         "  git add -A && git commit -q -m 'the fix'\n"
         + _echo(init_event(MODEL), _call(fresh_total), _result(fix_session, 0.3, fresh_total))
         + "else\n"
-        "  printf 'work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "  printf 'work\\n' > implemented.txt\n"
         + _echo(init_event(MODEL), _call(main_total), _result(MAIN_SESSION, 0.1, main_total))
         + "fi\n"
     )
@@ -113,7 +115,7 @@ def test_a_full_claude_session_hands_red_tests_to_a_fresh_session_ac_1_ac_3_ac_4
     prompt = prompt_log.read_text()
     assert "1-description.md" in prompt and "3-solution.md" in prompt, prompt
     assert "git diff " in prompt and "git status --porcelain" in prompt, prompt
-    assert "may not be committed yet" in prompt and "Do not commit" in prompt, prompt
+    assert "The change is committed on this branch" in prompt and "Do not commit" in prompt, prompt
     assert "Do not run the whole suite" in prompt, prompt
     assert "fresh session" in log and "85 %" in log, log
     assert out["sessionId"] == MAIN_SESSION, out
