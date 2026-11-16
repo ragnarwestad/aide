@@ -23,7 +23,6 @@ Standard library only, and nothing newer than Python 3.9.
 """
 import argparse
 import html
-import importlib.util
 import json
 import re
 import subprocess
@@ -31,6 +30,8 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
+
+import news
 
 SECTION = "### YouTube channels"
 FEED = "https://www.youtube.com/feeds/videos.xml?channel_id=%s"
@@ -49,31 +50,10 @@ NS = {
 HERE = Path(__file__).resolve().parent
 
 
-def _watch_pages():
-    spec = importlib.util.spec_from_file_location("watch_pages", HERE / "watch-pages.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-watch_pages = _watch_pages()
-
-
 def channels(log_text):
     """The `(channel, channel id)` rows of the `### YouTube channels` table, in table order."""
     rows = []
-    inside = False
-    for line in log_text.splitlines():
-        if line.strip() == SECTION:
-            inside = True
-            continue
-        if not inside:
-            continue
-        if line.startswith("#") or line.strip() == "---":
-            break
-        if not line.lstrip().startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    for cells in news.section_cells(log_text, SECTION, stop_at_separator=True):
         if len(cells) >= 2 and CHANNEL_ID.fullmatch(cells[1]):
             rows.append((cells[0], cells[1]))
     return rows
@@ -108,9 +88,9 @@ def channel_report(channel, channel_id, since):
     """One channel's part of the report: its videos, or the error that kept them out."""
     feed = FEED % channel_id
     report = {"channel": channel, "channel_id": channel_id, "feed": feed}
-    body, error = watch_pages.fetch(feed)
+    body, error = news.fetch(feed)
     if body is None:
-        body, error = watch_pages.fetch(feed)
+        body, error = news.fetch(feed)
     if body is None:
         report["error"] = error
         return report

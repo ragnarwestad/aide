@@ -25,42 +25,22 @@ usage: scripts/news/fetch-sources.py [--log PATH] [--out DIR] [--since YYYY-MM-D
 Standard library only, and nothing newer than Python 3.9.
 """
 import argparse
-import importlib.util
 import json
 import re
 import sys
 from pathlib import Path
+
+import news
 
 SECTION = "### Sources"
 PAGE_SIZE = 20
 HERE = Path(__file__).resolve().parent
 
 
-def _watch_pages():
-    spec = importlib.util.spec_from_file_location("watch_pages", HERE / "watch-pages.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-watch_pages = _watch_pages()
-
-
 def sources(log_text):
     """The `(tool, address)` pairs of the `### Sources` table, in table order."""
     pairs = []
-    inside = False
-    for line in log_text.splitlines():
-        if line.strip() == SECTION:
-            inside = True
-            continue
-        if not inside:
-            continue
-        if line.startswith("#"):
-            break
-        if not line.lstrip().startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    for cells in news.section_cells(log_text, SECTION):
         for cell in cells[1:]:
             for address in re.findall(r"<([a-z]+://[^>]+)>", cell):
                 pairs.append((cells[0], address))
@@ -102,10 +82,10 @@ def file_name(address):
 def fetch_text(address, since):
     """The address's text, or (None, the reason it failed)."""
     api = releases_api(address)
-    body, error = watch_pages.fetch(api or address)
+    body, error = news.fetch(api or address)
     if body is None:
         # A large answer is sometimes cut off mid-stream; a second try usually gets it whole.
-        body, error = watch_pages.fetch(api or address)
+        body, error = news.fetch(api or address)
     if body is None:
         return None, error
     if api:
@@ -113,7 +93,7 @@ def fetch_text(address, since):
             return releases_text(body, since), None
         except (ValueError, AttributeError) as problem:
             return None, "the API did not answer with releases: %s" % problem
-    return watch_pages.page_text(body), None
+    return news.page_text(body), None
 
 
 def main(argv=None):

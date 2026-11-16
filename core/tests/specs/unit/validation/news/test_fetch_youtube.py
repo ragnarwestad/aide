@@ -14,8 +14,9 @@ CHANNEL_ID = re.compile(r"UC[A-Za-z0-9_-]{22}")
 
 
 @pytest.fixture
-def module(workspace_root):
+def module(workspace_root, monkeypatch):
     script = workspace_root / "scripts" / "news" / "fetch-youtube.py"
+    monkeypatch.syspath_prepend(str(script.parent))
     spec = importlib.util.spec_from_file_location("fetch_youtube", script)
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
@@ -73,6 +74,32 @@ def test_the_channels_are_the_rows_of_the_youtube_channels_table_in_order_ac_1(m
     ]
 
 
+def test_youtube_uses_the_importable_news_module_and_shared_cells_ac_1_ac_2(module, monkeypatch):
+    assert module.news.__file__.endswith("scripts/news/news.py")
+    monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
+        ["AI Engineer", "UCLKPca3kwwd-B59HNr-_lvA"]
+    ]))
+
+    assert module.channels("not the real table") == [
+        ("AI Engineer", "UCLKPca3kwwd-B59HNr-_lvA")
+    ]
+
+
+def test_channels_reject_malformed_rows_and_stop_at_a_separator_ac_1_ac_3_ac_4_ac_7_ac_8(module):
+    text = """### YouTube channels
+| Channel | Channel id |
+|---|---|
+| Missing id |
+| Bad | not-a-channel |
+| AI Engineer | UCLKPca3kwwd-B59HNr-_lvA |
+---
+| Outside | UCh247h68vszOMA_OWpGEa5g |
+"""
+
+    assert module.channels(text) == [("AI Engineer", "UCLKPca3kwwd-B59HNr-_lvA")]
+    assert module.channels("") == []
+
+
 def test_the_repository_s_news_log_follows_channels_each_with_a_channel_id_ac_1(module, workspace_root):
     rows = module.channels((workspace_root / "docs" / "AI_NEWS_LOG.md").read_text(encoding="utf-8"))
     assert rows
@@ -81,7 +108,7 @@ def test_the_repository_s_news_log_follows_channels_each_with_a_channel_id_ac_1(
 
 
 def test_without_log_the_videos_command_reads_the_repository_s_news_log_ac_1(module, workspace_root, tmp_path, monkeypatch):
-    monkeypatch.setattr(module.watch_pages, "fetch", lambda address: (feed(), None))
+    monkeypatch.setattr(module.news, "fetch", lambda address: (feed(), None))
     output = tmp_path / "videos.json"
     assert module.main(["videos", "--since", "2026-11-13", "--output", str(output)]) == 0
     listed = [c["channel_id"] for c in json.loads(output.read_text())["channels"]]
@@ -125,7 +152,7 @@ def write_log(tmp_path, rows):
 
 def run_videos(module, tmp_path, rows, answers, capsys, monkeypatch):
     """Run `videos` with each feed address answered from `answers`; returns (exit, report, lines)."""
-    monkeypatch.setattr(module.watch_pages, "fetch", lambda address: answers[address])
+    monkeypatch.setattr(module.news, "fetch", lambda address: answers[address])
     output = tmp_path / "videos.json"
     code = module.main(["videos", "--since", "2026-11-13", "--log", str(write_log(tmp_path, rows)),
                         "--output", str(output)])
