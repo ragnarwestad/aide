@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JOB, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, listUntil, specControls, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
@@ -280,9 +280,9 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
   test("the pick is reflected back on the very next render", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
-    const html = await (
-      await fetch(`${base}/?${OPEN_81}`, )
-    ).text();
+    // The row is drawn once the specs scan has read the spec, on its own schedule.
+    const html = await listUntil(base, (page) => specControls(page, "81-queue-and-runner").includes('name="model.analyze"'),
+      undefined, "the spec's Analyze picker");
     const group = specControls(html, "81-queue-and-runner");
     const select = group.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)?.[0] ?? "";
     expect(select).toMatch(/<option value="fable"[^>]*selected/);

@@ -830,8 +830,9 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
-The Jobs tab shows the current number of running specs in parentheses, including zero. The count updates live,
-includes specs being landed, and excludes queued specs and other kinds of jobs. On a phone it stays beside the Jobs icon.
+The Jobs tab shows running and queued specs as `Jobs (4+6)`, including zero on either side. Both counts update live.
+Specs being landed count as running; a spec counts on only one side. Other kinds of jobs are excluded. On a phone
+the counts stay beside the Jobs icon.
 
 A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
@@ -859,7 +860,7 @@ the group's creation date, its progress and the one action allowed by its curren
 menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
-it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. Each pip has the colour
+it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs or is queued, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
@@ -926,11 +927,13 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
-Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
+Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
-Waiting for its next phase. Active holds every row Done does not, except a cancelled job that is not a spec's: its
+Waiting for its next phase. Members reserved by an active group also show Waiting while they await their turn or the shared Archive; their own queued, running or failed job keeps its own state.
+Queued holds only jobs in the queue; they do not count under Waiting.
+Group members count under their own states. Active holds every row Done does not, except a cancelled job that is not a spec's: its
 row offers nothing more, while a spec's row can run its phase again. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view. A

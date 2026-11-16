@@ -2,8 +2,11 @@
 // store, which takes its `observe` on its change hook, and read from the
 // store lazily so neither has to wait for the other.
 import { createPush, type Push } from "../../push";
-import { runningSpecCount } from "../../queue/job-rules/running-specs.ts";
-import { setRunningSpecCount } from "../../render/ui/running-specs";
+import { openSpecCount } from "../../render/pages/specs-list/data-model/spec-state.ts";
+import type { SpecTarget } from "../../render/pages/specs-list/data-model/types.ts";
+import type { ExecutionGroup } from "../../queue/execution-groups";
+import { specActivityCounts } from "../../queue/job-rules/running-specs.ts";
+import { setSpecActivityCounts } from "../../render/ui/running-specs";
 import { waitingCount } from "../../push/attention.ts";
 import { setWaitingCount } from "../../render/ui/pwa.ts";
 import type { Job } from "../../queue/queue.ts";
@@ -14,13 +17,19 @@ import type { ServerOptions } from "../options.ts";
 
 export function setupPush(
   opts: ServerOptions,
-  inputs: { jobs: () => Job[]; notify: () => void; scheduleStore: ScheduleStore; served: ReadonlySet<string> },
+  inputs: { jobs: () => Job[]; notify: () => void; scheduleStore: ScheduleStore; served: ReadonlySet<string>; targets: () => SpecTarget[]; groups: () => ExecutionGroup[] },
 ): Push {
   // The one count every page loads with, every live update carries and every
   // push sends for the app's icon.
   const waiting = () => waitingCount(inputs.jobs(), (project) => inputs.served.has(project));
   setWaitingCount(waiting);
-  setRunningSpecCount(() => runningSpecCount(inputs.jobs(), (project) => inputs.served.has(project)));
+  setSpecActivityCounts(() => {
+    const jobs = inputs.jobs();
+    return {
+      ...specActivityCounts(jobs, (project) => inputs.served.has(project)),
+      openSpecs: openSpecCount(inputs.targets(), jobs, inputs.groups()),
+    };
+  });
   return createPush({
     waiting,
     jobs: inputs.jobs,
