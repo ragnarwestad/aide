@@ -67,6 +67,7 @@ for root in "${roots[@]}"; do
   # already established the work is in origin's base, while `-d` asks a
   # question about THIS checkout's possibly-stale HEAD instead.
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch" \
+     && ! preserves_group_code "$root" \
      && branch_already_landed "$root" "$branch" "$base"; then
     git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
   fi

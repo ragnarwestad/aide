@@ -337,8 +337,15 @@ resolve_status_conflict() {
   git -C "$wt" commit -q --no-edit >/dev/null 2>&1
 }
 
+# Analyze and Implement share the group's code snapshot until its Archive.
+preserves_group_code() {
+  [ "$1" = "$project_root" ] && [[ "$branch" == aide/group-* ]] && \
+    { [ "$command_name" = "analyze" ] || [ "$command_name" = "implement" ]; }
+}
+
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
+  preserves_group_code "$root" && return 0
   # A close deletes the code branch unmerged, so it has nothing to catch
   # up on there, and a conflict in it must not stop the close. Where the
   # specs live in the project, the one branch holds the folder the close

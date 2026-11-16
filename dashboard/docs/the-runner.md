@@ -67,7 +67,9 @@ Two pages sit beside this one:
 
 1. The checkouts it will touch are put onto their default branch and brought up to date, under the per-root lock.
 2. A `git worktree` is cut from each one. An ordinary spec uses `aide/<spec-folder>`; every member of a group uses
-   `aide/group-<first-member-folder>`.
+   `aide/group-<first-member-folder>`. Analyze and Implement reuse the group's code branch without merging the
+   default branch into it. The shared Archive brings it up to date; a separate specs repository stays up to date
+   throughout.
 3. The gitignored paths the project needs are symlinked into each worktree, and the dashboard's own
    `.aide/project.yaml` and a repointed `.aide/config` are copied in.
 4. The step runs there — one turn of the chosen CLI, under the step's time limit.
