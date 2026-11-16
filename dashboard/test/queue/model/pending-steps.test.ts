@@ -14,7 +14,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { queueHarness, IMPLEMENTED, statusSaying } from "../../helpers/queue-server.ts";
+import { pageUntil, queueHarness, IMPLEMENTED, statusSaying } from "../../helpers/queue-server.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -181,11 +181,12 @@ describe("POST /api/queue records the row's own choice", () => {
     // the render this test is actually about: what the row shows once
     // there is no job left to speak for it.
     await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST" });
-    const html = await (await fetch(`${base}/?${openQuery}`)).text();
-    const ticked = [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map(
-      (m) => m[1],
-    );
-    expect(ticked).toEqual(["archive"]);
+    const tickedOn = (page: string) =>
+      [...page.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map((m) => m[1]);
+    // Asked again until the ticks settle: the scan and the cancelled job
+    // each change the row on their own schedule after the press.
+    const html = await pageUntil(base, `/?${openQuery}`, (page) => tickedOn(page).join() === "archive");
+    expect(tickedOn(html)).toEqual(["archive"]);
   });
 
   test("a refused submission (an unknown step) records nothing", async () => {
