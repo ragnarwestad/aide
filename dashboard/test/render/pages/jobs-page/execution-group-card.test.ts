@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import type { QueueRowView } from "../../../../src/render/ui/job-state";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
 import { executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
@@ -259,6 +260,7 @@ test("a queued group uses its current member's queue position rather than anothe
   const first = member("1-first", "", { lead: { state: "queued", queuePosition: { n: 2, total: 2 } } as SpecGroup["lead"] });
   const second = member("2-second", "", { lead: { state: "queued", queuePosition: { n: 1, total: 2 } } as SpecGroup["lead"] });
   expect(executionGroupStateLabel(execution, [second, first], "en")).toBe(t("en", "list.stateQueuedPosition", { n: 2, total: 2 }));
+  expect(executionGroupStateLabel(execution, [second, first], "en", second.group.lead)).toBe(t("en", "list.stateQueuedPosition", { n: 2, total: 2 }));
   expect(executionGroupStateLabel({ ...execution, state: "running" }, [first], "en")).toBe(t("en", "list.groupState.running"));
   expect(executionGroupStateLabel(execution, [], "en")).toBe(t("en", "list.groupState.queued"));
 });
@@ -296,4 +298,16 @@ test("a group paused for a provider retry shows Waiting while a manual stop stay
     usageLimitWait: { until: "2026-11-17T14:30:00Z", resetKnown: true } } as SpecGroup["lead"] });
   expect(executionGroupStateLabel(execution, [first], "en")).toBe(t("en", "list.state.waiting"));
   expect(executionGroupStateLabel({ ...execution, stoppedByUser: true }, [first], "en")).toBe(t("en", "list.groupState.stopped"));
+});
+
+test("a queued shared Archive sets the group label and current member pip before completion", () => {
+  const execution = { ...group("archiving"), currentMember: "1-first", completedMembers: ["1-first", "2-second"] };
+  const job = { state: "queued", steps: ["archive"], stepIndex: 0, queuePosition: { n: 1, total: 2 } } as QueueRowView;
+  const first = member("1-first", "", { lead: job });
+  expect(executionGroupStateLabel(execution, [first], "en", job)).toBe(t("en", "list.stateQueuedPosition", { n: 1, total: 2 }));
+  expect(executionGroupStateLabel(execution, [], "en", { ...job, queuePosition: undefined })).toBe(t("en", "list.groupState.queued"));
+  expect(memberPipKind(first.group, true, job)).toBe("queued");
+  expect(memberPipKind(first.group, true, { ...job, state: "running" })).toBe("now");
+  expect(executionGroupStateLabel(execution, [first], "en", { ...job, state: "running" })).toBe(t("en", "list.groupState.archiving"));
+  expect(executionGroupStateLabel(execution, [first], "en", { ...job, landing: true })).toBe(t("en", "list.groupState.archiving"));
 });
