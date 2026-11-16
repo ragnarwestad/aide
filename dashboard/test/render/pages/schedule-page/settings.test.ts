@@ -51,13 +51,13 @@ describe("the entry's page", () => {
 });
 
 describe("the Settings tab", () => {
-  test("shows every field, the Enabled box, Delete and Edit, and no Run now", () => {
+  test("shows every field, Enabled as a read-only value, Delete and Edit, and no Run now (AC-1)", () => {
     const doc = page();
     expect(shown(doc)).toMatchObject({
       Name: "nightly-report", Cron: "0 3 * * *", "Prompt file": "docs/nightly.md", Model: "codex-fast", Notify: "Every run",
     });
-    const enabled = [...doc.querySelectorAll("table.facts tr")].find((tr) => tr.children[0]!.textContent === "Enabled")!;
-    expect(enabled.querySelector("input.scheduleenabled")?.getAttribute("data-post-to")).toBe(`${BASE}/enabled`);
+    expect(shown(doc).Enabled).toBe("Yes");
+    expect(doc.querySelector("input.scheduleenabled")).toBeNull();
     expect(doc.querySelector("form.schedulerun")).toBeNull();
     const ask = doc.querySelector("button[data-ask]")!.getAttribute("data-ask")!;
     const ok = doc.querySelector(`dialog[id="${ask}"] form[action="${BASE}/delete"]`);
@@ -84,12 +84,13 @@ describe("the Settings tab", () => {
     expect(shown(page({ entry: own, defaultModels: {}, modelChoices: [] })).Model).toBe("–");
   });
 
-  test("Edit draws the entry's form, saving to the entry and coming back here, with Cancel back to the tab", () => {
+  test("Edit starts Enabled at the saved value and Cancel returns without posting the form (AC-2, AC-4)", () => {
     const doc = page({ editing: true });
     const form = doc.querySelector("form.scheduleform")!;
     expect(form.getAttribute("action")).toBe(BASE);
     expect((form.querySelector('input[name="name"]') as HTMLInputElement).value).toBe("nightly-report");
     expect((form.querySelector('input[name="cron"]') as HTMLInputElement).value).toBe("0 3 * * *");
+    expect((form.querySelector('select[name="enabled"]') as HTMLSelectElement).value).toBe("yes");
     expect((form.querySelector('input[name="back"]') as HTMLInputElement).value).toBe(scheduleSettingsPath("aide", "nightly-report"));
     const cancel = [...form.querySelectorAll("a")].find((a) => a.textContent === "Cancel")!;
     expect(cancel.getAttribute("href")).toBe(scheduleSettingsPath("aide", "nightly-report"));
@@ -118,7 +119,7 @@ describe("the Save of the entry's form", () => {
 });
 
 describe("New", () => {
-  test("has the same fields a user fills in as the Settings tab's Edit", () => {
+  test("Edit adds Enabled to the fields shared with New", () => {
     const html = renderScheduleNewPage(NAV, "2026-09-30T00:00:00Z", {
       project: "aide", values: { name: "", cron: "0 7 * * *", prompt: "" }, backHref: "/projects/aide?tab=schedule",
       modelChoices: MODELS, defaultModels: { default: "sonnet" },
@@ -127,6 +128,6 @@ describe("New", () => {
     window.document.body.innerHTML = html;
     const names = fieldNames(window.document as unknown as Document);
     expect(names).toEqual(["chrome", "cron", "model", "name", "notify", "prompt", "sandbox"]);
-    expect(fieldNames(page({ editing: true }))).toEqual(names);
+    expect(fieldNames(page({ editing: true }))).toEqual([...names, "enabled"].sort());
   });
 });

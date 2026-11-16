@@ -316,7 +316,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
       if ((opts.modelChoices ?? []).length) {
         for (const part of SIDE_PARTS_OF[p.step] ?? []) {
           const rests = part === PLAN_REVIEW ? analyzeRests(g, opts) : undefined;
-          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRunOf(p, part)?.modelId, rests);
+          const sideRun = sideRunOf(p, part);
+          const recordedProvider = part === PLAN_REVIEW
+            ? latest?.stepProviders?.[part]
+            : sideRun?.provider?.key;
+          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRun?.modelId, recordedProvider, rests);
           lines.push(...sideLines(g, p, opts, part, pickers));
         }
       }
@@ -390,7 +394,7 @@ function phaseChoiceTable(
     );
     for (const part of (pickerOpts.modelChoices ?? []).length ? SIDE_PARTS_OF[step] ?? [] : []) {
       const rests = part === PLAN_REVIEW ? analyzeRests(row, pickerOpts) : undefined;
-      const pickers = sidePickers(row, pickerOpts, part, false, undefined, rests, formId);
+      const pickers = sidePickers(row, pickerOpts, part, false, undefined, undefined, rests, formId);
       rows.push(
         `<tr class="subrow" data-side="${part}"><td class="phasecell">${esc(t(lang, `settings.side.${part}`))}</td>` +
         `<td class="modelcell"><span class="row">${pickers}</span></td></tr>`,

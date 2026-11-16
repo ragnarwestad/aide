@@ -30,9 +30,10 @@ function providerOfResult(
   step: WorkflowStep,
   tool: StepResult["tool"],
   defaults: QueueDefaults,
+  part: string = step,
 ): StepResult["provider"] {
   if (tool === "none") return undefined;
-  const key = resolveStepProvider(job, step, defaults);
+  const key = job.provider?.[part] ?? (part === step ? resolveStepProvider(job, step, defaults) : undefined);
   return key ? { key, name: defaults.providers?.[key]?.name ?? key } : undefined;
 }
 
@@ -56,7 +57,10 @@ export function stepResultEntry(
     // rather than a copy of it.
     tool,
     provider: providerOfResult(job, step, tool, defaults),
-    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), review: sideRun(outcome.review), verify: sideRun(outcome.verify), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context),
+    review: sideRun(outcome.review, providerOfResult(job, step, tool, defaults, "review")),
+    verify: sideRun(outcome.verify, providerOfResult(job, step, tool, defaults, "verify")),
+    providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
     costMeasured: outcome.costMeasured !== false,
     terminalReason: outcome.terminalReason ?? "no reason recorded",
     subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),

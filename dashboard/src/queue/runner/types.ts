@@ -11,6 +11,11 @@ export interface SpawnResult {
   pgid: number;
 }
 
+export interface PreparedSpawn {
+  providers: Record<string, string>;
+  start: () => SpawnResult;
+}
+
 // The session id and the stream file are decided HERE and handed down,
 // not learned from the result afterwards: by the time a result exists
 // the step is over, and there is nothing left to watch.
@@ -20,7 +25,7 @@ export type Spawner = (
   resultFile: string,
   sessionId: string,
   streamFile: string,
-) => SpawnResult;
+) => PreparedSpawn;
 
 export interface StepOutcome {
   ok: boolean;
