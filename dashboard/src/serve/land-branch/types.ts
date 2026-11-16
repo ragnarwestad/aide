@@ -83,6 +83,8 @@ export interface LandContext {
  *  else — which repos, the retries, the per-repo report — is the same
  *  for every step, and is `landBranch`'s. */
 export interface Landing {
+  /** Progress boundaries used by a standalone Land row. */
+  progress?: (stage: "tests" | "push" | "delete") => void;
   /** Beyond the standard `branchUrl`/`branchUrls`/`error` reset. A
    *  create step renames the job off its provisional key; an archive
    *  step has nothing to add. */

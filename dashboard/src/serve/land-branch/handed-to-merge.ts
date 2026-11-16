@@ -68,7 +68,7 @@ export function rememberMergedUnderRoots(
 export function handedToMerge(
   ctx: LandContext,
   job: Job,
-  what: Pick<Landing, "step">,
+  what: Pick<Landing, "step" | "progress">,
   root: string,
   branch: string,
   codeRoots: Pick<Set<string>, "has">,
@@ -96,6 +96,7 @@ export function handedToMerge(
     ? (work: string) => ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
     : undefined;
   const hooks: MergeHooks = {
+    progress: what.progress,
     // A code root only: the translation files are the project's code.
     mergeArgs: codeRoots.has(root) && ctx.translationMergeArgs ? (work) => ctx.translationMergeArgs!(root, work) : undefined,
     beforeCheckoutMoves: (info) => {

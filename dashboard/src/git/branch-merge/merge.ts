@@ -219,6 +219,7 @@ export async function mergeBranchIntoDefault(
         if ("refused" in finalized) return finalized.refused;
         assignedSpecFolder = finalized.specFolder;
       }
+      hooks?.progress?.("tests");
       // The tests run HERE, once per attempt, on what main is about to
       // become — not in every step that touched the branch, and never
       // after the push. Red: the local merge is dropped and origin never
@@ -258,6 +259,7 @@ export async function mergeBranchIntoDefault(
           }
         }
       }
+      hooks?.progress?.("push");
       return null;
     };
     // 6. `isMerged()` only trusts what reached origin, so a merge this
@@ -322,6 +324,8 @@ export async function mergeBranchIntoDefault(
     if (behind !== false) {
       console.error(`landing: ${root} could not fast-forward to origin/${base} after the merge reached origin — ${behind}`);
     }
+
+    hooks?.progress?.("delete");
 
     // 7. A merged branch left on origin is what made the
     //    dependency guard refuse a fully-merged spec three times

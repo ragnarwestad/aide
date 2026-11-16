@@ -4,6 +4,9 @@
  *  page's watcher rescans on it — so whatever a reader must find already
  *  true at that moment is the caller's to settle in here. */
 export interface MergeHooks {
+  /** A standalone landing job advances its visible tasks at the three
+   * boundaries inside the shared merge. Other landing callers omit it. */
+  progress?: (stage: "tests" | "push" | "delete") => void;
   beforeCheckoutMoves?: (info: { assignedSpecFolder?: string }) => void | Promise<void>;
   /** Arguments put before `merge` when the branch does not fast-forward,
    *  read from the merge worktree itself: the project's translation files

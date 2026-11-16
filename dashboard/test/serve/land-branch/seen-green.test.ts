@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../src/serve/land-branch/test-gate.ts";
+import { greenResultsForLand } from "../../../src/serve/land-branch/seen-green.ts";
 import type { StepResult } from "../../../src/queue/queue.ts";
 
 const LIB = join(import.meta.dir, "..", "..", "..", "..", "core", "scripts", "_aide-spec-lib.sh");
@@ -82,6 +83,18 @@ const job = (testedGreen?: StepResult["testedGreen"]) => ({
 });
 
 describe("the landing skips a run a step has already made", () => {
+  test("Land reads green results only from completed jobs in its project (AC-7)", () => {
+    const green = { step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", testedGreen: { tree: "a".repeat(40), commands: ["true"] } } as StepResult;
+    const land = { id: "land", project: "aide", specFolder: "land", results: [] };
+    const jobs = [
+      { id: "done", project: "aide", state: "done", results: [green] },
+      { id: "running", project: "aide", state: "running", results: [{ ...green, testedGreen: { tree: "b".repeat(40), commands: ["true"] } }] },
+      { id: "other", project: "skjera", state: "done", results: [{ ...green, testedGreen: { tree: "c".repeat(40), commands: ["true"] } }] },
+    ];
+
+    expect(greenResultsForLand(land as never, jobs as never).results).toEqual([green]);
+  });
+
   test("the same commands green on the same tree: nothing is run, and the log says why", async () => {
     const root = project();
     const { ran, log } = scripts();

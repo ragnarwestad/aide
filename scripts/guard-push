@@ -109,7 +109,7 @@ def pushes_only_non_default(command, cwd):
     if head.returncode != 0:
         return False
     default = head.stdout.strip().removeprefix("origin/")
-    destinations = [ref.rsplit(":", 1)[-1].removeprefix("refs/heads/") for ref in refs]
+    destinations = [ref.lstrip("+").rsplit(":", 1)[-1].removeprefix("refs/heads/") for ref in refs]
     return bool(default) and all(destination != default for destination in destinations)
 
 

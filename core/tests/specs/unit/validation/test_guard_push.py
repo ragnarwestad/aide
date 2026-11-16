@@ -91,6 +91,7 @@ def test_an_explicit_push_to_a_non_default_branch_passes_during_a_landing_ac_11(
     subprocess.run(["git", "-C", str(aide), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], check=True)
     assert guard(tmp_path, "git push origin topic", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 0
     assert guard(tmp_path, "git push origin topic:main", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
+    assert guard(tmp_path, "git push origin +main", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
 
 
 def test_the_block_names_only_the_landings_that_move_the_pushed_repo(tmp_path):

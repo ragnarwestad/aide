@@ -34,6 +34,18 @@ async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promis
  *  caller that has none to give, and then nothing is skipped. */
 export type GatedJob = Pick<Job, "project" | "specFolder"> & { results?: Job["results"]; id?: string; streamFile?: string; stepStartedAt?: string };
 
+/** A standalone Land job has no earlier model step of its own. Give its
+ * gate only green records from completed jobs in the same project. */
+export function greenResultsForLand(job: GatedJob, jobs: readonly Job[]): GatedJob {
+  return {
+    ...job,
+    results: jobs
+      .filter((candidate) => candidate.id !== job.id && candidate.project === job.project && candidate.state === "done")
+      .flatMap((candidate) => candidate.results ?? [])
+      .filter((result) => result.testedGreen !== undefined),
+  };
+}
+
 /** The newest green the job's own steps reported: the step that just
  *  ran is the one whose result the landing is merging. */
 function latestGreen(job: GatedJob): { tree: string; commands: string[] } | undefined {
