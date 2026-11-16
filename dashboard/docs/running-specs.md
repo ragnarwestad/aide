@@ -830,8 +830,9 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
-The Jobs tab shows the current number of running specs in parentheses, including zero. The count updates live,
-includes specs being landed, and excludes queued specs and other kinds of jobs. On a phone it stays beside the Jobs icon.
+The Jobs tab shows running and queued specs as `Jobs (4+6)`, including zero on either side. Both counts update live.
+Specs being landed count as running; a spec counts on only one side. Other kinds of jobs are excluded. On a phone
+the counts stay beside the Jobs icon.
 
 A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.

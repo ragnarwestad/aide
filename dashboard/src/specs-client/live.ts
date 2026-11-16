@@ -95,18 +95,21 @@ export function onChanged(): void {
 function announceCounts(e: Event): void {
   let waiting: unknown;
   let running: unknown;
+  let queued: unknown;
   try {
     const counts = JSON.parse(String((e as MessageEvent).data));
     waiting = counts.waiting;
     running = counts.running;
+    queued = counts.queued;
   } catch {
     return;
   }
   if (typeof waiting === "number" && Number.isInteger(waiting) && waiting >= 0) {
     document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
   }
-  if (typeof running === "number" && Number.isInteger(running) && running >= 0) {
-    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${running})`;
+  if (typeof running === "number" && Number.isInteger(running) && running >= 0 &&
+      typeof queued === "number" && Number.isInteger(queued) && queued >= 0) {
+    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${running}+${queued})`;
   }
 }
 
