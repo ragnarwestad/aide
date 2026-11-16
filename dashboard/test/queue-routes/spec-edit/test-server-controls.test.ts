@@ -80,6 +80,24 @@ describe("the board start/stop routes", () => {
     expect(body.spec).toBe(`aide/${folder}`);
   });
 
+  test("an active group's member can open its already running shared-branch test server", async () => {
+    const { base, server } = harness.start({
+      executionGroups: [{ id: "release", project: "aide", name: "Release", members: [folder, "82-next"],
+        branch: "aide/group-release", state: "running", currentMember: "82-next", completedMembers: [folder], jobs: [] }],
+      alsoSpecs: ["82-next"],
+      extra: { testServersIsAlive: () => true },
+    });
+    server.testServersStore().set("aide", folder, {
+      branch: "aide/group-release", commit: "abc1234deadbeef", port: 8801,
+      wrapperPid: 1, pid: 4242, url: "http://127.0.0.1:8801/?token=shared",
+      workDir: "/tmp/aide-shared-test-server", logPath: "/tmp/aide-shared-test-server/board.log",
+      status: "running", startedAt: "2026-11-16T00:00:00.000Z",
+    });
+    const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { redirect: "manual" });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("http://127.0.0.1:8801/?token=shared");
+  });
+
   test("the round being unavailable on this host refuses cleanly", async () => {
     const { base } = start({ testServersAvailable: false });
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
