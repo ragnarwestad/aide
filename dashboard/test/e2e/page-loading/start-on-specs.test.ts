@@ -40,7 +40,7 @@ describe("a board with nothing running", () => {
   test("a click on Jobs and a reload in a tab that has started show the Jobs tab", async () => {
     const page = await newTab();
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
-    await page.getByRole("link", { name: /^Jobs \(\d+\)$/, exact: true }).click();
+    await page.getByRole("link", { name: /^Jobs \(\d+\+\d+\)$/, exact: true }).click();
     await page.getByText("Nothing is running.", { exact: true }).waitFor();
     expect(new URL(page.url()).pathname).toBe("/");
     await withBrowser(page.reload(), "page.reload()");

@@ -1,9 +1,11 @@
-let read: (() => number) | undefined;
+import type { SpecActivityCounts } from "../../../queue/job-rules/running-specs.ts";
 
-export function setRunningSpecCount(source: (() => number) | undefined): void {
+let read: (() => SpecActivityCounts) | undefined;
+
+export function setSpecActivityCounts(source: (() => SpecActivityCounts) | undefined): void {
   read = source;
 }
 
-export function readRunningSpecCount(): number {
-  return read?.() ?? 0;
+export function readSpecActivityCounts(): SpecActivityCounts {
+  return read?.() ?? { running: 0, queued: 0 };
 }
