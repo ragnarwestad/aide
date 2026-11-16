@@ -116,3 +116,14 @@ test("only a current automatic provider retry makes a group wait", () => {
     { usageLimitWait: { until: "invalid", resetKnown: true } }])
     expect(groupProviderLimitWait(group, [{ specFolder: "805-first", lead: { ...lead, ...patch } }])).toBeUndefined();
 });
+
+test("a group's queued archive exposes its own hold without relying on a member's job", () => {
+  const archive: QueueRowView = {
+    ...failed, id: "archive-group", state: "queued", steps: ["archive"],
+    errorReason: "held-back", error: { key: "runner.archiveRunning" },
+  };
+  expect(getGroupStopMessage({ ...group, state: "archiving" }, [], "en", archive)?.notice).toEqual({
+    variant: "info",
+    text: formatMessage("en", { key: "message.lead", values: { lead: "Archive" }, inner: archive.error }),
+  });
+});

@@ -166,7 +166,7 @@ export function executionGroupCard(
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     // What the group waits for, outside the body the fold hides.
     executionGroupWaitRows(group, states, lang as Language) +
-    executionGroupStopRows(group, members.map((member) => member.group), lang as Language) +
+    executionGroupStopRows(group, members.map((member) => member.group), lang as Language, archiveJob) +
     `</tbody>`;
   const archiveBase = members[0]?.group;
   const archiveModel = archiveChoice?.stepModels?.archive ?? (typeof archiveChoice?.model === "string" ? archiveChoice.model : undefined) ?? group.archiveModel;

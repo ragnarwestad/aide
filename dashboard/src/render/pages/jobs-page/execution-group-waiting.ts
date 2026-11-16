@@ -1,5 +1,6 @@
 // Messages on a group's card: its waits for Archive and the reason it stopped.
 
+import type { QueueRowView } from "../../ui/job-state";
 import { executionGroupAction, type ExecutionGroup, type ExecutionGroupMemberState } from "../../../queue/execution-groups";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { rowMessage, stepLabel, type MessageVariant } from "../../ui/components";
@@ -87,8 +88,9 @@ export function executionGroupStopRows(
   group: ExecutionGroup,
   members: readonly GroupStopMember[],
   lang: Language,
+  archiveJob?: QueueRowView,
 ): string {
-  const stopped = getGroupStopMessage(group, members, lang);
+  const stopped = getGroupStopMessage(group, members, lang, archiveJob);
   if (!stopped) return "";
   const { specFolder, notice } = stopped;
   const name = specFolder ? `${group.project}:${specNumber(specFolder)}` : undefined;
