@@ -16,6 +16,10 @@ table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.specgap, .
 /* What a group waiting for Archive says stands on the card's own ground, as
    the two lines above it do, not on a spec's card of its own. */
 table.speclist.groupcard > tbody[data-group-head] > tr.specnotice > td:nth-child(n) { border: 0; background: none; }
+/* The shared Archive line belongs to the group, without a spec card's side edges. */
+table.speclist.groupcard > tbody[data-group-members] > tr[data-group-archive],
+table.speclist.groupcard > tbody[data-group-members] > tr[data-group-archive] > td:nth-child(n) {
+  border-left: 0; border-right: 0; }
 /* The fold is centred across both header lines; the title reaches left of an ordinary job. */
 table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
 .groupheadline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
