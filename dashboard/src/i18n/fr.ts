@@ -89,6 +89,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.state.reopened": "Rouverte",
   "list.state.analyzed": "Analysée",
   "list.state.implemented": "Implémentée",
+  "list.state.queued": "En file d’attente",
   "list.state.waiting": "En attente",
   "list.state.stopped": "Arrêtées",
   "list.state.failed": "Échouées",

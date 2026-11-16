@@ -76,8 +76,10 @@ file. A step that hits its own time limit is `stopped`, not `failed` ([A job's s
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
-a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
-phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
+a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group
+made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
+every member's own row; the rows show those choices, and Start uses them. A group made on Jobs uses the choices on
+each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
@@ -137,6 +139,8 @@ queue state and that every dependency inside the group comes earlier in the exec
 member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
+A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
+A manual stop remains Stopped.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
 the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
@@ -927,11 +931,13 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
-Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
+Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
-Waiting for its next phase. Active holds every row Done does not, except a cancelled job that is not a spec's: its
+Waiting for its next phase. Members reserved by an active group also show Waiting while they await their turn or the shared Archive; their own queued, running or failed job keeps its own state.
+Queued holds only jobs in the queue; they do not count under Waiting.
+Group members count under their own states. Active holds every row Done does not, except a cancelled job that is not a spec's: its
 row offers nothing more, while a spec's row can run its phase again. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view. A
