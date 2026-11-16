@@ -43,6 +43,7 @@ import { resolveInstallCmd } from "../../project/discover";
 import { runScript } from "../process";
 import { createRootLock, SPEC_CACHE_POLL_MS } from "../serve-helpers";
 import type { ServerState } from "../state.ts";
+import { firstSweepMark } from "../schedules/first-sweep.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import { cleanupDue, enqueueNightlyCleanup } from "../process-cleanup/schedule.ts";
 
@@ -126,6 +127,11 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   // default-branch checkout's stale copy.
   const branchFileSteps = new BranchFileStepsChecker({ run: gitRun, ttlMs: specCacheTtlMs });
 
+  // Kept per server, not per module: `bun test` runs many boards in one process.
+  // Once set, open pages are told, so a Jobs list drawn before it drops the specs
+  // that turned out to have no work.
+  const specsMark = firstSweepMark(notifyQueueChanged);
+
   const scheduleCtx: ScheduleContext = {
     projectRoot: opts.projectRoot,
     machineryProjectDir,
@@ -157,6 +163,8 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     codeLanding: (project) => resolveCodeLanding(machineryProjectDir(project)),
     ghRun: opts.ghRun ?? runGh,
     pullRequests: state.pullRequests,
+    specsScanned: specsMark.scanned,
+    markSpecsScanned: specsMark.mark,
   };
   /** Whether a branch has been built by its host is asked about on its own
    *  schedule, not with the spec caches: the answer changes within
@@ -290,6 +298,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
     warmSpec, rereadSpec, rereadProject, forgetSpec, specProgress, refreshSpecCaches, tickRunner,
+    specsScanned: specsMark.scanned, whenSpecsScanned: specsMark.whenScanned,
     timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer, usageTimer],
   };
 }

@@ -7,7 +7,7 @@ import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
 import { lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../queue/execution-groups";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
 import { executionGroupForAction } from "./execution-group-action.ts";
-import { continueAfterEdit } from "./group-continue.ts";
+import { continueOnceSpecsScanned } from "./group-continue.ts";
 import type { RoutesContext } from "..";
 
 const values = (value: unknown): string[] =>
@@ -135,7 +135,7 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
   if ("error" in outcome) return json({ error: outcome.error }, 409);
   await ctx.rereadProject(project);
   const done = (folder: string) => ctx.targets().find((t) => t.project === project && t.specFolder === folder)?.done ?? [];
-  if (continueAfterEdit(ctx.queue, group.id, group.state, done)) await ctx.tickRunner();
+  await continueOnceSpecsScanned(ctx, group.id, group.state, done);
   ctx.notifyQueueChanged();
   return json({ ok: true, group: outcome.group });
 }

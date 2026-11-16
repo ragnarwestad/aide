@@ -25,6 +25,10 @@ export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
  *  against the transition table. */
 const PHASE_STEPS = new Set(workflowArc().map((step) => step.name));
 
+/** Start on a group before the board's first specs sweep: what each member has
+ *  done is not known yet, and an unread member reads as having done nothing. */
+const SPECS_NOT_READ = "The board is still reading the specs: press Start again in a moment.";
+
 /** A press on a grouped spec's own row runs as its group's job: the card
  *  follows it, it waits while the group already has a job, and it never
  *  archives the spec alone, since the group lands its shared branch once.
@@ -109,6 +113,10 @@ export async function handleJobActionRoutes(
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
     if (action === "start") {
+      if (ctx.specsScanned?.() === false) {
+        logRefusal("group start", `${project}/${name}`, SPECS_NOT_READ);
+        return json({ error: SPECS_NOT_READ }, 409);
+      }
       const targets = ctx.withFreshness(ctx.targets());
       const activeGroup = { ...execution, members: members.map((member) => member.specFolder) };
       const checked = members.length === 1 ? orderGroupMembers(activeGroup.members, members) : validateExecutionGroupEdit({

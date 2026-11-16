@@ -23,12 +23,13 @@ import { scheduleRunPath } from "../render";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
-import { specAcceptanceNotRequired, specFolders, type CodeLanding } from "../project/discover";
+import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
 import { groupBranchForJob } from "../queue/execution-groups";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, launchProviders, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
-import { enqueueRequest, followOnRequest, withRowPicks } from "../queue/request/index.ts";
+import { enqueueRequest, followOnRequest } from "../queue/request/index.ts";
+import { moveGroupOn } from "../queue/execution-groups/move-on.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./land-branch/policy/index.ts";
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
@@ -87,6 +88,8 @@ export interface RunnerSetupContext {
    *  file steps on its branch) due for a fresh read — see
    *  `forgetSpecCachesFor`. */
   forgetSpecCaches: (dir: string, specFolder: string) => void;
+  /** Runs `next` once the board's first specs sweep has finished; absent, at once. */
+  whenSpecsScanned?: (next: () => void) => void;
   /** Reads those answers again once the step's own result is written,
    *  and tells the page — for a step with no landing to do it. */
   rereadSpecCaches: (dir: string, specFolder: string) => void;
@@ -361,15 +364,10 @@ export function stepDoneHandler(
     }
     const completedGroupMember = outcome.ok && outcome.terminalReason === "completed" &&
       (step === "implement" || (step !== undefined && step !== "archive" && step === job.steps?.filter((phase) => phase !== "archive").at(-1)));
-    if (completedGroupMember) {
-      const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
-      if (group && step === "implement") ctx.store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
-      const hasNext = group?.state === "stopped" ? false : queueNextGroupMember(job);
-      if (!hasNext && group && group.state !== "stopped") {
-        if (step === "implement") ctx.store.executionGroups.waitForAcceptance(group.id);
-        else ctx.store.executionGroups.stop(group.id);
-      }
-    }
+    if (completedGroupMember) moveGroupOn({
+      store: ctx.store, job, step, specsRoot: ctx.machinerySpecsRoot?.(job.project),
+      whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal,
+    });
     if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
         if (settled && (settled.state === "cancelled" || settled.state === "interrupted"))
@@ -378,24 +376,6 @@ export function stepDoneHandler(
       });
     return landing;
   };
-  function queueNextGroupMember(job: Job): boolean { if (!ctx.machinerySpecsRoot) return false;
-    const root = ctx.machinerySpecsRoot(job.project);
-    if (!root) return false;
-    const current = specFolders(root, false).find((spec) => spec.folder === job.specFolder);
-    if (!current?.group) return false;
-    const next = specFolders(root, false)
-      .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
-      .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
-    if (!next) return false;
-    const steps = job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
-    const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
-    const request = group?.sharedChoices
-      ? followOnRequest(job.project, next.folder, steps, job)
-      : withRowPicks({ project: job.project, specFolder: next.folder, steps, executionGroupId: job.executionGroupId }, ctx.store);
-    const made = enqueueRequest(ctx.store, request, "automatic");
-    if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
-    return made.ok; }
-
   /** Whether another job for the spec already has an analyze that ended
    *  `short-analysis-over-limit`: the analyze after it was not offered a short
    *  analysis and wrote one anyway, and another round would loop. */

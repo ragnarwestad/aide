@@ -248,7 +248,7 @@ export function createServer(opts: ServerOptions) {
     startDeploy: land.deployJob.start, testServerStore,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
-    forgetSpecCaches: schedules.forgetSpec,
+    forgetSpecCaches: schedules.forgetSpec, whenSpecsScanned: schedules.whenSpecsScanned,
     // A macrotask, not now: the step's own result is written right
     // after this is asked for, and a read stamped before that write
     // would never count as having seen the step.
@@ -322,7 +322,7 @@ export function createServer(opts: ServerOptions) {
     scheduleStore,
     forgetSpec: schedules.forgetSpec, specProgress: schedules.specProgress,
     rereadSpec: opts.rereadSpec ?? schedules.rereadSpec,
-    rereadProject: schedules.rereadProject,
+    rereadProject: schedules.rereadProject, specsScanned: schedules.specsScanned, whenSpecsScanned: schedules.whenSpecsScanned,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,

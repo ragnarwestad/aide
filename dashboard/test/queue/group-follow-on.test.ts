@@ -241,3 +241,56 @@ test("a cancelled Archive landing leaves the group stopped", async () => {
   await Promise.resolve();
   expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
 });
+
+/** A handler whose board's first specs sweep the test finishes by hand. */
+function handlerAwaitingSweep(scanned: boolean) {
+  const waiting: (() => void)[] = [];
+  const handle = stepDoneHandler({
+    store,
+    machinerySpecsRoot: () => join(root, "specs"),
+    specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d,
+    forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landArchivedSpec: async () => {}, landStepBranch: async () => {},
+    whenSpecsScanned: (next: () => void) => { if (scanned) next(); else waiting.push(next); },
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  return { handle, finishSweep: () => { for (const next of waiting.splice(0)) next(); } };
+}
+
+test("before the first specs sweep, the next member is queued only once the sweep has finished (AC-2)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.start(group.id);
+  const { handle, finishSweep } = handlerAwaitingSweep(false);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["analyze", "implement"] } as unknown as Job,
+    "implement", { ok: true, terminalReason: "completed" });
+  expect(store.list()).toHaveLength(0);
+  expect(store.executionGroups.get(group.id)?.completedMembers).toEqual(["1-first"]);
+  // The member's job has ended meanwhile, which leaves the group idle.
+  store.executionGroups.update(group.id, { state: "stopped" });
+  finishSweep();
+  expect(store.list().map((job) => [job.specFolder, job.executionGroupId])).toEqual([["2-next", group.id]]);
+  expect(store.executionGroups.get(group.id)?.state).toBe("queued");
+});
+
+test("after the first specs sweep, the next member is queued at once on the finished job's steps (AC-5)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.start(group.id);
+  const { handle } = handlerAwaitingSweep(true);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["analyze", "implement"] } as unknown as Job,
+    "implement", { ok: true, terminalReason: "completed" });
+  expect(store.list().map((job) => [job.specFolder, job.steps])).toEqual([["2-next", ["analyze", "implement"]]]);
+});
+
+test("before the first specs sweep, a last member's Implement leaves the group waiting for Archive once it has finished (AC-2)", async () => {
+  member("1-first", 1);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first"], branch: "aide/group-1-first" });
+  store.executionGroups.start(group.id);
+  const { handle, finishSweep } = handlerAwaitingSweep(false);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id } as Job, "implement", { ok: true, terminalReason: "completed" });
+  store.executionGroups.update(group.id, { state: "stopped" });
+  finishSweep();
+  expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+});

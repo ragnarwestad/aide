@@ -35,9 +35,10 @@ export interface JobLike {
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string };
 
-/** A standalone Jobs card needs a job or a record of work beyond creating the spec. */
-export function specHasWork(g: SpecGroup): boolean {
-  return !!g.lead || !!g.archive || g.done.some((step) => step !== "create") ||
+/** A standalone Jobs card needs a job or a record of work beyond creating the spec.
+ *  Before the board's first specs sweep has read the specs, nothing says a spec has none. */
+export function specHasWork(g: SpecGroup, specsScanned = true): boolean {
+  return !specsScanned || !!g.lead || !!g.archive || g.done.some((step) => step !== "create") ||
     g.phases.some((phase) => phase.step !== "create" && !!(phase.history.stopped || phase.history.historyDone));
 }
 

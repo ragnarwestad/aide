@@ -84,6 +84,11 @@ member uses the branch named for the group's first member. Stop ends the current
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
 
+What a member has done is known only once the board has read every spec after it starts, which takes a few seconds
+after each start or Deploy. Until then Start on a group is refused with "The board is still reading the specs: press
+Start again in a moment.", and a group moving on to its next member, after a member's Implement or after an edit,
+waits and moves on once the specs are read. While it waits, the group's card reads stopped.
+
 A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
 
 - It is refused while the group already has a job queued or running.
@@ -840,6 +845,8 @@ the counts stay beside the Jobs icon.
 
 A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
+In the seconds after the board starts, before it has read every spec, Jobs shows every active spec; the ones with
+no work leave once the specs are read.
 Prepared group cards and their members remain on Jobs so the group can be started there.
 
 The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and

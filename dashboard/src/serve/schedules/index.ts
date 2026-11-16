@@ -113,6 +113,10 @@ export interface ScheduleContext {
   codeLanding?: (project: string) => CodeLanding;
   ghRun?: GhRunner;
   pullRequests?: Map<string, PullRequestAnswer>;
+  /** Whether a sweep has read every listed spec since the board started
+   *  (`first-sweep.ts`), and what sets it. Absent, a sweep sets nothing. */
+  specsScanned?: () => boolean;
+  markSpecsScanned?: () => void;
 }
 
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
@@ -251,6 +255,14 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
   if (ctx.getWarming()) return;
   ctx.setWarming(true);
   try {
+    // Until the first sweep has read the specs, the board's own checkouts are
+    // asked for first: the list names each spec by the path it is read from,
+    // and a project without its checkout is listed from another root.
+    const firstSweep = !!ctx.markSpecsScanned && !ctx.specsScanned?.();
+    if (firstSweep) {
+      await Promise.all([...ctx.allowed].map((project) => ctx.ensureCheckout(project)));
+      ctx.invalidateScan();
+    }
     const live = ctx.targets();
     const scan = ctx.readScan();
     const archivedKeys = scan?.archived ?? [];
@@ -297,6 +309,13 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // project whose origin is unreachable costs one complaint, once.
       ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
     ]);
+    if (firstSweep) {
+      // "Read" is asked: each read above catches its own error. A list that
+      // changed meanwhile leaves the mark to the next sweep.
+      ctx.invalidateScan();
+      const read = new Set(live.map((t) => t.dir));
+      if (ctx.targets().every((t) => !t.dir || read.has(t.dir))) ctx.markSpecsScanned!();
+    }
     const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
     const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
     // Only a root whose answer MOVED tells anyone, and only
