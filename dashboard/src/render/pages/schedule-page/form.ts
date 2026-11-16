@@ -16,7 +16,7 @@ export interface ScheduleFormOptions {
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
+  entry?: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false; enabled?: boolean };
   action: string;
   /** Every allowed project: draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -120,7 +120,8 @@ function notifyField(opts: ScheduleFormOptions, lang: Language): string {
   const options = NOTIFY_WORDS
     .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
     .join("");
-  return `<div class="schedulenotify">${field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`)}</div>`;
+  const control = field(t(lang, "schedule.notify"), `<select name="notify">${options}</select>`);
+  return opts.entryName ? control : `<div class="schedulenotify">${control}</div>`;
 }
 
 /** Each browser choice the form posts and the catalogue key of its word. */
@@ -136,7 +137,8 @@ function browserField(opts: ScheduleFormOptions, lang: Language): string {
   const options = BROWSER_WORDS
     .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
     .join("");
-  return `<div class="schedulebrowser">${field(t(lang, "schedule.browser"), `<select name="chrome">${options}</select>`)}</div>`;
+  const control = field(t(lang, "schedule.browser"), `<select name="chrome">${options}</select>`);
+  return opts.entryName ? control : `<div class="schedulebrowser">${control}</div>`;
 }
 
 /** Each sandbox choice the form posts and the catalogue key of its word. */
@@ -153,7 +155,17 @@ function sandboxField(opts: ScheduleFormOptions, lang: Language): string {
   const options = SANDBOX_WORDS
     .map(([value, key]) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, key))}</option>`)
     .join("");
-  return `<div class="schedulesandbox">${field(t(lang, "schedule.sandbox"), `<select name="sandbox">${options}</select>`)}</div>`;
+  const control = field(t(lang, "schedule.sandbox"), `<select name="sandbox">${options}</select>`);
+  return opts.entryName ? control : `<div class="schedulesandbox">${control}</div>`;
+}
+
+function enabledField(opts: ScheduleFormOptions, lang: Language): string {
+  if (!opts.entryName) return "";
+  const chosen = opts.entry?.enabled === false ? "no" : "yes";
+  const options = (["yes", "no"] as const)
+    .map((value) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, `schedule.${value}`))}</option>`)
+    .join("");
+  return field(t(lang, "schedule.enabled"), `<select name="enabled">${options}</select>`);
 }
 
 export const CRON_NEXT_HOOK = "cron-next";
@@ -200,6 +212,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     notifyField(opts, lang) +
     browserField(opts, lang) +
     sandboxField(opts, lang) +
+    enabledField(opts, lang) +
     // Only an existing entry's Save waits for a change; Create is left as drawn.
     `<div class="factions">${btn({ id: opts.entryName ? "scheduleform-save" : undefined, label: t(lang, opts.entryName ? "list.checksSave" : "form.create"), variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,

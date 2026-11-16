@@ -8,7 +8,8 @@ import { scheduleNotifyOf } from "../../../queue/schedule.ts";
 import { t, type Language } from "../../../i18n";
 import { btnLink, facts, messageSlot } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { deleteControl, enabledBox, SCHEDULE_REFUSED_LINE } from "./controls.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
+import { deleteControl, SCHEDULE_REFUSED_LINE } from "./controls.ts";
 import { NOTIFY_WORDS, renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
 import { schedulePromptPath, scheduleSettingsPath } from "./tabs.ts";
 
@@ -66,7 +67,7 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
     { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
     { label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) },
-    { label: esc(t(lang, "schedule.enabled")), value: enabledBox(project, entry, lang) },
+    { label: esc(t(lang, "schedule.enabled")), value: esc(capitalizeFirst(t(lang, entry.enabled ? "schedule.yes" : "schedule.no"))) },
   ]);
   const actions =
     `<div class="row">` +
