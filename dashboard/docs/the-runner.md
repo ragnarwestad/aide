@@ -428,9 +428,11 @@ evidence that the phase happened:
   - **A fix turn.** The defects that are kept go back to the ORIGINAL implement session as one follow-up turn, which
     fixes them or turns one down on a `not a defect: <number>. <why>` line. The review itself is best-effort: a
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
-  - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
-    to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit, which the test runs themselves do not use up. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
+  - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red gets at
+    most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time limit, which the test runs themselves do not
+    use up. Once the implement session has used `AIDE_TEST_FIX_FRESH_PERCENT` (85 unless set) of its context window,
+    a fresh session of the same AI and model takes over these rounds. With no context figure, the implement session
+    keeps them. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
     file. Before a still-red step ends, each named red file is run once more alone when the project has an

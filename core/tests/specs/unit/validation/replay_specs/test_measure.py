@@ -55,6 +55,18 @@ def test_implement_rounds_are_one_plus_every_hand_back_the_log_names():
     assert measure.implement_rounds("aide-run-spec 10:00:00 +1s preparing\n") == 1
 
 
+def test_implement_rounds_count_every_old_and_new_test_hand_back_wording():
+    log = "\n".join([
+        "the tests are red — handing them back to the session (round 1 of 2)",
+        "the tests are red — handing them back to the step's session at 40 % (round 1 of 2)",
+        "the tests are red — handing them back to the step's session; it states no context figure (round 1 of 2)",
+        "the tests are red — handing them back to a fresh session at 90 % (round 1 of 2)",
+        "the tests are red — handing them back to the fresh session, which took over at 90 % (round 2 of 2)",
+    ])
+
+    assert measure.implement_rounds(log) == 6
+
+
 def test_a_step_is_green_when_it_completed_with_a_green_run_of_its_own():
     assert measure.implement_green({"terminalReason": "completed", "testedGreen": {"tree": "x"}}) == "yes"
     assert measure.implement_green({"terminalReason": "tests-red"}) == "no"
