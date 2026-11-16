@@ -191,7 +191,6 @@ export const en = {
     "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
     "then push it again from a terminal.",
   "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
-  "list.landedAfterRetry": "Merged after a retry: the project's tests were red on the first run and green on the second.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "No test names {id}.",
   "list.branchLeftBehind":
