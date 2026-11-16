@@ -70,7 +70,7 @@ test("unfinished group members are Active, filtered as Active and offer no indiv
     expect(applyFilter([row], { state: "active" })).toEqual([row]);
     expect(applyFilter([row], { state: "idle" })).toEqual([]);
     expect(specRunChoices(row, {})).toEqual([]);
-    expect(specLocked(row)).toBe(true);
+    expect(specLocked(row)).toBe(["queued", "running", "archiving"].includes(state));
     expect(specBusy(row)).toBe(false);
   }
 });
