@@ -9,6 +9,7 @@
 // Same request, same route; the answer is JSON, read here, and the
 // markup stays a real form so the fields it posts are the form's own.
 
+import { groupPhaseForms } from "./spec-groups";
 import { ACTIONS, postForm, writeLine } from "./press.ts";
 import { coverWhile } from "./progress-dialog";
 import { swapRows } from "./row-swap/index.ts";
@@ -40,6 +41,7 @@ export async function submitAction(event: Event): Promise<void> {
       // The press has gone through - the row's own hand-made ticks
       // have done their job and must not go on deciding a later run
       clearChosenSteps(form.id);
+      for (const member of groupPhaseForms(form)) clearChosenSteps(member.id);
       cardAnswered(form, "saved");
       // Its close redraws the rows (`bindLists`).
       if (held && form.dataset.goto) {

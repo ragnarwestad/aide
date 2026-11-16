@@ -383,19 +383,19 @@ export function stepDoneHandler(
     if (!root) return false;
     const current = specFolders(root, false).find((spec) => spec.folder === job.specFolder);
     if (!current?.group) return false;
+    const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
     const next = specFolders(root, false)
-      .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position)
+      .filter((spec) => spec.group?.name === current.group!.name && spec.group.position > current.group!.position &&
+        (group?.memberSteps?.[spec.folder]?.length !== 0))
       .sort((a, b) => a.group!.position - b.group!.position || a.folder.localeCompare(b.folder))[0];
     if (!next) return false;
-    const steps = job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
-    const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
+    const steps = group?.memberSteps?.[next.folder] ?? job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
     const request = group?.sharedChoices
       ? followOnRequest(job.project, next.folder, steps, job)
       : withRowPicks({ project: job.project, specFolder: next.folder, steps, executionGroupId: job.executionGroupId }, ctx.store);
     const made = enqueueRequest(ctx.store, request, "automatic");
     if (!made.ok) logRefusal("group continuation", `${job.project}/${next.folder}`, made.error);
     return made.ok; }
-
   /** Whether another job for the spec already has an analyze that ended
    *  `short-analysis-over-limit`: the analyze after it was not offered a short
    *  analysis and wrote one anyway, and another round would loop. */

@@ -241,3 +241,16 @@ test("a cancelled Archive landing leaves the group stopped", async () => {
   await Promise.resolve();
   expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
 });
+
+test("manual Start's per-member plan decides the next member's phases", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-release" });
+  store.executionGroups.update(group.id, { state: "running", memberSteps: { "1-first": ["analyze"], "2-next": ["implement"] } });
+  const handle = stepDoneHandler({ store, machinerySpecsRoot: () => join(root, "specs"), specDir: () => undefined,
+    peekMachinerySpecDir: (_p: string, d: string) => d, forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landStepBranch: async () => {},
+  } as unknown as Parameters<typeof stepDoneHandler>[0]);
+  await handle({ project: "aide", specFolder: "1-first", steps: ["analyze"], executionGroupId: group.id } as Job,
+    "analyze", { ok: true, terminalReason: "completed" });
+  expect(store.list()).toMatchObject([{ specFolder: "2-next", steps: ["implement"] }]);
+});

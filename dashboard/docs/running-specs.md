@@ -865,7 +865,7 @@ the group's creation date, its progress and the one action allowed by its curren
 menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
-it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs or is queued, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
+it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs, is queued or waits for an automatic usage-limit retry, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
@@ -874,6 +874,11 @@ acceptance rows left to tick, each member a link to its spec page.
 When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
 is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
 When the user presses Stop on the group, the message says so instead of attributing the cancelled member job as the cause.
+A group waiting for a provider's usage limit shows Waiting and keeps its phase checkboxes locked. AI and model choices
+remain available. Choosing another provider resumes the same job and phases; choosing another model on the same provider
+keeps that provider's reset time. Stop cancels automatic restart and unlocks the phase choices. The next Start follows
+the choices for each member, including explicitly chosen reruns of completed work. Untouched members do not repeat
+completed phases.
 The same notice covers failed, interrupted and cancelled member jobs, and a failed Archive landing even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.

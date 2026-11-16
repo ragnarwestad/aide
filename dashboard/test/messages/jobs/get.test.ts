@@ -125,7 +125,7 @@ describe("the line under a job row's state", () => {
     test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the provider once (AC-10)", () => {
       const until = new Date(Date.now() + 3_600_000).toISOString();
       const row = job({
-        id: "u1", state: "stopped", stopReason: "provider-limit", provider: "Work",
+        id: "u1", state: "stopped", steps: ["implement"], stopReason: "provider-limit", provider: "Work",
         usageLimitWait: { until, resetKnown: true },
         results: [{ step: "implement", ok: false, provider: { key: "Work", name: "Work" }, providerLimit: { tool: "claude", window: "five-hour" } }],
       } as never);

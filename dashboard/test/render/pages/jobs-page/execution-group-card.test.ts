@@ -339,3 +339,10 @@ test("all member pips follow the shared Archive, including completed Implement m
   for (const folder of execution.members)
     expect(executionGroupMemberPip({ ...execution, state: "completed" }, folder)).toEqual({ kind: "past", title: folder, label: `${folder.split("-")[0]} A` });
 });
+
+test("a provider wait keeps the current phase letter without marking the untouched members", () => {
+  const wait = { state: "stopped", stopReason: "provider-limit", steps: ["analyze", "implement"], stepIndex: 0,
+    usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } } as QueueRowView;
+  expect(memberPipLabel("825-first", wait)).toBe("825 A");
+  expect(memberPipLabel("823-next")).toBe("823");
+});

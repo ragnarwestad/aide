@@ -88,7 +88,7 @@ export function getUsageLimitMessage(
   timeZone?: string,
 ): Message | undefined {
   if (view.state === "stopped" && view.stopReason === "provider-limit" && view.usageLimitWait) {
-    const record = [...(view.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit);
+    const record = [...(view.results ?? [])].reverse().find((r) => r.step === currentStep(view) && (r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit));
     const limiting = record?.review?.providerLimit ? record.review : record?.verify?.providerLimit ? record.verify : record;
     const step = record?.step ?? currentStep(view);
     const model = (record?.step && view.stepModels?.[record.step]) || view.model;
