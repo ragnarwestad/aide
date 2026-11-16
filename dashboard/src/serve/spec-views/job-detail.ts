@@ -18,11 +18,12 @@ import type { SpecViewsContext } from "./";
 /** The AI's name in its separator: the tool and the model choice, each word
  *  capitalised (`Claude Sonnet`); a choice that starts with the tool's name is
  *  not prefixed again (`Codex`). Nothing for a step that ran no AI. */
-export function aiLabel(tool: string | undefined, choice: string | undefined): string | undefined {
+export function aiLabel(tool: string | undefined, choice: string | undefined, provider?: string): string | undefined {
   if (!tool || tool === "none") return undefined;
   const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
   const words = choice && !choice.toLowerCase().startsWith(tool.toLowerCase()) ? [tool, choice] : [choice ?? tool];
-  return words.map(cap).join(" ");
+  const model = words.map(cap).join(" ");
+  return provider ? `${provider} · ${model}` : model;
 }
 
 /** The pictures a finished step kept, by file name; none for a step without the folder or a PNG in it. */
@@ -114,7 +115,7 @@ export async function jobDetailView(
           tokens: r.tokens?.total,
           logs: shown?.logs,
           errors: shown?.errors,
-          aiModel: withModelId(aiLabel(tool, choice), r.modelId),
+          aiModel: withModelId(aiLabel(tool, choice, r.provider?.name), r.modelId),
           changedFiles,
           // Only the newest result of a step, which is the one the route serves.
           screenshots: job.results.findLast((o) => o.step === r.step) === r ? stepScreenshots(job.id, r.step, r.streamFile) : undefined,
@@ -132,7 +133,8 @@ export async function jobDetailView(
             sessionId: job.sessionId,
             logs: live?.logs ?? [],
             errors: live?.errors ?? [],
-            aiModel: aiLabel(tool, resolveStepModel(job, step, ctx.queue.defaults.model ?? {})),
+            aiModel: aiLabel(tool, resolveStepModel(job, step, ctx.queue.defaults.model ?? {}),
+              job.provider?.[step] ? (ctx.queue.defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { reviewModelArgs, runnerArgv } from "../../../src/serve/serve-helpers/runner-argv.ts";
+import { launchProviders, reviewModelArgs, runnerArgv } from "../../../src/serve/serve-helpers/runner-argv.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 
 const CHOICES = {
@@ -10,6 +10,19 @@ const CHOICES = {
 };
 
 describe("the models an implement's review and verification run on", () => {
+  test("one launch snapshot supplies the main and side provider keys (AC-1, AC-5)", () => {
+    const job = { project: "aide", specFolder: "827-x", steps: ["implement"], timeoutSec: {}, permissionMode: {}, model: {} } as unknown as Job;
+    expect(launchProviders(job, "implement", {
+      modelChoices: CHOICES,
+      model: { implement: "Sonnet", review: "gpt-6.1-sol", verify: "Opus" },
+      provider: { implement: "Claude-A", review: "Codex-B", verify: "Claude-C" },
+      providers: {
+        "Claude-A": { name: "Claude A", tool: "claude" },
+        "Codex-B": { name: "Codex B", tool: "codex" },
+        "Claude-C": { name: "Claude C", tool: "claude" },
+      },
+    })).toEqual({ implement: "Claude-A", review: "Codex-B", verify: "Claude-C" });
+  });
   test("both parts inherit the default model when their own settings are empty (AC-3, AC-5, AC-6)", () => {
     expect(reviewModelArgs("implement", "claude", { modelChoices: CHOICES, model: { default: "gpt-6.1-sol" } })).toEqual([
       "--review-model", "gpt-6.1-sol", "--review-tool", "codex",

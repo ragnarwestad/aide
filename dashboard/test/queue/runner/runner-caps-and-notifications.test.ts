@@ -108,6 +108,23 @@ describe("a step's review and verification", () => {
     expect(result?.verify).toEqual(verify);
   });
 
+  test("main, Review and Verify keep their launch providers (AC-2, AC-5)", () => {
+    const job = enqueue();
+    store.update(job.id, { provider: { analyze: "main", review: "reviewer", verify: "verifier" } });
+    store.defaults.providers = {
+      main: { name: "Main account", tool: "claude" },
+      reviewer: { name: "Review account", tool: "claude" },
+      verifier: { name: "Verify account", tool: "codex" },
+    };
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), review, verify: { ...review, tool: "codex" } }) });
+    runner.tick();
+    runner.poll();
+    const result = store.get(job.id)?.results[0];
+    expect(result?.provider).toEqual({ key: "main", name: "Main account" });
+    expect(result?.review?.provider).toEqual({ key: "reviewer", name: "Review account" });
+    expect(result?.verify?.provider).toEqual({ key: "verifier", name: "Verify account" });
+  });
+
   test("a part that is malformed is dropped, the rest kept (AC-7)", () => {
     const result = stored({
       review: { ...review, tokens: { input: 1 }, transcript: { from: 90, to: 10 }, durationSec: -3 },

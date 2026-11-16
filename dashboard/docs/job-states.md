@@ -91,6 +91,10 @@ group. For each queued job it uses this ordered list; the first hold that applie
 - Moves a job with no step left to `done`.
 - Otherwise starts the step and writes `running`.
 
+Before the process starts, the job stores the provider key resolved for the main step and each enabled side run.
+The result, rows, logs and messages use those stored keys even if Settings changes while the step runs. Jobs written
+before these keys were stored continue to resolve their provider from the current Settings.
+
 A held-back job keeps its state; the reason is on the row and clears on a later tick.
 
 **When a step ends:**
