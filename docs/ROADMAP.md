@@ -343,6 +343,23 @@ A proposal from 2026-11-14 for the AI part of a profile:
 
 Open in this proposal: whether a profile may mix tools on one list, and whether Review and Verify take a profile too.
 
+**Model and effort recommendations from the spec.** Before a step starts, a model could recommend a model and
+effort from the spec's available documents, with a short reason:
+
+- Before Analyze: the full description and acceptance criteria.
+- After Analyze: also the codebase analysis, affected code and complexity grade.
+- Before Implement: also the solution plan.
+
+The recommendation uses the spec rather than a short chat message, and stays within the profile's allowed choices.
+An uncertain recommendation keeps the configured choice, and an explicit choice by the person wins. Start by
+recording recommendations without changing what runs; replay archived specs to compare quality, cost and elapsed
+time before allowing automatic choices. A cheap recommendation alone does not prove that a cheaper model can do
+the work. The existing replay criteria remain the bar for changing defaults.
+
+The [Ben AI Model Selector video](https://www.youtube.com/watch?v=_ioUbQftxBc) and its downloadable plugin are
+references for the recommendation and confirmation interaction; the plugin's short prompt excerpts do not replace
+the spec as the basis for Aide's choice.
+
 What research on routing between models found, from the weighing behind idea 15:
 
 - **What works learns from its own history.** [Agent-as-a-Router](https://www.alphaxiv.org/abs/2606.22902) chooses

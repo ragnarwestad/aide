@@ -136,6 +136,7 @@ review from the channel's feed, which holds its newest 15 videos, or with yt-dlp
 | OpenAI                | UCXZCJLdBC09xxGZ6gcdrc6A   |
 | Agentic AI Foundation | UCgkApalw5crKXOtr_mqtPQg   |
 | Ray Amjad             | UCLA7cJBnqr0nLF2bQBD9uUg   |
+| Ben AI                | UC3KK7ENB_ierAXvrxVNnbZQ   |
 
 ---
 
