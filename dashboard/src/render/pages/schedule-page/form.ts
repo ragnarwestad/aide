@@ -8,6 +8,7 @@
 import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../queue/schedule.ts";
 import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { t, type Language } from "../../../i18n";
 import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
 
@@ -163,7 +164,7 @@ function enabledField(opts: ScheduleFormOptions, lang: Language): string {
   if (!opts.entryName) return "";
   const chosen = opts.entry?.enabled === false ? "no" : "yes";
   const options = (["yes", "no"] as const)
-    .map((value) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(t(lang, `schedule.${value}`))}</option>`)
+    .map((value) => `<option value="${value}"${value === chosen ? " selected" : ""}>${esc(capitalizeFirst(t(lang, `schedule.${value}`)))}</option>`)
     .join("");
   return field(t(lang, "schedule.enabled"), `<select name="enabled">${options}</select>`);
 }
