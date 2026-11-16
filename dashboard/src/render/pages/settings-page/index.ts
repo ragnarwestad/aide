@@ -60,7 +60,7 @@ export const OTHER_STEPS = ["schedule"] as const;
  *  server itself, with no model and no time limit. They are named here
  *  rather than simply left out, so that STEP_COVERAGE below still
  *  fails when a NEW step arrives with no group of its own. */
-export const UNROWED_STEPS = ["explore", "deploy", "cleanup"] as const;
+export const UNROWED_STEPS = ["explore", "deploy", "land", "cleanup"] as const;
 
 // Every step the queue can run is accounted for: in one of the two
 // groups, or deliberately unrowed. Derived-and-checked rather than

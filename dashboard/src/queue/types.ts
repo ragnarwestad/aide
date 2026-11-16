@@ -242,6 +242,8 @@ export interface Job {
    *  Only a close job has it; every other job's own reason for existing
    *  is what its spec already says. */
   closeReason?: string;
+  /** The exact origin branch a standalone Land job merges. */
+  branch?: string;
   /** A `reopen` job that also resets the analysis, the plan and the
    *  status — handed to `aide-run-spec` as `--reset-files`.
    *  Absent, a reopen keeps the files. Only a job whose steps are

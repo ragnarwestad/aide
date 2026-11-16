@@ -26,7 +26,7 @@ export const HOLD_NAMES = [
   "no-free-slot",
   "own-landing",
   "same-spec-running",
-  "archive-running",
+  "project-landing",
   "deploy-waits-for-landing",
   "not-analyzed",
   "approach-choice",
@@ -66,9 +66,17 @@ export const HOLDS: readonly Hold[] = [
   { name: "same-spec-running", check: (job, at) => at.jobs().some((candidate) =>
     candidate.state === "running" && candidate.project === job.project && candidate.specFolder === job.specFolder)
     ? WAIT : undefined },
-  { name: "archive-running", check: (job, at) => stepOf(job) === "archive" && at.jobs().some((candidate) =>
-    candidate.id !== job.id && candidate.project === job.project && stepOf(candidate) === "archive" && writing(candidate))
-    ? { key: "runner.archiveRunning" } : undefined },
+  { name: "project-landing", check: (job, at) => {
+    const step = stepOf(job);
+    if (step !== "archive" && step !== "land") return undefined;
+    const held = at.jobs().some((candidate) => {
+      if (candidate.id === job.id || candidate.project !== job.project) return false;
+      const other = stepOf(candidate);
+      if (step === "land") return candidate.landing && (other === "archive" || other === "land");
+      return (other === "archive" && writing(candidate)) || (other === "land" && candidate.landing);
+    });
+    return held ? { key: "runner.archiveRunning" } : undefined;
+  } },
   { name: "deploy-waits-for-landing", check: (job, at) => answer(at.answers.deployWaitsForLanding, job.id) },
   { name: "not-analyzed", check: (job, at) => answer(at.answers.notAnalyzed, job.id) },
   { name: "approach-choice", check: (job, at) => answer(at.answers.approachChoice, job.id) },

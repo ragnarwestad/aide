@@ -64,7 +64,7 @@ the Jobs tab, where every round has its own row with phase information, steps, l
 `aide-create-spec`, commits and pushes before it answers. Two simultaneous creates are serialized and receive different
 numbers.
 
-A landing holds back two things and nothing else: the job being landed and a second `archive` in the same project
+A landing holds back two things and nothing else: the job being landed and another `archive` or Land job in the same project
 ([Branches and landing](landing.md)).
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list under the default
@@ -967,3 +967,6 @@ there instead (see Queueing from a terminal).
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
+`aide land <project> <branch>` queues a Land job for a branch that already exists on origin. Land uses no AI slot. Its
+row shows merge, tests, push and source-branch deletion. Deploy remains a separate press after Land has finished.
+

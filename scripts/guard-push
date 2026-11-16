@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import sys
+import shlex
 from pathlib import Path
 
 PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
@@ -88,6 +89,30 @@ def pushed_repo(command, cwd):
     return origin_of(path) if path.is_dir() else None
 
 
+def pushes_only_non_default(command, cwd):
+    """True only when every explicit refspec targets a branch other than origin's default."""
+    try:
+        words = shlex.split(command)
+        push = words.index("push")
+    except (ValueError, IndexError):
+        return False
+    refs = [word for word in words[push + 1:] if not word.startswith("-")]
+    if refs and (refs[0] == "origin" or "/" in refs[0] or refs[0].endswith(".git")):
+        refs = refs[1:]
+    if not refs:
+        return False
+    repo = Path(cwd or os.getcwd())
+    head = subprocess.run(
+        ["git", "-C", str(repo), "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+        capture_output=True, text=True,
+    )
+    if head.returncode != 0:
+        return False
+    default = head.stdout.strip().removeprefix("origin/")
+    destinations = [ref.rsplit(":", 1)[-1].removeprefix("refs/heads/") for ref in refs]
+    return bool(default) and all(destination != default for destination in destinations)
+
+
 def landing_origins(projects):
     """The origins of the board's code and specs checkouts, by project, or None when one cannot be read."""
     if not all(PROJECT.match(p) for p in projects):
@@ -130,6 +155,8 @@ def main():
         return 2
     busy = [j for j in jobs if landing(j)]
     if busy:
+        if pushes_only_non_default(command, payload.get("cwd")):
+            return 0
         mine = pushed_repo(command, payload.get("cwd"))
         theirs = landing_origins(sorted({str(j.get("project")) for j in busy}))
         if mine and theirs is not None:

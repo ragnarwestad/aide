@@ -46,6 +46,7 @@ import { handleSettingsConcurrencyRoute } from "./settings-concurrency.ts";
 import { handleSettingsModelsRoutes } from "./settings-models.ts";
 import { handleProviderRoutes } from "./providers";
 import { handleDeploySteps } from "./deploy-steps.ts";
+import { handleLandSteps } from "./land/index.ts";
 import type { DeployHooks } from "../deployment";
 import { handleJobActionRoutes } from "./job-actions.ts";
 import { handleSpecEditRoutes } from "./spec-edit";
@@ -190,6 +191,7 @@ async function answerRoute(ctx: RoutesContext, req: Request, url: URL, path: str
     handleQueueEvents(ctx, req, path) ??
     failedCreateRoutes(ctx, req, path) ??
     (await handleDeploySteps(ctx, req, path)) ??
+    (await handleLandSteps(ctx, req, path)) ??
     (await handleQueueAdminRoutes(ctx, req, path)) ??
     (await handleSettingsConcurrencyRoute(ctx, req, path)) ??
     (await handleSettingsModelsRoutes(ctx, req, path)) ??

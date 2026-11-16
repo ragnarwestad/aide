@@ -48,7 +48,7 @@ export const markedWithKind = (html: string, kind: RowKind): string =>
 /** The kind a job's row is marked as. A Close or a Reopen is work on a spec. */
 export function jobRowKind(row: Pick<JobLike, "steps" | "stepIndex" | "specFolder">): RowKind {
   const kind = jobKind(row);
-  return kind === "close" || kind === "reopen" ? "spec" : kind;
+  return kind === "close" || kind === "reopen" ? "spec" : kind === "land" ? "deploy" : kind;
 }
 
 /** Whether a job's row offers Dismiss, and the dismiss route takes it: a

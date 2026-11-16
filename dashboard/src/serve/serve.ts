@@ -204,12 +204,10 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate:
-      opts.landingGate ??
-      ((root, job, branch, button) =>
-        runProjectSuiteBeforePush(root, job, branch, {
-          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(), button,
-        })),
+    landingGate: opts.landingGate ?? ((root, job, branch, button) => {
+        const gatedJob = job.steps[job.stepIndex] === "land" ? { ...job, results: queue.list().filter((candidate) => candidate.project === job.project && candidate.state === "done").flatMap((candidate) => candidate.results ?? []) } : job;
+        return runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(), button });
+      }),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
     // with that branch's own copy.
@@ -245,7 +243,7 @@ export function createServer(opts: ServerOptions) {
     landStoppedStepBranch: land.landStoppedStepBranch,
     handleSharedFiles: (job, outcome) => applyOverlapDependencies(routesCtx, job, outcome),
     landScheduleRun: land.landScheduleRun,
-    startDeploy: land.deployJob.start, testServerStore,
+    startDeploy: land.deployJob.start, startLand: land.landJob.start, testServerStore,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
     forgetSpecCaches: schedules.forgetSpec,

@@ -94,6 +94,7 @@ export const LANDING_POLICIES: Readonly<Record<string, LandingPolicy>> = {
   // Leaves no spec branch for anyone to land.
   explore: PLAIN,
   deploy: PLAIN,
+  land: PLAIN,
   cleanup: PLAIN,
 };
 

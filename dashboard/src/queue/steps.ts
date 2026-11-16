@@ -309,17 +309,18 @@ export function landingInProject(jobs: Job[], project: string): boolean {
  *  that has gone on to the spec's next step is the spec's again. */
 /** The tracking key of a deploy job: no spec folder is called this. */
 export const DEPLOY_KEY = "deploy";
+export const LAND_KEY = "land";
 
 /** The tracking key of the board's host-process cleanup job. */
 export const CLEANUP_KEY = "cleanup";
 
 /** The step a job is on when it is a deploy: the Running page draws such a
  *  job as a row of its own, never as a spec's. */
-export type JobKind = "spec" | "schedule" | "deploy" | "cleanup" | "close" | "reopen";
+export type JobKind = "spec" | "schedule" | "deploy" | "land" | "cleanup" | "close" | "reopen";
 
 export function jobKind(job: { steps: readonly string[]; stepIndex: number; specFolder: string }): JobKind {
   const step = job.steps[job.stepIndex ?? 0];
-  if (step === "deploy" || step === "cleanup" || step === "close" || step === "reopen") return step;
+  if (step === "deploy" || step === "land" || step === "cleanup" || step === "close" || step === "reopen") return step;
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 

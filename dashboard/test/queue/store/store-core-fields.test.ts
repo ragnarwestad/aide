@@ -85,6 +85,15 @@ describe("QueueStore.enqueueCreate", () => {
     expect(store.enqueueCreate(CREATE).ok).toBe(false);
   });
 });
+
+test("a Land branch survives a store restart while old jobs need no branch (AC-1)", () => {
+  const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+  const land = store.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic/ready" });
+  expect(land.ok).toBe(true);
+  if (!land.ok) return;
+  const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+  expect(reloaded.get(land.job.id)?.branch).toBe("topic/ready");
+});
 // --- Resolve is not a step at all -----------------------------------
 //
 // The routine is folded into `archive`. The
