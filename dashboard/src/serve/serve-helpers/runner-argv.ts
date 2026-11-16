@@ -107,7 +107,10 @@ export function launchProviders(
   const defaults = { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider };
   const result: Record<string, string> = {};
   const main = resolveStepProvider(job, step, defaults);
-  if (main) result[step] = main;
+  // An empty value is the launch-time answer "the tool's normal login".
+  // Keeping it distinguishes this run from an older job with no snapshot,
+  // whose readers still resolve against the live settings for compatibility.
+  result[step] = main ?? "";
   const parts = step === "analyze" ? [PLAN_REVIEW] : step === "implement" ? SIDE_PARTS_OF.implement ?? [] : [];
   for (const part of parts) {
     const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
@@ -122,7 +125,7 @@ export function launchProviders(
         ? configured
         : Object.entries(o.providers ?? {}).find(([, provider]) => provider.enabled !== false && runsModel(provider, choice))?.[0]
     );
-    if (key) result[part] = key;
+    result[part] = key ?? "";
   }
   return result;
 }
