@@ -11,7 +11,7 @@ import { isArchivedRow } from "../specs-list";
 import { phaseSubRows } from "../specs-list/phase-rows.ts";
 import { groupArchiveAttempts } from "../specs-list/group-archive-projection.ts";
 import { specBusy } from "../specs-list/row-state.ts";
-import { activeDurationCell, costCell, createdLabel } from "../specs-list/cell-helpers.ts";
+import { activeDurationCell, costCell, createdLabel, phasePipKind } from "../specs-list/cell-helpers.ts";
 import { specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { rowLabel } from "../../ui/components/spec-name.ts";
@@ -80,6 +80,16 @@ export function executionGroupMemberJob(group: Pick<ExecutionGroup, "state" | "c
 export function memberPipLabel(folder: string, job?: QueueRowView, lang: Language = "en"): string {
   const number = specNumber(folder);
   return job && inFlight(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
+}
+
+export function executionGroupMemberPip(group: ExecutionGroup, folder: string, member?: SpecGroup, archiveJob?: QueueRowView, lang: Language = "en") {
+  const job = group.state === "completed" ? archiveJob : executionGroupMemberJob(group, folder, member?.lead, archiveJob);
+  if (group.state === "archiving" || group.state === "completed") return {
+    kind: phasePipKind({ step: "archive", attempts: job ? [job] : [], history: {} }, group.state === "completed" ? ["archive"] : []),
+    title: folder,
+    label: `${specNumber(folder)} ${stepLabel("archive", lang).slice(0, 1)}`,
+  };
+  return { kind: memberPipKind(member, group.completedMembers.includes(folder), job), title: folder, label: memberPipLabel(folder, job, lang) };
 }
 
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
@@ -156,8 +166,7 @@ export function executionGroupCard(
   // or, while the card is open, its action.
   const memberPips = pips(group.members.map((folder) => {
     const row = members.find((member) => member.group.specFolder === folder);
-    const job = executionGroupMemberJob(group, folder, row?.group.lead, archiveJob);
-    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder), job), title: folder, label: memberPipLabel(folder, job, lang as Language) };
+    return executionGroupMemberPip(group, folder, row?.group, archiveJob, lang as Language);
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
