@@ -17,6 +17,23 @@ beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 describe("with one slot, one job at a time", () => {
+  test("stores the launch provider before the prepared process starts (AC-1, AC-3)", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      spawn: () => ({
+        providers: { analyze: "Claude-Personal", "plan-review": "Codex-Work" },
+        start: () => {
+          expect(store.get(job.id)?.state).toBe("queued");
+          expect(store.get(job.id)?.provider).toEqual({ analyze: "Claude-Personal", "plan-review": "Codex-Work" });
+          return { pid: 1001, pgid: 1001 };
+        },
+      }),
+    });
+
+    runner.tick();
+    expect(store.get(job.id)?.state).toBe("running");
+  });
+
   test("a second job waits while the first is running", () => {
     const a = enqueue();
     // A different step: the queue refuses the same one twice while the

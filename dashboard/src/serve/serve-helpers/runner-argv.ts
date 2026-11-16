@@ -94,6 +94,42 @@ export function reviewModelArgs(
   });
 }
 
+/** Provider keys fixed at launch time for the main step and its enabled
+ * side runs. The same snapshot is persisted and used to build argv. */
+export function launchProviders(
+  job: Job,
+  step: string,
+  o: {
+    model?: Record<string, string>; modelChoices?: Record<string, ModelChoice>; sidePicks?: Record<string, string>;
+    sideProviders?: Record<string, string>; providers?: Record<string, Provider>; provider?: Record<string, string>;
+  },
+): Record<string, string> {
+  const defaults = { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider };
+  const result: Record<string, string> = {};
+  const main = resolveStepProvider(job, step, defaults);
+  // An empty value is the launch-time answer "the tool's normal login".
+  // Keeping it distinguishes this run from an older job with no snapshot,
+  // whose readers still resolve against the live settings for compatibility.
+  result[step] = main ?? "";
+  const parts = step === "analyze" ? [PLAN_REVIEW] : step === "implement" ? SIDE_PARTS_OF.implement ?? [] : [];
+  for (const part of parts) {
+    const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
+    if (!name) continue;
+    const choice = o.modelChoices?.[name];
+    const usable = (key: string | undefined): key is string =>
+      key !== undefined && o.providers?.[key] !== undefined && o.providers[key]!.enabled !== false;
+    const own = o.sideProviders?.[part];
+    const configured = o.provider?.[part];
+    const key = usable(own) ? own : (
+      usable(configured) && runsModel(o.providers![configured]!, choice)
+        ? configured
+        : Object.entries(o.providers ?? {}).find(([, provider]) => provider.enabled !== false && runsModel(provider, choice))?.[0]
+    );
+    result[part] = key ?? "";
+  }
+  return result;
+}
+
 /** How recent an analysis must be for its implement to continue its
  *  session: past that, the tool's cache of it is gone, and reading the
  *  whole session back at full price costs more than starting afresh. */

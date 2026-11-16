@@ -401,6 +401,8 @@ export function sidePickers(
   locked: boolean,
   /** The model id the session's own run reported, when it ran. */
   ranModelId?: string,
+  /** The provider recorded when this side run was launched. */
+  ranProviderKey?: string,
   /** What the line follows with no choice of its own, in place of the default. */
   rests?: { model: string; provider?: string },
   formId = runFormId(g),
@@ -414,7 +416,7 @@ export function sidePickers(
   const configured = opts.defaultModels?.[part] ?? follows?.model ?? opts.defaultModels?.default;
   const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
-  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider, follows?.provider]);
+  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [ranProviderKey, provider, follows?.provider]);
   const disabled = locked || !g.named ? " disabled" : "";
   const ai = providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: formId, opts, configured: chosen, chosenProvider: resting?.key, disabled: !!disabled });
   const model = modelSelect({ name: `model.${part}`, form: formId, opts: { ...opts, modelChoices: pickerModels(models, chosen, ranModelId !== undefined, ranModelId) }, chosen, disabled: !!disabled, ranModelId });

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dir, events, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
+import { launchProviders } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -106,6 +107,40 @@ describe("a step's review and verification", () => {
     const result = stored({ review, verify });
     expect(result?.review).toEqual(review);
     expect(result?.verify).toEqual(verify);
+  });
+
+  test("main, Review and Verify keep their launch providers (AC-2, AC-5)", () => {
+    const job = enqueue();
+    store.update(job.id, { provider: { analyze: "main", review: "reviewer", verify: "verifier" } });
+    store.defaults.providers = {
+      main: { name: "Main account", tool: "claude" },
+      reviewer: { name: "Review account", tool: "claude" },
+      verifier: { name: "Verify account", tool: "codex" },
+    };
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), review, verify: { ...review, tool: "codex" } }) });
+    runner.tick();
+    runner.poll();
+    const result = store.get(job.id)?.results[0];
+    expect(result?.provider).toEqual({ key: "main", name: "Main account" });
+    expect(result?.review?.provider).toEqual({ key: "reviewer", name: "Review account" });
+    expect(result?.verify?.provider).toEqual({ key: "verifier", name: "Verify account" });
+  });
+
+  test("a provider added while a step runs does not become that step's provider (AC-2, AC-3, AC-6)", () => {
+    const job = enqueue();
+    store.defaults.providers = undefined;
+    const runner = makeRunner({
+      spawn: (started, step) => ({
+        providers: launchProviders(started, step, store.defaults),
+        start: () => ({ pid: 1001, pgid: 1001 }),
+      }),
+      readResult: () => okResult(1),
+    });
+    runner.tick();
+    expect(store.get(job.id)?.provider).toEqual({ analyze: "" });
+    store.defaults.providers = { added: { name: "Added later", tool: "claude" } };
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.provider).toBeUndefined();
   });
 
   test("a part that is malformed is dropped, the rest kept (AC-7)", () => {

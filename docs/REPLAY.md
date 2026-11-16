@@ -13,6 +13,10 @@
 - [Deciding from a round](#deciding-from-a-round)
 - [What the rounds found](#what-the-rounds-found)
 - [Measuring the review](#measuring-the-review)
+- [Measuring the analysis and the plan](#measuring-the-analysis-and-the-plan)
+  - [The cases](#the-cases)
+  - [The commands](#the-commands)
+  - [The reports](#the-reports)
 
 ---
 
@@ -214,3 +218,98 @@ On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
 
 That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
 how the description is read.
+
+---
+
+## Measuring the analysis and the plan
+
+`scripts/plan_eval` measures how good the analysis and the plan that analyze writes
+are, case by case, against an expected assessment a person has approved. A replay's
+judge compares the new plan with the original one, and the original can itself be
+wrong. Here the original is supporting material for the judge, never the answer.
+
+Each case is run through replay's copies: the code at the commit before the spec's
+code landed, a specs repository holding only its archived description, and `analyze`
+through the runner of the Aide commit given. A judge then scores the analysis and the
+plan on turns of their own, on four dimensions, each from 1 to 5 against anchors at
+1, 3 and 5, with the reason and the evidence before the score:
+
+- requirements coverage;
+- affected code and interactions;
+- test adequacy;
+- soundness and simplicity.
+
+The verdict is computed from the answer, not left to the judge. A serious omission
+the judge finds missed fails the document, whatever its scores. Otherwise it passes
+when the mean is at least 3.5 and no dimension is under 3. An answer that cannot be
+read whole (a dimension, a reason, the evidence or an omission missing, a score that
+is not a whole number from 1 to 5) is invalid, and counts neither as a pass nor in
+any score.
+
+The judge is `claude -p` or `codex exec`, with your own login, in an empty folder; no
+API key is read. A claude analyze step needs `CLAUDE_CODE_OAUTH_TOKEN`, as a replay
+does. Nothing is written to the board's queue, to the real repositories or to any
+origin.
+
+### The cases
+
+One Markdown file per case in `scripts/plan_eval/cases/`, named for the spec's
+number: 640, 647 and 653. Each pins the spec's folder, the commit before its code
+landed, the commit that landed it and the sha256 of its archived description, then
+lists, each item with its evidence in the description or the code at the pinned
+commit:
+
+- **Requirements** (R1, R2, …) a good analysis and plan cover;
+- **Code and interactions** (C1, …) they find;
+- **Tests** (T1, …) the change needs;
+- **Serious omissions** (S1, …), each naming the documents it applies to in brackets,
+  `(analysis, plan)` or one of them.
+
+A case is read and edited by hand, and approved by setting its `Approved:` line from
+`no` to the date. `run` refuses any case that is not approved, and any case whose
+pinned commits or description hash no longer match the archive. A case's file hash
+is recorded with every run, so an edited case is a new identity.
+
+### The commands
+
+```bash
+python3 scripts/plan_eval check
+python3 scripts/plan_eval run --aide-commit <sha> --analyze claude opus high \
+  [--advisor opus] [--judge codex gpt-6.1-sol] [--repeat 3] [--cases 640,647]
+python3 scripts/plan_eval compare <baseline run folder> <alternative run folder>
+```
+
+- `check` says per case `ready`, `not approved` or what does not match. It calls no
+  model.
+- `run` generates each case `--repeat` times, from 1 to 5, and judges every
+  generation. The judge is `claude opus` unless `--judge` names another.
+- `compare` refuses two runs unless they share their cases, pinned commits, rubric,
+  judge and repeat count, and differ in exactly one of the Aide commit, the analyze
+  step and the advisor. A skill or prompt change is a different `--aide-commit`, a
+  model change a different `--analyze`.
+
+Run it on the serving host, as a round is run, after checking the board's queue. A
+run costs about what a replay round with analyze only costs: one analysis per case
+and repeat, and two judge turns.
+
+### The reports
+
+A run's folder, `~/.aide/plan-eval/<date>-<time>-<aide commit>/`, holds:
+
+- `run.json` — the identities: the Aide commit, the analyze step, the advisor, the
+  judge, the rubric's hash, the repeat count, the commit the evaluator ran from, and
+  per case its file hash, description hash and pinned commits;
+- `results.json` and `results.md` — a row per case, document and attempt with its
+  outcome, scores, the omissions missed, and the generation's and the judge's time,
+  tokens and cost; per case and document the pass count and each dimension's range;
+  the totals with how many parts measured each figure; every invalid judgment and
+  attempt with no result, with why; and the judge's reasons and evidence;
+- per case and attempt, the runner's log, result and stream, the two documents, and
+  each judge turn's prompt, raw output and reply.
+
+`compare` writes `comparison.md` into the alternative's folder: per case, document and
+dimension, both setups' min–median–max, their pass counts and omissions missed, and
+per setup the totals and the counts of invalid judgments and attempts with no result.
+
+A figure that was not measured reads `not measured`, never 0 or $0.00. Codex reports
+no cost.

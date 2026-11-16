@@ -322,6 +322,7 @@ export function toolRechecker(
   const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool, opts));
   return async (tools) => {
     await Promise.all([...new Set(tools)].map(async (tool) => {
+      if (!CHECKABLE_TOOLS.includes(tool)) return;
       const last = lastChecks()[tool];
       if (inFlight.has(tool)) return;
       if (last && now().getTime() - Date.parse(last.at) < RECHECK_MS) return;

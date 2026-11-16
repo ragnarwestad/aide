@@ -3,6 +3,7 @@ import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import type { Language } from "../../i18n";
 import type { Message } from "../types.ts";
 import { specNumber } from "../../project/spec-folder.ts";
+import { when } from "../usage-limit/get.ts";
 import { formatMessage } from "../format.ts";
 
 export interface GroupStopMember {
@@ -13,18 +14,37 @@ export interface GroupStopMember {
 const endedBadly = (lead: QueueRowView | undefined): boolean =>
   !!lead && ["stopped", "failed", "interrupted", "cancelled"].includes(lead.state);
 
+type GroupStop = Pick<ExecutionGroup, "project" | "state" | "currentMember" | "error"> & Partial<Pick<ExecutionGroup, "jobs" | "stoppedByUser">>;
+
+function stoppedMember(group: GroupStop, members: readonly GroupStopMember[]): GroupStopMember | undefined {
+  return group.currentMember
+    ? members.find((member) => member.specFolder === group.currentMember)
+    : [...(group.jobs ?? [])].reverse().map((job) => members.find((member) =>
+      member.specFolder === job.specFolder && member.lead?.id === job.id && endedBadly(member.lead))).find(Boolean);
+}
+
+export function groupProviderLimitWait(group: GroupStop, members: readonly GroupStopMember[]): QueueRowView | undefined {
+  if (group.state !== "stopped" || group.stoppedByUser) return undefined;
+  const lead = stoppedMember(group, members)?.lead;
+  return lead?.state === "stopped" && lead.stopReason === "provider-limit" &&
+    Number.isFinite(Date.parse(lead.usageLimitWait?.until ?? "")) ? lead : undefined;
+}
+
 export function getGroupStopMessage(
-  group: Pick<ExecutionGroup, "project" | "state" | "currentMember" | "error"> & Partial<Pick<ExecutionGroup, "jobs" | "stoppedByUser">>,
+  group: GroupStop,
   members: readonly GroupStopMember[],
   lang: Language,
 ): { specFolder?: string; notice: Message } | undefined {
   const archiveFailed = group.state === "archiving" && !!group.error;
   if (group.state !== "stopped" && !archiveFailed) return undefined;
   if (group.state === "stopped" && group.stoppedByUser) return { notice: { variant: "info", text: formatMessage(lang, { key: "group.stoppedByUser" }) } };
-  const member = group.currentMember
-    ? members.find((member) => member.specFolder === group.currentMember)
-    : [...(group.jobs ?? [])].reverse().map((job) => members.find((member) =>
-      member.specFolder === job.specFolder && member.lead?.id === job.id && endedBadly(member.lead))).find(Boolean);
+  const waiting = groupProviderLimitWait(group, members);
+  if (waiting) {
+    const sentence = { key: "group.providerLimitWaiting" as const,
+      values: { at: when(waiting.usageLimitWait!.until, Date.now(), lang) } };
+    return { specFolder: waiting.specFolder, notice: { variant: "info", text: formatMessage(lang, sentence), sentence } };
+  }
+  const member = stoppedMember(group, members);
   if (member && (archiveFailed || endedBadly(member.lead))) {
     return {
       specFolder: member.specFolder,

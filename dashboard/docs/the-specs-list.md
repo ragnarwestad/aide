@@ -249,16 +249,11 @@ the held-back message, the test server's, and the preview link's. The preview li
 host has built the spec's branch on, for a project whose manifest says `deployment.previewFrom: cloudflare-pages`; it
 shows in the same window as the test server's link, and only once the build has succeeded.
 
-A spec whose latest analysis was short carries one more notice line, in the info variant of the row message component
-(`rowMessage()`, `dashboard/docs/design-system.md`): "Short analysis: no plan and no plan review". It is read from the
-`Analysis:` bullet in the analyze phase's own file, so it shows on a live, an archived and a closed row alike, and on the
-spec page, which is the list with the row open. A full analysis, or a spec analysed before the bullet existed, draws
-nothing.
-
-A spec implement sent back to a full analysis, or whose analyze wrote a short analysis over a limit, carries one more line in the same variant: "Sent back to a full analysis:
-<the sentence>". It is read from the `Sent back to a full analysis:` bullet in the Tracking info of `1-description.md`,
-the create phase's own file, so it shows on a live and an archived row alike, and on the spec page. Without the bullet,
-or with an empty one, the row draws nothing.
+A spec implement sent back to a full analysis, or whose analyze wrote a short analysis over a limit, carries one more
+notice line, in the info variant of the row message component (`rowMessage()`, `dashboard/docs/design-system.md`): "Sent
+back to a full analysis: <the sentence>". It is read from the `Sent back to a full analysis:` bullet in the Tracking
+info of `1-description.md`, the create phase's own file, so it shows on a live and an archived row alike, and on the
+spec page. Without the bullet, or with an empty one, the row draws nothing.
 
 ## Judging a held-back archive from the row
 
@@ -354,7 +349,8 @@ figure.
 **The Review line under Analyze chooses the AI and model of the plan review.** It offers the same AI and model pickers
 as Implement's Review line, and they are locked where Analyze's own are. With no pick of its own and none in Settings,
 it shows the AI and model Analyze runs on next. Its State is Done once the spec's `3-solution.md` holds a Plan review
-section with a `**Findings:**` line, and "–" before that. Its Time reads "–", and it has no cost and no ›: the review
+section with a `**Findings:**` line. On a short analysis, which writes no plan, it reads Skipped, with the reason in its
+title; otherwise "–" before the review. Its Time reads "–", and it has no cost and no ›: the review
 session's time, cost and log are Analyze's.
 
 **The phase line's State/Action cell says the standard state alone; what explains it is in the unfolded row.** After the

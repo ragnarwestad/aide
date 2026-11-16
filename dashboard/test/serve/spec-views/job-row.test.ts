@@ -152,12 +152,12 @@ describe("jobRow()'s side sessions", () => {
     store.update(queued.job.id, {
       results: [{
         step: "implement", ok: true, costUsd: 0.35, costMeasured: true, terminalReason: "completed",
-        review: { outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens, transcript: { from: 1, to: 9 } },
+        review: { outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens, transcript: { from: 1, to: 9 }, provider: { key: "work", name: "Claude Work" } },
         verify: { outcome: "timeout", tool: "codex" },
       }],
     });
     const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(queued.job.id)!);
-    expect(row.results?.[0]?.review).toEqual({ outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens: 4930 });
+    expect(row.results?.[0]?.review).toEqual({ outcome: "completed", tool: "claude", durationSec: 41, costUsd: 0.05, tokens: 4930, provider: { key: "work", name: "Claude Work" } });
     expect(row.results?.[0]?.verify).toEqual({ outcome: "timeout", tool: "codex" });
   });
 });

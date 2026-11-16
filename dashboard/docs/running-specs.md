@@ -76,8 +76,10 @@ file. A step that hits its own time limit is `stopped`, not `failed` ([A job's s
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
-a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group made from Run uses that dialog's
-phase, AI and model choices for every member; a group made on Jobs uses the choices on each member's own row. Every
+a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group
+made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
+every member's own row; the rows show those choices, and Start uses them. A group made on Jobs uses the choices on
+each member's own row. Every
 member uses the branch named for the group's first member. Stop ends the current job and keeps later members
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
@@ -132,6 +134,8 @@ queue state and that every dependency inside the group comes earlier in the exec
 member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
+A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
+A manual stop remains Stopped.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
 the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
