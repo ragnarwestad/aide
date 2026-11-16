@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { cleanupProcesses, type CleanupProcess } from "../../src/serve/process-cleanup";
 import type { CleanupProgress } from "../../src/serve/process-cleanup/engine.ts";
-import { parseHostProcessLine } from "../../src/serve/process-cleanup/host.ts";
+import { hostProcesses, parseHostProcessLine, parseLsofCwds } from "../../src/serve/process-cleanup/host.ts";
 import { cancelCleanupJob, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
 import { runLogPath } from "../../src/queue/runner/run-log-path.ts";
 
@@ -31,6 +31,22 @@ describe("process cleanup", () => {
     const line = " 201 1 201 Sun Nov  8 04:00:00 2026 bun test";
     expect(parseHostProcessLine(line, "/tmp/aide-pytest-x")?.startedAt)
       .toBe(parseHostProcessLine(line, "/tmp/aide-pytest-x")?.startedAt);
+  });
+
+  test("one lsof answer gives each process its own working directory", () => {
+    const out = "p493\nfcwd\nn/\np633\nfcwd\nn/tmp/aide-pytest-x\np700\nfcwd\n";
+    expect(parseLsofCwds(out)).toEqual(new Map([[493, "/"], [633, "/tmp/aide-pytest-x"]]));
+  });
+
+  // The serving process answers every page: reading the host's processes
+  // must leave it free to answer while ps and lsof run.
+  test("reading the host's processes does not hold the server while it waits", async () => {
+    const order: string[] = [];
+    setTimeout(() => order.push("timer"), 0);
+    const processes = await hostProcesses().then((list) => (order.push("read"), list));
+    expect(order).toEqual(["timer", "read"]);
+    const own = processes.find((p) => p.pid === globalThis.process.pid);
+    expect(own?.cwd).toBe(realpathSync(globalThis.process.cwd()));
   });
 
   test("stops an unregistered test-port owner and logs its identity (AC-5, AC-9)", async () => {
