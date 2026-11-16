@@ -484,6 +484,16 @@ describe("what the header notice says, and about which tools", () => {
 // board found when it started — the login that changed under a running
 // board is the case that cost seven runs.
 describe("the check before a job starts", () => {
+  test("the round's scripted stand-in is not sent to installation checks", async () => {
+    const asked: string[] = [];
+    const recheck = toolRechecker({ check: async (tool) => {
+      asked.push(tool);
+      return { tool, at: new Date().toISOString(), found: true, extra: [] };
+    } });
+    await recheck(["fake-claude" as never]);
+    expect(asked).toEqual([]);
+  });
+
   test("asks for each tool once, and not again within the minute", async () => {
     forgetChecks();
     let clock = Date.parse("2026-09-17T08:00:00.000Z");
