@@ -162,6 +162,12 @@ git -C "$SPECS" push -q origin main
 echo "== preparing the board's own files"
 mkdir -p "$WORK/jobs" "$WORK/checkouts" "$WORK/root"
 ln -sfn "$CODE" "$WORK/root/aide-test"
+# The round owns these throwaway clones; background scans never create them.
+mkdir -p "$WORK/checkouts/aide-test"
+git clone -q "$CODE_ORIGIN" "$WORK/checkouts/aide-test/code"
+git clone -q "$SPECS_ORIGIN" "$WORK/checkouts/aide-test/specs"
+mkdir -p "$WORK/checkouts/aide-test/code/.aide"
+printf 'AIDE_SPECS_PATH=%s\n' "$WORK/checkouts/aide-test/specs" > "$WORK/checkouts/aide-test/code/.aide/config"
 # `concurrency` matches the serving board's own, so the queue behaves the
 # way it does there: how many rows run at once, and which are held back,
 # is the whole of what a round is watched for.

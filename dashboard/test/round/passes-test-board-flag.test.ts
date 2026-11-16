@@ -58,6 +58,11 @@ const FAKE_BUN =
   `if [ "\${2:-}" = "src/serve/serve.ts" ]; then\n` +
   `  port=""; prev=""\n` +
   `  for a in "$@"; do [ "$prev" = "--port" ] && port="$a"; prev="$a"; done\n` +
+  `  prev=""\n` +
+  `  for a in "$@"; do\n` +
+  `    if [ "$prev" = "--dashboard-checkouts" ] && [ -d "$a/aide-test/code/.git" ] && [ -d "$a/aide-test/specs/.git" ] && grep -q "AIDE_SPECS_PATH=$a/aide-test/specs" "$a/aide-test/code/.aide/config"; then echo owned-checkouts-ready >> "$FAKE_BUN_LOG"; fi\n` +
+  `    prev="$a"\n` +
+  `  done\n` +
   `  REALBUN="$(command -v bun)"\n` +
   // Gone on its own after a while: a round kept with --keep leaves it
   // up, and a test that timed out never stopped it.
@@ -154,6 +159,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
       const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toContain("--test-board 424-headeren-sier-hvilket-board");
+      expect(lines).toContain("owned-checkouts-ready");
     } finally {
       await decoy.stop();
     }

@@ -5,7 +5,7 @@
 // one stage that reads every other one.
 
 import type { ServerState } from "../state.ts";
-import { CHANGED_EVENT } from "../sse-watchers.ts";
+import { countedChangedEvent } from "../sse-watchers.ts";
 import { type RoutesContext } from "../routes";
 
 /** Everything `RoutesContext` needs, minus the handful of fields
@@ -28,9 +28,11 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     invalidateScan: () => {
       state.scan = null;
     },
-    // Off the same watchers and writer the page's event stream uses.
+    // Off the same watchers and writer the page's event stream uses, with
+    // the tab counts: a route can change them without moving a job.
     notifyQueueChanged: () => {
-      for (const c of [...inputs.watchers]) inputs.writeTo(c, CHANGED_EVENT);
+      const event = countedChangedEvent();
+      for (const c of [...inputs.watchers]) inputs.writeTo(c, event);
     },
     forgetSpec: inputs.forgetSpec,
     specProgress: inputs.specProgress,

@@ -591,8 +591,9 @@ no plan and no plan review. The limits and the grade are the `SHORT_ANALYSIS_*` 
 approach, the analyze prompt says `A short analysis is allowed for this spec`; any other spec gets the full analysis.
 After the turn (`run-spec/record/short-analysis-check.sh`) the runner reads `Analysis:`, `Grade:` and the acceptance
 criteria count, and counts the source files under `### Files to change` (a test or a Markdown file is not counted).
-Every completed analyze is logged as `short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to
-change, <s> of them source files`. A short one over a limit, with no grade or no files recorded, or on a spec that asks
+Every completed analyze is logged as `analysis: <short (…)|full> — grade <g>, <n> acceptance criteria, <m> files to
+change, <s> of them source files`, where a short one says in brackets that it has no step-by-step plan and so no plan
+review. A short one over a limit, with no grade or no files recorded, or on a spec that asks
 to choose the approach, ends `short-analysis-over-limit`: `ok` false, the error naming each limit crossed. The runner
 writes `- **Sent back to a full analysis:** …` into the description (`record_sent_back`), unless it already carries
 the line, and the board queues Analyze and the steps the stopped job had not run, once per spec

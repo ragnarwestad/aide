@@ -1,10 +1,11 @@
 // The Review and Verify lines under Implement: a session of their own beside
 // the implement session, with its state, time, tokens and cost, and a › that
 // folds out its own part of the step's transcript. The Review line under
-// Analyze says only whether the plan was reviewed: its time and cost are
-// Analyze's own. A line with nothing to say reads "–", as a phase not run does.
+// Analyze says only whether the plan was reviewed, or that a short analysis
+// skipped it: its time and cost are Analyze's own. A line with nothing to say
+// reads "–", as a phase not run does.
 
-import { foldArrow, type ProgressStepState } from "../../../ui/components";
+import { badge, foldArrow, type ProgressStepState } from "../../../ui/components";
 import { esc } from "../../../ui/html.ts";
 import { type SideRunView } from "../../../ui/job-state";
 import { t } from "../../../../i18n";
@@ -39,6 +40,12 @@ export function sideLineState(p: Phase, part: PickPart): ProgressStepState | und
   return run ? sideState(run) : undefined;
 }
 
+/** A short analysis writes no plan, so the Review under Analyze has nothing
+ *  to review and is skipped by design. */
+export function planReviewSkipped(p: Pick<Phase, "fileAnalysis" | "planReviewed">): boolean {
+  return p.fileAnalysis === "short" && !p.planReviewed;
+}
+
 /** The line of one side session, and its log row when it is folded out.
  *  `pickers` is the line's AI and model choice, drawn as it always was. */
 export function sideLines(
@@ -69,7 +76,9 @@ export function sideLines(
     cells:
       `<td class="phasecell" colspan="2">${arrow}<span class="phasefold">${esc(label)}</span></td>` +
       `<td class="modelcell"><span class="row">${pickers}</span></td>` +
-      `<td data-col="state">${state ? stepState(state, lang) : phaseWordCell({ pip: "todo" })}</td>` +
+      `<td data-col="state">${state ? stepState(state, lang)
+        : part === PLAN_REVIEW && planReviewSkipped(p) ? badge("idle", t(lang, "list.planReviewSkipped"), t(lang, "list.planReviewSkippedTitle"))
+        : phaseWordCell({ pip: "todo" })}</td>` +
       `<td data-col="started">${lockedDuration(run?.durationSec === undefined ? undefined : run.durationSec * 1000)}</td>` +
       `<td class="num" data-col="cost">${run ? costCell(run.costUsd ?? 0, run.tokens, "–", run.costUsd !== undefined) : ""}</td>`,
   };

@@ -48,13 +48,12 @@ export function writeTo(ctx: SseWatchersContext, c: ReadableStreamDefaultControl
  *  set is walked because `writeTo` removes from it. */
 export function notifyQueueChanged(ctx: SseWatchersContext): void {
   // Counted once per broadcast, not once per tab.
-  const event = changedEvent(readWaitingCount(), readSpecActivityCounts());
+  const event = countedChangedEvent();
   for (const c of [...ctx.watchers]) writeTo(ctx, c, event);
 }
 
-/** The signal itself: the page asks for its rows. It carries nothing about
- *  them. */
-export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
+/** The changed signal with the tab counts as they stand now. */
+export const countedChangedEvent = (): string => changedEvent(readWaitingCount(), readSpecActivityCounts());
 
 /** Queue-wide counts for the app icon and Jobs tab. Log growth keeps the bare signal. */
 export const changedEvent = (waiting?: number, activity?: SpecTabCounts): string =>

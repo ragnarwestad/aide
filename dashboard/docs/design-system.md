@@ -125,7 +125,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `providerPick()`      | a provider select with its face laid over its own text; the select keeps its box, chevron, focus ring and open list                   |
 
 A badge says the state and nothing else: no reason, no count. Its icon comes from the word itself
-(`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running —
+(`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running, none for Waiting —
 and is drawn by the stylesheet from `data-icon`, so a caller never picks one. At a phone's width the badge is the word
 alone, since the state column there is sized for the word.
 

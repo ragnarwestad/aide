@@ -88,14 +88,15 @@ export function getUsageLimitMessage(
   timeZone?: string,
 ): Message | undefined {
   if (view.state === "stopped" && view.stopReason === "provider-limit" && view.usageLimitWait) {
-    const record = [...(view.results ?? [])].reverse().find((r) => r.providerLimit);
+    const record = [...(view.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit);
+    const limiting = record?.review?.providerLimit ? record.review : record?.verify?.providerLimit ? record.verify : record;
     const step = record?.step ?? currentStep(view);
     const model = (record?.step && view.stepModels?.[record.step]) || view.model;
     return getMessage(lang, {
       key: view.usageLimitWait.resetKnown ? "runner.usageLimitRestarts" : "runner.usageLimitRestartsNoReset",
       values: {
-        who: record?.providerLimit ? limitWho(record.providerLimit.tool, model, record.provider?.name ?? view.provider) : (model ?? "AI"),
-        limit: windowPhrase(record?.providerLimit?.window ?? "", lang),
+        who: limiting?.providerLimit ? limitWho(limiting.providerLimit.tool, model, limiting.provider?.name ?? view.provider) : (model ?? "AI"),
+        limit: windowPhrase(limiting?.providerLimit?.window ?? "", lang),
         step: stepLabel(step, lang),
         at: when(view.usageLimitWait.until, now, lang, timeZone),
         // A group member is started from its group's card, any other job by its step's own button.
