@@ -12,13 +12,34 @@ const group = (extra: Partial<SpecGroup> = {}) => ({
 } as SpecGroup);
 
 describe("a spec's own state", () => {
-  test("shows Created before any job and Idle after settled work (AC-1, AC-2, AC-4)", () => {
+  test("shows Created before work and Idle after settled work", () => {
     expect(specState(group()).key).toBe("created");
     expect(specState(group({ reopenedRound: true })).key).toBe("reopened");
     expect(specState(group({ done: ["analyze"] })).key).toBe("idle");
     expect(specState(group({ done: ["analyze", "implement"] })).key).toBe("idle");
     expect(specState(group({ state: "archived" })).key).toBe("archived");
     expect(specState(group({ state: "closed" })).key).toBe("closed");
+  });
+
+  test("Create alone leaves the spec Created, including a completed Create job", () => {
+    expect(specState(group({ done: ["create"] })).key).toBe("created");
+    const lead = { state: "done", steps: ["create", "analyze"], stepIndex: 0 } as SpecGroup["lead"];
+    expect(specState(group({ done: ["create"], lead })).key).toBe("created");
+  });
+
+  test("a first Analyze stays Active on Specs and Analyzing on Jobs while queued or running", () => {
+    for (const state of ["queued", "running"] as const) {
+      const lead = { state, steps: ["analyze"], stepIndex: 0 } as SpecGroup["lead"];
+      const own = specState(group({ done: ["create"], lead }));
+      expect(own).toEqual({ key: "active", phase: "analyze" });
+      expect(specStateLabel(own, "en", true)).toBe("Active");
+      expect(specStateLabel(own, "en", false)).toBe("Analyzing");
+    }
+  });
+
+  test("an unsuccessful Analyze attempt makes a spec Idle even before Analyze completes", () => {
+    const lead = { state: "failed", steps: ["analyze"], stepIndex: 0 } as SpecGroup["lead"];
+    expect(specState(group({ done: ["create"], lead })).key).toBe("idle");
   });
 
   test("names queued, running and landing work Active with its phase (AC-3)", () => {
@@ -63,7 +84,7 @@ test("inactive, removed and other projects' groups do not reserve a spec", () =>
     { ...execution, state: "running" as const, project: "another" },
   ]) {
     const row = groupBySpec([], targets, undefined, undefined, Date.now(), undefined, [entry])[0]!;
-    expect(specState(row).key).toBe("idle");
+    expect(specState(row).key).toBe("created");
     expect(specRunChoices(row, {}).length).toBeGreaterThan(0);
   }
 });
