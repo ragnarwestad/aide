@@ -82,7 +82,7 @@ export class BranchStatusChecker {
   /** The drift answer, in its own map. `cache` holds a boolean and this
    *  one a number-or-null: widening the existing field's type would let
    *  either question be answered with the other's answer. */
-  private readonly driftCache = new Map<string, { at: number; behind: number | null }>();
+  private readonly driftCache = new Map<string, { at: number; behind: number | null; reached: boolean }>();
   /** The archived answer, in a map of its own for the same reason
    *  `driftCache` has one: a set-or-null is not a boolean, and one
    *  field holding both would let either question be answered with the
@@ -236,6 +236,7 @@ export class BranchStatusChecker {
     if (!fresh && hit && at - hit.at < this.ttlMs) return hit.behind;
 
     let behind: number | null = null;
+    let reached = false;
     try {
       const base = await this.defaultBranch(projectDir);
       if (base) {
@@ -247,6 +248,7 @@ export class BranchStatusChecker {
             await this.wait(FETCH_LOCK_RETRIES.waitMs);
             fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
           }
+          reached = fetched.code === 0;
           if (reach && fetched.code !== 0) return null;
           const count = await this.run(projectDir, [
             "rev-list", "--count", `HEAD..refs/remotes/origin/${base}`,
@@ -265,8 +267,13 @@ export class BranchStatusChecker {
     // An answer asked earlier than the one already kept is older than it,
     // even when it arrives later: it is returned, and the newer one is kept.
     const kept = this.driftCache.get(projectDir);
-    if (!kept || kept.at <= at) this.driftCache.set(projectDir, { at, behind });
+    if (!kept || kept.at <= at) this.driftCache.set(projectDir, { at, behind, reached });
     return behind;
+  }
+
+  /** Whether the latest drift check fetched origin successfully. */
+  reachedOrigin(projectDir: string): boolean {
+    return this.driftCache.get(projectDir)?.reached ?? false;
   }
 
   /** The LAST answer this checker holds for `projectDir`, without asking

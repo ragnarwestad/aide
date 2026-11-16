@@ -1,9 +1,9 @@
 // The header's Deploy mark: the deploy icon and the number of commits a
-// Deploy would take in, beside the board's name, linking to the Deploy tab
-// of the board's own project. Its slot is drawn with nothing to deploy too,
+// Deploy would take in, beside the board's name. Its slot is drawn with nothing to deploy too,
 // at the same width and empty, so the header never moves as it comes and goes.
 
 import { t, type Language } from "../../../i18n";
+import { deployAskDialog } from "../../pages/projects-page/deploy-dialog.ts";
 import { KIND_ICONS } from "../components/icons.ts";
 import { esc } from "../html.ts";
 
@@ -12,9 +12,14 @@ export interface DeployWaiting {
   project: string;
   /** How many commits a Deploy pressed now would take in. */
   commits: number;
+  /** The default branch the check compared with. */
+  branch: string;
 }
 
 let waitingNow: (() => DeployWaiting | undefined) | undefined;
+
+/** The header's Deploy question; the Deploy tab uses `deployask`. */
+export const DEPLOY_MARK_DIALOG = "deploymarkask";
 
 /** Where the header reads what is waiting: the drift poll's last answer. */
 export function setDeployWaiting(source: (() => DeployWaiting | undefined) | undefined): void {
@@ -26,8 +31,22 @@ export const currentDeployWaiting = (): DeployWaiting | undefined => waitingNow?
 
 export function deployMark(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
   if (!waiting) return `<span class="deploymark" aria-hidden="true"></span>`;
+  if (waiting.commits === 0) {
+    const label = esc(t(lang, "shell.deployUpToDate", { project: waiting.project, branch: waiting.branch }));
+    return `<span class="deploymark uptodate" role="img" title="${label}" aria-label="${label}"></span>`;
+  }
   const key = waiting.commits === 1 ? "shell.deployWaitingOne" : "shell.deployWaiting";
   const label = esc(t(lang, key, { project: waiting.project, count: waiting.commits }));
-  const href = `/projects/${encodeURIComponent(waiting.project)}?tab=deploy`;
-  return `<a class="deploymark" href="${href}" title="${label}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></a>`;
+  return `<button class="deploymark iconlink" type="button" data-ask="${DEPLOY_MARK_DIALOG}" title="${label}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
+}
+
+/** The Deploy tab's question, drawn by the same function for the header. */
+export function deployMarkDialog(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
+  return waiting && waiting.commits > 0 ? deployAskDialog(lang, waiting.project, DEPLOY_MARK_DIALOG) : "";
+}
+
+/** The fragment an open page receives when the mark changes. */
+export function deployMarkAnswer(lang: Language): string {
+  const waiting = waitingNow?.();
+  return deployMark(lang, waiting) + deployMarkDialog(lang, waiting);
 }

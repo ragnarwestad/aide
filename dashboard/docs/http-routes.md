@@ -247,7 +247,7 @@ dispatcher.
 |------------------------|--------|------------------------------------|------------------------------------------------------------------------|-----------|
 | `POST /api/aide-run`   | action | JSON: a session's report of itself | `{ ok, sessionId }`; 400 for a malformed body                          | interface |
 | `GET /api/aide-runs`   | read   | nothing                            | `{ generatedAt, rows }`: the sessions in flight                        | interface |
-| `GET /api/deploy-mark` | read   | nothing                            | the header's Deploy mark as HTML, in the reader's language             | interface |
+| `GET /api/deploy-mark` | read   | nothing                            | the header's Deploy mark and, while commits wait, its question as HTML | interface |
 | `GET /api/version`     | read   | nothing                            | `{ sha, startedAt }`: the commit this process runs, and when it booted | interface |
 
 ### Pages

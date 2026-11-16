@@ -9,6 +9,7 @@ const inputs = (o: Partial<DeployWaitingInputs> & { ahead?: string } = {}): Depl
   projectDir: (p) => `/checkouts/${p}`,
   serving: { sha: "s1", repoRoot: "/checkouts/aide" },
   canDeploy: () => true,
+  reachedOrigin: () => true,
   defaultBranch: async () => "main",
   run: async (_dir, args) =>
     args[0] === "rev-list" && args[2] === "s1..refs/remotes/origin/main"
@@ -18,12 +19,20 @@ const inputs = (o: Partial<DeployWaitingInputs> & { ahead?: string } = {}): Depl
 });
 
 describe("whether the board has something to deploy", () => {
-  test("names the board's own project and the commit count when origin's default branch has commits the server does not run", async () => {
-    expect(await deployWaiting(inputs())).toEqual({ project: "aide", commits: 2 });
+  test("names the board's own project, branch and commit count when origin has new commits (AC-3)", async () => {
+    expect(await deployWaiting(inputs())).toEqual({ project: "aide", commits: 2, branch: "main" });
   });
 
-  test("names nothing when the server runs what origin has", async () => {
-    expect(await deployWaiting(inputs({ ahead: "0" }))).toBeUndefined();
+  test("names the project as up to date after origin was reached (AC-4)", async () => {
+    expect(await deployWaiting(inputs({ ahead: "0" }))).toEqual({ project: "aide", commits: 0, branch: "main" });
+  });
+
+  test("names nothing at zero commits when origin was not reached (AC-5)", async () => {
+    expect(await deployWaiting(inputs({ ahead: "0", reachedOrigin: () => false }))).toBeUndefined();
+  });
+
+  test("names nothing from an old positive count when origin was not reached (AC-5)", async () => {
+    expect(await deployWaiting(inputs({ ahead: "2", reachedOrigin: () => false }))).toBeUndefined();
   });
 
   test("names nothing where Deploy is not offered: no install command", async () => {
@@ -34,7 +43,7 @@ describe("whether the board has something to deploy", () => {
     expect(await deployWaiting(inputs({ serving: { sha: "s1", repoRoot: "/elsewhere" } }))).toBeUndefined();
   });
 
-  test("names nothing when git cannot answer", async () => {
+  test("names nothing when git cannot answer (AC-5)", async () => {
     expect(await deployWaiting(inputs({ run: async () => ({ code: 128, stdout: "", stderr: "bad" }) }))).toBeUndefined();
     expect(await deployWaiting(inputs({ serving: { sha: null, repoRoot: "/checkouts/aide" } }))).toBeUndefined();
   });
