@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
-import { executionGroupCard, executionGroupPlace, memberPipKind, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import { executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
 import { pips, rowMessage, stepLabel } from "../../../../src/render/ui/components";
@@ -244,11 +244,11 @@ test("an editable card opens its filled Edit dialog", () => {
 
 test("each member's pip is marked with its spec number, in the group's order", () => {
   const second = member("798-second", "<tr>second</tr>");
-  const first = member("797-first", "<tr>first</tr>");
-  const execution = { ...group("running"), members: ["798-second", "797-first"], completedMembers: ["798-second"] };
+  const first = member("797-first", "<tr>first</tr>", { lead: { state: "running", steps: ["implement"], stepIndex: 0 } as SpecGroup["lead"] });
+  const execution = { ...group("running"), currentMember: "797-first", members: ["798-second", "797-first"], completedMembers: ["798-second"] };
   expect(executionGroupCard(execution, [first, second])).toContain(pips([
     { kind: memberPipKind(second.group, true), title: "798-second", label: "798" },
-    { kind: memberPipKind(first.group, false), title: "797-first", label: "797" },
+    { kind: memberPipKind(first.group, false), title: "797-first", label: "797 I" },
   ]));
 });
 
@@ -259,4 +259,24 @@ test("a queued group uses its current member's queue position rather than anothe
   expect(executionGroupStateLabel(execution, [second, first], "en")).toBe(t("en", "list.stateQueuedPosition", { n: 2, total: 2 }));
   expect(executionGroupStateLabel({ ...execution, state: "running" }, [first], "en")).toBe(t("en", "list.groupState.running"));
   expect(executionGroupStateLabel(execution, [], "en")).toBe(t("en", "list.groupState.queued"));
+});
+
+
+test("a running member adds its current phase's letter to the spec number", () => {
+  const job = { state: "running", steps: ["analyze", "implement"], stepIndex: 1 } as SpecGroup["lead"];
+  expect(memberPipLabel("825-member", job)).toBe("825 I");
+});
+
+
+test("a member without an active step keeps just its number", () => {
+  expect(memberPipLabel("825-member")).toBe("825");
+  for (const state of ["queued", "stopped", "failed", "done"]) {
+    expect(memberPipLabel("825-member", { state, steps: ["implement"], stepIndex: 0 } as SpecGroup["lead"])).toBe("825");
+  }
+});
+
+test("phase letters follow the existing phase labels", () => {
+  for (const [step, letter] of [["analyze", "A"], ["archive", "A"], ["create", "C"]]) {
+    expect(memberPipLabel("825-member", { state: "running", steps: [step], stepIndex: 0 } as SpecGroup["lead"])).toBe(`825 ${letter}`);
+  }
 });
