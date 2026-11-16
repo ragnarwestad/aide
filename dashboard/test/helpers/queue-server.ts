@@ -251,6 +251,20 @@ export const statusSaying = (steps: string[], rest = ""): string =>
 export const stateSaying = (steps: string[]): string =>
   JSON.stringify({ completedPhases: steps, archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} });
 
+/** A page of the board once `ok` holds of it, asked again until it does or
+ *  the budget runs out; the last answer is returned either way, so the
+ *  assertion after it names what is missing. What a spec has done is what
+ *  the specs scan has read, on its own schedule: a test that asks straight
+ *  after the start races that scan, and a loaded host loses the race. */
+export async function pageUntil(base: string, path: string, ok: (html: string) => boolean, budgetMs = 10_000): Promise<string> {
+  const deadline = Date.now() + budgetMs;
+  for (;;) {
+    const html = await (await fetch(`${base}${path}`)).text();
+    if (ok(html) || Date.now() > deadline) return html;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}
+
 /** A spec implement has run on: any step may be queued for it. */
 export const IMPLEMENTED = statusSaying(["create", "analyze", "implement"]);
 
