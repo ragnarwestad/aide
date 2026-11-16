@@ -488,3 +488,15 @@ test("Jobs dates drive both the spec row and its position relative to Deploy, wh
     { key: "807", facts: onJobs!.group, place },
   ], { sort: "created", dir: "desc" }).map((row) => row.key)).toEqual(["807", "deploy"]);
 });
+
+test("Land names its exact source branch and has its own row kind", () => {
+  const row = { project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "fix/stop-land-before-push" };
+  expect(jobTitle(row)).toBe("Land: fix/stop-land-before-push");
+  expect(jobRowKind(row)).toBe("land");
+});
+
+test("Land offers Stop only before its push boundary", () => {
+  const row = { state: "running" as const, steps: ["land"], stepIndex: 0 };
+  expect(jobControl(row)).toBe("stop");
+  expect(jobControl({ ...row, landPushStarted: true })).toBeUndefined();
+});

@@ -167,6 +167,7 @@ export async function landBranch(
         );
       retryUnlanded.set(repo.root, merge);
       let result = await merge();
+      if (what.cancelled?.()) return;
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
       const repeats = landingRepeats(first, !!handed.specOnly);
@@ -455,6 +456,7 @@ export async function landBranch(
       }
     }
   } catch (err) {
+    if (what.cancelled?.()) return;
     // Never rethrown: the `landing` flag holds this job's own next
     // step, and the runner clears it when this promise settles — which
     // it must do, however this went.

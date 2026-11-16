@@ -31,13 +31,7 @@ export const USAGE_LIMIT_CATALOG = {
     es: "{who}: {limit} está agotado — {step} se reinicia solo a las {at}",
     de: "{who}: {limit} ist aufgebraucht — {step} startet von selbst neu um {at}",
     fr: "{who} : {limit} est épuisé — {step} redémarre de lui-même à {at}",
-    solution: {
-      en: "to run it sooner, choose another AI on the {step} line and press {button}",
-      nb: "for å kjøre den før, velg en annen AI på {step}-linjen og trykk {button}",
-      es: "para ejecutarlo antes, elige otra IA en la línea de {step} y pulsa {button}",
-      de: "um es früher auszuführen, wähle eine andere KI in der Zeile {step} und klicke auf {button}",
-      fr: "pour l'exécuter plus tôt, choisissez une autre IA sur la ligne {step} et cliquez sur {button}",
-    },
+    statement: "the board restarts the same step automatically",
   },
   "runner.usageLimitRestartsNoReset": {
     en: "{who}: {limit} is used up, and the AI did not say when it resets — {step} starts again by itself when the board tries again at {at}",
@@ -45,13 +39,7 @@ export const USAGE_LIMIT_CATALOG = {
     es: "{who}: {limit} está agotado, y la IA no dijo cuándo se restablece — {step} se reinicia solo cuando el dashboard lo intente de nuevo a las {at}",
     de: "{who}: {limit} ist aufgebraucht, und die KI hat nicht gesagt, wann es zurückgesetzt wird — {step} startet von selbst neu, wenn das Dashboard es erneut versucht um {at}",
     fr: "{who} : {limit} est épuisé, et l'IA n'a pas dit quand elle se réinitialise — {step} redémarre de lui-même quand le dashboard réessaie à {at}",
-    solution: {
-      en: "to run it sooner, choose another AI on the {step} line and press {button}",
-      nb: "for å kjøre den før, velg en annen AI på {step}-linjen og trykk {button}",
-      es: "para ejecutarlo antes, elige otra IA en la línea de {step} y pulsa {button}",
-      de: "um es früher auszuführen, wähle eine andere KI in der Zeile {step} und klicke auf {button}",
-      fr: "pour l'exécuter plus tôt, choisissez une autre IA sur la ligne {step} et cliquez sur {button}",
-    },
+    statement: "the board restarts the same step automatically",
   },
   "wordPhase.stopProviderLimit": {
     en: "the AI's usage limit was reached — the step starts again by itself once the limit resets",

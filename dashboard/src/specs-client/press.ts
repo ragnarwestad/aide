@@ -1,6 +1,7 @@
 // Post a form as JSON-wanting XHR and lock the row while it is out —
 // the one press mechanism every button and select on this page shares.
 
+import { groupPhaseChoices } from "./spec-groups";
 import { clearRefusal } from "./row-refusal";
 import { specRowsOf } from "./row-swap/index.ts";
 import { press } from "./state.ts";
@@ -202,6 +203,9 @@ export async function postForm(
     new FormData(form).forEach((value, key) => {
       if (typeof value === "string") body.append(key, value);
     });
+    if (/\/api\/queue\/groups\/[^/]+\/action$/.test(url.pathname) && body.get("action") === "start") {
+      body.set("memberSteps", JSON.stringify(groupPhaseChoices(form)));
+    }
     pressed();
     let res: Response;
     try {

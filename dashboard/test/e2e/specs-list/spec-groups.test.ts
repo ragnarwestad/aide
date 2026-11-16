@@ -98,3 +98,39 @@ test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () =>
   await page.getByRole("button", { name: "Release", exact: true }).click();
   expect(await page.getByRole("button", { name: "Stop", exact: true }).count()).toBe(1);
 });
+
+test("Stop opens an automatic group's phase choices and Start uses the new selection", async () => {
+  const waitingHarness = queueHarness("aide-e2e-group-wait-");
+  const folder = "81-queue-and-runner";
+  const job = { id: "waiting", project: "aide", specFolder: folder, executionGroupId: "waiting-group",
+    steps: ["analyze", "implement"], stepIndex: 0, state: "stopped", stopReason: "provider-limit",
+    usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true },
+    model: {}, timeoutSec: {}, permissionMode: {}, results: [], createdAt: "2026-11-16T10:00:00Z" };
+  const { base: waitingBase } = waitingHarness.start({ description: description(folder, 1), alsoSpecs: ["82-next"],
+    alsoDescriptions: { "82-next": description("82-next", 2) }, queueMirror: JSON.stringify([job]),
+    executionGroups: [{ id: "waiting-group", project: "aide", name: "Release", members: [folder, "82-next"],
+      branch: "group/release", state: "stopped", currentMember: folder, completedMembers: [], jobs: [] }],
+    extra: { queueDefaults: { model: { default: "sonnet" }, modelChoices: { sonnet: {}, opus: {} },
+      timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" } } },
+  });
+  const p = await browser.newPage();
+  try {
+    await p.goto(`${waitingBase}/?live=0`);
+    await p.getByRole("button", { name: "Release", exact: true }).click();
+    await p.locator(`tr[data-folder="${folder}"] a.fold`).click();
+    const analyze = p.getByRole("checkbox", { name: "Analyze", exact: true });
+    expect(await analyze.isDisabled()).toBe(true);
+    expect(await p.locator('select[name="model.analyze"]').isEnabled()).toBe(true);
+    const stopped = p.waitForResponse((r) => r.url().endsWith("/action") && r.request().method() === "POST");
+    await p.getByRole("button", { name: "Stop", exact: true }).click();
+    expect((await stopped).status()).toBe(200);
+    await analyze.waitFor();
+    await analyze.uncheck();
+    await p.getByRole("checkbox", { name: "Implement", exact: true }).check();
+    const started = p.waitForResponse((r) => r.url().endsWith("/action") && r.request().method() === "POST");
+    await p.getByRole("button", { name: "Start", exact: true }).click();
+    const response = await started;
+    expect(response.status()).toBe(200);
+    expect((await response.json()).job.steps).toEqual(["implement"]);
+  } finally { await p.close(); waitingHarness.cleanup(); }
+});

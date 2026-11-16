@@ -280,6 +280,8 @@ export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateChoices {
   /** The spec belongs to an unfinished execution group, so individual Run is unavailable. */
   executionGroupActive?: boolean;
+  /** Automatic retry keeps the phase plan fixed until the user presses Stop. */
+  executionGroupAutomaticWait?: boolean;
   /** The group's queued, running or archiving work reserves the spec's other controls. */
   executionGroupReserved?: boolean;
   /** At least one queue job remains in this spec's history, across all rounds. */

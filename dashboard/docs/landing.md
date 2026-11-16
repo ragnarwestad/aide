@@ -253,4 +253,7 @@ and the CODE root of an `archive` landing is not merged.
 Land applies the same merge lock and test gate to a named branch already on origin. A conflict or red tests leave the
 default branch unchanged. A successful Land pushes the tested merge and deletes the source branch. Deploy is still a
 separate action.
+Stop cancels a queued Land or interrupts its merge and tests before push, keeping the source branch and leaving the
+remote default branch unchanged. Once push begins, Stop is unavailable and the operation finishes reporting its result.
+A cancelled Land never restarts automatically; the same branch can be submitted again.
 

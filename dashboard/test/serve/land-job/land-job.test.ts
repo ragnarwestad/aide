@@ -75,3 +75,15 @@ describe("the Land board job", () => {
     expect(readFileSync(runLogPath(f.stream), "utf8")).toContain("Delete source branch — stopped: branch delete failed");
   });
 });
+
+test("the test gate writes progress into the Land job's run log", async () => {
+  const { stepLogLine } = await import("../../../src/serve/land-branch/test-gate.ts");
+  const f = fixture();
+  const land = async (_ctx: unknown, job: Parameters<typeof stepLogLine>[0]) => {
+    stepLogLine(job, "tests: pytest 40%");
+  };
+  createLandJob({ queue: f.queue, machineryProjectDir: () => "/project" } as never, land as never)
+    .start(f.job, f.result, f.stream);
+  await Bun.sleep(20);
+  expect(readFileSync(runLogPath(f.stream), "utf8")).toContain("tests: pytest 40%");
+});

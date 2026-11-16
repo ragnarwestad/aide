@@ -153,7 +153,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   return (
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang, href: links?.settings })}${report}</div></td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang, title: row.branch ? name : undefined, href: links?.settings })}${report}</div></td></tr>` +
     // When the job was made and a pip per step, where a spec's row has its
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +

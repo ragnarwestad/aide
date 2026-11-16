@@ -11,7 +11,7 @@ import { postPendingModel } from "../pending-model.ts";
 import { relabelRunButton, swapRows } from "../row-swap/index.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "../state.ts";
 import { postTailModel, postTailStep } from "../tail-actions.ts";
-import { syncSpecGroups, toggleSpecGroup } from "../spec-groups";
+import { rememberGroupPhases, syncSpecGroups, toggleSpecGroup } from "../spec-groups";
 import { changeExecutionGroupEditor, closeExecutionGroupEditor, syncExecutionGroupEditors } from "../execution-groups/editor.ts";
 
 // Delegated from the container, because the controls are replaced along
@@ -101,6 +101,7 @@ const onRowsChange = ((event: Event) => {
   ) as HTMLInputElement | null;
   if (step) {
     chosenSteps.set(checkboxKey(step), step.checked);
+    if (step.name === "steps") rememberGroupPhases(step);
     if (step.name === "tick" || step.name === "unverified" || step.name === "failed") {
       for (const other of ["tick", "unverified", "failed"].filter((n) => n !== step.name)) {
         const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;

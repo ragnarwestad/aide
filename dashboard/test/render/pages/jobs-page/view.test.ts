@@ -95,7 +95,7 @@ describe("kind choices narrow rows independently of state", () => {
   const kinds = [running, close, reopen, deploy, nightly, cleanup, group];
 
   test("All is the default and several kinds keep every matching row (AC-1, AC-3)", () => {
-    expect(JOBS_KIND_FILTERS).toEqual(["all", "spec", "deploy", "schedule", "cleanup", "group"]);
+    expect(JOBS_KIND_FILTERS).toEqual(["all", "spec", "land", "deploy", "schedule", "cleanup", "group"]);
     expect(jobsKindFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
     expect(view(kinds, { kind: "deploy,schedule" })).toEqual(["nightly", "deploy"]);
   });
@@ -123,7 +123,7 @@ describe("kind choices narrow rows independently of state", () => {
   test("kind counts use the rows left by search and mark every chosen kind (AC-6, AC-7)", () => {
     const options = jobsKindOptions(factsOf(kinds), { q: "aide", kind: "spec,group" });
     expect(options.map((option) => [option.key, option.count])).toEqual([
-      ["all", 7], ["spec", 3], ["deploy", 1], ["schedule", 1], ["cleanup", 1], ["group", 1],
+      ["all", 7], ["spec", 3], ["land", 0], ["deploy", 1], ["schedule", 1], ["cleanup", 1], ["group", 1],
     ]);
     expect(options.filter((option) => option.on).map((option) => option.key)).toEqual(["spec", "group"]);
   });
@@ -291,7 +291,7 @@ describe("a group stands for its member specs, each by its own state", () => {
     expect(view([grouped], filter)).toEqual(["specs-jobs-improvements"]);
     expect(counts([grouped], filter)).toMatchObject({ all: 2, queued: 1, waiting: 0, failed: 1 });
     expect(jobsKindOptions(factsOf([grouped]), filter).map((option) => [option.key, option.count])).toEqual([
-      ["all", 1], ["spec", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 1],
+      ["all", 1], ["spec", 0], ["land", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 1],
     ]);
   });
 
@@ -415,4 +415,12 @@ describe("the columns sort as the Specs list's do, newest created first by defau
     expect(link.searchParams.get("state")).toBe("stopped,failed");
     expect(link.searchParams.get("q")).toBe("night");
   });
+});
+
+test("Types counts and filters Land independently of Deploy", () => {
+  const land = jobEntry("land", { specFolder: "land", steps: ["land"], branch: "topic" });
+  const deploy = jobEntry("deploy", { specFolder: "deploy", steps: ["deploy"] });
+  expect(view([land, deploy], { kind: "land" })).toEqual(["land"]);
+  expect(view([land, deploy], { kind: "deploy" })).toEqual(["deploy"]);
+  expect(jobsKindOptions([land.facts, deploy.facts], {}).find((entry) => entry.key === "land")?.count).toBe(1);
 });

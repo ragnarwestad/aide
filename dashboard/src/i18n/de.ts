@@ -167,6 +167,8 @@ export const de: Record<TranslationKey, string> = {
   "jobs.kindHeading": "Typ",
   "jobs.typesLabel": "Typen",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Bereitstellung",
   "jobs.kindSchedule": "Geplanter Job",
   "jobs.kindCleanup": "Bereinigung",
