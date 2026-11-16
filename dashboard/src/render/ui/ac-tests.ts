@@ -17,12 +17,12 @@ function displayName(name: string): string {
   return shortened.trim() ? shortened : name;
 }
 
-export function prepareAcTests(tests: AcTest[]): { file: string; names: string[] }[] {
-  const groups = new Map<string, { file: string; names: string[] }>();
+export function prepareAcTests(tests: AcTest[]): { file: string; names: string[]; kind?: AcTest["kind"] }[] {
+  const groups = new Map<string, { file: string; names: string[]; kind?: AcTest["kind"] }>();
   for (const test of tests) {
     let group = groups.get(test.file);
     if (!group) {
-      group = { file: test.file, names: [] };
+      group = { file: test.file, names: [], ...(test.kind ? { kind: test.kind } : {}) };
       groups.set(test.file, group);
     }
     group.names.push(displayName(test.name));
@@ -40,13 +40,21 @@ export function acTestsLine(row: { task: string; tests?: AcTest[]; untested?: bo
   if (!row.tests?.length) return "";
   // The number and not the id: the markup holds no `AC-` text.
   const number = /^AC-(\d+):/.exec(row.task)?.[1] ?? "";
-  const folds = prepareAcTests(row.tests).map(group =>
-    foldDisclosure({
-      summary: `${esc(group.file)} (${group.names.length})`,
-      body: group.names.map(esc).join("<br>"),
-      data: { testfile: `${scope}|${number}|${group.file}` },
-    }),
-  );
-  const heading = t(lang, "checks.coveredBy", { names: "" }).trimEnd();
-  return `<div class="checktests">${esc(heading)}${folds.join("")}</div>`;
+  const groups = prepareAcTests(row.tests);
+  const kindLabel = (kind: "unit" | "browser") => t(lang, kind === "unit" ? "checks.unit" : "checks.browser");
+  const kindIcon = (kind: "unit" | "browser"): string => {
+    const label = kindLabel(kind);
+    return `<span class="testkind"><span class="testkindicon ${kind}" role="img" aria-label="${esc(label)}"></span>${esc(label)}</span>`;
+  };
+  const kinds = (["unit", "browser"] as const).filter((kind) => row.tests!.some((test) => test.kind === kind));
+  const body = groups.map((group) =>
+    `<div class="testfile"><span class="testfilepath">${esc(group.file)}${group.kind === "browser" ? kindIcon("browser") : ""}</span>` +
+    `<div class="testnames">${group.names.map(esc).join("<br>")}</div></div>`,
+  ).join("");
+  return `<div class="checktests">${foldDisclosure({
+    summary: kinds.map(kindIcon).join(""),
+    body,
+    data: { testcriterion: `${scope}|${number}` },
+    arrowAfter: true,
+  })}</div>`;
 }

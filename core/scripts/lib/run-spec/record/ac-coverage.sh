@@ -49,6 +49,36 @@ ac_coverage_is_test_line() {   # $1: the line
   printf '%s\n' "$1" | grep -qE '^[[:space:]]*((test|it)(\.[A-Za-z]+)*[[:space:]]*\(|(async[[:space:]]+)?def[[:space:]]+test|func[[:space:]]+Test)'
 }
 
+ac_coverage_test_kind() {   # $1: worktree  $2: repo-relative path
+  local file="$1/$2"
+  if [ -f "$file" ] && perl -0ne '
+      s{/\*.*?\*/}{}gs; s{^[ \t]*//.*$}{}gm; s{^[ \t]*\#.*$}{}gm;
+      exit !(
+        /\b(?:import|export)\s+(?:type\s+)?(?:\{.*?\}|\*\s+as\s+\w+|[\w\$]+(?:\s*,\s*(?:\{.*?\}|\*\s+as\s+\w+))?)\s+from\s*["\x27](?:\@playwright\/test|playwright)["\x27]/s
+        || /\bimport\s*["\x27](?:\@playwright\/test|playwright)["\x27]/
+        || /\brequire\s*\(\s*["\x27](?:\@playwright\/test|playwright)["\x27]\s*\)/
+        || /^\s*(?:from\s+playwright(?:[._\s]|$)|import\s+playwright(?:[._\s]|$))/m
+      )' "$file"; then
+    printf 'browser\n'
+  else
+    printf 'unit\n'
+  fi
+}
+
+# Add the kind as a fourth field, reading each unique test file once.
+ac_coverage_add_kinds() {   # $1: worktree; stdin: ac_coverage_refs
+  local worktree="$1" id file name kind kinds=""
+  while IFS="$(printf '\t')" read -r id file name; do
+    kind="$(printf '%s' "$kinds" | awk -F '\t' -v file="$file" '$1 == file { print $2; exit }')"
+    if [ -z "$kind" ]; then
+      kind="$(ac_coverage_test_kind "$worktree" "$file")"
+      kinds="${kinds}${file}$(printf '\t')${kind}
+"
+    fi
+    printf '%s\t%s\t%s\t%s\n' "$id" "$file" "$name" "$kind"
+  done
+}
+
 # "<id><TAB><file><TAB><name>" for every AC reference in an added line
 # that starts a test. The name is the line's first quoted string — a
 # test's own title — or the line itself where it has none (a Python
@@ -81,11 +111,12 @@ write_ac_coverage() {
   [ -n "$ids" ] || return 0
   base_ref="$(default_ref "$project_wt" "$project_root")"
   if ac_coverage_added_lines "$project_wt" "$base_ref" | ac_coverage_refs \
+    | ac_coverage_add_kinds "$project_wt" \
     | jq -R -s --arg ids "$ids" '
-        [split("\n")[] | select(length > 0) | split("\t") | {id: .[0], file: .[1], name: .[2]}] as $refs
+        [split("\n")[] | select(length > 0) | split("\t") | {id: .[0], file: .[1], name: .[2], kind: .[3]}] as $refs
         | {acs: ([$ids | split("\n")[] | select(length > 0)]
                  | map(. as $id | {key: $id,
-                                   value: ([$refs[] | select(.id == $id) | {file, name}] | unique)})
+                                   value: ([$refs[] | select(.id == $id) | {file, name, kind}] | unique)})
                  | from_entries)}' \
       > "$folder/${AIDE_AC_COVERAGE_FILE}.tmp" 2>/dev/null; then
     mv "$folder/${AIDE_AC_COVERAGE_FILE}.tmp" "$folder/${AIDE_AC_COVERAGE_FILE}" \

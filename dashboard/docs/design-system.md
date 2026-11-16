@@ -141,6 +141,10 @@ uses `--tab-jobs`, and Projects uses `--tab-projects`; both tokens have light an
 state and kind colours. The Projects icon also stands before the project's name on every row of Jobs and the Specs
 list, inside the link to the project's page, in `--tab-projects`.
 
+Acceptance criteria use two test-kind icons drawn from stylesheet tokens: `--icon-test-unit` is a laboratory flask for
+Unit, and `--icon-test-browser` is a browser window for Browser. Each icon appears with its translated word and carries
+the same word as its accessible name. Browser test-file paths repeat the Browser icon inside the criterion's test fold.
+
 `STEP_LABELS` is re-exported from there and lives in `src/format/step-label.ts` — a step's technical name mapped to
 the word a reader sees, with a sibling table per language (`STEP_LABELS_NB` and three more), while `data-phase`, the
 checkbox `value`, the queue step and the skill all keep the technical name regardless.

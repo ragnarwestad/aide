@@ -173,6 +173,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
             ? withAcCoverage(
                 (progress.from === "branch" ? branchAnswer?.acceptance : undefined) ?? acceptanceRowsOf(statusText),
                 branchAnswer?.acCoverage ?? readAcCoverage(s.dir),
+                ctx.machineryProjectDir(p.name),
               )
             : undefined,
           // The approaches waiting for the person who asked to choose,

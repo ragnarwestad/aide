@@ -54,8 +54,9 @@ export function foldArrowDisabled(): string {
  *  inside a row, where a click must not load the page or ask the server.
  *  `summary` and `body` are trusted markup; the caller escapes what it
  *  hands in. */
-export function foldDisclosure(o: { summary: string; body: string; data?: Record<string, string> }): string {
-  return `<details class="foldbox"${dataAttrs(o.data)}><summary>${ICON_CHEVRON}${o.summary}</summary>${o.body}</details>`;
+export function foldDisclosure(o: { summary: string; body: string; data?: Record<string, string>; arrowAfter?: boolean }): string {
+  const summary = o.arrowAfter ? `${o.summary}${ICON_CHEVRON}` : `${ICON_CHEVRON}${o.summary}`;
+  return `<details class="foldbox"${dataAttrs(o.data)}><summary>${summary}</summary>${o.body}</details>`;
 }
 
 export function foldButton(o: { label: string; open: boolean; data: Record<string, string> }): string {

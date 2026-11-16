@@ -189,7 +189,7 @@ export function archivedSpecRows(
       // Read for the specs that have something to unfold, no others.
       acceptance:
         (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
-          ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir))
+          ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir), ctx.machineryProjectDir?.(project))
           : undefined,
       closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });

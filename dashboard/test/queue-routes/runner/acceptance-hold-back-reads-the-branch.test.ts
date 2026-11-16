@@ -84,6 +84,7 @@ async function warmedWith(specDir: string, prose: string, stateFile: string): Pr
 function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {
   return {
     projectRoot: root,
+    machineryProjectDir: (project: string) => join(root, project),
     allowed: new Set(["aide"]),
     ownedSpecsRoot: () => undefined,
     readScan: () => null,

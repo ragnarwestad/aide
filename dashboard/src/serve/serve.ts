@@ -288,6 +288,7 @@ export function createServer(opts: ServerOptions) {
   // `state.scan` are reassigned after this context is built.
   const specViewsCtx: SpecViewsContext = {
     projectRoot: opts.projectRoot,
+    machineryProjectDir: resolution.machineryProjectDir,
     targets,
     peekUnlanded: resolution.peekUnlanded,
     peekUnlandedCheckedAt: resolution.peekUnlandedCheckedAt,
