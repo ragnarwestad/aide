@@ -1,3 +1,4 @@
+import { groupProviderLimitWait } from "../../../messages/jobs/group-stop.ts";
 import { inFlight } from "../../../queue/job-rules/activity.ts";
 import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
@@ -42,6 +43,7 @@ const GROUP_STATE_KEY = {
 } as const satisfies Record<ExecutionGroup["state"], TranslationKey>;
 
 export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language): string {
+  if (groupProviderLimitWait(group, members.map((member) => member.group))) return t(lang, "list.state.waiting");
   const lead = members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
   const position = group.state === "queued" && lead?.state === "queued" ? lead.queuePosition : undefined;
   return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[group.state]);

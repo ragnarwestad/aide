@@ -139,6 +139,8 @@ queue state and that every dependency inside the group comes earlier in the exec
 member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
+A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
+A manual stop remains Stopped.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
 the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
