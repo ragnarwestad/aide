@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { QueueRowView } from "../../../../src/render/ui/job-state";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
-import { executionGroupMemberJob, executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import { executionGroupMemberJob, executionGroupCard, executionGroupPlace, memberPipKind, memberPipLabel, executionGroupStateLabel, executionGroupMemberPip } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
 import { pips, rowMessage, stepLabel } from "../../../../src/render/ui/components";
@@ -325,4 +325,17 @@ test("every member's header pip follows the shared Archive while it runs or land
       expect(memberPipLabel(folder, selected)).toBe(folder === "1-first" ? "1 A" : "2 A");
     }
   }
+});
+
+test("all member pips follow the shared Archive, including completed Implement members", () => {
+  const execution = { ...group("archiving"), currentMember: "1-first", completedMembers: ["1-first", "2-second"] };
+  for (const [state, kind] of [["queued", "queued"], ["running", "now"], ["failed", "refused"]] as const) {
+    const archive = { state, steps: ["archive"], stepIndex: 0 } as QueueRowView;
+    for (const folder of execution.members) {
+      const own = member(folder, "", { state: "done", done: ["create", "analyze", "implement"] }).group;
+      expect(executionGroupMemberPip(execution, folder, own, archive)).toEqual({ kind, title: folder, label: `${folder.split("-")[0]} A` });
+    }
+  }
+  for (const folder of execution.members)
+    expect(executionGroupMemberPip({ ...execution, state: "completed" }, folder)).toEqual({ kind: "past", title: folder, label: `${folder.split("-")[0]} A` });
 });
