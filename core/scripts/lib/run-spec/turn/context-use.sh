@@ -9,8 +9,8 @@
 # What counts is the main session alone. Claude's subagents write their calls
 # into the same transcript under the same session id, marked by a
 # `parent_tool_use_id`; Codex's subagents and the review run in threads of
-# their own, with files of their own. The review's own turn is a session of
-# its own too, which review.sh leaves out with $context_use_skip.
+# their own, with files of their own. The review and a red-test fix that
+# moves to a fresh session are left out with $context_use_skip.
 #
 # Every figure is read or it is left out: a tool that states none gives no
 # `context` at all, never a zero.
