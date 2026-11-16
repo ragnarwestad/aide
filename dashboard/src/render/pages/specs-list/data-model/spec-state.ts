@@ -26,9 +26,9 @@ export function specState(g: SpecStateFacts): SpecState {
     const index = g.lead.landing ? landingStepIndex(g.lead.state, g.lead.stepIndex) : g.lead.stepIndex;
     return { key: "active", phase: g.lead.steps[index] ?? currentStep(g.lead) };
   }
+  if (g.executionGroupActive) return { key: "active" };
   if (g.state === CLOSED_STATE) return { key: "closed" };
   if (g.state === ARCHIVED_STATE || g.state === "archived-unlanded") return { key: "archived" };
-  if (g.executionGroupActive) return { key: "active" };
   if (g.reopenedRound && !done.includes("analyze") && !done.includes("implement")) return { key: "reopened" };
   const workStarted = done.some((step) => step !== "create") || (g.lead && currentStep(g.lead) !== "create");
   return workStarted ? { key: "idle" } : { key: "created" };

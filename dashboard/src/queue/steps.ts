@@ -14,9 +14,11 @@ import {
   type StopReason,
 } from "../step-endings.ts";
 import { isScheduleKey } from "../project/spec-names.ts";
+import { JOB_STATES, type JobState } from "../job-states.ts";
 
 export { ACCEPTANCE_CRITERIA_UNTICKED, isRunStop };
 export type { StopReason };
+export { JOB_STATES, type JobState };
 
 // `core/scripts/aide-run-spec` reads the same list from
 // core/scripts/lib/workflow-steps.json — the shared file both
@@ -165,12 +167,6 @@ export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): stri
   );
 }
 
-export const JOB_STATES = [
-  "queued", "running", "done",
-  "stopped", "failed", "cancelled", "interrupted",
-] as const;
-export type JobState = (typeof JOB_STATES)[number];
-
 // Why a run ended early. `stopped` is deliberately not `failed`: with
 // tight caps a cap-stop is a common, healthy outcome, and a reader who
 // cannot tell it from a broken agent will start ignoring both.
@@ -309,17 +305,18 @@ export function landingInProject(jobs: Job[], project: string): boolean {
  *  that has gone on to the spec's next step is the spec's again. */
 /** The tracking key of a deploy job: no spec folder is called this. */
 export const DEPLOY_KEY = "deploy";
+export const LAND_KEY = "land";
 
 /** The tracking key of the board's host-process cleanup job. */
 export const CLEANUP_KEY = "cleanup";
 
 /** The step a job is on when it is a deploy: the Running page draws such a
  *  job as a row of its own, never as a spec's. */
-export type JobKind = "spec" | "schedule" | "deploy" | "cleanup" | "close" | "reopen";
+export type JobKind = "spec" | "schedule" | "deploy" | "land" | "cleanup" | "close" | "reopen";
 
 export function jobKind(job: { steps: readonly string[]; stepIndex: number; specFolder: string }): JobKind {
   const step = job.steps[job.stepIndex ?? 0];
-  if (step === "deploy" || step === "cleanup" || step === "close" || step === "reopen") return step;
+  if (step === "deploy" || step === "land" || step === "cleanup" || step === "close" || step === "reopen") return step;
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 

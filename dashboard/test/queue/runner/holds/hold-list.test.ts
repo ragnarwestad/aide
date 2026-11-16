@@ -51,6 +51,19 @@ describe("the hold list", () => {
   });
 });
 
+test("Land waits only for an active landing and Archive waits for Land (AC-3, AC-4)", () => {
+  const archive = enqueue({ steps: ["archive"] });
+  store.update(archive.id, { state: "running" });
+  const land = enqueue({ specFolder: "land", steps: ["land"], branch: "topic" });
+  expect(holdFor(land, context({}))).toBeUndefined();
+  store.update(archive.id, { state: "done", landing: true });
+  expect(holdFor(land, context({}))?.name).toBe("project-landing");
+  store.update(archive.id, { landing: false });
+  store.update(land.id, { state: "running", landing: true });
+  const laterArchive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+  expect(holdFor(laterArchive, context({}))?.name).toBe("project-landing");
+});
+
 
 test("a schedule is not held by another spec's running step", () => {
   const scheduled = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });

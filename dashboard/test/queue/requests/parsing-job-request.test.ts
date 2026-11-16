@@ -379,6 +379,25 @@ describe("a deploy job", () => {
   });
 });
 
+describe("a Land job", () => {
+  const land = { project: "aide", specFolder: "land", steps: ["land"], branch: "topic/ready" };
+
+  test("keeps its exact branch under the Land tracking key (AC-1)", () => {
+    const r = parseJobRequest(land, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.job.branch).toBe("topic/ready");
+  });
+
+  test.each([
+    ["another key", { ...land, specFolder: "81-queue-and-runner" }],
+    ["no branch", { project: "aide", specFolder: "land", steps: ["land"] }],
+    ["an option-like branch", { ...land, branch: "--force" }],
+    ["the default branch", { ...land, branch: "main" }],
+  ])("refuses %s (AC-2)", (_label, body) => {
+    expect(parseJobRequest(body, { resolve, defaults: DEFAULTS }).ok).toBe(false);
+  });
+});
+
 describe("mergeQueueDefaults", () => {
   test("a config file overrides what it names and keeps the rest", () => {
     const merged = mergeQueueDefaults(DEFAULTS, {

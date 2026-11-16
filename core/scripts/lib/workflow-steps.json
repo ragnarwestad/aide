@@ -10,6 +10,7 @@
     { "name": "schedule", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
     { "name": "close", "runBy": "runner", "runsModel": true, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": true, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
     { "name": "deploy", "runBy": "board", "runsModel": false, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": false, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
+    { "name": "land", "runBy": "board", "runsModel": false, "writesStatus": false, "receivesConflict": false, "runsTests": true, "runsReview": false, "takesSlot": false, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false },
     { "name": "cleanup", "runBy": "board", "runsModel": false, "writesStatus": false, "receivesConflict": false, "runsTests": false, "runsReview": false, "takesSlot": false, "ownRow": true, "phaseOrder": null, "phaseControl": false, "dependencyGated": false }
   ],
   "workflowArcRetired": ["review-plan"]

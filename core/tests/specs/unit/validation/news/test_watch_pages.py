@@ -23,7 +23,8 @@ def script(workspace_root):
 
 
 @pytest.fixture
-def module(script):
+def module(script, monkeypatch):
+    monkeypatch.syspath_prepend(str(script.parent))
     spec = importlib.util.spec_from_file_location("watch_pages", script)
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
@@ -70,6 +71,38 @@ def run(script, tmp_path, log, store=None, home=None):
 
 def lines_for(output, address):
     return [line for line in output.splitlines() if address in line]
+
+
+def test_watched_pages_use_shared_cells_but_keep_their_row_rules_ac_2_ac_3(module, monkeypatch):
+    monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
+        ["Missing address"],
+        ["Aide", "<https://a.example/>", "<https://a.example/docs/*>"],
+        ["Aide", "not-an-address", ""],
+    ]))
+
+    assert module.watched_pages("not the real table") == [
+        ("Aide", "https://a.example/", "https://a.example/docs/*")
+    ]
+
+
+def test_watched_pages_stop_at_headings_and_separators_and_accept_empty_input_ac_2_ac_3_ac_4_ac_8(module):
+    before_separator = """### Watched pages
+| Tool | Page | Follow |
+|---|---|---|
+| malformed |
+| Aide | <https://before.example/> | invalid |
+---
+| Aide | <https://outside.example/> | |
+"""
+    before_heading = """### Watched pages
+| Aide | <https://before.example/> |
+## Notation
+| Aide | <https://outside.example/> |
+"""
+
+    assert module.watched_pages(before_separator) == [("Aide", "https://before.example/", None)]
+    assert module.watched_pages(before_heading) == [("Aide", "https://before.example/", None)]
+    assert module.watched_pages("") == []
 
 
 def test_the_repo_s_table_names_a_tool_and_an_address_on_every_row(module, workspace_root):

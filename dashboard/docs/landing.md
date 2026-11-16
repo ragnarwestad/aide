@@ -250,3 +250,7 @@ and the CODE root of an `archive` landing is not merged.
   purpose (`prOpen`, from `peekUnlanded` in `src/serve/spec-lookup.ts`) says a pull request is waiting for review,
   until it merges and the row offers Delete branch. The row stays on the list and `archive` stays queueable for it.
   `codeLanding` is never a reason to refuse a run.
+Land applies the same merge lock and test gate to a named branch already on origin. A conflict or red tests leave the
+default branch unchanged. A successful Land pushes the tested merge and deletes the source branch. Deploy is still a
+separate action.
+

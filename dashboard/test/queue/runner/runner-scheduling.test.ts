@@ -648,6 +648,14 @@ describe("a deploy takes no slot", () => {
   });
 });
 
+test("a Land job starts while the only AI slot is occupied (AC-5)", () => {
+  const analyze = enqueue();
+  const land = enqueue({ specFolder: "land", steps: ["land"], branch: "topic" });
+  makeRunner({ maxConcurrent: 1 }).tick();
+  expect(store.get(analyze.id)?.state).toBe("running");
+  expect(store.get(land.id)?.state).toBe("running");
+});
+
 // A create takes about a minute and gives a spec its number and its row, so
 // it is never left behind an analyze or an implement. Every job in a test is
 // on its own spec, so the same-spec hold cannot be what the test proves. The

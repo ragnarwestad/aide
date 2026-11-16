@@ -119,8 +119,14 @@ export async function handleScheduleAdminRoutes(
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
     }, knownModels(ctx), knownProviders(ctx));
     if (!result.ok) return refusal({ error: result.error });
+    const savedName = str(body.name).trim() || name;
+    const postedEnabled = str(body.enabled);
+    if (postedEnabled) {
+      const enabled = setScheduleEnabled(ctx.scheduleStore, project, savedName, postedEnabled !== "no");
+      if (!enabled.ok) return refusal({ error: enabled.error });
+    }
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
-    return json({ ok: true, location: renamedBack(back, project, name, str(body.name) || name) });
+    return json({ ok: true, location: renamedBack(back, project, name, savedName) });
   }
 
   // Project-agnostic, like `/api/queue/create`: no

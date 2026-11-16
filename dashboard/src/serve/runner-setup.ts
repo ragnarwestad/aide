@@ -74,8 +74,7 @@ export interface RunnerSetupContext {
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   handleSharedFiles?: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
-  /** Starts a `deploy` step, which this process runs itself. */
-  startDeploy: (job: Job, resultFile: string) => SpawnResult;
+  startDeploy: (job: Job, resultFile: string) => SpawnResult; startLand: (job: Job, resultFile: string, streamFile: string) => SpawnResult;
   testServerStore: TestServerStore;
   /** The spec's own on-disk folder — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
@@ -172,6 +171,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       return { providers, start: () => {
       mkdirSync(dirname(resultFile), { recursive: true });
       if (step === "deploy") return ctx.startDeploy(launchJob, resultFile);
+      if (step === "land") return ctx.startLand(launchJob, resultFile, streamFile);
       if (step === "cleanup") return cleanupJob.start(launchJob, resultFile, streamFile);
       // `aide-emit-run` reports each TDD phase and is
       // inert unless `AIDE_RUN_URL` says where — so a headless step

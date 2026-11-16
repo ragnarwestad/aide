@@ -35,6 +35,7 @@ import {
 import { installCheckout, isDashboardRoot, restartAfterLanding, type DeployHooks, type RestartHook } from "../deployment";
 import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { createDeployJob } from "../deploy-job/index.ts";
+import { createLandJob } from "../land-job/index.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 export interface LandSetupInputs {
@@ -163,6 +164,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     setFault: (fault) => setDeployFault(state, fault),
     dashboardRoot: inputs.dashboardRoot,
   });
+  const landJob = createLandJob(landCtx);
   function withFreshness(list: SpecTarget[]) {
     return withFreshnessImpl(landCtx, list);
   }
@@ -173,6 +175,6 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
 
   return {
     jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
-    deploy, deployJob, withFreshness, deleteLeftBehindBranch,
+    deploy, deployJob, landJob, withFreshness, deleteLeftBehindBranch,
   };
 }

@@ -4,6 +4,8 @@ import type { Language } from "../../i18n";
 import type { Message } from "../types.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { when } from "../usage-limit/get.ts";
+import { stepLabel } from "../../render/ui/components";
+import { getJobMessage } from "./get.ts";
 import { formatMessage } from "../format.ts";
 
 export interface GroupStopMember {
@@ -34,7 +36,14 @@ export function getGroupStopMessage(
   group: GroupStop,
   members: readonly GroupStopMember[],
   lang: Language,
+  archiveJob?: QueueRowView,
 ): { specFolder?: string; notice: Message } | undefined {
+  if (group.state === "archiving" && archiveJob?.state === "queued" && archiveJob.errorReason === "held-back") {
+    const notice = getJobMessage(archiveJob, lang);
+    if (notice) return { notice: { variant: notice.variant, text: formatMessage(lang, {
+      key: "message.lead", values: { lead: stepLabel("archive", lang) }, inner: archiveJob.error,
+    }) } };
+  }
   const archiveFailed = group.state === "archiving" && !!group.error;
   if (group.state !== "stopped" && !archiveFailed) return undefined;
   if (group.state === "stopped" && group.stoppedByUser) return { notice: { variant: "info", text: formatMessage(lang, { key: "group.stoppedByUser" }) } };

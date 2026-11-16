@@ -9,6 +9,7 @@ import type { ResultTool, RunnableTool } from "./providers/tools.ts";
 import type { SideRun } from "./runner/side-run.ts";
 import type { ProviderLimit } from "./providers/limit.ts";
 import type { JobAction } from "./store/job-action.ts";
+import type { ErrorReason } from "../job-states.ts";
 export type { ProviderLimit, ProviderLimitWindow } from "./providers/limit.ts";
 export type { JobAction } from "./store/job-action.ts";
 /** What one step actually metered, as `aide-run-spec` read it out of
@@ -242,6 +243,8 @@ export interface Job {
    *  Only a close job has it; every other job's own reason for existing
    *  is what its spec already says. */
   closeReason?: string;
+  /** The exact origin branch a standalone Land job merges. */
+  branch?: string;
   /** A `reopen` job that also resets the analysis, the plan and the
    *  status — handed to `aide-run-spec` as `--reset-files`.
    *  Absent, a reopen keeps the files. Only a job whose steps are
@@ -382,9 +385,7 @@ export interface Job {
    *  branch of the spec's own is still on origin. It is the CLASS the
    *  refusal carries beside the sentence a person reads — the sentence
    *  is joined across repos before any page sees it, so nothing may
-   *  match on it. Paired by hand with the same union in
-   *  `render/ui/job-state/types.ts`, which does not import this module:
-   *  change one and change the other.
+   *  match on it.
    *
    *  `"held-back"` is a different lifecycle point from the
    *  other three: they say why a LANDING was refused, after a step ran;
@@ -392,7 +393,7 @@ export interface Job {
    *  `state` stays `"queued"`. Set at `Runner.tick()`'s five hold-back
    *  sites, alongside the `error` sentence, so the row's panel reads the
    *  kind off a field rather than sniffing the text for a prefix. */
-  errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
+  errorReason?: ErrorReason;
   /** The first landing failure this job hit, named by step.
    *  Set once and left alone by every later step of the SAME job,
    *  success or failure — unlike `error`, which every later step is

@@ -6,7 +6,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { asRunnableTool } from "./steps.ts";
 import { dirname } from "node:path";
 import { applyEdits, modify, parse } from "jsonc-parser";
-import { JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { isErrorReason, isJobState } from "../job-states.ts";
 import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type QueueDefaults } from "./types.ts";
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
 import { listedModelName } from "./model-name.ts";
@@ -25,7 +26,7 @@ export function parseStoredJob(raw: unknown): Job | null {
   if (!Array.isArray(r.steps) || r.steps.some((s) => !(WORKFLOW_STEPS as readonly string[]).includes(s as string))) {
     return null;
   }
-  if (typeof r.state !== "string" || !(JOB_STATES as readonly string[]).includes(r.state)) return null;
+  if (!isJobState(r.state)) return null;
   // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten
   // below, because the spread is what would otherwise carry it straight
@@ -43,6 +44,7 @@ export function parseStoredJob(raw: unknown): Job | null {
     // a dash for a job nothing measured, and a zero is a claim.
     spentTokens: typeof r.spentTokens === "number" ? r.spentTokens : undefined,
     stepIndex: typeof r.stepIndex === "number" ? r.stepIndex : 0,
+    errorReason: isErrorReason(r.errorReason) ? r.errorReason : undefined,
     // Anything but a string here would be handed to a fetch and to a
     // file read. Dropped, like every other malformed field.
     sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,

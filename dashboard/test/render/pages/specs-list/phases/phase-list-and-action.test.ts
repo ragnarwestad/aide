@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { JOB_STATES } from "../../../../../src/job-states.ts";
 import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
@@ -162,8 +163,8 @@ describe("one phase list, and one action beside the state", () => {
   // person to merge by hand and no stop between steps to approve. The
   // routes are gone (`queue-routes.test.ts`); this is the half that says
   // nothing draws a form for them either.
-  test("no row draws a Merge or an Approve, in any state", () => {
-    for (const state of ["queued", "running", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+  test("no row draws a Merge or an Approve, in any state (AC-3)", () => {
+    for (const state of JOB_STATES) {
       const html = rows(
         [row({ id: "j1", specFolder: "124-stack", state })],
         [target("124-stack")],

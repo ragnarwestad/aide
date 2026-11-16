@@ -208,12 +208,15 @@ The State column carries the spec's own state and nothing else:
 - **Idle** — work beyond Create has been attempted and none is queued or running now.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
-- **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving; the phase name is shown on Jobs instead.
+- **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group;
+  the phase name is shown on Jobs instead. Group membership takes priority over Archived and Closed until the group
+  is completed or removed.
 
-Members waiting for their turn in an active execution group also show Active and have no individual Run button.
-They have the same protection as a spec with a job in flight: Close and document editing are unavailable, and the
-spec's settings, dependencies and acceptance criteria cannot be changed. The server also refuses direct write requests.
-The group's own controls remain available; choices a queued job is waiting for keep their ordinary rules.
+Every member of a prepared, queued, running, stopped, waiting-for-acceptance or archiving execution group shows Active
+and has no individual Run button. A completed or removed group no longer affects the member's state or Run button.
+While the group is queued, running or archiving, Close and document editing are unavailable, and the spec's settings,
+dependencies and acceptance criteria cannot be changed. The server also refuses direct write requests in those states.
+The group's own controls remain available; a member's own queued or running job keeps its ordinary controls.
 
 When a job waits, stops, fails or is held back, the State column keeps showing how far the spec itself has got. The
 Jobs tab shows what happened to the job. How many acceptance criteria are not verified is the row's own notice line
@@ -469,7 +472,7 @@ filter's name. Each entry's count is its own count over the rows the search lets
 
 - **All** — the default.
 - **Not archived** — everything not archived and not closed.
-- **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving.
+- **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group.
 - **Created**.
 - **Idle**.
 - **Reopened**.

@@ -82,6 +82,7 @@ keyboard to answer.
 
 Add to `~/.codex/config.toml`:
 
+<!-- fragment: browser-testing.toml -->
 ```toml
 # Playwright MCP Server
 [mcp_servers.playwright]

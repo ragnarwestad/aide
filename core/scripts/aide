@@ -30,8 +30,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/board-request.sh" ] && source "$SCRIPT_DIR/lib/board-request.sh"
 
-STEPS="analyze implement archive reopen"
-
 usage() {
   cat <<'EOF'
 usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]...
@@ -39,6 +37,7 @@ usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]...
                    [--acceptance-not-required]
        aide analyze|implement|archive|reopen <spec> [--project <name>] [--model <name>]
        aide close <spec> --reason "<why>" [--project <name>]
+       aide land <project> <branch>
        aide status <spec> [--project <name>]
 
 create reads the description from --file, else from standard input, else from
@@ -305,6 +304,14 @@ run_create() {
   printf 'Created %s in %s.\n' "$spec_folder" "$project"
 }
 
+run_land() {
+  local body
+  body="$(jq -nc --arg branch "$land_branch" '{branch: $branch}')"
+  http_or_die POST "/api/queue/projects/$project/land" "$ANSWER_SECONDS" "$body"
+  accepted || refuse
+  jq -r '.message // empty' "$answer_file"
+}
+
 # The phase from this machine's copy of the spec's repository. Sets
 # phase_text; the phase is "not known here" when the repository is not on
 # this machine.
@@ -368,6 +375,7 @@ file=""
 model=""
 criteria=""
 reason=""
+land_branch=""
 project_flag=""
 choose_approach=false
 acceptance_required=true
@@ -392,7 +400,7 @@ parse_args() {
   [ $# -gt 0 ] || { usage >&2; exit 2; }
   case "$1" in
     -h|--help) usage; exit 0 ;;
-    create|analyze|implement|archive|reopen|close|status) command="$1"; shift ;;
+    create|land|analyze|implement|archive|reopen|close|status) command="$1"; shift ;;
     *) usage_error "unknown command $1" ;;
   esac
   while [ $# -gt 0 ]; do
@@ -417,6 +425,11 @@ parse_args() {
     title="${positionals[1]}"
     [ -n "$title" ] || usage_error "the title is empty"
     case "$criteria" in ""|off|warn|stop) ;; *) usage_error "--criteria-checks is off, warn or stop" ;; esac
+  elif [ "$command" = "land" ]; then
+    [ "${#positionals[@]}" -eq 2 ] || usage_error "land takes a project and a branch"
+    project="${positionals[0]}"
+    land_branch="${positionals[1]}"
+    printf '%s\n' "$land_branch" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._/-]*$' || usage_error "$land_branch is not a branch name"
   else
     [ "${#positionals[@]}" -eq 1 ] || usage_error "$command takes one spec"
     spec_arg="${positionals[0]}"
@@ -441,7 +454,7 @@ main() {
 
   find_own_project
   read_board_url
-  if [ "$command" != "create" ]; then
+  if [ "$command" != "create" ] && [ "$command" != "land" ]; then
     project="${project_flag:-$own_project}"
   fi
 
@@ -450,6 +463,9 @@ main() {
     create)
       require_board "queue create" "/aide-create"
       run_create ;;
+    land)
+      require_board "queue Land for $land_branch in" ""
+      run_land ;;
     status)
       require_board "ask about $spec_arg" ""
       prepare_status_ref

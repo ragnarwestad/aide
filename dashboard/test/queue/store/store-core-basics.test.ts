@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ERROR_REASONS } from "../../../src/job-states.ts";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -150,6 +151,25 @@ describe("QueueStore", () => {
     // Any update rewrites the mirror from what is in memory.
     reloaded.update("old-field", { spentUsd: 1 });
     expect(readFileSync(mirrorPath, "utf-8")).not.toContain("gateAfter");
+  });
+
+  test("a mirrored job drops an unknown errorReason and keeps every shared member (AC-5, AC-7)", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const seeded = store.enqueue(REQ);
+    if (!seeded.ok) throw new Error("enqueue failed");
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const first = raw[0]!;
+    writeFileSync(mirrorPath, JSON.stringify([
+      { ...first, id: "unknown-reason", errorReason: "bogus" },
+      ...ERROR_REASONS.map((errorReason) => ({ ...first, id: errorReason, errorReason })),
+    ]));
+
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get("unknown-reason")).toBeDefined();
+    expect(reloaded.get("unknown-reason")?.errorReason).toBeUndefined();
+    for (const errorReason of ERROR_REASONS) {
+      expect(reloaded.get(errorReason)?.errorReason).toBe(errorReason);
+    }
   });
 });
 

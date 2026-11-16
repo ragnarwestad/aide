@@ -15,7 +15,8 @@ def script(workspace_root):
 
 
 @pytest.fixture
-def module(script):
+def module(script, monkeypatch):
+    monkeypatch.syspath_prepend(str(script.parent))
     spec = importlib.util.spec_from_file_location("fetch_sources", script)
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
@@ -51,6 +52,37 @@ def test_every_address_in_the_sources_table_is_a_source_and_nothing_below_it(mod
     ]
 
 
+def test_sources_use_the_importable_news_module_and_shared_cells_ac_1_ac_2(module, monkeypatch):
+    assert module.news.__file__.endswith("scripts/news/news.py")
+    monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
+        ["Aide", "<https://a.example/><br><https://b.example/>"]
+    ]))
+
+    assert module.sources("not the real table") == [
+        ("Aide", "https://a.example/"),
+        ("Aide", "https://b.example/"),
+    ]
+
+
+def test_sources_keep_reading_after_a_separator_but_stop_at_a_heading_ac_2_ac_3_ac_4_ac_8(module):
+    text = """### Sources
+| Tool | News |
+|---|---|
+| malformed |
+| Aide | <https://before.example/> |
+---
+| Aide | <https://after.example/> |
+### Watched pages
+| Aide | <https://outside.example/> |
+"""
+
+    assert module.sources(text) == [
+        ("Aide", "https://before.example/"),
+        ("Aide", "https://after.example/"),
+    ]
+    assert module.sources("") == []
+
+
 def test_a_github_releases_page_is_read_from_the_api_and_any_other_page_is_not(module):
     assert module.releases_api("https://github.com/openai/codex/releases") == (
         "https://api.github.com/repos/openai/codex/releases?per_page=20"
@@ -61,7 +93,7 @@ def test_a_github_releases_page_is_read_from_the_api_and_any_other_page_is_not(m
 
 def test_a_fetch_that_fails_once_is_tried_again(module, monkeypatch):
     answers = [(None, "curl: (92) HTTP/2 stream 1 was not closed cleanly"), ("<p>Nov 5 notes</p>", None)]
-    monkeypatch.setattr(module.watch_pages, "fetch", lambda address: answers.pop(0))
+    monkeypatch.setattr(module.news, "fetch", lambda address: answers.pop(0))
     assert module.fetch_text("https://opencode.ai/changelog", None) == ("Nov 5 notes", None)
 
 
@@ -115,7 +147,7 @@ def test_without_log_the_repository_s_news_log_is_read(module, workspace_root, t
         fetched.append(address)
         return ("[]" if "api.github.com" in address else "<p>text</p>"), None
 
-    monkeypatch.setattr(module.watch_pages, "fetch", fetch)
+    monkeypatch.setattr(module.news, "fetch", fetch)
     assert module.main(["--out", str(tmp_path / "out")]) == 0
     expected = [module.releases_api(a) or a for _, a in module.sources((workspace_root / "docs" / "AI_NEWS_LOG.md").read_text())]
     assert expected and fetched == expected

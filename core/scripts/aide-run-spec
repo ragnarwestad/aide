@@ -65,8 +65,9 @@
 #                `payload.info.last_token_usage.input_tokens` in the thread's
 #                session file, which already counts the cached tokens.
 #   beforeChecks the same, over the step's own turn alone: before the review's
-#                fix turn and the red tests' fix turns add theirs. The same as
-#                `fullest` for a step with no follow-up turn.
+#                fix turn and any red-test fix in the main session add theirs.
+#                A red-test fix in a fresh session is left out. The same as
+#                `fullest` for a step with no follow-up turn in the main session.
 #   window       the model's context window as the tool states it. Claude:
 #                `modelUsage.<model>.contextWindow` of the turn's `result`
 #                event, <model> being the one the `system`/`init` event names.

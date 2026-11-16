@@ -1,5 +1,12 @@
 import { expect, test } from "bun:test";
-import { executionGroupControls, groupMemberSteps, groupReservesSpec, type ExecutionGroupMemberState } from "../../../src/queue/execution-groups/actions.ts";
+import {
+  activeGroupForSpec,
+  executionGroupControls,
+  groupBlocksIndividualRun,
+  groupMemberSteps,
+  groupReservesSpec,
+  type ExecutionGroupMemberState,
+} from "../../../src/queue/execution-groups/actions.ts";
 import type { ExecutionGroup } from "../../../src/queue/execution-groups";
 
 const member = (o: Partial<ExecutionGroupMemberState> = {}): ExecutionGroupMemberState => ({
@@ -26,7 +33,28 @@ test("a member with neither ticked starts on the ones it has not done", () => {
   expect(groupMemberSteps(["archive"], ["create", "analyze"])).toEqual(["implement"]);
 });
 
-test("active groups reserve waiting members but preserve a member's own queued choices", () => {
+test("unfinished membership lasts until completion or removal (AC-2, AC-3)", () => {
+  const group = { project: "aide", members: ["1-first", "2-next"] } as ExecutionGroup;
+  for (const state of ["prepared", "queued", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
+    expect(activeGroupForSpec([{ ...group, state }], "aide", "2-next")).toBeDefined();
+  }
+  expect(activeGroupForSpec([{ ...group, state: "completed" }], "aide", "2-next")).toBeUndefined();
+  expect(activeGroupForSpec([{ ...group, state: "running", removedAt: "2026-11-15T20:00:00Z" }], "aide", "2-next")).toBeUndefined();
+  expect(activeGroupForSpec([{ ...group, state: "running" }], "another", "2-next")).toBeUndefined();
+});
+
+test("unfinished groups block individual Run except for a member's own live job (AC-2, AC-3)", () => {
+  const group = { project: "aide", members: ["1-first", "2-next"] } as ExecutionGroup;
+  const job = { project: "aide", specFolder: "2-next", state: "queued" };
+  for (const state of ["prepared", "queued", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
+    const executionGroups = { list: () => [{ ...group, state }] };
+    expect(groupBlocksIndividualRun({ executionGroups, list: () => [] }, "aide", "2-next")).toBe(true);
+    expect(groupBlocksIndividualRun({ executionGroups, list: () => [job] }, "aide", "2-next")).toBe(false);
+  }
+  expect(groupBlocksIndividualRun({ executionGroups: { list: () => [{ ...group, state: "completed" }] }, list: () => [] }, "aide", "2-next")).toBe(false);
+});
+
+test("non-Run actions keep the active-group reservation boundary (AC-2, AC-3)", () => {
   const group = { project: "aide", members: ["1-first", "2-next"] } as ExecutionGroup;
   const job = { project: "aide", specFolder: "2-next", state: "queued" };
   for (const state of ["queued", "running", "archiving"] as const) {
@@ -35,7 +63,6 @@ test("active groups reserve waiting members but preserve a member's own queued c
     expect(groupReservesSpec({ executionGroups, list: () => [job] }, "aide", "2-next")).toBe(false);
     expect(groupReservesSpec({ executionGroups, list: () => [] }, "another", "2-next")).toBe(false);
   }
-  for (const state of ["prepared", "stopped", "waiting-acceptance", "completed"] as const) {
+  for (const state of ["prepared", "stopped", "waiting-acceptance", "completed"] as const)
     expect(groupReservesSpec({ executionGroups: { list: () => [{ ...group, state }] }, list: () => [] }, "aide", "2-next")).toBe(false);
-  }
 });

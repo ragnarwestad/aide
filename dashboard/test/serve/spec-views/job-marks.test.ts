@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
-import { closeOrReopenSteps, deploySteps, jobMarks, jobStepPips, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
+import { closeOrReopenSteps, deploySteps, jobMarks, jobStepLines, jobStepPips, scheduleSteps } from "../../../src/serve/spec-views/job-marks.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "job-marks-"));
 let n = 0;
@@ -256,6 +256,11 @@ describe("deploySteps", () => {
     expect(got.map((s) => s.key)).toEqual(KEYS);
     expect(got.every((s) => s.state === undefined)).toBe(true);
   });
+});
+
+test("a Land row lists merge, test, push and delete in order (AC-10)", () => {
+  const got = jobStepLines(job({ specFolder: "land", steps: ["land"], state: "running" }), "en");
+  expect(got.map(({ label }) => label)).toEqual(["Merge branch", "Run tests", "Push default branch", "Delete source branch"]);
 });
 
 describe("scheduleSteps", () => {

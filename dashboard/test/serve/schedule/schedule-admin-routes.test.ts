@@ -162,6 +162,22 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
 });
 
 describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
+  test("saves Enabled together with the other edited settings (AC-3)", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ cron: "0 5 * * *", enabled: "no" })));
+    expect(res.status).toBe(200);
+    expect(t.stored()[0]!.cron).toBe("0 5 * * *");
+    expect(t.stored()[0]!.enabled).toBe(false);
+  });
+
+  test("saves Enabled under the trimmed name when the posted name has spaces around it (AC-3)", async () => {
+    const t = start([nightly()]);
+    const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ name: " nightly ", enabled: "no" })));
+    expect(res.status).toBe(200);
+    expect(t.stored()[0]!.name).toBe("nightly");
+    expect(t.stored()[0]!.enabled).toBe(false);
+  });
+
   test("editing the cron leaves the name and other entries alone, and nothing goes to git", async () => {
     const t = start([nightly(), weekly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ cron: "0 5 * * *" })));

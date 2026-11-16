@@ -85,3 +85,15 @@ test("an individual Archive outcome cannot mark the shared Archive as finished",
     ...archive.history, fileResult: archive.fileResult, step: "archive",
   }).pip).toBe("todo");
 });
+
+test("every member follows the shared Archive job while it runs and lands", () => {
+  for (const job of [
+    { ...planned, steps: ["archive"], stepIndex: 0, groupMembers: execution.members },
+    { ...planned, steps: ["archive"], stepIndex: 1, state: "done" as const, landing: true, groupMembers: execution.members },
+  ]) {
+    for (const member of project(job)) {
+      expect(member.lead).toMatchObject({ id: job.id, state: job.state });
+      expect(member.lead?.landing).toBe(job.landing);
+    }
+  }
+});

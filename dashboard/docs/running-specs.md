@@ -64,7 +64,7 @@ the Jobs tab, where every round has its own row with phase information, steps, l
 `aide-create-spec`, commits and pushes before it answers. Two simultaneous creates are serialized and receive different
 numbers.
 
-A landing holds back two things and nothing else: the job being landed and a second `archive` in the same project
+A landing holds back two things and nothing else: the job being landed and another `archive` or Land job in the same project
 ([Branches and landing](landing.md)).
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list under the default
@@ -89,13 +89,8 @@ after each start or Deploy. Until then Start on a group is refused with "The boa
 Start again in a moment.", and a group moving on to its next member, after a member's Implement or after an edit,
 waits and moves on once the specs are read. While it waits, the group's card reads stopped.
 
-A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
-
-- It is refused while the group already has a job queued or running.
-- It never includes Archive, including the first Run that creates a group; a press that asked for Archive runs the other phases it asked for.
-- A press for Archive alone is refused, and points to the group's card.
-
-A failed member keeps its own recovery controls.
+A spec that belongs to an unfinished group has no Run on its own row. Start, Stop and Archive for the members are on
+the group's card. A member's own queued or running job keeps its ordinary controls on the spec row.
 
 Run on a spec lists the other specs that can join a group under **Run together in a group**. Ticking one or more shows a
 required **Group name** field above those checkboxes. Run saves that name and starts the group in selection order, with dependencies placed before
@@ -122,6 +117,8 @@ Once the last member has finished Implement, the card waits for Archive. When ev
 every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
 together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
 and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
+While Archive is queued, the collapsed card shows Queued with its queue position. All member pips carry A and follow
+the shared Archive: orange while queued, moving red while running or landing, and green once the group completes.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 An archived member waiting for the group's shared Archive is not reported as an individual landing failure merely because the branch is still open.
 Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
@@ -974,3 +971,6 @@ there instead (see Queueing from a terminal).
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
+`aide land <project> <branch>` queues a Land job for a branch that already exists on origin. Land uses no AI slot. Its
+row shows merge, tests, push and source-branch deletion. Deploy remains a separate press after Land has finished.
+

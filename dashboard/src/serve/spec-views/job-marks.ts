@@ -15,6 +15,9 @@ import { readRunLog } from "./job-detail.ts";
 const cleanupPlan = (lang: Language): PlannedStep[] =>
   CLEANUP_OPERATIONS.map(({ label }, index) => ({ key: stepKey(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, ""), label: t(lang, label) }));
 
+const LAND_LABELS = ["Merge branch", "Run tests", "Push default branch", "Delete source branch"];
+const landPlan = (): PlannedStep[] => LAND_LABELS.map((label, index) => ({ key: stepKey(`${index + 1} of 4`, ""), label }));
+
 export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
   const result = job.results.at(-1);
@@ -105,6 +108,7 @@ export function scheduleSteps(job: Job, lang: Language, prompt = ""): CloseOrReo
 export function jobStepLines(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {
   const kind = jobKind(job);
   if (kind === "deploy") return deploySteps(job, lang);
+  if (kind === "land") return jobSteps(job, landPlan(), lang);
   if (kind === "cleanup" || kind === "schedule") return scheduleSteps(job, lang, prompt);
   if (kind === "close" || kind === "reopen") return closeOrReopenSteps(job, kind, lang);
   return [];

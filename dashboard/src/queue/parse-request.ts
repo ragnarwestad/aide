@@ -101,16 +101,13 @@ export function parseJobRequest(
   if (isDeploy && r.specFolder !== DEPLOY_KEY) {
     return { ok: false, ...invalidRequest(`invalid specFolder: a deploy job's tracking key must be ${DEPLOY_KEY}`) };
   }
+  const isLand = Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "land";
+  if (isLand && r.specFolder !== "land") return { ok: false, ...invalidRequest("invalid specFolder: a Land job's tracking key must be land") };
+  if (isLand && (typeof r.branch !== "string" || !/^(?!-)(?!.*(?:\.\.|@\{|[~^:?*\\\[]))[A-Za-z0-9][A-Za-z0-9._\/-]*$/.test(r.branch) || r.branch === "main" || r.branch === "master")) return { ok: false, ...invalidRequest("a Land job requires a safe non-default branch") };
   const isCleanup = Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "cleanup";
-  if (isCleanup && r.specFolder !== CLEANUP_KEY) {
-    return { ok: false, ...invalidRequest(`invalid specFolder: a cleanup job's tracking key must be ${CLEANUP_KEY}`) };
-  }
-  const archivedOnly =
-    !resolved.specFolders.includes(r.specFolder) &&
-    (resolved.archivedFolders ?? []).includes(r.specFolder);
-  if (!isScheduleJob && !isDeploy && !isCleanup && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
-    return { ok: false, ...invalidRequest(`unknown specFolder: ${specReference(r.project, r.specFolder)}`) };
-  }
+  if (isCleanup && r.specFolder !== CLEANUP_KEY) return { ok: false, ...invalidRequest(`invalid specFolder: a cleanup job's tracking key must be ${CLEANUP_KEY}`) };
+  const archivedOnly = !resolved.specFolders.includes(r.specFolder) && (resolved.archivedFolders ?? []).includes(r.specFolder);
+  if (!isScheduleJob && !isDeploy && !isLand && !isCleanup && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) return { ok: false, ...invalidRequest(`unknown specFolder: ${specReference(r.project, r.specFolder)}`) };
 
   if (!Array.isArray(r.steps) || r.steps.length === 0 || r.steps.length > 8) {
     return { ok: false, ...invalidRequest("steps must be a list of 1-8 workflow steps") };
@@ -124,6 +121,9 @@ export function parseJobRequest(
   }
   if (!isDeploy && steps.includes("deploy")) {
     return { ok: false, ...invalidRequest("invalid entry in steps: deploy runs alone, under the deploy key") };
+  }
+  if (!isLand && steps.includes("land")) {
+    return { ok: false, ...invalidRequest("invalid entry in steps: land runs alone, under the land key") };
   }
   if (!isCleanup && steps.includes("cleanup")) {
     return { ok: false, ...invalidRequest("invalid entry in steps: cleanup runs alone, under the cleanup key") };
@@ -313,6 +313,7 @@ export function parseJobRequest(
       modelChoice,
       effort: stepEffort,
       closeReason,
+      ...(isLand ? { branch: r.branch as string } : {}),
       ...(resetFiles ? { resetFiles: true } : {}),
       createdAt: new Date().toISOString(),
       results: [],
