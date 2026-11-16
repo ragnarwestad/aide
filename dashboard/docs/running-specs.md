@@ -117,6 +117,8 @@ Once the last member has finished Implement, the card waits for Archive. When ev
 every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
 together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
 and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
+While Archive is queued, the collapsed card shows Queued with its queue position and an orange current-member pip;
+it shows Archiving with a moving pip only once the job runs or lands.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 An archived member waiting for the group's shared Archive is not reported as an individual landing failure merely because the branch is still open.
 Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
