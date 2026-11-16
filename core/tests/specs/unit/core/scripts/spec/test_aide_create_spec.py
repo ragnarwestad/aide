@@ -79,6 +79,16 @@ def run(script, specs_root, number, slug, title, description,
     return proc.returncode, json.loads(line), proc.stdout
 
 
+def test_help_names_every_public_mode_ac_1_ac_10(script):
+    result = subprocess.run(
+        [str(script), "--help"], capture_output=True, text=True,
+    )
+
+    assert result.returncode == 0
+    for flag in ("--number", "--folder-name", "--stamp-outcome", "--assign-number"):
+        assert flag in result.stdout
+
+
 # --- happy path -----------------------------------------------------
 
 
