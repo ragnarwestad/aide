@@ -268,6 +268,13 @@ async function dropRunBranches(ctx: RoundGit, at: string): Promise<void> {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  const trees = (await run(["worktree", "list", "--porcelain", "-z"])).split("\0\0");
+  for (const tree of trees) {
+    const fields = tree.split("\0");
+    if (!fields.some((field) => field.startsWith("branch refs/heads/aide/"))) continue;
+    const path = fields.find((field) => field.startsWith("worktree "))?.slice(9);
+    if (path) await run(["worktree", "remove", "--force", path]);
+  }
   await run(["worktree", "prune"]);
   if (local.length) await run(["branch", "-D", "-q", ...local]);
   await run(["fetch", "-q", "--prune", "origin"], 30_000);

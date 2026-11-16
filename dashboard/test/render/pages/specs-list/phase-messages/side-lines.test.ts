@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { phasesFor, renderSpecsRows, type QueueRowView, type SpecsPageOptions, type StepResultView } from "../../../../../src/render";
-import { sideLineState, sideRunOf, sideState } from "../../../../../src/render/pages/specs-list/phase-messages/side-lines.ts";
+import { planReviewSkipped, sideLineState, sideRunOf, sideState } from "../../../../../src/render/pages/specs-list/phase-messages/side-lines.ts";
 import { row } from "../../fixtures.ts";
 
 const FOLDER = "500-side-lines";
@@ -71,6 +71,14 @@ describe("the state a side line shows", () => {
     expect(sideLineState(analyzePhase(false), "plan-review")).toBeUndefined();
   });
 
+  test("Review under Analyze was skipped on a short analysis with no plan review, and on nothing else", () => {
+    const analyzed = (fileAnalysis?: "short" | "full", planReviewed?: boolean) => ({ ...analyzePhase(planReviewed), fileAnalysis });
+    expect(planReviewSkipped(analyzed("short"))).toBe(true);
+    expect(planReviewSkipped(analyzed("short", true))).toBe(false);
+    expect(planReviewSkipped(analyzed("full"))).toBe(false);
+    expect(planReviewSkipped(analyzed(undefined))).toBe(false);
+  });
+
   test("the analyze phase reads its plan review off the spec's own 3-solution.md", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-plan-reviewed-"));
     writeFileSync(join(dir, "3-solution.md"), "# Solution\n\n## Plan review\n\n**Findings:** 1 must-fix\n");
@@ -83,6 +91,22 @@ describe("the state a side line shows", () => {
     expect(sideLineState(implementPhase([implemented({})]), "review")).toBeUndefined();
     expect(sideLineState(implementPhase([implemented({ review: REVIEW })]), "review")).toBe("done");
     expect(sideLineState(implementPhase([implemented({ review: REVIEW })]), "verify")).toBeUndefined();
+  });
+});
+
+describe("Review under Analyze on a short analysis", () => {
+  test("the line says Skipped", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-short-analysis-"));
+    writeFileSync(join(dir, "2-analysis.md"), "# Analysis\n\n## Tracking info\n\n- **Result:** completed\n- **Analysis:** short\n");
+    const html = renderSpecsRows([], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: FOLDER, dir, done: ["create", "analyze"] }],
+      modelChoices: [{ name: "Claude", tool: "claude" as const }],
+      filter: { open: KEY },
+    }, NOW);
+    rmSync(dir, { recursive: true, force: true });
+    const line = html.match(/<tr class="subrow" data-side="plan-review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(line).toContain(">Skipped<");
   });
 });
 
