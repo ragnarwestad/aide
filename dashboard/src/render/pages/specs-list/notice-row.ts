@@ -90,17 +90,6 @@ function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): 
   return earliest && said(earliest.step, earliest.qualifier, earliest.stopped);
 }
 
-/** The line a spec whose latest analysis was short carries, under its other
- *  notices on the row and so on the spec page (the Specs list with the row
- *  open): the plan and its review were left out by design. */
-function shortAnalysisLine(g: SpecGroup, lang: Language, columns: number): string {
-  if (g.phases.find((p) => p.step === "analyze")?.fileAnalysis !== "short") return "";
-  return (
-    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${columns}">${rowMessage("info", t(lang, "list.shortAnalysis"))}</td></tr>`
-  );
-}
-
 /** The line a spec implement sent back to a full analysis carries, under its
  *  other notices on the row and so on the spec page: it says why the plan
  *  and its review are coming. */
@@ -170,7 +159,7 @@ export function specNoticeRow(
   // stands without a › of its own.
   const holds = (notice?.parts ?? []).some((p) => "kind" in p && p.kind === "acceptance-hold");
   const columns = view.columns ?? LIST_COLUMNS;
-  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath, view.onSpecs) + shortAnalysisLine(g, lang, columns) + sentBackLine(g, lang, columns);
+  const checks = checksRow(g, filter, lang, columns, !holds, view.listPath, view.onSpecs) + sentBackLine(g, lang, columns);
   if (!notice) return checks;
   // The held-back part is led by the › and carries the unfolded list
   // directly under its own box.

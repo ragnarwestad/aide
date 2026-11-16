@@ -72,7 +72,7 @@ def _analyze(
 
 
 def _log(err):
-    return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (short analysis: .+)$", err, re.M)]
+    return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (analysis: .+)$", err, re.M)]
 
 
 def _failed_on_a_limit(out, said):
@@ -87,7 +87,7 @@ def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, works
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert _log(err) == [
-        "short analysis: short — grade LOW, 3 acceptance criteria, 3 files to change, 3 of them source files"
+        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 3 acceptance criteria, 3 files to change, 3 of them source files"
         " — within the limits, the step completes"
     ], err
 
@@ -97,7 +97,7 @@ def test_a_short_analysis_with_more_than_three_criteria_completes(runner, worksp
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert _log(err) == [
-        "short analysis: short — grade LOW, 8 acceptance criteria, 3 files to change, 3 of them source files"
+        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 8 acceptance criteria, 3 files to change, 3 of them source files"
         " — within the limits, the step completes"
     ], err
 
@@ -117,7 +117,7 @@ def test_a_full_analysis_over_every_limit_completes(runner, workspace, fake_clau
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert _log(err) == [
-        "short analysis: full — grade HIGH, 5 acceptance criteria, 7 files to change, 7 of them source files — the step completes"
+        "analysis: full — grade HIGH, 5 acceptance criteria, 7 files to change, 7 of them source files — the step completes"
     ], err
 
 
@@ -130,13 +130,13 @@ def test_a_short_analysis_for_a_spec_that_asks_to_choose_the_approach_fails(runn
 def test_the_analysis_line_is_read_as_the_shared_table_says(runner, workspace, fake_claude, case):
     out, err = _analyze(runner, workspace, fake_claude, analysis_line=case["line"])
     assert out["ok"] is True, out
-    assert [l.split(" — ")[0] for l in _log(err)] == [f"short analysis: {case['analysis']}"], err
+    assert [l.split(" — ")[0].split(" (")[0] for l in _log(err)] == [f"analysis: {case['analysis']}"], err
 
 
 def test_every_completed_analyze_logs_the_analysis_the_grade_and_both_counts(runner, workspace, fake_claude):
     _, err = _analyze(runner, workspace, fake_claude, analysis_line=None, grade="MEDIUM", criteria=4, files=["a.ts"])
     assert _log(err) == [
-        "short analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change, 1 of them source files — the step completes"
+        "analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change, 1 of them source files — the step completes"
     ], err
 
 
@@ -223,7 +223,7 @@ def test_tests_and_documentation_are_not_counted_against_the_files_limit(runner,
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert _log(err) == [
-        "short analysis: short — grade LOW, 3 acceptance criteria, 5 files to change, 3 of them source files"
+        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 3 acceptance criteria, 5 files to change, 3 of them source files"
         " — within the limits, the step completes"
     ], err
 
@@ -232,7 +232,7 @@ def test_a_short_analysis_listing_only_tests_and_documentation_completes(runner,
     out, err = _analyze(runner, workspace, fake_claude, files=["test/a.test.ts", "docs/page.md"])
     assert out["ok"] is True, out
     assert _log(err) == [
-        "short analysis: short — grade LOW, 3 acceptance criteria, 2 files to change, 0 of them source files"
+        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 3 acceptance criteria, 2 files to change, 0 of them source files"
         " — within the limits, the step completes"
     ], err
 
