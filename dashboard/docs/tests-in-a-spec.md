@@ -24,7 +24,7 @@ Both can run the tests.
 |-----------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | create, analyze | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 | implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the full suite once, after the AI is done; a green run ticks the spec's "Run the full test suite" row                                                | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
-| archive         | only the tests covering files it touched while resolving a merge conflict                | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands, marked "merged after a retry". Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops      |
+| archive         | only the tests covering files it touched while resolving a merge conflict                | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands without a notice on the row. Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops         |
 | close, reopen   | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 
 The step's time limit counts the AI's turns, not these runs: each run has a limit of its own, an hour unless
@@ -108,8 +108,9 @@ name, and none for a criterion an existing test already proves — that test get
   told nothing about it.
 - **Red on main as well:** the landing ran the same tests on the default branch without the spec, and they were red
   there too. The failure is main's; nothing about the spec needs changing. Press Archive again once main is green.
-- **Merged after a retry:** the landing's first run was red and the second green. The job keeps the lines that
-  failed the first time, so a test that fails now and then can be found.
+
+A landing whose first test run was red and whose second was green adds no notice to the archived row. The job
+keeps the first run's failing lines, and the test output stays in the log.
 
 Acceptance criteria are a separate thing from the tests: those are the boxes you tick on the Status tab or under the
 row, usually after trying the change on a [test server](test-server.md).

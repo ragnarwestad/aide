@@ -190,7 +190,6 @@ export const es: Record<TranslationKey, string> = {
     "El push de un paso no llegó a origin. — Actualiza la branch en el checkout del servidor, " +
     "y vuelve a hacer push desde una terminal.",
   "list.prError": "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
-  "list.landedAfterRetry": "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Ningún test nombra {id}.",
   "list.branchLeftBehind":

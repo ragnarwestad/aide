@@ -198,8 +198,8 @@ that carries the project's `worktreeLinks` and `.aide/config`. When `git worktre
 checkout and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
 commands the change calls for and runs them through `aide-record-test-run`.
 
-- A red run gets the whole command once more, unless it timed out. Green on the second run lands, with the archived row
-  reading "merged after a retry" and the job keeping the lines the first run failed on (`testsGreenOnRetry`).
+- A red run gets the whole command once more, unless it timed out. Green on the second run lands without a notice
+  on the archived row. The job keeps the lines the first run failed on (`testsGreenOnRetry`).
 - Red on both runs pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
   the default branch alone (`redOnDefaultBranch`); red there too, the sentence says main is red as well, and archive

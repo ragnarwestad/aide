@@ -257,9 +257,7 @@ export function archivedRowNotices(a: ArchivedSpecView | undefined, now: number,
   }
   const title = lockedStateTitle(a, now, lang);
   if (title) return [{ variant: "failed", text: title }];
-  // Landed, so not a failure: the suite was red once and green on its
-  // retry, which is a test worth looking at before it goes red twice.
-  return a.testsGreenOnRetry ? [{ variant: "info", text: t(lang, "list.landedAfterRetry") }] : [];
+  return [];
 }
 
 /** The sentence an archived row's branch mark carries —

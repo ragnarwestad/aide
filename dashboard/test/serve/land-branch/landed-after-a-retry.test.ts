@@ -45,13 +45,11 @@ describe("a landing green only on its retry", () => {
   const archived = (extra: Partial<ArchivedSpecView>) =>
     ({ project: "aide", folder: "81-x", archivedAt: "2026-09-18", ...extra }) as ArchivedSpecView;
 
-  test("the archived row says it landed after a retry", () => {
-    expect(archivedRowNotices(archived({ testsGreenOnRetry: "(fail) flaky" }), Date.now(), "en")).toEqual([
-      { variant: "info", text: "Merged after a retry: the project's tests were red on the first run and green on the second." },
-    ]);
+  test("a successful test retry adds no notice to the archived row", () => {
+    expect(archivedRowNotices(archived({ testsGreenOnRetry: "(fail) flaky" }), Date.now(), "en")).toEqual([]);
   });
 
-  test("a branch left behind outranks it: one message per row", () => {
+  test("a branch left behind still gets its failure notice after a successful test retry", () => {
     const notices = archivedRowNotices(
       archived({ testsGreenOnRetry: "(fail) flaky", notLanded: true, branchDeleteError: "rejected" }),
       Date.now(),
