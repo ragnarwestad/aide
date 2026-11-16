@@ -26,7 +26,8 @@ export function specState(g: SpecStateFacts): SpecState {
   if (g.state === ARCHIVED_STATE || g.state === "archived-unlanded") return { key: "archived" };
   if (g.executionGroupActive) return { key: "active" };
   if (g.reopenedRound && !done.includes("analyze") && !done.includes("implement")) return { key: "reopened" };
-  return done.length || g.lead ? { key: "idle" } : { key: "created" };
+  const workStarted = done.some((step) => step !== "create") || (g.lead && currentStep(g.lead) !== "create");
+  return workStarted ? { key: "idle" } : { key: "created" };
 }
 
 /** A spec's activity and a job's phase are different labels. */

@@ -204,8 +204,8 @@ both read "0% done". The spec's own page shows it in full.
 
 The State column carries the spec's own state and nothing else:
 
-- **Created** — no phase has run.
-- **Idle** — a job has run and none is queued or running now.
+- **Created** — only Create has completed, or no job has run.
+- **Idle** — work beyond Create has been attempted and none is queued or running now.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
 - **Active** — a job is queued or running, its branch is landing, or its execution group is queued, running or archiving; the phase name is shown on Jobs instead.
