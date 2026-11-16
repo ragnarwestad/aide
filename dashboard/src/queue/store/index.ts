@@ -33,7 +33,7 @@ import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, 
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 import { ExecutionGroupStore } from "../execution-groups/index.ts";
-import { cancelLine, neverStarted } from "./cancelled-job.ts";
+import { cancelLine, discardOnCancel } from "./cancelled-job.ts";
 
 export class QueueStore {
   readonly executionGroups: ExecutionGroupStore;
@@ -86,7 +86,7 @@ export class QueueStore {
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
     loadJobs(this.mirrorPath, this.jobs);
-    for (const [id, job] of this.jobs) if (job.state === "cancelled" && neverStarted(job)) this.jobs.delete(id);
+    for (const [id, job] of this.jobs) if (job.state === "cancelled" && discardOnCancel(job)) this.jobs.delete(id);
     while (this.jobs.size > this.cap) this.jobs.delete(this.jobs.keys().next().value as string);
     // A running member decides the group's activity ahead of queued members.
     for (const state of ["queued", "running"]) for (const job of this.jobs.values()) {
@@ -439,7 +439,7 @@ export class QueueStore {
     this.jobs.set(id, next);
     // The group is told first: a job removed below still stops its group.
     this.syncExecutionGroup(next);
-    const removed = event === "cancel" && job.state === "queued" && neverStarted(job);
+    const removed = event === "cancel" && job.state === "queued" && discardOnCancel(job);
     if (removed) this.jobs.delete(id);
     if (event === "cancel") this.log(cancelLine(job, removed));
     this.mirror();

@@ -130,8 +130,10 @@ A job whose process is gone but whose result is on disk is completed from that f
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
 and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
 has already finished is refused with 409 and keeps its state. A job cancelled while it was queued and before any
-step started has no log, cost or result, and is removed from the queue instead of kept as `cancelled`; the queue
-drops such a job left over from before when it loads. Every cancel writes one line to the server's log naming the
+step started has no log, cost or result, and is removed from the queue instead of kept as `cancelled`, unless it is
+a scheduled job. Scheduled jobs keep their cancelled records so the same scheduled occurrence is not queued again;
+the next occurrence and a manual Run now are still allowed. The same retention rule applies when the queue loads.
+Every cancel writes one line to the server's log naming the
 job, the state it was in and what it was waiting for.
 
 **The server's log** also gets one line for every action that went through (a `POST` that was not refused), naming
