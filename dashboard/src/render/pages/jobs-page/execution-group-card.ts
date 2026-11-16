@@ -1,3 +1,5 @@
+import { writing } from "../../../queue/job-rules/activity.ts";
+import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
@@ -61,6 +63,11 @@ export function memberPipKind(member: SpecGroup | undefined, completed: boolean)
   if (["failed", "cancelled", "interrupted", "archived-unlanded"].includes(member.state)) return "refused";
   const heldBack = !!member.phases.find((p) => p.step === "archive")?.heldBack;
   return member.state === "stopped" || heldBack ? "waiting" : "todo";
+}
+
+export function memberPipLabel(folder: string, job?: QueueRowView, lang: Language = "en"): string {
+  const number = specNumber(folder);
+  return job && writing(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
 }
 
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
@@ -137,7 +144,8 @@ export function executionGroupCard(
   // or, while the card is open, its action.
   const memberPips = pips(group.members.map((folder) => {
     const row = members.find((member) => member.group.specFolder === folder);
-    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: specNumber(folder) };
+    const job = folder === group.currentMember ? group.state === "archiving" ? archiveJob : row?.group.lead : undefined;
+    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: memberPipLabel(folder, job, lang as Language) };
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
