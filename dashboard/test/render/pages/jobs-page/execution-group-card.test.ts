@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { ExecutionGroup } from "../../../../src/queue/execution-groups";
-import { executionGroupCard, executionGroupPlace, memberPipKind } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
+import { executionGroupCard, executionGroupPlace, memberPipKind, executionGroupStateLabel } from "../../../../src/render/pages/jobs-page/execution-group-card.ts";
 import type { SpecGroup } from "../../../../src/render/pages/specs-list";
 import { jobsSentence } from "../../../../src/render/ui/components/spec-name.ts";
 import { pips, rowMessage, stepLabel } from "../../../../src/render/ui/components";
@@ -250,4 +250,13 @@ test("each member's pip is marked with its spec number, in the group's order", (
     { kind: memberPipKind(second.group, true), title: "798-second", label: "798" },
     { kind: memberPipKind(first.group, false), title: "797-first", label: "797" },
   ]));
+});
+
+test("a queued group uses its current member's queue position rather than another member's", () => {
+  const execution = { ...group("queued"), currentMember: "1-first" };
+  const first = member("1-first", "", { lead: { state: "queued", queuePosition: { n: 2, total: 2 } } as SpecGroup["lead"] });
+  const second = member("2-second", "", { lead: { state: "queued", queuePosition: { n: 1, total: 2 } } as SpecGroup["lead"] });
+  expect(executionGroupStateLabel(execution, [second, first], "en")).toBe(t("en", "list.stateQueuedPosition", { n: 2, total: 2 }));
+  expect(executionGroupStateLabel({ ...execution, state: "running" }, [first], "en")).toBe(t("en", "list.groupState.running"));
+  expect(executionGroupStateLabel(execution, [], "en")).toBe(t("en", "list.groupState.queued"));
 });

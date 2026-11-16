@@ -39,6 +39,12 @@ const GROUP_STATE_KEY = {
   completed: "list.done",
 } as const satisfies Record<ExecutionGroup["state"], TranslationKey>;
 
+export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language): string {
+  const lead = members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
+  const position = group.state === "queued" && lead?.state === "queued" ? lead.queuePosition : undefined;
+  return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[group.state]);
+}
+
 const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
   if (state === "running" || state === "archiving") return "running";
   if (state === "stopped" || state === "waiting-acceptance") return "waiting";
@@ -138,7 +144,7 @@ export function executionGroupCard(
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), t(lang as Language, GROUP_STATE_KEY[group.state]))}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), executionGroupStateLabel(group, members, lang as Language))}</span>` +
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
