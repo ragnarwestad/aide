@@ -58,35 +58,8 @@ async function twoMembers(state: string, extra: Record<string, unknown> = {}) {
   return started;
 }
 
-const press = (base: string, body: object) =>
-  fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 const groupAction = (base: string, action: string, picks: Record<string, string> = {}) =>
   fetch(`${base}/api/queue/groups/group-1/action`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action, ...picks }) });
-
-describe("a press on a grouped spec's own row", () => {
-  test("runs as the group's job, and never archives the spec on its own", async () => {
-    const { base } = await twoMembers("stopped");
-    const res = await press(base, { project: "aide", specFolder: "82-next", steps: ["analyze", "implement", "archive"] });
-    expect(res.status).toBe(200);
-    const { job } = await res.json() as { job: { steps: string[]; executionGroupId?: string } };
-    expect(job.steps).toEqual(["analyze", "implement"]);
-    expect(job.executionGroupId).toBe("group-1");
-  });
-
-  test("asking for Archive alone is refused and pointed at the group", async () => {
-    const { base } = await twoMembers("stopped");
-    const res = await press(base, { project: "aide", specFolder: "82-next", steps: ["archive"] });
-    expect(res.status).toBe(409);
-    expect((await res.json() as { error: string }).error).toContain("Release");
-  });
-
-  test("is refused while the group already has a job queued or running", async () => {
-    const { base } = await twoMembers("stopped");
-    expect((await press(base, { project: "aide", specFolder: "82-next", steps: ["analyze"] })).status).toBe(200);
-    const res = await press(base, { project: "aide", specFolder: "82-next", steps: ["analyze", "implement"] });
-    expect(res.status).toBe(409);
-  });
-});
 
 describe("the group card's Start", () => {
   test("runs the member on the models picked on its own row", async () => {

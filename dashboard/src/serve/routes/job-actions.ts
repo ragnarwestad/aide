@@ -16,7 +16,8 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, groupMemberSteps, groupReservesSpec, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
 import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -180,7 +181,7 @@ export async function handleJobActionRoutes(
     }
     const askedFor = raw as Record<string, unknown> | null;
     if (typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string" &&
-      groupReservesSpec(ctx.queue, askedFor.project, askedFor.specFolder)) {
+      groupBlocksIndividualRun(ctx.queue, askedFor.project, askedFor.specFolder)) {
       const spec = `${askedFor.project}/${askedFor.specFolder}`;
       const error = "this spec belongs to an active group — start or stop it from the group";
       logRefusal("run", spec, error);

@@ -39,10 +39,10 @@ test("Jobs names what is happening while Specs shows only Active", () => {
   }
 });
 
-test("waiting members of an active execution group are Active and offer no individual Run", () => {
+test("unfinished group members are Active, filtered as Active and offer no individual Run (AC-1, AC-2, AC-5)", () => {
   const targets = [{ project: "aide", specFolder: "820-next", done: ["create"] }];
   const execution = { project: "aide", members: ["821-first", "820-next"] } as ExecutionGroup;
-  for (const state of ["queued", "running", "archiving"] as const) {
+  for (const state of ["prepared", "queued", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
     const row = groupBySpec([], targets, undefined, undefined, Date.now(), undefined, [{ ...execution, state }])[0]!;
     expect(row.lead).toBeUndefined();
     expect(specState(row)).toEqual({ key: "active" });
@@ -54,11 +54,21 @@ test("waiting members of an active execution group are Active and offer no indiv
   }
 });
 
-test("inactive, removed and other projects' groups do not reserve a spec", () => {
+test("unfinished group membership takes priority over archived and closed state (AC-1, AC-2, AC-5)", () => {
+  for (const ownState of ["archived", "closed"] as const) {
+    const row = group({ state: ownState, executionGroupActive: true, project: "aide", specFolder: "820-next" });
+    expect(specState(row)).toEqual({ key: "active" });
+    expect(applyFilter([row], { state: "active" })).toEqual([row]);
+    expect(applyFilter([row], { state: "idle" })).toEqual([]);
+    expect(specRunChoices(row, {})).toEqual([]);
+  }
+});
+
+test("completed, removed and other projects' groups restore the spec's own behavior (AC-3)", () => {
   const targets = [{ project: "aide", specFolder: "820-next", done: ["create"] }];
   const execution = { project: "aide", members: ["821-first", "820-next"] } as ExecutionGroup;
   for (const entry of [
-    ...(["prepared", "stopped", "waiting-acceptance", "completed"] as const).map((state) => ({ ...execution, state })),
+    { ...execution, state: "completed" as const },
     { ...execution, state: "running" as const, removedAt: "2026-11-15T20:00:00Z" },
     { ...execution, state: "running" as const, project: "another" },
   ]) {

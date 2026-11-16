@@ -82,13 +82,8 @@ member uses the branch named for the group's first member. Stop ends the current
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
 
-A phase pressed on a grouped spec's own row runs as the group's job, and the card follows it:
-
-- It is refused while the group already has a job queued or running.
-- It never includes Archive, including the first Run that creates a group; a press that asked for Archive runs the other phases it asked for.
-- A press for Archive alone is refused, and points to the group's card.
-
-A failed member keeps its own recovery controls.
+A spec that belongs to an unfinished group has no Run on its own row. Start, Stop and Archive for the members are on
+the group's card. A member's own queued or running job keeps its ordinary controls on the spec row.
 
 Run on a spec lists the other specs that can join a group under **Run together in a group**. Ticking one or more shows a
 required **Group name** field above those checkboxes. Run saves that name and starts the group in selection order, with dependencies placed before
