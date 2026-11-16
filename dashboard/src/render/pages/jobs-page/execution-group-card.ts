@@ -42,11 +42,16 @@ const GROUP_STATE_KEY = {
   completed: "list.done",
 } as const satisfies Record<ExecutionGroup["state"], TranslationKey>;
 
-export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language): string {
+export function executionGroupDisplayState(group: ExecutionGroup, archiveJob?: QueueRowView): ExecutionGroup["state"] {
+  return group.state === "archiving" && archiveJob?.state === "queued" && !archiveJob.landing ? "queued" : group.state;
+}
+
+export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language, archiveJob?: QueueRowView): string {
   if (groupProviderLimitWait(group, members.map((member) => member.group))) return t(lang, "list.state.waiting");
-  const lead = members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
-  const position = group.state === "queued" && lead?.state === "queued" ? lead.queuePosition : undefined;
-  return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[group.state]);
+  const lead = (group.state === "archiving" ? archiveJob : undefined) ?? members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
+  const state = executionGroupDisplayState(group, lead);
+  const position = state === "queued" && lead?.state === "queued" ? lead.queuePosition : undefined;
+  return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[state]);
 }
 
 const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
@@ -58,7 +63,8 @@ const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
 
 /** A member's pip, in the colour its own badge has: done, running, failed,
  *  stopped or held back, or not started. */
-export function memberPipKind(member: SpecGroup | undefined, completed: boolean): PipKind {
+export function memberPipKind(member: SpecGroup | undefined, completed: boolean, job?: QueueRowView): PipKind {
+  if (job && inFlight(job)) return job.state === "queued" && !job.landing ? "queued" : "now";
   if (completed || (member && isArchivedRow(member))) return "past";
   if (!member) return "todo";
   if (specBusy(member)) return member.lead?.state === "queued" && !member.lead.landing ? "queued" : "now";
@@ -147,14 +153,14 @@ export function executionGroupCard(
   const memberPips = pips(group.members.map((folder) => {
     const row = members.find((member) => member.group.specFolder === folder);
     const job = folder === group.currentMember ? group.state === "archiving" ? archiveJob : row?.group.lead : undefined;
-    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder)), title: folder, label: memberPipLabel(folder, job, lang as Language) };
+    return { kind: memberPipKind(row?.group, group.completedMembers.includes(folder), job), title: folder, label: memberPipLabel(folder, job, lang as Language) };
   }));
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(group.state), executionGroupStateLabel(group, members, lang as Language))}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(executionGroupDisplayState(group, archiveJob)), executionGroupStateLabel(group, members, lang as Language, archiveJob))}</span>` +
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +

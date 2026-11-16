@@ -84,8 +84,10 @@ before starting:
   transcript), which the Review and Verify lines on the specs list draw.
 - **An `implement` ends only on a green test run the runner made itself**
   (`run-spec/turn/step-tests.sh`), never on the session's own record.
-  Red goes back to the same session, at most `AIDE_TEST_FIX_ROUNDS` (2)
-  more turns; still red is `tests-red` on the STEP (Implement offered
+  Red gets at most `AIDE_TEST_FIX_ROUNDS` (2) more turns. At
+  `AIDE_TEST_FIX_FRESH_PERCENT` (85 unless set) of the implement session's
+  context window, a fresh session of the same tool and model takes over;
+  without a context figure, the implement session keeps them. Still red is `tests-red` on the STEP (Implement offered
   again), unlike the landing's `tests-red`, which STOPS the job. An
   `archive` runs no suite of its own: its landing runs it once, on what
   main is about to become, and skips it when the runner already saw that

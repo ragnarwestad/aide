@@ -23,7 +23,7 @@ import { t, type Language, type TranslationKey } from "../../i18n";
 import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
-import { deployMark } from "./deploy-mark/index.ts";
+import { deployMark, deployMarkDialog } from "./deploy-mark/index.ts";
 import { ICON_MORE } from "./components/icons.ts";
 
 export interface NavEntry {
@@ -233,7 +233,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   // a time as the page narrows — unit first, then language, then theme
   // — at the same widths the specs list drops its figure columns.
   return (
-    `<header>${WORDMARK}${tabs}${boardLine(lang)}` +
+    `<header>${WORDMARK}${tabs}${boardLine(lang)}${getBoardInfo() ? "" : deployMarkDialog(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
     // header's right-hand end —
     // header-level controls the reader reaches without opening the menu

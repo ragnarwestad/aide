@@ -15,6 +15,7 @@ export const en = {
   "shell.usage": "Usage",
   "shell.deployWaiting": "{project} has {count} new commits to deploy",
   "shell.deployWaitingOne": "{project} has {count} new commit to deploy",
+  "shell.deployUpToDate": "{project} is up to date with {branch}",
   "shell.filter": "Filter",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
