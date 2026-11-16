@@ -4,9 +4,10 @@ of docs/AI_NEWS_LOG.md, and fetch the English captions of a few of them as plain
 
 `videos` reads each channel's feed, which holds its newest 15 videos, and writes the
 ones published on or after --since to one JSON file, each with its title, description,
-date and link. One line per channel, in table order: `listed <count> <channel> <feed>`,
-ending with a note when the feed may hold only part of the period, or
-`failed <channel> <feed> <reason>`. Exits 1 when any channel failed.
+date and link. A channel whose feed fails is listed by yt-dlp from its videos tab instead,
+up to the same 15. One line per channel, in table order: `listed <count> <channel> <feed>`,
+ending with a note when the listing may hold only part of the period and one when yt-dlp
+listed it, or `failed <channel> <feed> <reasons>`. Exits 1 when any channel failed.
 
 `captions` runs yt-dlp for at most five links and writes each video's English
 captions, automatic ones included, to `<out>/<id>.txt`. One line per link:
@@ -38,6 +39,9 @@ FEED_SIZE = 15
 MAX_CAPTIONS = 5
 YT_DLP = "yt-dlp"
 TIME_LIMIT = 60
+LIST_TIME_LIMIT = 120
+STOPPED_AT_AN_OLDER_VIDEO = 101
+CHANNEL_PAGE = "https://www.youtube.com/channel/%s/videos"
 CHANNEL_ID = re.compile(r"UC[A-Za-z0-9_-]{22}")
 # yt-dlp leaves captions out with a warning, and exits 0, when YouTube asks for what it lacks.
 LEFT_OUT = re.compile(r"PO token|JavaScript runtime", re.IGNORECASE)
@@ -104,22 +108,61 @@ def feed_videos(xml, since):
     return videos, len(entries) >= FEED_SIZE and len(videos) == len(entries)
 
 
+def listed_videos(channel_id, since):
+    """The channel's videos published on or after `since`, newest first, read by yt-dlp from its videos tab,
+    and whether more may exist; or None and the reason. yt-dlp stops at the first older video, and reads
+    each newer one in full, since only that gives a video's date."""
+    command = [YT_DLP, "--no-update", "--skip-download", "--js-runtimes", "node", "--ignore-errors",
+               "--playlist-end", str(FEED_SIZE), "--break-match-filters", "upload_date>=" + since.replace("-", ""),
+               "-j", CHANNEL_PAGE % channel_id]
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=LIST_TIME_LIMIT)
+    except OSError as error:
+        return None, "yt-dlp could not be run: %s" % error
+    except subprocess.TimeoutExpired:
+        return None, "yt-dlp ran past %d seconds" % LIST_TIME_LIMIT
+    videos = []
+    for line in done.stdout.splitlines():
+        try:
+            video = json.loads(line)
+        except ValueError:
+            continue
+        day = video.get("upload_date") or ""
+        videos.append({
+            "id": video.get("id", ""),
+            "title": video.get("title", ""),
+            "description": video.get("description") or "",
+            "published": "%s-%s-%s" % (day[:4], day[4:6], day[6:8]) if len(day) == 8 else "",
+            "link": video.get("webpage_url") or "https://www.youtube.com/watch?v=%s" % video.get("id", ""),
+        })
+    # 101 is yt-dlp stopping at the first older video, which is how every listing ends.
+    if done.returncode not in (0, STOPPED_AT_AN_OLDER_VIDEO) and not videos:
+        said = done.stderr.strip().splitlines()
+        return None, "yt-dlp: %s" % (said[-1] if said else "exit %d" % done.returncode)
+    videos.sort(key=lambda video: video["published"], reverse=True)
+    return videos, len(videos) >= FEED_SIZE
+
+
 def channel_report(channel, channel_id, since):
-    """One channel's part of the report: its videos, or the error that kept them out."""
+    """One channel's part of the report: its videos, or the errors that kept them out. A channel whose feed
+    fails is listed through yt-dlp; YouTube's feed server answers 404 for every channel for days at a time."""
     feed = FEED % channel_id
     report = {"channel": channel, "channel_id": channel_id, "feed": feed}
     body, error = watch_pages.fetch(feed)
     if body is None:
         body, error = watch_pages.fetch(feed)
-    if body is None:
-        report["error"] = error
+    if body is not None:
+        try:
+            videos, more = feed_videos(body, since)
+            report.update(more_may_exist=more, videos=videos)
+            return report
+        except (ElementTree.ParseError, ValueError) as problem:
+            error = "the feed could not be read: %s" % problem
+    videos, listing_error = listed_videos(channel_id, since)
+    if videos is None:
+        report["error"] = "%s; %s" % (error, listing_error)
         return report
-    try:
-        videos, more = feed_videos(body, since)
-    except (ElementTree.ParseError, ValueError) as problem:
-        report["error"] = "the feed could not be read: %s" % problem
-        return report
-    report.update(more_may_exist=more, videos=videos)
+    report.update(feed_error=error, more_may_exist=listing_error, videos=videos)
     return report
 
 
@@ -143,6 +186,8 @@ def list_videos(args):
         line = "listed %3d %s %s" % (len(report["videos"]), report["channel"], report["feed"])
         if report["more_may_exist"]:
             line += " (the feed holds only the newest %d; more may exist)" % FEED_SIZE
+        if "feed_error" in report:
+            line += " (the feed failed, listed through yt-dlp: %s)" % report["feed_error"]
         print(line)
     return 1 if any("error" in report for report in reports) else 0
 

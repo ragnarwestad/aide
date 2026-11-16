@@ -101,8 +101,9 @@ scripts/news/fetch-youtube.py videos --since <YYYY-MM-DD> --output "$x_output/yo
 
 It writes each channel's videos, with title, description, date and link, to
 that file, and prints one line per channel: `listed` with the number of
-videos, or `failed` with what the fetch answered. A `listed` line that says
-more may exist names a channel whose feed held only its newest 15 videos.
+videos, or `failed` with what the feed and yt-dlp answered. A channel whose
+feed fails is listed by yt-dlp instead, and its line says so. A `listed` line
+that says more may exist names a channel listed only to its newest 15 videos.
 
 From the titles and descriptions in the file, pick the videos that look
 relevant to the four tools (a release, a feature, how to work with coding

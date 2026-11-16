@@ -119,7 +119,7 @@ reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and
 
 The YouTube channels whose videos the news check lists. This table is the one list of channels: a channel is added
 or removed here. `scripts/news/fetch-youtube.py` reads it and lists each channel's videos published since the last
-review from the channel's feed, which holds its newest 15 videos.
+review from the channel's feed, which holds its newest 15 videos, or with yt-dlp when the feed fails.
 
 | Channel               | Channel id                 |
 |-----------------------|----------------------------|
