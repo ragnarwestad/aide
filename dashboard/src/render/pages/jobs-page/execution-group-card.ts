@@ -1,4 +1,4 @@
-import { writing } from "../../../queue/job-rules/activity.ts";
+import { inFlight } from "../../../queue/job-rules/activity.ts";
 import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
@@ -67,7 +67,7 @@ export function memberPipKind(member: SpecGroup | undefined, completed: boolean)
 
 export function memberPipLabel(folder: string, job?: QueueRowView, lang: Language = "en"): string {
   const number = specNumber(folder);
-  return job && writing(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
+  return job && inFlight(job) ? `${number} ${stepLabel(currentStep(job), lang).slice(0, 1)}` : number;
 }
 
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
