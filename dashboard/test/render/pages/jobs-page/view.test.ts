@@ -245,6 +245,17 @@ describe("a group stands for its member specs, each by its own state", () => {
   const counts = (rows: Entry[], f: JobsFilter = {}): Record<string, number> =>
     Object.fromEntries(jobsStateOptions(factsOf(rows), f).map((o) => [o.key, o.count]));
 
+  test("members reserved by a running group wait unless their own job is queued, running or failed", () => {
+    const release = group("release", "running", [
+      member("823-new", "not-started", { executionGroupActive: true }),
+      member("824-done", "done", { executionGroupActive: true }),
+      member("825-running", "running", { executionGroupActive: true, lead: jobRowView({ state: "running" }) }),
+      member("826-queued", "queued", { executionGroupActive: true, lead: jobRowView({ state: "queued" }) }),
+      member("827-failed", "failed", { executionGroupActive: true, lead: jobRowView({ state: "failed" }) }),
+    ]);
+    expect(counts([release])).toMatchObject({ waiting: 2, queued: 1, "active:all": 1, failed: 1 });
+  });
+
   test("Queued counts only queued work while Waiting counts members awaiting their next phase", () => {
     const release = group("release", "queued", [
       member("818-done", "done"), member("815-done", "done"), member("816-done", "done"),

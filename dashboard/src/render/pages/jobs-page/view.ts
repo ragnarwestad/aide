@@ -4,6 +4,7 @@
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
+import { waitingForGroup } from "../specs-list/data-model/spec-state.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   ACTIVE_FILTER_KEY,
@@ -56,7 +57,7 @@ const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
   { key: "queued", label: "Queued", states: ["queued"] },
-  { key: "waiting", label: "Waiting", states: ["done"], where: (g) => !finished(g) },
+  { key: "waiting", label: "Waiting", where: (g) => (g.state === "done" && !finished(g)) || waitingForGroup(g as RowFacts) },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "cancelled", "archived-unlanded"] },
   { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== "closed" && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
@@ -85,6 +86,7 @@ export type RowFacts = Pick<
 > & {
   /** Group members represented by this row; an ordinary spec or job counts as one. */
   itemCount?: number;
+  executionGroupActive?: boolean;
   /** The member specs a group's row stands for, each its current row with its own state; absent on every other row. */
   members?: RowFacts[];
   /** Set on the row of a spec's earlier round, which is over whatever the spec does now. */

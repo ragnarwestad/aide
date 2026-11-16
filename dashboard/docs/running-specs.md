@@ -931,7 +931,8 @@ Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, 
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
-Waiting for its next phase. Queued holds only jobs in the queue; they do not count under Waiting.
+Waiting for its next phase. Members reserved by an active group also show Waiting while they await their turn or the shared Archive; their own queued, running or failed job keeps its own state.
+Queued holds only jobs in the queue; they do not count under Waiting.
 Group members count under their own states. Active holds every row Done does not, except a cancelled job that is not a spec's: its
 row offers nothing more, while a spec's row can run its phase again. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
