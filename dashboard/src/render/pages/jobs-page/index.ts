@@ -63,6 +63,8 @@ export interface JobsView {
   /** Set with `specs`: each job row's key by job id, in place of the keys
    *  `shown` alone would give. */
   rowKeys?: Map<string, string>;
+  /** Whether the board's first specs sweep has read the specs; absent, it has. */
+  specsScanned?: boolean;
 }
 
 /** The rows in order, each with its `<project>/<folder>` key and the facts the
@@ -76,7 +78,7 @@ function entries(v: JobsView, draws: Draws = () => true): { key: string; html: s
   const specRows = roundSpecRows(v, now, draws);
   const activeGroups = activeExecutionGroups(v, specRows);
   const grouped = new Set(activeGroups.flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
-  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key) && specHasWork(s.group)).map((s) => ({
+  const specs = specRows.filter((s) => !moving.has(s.key) && !grouped.has(s.key) && specHasWork(s.group, v.specsScanned)).map((s) => ({
     key: s.key, html: s.html, place: specPlace(s.group, s.jobs),
     facts: s.key.includes("@") ? { ...s.group, pastRound: true } : s.group,
   }));

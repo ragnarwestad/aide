@@ -16,7 +16,16 @@ export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelId
   named?: NamedModel;
 }[] {
   const names = modelNamesOf(queue.modelIds);
-  return Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => {
+  const entries = Object.entries(queue.defaults.modelChoices ?? {});
+  const versionOf = (name: string, choice: (typeof entries)[number][1]) =>
+    choice.tool === "codex" ? /^gpt-(\d+(?:\.\d+)*)-(sol|astra|terra|luna)$/.exec(choice.model ?? name) : null;
+  return entries.filter(([name, choice]) => {
+    const version = versionOf(name, choice);
+    return !version || !entries.some(([otherName, other]) => {
+      const newer = versionOf(otherName, other);
+      return newer?.[2] === version[2] && newer[1]!.localeCompare(version[1]!, "en", { numeric: true }) > 0;
+    });
+  }).map(([name, choice]) => {
     const claude = !choice.tool || choice.tool === "claude";
     const ranAs = claude ? queue.modelIds[name] : undefined;
     const named = claude ? names[name] : undefined;

@@ -10,6 +10,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 import { t } from "../../../src/i18n";
 
 browserDeadline();
@@ -121,7 +122,9 @@ describe("a spec's row on the Jobs tab acts in place", () => {
   });
 
   test("a first queued job adds its row in place and cancelling it before it starts removes that row", async () => {
-    const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
+    const { base, dir, server } = harness.start({ queueMirror: JSON.stringify([nightly]) });
+    makeSpecsRepo(dir);
+    await server.settle();
     const page = await browser.newPage();
     await page.goto(`${base}/`);
     expect(await page.locator(SPEC_ROW).count()).toBe(0);

@@ -20,12 +20,12 @@ The same holds for every project the board runs; the last section is about Aide'
 A phase has two parts: the AI, which does the work, and Aide itself, which starts the AI and checks what it left.
 Both can run the tests.
 
-| Phase           | The AI                                                                                   | Aide itself                                                                                                                                          | When it is red                                                                                                                                                                                              |
-|-----------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| create, analyze | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
-| implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the full suite once, after the AI is done; a green run ticks the spec's "Run the full test suite" row                                                | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
-| archive         | only the tests covering files it touched while resolving a merge conflict                | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands without a notice on the row. Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops         |
-| close, reopen   | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
+| Phase             | The AI                                                                                     | Aide itself                                                                                                                                            | When it is red                                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| create, analyze   | none                                                                                       | none                                                                                                                                                   | —                                                                                                                                                                                                             |
+| implement         | the test files it wrote and the ones covering the files it changed; never the full suite   | the configured changed-code tests after the AI is done; without a selector, the full suite                                                             | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again   |
+| archive           | only the tests covering files it touched while resolving a merge conflict                  | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code   | a confirmed regression against green main gets up to two AI repairs on the source branch; every repair is rebuilt against current main and fully tested. Other failures stop the job                          |
+| close, reopen     | none                                                                                       | none                                                                                                                                                   | —                                                                                                                                                                                                             |
 
 The step's time limit counts the AI's turns, not these runs: each run has a limit of its own, an hour unless
 `AIDE_TEST_RUN_LIMIT_SEC` says otherwise. A run still going at that limit is stopped, and the step ends there with the
@@ -35,14 +35,21 @@ work so far committed. The landing is described in full in [landing.md](landing.
 
 ## Which tests run
 
-Aide runs one command, the same in implement and in the landing: `AIDE_TEST_CMD` in the project's
-`.aide/project.yaml`, set from the project's Settings. Nothing else is read and nothing is guessed. It runs the project's whole suite
-whatever the change touched; aide's own runs pytest, `make test` and the browser tests (`make test-e2e`).
+Land and Archive run `AIDE_TEST_CMD` from `.aide/project.yaml` on the merged result before updating the default branch.
+Implement uses `AIDE_TEST_CHANGED_CMD` when configured, with the comparison git ref as its last argument. The command
+must fall back to the full suite for changes it cannot classify safely. Without it, Implement uses `AIDE_TEST_CMD`.
+Aide's selector runs dashboard tests and Python cross-language checks for dashboard-only changes; core or unknown
+changes keep the full suite. Only a full run may tick the spec's "Run the full test suite" row.
 
-The one exception is a change to Markdown files and nothing else, compared with the default branch: it runs the
-project's `scripts/check-docs` when it has one, and nothing when it does not. A paragraph cannot turn the suite red.
-An implement that follows a landing stopped by tests the merge broke runs the whole suite even then, since those tests
-are what it is to make pass.
+A Markdown-only Implement runs `scripts/check-docs` when present. A repeated Implement after a landing test failure
+keeps the full suite so it covers the previously failed tests.
+
+Land and Archive repair only named failures confirmed to be introduced by the merge when main alone passes. The
+repair session uses the job's Implement model and provider, or their current defaults for a standalone Land. It
+receives the tested commit and complete output, and the runner checks the failed files independently using
+`AIDE_TEST_FILES_CMD`. Missing file commands, timeouts, provider failures, unknown failures and red main stop the
+landing. At most two repairs are saved to the source branch, without force, followed by a fresh merge and full run.
+Stop cancels the repair too. Repair transcripts are kept beside the job's stream as `.repair.jsonl` files.
 
 Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
 divided by the steps and landings running at that moment, rounded down and at least one. An implement's own run and a

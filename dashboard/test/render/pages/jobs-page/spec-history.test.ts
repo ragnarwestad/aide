@@ -16,6 +16,21 @@ test("an archived record or stopped phase still proves work without a queued job
   expect(specHasWork({ ...base, phases: [{ step: "implement", history: { historyDone: true } }] as SpecGroup["phases"] })).toBe(true);
 });
 
+test("before the first specs sweep, a spec with no recorded work keeps its row on Jobs (AC-4)", () => {
+  const view = fresh();
+  view.specsScanned = false;
+  expect(jobsTabHasRows(view)).toBe(true);
+  expect(specHasWork({ done: ["create"], phases: [] } as unknown as SpecGroup, false)).toBe(true);
+});
+
+test("once the first specs sweep has finished, only a spec with recorded work keeps its row (AC-5)", () => {
+  const view = fresh();
+  view.specsScanned = true;
+  expect(jobsTabHasRows(view)).toBe(false);
+  view.list.targets[0]!.done = ["create", "analyze"];
+  expect(jobsTabHasRows(view)).toBe(true);
+});
+
 test("a standalone spec with only its creation record has no row on Jobs", () => {
   expect(jobsTabHasRows(fresh())).toBe(false);
 });

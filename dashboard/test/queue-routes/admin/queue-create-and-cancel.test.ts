@@ -110,7 +110,7 @@ test("cancel refuses a job that has already finished, and leaves its state alone
 // signal: marking it cancelled would leave it fetching and restarting under
 // a row that says it ended. Only a queued one, which has no run yet, is
 // cancelled, and removed, since it never started.
-test("cancel refuses a running deploy and leaves it running; a queued deploy, held back or not, is cancelled and removed", async () => {
+test("cancel accepts a waiting deploy but refuses an install or a restart already fired", async () => {
   const headers = { "content-type": "application/json", accept: "application/json" };
   const deploy = (id: string, state: string, extra: Record<string, unknown> = {}) => ({
     id, project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state,
@@ -123,6 +123,10 @@ test("cancel refuses a running deploy and leaves it running; a queued deploy, he
     deploy("dep-running", "running", { startedAt: "2026-10-13T08:00:01Z", pid: process.pid, pgid: 0 }),
     deploy("dep-queued", "queued"),
     deploy("dep-held", "queued", { errorReason: "held-back", error: { key: "runner.landingPause" } }),
+    deploy("dep-waiting", "running", { pid: process.pid, pgid: 0, errorReason: "held-back", error: { key: "runner.landingPause" } }),
+    deploy("dep-fired", "running", { pid: process.pid, pgid: 0, errorReason: "held-back", deploy: { root: "/srv/aide", restartedAt: "2026-11-17T00:00:00Z" } }),
+    deploy("keep-archive", "running", { pid: process.pid, pgid: 0, specFolder: "825-work", steps: ["archive"] }),
+    deploy("keep-land", "queued", { specFolder: "land", steps: ["land"], branch: "fix/example" }),
   ]));
   const { base } = start({ queueMirrorPath: join(site, "queue.json") });
   const states = async () =>
@@ -134,13 +138,17 @@ test("cancel refuses a running deploy and leaves it running; a queued deploy, he
   expect(refused.status).toBe(409);
   expect((await states())["dep-running"]).toBe("running");
 
-  for (const id of ["dep-queued", "dep-held"]) {
+  expect((await fetch(`${base}/api/queue/dep-fired/cancel`, { method: "POST", headers })).status).toBe(409);
+  for (const id of ["dep-queued", "dep-held", "dep-waiting"]) {
     expect((await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers })).status).toBe(200);
   }
   const after = await states();
   expect(after["dep-queued"]).toBeUndefined();
   expect(after["dep-held"]).toBeUndefined();
   expect(after["dep-running"]).toBe("running");
+  expect(after["dep-waiting"]).toBe("cancelled");
+  expect(after["keep-archive"]).toBe("running");
+  expect(after["keep-land"]).toBe("queued");
 });
 
 test("cancel ends a running step the way every ending does, and signals the group the job had (AC-1)", async () => {

@@ -29,7 +29,7 @@ function writeOutput(outputRoot: string, project: string, specFolder: string, ht
 }
 
 describe("GET /schedule-output/...", () => {
-  test("a file written under the fixture root is served with a valid token", async () => {
+  test("a file written under the fixture root is served with a valid token (AC-2, AC-5)", async () => {
     const outputRoot = freshOutputRoot();
     writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");
     const { base } = harness.start({ extra: { scheduleOutputRoot: outputRoot } });

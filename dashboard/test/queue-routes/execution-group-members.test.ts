@@ -56,6 +56,7 @@ async function twoMembers(state: string, extra: Record<string, unknown> = {}) {
     },
   });
   await implemented(started.base);
+  await started.server.settle();
   return started;
 }
 

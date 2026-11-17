@@ -1,7 +1,6 @@
+import { createLandingGate } from "./land-branch/repair/index.ts";
 import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
-import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
-import { greenResultsForLand } from "./land-branch/seen-green.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 import { translationMergeArgs } from "./land-branch/run-script.ts";
 // The aide-dashboard server: serves every page of the board and its
@@ -205,10 +204,7 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate: opts.landingGate ?? ((root, job, branch, button) => {
-        const gatedJob = job.steps[job.stepIndex] === "land" ? greenResultsForLand(job, queue.list()) : job;
-        return runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(), button });
-      }),
+    landingGate: opts.landingGate ?? createLandingGate(queue, opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
     // with that branch's own copy.
@@ -247,7 +243,7 @@ export function createServer(opts: ServerOptions) {
     startDeploy: land.deployJob.start, startLand: land.landJob.start, testServerStore,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
-    forgetSpecCaches: schedules.forgetSpec,
+    forgetSpecCaches: schedules.forgetSpec, whenSpecsScanned: schedules.whenSpecsScanned,
     // A macrotask, not now: the step's own result is written right
     // after this is asked for, and a read stamped before that write
     // would never count as having seen the step.
@@ -322,7 +318,7 @@ export function createServer(opts: ServerOptions) {
     scheduleStore,
     forgetSpec: schedules.forgetSpec, specProgress: schedules.specProgress,
     rereadSpec: opts.rereadSpec ?? schedules.rereadSpec,
-    rereadProject: schedules.rereadProject,
+    rereadProject: schedules.rereadProject, specsScanned: schedules.specsScanned, whenSpecsScanned: schedules.whenSpecsScanned,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,

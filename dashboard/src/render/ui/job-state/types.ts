@@ -41,6 +41,7 @@ export interface QueueRowView {
   landing?: boolean;
   branch?: string;
   landPushStarted?: boolean;
+  deploy?: { restartedAt?: string };
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored
    *  split: the page shows a compact total and nothing else, and the

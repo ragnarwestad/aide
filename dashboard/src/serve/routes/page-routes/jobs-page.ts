@@ -81,6 +81,7 @@ export async function jobsPage(
     specJobs: kept.specJobs.map((j) => built.get(j.id)!),
     specs: cut?.specs,
     rowKeys: cut?.rowKeys,
+    specsScanned: ctx.specsScanned?.() ?? true,
     executionGroups,
     historySpecs: ctx.archivedSpecRows("all", keys),
     scheduleEntryExists: (project: string, name: string) =>

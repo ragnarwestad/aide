@@ -68,3 +68,8 @@ describe("the landing decides by the policy, never by a step's name", () => {
     expect(found).toEqual([]);
   });
 });
+
+test("test repair is limited to Archive and Land; only standalone Land shares other jobs' green runs", () => {
+  expect(WORKFLOW_STEPS.filter((step) => landingPolicy(step).repairsTests)).toEqual(["archive", "land"]);
+  expect(WORKFLOW_STEPS.filter((step) => landingPolicy(step).sharesGreenResults)).toEqual(["land"]);
+});

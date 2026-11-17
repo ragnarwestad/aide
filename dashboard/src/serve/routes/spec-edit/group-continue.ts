@@ -4,6 +4,7 @@
 import { inFlight, type QueueStore } from "../../../queue/queue.ts";
 import { enqueueRequest, withRowPicks } from "../../../queue/request/index.ts";
 import { groupMemberSteps, type ExecutionGroupState } from "../../../queue/execution-groups";
+import type { RoutesContext } from "..";
 
 /** Queues the added spec as the group's next job when the group was running
  *  or queued before the add and has since been left waiting for Archive with
@@ -25,4 +26,18 @@ export function continueAfterEdit(
   if (!made.ok) return false;
   queue.executionGroups.queueMember(group.id, member);
   return true;
+}
+
+/** `continueAfterEdit`, once the board's first specs sweep has finished: at
+ *  once, before the save answers, when it has; otherwise when it does, and then
+ *  open pages are told. The runner is ticked for a job queued either way. */
+export async function continueOnceSpecsScanned(
+  ctx: Pick<RoutesContext, "queue" | "specsScanned" | "whenSpecsScanned" | "tickRunner" | "notifyQueueChanged">,
+  groupId: string, stateBefore: ExecutionGroupState, done: (folder: string) => readonly string[],
+): Promise<void> {
+  const goOn = async (): Promise<void> => {
+    if (continueAfterEdit(ctx.queue, groupId, stateBefore, done)) await ctx.tickRunner();
+  };
+  if (ctx.specsScanned?.() !== false || !ctx.whenSpecsScanned) return goOn();
+  ctx.whenSpecsScanned(() => void goOn().then(ctx.notifyQueueChanged, () => {}));
 }

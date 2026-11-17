@@ -338,6 +338,22 @@ describe("workflowLogArgs", () => {
 });
 
 describe("WorkflowHistoryChecker", () => {
+  test("records whether the latest history read succeeded (AC-1, AC-2, AC-4)", async () => {
+    const succeeded = new WorkflowHistoryChecker({ run: gitLogging().run });
+    await succeeded.read(DIR, FOLDER, "reopened-after");
+    expect(succeeded.readSucceeded(DIR, FOLDER, "reopened-after")).toBe(true);
+    expect(succeeded.readSucceeded(DIR, FOLDER)).toBe(false);
+
+    for (const run of [
+      fakeGit({ log: { code: 128, stdout: "" } }).run,
+      async () => { throw new Error("no such directory"); },
+    ]) {
+      const failed = new WorkflowHistoryChecker({ run });
+      await failed.read(DIR, FOLDER);
+      expect(failed.readSucceeded(DIR, FOLDER)).toBe(false);
+    }
+  });
+
   test("asks git once per spec and answers from the cache after that", async () => {
     const git = gitLogging(subject("analyze"));
     let clock = 0;

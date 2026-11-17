@@ -28,6 +28,36 @@ describe("the option array the model pickers are built from", () => {
     ]);
   });
 
+  test("offers only the newest configured Codex version in each family", () => {
+    const choices = {
+      "gpt-5.6-sol": { tool: "codex" as const },
+      "gpt-6-sol": { tool: "codex" as const },
+      "gpt-6.1-sol": { tool: "codex" as const },
+      "gpt-6.2-sol": { tool: "codex" as const },
+      "gpt-6.10-sol": { tool: "codex" as const },
+      "gpt-6-astra": { tool: "codex" as const },
+      "gpt-6-luna": { tool: "codex" as const },
+      "gpt-6.1-terra": { tool: "codex" as const },
+      "gpt-reserve": { tool: "codex" as const },
+      "gpt-5.6-sol-experimental": { tool: "codex" as const },
+      Opus: {},
+    };
+    expect(modelChoiceOptions(queue(choices, {})).map((m) => m.name)).toEqual([
+      "gpt-6.10-sol", "gpt-6-astra", "gpt-6-luna", "gpt-6.1-terra",
+      "gpt-reserve", "gpt-5.6-sol-experimental", "Opus",
+    ]);
+    expect(choices["gpt-5.6-sol"]).toEqual({ tool: "codex" });
+  });
+
+  test("compares the configured model ids even when choices have custom names", () => {
+    const choices = {
+      Previous: { tool: "codex" as const, model: "gpt-6-sol" },
+      Current: { tool: "codex" as const, model: "gpt-6.1-sol" },
+      OtherProvider: { tool: "opencode" as const, model: "gpt-5.6-sol" },
+    };
+    expect(modelChoiceOptions(queue(choices, {})).map((m) => m.name)).toEqual(["Current", "OtherProvider"]);
+  });
+
   test("no configured choices is an empty list", () => {
     expect(modelChoiceOptions({ defaults: {}, modelIds: {} } as Parameters<typeof modelChoiceOptions>[0])).toEqual([]);
   });

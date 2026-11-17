@@ -321,6 +321,13 @@ describe("nothing running", () => {
 
 });
 
+describe("before the board's first specs sweep", () => {
+  test("a spec with only its creation record has a row on Jobs (AC-4)", async () => {
+    const html = await rowsOf(board([], { specCachePollMs: 0 }).base);
+    expect(html).toContain('id="spec-aide/81-queue-and-runner"');
+  });
+});
+
 describe("New spec", () => {
   test("the Specs list's rows carry the New spec link for a project on the allowlist (AC-7)", async () => {
     const specs = await fetch(`${board().base}/specs?rows=1`, { redirect: "manual" });
@@ -398,8 +405,9 @@ describe("the Jobs tab keeps work records while Specs also shows unstarted specs
   }
 
   test("Jobs leaves a never-run spec on Specs and keeps running and finished work (AC-3, AC-8)", async () => {
-    const { base } = everyKind();
+    const { base, server } = everyKind();
     const list = await activeList(base);
+    await server.settle();
     const tab = await rowsOf(base);
     expect(specKeys(list)).toContain("aide/82-no-job");
     expect(specKeys(tab)).toContain("aide/81-queue-and-runner");

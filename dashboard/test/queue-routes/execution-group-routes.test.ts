@@ -65,13 +65,14 @@ describe("execution-group HTTP routes", () => {
   test("Start after Stop uses the choices Run wrote to the member row (AC-4)", async () => {
     const pendingModelsPath = join(mkdtempSync(join(tmpdir(), "aide-group-restart-")), "pending-models.json");
     writeFileSync(pendingModelsPath, JSON.stringify({ "aide/81-queue-and-runner": { analyze: "sonnet" } }));
-    const { base, dir } = harness.start({
+    const { base, dir, server } = harness.start({
       description: description("81-queue-and-runner"), alsoSpecs: ["82-next"],
       alsoDescriptions: { "82-next": description("82-next") },
       extra: { pendingModelsPath, queueDefaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" }, modelChoices: { sonnet: {}, fable: {} } } },
     });
     makeSpecsRepo(dir);
+    await server.settle();
     const run = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&model.analyze=fable" });
     const groupId = ((await run.json()) as { job: { executionGroupId: string } }).job.executionGroupId;
@@ -216,6 +217,8 @@ describe("execution-group HTTP routes", () => {
         jobs: [],
       }],
     });
+    makeSpecsRepo(actionServer.dir);
+    await actionServer.server.settle();
     const action = await fetch(`${actionServer.base}/api/queue/groups/group-1/action`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -237,7 +240,7 @@ describe("execution-group HTTP routes", () => {
     const start = async (pending: Record<string, string[]>) => {
       const pendingStepsPath = join(ticks, `${Object.keys(pending).length}.json`);
       writeFileSync(pendingStepsPath, JSON.stringify(pending));
-      const { base } = harness.start({
+      const { base, dir, server } = harness.start({
         description: grouped("81-queue-and-runner", 1),
         status: statusSaying(["create", "analyze"]),
         liveState: stateSaying(["create", "analyze"]),
@@ -246,6 +249,8 @@ describe("execution-group HTTP routes", () => {
         executionGroups: [group],
         extra: { pendingStepsPath },
       });
+      makeSpecsRepo(dir);
+      await server.settle();
       // The Active row means the specs scan has read 81. Group membership
       // removes its individual Run form, including its phase checkboxes.
       await pageUntil(base, "/specs?rows=1",
@@ -262,18 +267,50 @@ describe("execution-group HTTP routes", () => {
     rmSync(ticks, { recursive: true, force: true });
   });
 
+  test("Start before the board's first specs sweep queues nothing and says to press again; after it, Start skips the done Analyze (AC-1, AC-3, AC-5)", async () => {
+    const grouped = (folder: string, position: number) =>
+      `${description(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
+    const { base, dir, server } = harness.start({
+      description: grouped("81-queue-and-runner", 1),
+      status: statusSaying(["create", "analyze"]),
+      liveState: stateSaying(["create", "analyze"]),
+      alsoSpecs: ["82-next"],
+      alsoDescriptions: { "82-next": grouped("82-next", 2) },
+      executionGroups: [{
+        id: "group-1", project: "aide", name: "Release", members: ["81-queue-and-runner", "82-next"],
+        branch: "aide/group-81-queue-and-runner-release", state: "prepared",
+        createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [],
+      }],
+      extra: { specCachePollMs: 0 },
+    });
+    makeSpecsRepo(dir);
+    const start = () => fetch(`${base}/api/queue/groups/group-1/action`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
+    });
+    const refused = await start();
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toEqual({ error: "The board is still reading the specs: press Start again in a moment." });
+    expect((await (await fetch(`${base}/api/queue`)).json() as { jobs: unknown[] }).jobs).toEqual([]);
+    expect(JSON.parse(readFileSync(join(dir, "execution-groups.json"), "utf8"))[0]).toMatchObject({ state: "prepared" });
+    await server.settle();
+    const started = await start();
+    expect(started.status).toBe(200);
+    expect(await started.json()).toMatchObject({ job: { specFolder: "81-queue-and-runner", steps: ["implement"] } });
+  });
+
   test("Start orders changed dependencies before queuing and refuses cycles without a job", async () => {
     const first = "81-queue-and-runner", second = "82-next";
     for (const cycle of [false, true]) {
       const grouped = (folder: string, position: number, dependency?: string) =>
         `${description(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n${dependency ? `- **Depends on:** \`${dependency}\`\n` : ""}`;
-      const { base, dir } = harness.start({
+      const { base, dir, server } = harness.start({
         description: grouped(first, 1, second), alsoSpecs: [second],
         alsoDescriptions: { [second]: grouped(second, 2, cycle ? first : undefined) },
         executionGroups: [{ id: "group-1", project: "aide", name: "Release", members: [first, second],
           branch: "aide/group-81", state: "prepared", createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [] }],
       });
       makeSpecsRepo(dir);
+      await server.settle();
       const response = await fetch(`${base}/api/queue/groups/group-1/action`, {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
       });

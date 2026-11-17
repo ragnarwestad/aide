@@ -92,6 +92,11 @@ export interface RoutesContext {
   rereadProject: (project: string) => Promise<void>;
   targets: () => SpecTarget[];
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
+  /** Whether a specs sweep has read every listed spec since the board
+   *  started, and what runs once it has. Absent, the board reads as having
+   *  read them. */
+  specsScanned?: () => boolean;
+  whenSpecsScanned?: (next: () => void) => void;
   specDir: (project: string, specFolder: string) => string | undefined;
   specRef: (project: string, specFolder: string) => SpecRef | undefined;
   specsRoot: (dir: string) => Promise<string>;
