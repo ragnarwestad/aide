@@ -62,7 +62,7 @@ function lastInstallWarnings(lang: Language): string[] {
 /** The Deploy wait on every page, not only the Deploy tab: the jobs it
  *  names — and any started during the wait — are what the restart's
  *  deadline kills. */
-function restartWaitingNotice(lang: Language): string {
+export function restartWaitingNotice(lang: Language): string {
   const waiting = getPendingRestartNotice();
   if (waiting.length === 0) return "";
   const { text, html } = jobsSentence(lang, "shell.restartWaiting", {}, waiting);
@@ -138,6 +138,6 @@ export function headerNotices(lang: Language): string {
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
   return (
-    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + deployFaultNotice(lang) + restartWaitingNotice(lang)
+    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + deployFaultNotice(lang)
   );
 }
