@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 
-import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault } from "../../../src/render/ui/checkout-faults.ts";
+import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault, checkoutFaultPresentation } from "../../../src/render/ui/checkout-faults.ts";
 import { complain } from "../../../src/serve/project-checkout.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { t } from "../../../src/i18n/index.ts";
@@ -143,4 +143,9 @@ describe("a checkout that is not there yet", () => {
     expect(result.absent).toBe(false);
     rmSync(where, { recursive: true, force: true });
   });
+});
+
+test("an unfinished check is a dismissible warning and a confirmed fault is an error", () => {
+  expect(checkoutFaultPresentation(true)).toEqual({ variant: "waiting", dismissible: true });
+  expect(checkoutFaultPresentation(false)).toEqual({ variant: "failed", dismissible: false });
 });

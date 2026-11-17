@@ -53,6 +53,8 @@ export function parseStoredJob(raw: unknown): Job | null {
     // path, so a malformed entry is dropped rather than carried — the
     // same rule the two fields above already follow.
     branchUrls: Array.isArray(r.branchUrls) ? mergeBranchRefs([], r.branchUrls as BranchRef[]) : undefined,
+    deployWaitForLandings: Array.isArray(r.deployWaitForLandings) && r.deployWaitForLandings.every((id) => typeof id === "string")
+      ? r.deployWaitForLandings as string[] : undefined,
     // Dropped on purpose. `landing` marks a merge in flight in THIS
     // process; a mirror read back after a restart has no such call behind
     // it, and the flag holds the whole queue shut for as long as it is

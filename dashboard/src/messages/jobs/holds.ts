@@ -9,6 +9,7 @@ import type { QueueRowView } from "../../render/ui/job-state/types.ts";
  *  to "waiting", not silently to "info". */
 export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
+  "runner.deployPriority",
   "runner.archiveRunning",
   "runner.dependencyNotArchived",
   "runner.usageLimitHeld",

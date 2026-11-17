@@ -1,3 +1,4 @@
+import { captureDeployPriority } from "../job-rules/deploy-priority.ts";
 // The queue store itself: one record per job, in
 // the shape aide-run-store.ts established — a written-down schema with
 // unknown fields ignored, an LRU cap, a mirror written-then-renamed and
@@ -201,6 +202,7 @@ export class QueueStore {
           `(job ${landing.id.slice(0, 8)}) — press ${stepButton(parsed.job.steps[0]!)} again in a moment, once the merge finishes`,
       };
     }
+    captureDeployPriority(parsed.job, this.list());
     this.jobs.set(parsed.job.id, parsed.job);
     while (this.jobs.size > this.cap) {
       this.jobs.delete(this.jobs.keys().next().value as string);

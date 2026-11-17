@@ -515,3 +515,15 @@ test("cancelling a waiting restart never fires it after the landing finishes", a
     expect(job.landing).toBe(true);
   } finally { clearTimeout(cancel); clearTimeout(finish); }
 });
+
+test("a priority deploy restart does not wait for deferred landings", async () => {
+  const lock = createRootLock();
+  let fired = 0;
+  await restartAfterLanding({
+    mergeLock: lock,
+    restart: { registered: async () => true, fire: () => { fired++; } },
+    queue: { list: () => [{ id: "deferred", landing: true }] },
+    landings: () => [],
+  });
+  expect(fired).toBe(1);
+});

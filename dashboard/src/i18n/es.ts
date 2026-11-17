@@ -54,6 +54,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.leaveAppBody": "Es posible que los cambios que hiciste no se guarden.",
   "dialog.ok": "OK",
   "dialog.cancel": "Cancelar",
+  "shell.dismiss": "Ocultar",
   "dialog.close": "Cerrar",
   "usage.reading": "Leyendo uso…",
   "usage.left": "{percent}% restante",

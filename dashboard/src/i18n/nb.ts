@@ -54,6 +54,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.leaveAppBody": "Endringene du gjorde blir kanskje ikke lagret.",
   "dialog.ok": "OK",
   "dialog.cancel": "Avbryt",
+  "shell.dismiss": "Skjul",
   "dialog.close": "Lukk",
   "usage.reading": "Leser forbruk…",
   "usage.left": "{percent} % igjen",

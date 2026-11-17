@@ -271,6 +271,8 @@ export interface Job {
    *  a call in flight, and one that survived a restart would hold the
    *  whole queue shut with nothing left to clear it. */
   landing?: boolean;
+  /** Landings already in flight when this Deploy was requested. */
+  deployWaitForLandings?: string[];
   /** Set when the job is read back with `landing` on: the last process
    *  stopped with this job's landing in flight. Boot runs it again;
    *  `holdLanding` clears it and stamps the step when the work settles. */

@@ -43,3 +43,7 @@ export function checkoutFaults(): { project: string; said: string; recheck: bool
 export function checkoutsToRecheck(): string[] {
   return [...faults].filter(([, fault]) => fault.recheck).map(([project]) => project);
 }
+
+export function checkoutFaultPresentation(recheck: boolean): { variant: "waiting" | "failed"; dismissible: boolean } {
+  return { variant: recheck ? "waiting" : "failed", dismissible: recheck };
+}

@@ -52,3 +52,11 @@ describe("a step whose landing was in flight when the board stopped", () => {
     expect(job.landing).toBeUndefined();
   });
 });
+
+
+test("a pending Deploy keeps its captured landing ids across restart", () => {
+  mirrorWithLandingInFlight({ specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", landing: false, deployWaitForLandings: ["first"] });
+  expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get("j1")?.deployWaitForLandings).toEqual(["first"]);
+  mirrorWithLandingInFlight({ deployWaitForLandings: [42] });
+  expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get("j1")?.deployWaitForLandings).toBeUndefined();
+});

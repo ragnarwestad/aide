@@ -929,9 +929,13 @@ the service, wait for the service to answer, and check that the newest commit ru
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout
 stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
 origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. While a merge is
-in flight, a queued deploy waits, and a running one waits before its fetch and before its restart; the row says "Held
-back" with the reason. It waits for queued Land jobs in its project before fetching. Fetch and install share the
-checkout lock. After a restart wait it fetches main again and reinstalls if the commit changed, before restarting.
+in flight when Deploy is requested, the deploy waits for those landings to settle; the row says "Held back" with
+the reason. Deploy takes priority over queued Land and Archive jobs. A step that finishes afterwards waits before
+starting its landing, outside the repository lock, so new work cannot keep moving Deploy backwards. This applies
+to landings across the board because the restart takes down their shared process; detached analysis and
+implementation runs can continue. When Deploy finishes, fails or is cancelled, waiting work resumes automatically.
+The set of landings Deploy waits for is recorded with its job and survives a board restart. Fetch and install share
+the checkout lock. After a restart wait it fetches main again and reinstalls if the commit changed, before restarting.
 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads
 with the project: "<project>:<name>". Every job row's second line holds when the job was made and one pip per step, the
