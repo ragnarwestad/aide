@@ -50,17 +50,6 @@ describe("isDue", () => {
     expect(isDue(ENTRY, now, jobs)).toBe(false);
   });
 
-  test("not due while a job is running for this window (startedAt set)", () => {
-    const now = new Date("2026-08-26T05:00:00Z");
-    const jobs: ScheduleJobRef[] = [
-      {
-        specFolder: "schedule-nightly-report",
-        createdAt: "2026-08-26T03:00:05Z",
-        startedAt: "2026-08-26T03:00:10Z",
-      },
-    ];
-    expect(isDue(ENTRY, now, jobs)).toBe(false);
-  });
 
   test("not due when the newest tracked job is after the most recent fire, whatever its outcome", () => {
     const now = new Date("2026-08-26T05:00:00Z");

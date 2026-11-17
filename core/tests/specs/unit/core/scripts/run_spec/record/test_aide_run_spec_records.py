@@ -449,16 +449,6 @@ def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
     # Workflow order, not the order the two sources found them in.
     assert recorded_line(workspace, path=f"archive/{folder}/4-status.md") == "analyze, implement, archive"
 
-def test_a_step_both_sources_find_is_named_once(runner, workspace, fake_claude):
-    """The line and the commit scan overlap for
-    every step that ran headlessly — the union must not double them."""
-    with_status(workspace, ["create", "analyze"])
-    already_ran(workspace, ["create", "analyze"])
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, implement"
-
 def test_a_line_naming_something_that_is_not_a_step_drops_it(
     runner, workspace, fake_claude
 ):

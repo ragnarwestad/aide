@@ -17,6 +17,7 @@ import {
   jobsStateOptions,
   jobsViewPath,
   jobsViewRows,
+  jobsMatchingCount,
   type RowFacts,
   type JobsFilter,
 } from "../../../../src/render/pages/jobs-page/view.ts";
@@ -136,8 +137,8 @@ describe("kind choices narrow rows independently of state", () => {
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries are All, Active, Running, Queued, Waiting, Done, Stopped, Failed and Not verified, All selected by default (AC-5)", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "queued", "waiting", "done", "stopped", "failed", "not-verified"]);
+  test("its entries are All, Active, Running, Queued, Waiting, Done, Stopped, Failed and Cancelled, All selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "queued", "waiting", "done", "stopped", "failed", "cancelled"]);
     expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
     expect(jobsStateFilters("not-archived").map((entry) => entry.key)).toEqual(["not-archived"]);
   });
@@ -195,7 +196,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     const schedule = jobEntry("schedule", { specFolder: "schedule-nightly-e2e", steps: ["schedule"], state: "cancelled", createdAt: T(6) });
     const specRow = spec("spec", { specFolder: "147-cancelled", state: "cancelled", createdAt: T(7) });
     expect(view([schedule, specRow], { state: "not-archived" })).toEqual(["spec"]);
-    expect(view([schedule], { state: "failed" })).toEqual(["schedule"]);
+    expect(view([schedule], { state: "cancelled" })).toEqual(["schedule"]);
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
@@ -210,7 +211,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["not-archived", 1], ["active:all", 0], ["queued", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
+      ["all", 1], ["not-archived", 1], ["active:all", 0], ["queued", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
@@ -220,7 +221,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["queued", 1], ["waiting", 0], ["done", 0], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
+    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["queued", 1], ["waiting", 0], ["done", 0], ["stopped", 1], ["failed", 0], ["cancelled", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
@@ -229,9 +230,10 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     }
   });
 
-  test("a job row is never Not verified: only the spec with an open criterion is left", () => {
-    const unverified = spec("unverified", { specFolder: "84-held", state: "done", notVerified: 1 });
-    expect(view([unverified, failedReport], { state: "not-verified" })).toEqual(["unverified"]);
+  test("Cancelled is separate from Failed", () => {
+    const cancelled = jobEntry("cancelled-land", { id: "cancelled", steps: ["land"], state: "cancelled" });
+    expect(view([cancelled, failedReport], { state: "cancelled" })).toEqual(["cancelled-land"]);
+    expect(view([cancelled, failedReport], { state: "failed" })).toEqual(["report-other"]);
   });
 });
 
@@ -306,9 +308,16 @@ describe("a group stands for its member specs, each by its own state", () => {
     expect([c.failed, c.queued]).toEqual([1, 1]);
   });
 
-  test("a member with an open criterion counts under Not verified, whatever its group's state (AC-1)", () => {
-    expect(counts([group("held", "done", [member("82-held", "done", { notVerified: 1 })])])["not-verified"]).toBe(1);
-    expect(counts([group("held", "running", [member("82-held", "done", { notVerified: 1 })])])["not-verified"]).toBe(1);
+  test("a cancelled member counts under Cancelled rather than Failed", () => {
+    const c = counts([group("ended", "failed", [member("82-cancelled", "cancelled")])]);
+    expect([c.cancelled, c.failed]).toEqual([1, 0]);
+  });
+
+  test("the result count includes matching group members rather than group cards", () => {
+    const rows = [group("release", "running", [member("82-run", "running"), member("83-done", "done"), member("84-run", "running")])];
+    expect(jobsMatchingCount(rows, {})).toBe(3);
+    expect(jobsMatchingCount(rows, { state: "active:all" })).toBe(2);
+    expect(jobsMatchingCount(rows, { q: "83-done" })).toBe(1);
   });
 
   test("Running counts only the members that run, not every member of a running group (AC-2)", () => {

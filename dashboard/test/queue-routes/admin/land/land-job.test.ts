@@ -75,3 +75,20 @@ for (const state of ["queued", "running", "done"] as const) {
     } finally { cleanup(); }
   });
 }
+
+
+test("Run from a cancelled Land form queues a fresh job for the same branch", async () => {
+  const { ctx, queue, cleanup } = context(true);
+  try {
+    const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+    if (!old.ok) throw new Error(old.error);
+    queue.update(old.job.id, { state: "cancelled" });
+    const res = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
+      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ branch: "topic" }),
+    }), "/api/queue/projects/aide/land");
+    expect(res?.status).toBe(200);
+    expect(queue.get(old.job.id)?.state).toBe("cancelled");
+    const fresh = queue.list().find((job) => job.id !== old.job.id)!;
+    expect(fresh).toMatchObject({ state: "queued", branch: "topic", steps: ["land"] });
+  } finally { cleanup(); }
+});

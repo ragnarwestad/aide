@@ -536,15 +536,6 @@ describe("a landing marks only the step being landed, not every finished step", 
     expect(badgeLabel(html, "archive")).toBe("Running");
   });
 
-  // The phase LINE's own badge, not only the row above
-  // it, must say the step is still going while its work is landing —
-  // never "done" with a clock that has stopped. The word is "Running",
-  // as for any phase in flight: the landing is not a step the phase
-  // line names (2026-09-14).
-  test("the step being landed reads Running, not done and not its gerund", () => {
-    const html = openRows([chained]);
-    expect(badgeLabel(html, "archive")).toBe("Running");
-  });
 
   // The rule holds for every step that lands its own
   // work, not only archive.

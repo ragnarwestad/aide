@@ -36,8 +36,8 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   if (!settled || (job.state === "done" && !mergeStopped)) return { marks, logs };
   // The step it stopped at: one the log says stopped, or else the last
   // one the log left running.
-  const failed = marks.find((m) => m.state === "failed") ?? marks.findLast((m) => m.state === "running");
-  if (failed) failed.state = "failed";
+  const failed = marks.findLast((m) => m.state === "running" || m.state === "failed");
+  if (failed) failed.state = job.state === "cancelled" ? "cancelled" : "failed";
   const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
   const reason = formatSentence(lang, said) || failed?.why;
   return reason ? { marks, reason, logs } : { marks, logs };

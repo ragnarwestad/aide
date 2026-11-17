@@ -502,3 +502,12 @@ test("Land offers Stop only before its push boundary", () => {
   expect(jobControl(row)).toBe("stop");
   expect(jobControl({ ...row, landPushStarted: true })).toBeUndefined();
 });
+
+
+test("a cancelled Land can run again after its landing has settled", () => {
+  const row = { state: "cancelled" as const, steps: ["land"], stepIndex: 0, branch: "fix/topic" };
+  expect(jobControl(row)).toBe("run");
+  expect(jobControl({ ...row, landing: true })).toBeUndefined();
+  expect(jobControl({ ...row, branch: undefined })).toBeUndefined();
+  expect(jobControl({ ...row, state: "done" })).toBeUndefined();
+});

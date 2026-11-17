@@ -2,7 +2,7 @@
 // on the source branch and rebuilt against current main.
 
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { availableParallelism, homedir, tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover";
@@ -11,7 +11,6 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { formatRunLogLine } from "../../queue/parse-stream/step-log.ts";
-import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
 import type { Sentence } from "../../messages/types.ts";
@@ -82,13 +81,10 @@ export interface GateVerdict {
   failedTests?: Job["landingFailedTests"];
 }
 
-/** `jobs` is the board's queue, read as each run starts: the landing's test
- *  workers are the host's cores divided among the jobs running or landing in
- *  it. A caller that passes none counts this landing alone. */
 export interface GateOpts {
   scriptDir?: string;
   repair?: (request: RepairRequest) => Promise<boolean>;
-  jobs?: () => readonly BusyJob[];
+  queueMirrorPath?: string;
   /** The button the landing step's row offers, named by every sentence
    *  that refuses the merge for its tests. */
   button: string;
@@ -225,13 +221,6 @@ export function timeoutVerdict(output: string, minutes: number, button: string):
     return heading?.[1] ? [heading[1]] : [];
   }).at(-1) ?? "the last test shown in the log";
   return { ok: false, terminalReason: "timeout", error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
-}
-
-/** The host's cores divided among the steps and landings running as this
- *  run starts (`testWorkerShare`). `jobs` is read at each call; a caller
- *  that passes none counts this landing alone. */
-function testWorkers(jobs: GateOpts["jobs"]): Record<string, string> {
-  return { AIDE_TEST_WORKERS: String(testWorkerShare(availableParallelism(), jobs?.() ?? [])) };
 }
 
 /** A line in the landed step's own run log, stamped the way `aide-run-spec`
@@ -378,7 +367,7 @@ async function runSuiteIn(
       const follow = followProgress(job, progress, label === " (retry)" ? " on the merge (retry)" : label || " on the merge");
       const runArgv = [...argv];
       runArgv[2] = runRoot;
-      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers(opts.jobs)).finally(follow.stop);
+      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, opts.queueMirrorPath ? { AIDE_QUEUE_MIRROR: opts.queueMirrorPath } : undefined).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.

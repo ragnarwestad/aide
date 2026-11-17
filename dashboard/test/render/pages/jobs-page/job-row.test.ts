@@ -69,7 +69,7 @@ describe("a job's created stamp", () => {
 
 describe("a job's pips", () => {
   test("a step's pip reads done, running, failed, or not started", () => {
-    expect(["done", "running", "failed", "waiting", undefined].map((s) => jobStepPipKind(s as never)))
-      .toEqual(["past", "now", "refused", "todo", "todo"]);
+    expect(["done", "running", "failed", "cancelled", "waiting", undefined].map((s) => jobStepPipKind(s as never)))
+      .toEqual(["past", "now", "refused", "waiting", "todo", "todo"]);
   });
 });

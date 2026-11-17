@@ -19,6 +19,7 @@ export {
   WORKFLOW_STEPS,
   currentWorkRoundJobs,
   deployUnderWay,
+  canRetryLand,
   inFlight,
   jobActivity,
   jobDismissible,
