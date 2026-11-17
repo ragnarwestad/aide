@@ -1,8 +1,6 @@
 import { appendFileSync, existsSync } from "node:fs";
-import { homedir } from "node:os";
 import type { Job, QueueDefaults } from "../../../queue/queue.ts";
-import { resolveStepModel } from "../../../queue/model-name.ts";
-import { expandDir, providerLoginEnv, resolveStepProvider } from "../../../queue/providers/index.ts";
+import { repairModel } from "./model.ts";
 import { resolveWorktreeLinks } from "../../../project/discover";
 import { runScript, scriptFor } from "../run-script.ts";
 import { stepLogLine } from "../test-gate.ts";
@@ -23,15 +21,6 @@ export function testRepairSession(defaults: QueueDefaults, job: Job, scriptDir?:
     if (before.code || source.code) return false;
     const sha = before.stdout.trim();
     if ((await git(["merge-base", "--is-ancestor", source.stdout.trim(), sha])).code) return false;
-    const modelName = resolveStepModel(job, "implement", defaults.model);
-    const choice = modelName ? defaults.modelChoices?.[modelName] : undefined;
-    if (!modelName || !choice) return false;
-    const providerKey = resolveStepProvider(job, "implement", defaults);
-    const provider = providerKey ? defaults.providers?.[providerKey] : undefined;
-    if (provider?.enabled === false) return false;
-    const tool = provider?.tool ?? choice.tool ?? "claude";
-    const binary = provider?.binary ? expandDir(provider.binary, homedir()) : tool;
-    const env = { ...(provider ? providerLoginEnv(provider, homedir()) : {}), AIDE_HEADLESS: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" };
     const resolver = scriptFor("aide-resolve-test-cmd", { beside: scriptDir });
     const resolved = await run([resolver, "--project-dir", root], 60_000);
     let filesCommand: string;
@@ -47,17 +36,10 @@ export function testRepairSession(defaults: QueueDefaults, job: Job, scriptDir?:
       "Fix the code and run only the failed test files. Do not run the full suite: the landing runs it after rebuilding.",
       "If the failure cannot be safely attributed to this change, leave the tree unchanged and explain why.",
     ].join("\n");
-    const argv = tool === "codex"
-      ? [binary, "exec", "--json", "--dangerously-bypass-approvals-and-sandbox", "--model", choice.model ?? modelName, prompt]
-      : tool === "claude"
-        ? [binary, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "bypassPermissions", "--model", choice.model ?? modelName, prompt]
-        : tool === "opencode" ? [binary, "run", "--format", "json", "--agent", "build", "--auto", "--model", choice.model ?? modelName, prompt] : [];
-    if (!argv.length) {
-      stepLogLine(job, `automatic test repair is unavailable for ${tool}`, true);
-      return false;
-    }
-    stepLogLine(job, `repairing the landing's failing tests on ${modelName} (${providerKey ?? tool}), tested commit ${sha}`);
-    const result = await run(argv, (defaults.timeoutSec.implement ?? defaults.timeoutSec.default ?? 1200) * 1000, env);
+    const model = repairModel(defaults, job, prompt);
+    if (!model) return false;
+    stepLogLine(job, `repairing the landing's failing tests on ${model.name} (${model.key}), tested commit ${sha}`);
+    const result = await run(model.argv, (defaults.timeoutSec.implement ?? defaults.timeoutSec.default ?? 1200) * 1000, model.env);
     if (job.streamFile) {
       const transcript = `${job.streamFile}.repair.jsonl`;
       appendFileSync(transcript, result.stdout);
