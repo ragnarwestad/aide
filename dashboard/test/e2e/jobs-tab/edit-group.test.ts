@@ -46,7 +46,7 @@ async function openCard(locked = false): Promise<void> {
     alsoDescriptions: { [SECOND]: grouped(SECOND, 2), [ADDED]: plain(ADDED) },
     executionGroups: [{
       id: "group-1", project: "aide", name: "Release", members: [FIRST, SECOND],
-      branch: `aide/group-${FIRST}-release`, state: locked ? "running" : "prepared", createdAt: "2026-11-11T10:00:00Z",
+      branch: `aide/group-${FIRST}-release`, state: locked ? "stopped" : "prepared", createdAt: "2026-11-11T10:00:00Z",
       completedMembers: locked ? [FIRST] : [], jobs: [],
     }],
   });
@@ -130,3 +130,20 @@ test(`at ${width}px Remove covers the pending request and removes the group with
   expect(navigations).toBe(0);
 });
 }
+
+
+test.each(["queued", "running", "archiving"])("the %s group keeps Edit and Remove visible but disabled", async (state) => {
+  const { base } = harness.start({
+    description: grouped(FIRST, 1), alsoSpecs: [SECOND],
+    alsoDescriptions: { [SECOND]: grouped(SECOND, 2) },
+    executionGroups: [{ id: "group-1", project: "aide", name: "Release", members: [FIRST, SECOND],
+      branch: `aide/group-${FIRST}`, state, createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [] }],
+  });
+  await page.goto(`${base}/?live=0`);
+  await card().locator("summary").click();
+  for (const name of [t("en", "list.groupEdit"), t("en", "project.remove")]) {
+    const button = card().getByRole("button", { name, exact: true });
+    await button.waitFor({ state: "visible" });
+    expect(await button.isDisabled()).toBe(true);
+  }
+});

@@ -62,13 +62,13 @@ const stored = (dir: string) => JSON.parse(readFileSync(join(dir, "execution-gro
 
 describe("editing a group", () => {
   test("adds and moves unlocked specs while leaving locked files unchanged (AC-5, AC-6, AC-9)", async () => {
-    const { base, dir } = await groupOfTwo("running");
+    const { base, dir } = await groupOfTwo("stopped");
     const before = description(dir, FIRST);
     const res = await edit(base, [FIRST, ADDED, SECOND]);
     expect(res.status).toBe(200);
     expect(description(dir, ADDED)).toContain("- **Group:** `Release`\n- **Group position:** 2\n");
     expect(description(dir, SECOND)).toContain("- **Group position:** 3\n");
-    expect(stored(dir)).toMatchObject({ members: [FIRST, ADDED, SECOND], state: "running" });
+    expect(stored(dir)).toMatchObject({ members: [FIRST, ADDED, SECOND], state: "stopped" });
     expect(description(dir, FIRST)).toBe(before);
   });
 
@@ -80,7 +80,7 @@ describe("editing a group", () => {
   });
 
   test("refuses moving a locked spec and writes nothing (AC-4, AC-7)", async () => {
-    const { base, dir } = await groupOfTwo("running");
+    const { base, dir } = await groupOfTwo("stopped");
     const before = [description(dir, FIRST), description(dir, SECOND), stored(dir)];
     const res = await edit(base, [SECOND, FIRST]);
     expect(res.status).toBe(409);
@@ -88,20 +88,20 @@ describe("editing a group", () => {
   });
 
   test("places a newly added dependency before its unlocked dependent", async () => {
-    const { base, dir } = await groupOfTwo("running", { second: grouped(SECOND, 2, `- **Depends on:** \`${ADDED}\`\n`) });
+    const { base, dir } = await groupOfTwo("stopped", { second: grouped(SECOND, 2, `- **Depends on:** \`${ADDED}\`\n`) });
     const res = await edit(base, [FIRST, SECOND, ADDED]);
     expect(res.status).toBe(200);
     expect(stored(dir).members).toEqual([FIRST, ADDED, SECOND]);
     expect(description(dir, SECOND)).toContain("- **Group position:** 3");
   });
 
-  test("renames the display of a running group without changing its membership files or branch", async () => {
-    const { base, dir } = await groupOfTwo("running");
+  test("renames the display of a stopped group without changing its membership files or branch", async () => {
+    const { base, dir } = await groupOfTwo("stopped");
     const before = [description(dir, FIRST), description(dir, SECOND)];
     const res = await edit(base, [FIRST, SECOND], "Renamed");
     expect(res.status).toBe(200);
     expect([description(dir, FIRST), description(dir, SECOND)]).toEqual(before);
-    expect(stored(dir)).toMatchObject({ name: "Release", displayName: "Renamed", branch: `aide/group-${FIRST}-release`, members: [FIRST, SECOND], state: "running", completedMembers: [FIRST] });
+    expect(stored(dir)).toMatchObject({ name: "Release", displayName: "Renamed", branch: `aide/group-${FIRST}-release`, members: [FIRST, SECOND], state: "stopped", completedMembers: [FIRST] });
     expect((await edit(base, [FIRST, SECOND], "Renamed again")).status).toBe(200);
     expect(stored(dir)).toMatchObject({ name: "Release", displayName: "Renamed again" });
     expect((await edit(base, [FIRST, SECOND], "Release")).status).toBe(200);
@@ -110,7 +110,7 @@ describe("editing a group", () => {
   });
 
   test("refuses another unfinished group's display name without changing the current group", async () => {
-    const { base, dir } = await groupOfTwo("running", { otherGroups: [{
+    const { base, dir } = await groupOfTwo("stopped", { otherGroups: [{
       ...record("prepared")[0]!, id: "group-2", name: "Other", displayName: "Taken", members: ["90-other", "91-other"],
     }] });
     const before = stored(dir);
@@ -119,4 +119,12 @@ describe("editing a group", () => {
     expect((await res.json() as { error: string }).error).toContain("Taken");
     expect(stored(dir)).toEqual(before);
   });
+});
+
+
+test.each(["queued", "running", "archiving"])("a dialog opened before the group became %s cannot save", async (state) => {
+  const { base, dir } = await groupOfTwo(state);
+  const before = [description(dir, FIRST), description(dir, SECOND), stored(dir)];
+  expect((await edit(base, [FIRST, ADDED], "Changed")).status).toBe(409);
+  expect([description(dir, FIRST), description(dir, SECOND), stored(dir)]).toEqual(before);
 });

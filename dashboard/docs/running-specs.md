@@ -97,8 +97,8 @@ selected specs keep the order they were added, with dependencies placed before t
 Start check the dependencies; circular dependencies are refused with the affected specs named. A project with fewer than two
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
-A refused Save says why in the dialog, which stays open with what was typed. The group's … menu offers **Edit** until
-the group starts archiving. Edit opens the New group dialog filled with the group's name and members. The display
+A refused Save says why in the dialog, which stays open with what was typed. The group's … menu keeps **Edit** and **Remove** visible while it has work in flight, but both are disabled.
+Edit is available only while the group and its members have no queued, running or landing job. Edit opens the New group dialog filled with the group's name and members. The display
 name can be changed after members have started; the group's branch and the members' stored group identity stay the same. A spec
 that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed,
 and any spec New group would offer can be added after the locked members. A new dependency can move before an
