@@ -273,6 +273,20 @@ test("before the first specs sweep, the next member is queued only once the swee
   expect(store.executionGroups.get(group.id)?.state).toBe("queued");
 });
 
+test("Stop while the next member waits for the first specs sweep cancels the move (AC-2)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.start(group.id);
+  const { handle, finishSweep } = handlerAwaitingSweep(false);
+  await handle({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["analyze", "implement"] } as unknown as Job,
+    "implement", { ok: true, terminalReason: "completed" });
+  store.executionGroups.stop(group.id, true);
+  finishSweep();
+  expect(store.list()).toHaveLength(0);
+  expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
+});
+
 test("after the first specs sweep, the next member is queued at once on the finished job's steps (AC-5)", async () => {
   member("1-first", 1);
   member("2-next", 2);

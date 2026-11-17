@@ -663,7 +663,10 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
 describe("the first sweep that read every listed spec sets the board's mark", () => {
   /** A context whose live specs `list()` names, each with a directory, and whose
    *  checkers answer nothing. `events` records each checkout asked and each list taken. */
-  function markCtx(list: () => { project: string; specFolder: string; dir: string }[]) {
+  function markCtx(
+    list: () => { project: string; specFolder: string; dir: string }[],
+    historySucceeded = true,
+  ) {
     const events: string[] = [];
     let warming = false;
     let notified = 0;
@@ -674,7 +677,7 @@ describe("the first sweep that read every listed spec sets the board's mark", ()
       machineryProjectDir: (p) => `/fake/${p}`,
       scheduleStore: createScheduleStore(undefined),
       branchStatus: new BranchStatusChecker({ run: async () => ({ code: 1, stdout: "" }), ttlMs: 0 }),
-      readWorkflowHistory: () => ({ read: none }) as unknown as WorkflowHistoryChecker,
+      readWorkflowHistory: () => ({ read: none, readSucceeded: () => historySucceeded }) as unknown as WorkflowHistoryChecker,
       readFreshness: () => ({ isStale: none }) as unknown as DescriptionFreshnessChecker,
       readSpecCreatedAt: () => ({ createdAt: none }) as unknown as SpecCreatedAtChecker,
       readSpecFileCommits: () => ({ commitFor: none }) as unknown as SpecFileCommitChecker,
@@ -712,6 +715,12 @@ describe("the first sweep that read every listed spec sets the board's mark", ()
   test("a sweep after which the list names a spec it did not read leaves the mark unset (AC-1, AC-2, AC-4)", async () => {
     let lists = 0;
     const { ctx, mark } = markCtx(() => (lists++ === 0 ? [spec("81-one")] : [spec("81-one"), spec("83-created-meanwhile")]));
+    await refreshSpecCaches(ctx);
+    expect(mark.scanned()).toBe(false);
+  });
+
+  test("a failed history answer leaves the mark unset (AC-1, AC-2, AC-4)", async () => {
+    const { ctx, mark } = markCtx(() => [spec("81-one")], false);
     await refreshSpecCaches(ctx);
     expect(mark.scanned()).toBe(false);
   });

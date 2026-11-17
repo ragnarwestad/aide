@@ -217,6 +217,7 @@ describe("execution-group HTTP routes", () => {
         jobs: [],
       }],
     });
+    makeSpecsRepo(actionServer.dir);
     await actionServer.server.settle();
     const action = await fetch(`${actionServer.base}/api/queue/groups/group-1/action`, {
       method: "POST",
@@ -239,7 +240,7 @@ describe("execution-group HTTP routes", () => {
     const start = async (pending: Record<string, string[]>) => {
       const pendingStepsPath = join(ticks, `${Object.keys(pending).length}.json`);
       writeFileSync(pendingStepsPath, JSON.stringify(pending));
-      const { base, server } = harness.start({
+      const { base, dir, server } = harness.start({
         description: grouped("81-queue-and-runner", 1),
         status: statusSaying(["create", "analyze"]),
         liveState: stateSaying(["create", "analyze"]),
@@ -248,6 +249,7 @@ describe("execution-group HTTP routes", () => {
         executionGroups: [group],
         extra: { pendingStepsPath },
       });
+      makeSpecsRepo(dir);
       await server.settle();
       // The Active row means the specs scan has read 81. Group membership
       // removes its individual Run form, including its phase checkboxes.
@@ -281,6 +283,7 @@ describe("execution-group HTTP routes", () => {
       }],
       extra: { specCachePollMs: 0 },
     });
+    makeSpecsRepo(dir);
     const start = () => fetch(`${base}/api/queue/groups/group-1/action`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
     });

@@ -314,7 +314,11 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // changed meanwhile leaves the mark to the next sweep.
       ctx.invalidateScan();
       const read = new Set(live.map((t) => t.dir));
-      if (ctx.targets().every((t) => !t.dir || read.has(t.dir))) ctx.markSpecsScanned!();
+      const history = ctx.readWorkflowHistory();
+      if (ctx.targets().every((t) =>
+        !t.dir || (read.has(t.dir) && history.readSucceeded(t.dir, t.specFolder, t.reopenedAfter)))) {
+        ctx.markSpecsScanned!();
+      }
     }
     const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
     const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;

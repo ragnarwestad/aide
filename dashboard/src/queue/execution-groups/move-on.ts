@@ -30,9 +30,10 @@ export interface GroupMove {
 }
 
 /** A member's step ended `completed`: record it, then, once the first specs
- *  sweep has finished, queue the next member on the finished job's Analyze and
- *  Implement, or leave the group waiting for Archive (after Implement) or
- *  stopped. A group already stopped when the step ends moves on no further. */
+ *  sweep has finished, queue the next member on its saved plan, falling back
+ *  to the finished job's Analyze and Implement, or leave the group waiting for
+ *  Archive (after Implement) or stopped. A group already stopped when the step
+ *  ends moves on no further. */
 export function moveGroupOn({ store, job, step, specsRoot, whenSpecsScanned, log }: GroupMove): void {
   const group = job.executionGroupId ? store.executionGroups.get(job.executionGroupId) : undefined;
   if (group && step === "implement") {
@@ -40,6 +41,8 @@ export function moveGroupOn({ store, job, step, specsRoot, whenSpecsScanned, log
   }
   if (group?.state === "stopped") return;
   whenSpecsScanned(() => {
+    const currentGroup = job.executionGroupId ? store.executionGroups.get(job.executionGroupId) : undefined;
+    if (currentGroup?.stoppedByUser) return;
     if (queueNextMember(store, job, specsRoot, log) || !group) return;
     if (step === "implement") store.executionGroups.waitForAcceptance(group.id);
     else store.executionGroups.stop(group.id);
