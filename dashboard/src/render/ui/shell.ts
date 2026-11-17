@@ -16,7 +16,7 @@ import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
 import { delayFile, nextDelay, readDelay } from "../../integrations/round-delay.ts";
-import { headerNotices } from "./header-notices.ts";
+import { headerNotices, restartWaitingNotice } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { isSpecFolder } from "../../project/spec-names.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
@@ -424,6 +424,7 @@ ${aboutDialog(lang)}
 ${leaveAppDialog(lang)}
 ${tabs}
 <main>
+${restartWaitingNotice(lang)}
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
 </main>${opts.afterMain ?? ""}${script}${scriptSrc}
 </body>

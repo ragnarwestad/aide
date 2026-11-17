@@ -13,13 +13,13 @@ const member = (o: Partial<ExecutionGroupMemberState> = {}): ExecutionGroupMembe
   implemented: false, archived: false, acceptanceOpen: false, busy: false, ...o,
 });
 test("group controls keep one cell action and put Edit in the menu (AC-1, AC-2, AC-11)", () => {
-  expect(executionGroupControls({ state: "prepared" }, [member()])).toEqual({ action: "start", menu: ["edit", "remove"] });
-  expect(executionGroupControls({ state: "running" }, [member({ busy: true })])).toEqual({ action: "stop", menu: ["edit"] });
-  expect(executionGroupControls({ state: "archiving" }, [member({ busy: true })])).toEqual({ action: "stop", menu: [] });
+  expect(executionGroupControls({ state: "prepared" }, [member()])).toMatchObject({ action: "start", menu: ["edit", "remove"] });
+  expect(executionGroupControls({ state: "running" }, [member({ busy: true })])).toMatchObject({ action: "stop", menu: ["edit", "remove"] });
+  expect(executionGroupControls({ state: "archiving" }, [member({ busy: true })])).toMatchObject({ action: "stop", menu: ["edit", "remove"] });
 });
 
 test("a completed group puts Remove only in the menu (AC-10, AC-11)", () => {
-  expect(executionGroupControls({ state: "completed" }, [member({ implemented: true })])).toEqual({ action: undefined, menu: ["remove"] });
+  expect(executionGroupControls({ state: "completed" }, [member({ implemented: true })])).toMatchObject({ action: undefined, menu: ["remove"] });
 });
 
 test("a member starts on the steps ticked on its row: Analyze not ticked does not run", () => {
@@ -71,6 +71,15 @@ test("non-Run actions keep the active-group reservation boundary (AC-2, AC-3)", 
 test("an idle group offers Remove, but a member still working keeps it unavailable", () => {
   for (const state of ["prepared", "stopped", "waiting-acceptance"] as const) {
     expect(executionGroupControls({ state }, [member()]).menu).toContain("remove");
-    expect(executionGroupControls({ state }, [member({ busy: true })]).menu).not.toContain("remove");
+    expect(executionGroupControls({ state }, [member({ busy: true })]).disabledMenu).toContain("remove");
+  }
+});
+
+
+test("Edit and Remove stay visible but disabled while the group has work in flight", () => {
+  for (const state of ["queued", "running", "archiving"] as const) {
+    const controls = executionGroupControls({ state }, [member()]);
+    expect(controls.menu).toEqual(["edit", "remove"]);
+    expect(controls.disabledMenu).toEqual(["edit", "remove"]);
   }
 });
