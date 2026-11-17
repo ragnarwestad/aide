@@ -312,7 +312,14 @@ async function runSuiteIn(
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
   const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
-  const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
+  // What the branch changed beyond the default branch picks the tests, as
+  // in Implement; the nightly full run on main catches what a selection
+  // misses. Without a default branch the whole command runs.
+  // Named as Implement names it (`origin/main`), so a landing on the tree
+  // Implement saw green resolves the same command and is skipped.
+  const base = (await defaultBranchRef(liveRoot))?.replace(/^refs\/(remotes|heads)\//, "");
+  const selection = base ? ["--changed-from", base, "--targeted"] : [];
+  const resolved = await runScript([resolver, "--project-dir", root, ...selection], root, 60_000);
   let commands: string[] = [];
   try {
     const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
