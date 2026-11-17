@@ -49,8 +49,7 @@ const finished = (g: unknown): boolean => {
   return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound || !!row.ownJob));
 };
 const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
-/** A cancelled job that is not a spec's offers nothing more: no Run, no
- *  Cancel. A spec's row can always run its phase again. */
+/** Cancelled standalone jobs remain in history rather than the Active view. */
 const endedForGood = (g: unknown): boolean => (g as RowFacts).state === "cancelled" && rowKind(g as RowFacts) !== "spec";
 const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknown) => !finished(g) && !endedForGood(g) } as StateEntry;
 const jobStateEntries: StateEntry[] = [

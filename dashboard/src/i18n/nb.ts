@@ -75,6 +75,7 @@ export const nb: Record<TranslationKey, string> = {
   "dialog.closing": "lukker…",
   "dialog.removing": "fjerner…",
   "shell.stopTestServer": "Stopp",
+  "jobs.runAgain": "Kjør",
   "shell.runTestRound": "Kjør",
   "shell.delay": "Forsinkelse: {value}",
   "shell.delayOff": "Av",

@@ -75,6 +75,7 @@ export const de: Record<TranslationKey, string> = {
   "dialog.closing": "wird geschlossen…",
   "dialog.removing": "wird entfernt…",
   "shell.stopTestServer": "Stopp",
+  "jobs.runAgain": "Starten",
   "shell.runTestRound": "Starten",
   "shell.delay": "Verzögerung: {value}",
   "shell.delayOff": "Aus",

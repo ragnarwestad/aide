@@ -18,6 +18,7 @@ export {
   TRANSITIONS,
   WORKFLOW_STEPS,
   currentWorkRoundJobs,
+  canRetryLand,
   inFlight,
   jobActivity,
   jobDismissible,
