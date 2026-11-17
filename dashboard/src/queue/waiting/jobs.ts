@@ -53,6 +53,8 @@ export function waitingGroups(store: QueueStore) {
   const entries = store.waiting.snapshot().entries;
   return store.executionGroups.list().map(group => {
     const index = entries.findIndex(entry => entry.groupId === group.id);
-    return { ...group, queuePosition: index < 0 ? undefined : { id: entries[index]!.id, n: index + 1, total: entries.length, reason: entries[index]!.reason, operation: entries[index]!.operation } };
+    const prefix = `group:${group.id}:`;
+    const queuedMembers = group.members.filter((member) => entries.some((entry) => entry.id.startsWith(`${prefix}${member}:`)));
+    return { ...group, queuedMembers, queuePosition: index < 0 ? undefined : { id: entries[index]!.id, n: index + 1, total: entries.length, reason: entries[index]!.reason, operation: entries[index]!.operation } };
   });
 }

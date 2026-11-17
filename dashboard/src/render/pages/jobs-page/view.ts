@@ -4,7 +4,6 @@
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
-import { waitingForGroup } from "../specs-list/data-model/spec-state.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   SORTS,
@@ -35,10 +34,11 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
 export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
-/** The state entries the Jobs tab offers: All, Running, Queued, Waiting,
- *  Done, Stopped, Failed, Cancelled. Done is a spec archived or closed, or
- *  any other row's job that has ended done; a spec whose last job ended done
- *  waits for its next phase, as on the Specs list. */
+/** The state entries the Jobs tab offers: All, Running, Queued, Done,
+ *  Stopped, Failed, Cancelled. Queued is everything the shared queue holds:
+ *  a job with a place in it, whatever its row reads, and a group's member the
+ *  queue holds before its job exists. Done is a spec archived or closed, or
+ *  any other row's job that has ended done. */
 type StateEntry = StateFilterEntry;
 const finished = (g: unknown): boolean => {
   const row = g as RowFacts;
@@ -48,13 +48,12 @@ const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
-  { key: "queued", label: "Queued", states: ["queued"] },
-  { key: "waiting", label: "Waiting", where: (g) => (g.state === "done" && !finished(g)) || waitingForGroup(g as RowFacts) },
+  { key: "queued", label: "Queued", where: (g) => g.state === "queued" || !!g.lead?.queuePosition || !!(g as RowFacts).inQueue },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "archived-unlanded"] },
   { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
 ];
-export const JOBS_STATE_FILTERS = [...jobStateEntries.slice(0, 4), doneState, ...jobStateEntries.slice(4)];
+export const JOBS_STATE_FILTERS = [...jobStateEntries.slice(0, 3), doneState, ...jobStateEntries.slice(3)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>
@@ -79,6 +78,8 @@ export type RowFacts = Pick<
   /** Group members represented by this row; an ordinary spec or job counts as one. */
   itemCount?: number;
   executionGroupActive?: boolean;
+  /** Set on a group's member the shared queue holds before its job exists. */
+  inQueue?: boolean;
   /** The member specs a group's row stands for, each its current row with its own state; absent on every other row. */
   members?: RowFacts[];
   /** Set on the row of a spec's earlier round, which is over whatever the spec does now. */

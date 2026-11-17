@@ -89,3 +89,9 @@ test("a removed group's members draw no card from their Group: lines (AC-5)", ()
   }));
   expect(renderJobsRows(grouped)).not.toContain('data-spec-group="aide\nRelease"');
 });
+
+test("a member the queue holds a place for shows its group's card under Queued", () => {
+  const started: ExecutionGroup = { ...release, state: "running", queuedMembers: ["83-second"] };
+  expect(rowsOf(view([started], { state: "queued" }), CARD)).toContain('id="spec-aide/83-second"');
+  expect(rowsOf(view([{ ...started, queuedMembers: [] }], { state: "queued" }), CARD)).toBe("");
+});
