@@ -206,3 +206,28 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
   display: inline-flex; align-items: center; padding: 0 var(--sp-2);
   color: var(--muted); text-decoration: none; line-height: 1; }
 .searchclear:hover { color: var(--text); }
+
+/* Keep the job kind on the card edge and the project beside its title.
+   The fold keeps its original hit area; only the chevron moves. */
+table[data-list="jobs"] tr:is(.spechead, .grouphead) { position: relative; }
+table[data-list="jobs"] tr:is(.spechead, .grouphead) .specpart > .kindicon {
+  position: absolute; inset-inline-start: var(--sp-2); top: var(--sp-3);
+  pointer-events: none;
+}
+table[data-list="jobs"] tr:is(.spechead, .grouphead) .specpart > .kindicon,
+table[data-list="jobs"] tr:is(.spechead, .grouphead) .specpart > .kindicon svg {
+  width: 15px; height: 15px;
+}
+table[data-list="jobs"] tr:is(.spechead, .grouphead) > .foldcell > .fold > svg {
+  position: relative; left: 2.5px; top: var(--sp-3);
+}
+table[data-list="jobs"] table.groupcard > tbody > tr.grouphead .groupheadline { margin-left: 0; }
+@media (min-width: 40.0625rem) {
+  /* The folder drawing starts inside its SVG view box. */
+  table[data-list="jobs"] .spec-name > .label { margin-inline-start: -2.5px; }
+}
+@media (max-width: 40rem) {
+  table[data-list="jobs"] tr.spechead > td.foldcell { width: 0; }
+  table[data-list="jobs"] tr:is(.spechead, .grouphead) .spec-name > .label { padding-left: 6px; }
+  table[data-list="jobs"] tr.spechead > .foldcell > .fold > svg { left: -5px; top: var(--sp-3); }
+}
