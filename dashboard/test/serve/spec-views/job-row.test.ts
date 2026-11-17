@@ -195,3 +195,17 @@ test("Land rows carry their branch and push boundary to the page controls", asyn
   const job = queue.update(made.job.id, { landPushStarted: true })!;
   expect(await jobRow({ queue, store: new AideRunStore() }, job)).toMatchObject({ branch: "topic", landPushStarted: true });
 });
+
+
+test("a cancelled Land row points at its later successful attempt", async () => {
+  const queue = makeStore();
+  const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!old.ok) throw new Error(old.error);
+  queue.update(old.job.id, { state: "cancelled" });
+  const next = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!next.ok) throw new Error(next.error);
+  queue.update(next.job.id, { state: "done" });
+  const row = await jobRow({ queue, store: new AideRunStore() }, queue.get(old.job.id)!);
+  expect(row.landSuccessor).toEqual({ id: next.job.id, landed: true });
+  expect(row.state).toBe("cancelled");
+});

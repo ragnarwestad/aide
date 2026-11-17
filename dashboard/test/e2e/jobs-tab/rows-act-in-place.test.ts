@@ -332,7 +332,7 @@ test("Types can select Land separately and its card names the source branch", as
 });
 
 
-test("Run on a cancelled Land queues the same branch again without changing its history", async () => {
+test("Run on a cancelled Land opens the queued new attempt without changing its history", async () => {
   const old = { id: "cancelled-land", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
     state: "cancelled", branch: "fix/topic", timeoutSec: {}, permissionMode: {}, model: {}, results: [],
     createdAt: "2026-11-17T12:00:00Z", startedAt: "2026-11-17T12:00:00Z", finishedAt: "2026-11-17T12:01:00Z" };
@@ -347,8 +347,17 @@ test("Run on a cancelled Land queues the same branch again without changing its 
     await page.getByRole("button", { name: "Run", exact: true }).click();
     const res = await response;
     expect(res.ok()).toBe(true);
-    expect((await res.json()).job).toMatchObject({ branch: "fix/topic", steps: ["land"] });
+    const fresh = (await res.json()).job;
+    expect(fresh).toMatchObject({ branch: "fix/topic", steps: ["land"] });
+    await page.waitForURL((url) => url.pathname === `/jobs/${fresh.id}`);
+    expect(await stateOf(base, fresh.id)).toBe("queued");
     expect(await stateOf(base, old.id)).toBe("cancelled");
     expect(loads.n).toBe(0);
+    await page.goto(`${base}/?state=cancelled&kind=land&open=aide/land:land@${old.id}&live=0`);
+    await page.getByRole("link", { name: "View run", exact: true }).waitFor();
+    expect(await page.getByRole("button", { name: "Run", exact: true }).count()).toBe(0);
+    await page.screenshot({ path: "/tmp/aide-land-feedback-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: "/tmp/aide-land-feedback-mobile.png" });
   } finally { await page.close(); }
 });

@@ -320,8 +320,8 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 
-export function canRetryLand(job: { state: string; landing?: boolean; branch?: string; steps: readonly string[]; stepIndex: number }): boolean {
-  return job.steps[job.stepIndex] === "land" && job.state === "cancelled" && !inFlight(job) && !!job.branch;
+export function canRetryLand(job: { landSuccessor?: { id: string }; state: string; landing?: boolean; branch?: string; steps: readonly string[]; stepIndex: number }): boolean {
+  return !job.landSuccessor && job.steps[job.stepIndex] === "land" && job.state === "cancelled" && !inFlight(job) && !!job.branch;
 }
 
 export const jobDismissible = (job: {

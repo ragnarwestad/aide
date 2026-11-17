@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { btnLink, askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -96,6 +96,7 @@ function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Langu
   if (kind === "run") return buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
     hook: "actionform",
+    data: { "land-retry": "" },
     hidden: { branch: row.branch! },
     button: { label: t(lang, "jobs.runAgain"), variant: "primary", pending: t(lang, "list.starting") },
   });
@@ -164,7 +165,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
-    `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
+    `${row.landSuccessor ? btnLink({ label: t(lang, row.landSuccessor.landed ? "jobs.landAlreadyLanded" : "jobs.landNewAttempt"), href: `/jobs/${encodeURIComponent(row.landSuccessor.id)}`, data: { goto: "" } }) : kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

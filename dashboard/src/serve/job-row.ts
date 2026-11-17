@@ -10,6 +10,7 @@ import type { QueueRowView, SideRunView } from "../render";
 import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
+import { landSuccessor } from "../queue/job-rules/land-retry.ts";
 import { requireWorkflowStep } from "../workflow-steps.ts";
 
 export interface JobRowContext {
@@ -41,6 +42,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     landing: job.landing,
     branch: job.branch,
     landPushStarted: job.landPushStarted,
+    landSuccessor: job.state === "cancelled" && job.steps[0] === "land" ? landSuccessor(job, ctx.queue.list()) : undefined,
     deploy: job.deploy,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no
