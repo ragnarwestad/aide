@@ -142,3 +142,30 @@ def test_no_change_at_all_runs_the_test_command(script, project):
     write_manifest(project, "AIDE_TEST_CMD: make test\n")
     _docs_check(project)
     assert resolve(script, project, "--changed-from", "main") == (0, {"ok": True, "commands": ["make test"]})
+
+
+def test_implement_uses_changed_command_only_when_requested(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\nAIDE_TEST_CHANGED_CMD: scripts/test-changed\n")
+    git(project, "add", ".aide/project.yaml")
+    git(project, "commit", "-qm", "settings")
+    (project / "code.ts").write_text("changed")
+    rc, result = resolve(script, project, "--changed-from", "main", "--targeted")
+    assert rc == 0
+    assert result["commands"] == ["scripts/test-changed 'main'"]
+    assert result["targeted"] is True
+    assert resolve(script, project)[1]["commands"] == ["make test"]
+
+
+def test_targeted_without_project_command_keeps_full_suite(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\n")
+    assert resolve(script, project, "--changed-from", "main", "--targeted")[1]["commands"] == ["make test"]
+
+
+def test_targeted_ref_is_shell_quoted_as_data(script, project):
+    import shlex
+    write_manifest(project, "AIDE_TEST_CMD: false\nAIDE_TEST_CHANGED_CMD: echo\n")
+    ref = "feature's-branch"
+    git(project, "branch", ref)
+    rc, result = resolve(script, project, "--changed-from", ref, "--targeted")
+    assert rc == 0
+    assert shlex.split(result["commands"][0]) == ["echo", ref]

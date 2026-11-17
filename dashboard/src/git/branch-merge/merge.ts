@@ -43,6 +43,7 @@ export function mergeWorktreePath(root: string, branch: string): string {
 
 export type LandingGate = (root: string) => Promise<{
   ok: boolean;
+  repaired?: boolean;
   terminalReason?: "tests-red" | "timeout";
   error?: Sentence;
   detail?: string;
@@ -175,6 +176,8 @@ export async function mergeBranchIntoDefault(
     // was rejected and dropped, so a retry's own rename (recomputed
     // against the base that moved) is the one that survives.
     let assignedSpecFolder: string | undefined;
+    let repaired = false;
+    let repairRebuilds = 0;
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       // The tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
@@ -242,6 +245,13 @@ export async function mergeBranchIntoDefault(
           // which no longer holds the merge at all.
           const verdict = cached ?? (await gate(work));
           if (tree && !cached) gateVerdicts.set(tree, verdict);
+          if (verdict.repaired && repairRebuilds < 2) {
+            repairRebuilds++;
+            repaired = true;
+            await run(work, ["fetch", "--quiet", "origin", base, branch]);
+            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
+            return null;
+          }
           if (!verdict.ok) {
             await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
             // No `(branch in root)` tail, unlike every refusal around it:
@@ -275,6 +285,7 @@ export async function mergeBranchIntoDefault(
     for (let attempt = 0; ; attempt++) {
       const failed = await mergeAndGate();
       if (failed) return failed;
+      if (repaired) { repaired = false; attempt--; continue; }
       const pushResult = await pushWithRetry(
         run,
         work,

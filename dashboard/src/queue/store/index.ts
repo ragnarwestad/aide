@@ -105,6 +105,7 @@ export class QueueStore {
   private clashing(job: Job): { job: Job; step: WorkflowStep } | null {
     for (const other of this.jobs.values()) {
       if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
+      if (job.steps.includes("land") && other.steps.includes("land") && job.branch !== other.branch) continue;
       if (!UNFINISHED.has(other.state)) continue;
       const step = job.steps.find((s) => other.steps.includes(s));
       if (step) return { job: other, step };
@@ -162,6 +163,7 @@ export class QueueStore {
   private landingJob(job: Job): Job | null {
     for (const other of this.jobs.values()) {
       if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
+      if (job.steps.includes("land") && other.steps.includes("land") && job.branch !== other.branch) continue;
       if (other.landing) return other;
     }
     return null;

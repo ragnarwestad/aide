@@ -1,7 +1,6 @@
+import { createLandingGate } from "./land-branch/repair/index.ts";
 import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
-import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
-import { greenResultsForLand } from "./land-branch/seen-green.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 import { translationMergeArgs } from "./land-branch/run-script.ts";
 // The aide-dashboard server: serves every page of the board and its
@@ -205,10 +204,7 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate: opts.landingGate ?? ((root, job, branch, button) => {
-        const gatedJob = job.steps[job.stepIndex] === "land" ? greenResultsForLand(job, queue.list()) : job;
-        return runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(), button });
-      }),
+    landingGate: opts.landingGate ?? createLandingGate(queue, opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
     // with that branch's own copy.

@@ -71,3 +71,21 @@ test("a schedule is not held by another spec's running step", () => {
   store.update(running.id, { state: "running" });
   expect(holdFor(scheduled, { ...context({}), maxConcurrent: 2 })).toBeUndefined();
 });
+
+test("queued Land branches run one at a time through the end of the landing", () => {
+  const first = enqueue({ specFolder: "land", steps: ["land"], branch: "first" });
+  store.update(first.id, { state: "running", landing: true });
+  const second = enqueue({ specFolder: "land", steps: ["land"], branch: "second" });
+  const runner = makeRunner({ maxConcurrent: 4 });
+  runner.tick();
+  expect(store.get(second.id)?.state).toBe("queued");
+  expect(spawns).toHaveLength(0);
+  store.update(first.id, { state: "done" });
+  runner.tick();
+  expect(store.get(second.id)?.state).toBe("queued");
+  expect(spawns).toHaveLength(0);
+  store.update(first.id, { landing: false });
+  runner.tick();
+  expect(store.get(second.id)?.state).toBe("running");
+  expect(spawns).toHaveLength(1);
+});

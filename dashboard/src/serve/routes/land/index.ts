@@ -24,8 +24,8 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
   const found = await ctx.gitRun(root, lsRemoteBranch(branch));
   if (found.code === LS_REMOTE_NO_MATCH) return refuse(`origin has no branch named ${branch}`);
   if (found.code !== 0) return refuse(`origin could not be checked for branch ${branch}`);
-  const running = ctx.queue.list().find((job) => job.project === project && jobKind(job) === "land" && inFlight(job));
-  if (running) return refuse(`a Land job is already ${running.state} for ${project}`);
+  const running = ctx.queue.list().find((job) => job.project === project && jobKind(job) === "land" && job.branch === branch && inFlight(job));
+  if (running) return refuse(`a Land job for ${branch} is already ${running.state} in ${project}`);
   const result = enqueueRequest(ctx.queue, { project, specFolder: LAND_KEY, steps: ["land"], branch }, "manual");
   if (!result.ok) return refuse(result.error);
   await ctx.tickRunner();

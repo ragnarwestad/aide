@@ -52,3 +52,26 @@ describe("POST /api/queue/projects/:project/land", () => {
     } finally { cleanup(); }
   });
 });
+
+for (const state of ["queued", "running", "done"] as const) {
+  test(`a different branch can queue behind a ${state} Land`, async () => {
+    const { ctx, queue, cleanup } = context(true);
+    try {
+      const first = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "first" });
+      if (!first.ok) throw new Error(first.error);
+      queue.update(first.job.id, { state, landing: state !== "queued" });
+      const res = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
+        method: "POST", body: JSON.stringify({ branch: "second" }),
+      }), "/api/queue/projects/aide/land");
+      expect(res?.status).toBe(200);
+      expect(queue.list().map((job) => job.branch).sort()).toEqual(["first", "second"]);
+      for (const branch of ["first", "second"]) {
+        const duplicate = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
+          method: "POST", body: JSON.stringify({ branch }),
+        }), "/api/queue/projects/aide/land");
+        expect(duplicate?.status).toBe(400);
+        expect(queue.list()).toHaveLength(2);
+      }
+    } finally { cleanup(); }
+  });
+}

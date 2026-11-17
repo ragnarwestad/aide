@@ -8,6 +8,7 @@ description: Configuration and tooling for AI-assisted development — skills, r
 AIDE_TEST_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-python && cd dashboard && make test && make test-e2e
 # The project's command for running the named test files once, used by
 # Implement's final isolated check of red files.
+AIDE_TEST_CHANGED_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; python3 scripts/testing/changed.py
 AIDE_TEST_FILES_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-files
 deployment:
   # A branch of this repository is tried by a board the dashboard starts

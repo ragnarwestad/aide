@@ -83,7 +83,7 @@ describe("the landed create's number", () => {
 describe("the server wires the runner's own directory into both", () => {
   test("the numbering and the test gate get dirname(queueRunnerBin)", () => {
     const numbering = /finalizeCreateSpec:[\s\S]*?assignSpecNumberAfterMerge\([\s\S]*?scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
-    const gate = /landingGate:[\s\S]*?runProjectSuiteBeforePush\([\s\S]*?scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
+    const gate = /landingGate:[\s\S]*?createLandingGate\(queue, opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
     const translations = /translationMergeArgs: \(root, work\) => translationMergeArgs\(root, work, \{ scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
     expect(SERVE).toMatch(numbering);
     expect(SERVE).toMatch(gate);

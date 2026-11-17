@@ -776,3 +776,19 @@ def test_the_tail_of_a_red_log_starts_at_a_line_not_inside_a_word(runner, worksp
     shown = out["errorLog"]
     assert shown.startswith("noise line number "), shown[:40]
     assert "\nmake sure the database is reachable\n" in shown, shown
+
+
+def test_implement_runs_the_changed_command_without_claiming_full_suite_green(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "false")
+    manifest = workspace["project"] / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text() + "\nAIDE_TEST_CHANGED_CMD: true\n")
+    status = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status.write_text(status.read_text() + "\n| Run the full test suite | ⬜ | |\n")
+    git(workspace["specs"], "commit", "-qam", "verification row")
+    rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert out["testedGreen"]["commands"][0].startswith("true "), out
+    assert "false" not in out["testedGreen"]["commands"]
+    shown = git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/4-status.md")
+    assert "| Run the full test suite | ⬜ | |" in shown
