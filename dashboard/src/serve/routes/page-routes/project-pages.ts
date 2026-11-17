@@ -14,7 +14,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
 import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
-import { jobActivity, jobKind, inFlight } from "../../../queue/queue.ts";
+import { deployUnderWay } from "../../../queue/queue.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
@@ -278,7 +278,7 @@ export async function projectPages(
         serving,
         restartWaiting: ctx.readPendingRestart()?.jobs,
         boardItself,
-        deployUnderWay: deployUnderWay(ctx, name),
+        deployUnderWay: deployUnderWay(ctx.queue.list(), name),
         // The same capability check the spec-page's own
         // test-server link already gates on.
         testServerAvailable: ctx.testServers.previewAvailable(name),
@@ -363,11 +363,4 @@ export async function projectPages(
   }
 
   return null;
-}
-
-/** The state of the project's deploy job while one is queued or running. */
-function deployUnderWay(ctx: RoutesContext, project: string): "queued" | "running" | undefined {
-  const job = ctx.queue.list().find((j) => j.project === project && jobKind(j) === "deploy" && inFlight(j));
-  const activity = job ? jobActivity(job) : "idle";
-  return activity === "queued" || activity === "running" ? activity : undefined;
 }

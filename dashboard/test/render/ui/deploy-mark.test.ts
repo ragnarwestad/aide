@@ -55,3 +55,15 @@ describe("the header's Deploy mark", () => {
     );
   });
 });
+
+test("a queued or running deploy keeps its count but offers no new Deploy question", () => {
+  for (const underWay of ["queued", "running"] as const) {
+    setDeployWaiting(() => ({ project: "aide", commits: 2, branch: "main", underWay }));
+    const html = render();
+    const mark = markOf(html);
+    expect(mark).toContain(" disabled");
+    expect(mark).toContain("(2)");
+    expect(mark).not.toContain("data-ask");
+    expect(html).not.toContain(`id="${DEPLOY_MARK_DIALOG}"`);
+  }
+});

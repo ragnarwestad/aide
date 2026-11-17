@@ -59,6 +59,12 @@ describe("Deploy from the header mark", () => {
     const row = page.locator('tr[id="spec-aide/deploy:deploy"]');
     await row.waitFor({ state: "visible", timeout: 5000 });
     expect(await page.locator("tr.subrow[data-step]").count()).toBe(5);
+    setDeployWaiting(() => ({ project: "aide", commits: 1, branch: "main", underWay: "running" }));
+    await page.goto(`${base}/specs?live=0`);
+    const mark = page.locator("header button.deploymark");
+    expect(await mark.isDisabled()).toBe(true);
+    await mark.evaluate((button: HTMLButtonElement) => button.click());
+    expect(await page.locator("dialog[open]").count()).toBe(0);
     await page.close();
   });
 });

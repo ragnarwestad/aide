@@ -1,6 +1,7 @@
+import { Window } from "happy-dom";
 // The header's Deploy mark, swapped in when the event stream says it changed.
 import { afterEach, describe, expect, test } from "bun:test";
-import { refreshDeployMark } from "../../../src/specs-client/deploy/mark.ts";
+import { refreshDeployMark, syncDeployControls } from "../../../src/specs-client/deploy/mark.ts";
 import {
   deployMark, deployMarkAnswer, setDeployWaiting,
 } from "../../../src/render/ui/deploy-mark/index.ts";
@@ -71,4 +72,24 @@ describe("swapping in the Deploy mark", () => {
       expect(slot.outerHTML).toBe(empty);
     }
   });
+});
+
+test("a live Deploy state disables the page control and restores only controls ready to deploy", async () => {
+  const win = new Window();
+  try {
+    const doc = win.document;
+    doc.body.innerHTML = `<button data-deploy-project="aide" data-deploy-ready="true">Deploy</button><button data-deploy-project="other" data-deploy-ready="false" disabled>Deploy</button>`;
+    const own = doc.querySelector("button")!;
+    const other = doc.querySelectorAll("button")[1]!;
+    for (const underWay of ["queued", "running"] as const) {
+      syncDeployControls(doc as unknown as Document, deployMark("en", { project: "aide", commits: 2, branch: "main", underWay }));
+      expect(own.disabled).toBe(true);
+      expect(other.disabled).toBe(true);
+    }
+    syncDeployControls(doc as unknown as Document, deployMark("en", { project: "aide", commits: 2, branch: "main" }));
+    expect(own.disabled).toBe(false);
+    expect(other.disabled).toBe(true);
+    syncDeployControls(doc as unknown as Document, deployMark("en", { project: "aide", commits: 0, branch: "main" }));
+    expect(own.disabled).toBe(true);
+  } finally { await win.happyDOM.close(); }
 });

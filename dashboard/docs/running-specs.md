@@ -923,7 +923,8 @@ The board's own deploy is a job under the tracking key `deploy`, a step the serv
 (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
 reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A second
-deploy is refused while one is queued or running. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
+deploy is refused while one is queued or running. During that time, the header Deploy mark and the Deploy tab’s
+start button are disabled; they become available again when the job ends if deployment is still needed. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
 the Deploy and its planned restart; Archive and Land continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout

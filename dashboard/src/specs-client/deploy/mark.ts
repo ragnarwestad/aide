@@ -9,6 +9,7 @@ export interface MarkIo {
   fetchMark(): Promise<string | null>;
   hasElement(id: string): boolean;
   addDialog(html: string): void;
+  syncControls?(mark: string): void;
 }
 
 const MARK = /^<(button|span) class="deploymark[\s"]/;
@@ -22,15 +23,28 @@ export async function refreshDeployMark(io: MarkIo): Promise<void> {
   const mark = dialogAt < 0 ? html : html.slice(0, dialogAt);
   const slot = io.slot();
   if (slot && slot.outerHTML !== mark) slot.outerHTML = mark;
+  io.syncControls?.(mark);
   if (dialogAt < 0) return;
   const dialog = html.slice(dialogAt);
   const id = /^<dialog\b[^>]*\sid="([^"]+)"/.exec(dialog)?.[1];
   if (id && !io.hasElement(id)) io.addDialog(dialog);
 }
 
+export function syncDeployControls(doc: Document, html: string): void {
+  const mark = new doc.defaultView!.DOMParser().parseFromString(html, "text/html").querySelector<HTMLElement>("[data-deploy-project]");
+  if (!mark) return;
+  const busy = mark.dataset.deployUnderWay === "true";
+  for (const button of doc.querySelectorAll<HTMLButtonElement>("button[data-deploy-ready]")) {
+    if (button.dataset.deployProject !== mark.dataset.deployProject) continue;
+    button.disabled = busy || Number(mark.dataset.deployCommits) === 0 || button.dataset.deployReady === "false";
+    button.title = busy ? mark.title : button.dataset.deployIdleTitle ?? "";
+  }
+}
+
 /** The browser's own: the header's slot, and `GET /api/deploy-mark`. */
 export const browserMarkIo = (): MarkIo => ({
   slot: () => document.querySelector("header .deploymark"),
+  syncControls: (html) => syncDeployControls(document, html),
   hasElement: (id) => document.getElementById(id) !== null,
   addDialog: (html) => document.querySelector("header > .boardline")?.insertAdjacentHTML("afterend", html),
   fetchMark: async () => {

@@ -320,6 +320,11 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 
+export function deployUnderWay(jobs: readonly Job[], project: string): "queued" | "running" | undefined {
+  const job = jobs.find((candidate) => candidate.project === project && jobKind(candidate) === "deploy" && inFlight(candidate));
+  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
+}
+
 export const jobDismissible = (job: {
   steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
   results?: readonly { terminalReason?: string }[];

@@ -1,3 +1,4 @@
+import { deployUnderWay } from "../../queue/queue.ts";
 // The four git-backed checkers and the schedules built on top of them:
 // drift, the spec caches, and each project's own `schedule:` entries.
 //
@@ -183,7 +184,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   // What the header's Deploy mark shows: asked after each fetch of origin,
   // so a page render only reads it.
   let waiting: DeployWaiting | undefined;
-  setDeployWaiting(() => (state.stopped ? undefined : waiting));
+  setDeployWaiting(() => (state.stopped || !waiting ? undefined : { ...waiting, underWay: deployUnderWay(inputs.queue.list(), waiting.project) }));
   async function refreshDrift() {
     await refreshDriftImpl(scheduleCtx);
     const before = waiting;
