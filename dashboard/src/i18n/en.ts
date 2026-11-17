@@ -197,8 +197,8 @@ export const en = {
     "then push it again from a terminal.",
   "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
   "checks.coveredBy": "Tests: {names}",
-  "checks.unit": "Unit",
-  "checks.browser": "Browser",
+  "checks.unit": "Unit-tests",
+  "checks.browser": "Browser-tests",
   "checks.noTestNames": "No test names {id}.",
   "list.branchLeftBehind":
     "This spec merged, but its branch could not be deleted on origin. — " +

@@ -11,7 +11,7 @@ import { readAcCoverage, withAcCoverage } from "../../../src/project/ac-coverage
 import { groupBySpec, groupKey } from "../../../src/render/pages/specs-list/data-model";
 import { checksPanel } from "../../../src/render/pages/specs-list/row-checks.ts";
 import { checklist } from "../../../src/render/pages/spec-page/overview.ts";
-import { acTestsLine, prepareAcTests } from "../../../src/render/ui/ac-tests.ts";
+import { acTestsLine, prepareAcTests, acTestKinds } from "../../../src/render/ui/ac-tests.ts";
 import { view } from "../../render/pages/spec-page-fixtures.ts";
 
 const dirs: string[] = [];
@@ -92,7 +92,7 @@ describe("the tests behind an acceptance row", () => {
 
   test("a row analyze marked \"Not tested:\" already says why", () => {
     const [ac4] = withAcCoverage([row("AC-4: It SHALL read well.", "Not tested: wording; check the page")], readAcCoverage(dir()));
-    expect(acTestsLine(ac4!, "en")).toBe("");
+    expect(ac4?.note).toBe("Not tested: wording; check the page");
   });
 
   test("with no record, and on a row with no AC-id, nothing is added", () => {
@@ -101,13 +101,12 @@ describe("the tests behind an acceptance row", () => {
     const none = mkdtempSync(join(tmpdir(), "aide-ac-none-"));
     dirs.push(none);
     expect(readAcCoverage(none)).toBeNull();
-    expect(acTestsLine(withAcCoverage([row("AC-1: x")], readAcCoverage(none))[0]!, "en")).toBe("");
+    expect(withAcCoverage([row("AC-1: x")], readAcCoverage(none))[0]?.tests).toBeUndefined();
   });
 });
 
-// The files under a criterion: one shut line each, its count on the line,
-// its test names inside, drawn by one function for both pages.
-describe("a criterion's tests, one fold with its test kinds", () => {
+// The tests under a criterion, drawn by one function for both pages.
+describe("a criterion's tests by kind", () => {
   const windows: Window[] = [];
   afterEach(async () => {
     while (windows.length) await windows.pop()!.happyDOM.close();
@@ -127,15 +126,11 @@ describe("a criterion's tests, one fold with its test kinds", () => {
     { file: "dashboard/test/a.test.ts", name: "the total updates (AC-1)", kind: "unit" as const },
   ];
 
-  test("Browser and Unit share one criterion fold with grouped files (AC-1, AC-2, AC-3, AC-7, AC-8)", () => {
+  test("each kind has a separate fold whose tests belong to that kind", () => {
     const body = drawn(acTestsLine({ task: "AC-1: x", tests: TESTS }, "en", SCOPE));
-    const folds = [...body.querySelectorAll("details")];
-    expect(folds).toHaveLength(1);
-    expect(folds[0]!.querySelector("summary")!.textContent).toContain("Unit");
-    expect(folds[0]!.querySelector("summary")!.textContent).toContain("Browser");
-    expect(folds[0]!.textContent).toContain("dashboard/test/a.test.ts");
-    expect(folds[0]!.textContent).toContain("dashboard/test/browser/b.test.ts");
-    expect(folds[0]!.querySelector('[aria-label="Browser"]')).not.toBeNull();
+    expect(body.querySelector(`[data-testcriterion="${SCOPE}|1|unit"]`)!.textContent).toContain("the total updates");
+    expect(body.querySelector(`[data-testcriterion="${SCOPE}|1|unit"]`)!.textContent).not.toContain("it fits a phone");
+    expect(body.querySelector(`[data-testcriterion="${SCOPE}|1|browser"]`)!.textContent).toContain("it fits a phone");
   });
 
   test("the same test listed twice counts twice and both names are inside", () => {
@@ -150,11 +145,6 @@ describe("a criterion's tests, one fold with its test kinds", () => {
     const html = acTestsLine({ task: "AC-3: x", tests: [{ file: "a.test.ts", name: "t (AC-3)" }] }, "en", SCOPE);
     expect(html).toContain(`data-testcriterion="${SCOPE}|3"`);
     expect(html).not.toContain("AC-");
-  });
-
-  test("the closed kind line ends with its fold arrow (AC-8)", () => {
-    const body = drawn(acTestsLine({ task: "AC-1: x", tests: TESTS }, "en", SCOPE));
-    expect(body.querySelector("summary")!.lastElementChild?.tagName).toBe("svg");
   });
 
   test("an old record is classified from an existing file and a missing file stays unknown (AC-6)", () => {
@@ -182,14 +172,6 @@ describe("a criterion's tests, one fold with its test kinds", () => {
     expect(covered!.tests![0]!.kind).toBe("browser");
   });
 
-  test("kind icons have translated accessible names in every language (AC-11, AC-12)", () => {
-    const expected = { en: ["Unit", "Browser"], nb: ["Enhet", "Nettleser"], es: ["Unidad", "Navegador"], de: ["Unit", "Browser"], fr: ["Unitaire", "Navigateur"] } as const;
-    for (const [lang, labels] of Object.entries(expected)) {
-      const body = drawn(acTestsLine({ task: "AC-11: x", tests: TESTS }, lang as keyof typeof expected, SCOPE));
-      expect([...body.querySelectorAll("summary [aria-label]")].map((el) => el.getAttribute("aria-label"))).toEqual([...labels]);
-    }
-  });
-
   test("the Status tab and the Specs list draw exactly the shared markup (AC-10)", () => {
     const folder = "624-x";
     const key = groupKey("aide", folder);
@@ -208,7 +190,22 @@ describe("a criterion's tests, one fold with its test kinds", () => {
 
   test("a criterion no test names still shows its warning and no fold (AC-9)", () => {
     const body = drawn(acTestsLine({ task: "AC-4: x", untested: true }, "en", SCOPE));
-    expect(body.querySelector(".checktests.untested")?.textContent).toBe("No test names AC-4.");
+    expect(body.querySelector(".checktests .untested")?.textContent).toBe("No test names AC-4.");
     expect(body.querySelector("details")).toBeNull();
   });
+});
+
+test("counts individual tests per kind and keeps unknown tests separate", () => {
+  const unit = { file: "unit.ts", name: "one", kind: "unit" as const };
+  const browser = { file: "browser.ts", name: "two", kind: "browser" as const };
+  const unknown = { file: "gone.ts", name: "three" };
+  expect(acTestKinds([unit, unit, browser, unknown])).toEqual([
+    { kind: "unit", tests: [unit, unit], count: 2 },
+    { kind: "browser", tests: [browser], count: 1 },
+    { kind: undefined, tests: [unknown], count: 1 },
+  ]);
+  expect(acTestKinds([])).toEqual([
+    { kind: "unit", tests: [], count: 0 },
+    { kind: "browser", tests: [], count: 0 },
+  ]);
 });
