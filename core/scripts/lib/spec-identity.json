@@ -1,0 +1,15 @@
+{
+  "specFolderPattern": "^[0-9]+-",
+  "branchPrefix": "aide/",
+  "groupBranchPrefix": "aide/group-",
+  "provisionalKeyPattern": "^new-[0-9a-f]{8}$",
+  "provisionalKeyPrefix": "new-",
+  "provisionalKeyHexLength": 8,
+  "scheduleKeyPrefix": "schedule-",
+  "descriptionFile": "1-description.md",
+  "analysisFile": "2-analysis.md",
+  "solutionFile": "3-solution.md",
+  "statusFile": "4-status.md",
+  "stateFile": "4-status.json",
+  "acCoverageFile": "ac-coverage.json"
+}

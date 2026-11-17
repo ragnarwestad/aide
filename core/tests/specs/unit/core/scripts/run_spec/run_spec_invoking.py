@@ -32,6 +32,9 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "spec-reference.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "spec-reference.sh").read_bytes()
     )
+    (tmp_path / "lib" / "spec-identity.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "spec-identity.json").read_bytes()
+    )
     (tmp_path / "lib" / "workflow-steps.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
     )
