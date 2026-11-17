@@ -703,7 +703,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   tab twice (`specsStoodForByJobs`); a failed or stopped one has its row beside the spec's. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
-  (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`); its time under Time, off the run log's `+Ns` stamps
+  (`closeOrReopenSteps`, `serve/spec-views/job-marks.ts`), and Queued instead of Running while the shared queue holds
+  the job's merge waiting for the repository's lock (`queuedWhileMergeWaits`, `queue/waiting/jobs.ts`), on a spec's
+  phase steps as on a job's; its time under Time, off the run log's `+Ns` stamps
   (counting while it runs), for Aide's own steps and for the model's in a run whose runner recorded its marks; and
   the tokens the stream reported while it ran under Cost (`stepTokens`, `queue/parse-stream/step-tokens.ts`), a dash
   where none can be attributed to it, since a step has no dollar figure and the job's cost is the row's. A step's

@@ -2,6 +2,7 @@
 // it reads, what it returns, and the key it links to on the Logs tab.
 
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { WaitingQueue } from "../../../src/queue/waiting";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
@@ -226,6 +227,15 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
     const write = phaseMessagesFor(queueOf([j]), ["r"], "analyze")?.steps.find((s) => s.label === "Write");
     expect(write).toMatchObject({ state: "running", since: "2026-09-19T10:00:11.000Z", tokens: 7 });
     expect(write?.seconds).toBeUndefined();
+  });
+
+  test("a step whose merge waits for the repository's lock is queued, not running", () => {
+    const streamFile = logged(EVENTS, RUN_LOG);
+    const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile, stepStartedAt: "2026-09-19T10:00:00Z" });
+    const waiting = new WaitingQueue({});
+    waiting.pending.set("merge:r:analyze:/repo", { id: "merge:r:analyze:/repo", jobId: "r", project: "aide", label: "b", operation: "analyze", reason: "Waiting for the repository merge lock" });
+    const write = phaseMessagesFor({ ...(queueOf([j]) as object), waiting } as never, ["r"], "analyze")?.steps.find((s) => s.label === "Write");
+    expect(write?.state).toBe("queued");
   });
 
   test("an attempt that marked no step lists none, and the Log is as before", () => {

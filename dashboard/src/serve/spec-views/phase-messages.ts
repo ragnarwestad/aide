@@ -8,6 +8,7 @@
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
 import { stepLog, stepMarks, stepTokens } from "../../queue/parse-stream";
+import { queuedWhileMergeWaits } from "../../queue/waiting/jobs.ts";
 import type { PhaseMessages } from "../../render";
 import type { SidePart } from "../../queue/providers/side-tools.ts";
 import { resolveStepModel, tailFileAt } from "../serve-helpers";
@@ -23,7 +24,7 @@ import { withModelId } from "../../render/ui/components/model-label.ts";
  *  running) the step is the one read. A newer job only queued for the step
  *  has nothing to read and hides nothing. */
 export function phaseMessagesFor(
-  queue: Pick<QueueStore, "get" | "list" | "defaults">,
+  queue: Pick<QueueStore, "get" | "list" | "defaults"> & Partial<Pick<QueueStore, "waiting">>,
   attemptIds: string[],
   step: string,
 ): PhaseMessages | undefined {
@@ -44,7 +45,7 @@ export function phaseMessagesFor(
     const shown = stepLog(transcript, runLog, { tool: running ? undefined : result?.tool, final: !running, codexSession: codexSessionReader(running ? resolveStepProvider(job, step, queue.defaults) : result?.provider?.key ?? resolveStepProvider(job, step, queue.defaults), queue.defaults.providers) });
     const { logs } = shown;
     // The steps the log marked, each with its time and the tokens it used, listed above the Log.
-    const marks = stepMarks(logs, stepTokens(transcript.text, result?.tool));
+    const marks = queuedWhileMergeWaits(stepMarks(logs, stepTokens(transcript.text, result?.tool)), queue.waiting, job.id);
     const jobs = workRoundJobs(queue, job.project, job.specFolder);
     const stored = phaseAttempts(jobs, step);
     const identity = running

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecsPageOptions } from "../../../../../src/render";
-import type { JobStep } from "../../../../../src/render/pages/specs-list/phase-messages";
+import { stepState, type JobStep } from "../../../../../src/render/pages/specs-list/phase-messages";
 import { t } from "../../../../../src/i18n";
 import { esc } from "../../../../../src/render/ui/html.ts";
 import { NO_PULL_REQUEST, prErrorSentence } from "../../../../../src/render/pages/specs-list/row-shared.ts";
@@ -176,4 +176,10 @@ describe("a phase's explanations are in its log, not its State/Action cell", () 
     const html = renderSpecsRows([], { runnerAvailable: true, targets: [{ project: "aide", specFolder: FOLDER }], filter: { open: KEY } }, Date.parse("2026-09-19T12:00:00Z"));
     expect(phaseLine(html, "analyze")).not.toContain('class="fold');
   });
+});
+
+test("a step waiting in the queue shows Queued, not Running", () => {
+  const html = stepState("queued", "en");
+  expect(html).toContain("Queued");
+  expect(html).not.toContain(t("en", "dialog.stepRunning"));
 });

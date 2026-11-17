@@ -4,6 +4,7 @@ import type { QueueStore } from "../store/index.ts";
 import type { Job } from "../types.ts";
 import { formatSentence } from "../../messages/format.ts";
 import { seedOrder } from "./order.ts";
+import type { MarkState } from "../parse-stream/step-marks.ts";
 
 export function waitingKey(job: Job): string {
   return job.executionGroupId && job.steps[job.stepIndex] === "archive" ? `group:${job.executionGroupId}:archive` : job.executionGroupId
@@ -55,4 +56,13 @@ export function waitingGroups(store: QueueStore) {
     const index = entries.findIndex(entry => entry.groupId === group.id);
     return { ...group, queuePosition: index < 0 ? undefined : { id: entries[index]!.id, n: index + 1, total: entries.length, reason: entries[index]!.reason, operation: entries[index]!.operation } };
   });
+}
+
+/** A job's steps with a started one queued while the queue holds the job's
+ *  merge waiting for the repository's lock: the merge step marks itself
+ *  started before it asks for the lock. */
+export function queuedWhileMergeWaits<T extends { state?: MarkState }>(steps: T[], waiting: WaitingQueue | undefined, jobId: string): T[] {
+  const waits = [...(waiting?.pending.values() ?? [])].some((entry) => entry.jobId === jobId && entry.id.startsWith("merge:"));
+  const queuedStepState: MarkState = "queued";
+  return waits ? steps.map((step) => (step.state === "running" ? { ...step, state: queuedStepState } : step)) : steps;
 }

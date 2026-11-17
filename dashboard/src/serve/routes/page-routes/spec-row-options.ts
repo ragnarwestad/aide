@@ -1,4 +1,4 @@
-import { waitingGroups } from "../../../queue/waiting/jobs.ts";
+import { queuedWhileMergeWaits, waitingGroups } from "../../../queue/waiting/jobs.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { scheduleNameOf } from "../../../project/spec-names.ts";
@@ -48,11 +48,11 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? jobStepLines(job, lang, schedulePrompt(job)) : [];
+      return job ? queuedWhileMergeWaits(jobStepLines(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id) : [];
     },
     jobStepPips: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? jobStepPips(job, lang, schedulePrompt(job)) : [];
+      return job ? queuedWhileMergeWaits(jobStepPips(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id) : [];
     },
     deployCommits: (jobId: string) => {
       const job = ctx.queue.get(jobId);
