@@ -1,3 +1,4 @@
+import { Window } from "happy-dom";
 // A › asks for one row, and the answer is that row as the whole list draws it
 // in the same view: the same rows where the view shows it, and none where the
 // view hides it. Asked of a served board holding every kind of row: a spec in
@@ -75,12 +76,20 @@ async function settledRows(address: string): Promise<string> {
 const rowsIn = (answer: string): string => answer.replace(/^<table><tbody>|<\/tbody><\/table>$/g, "");
 const and = (query: string): string => (query ? `&${query}` : "");
 
+/** Compare the same accepted range, as the browser's fold request does. */
+function windowParams(html: string): string {
+  const doc = new Window().document;
+  doc.body.innerHTML = html;
+  const window = doc.querySelector("[data-window-query]");
+  return window ? `&${new URLSearchParams({ boundary: window.getAttribute("data-window-boundary") ?? "", windowLoaded: window.getAttribute("data-window-loaded") ?? "", windowQuery: window.getAttribute("data-window-query") ?? "" })}` : "";
+}
+
 /** Every key's one-row answer at `path` equals that key's rows in the whole
  *  answer in the same view; `shown` and `hidden` say which the view shows. */
 async function sameAsWholeList(path: string, view: string, keys: string[], expected: { shown?: string[]; hidden?: string[] } = {}): Promise<void> {
   const whole = await settledRows(`${path}?rows=1${and(view)}`);
   for (const key of keys) {
-    const one = rowsIn(await text(`${path}?rows=1&only=${encodeURIComponent(key)}${and(view)}`));
+    const one = rowsIn(await text(`${path}?rows=1&only=${encodeURIComponent(key)}${and(view)}${windowParams(whole)}`));
     expect({ view, key, rows: one }).toEqual({ view, key, rows: group(whole, `spec-${key}`) });
     if (expected.shown?.includes(key)) expect({ view, key, empty: one === "" }).toEqual({ view, key, empty: false });
     if (expected.hidden?.includes(key)) expect({ view, key, rows: one }).toEqual({ view, key, rows: "" });
@@ -140,7 +149,7 @@ describe("one row of the Specs list", () => {
     for (const key of [SPEC, ARCHIVED]) {
       await settledRows(`${base}/specs/${key}?rows=1`);
       const page = await text(`${base}/specs/${key}`);
-      const detail = (await text(`${base}/specs/${key}?detail=1`)).replace(/<script src="[^"]*"><\/script>$/, "");
+      const detail = (await text(`${base}/specs/${key}?detail=1${windowParams(page)}`)).replace(/<script src="[^"]*"><\/script>$/, "");
       expect(rowsIn(detail)).not.toBe("");
       expect({ key, rows: rowsIn(detail) }).toEqual({ key, rows: group(page, `spec-${key}`) });
     }

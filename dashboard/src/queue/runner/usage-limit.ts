@@ -195,18 +195,23 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  - otherwise, at the AI's time, all are queued again when the reset
  *    time was known, and when it was not only the oldest is, as the
  *    probe, while the others wait an hour from now. */
+/** Whether a step a usage limit stopped has been taken over: its spec has had
+ *  a job for the same step queued since the stop. Such a stop is never started
+ *  again, so it holds no place in the queue either. */
+export function usageLimitStopSuperseded(jobs: readonly Job[], w: Job): boolean {
+  const stopped = ms(w.finishedAt);
+  const step = w.steps[w.stepIndex];
+  return jobs.some(
+    (j) =>
+      j.id !== w.id && j.project === w.project && j.specFolder === w.specFolder && ms(j.createdAt) > stopped &&
+      j.steps.includes(step!),
+  );
+}
+
 export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf, now: number): void {
   const jobs = store.list();
   const nowIso = isoOf(now);
-  const handled = (w: Job): boolean => {
-    const stopped = ms(w.finishedAt);
-    const step = w.steps[w.stepIndex];
-    return jobs.some(
-      (j) =>
-        j.id !== w.id && j.project === w.project && j.specFolder === w.specFolder && ms(j.createdAt) > stopped &&
-        j.steps.includes(step!),
-    );
-  };
+  const handled = (w: Job): boolean => usageLimitStopSuperseded(jobs, w);
   for (const [key, hold] of heldAis(jobs, providerOf)) {
     if (hold.probe) continue;
     const deciding = decidingWait(hold.waiting);

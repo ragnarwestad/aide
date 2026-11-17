@@ -1,3 +1,4 @@
+import { bindListWindow, acceptListWindow } from "../list-window";
 // What a page needs bound: the one list, run at load and again for every
 // page drawn in place, whose `<main>` is new and has none of it. What is
 // bound once for the whole document stays in the entry point
@@ -69,6 +70,9 @@ export function mountPage(doc: Document, options: { referrer: string; background
     );
   }) as EventListener);
   bindLists(doc);
+  const jobrows = doc.getElementById("jobrows");
+  if (jobrows) acceptListWindow(jobrows);
+  cleanups.push(bindListWindow(doc));
   // The one listener that is NOT delegated: this form is the whole of its
   // own page, with no swapped container to hang a delegated one off.
   // The handler's promise is returned rather than dropped — a listener's

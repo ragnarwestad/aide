@@ -107,8 +107,7 @@ test(`at ${width}px Remove covers the pending request and removes the group with
       completedMembers: [FIRST, SECOND], jobs: [] }],
   });
   await page.goto(`${base}/?live=0`);
-  let navigations = 0;
-  page.on("framenavigated", (frame) => { if (frame === page.mainFrame()) navigations += 1; });
+  await page.evaluate(() => { (window as unknown as { sameDocument: boolean }).sameDocument = true; });
   await card().locator("summary").click();
   await page.getByRole("button", { name: "Remove", exact: true }).click();
   const ask = page.locator("dialog.progressdialog[open]");
@@ -127,7 +126,7 @@ test(`at ${width}px Remove covers the pending request and removes the group with
   } finally { release(); }
   await card().waitFor({ state: "detached" });
   await page.locator("dialog.pageoverlay[open]").waitFor({ state: "detached" });
-  expect(navigations).toBe(0);
+  expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
 });
 }
 

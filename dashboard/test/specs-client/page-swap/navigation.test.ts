@@ -242,3 +242,23 @@ test("draws the page in place when the same server drew both", async () => {
   expect(await swapPage("/settings", { history: "push" })).toBe(true);
   expect(document.querySelector("main")?.textContent).toBe("New");
 });
+
+
+test("Back handled by the list cancels an older page answer (AC-7)", async () => {
+  install();
+  bindPageSwap(document);
+  let answer!: (response: Response) => void;
+  let signal: AbortSignal | undefined;
+  globalThis.fetch = ((_url: unknown, options: RequestInit) => {
+    signal = options.signal ?? undefined;
+    return new Promise<Response>((resolve) => { answer = resolve; });
+  }) as unknown as typeof fetch;
+  const pending = swapPage("/specs/aide/old", { history: "none" });
+  await turn();
+  history.replaceState(null, "", "/specs");
+  globalThis.dispatchEvent(new PopStateEvent("popstate"));
+  expect(signal?.aborted).toBe(true);
+  answer(new Response(`<html><body><header>Board</header><main>Stale detail</main></body></html>`, { headers: { "content-type": "text/html" } }));
+  await pending;
+  expect(document.querySelector("main")?.textContent).toBe("Old");
+});

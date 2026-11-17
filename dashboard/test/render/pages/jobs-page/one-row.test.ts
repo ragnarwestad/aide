@@ -61,10 +61,12 @@ describe("what one Jobs tab row is built from", () => {
     expect(ids(cut.specJobs)).toEqual(["i84"]);
   });
 
-  test("an earlier round's key keeps its spec, and a group card's key cuts nothing (AC-1)", () => {
+  test("an earlier round keeps its spec and a group card keeps only its members (AC-8, AC-10)", () => {
     const round = rowInputs("aide/81-alone@2026-11-10T10%3A00%3A00Z", { shown, specJobs, groups: [release], specsOf: ungrouped })!;
     expect([...round.specs]).toEqual(["aide/81-alone"]);
-    expect(rowInputs("execution-group:g1", { shown, specJobs, groups: [release], specsOf: ungrouped })).toBeUndefined();
+    const group = rowInputs("execution-group:g1", { shown, specJobs, groups: [release], specsOf: ungrouped })!;
+    expect(group.specJobs.map((job) => job.id)).toEqual(["a82", "a83"]);
+    expect([...group.specs]).toEqual(["aide/82-first", "aide/83-second"]);
   });
 
   test("an older run's key keeps that one job and no spec, under the key asked for (AC-2)", () => {

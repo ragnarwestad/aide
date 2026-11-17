@@ -21,9 +21,8 @@ export interface RowInputs<J> {
   rowKeys: Map<string, string>;
 }
 
-/** The jobs and specs the row with `key` is built from, or `undefined` for a
- *  key that is neither a job row's nor a spec's (a group's card), which is
- *  built from the whole view.
+/** The jobs and specs a job, spec or registered group card is built from.
+ *  An unknown key answers undefined.
  *
  *  A job's row reads that job alone. A spec's row reads the spec, and, for a
  *  spec in an execution group, the group's other members: its row is drawn
@@ -40,7 +39,7 @@ export function rowInputs<J extends JobLike>(
     /** The jobs behind the specs' rows (`listedSpecJobs`). */
     specJobs: J[];
     /** The registered execution groups. */
-    groups: readonly Pick<ExecutionGroup, "project" | "members">[];
+    groups: readonly (Pick<ExecutionGroup, "project" | "members"> & { id?: string })[];
     /** A project's specs, on disk and archived, each with its group's name. */
     specsOf: (project: string) => { specFolder: string; group?: string }[];
   },
@@ -48,6 +47,13 @@ export function rowInputs<J extends JobLike>(
   const rowKeys = jobRowKeys(o.shown);
   const own = o.shown.find((job) => rowKeys.get(job.id) === key);
   if (own) return { shown: [own], specJobs: [], specs: new Set(), rowKeys };
+
+  const group = o.groups.find((group) => key === `execution-group:${group.id}`);
+  if (group) {
+    const specs = new Set(group.members.map((folder) => `${group.project}/${folder}`));
+    const kept = (job: J) => specs.has(`${job.project}/${job.specFolder}`);
+    return { shown: o.shown.filter(kept), specJobs: o.specJobs.filter(kept), specs, rowKeys };
+  }
 
   const spec = key.match(SPEC_KEY);
   if (!spec) return undefined;

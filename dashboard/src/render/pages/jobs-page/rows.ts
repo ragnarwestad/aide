@@ -40,7 +40,7 @@ type TitleRow = { project: string; specFolder: string; steps: readonly string[];
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec.
  *  Before the board's first specs sweep has read the specs, nothing says a spec has none. */
 export function specHasWork(g: SpecGroup, specsScanned = true): boolean {
-  return !specsScanned || !!g.lead || !!g.archive || g.done.some((step) => step !== "create") ||
+  return !specsScanned || !!g.recordedWork || !!g.lead || !!g.archive || g.done.some((step) => step !== "create") ||
     g.phases.some((phase) => phase.step !== "create" && !!(phase.history.stopped || phase.history.historyDone));
 }
 
@@ -247,14 +247,9 @@ export function specJobCreatedAt(jobs: readonly Pick<JobLike, "createdAt">[]): s
     !latest || Date.parse(job.createdAt) > Date.parse(latest) ? job.createdAt : latest, undefined);
 }
 
-/** A visit starts with 50 cards; invalid limits cannot prevent loading the next page. */
-export function jobWindowLimit(requested?: string): number {
-  const count = Number(requested);
-  return Number.isSafeInteger(count) && count >= 50 ? count : 50;
-}
-
-/** Rows materialized for this visit, after filtering and sorting the whole history. */
+/** A visit starts with 100 cards; opened rows are explicit exceptions. */
+export { windowLimit as jobWindowLimit } from "../list-window";
+import { selectWindow } from "../list-window";
 export function jobWindow<T extends { key: string }>(rows: T[], requested?: string, opened: ReadonlySet<string> = new Set()): T[] {
-  const limit = jobWindowLimit(requested);
-  return rows.filter((row, index) => index < limit || opened.has(row.key));
+  return selectWindow(rows, { limit: requested, opened }).rows;
 }

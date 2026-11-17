@@ -6,7 +6,7 @@ import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { activeGroupForSpec, executionGroupActivity, waitingGroupJob, type ExecutionGroup } from "../../../../queue/execution-groups";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
-import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
+import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf, summaryDuration } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -21,9 +21,9 @@ import {
 // A spec with no job is still a spec. It is the ONLY row on this page
 // where the whole workflow is still ahead of you, which is exactly the
 // row the analyze button belongs on.
-function emptyGroup(t: SpecTarget, now: number): SpecGroup {
-  const phases = phasesFor([], t);
-  const total = totalDurationOf(phases, now);
+function emptyGroup(t: SpecTarget, now: number, summary = false): SpecGroup {
+  const phases = summary ? [] : phasesFor([], t);
+  const total = summary ? summaryDuration([], t, now) : totalDurationOf(phases, now);
   return {
     project: t.project,
     specFolder: t.specFolder,
@@ -35,7 +35,7 @@ function emptyGroup(t: SpecTarget, now: number): SpecGroup {
     phases,
     totalDurationMs: total?.ms,
     totalDurationSince: total?.since,
-    ...fromTarget(t),
+    ...fromTarget(t, summary),
   };
 }
 
@@ -44,6 +44,7 @@ function emptyGroup(t: SpecTarget, now: number): SpecGroup {
  *  spec's done-set or progress is the one way this join can go wrong. */
 function fromTarget(
   t: SpecTarget | undefined,
+  summary = false,
 ): Pick<
   SpecGroup,
   | "done"
@@ -66,8 +67,8 @@ function fromTarget(
     done: t?.done ?? [],
     acceptanceOpen: t?.acceptanceOpen,
     reopenedRound: t?.reopenedRound,
-    acceptance: t?.acceptance,
-    approachChoice: t?.approachChoice,
+    acceptance: summary ? undefined : t?.acceptance,
+    approachChoice: summary ? undefined : t?.approachChoice,
     notVerified: t?.notVerified,
     failed: t?.failed,
     title: t?.title,
@@ -102,7 +103,9 @@ export function groupBySpec(
   now: number = Date.now(),
   only?: ReadonlySet<string>,
   executionGroups: readonly ExecutionGroup[] = [],
+  summary: boolean | ((key: string) => boolean) = false,
 ): SpecGroup[] {
+  const summarized = (key: string) => typeof summary === "function" ? summary(key) : summary;
   const automaticWaitGroups = new Set(executionGroups.filter((group) => waitingGroupJob(group, rows)).map((group) => group.id));
   const wanted = (key: string): boolean => !only || only.has(key);
   const byKey = new Map<string, QueueRowView[]>();
@@ -169,7 +172,7 @@ export function groupBySpec(
     )
     .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)
     .filter(([, all]) => all.length > 0)
-    .map(([key, all]) => jobGroup(all, byKeyTarget.get(key), now));
+    .map(([key, all]) => jobGroup(all, byKeyTarget.get(key), now, summarized(key)));
   return [
     ...fromJobs,
     // Only ever a list the server chose to build: under the default
@@ -179,18 +182,19 @@ export function groupBySpec(
     // being IN `byKey` at all is exactly the "queue still remembers"
     // case `readerGroup` now reads.
     ...(archivedSpecs ?? []).filter((s) => wanted(groupKey(s.project, s.folder))).map((s) =>
-      readerGroup(s, currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []), now),
+      readerGroup(s, currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []), now, summarized(groupKey(s.project, s.folder))),
     ),
     ...targets.filter((t) => {
       if (!wanted(groupKey(t.project, t.specFolder))) return false;
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
-    }).map((t) => emptyGroup(t, now)),
+    }).map((t) => emptyGroup(t, now, summarized(groupKey(t.project, t.specFolder)))),
   ].map((g) => {
     const executionGroup = activeGroupForSpec(executionGroups, g.project, g.specFolder);
     return {
       ...g,
       hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
+      recordedWork: !!byKeyTarget.get(groupKey(g.project, g.specFolder))?.historyDone?.some((step) => step !== "create") || Object.keys(byKeyTarget.get(groupKey(g.project, g.specFolder))?.stopped ?? {}).some((step) => step !== "create"),
       ...(executionGroup ? {
         executionGroupActive: true,
         executionGroupAutomaticWait: automaticWaitGroups.has(executionGroup.id),
@@ -220,7 +224,7 @@ export function groupBySpec(
  *  job to attribute one to — `wordPhase` renders a truthful "done" from
  *  `happened` alone, so the lines and the pip strip are correct without
  *  one, and the duration and cost cells are simply blank. */
-function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): SpecGroup {
+function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number, summary = false): SpecGroup {
   // The phase lines this row's total is a sum over — cost,
   // tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
   // before; only `attempts` (and therefore `totalDuration`'s own
@@ -229,7 +233,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
   // blank a locked phase's real, file-recorded cost the moment a job
   // happens to still be remembered for it (2-analysis.md, "Patterns").
   const attemptsByStep = attemptsPerStep(jobs);
-  const phases = PHASE_LINES.map((step) => {
+  const phases = summary ? [] : PHASE_LINES.map((step) => {
     const outcome = s.phaseOutcomes[step];
     // The file records the phase as one figure, review and verification
     // included; the runs the queue still holds say how much of it they were.
@@ -261,7 +265,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       ...(step === "analyze" ? { planReviewed: s.planReviewed } : {}),
     };
   });
-  const total = totalDurationOf(phases, now);
+  const total = summary ? s.summaryDuration : totalDurationOf(phases, now);
   return {
     project: s.project,
     specFolder: s.folder,
@@ -313,9 +317,9 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
   };
 }
 
-function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: number): SpecGroup {
+function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: number, summary = false): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
-  const spec = fromTarget(target);
+  const spec = fromTarget(target, summary);
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The four, always, in order — a phase nobody has run yet still holds
   // its place, which is what makes progress readable at a glance. A
@@ -328,8 +332,8 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
   // question. `phasesFor` is where that join lives now —
   // the file-side answers this page shows on a line are added on top of
   // it, and the total reads neither.
-  const phases = phasesFor(all, target);
-  const total = totalDurationOf(phases, now);
+  const phases = summary ? [] : phasesFor(all, target);
+  const total = summary ? summaryDuration(all, target, now) : totalDurationOf(phases, now);
   return {
     project: lead.project,
     specFolder: lead.specFolder,

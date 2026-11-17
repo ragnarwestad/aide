@@ -1,3 +1,4 @@
+import { specRunChoices } from "./row-state.ts";
 import { specRunDialog } from "./phase-rows.ts";
 import { t, type Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
@@ -282,7 +283,7 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
     closeUnavailableReason: projectLanding ? "a merge is in progress" : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
   };
-  const runAvailable = !!specRunDialog(g, { ...opts, openSpec: opts.openSpec ?? {} }).control;
+  const runAvailable = specRunChoices(g, opts).length > 0;
   return firstSpecActionLabel(view, runAvailable, opts.lang ?? "en");
 }
 

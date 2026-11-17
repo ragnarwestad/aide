@@ -1,3 +1,8 @@
+import { phaseRecords } from "../../project/phase-records";
+import { recordedDuration } from "../../render/pages/specs-list/data-model/phases.ts";
+import type { QueueRowView } from "../../render";
+import { summaryJob } from "../list-window";
+import { currentWorkRoundJobs } from "../../queue/steps.ts";
 // what an archived spec's row is built from: when it was archived, which steps ran, on which models, and the rows themselves.
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
@@ -94,6 +99,7 @@ export function archivedSpecRows(
   ctx: SpecViewsContext,
   state: string | undefined,
   only?: ReadonlySet<string>,
+  summary = false,
 ): ArchivedSpecView[] {
   if (!ctx.projectRoot) return [];
   // Fills `scan`, and — through `peekUnlanded` below — refills
@@ -113,7 +119,14 @@ export function archivedSpecRows(
   // A landing whose suite was green only on its retry, per spec: the
   // lines the first run failed on, off whichever job recorded them.
   const retried = new Map<string, string>();
+  const bySpec = new Map<string, QueueRowView[]>();
   for (const job of ctx.queue.list()) {
+    if (summary) {
+      const key = `${job.project}/${job.specFolder}`;
+      const own = bySpec.get(key) ?? [];
+      own.push(summaryJob(job));
+      bySpec.set(key, own);
+    }
     if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
   for (const key of scan?.archived ?? []) {
@@ -176,10 +189,11 @@ export function archivedSpecRows(
       // which is the part that matters.
       prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
       // The row opens now, and this is what it opens on.
-      done: archivedSteps(ref.dir),
-      models: archivedModels(ref.dir),
-      phaseOutcomes: archivedPhaseOutcomes(ref.dir),
-      planReviewed: specPlanReviewed(ref.dir),
+      done: summary ? phaseRecords(ref.dir).done : archivedSteps(ref.dir),
+      models: summary ? {} : archivedModels(ref.dir),
+      phaseOutcomes: summary ? phaseRecords(ref.dir).outcomes : archivedPhaseOutcomes(ref.dir),
+      summaryDuration: summary ? recordedDuration(currentWorkRoundJobs(bySpec.get(key) ?? []), phaseRecords(ref.dir).outcomes, Date.now()) : undefined,
+      planReviewed: summary ? undefined : specPlanReviewed(ref.dir),
       // Off the same `SpecRef` the scan already carries
       // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
       // what turns this into the row's own `CLOSED_STATE`.
@@ -188,10 +202,10 @@ export function archivedSpecRows(
       failed: ref.failed,
       // Read for the specs that have something to unfold, no others.
       acceptance:
-        (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
+        !summary && (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
           ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir), ctx.machineryProjectDir?.(project))
           : undefined,
-      closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
+      closeReason: !summary && ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });
   }
   return rows;

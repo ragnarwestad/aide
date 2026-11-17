@@ -85,6 +85,10 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     sideMessages: (attemptIds: string[], part: SidePart) => sideMessagesFor(ctx.queue, attemptIds, part),
     // How a row is folded lives in the address, so it survives a reload.
     filter: {
+      limit: url.searchParams.get("limit") ?? undefined,
+      boundary: url.searchParams.get("boundary") ?? undefined,
+      windowLoaded: url.searchParams.get("windowLoaded") ?? undefined,
+      windowQuery: url.searchParams.get("windowQuery") ?? undefined,
       open: url.searchParams.get("open") ?? undefined,
       checks: url.searchParams.get("checks") ?? undefined,
       phases: url.searchParams.get("phases") ?? undefined,

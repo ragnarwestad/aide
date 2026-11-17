@@ -308,7 +308,7 @@ export function createServer(opts: ServerOptions) {
     pdfToolAvailable,
     testServers: testServersCtx,
   };
-  const { archivedSpecRows, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
+  const { archivedSpecRows, archivedSpecSummaries, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
 
   // Built last, from every earlier stage's own pieces — see
   // `RoutesContext`'s own doc comment for why `scan` rides as a
@@ -346,7 +346,7 @@ export function createServer(opts: ServerOptions) {
     deleteLeftBehindBranch: land.deleteLeftBehindBranch,
     persistAllowlist,
     answerProjectChange,
-    archivedSpecRows,
+    archivedSpecRows, archivedSpecSummaries,
     specPageView,
     jobDetailView,
     pdfCacheDir,

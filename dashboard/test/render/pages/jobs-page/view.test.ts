@@ -137,10 +137,9 @@ describe("kind choices narrow rows independently of state", () => {
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries are All, Active, Running, Queued, Waiting, Done, Stopped, Failed and Cancelled, All selected by default (AC-5)", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "not-archived", "active:all", "queued", "waiting", "done", "stopped", "failed", "cancelled"]);
+  test("its entries are All, Running, Queued, Done, Stopped, Failed and Cancelled, All selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "queued", "done", "stopped", "failed", "cancelled"]);
     expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
-    expect(jobsStateFilters("not-archived").map((entry) => entry.key)).toEqual(["not-archived"]);
   });
 
   test("search returns every round row for the same spec (AC-6)", () => {
@@ -165,42 +164,39 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(jobsStateFilters("done").map((entry) => entry.key)).toEqual(["done"]);
   });
 
-  // A spec whose last job ended done — a Create, an Analyze — waits for its
-  // next phase: the row says Ready, and it is not finished until archived.
-  test("a live spec whose last job ended done is Active and Waiting, not Done", () => {
+  // A spec whose last job ended done — a Create, an Analyze — waits for a
+  // person to start its next phase: not finished until archived, and not in
+  // the queue either.
+  test("a live spec whose last job ended done is neither Done nor Queued", () => {
     const created = spec("created", { specFolder: "146-created", state: "done", createdAt: T(6) });
-    expect(view([created], { state: "not-archived" })).toEqual(["created"]);
-    expect(view([created], { state: "waiting" })).toEqual(["created"]);
+    expect(view([created], { state: "queued" })).toEqual([]);
     expect(view([created], { state: "done" })).toEqual([]);
   });
 
-  test("a job that is not a spec's and ended done is Done, not Active or Waiting", () => {
+  test("a job that is not a spec's and ended done is Done", () => {
     const deploy = jobEntry("deploy", { specFolder: "deploy", steps: ["deploy"], state: "done", createdAt: T(6) });
     expect(view([deploy], { state: "done" })).toEqual(["deploy"]);
-    expect(view([deploy], { state: "not-archived" })).toEqual([]);
-    expect(view([deploy], { state: "waiting" })).toEqual([]);
   });
 
-  test("a Close or Reopen job that ended done is Done, not Active or Waiting", () => {
+  test("a Close or Reopen job that ended done is Done", () => {
     for (const step of ["close", "reopen"]) {
       const row = jobEntry(step, { specFolder: "148-moved", steps: [step], state: "done", createdAt: T(6) });
       expect(view([row], { state: "done" })).toEqual([step]);
-      expect(view([row], { state: "not-archived" })).toEqual([]);
-      expect(view([row], { state: "waiting" })).toEqual([]);
     }
   });
 
-  // Active holds what can still be acted on: a spec's row can run its phase
-  // again, while a job that is not a spec's offers nothing once cancelled.
-  test("a cancelled job that is not a spec's is not Active; a spec's cancelled job is", () => {
-    const schedule = jobEntry("schedule", { specFolder: "schedule-nightly-e2e", steps: ["schedule"], state: "cancelled", createdAt: T(6) });
-    const specRow = spec("spec", { specFolder: "147-cancelled", state: "cancelled", createdAt: T(7) });
-    expect(view([schedule, specRow], { state: "not-archived" })).toEqual(["spec"]);
-    expect(view([schedule], { state: "cancelled" })).toEqual(["schedule"]);
+  // Queued is the shared queue: every job the queue holds, whatever state its
+  // row reads, and nothing it does not.
+  test("Queued holds every job the shared queue holds, whatever its row's state", () => {
+    const place = { n: 1, total: 3 };
+    const limitWait = jobEntry("limit", { specFolder: "schedule-limit", state: "stopped", queuePosition: place, createdAt: T(6) });
+    const acceptance = spec("acceptance", { specFolder: "149-acceptance", state: "done", lead: jobRowView({ state: "done", queuePosition: place }) });
+    const stoppedOut = spec("stopped", { specFolder: "150-stopped", state: "stopped", lead: jobRowView({ state: "stopped" }) });
+    expect(view([limitWait, acceptance, stoppedOut], { state: "queued" }).sort()).toEqual(["acceptance", "limit"]);
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
-    for (const key of [undefined, "", "archived", "closed", "no-such-entry"]) {
+    for (const key of [undefined, "", "archived", "closed", "not-archived", "waiting", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
     }
     expect(jobsStateFilters("failed").map((entry) => entry.key)).toEqual(["failed"]);
@@ -211,7 +207,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["not-archived", 1], ["active:all", 0], ["queued", 0], ["waiting", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
+      ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
     ]);
     expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
@@ -221,12 +217,12 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["not-archived", 3], ["active:all", 1], ["queued", 1], ["waiting", 0], ["done", 0], ["stopped", 1], ["failed", 0], ["cancelled", 0]]);
+    expect(counts).toEqual([["all", 3], ["active:all", 1], ["queued", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["cancelled", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
     for (const q of [undefined, "", "   "]) {
-      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 4, 1, 1, 0, 0, 1, 1, 0]);
+      expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 0, 1, 1, 0]);
     }
   });
 
@@ -247,28 +243,26 @@ describe("a group stands for its member specs, each by its own state", () => {
   const counts = (rows: Entry[], f: JobsFilter = {}): Record<string, number> =>
     Object.fromEntries(jobsStateOptions(factsOf(rows), f).map((o) => [o.key, o.count]));
 
-  test("members reserved by a running group wait unless their own job is queued, running or failed", () => {
+  test("a group's members count as Queued while the queue holds them, whether or not they have a job yet", () => {
     const release = group("release", "running", [
-      member("823-new", "not-started", { executionGroupActive: true }),
+      member("823-new", "not-started", { executionGroupActive: true, inQueue: true }),
       member("824-done", "done", { executionGroupActive: true }),
       member("825-running", "running", { executionGroupActive: true, lead: jobRowView({ state: "running" }) }),
       member("826-queued", "queued", { executionGroupActive: true, lead: jobRowView({ state: "queued" }) }),
       member("827-failed", "failed", { executionGroupActive: true, lead: jobRowView({ state: "failed" }) }),
     ]);
-    expect(counts([release])).toMatchObject({ waiting: 2, queued: 1, "active:all": 1, failed: 1 });
+    expect(counts([release])).toMatchObject({ queued: 2, "active:all": 1, failed: 1 });
   });
 
-  test("Queued counts only queued work while Waiting counts members awaiting their next phase", () => {
+  test("Queued counts queued work and leaves members awaiting their next phase out", () => {
     const release = group("release", "queued", [
       member("818-done", "done"), member("815-done", "done"), member("816-done", "done"),
       member("817-queued", "queued"),
     ]);
     const queued = spec("829-queued", { specFolder: "829-queued", state: "queued" });
     const rows = [release, queued];
-    expect(counts(rows)).toMatchObject({ queued: 2, waiting: 3 });
+    expect(counts(rows)).toMatchObject({ queued: 2 });
     expect(view(rows, { state: "queued" }).sort()).toEqual(["829-queued", "release"]);
-    expect(view(rows, { state: "waiting" })).toEqual(["release"]);
-    expect(view([queued], { state: "waiting" })).toEqual([]);
   });
 
   test("a member reference, title or description finds its group while existing searches still work (AC-1, AC-2, AC-3)", () => {
@@ -291,7 +285,7 @@ describe("a group stands for its member specs, each by its own state", () => {
     const filter = { q: "aide:805", state: "queued", kind: "group" };
 
     expect(view([grouped], filter)).toEqual(["specs-jobs-improvements"]);
-    expect(counts([grouped], filter)).toMatchObject({ all: 2, queued: 1, waiting: 0, failed: 1 });
+    expect(counts([grouped], filter)).toMatchObject({ all: 2, queued: 1, failed: 1 });
     expect(jobsKindOptions(factsOf([grouped]), filter).map((option) => [option.key, option.count])).toEqual([
       ["all", 1], ["spec", 0], ["land", 0], ["deploy", 0], ["schedule", 0], ["cleanup", 0], ["group", 1],
     ]);
@@ -339,17 +333,6 @@ describe("a group stands for its member specs, each by its own state", () => {
     const full = group("full", "running", [member("82-run", "running")]);
     expect(view([empty, full], {}).sort()).toEqual(["empty", "full"]);
     expect(view([empty], { state: "stopped" })).toEqual([]);
-  });
-
-  test("Active shows and counts every spec and job not Done, a group's running member among them (AC-6)", () => {
-    const at = (name: string, state: RowFacts["state"], day: number) => spec(name, { specFolder: name, state, createdAt: T(day) });
-    const rows = [
-      at("running", "running", 1), at("queued", "queued", 2), at("stopped", "stopped", 3), at("failed", "failed", 4),
-      at("new", "not-started", 5), at("done", "done", 6), at("archived", "archived", 7), at("closed", "closed", 8),
-      group("half", "running", [member("82-done", "done"), member("83-run", "running")]),
-    ];
-    expect(view(rows, { state: "not-archived" }).sort()).toEqual(["done", "failed", "half", "new", "queued", "running", "stopped"]);
-    expect(counts(rows)["not-archived"]).toBe(8);
   });
 });
 

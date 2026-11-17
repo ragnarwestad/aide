@@ -196,7 +196,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(res.headers.get("content-type")).toContain("text/html");
     const overview = await res.text();
     for (const tab of ["description", "analysis", "solution", "status"]) {
-      expect([tab, overview.includes(`?tab=${tab}`)]).toEqual([tab, true]);
+      expect([tab, new RegExp(`[?&](?:amp;)?tab=${tab}(?:[&#"])`).test(overview)]).toEqual([tab, true]);
     }
     expect(overview).not.toContain("Seven files.");
 

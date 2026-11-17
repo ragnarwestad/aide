@@ -121,6 +121,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
  *  `reopen` (`ARCHIVE_ONLY_STEP`, queue.ts). Two shapes, because they
  *  answer two questions. */
 export interface ArchivedSpecView extends HasNotVerified {
+  summaryDuration?: { ms: number; since?: string };
   group?: SpecGroupMembership;
   /** The Acceptance rows an archived row unfolds, read only for a spec that
    *  has a row marked Not verified or Failed. */
@@ -245,6 +246,11 @@ export const ARCHIVED_OPEN_STATE = "archived-unlanded";
 export const CLOSED_STATE = "closed";
 
 export interface SpecsFilter {
+  limit?: string;
+  boundary?: string;
+  windowQuery?: string;
+  windowLoaded?: string;
+  grow?: string;
   state?: string;
   project?: string;
   sort?: string;
@@ -286,6 +292,7 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   executionGroupReserved?: boolean;
   /** At least one queue job remains in this spec's history, across all rounds. */
   hasJobs?: boolean;
+  recordedWork?: boolean;
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional

@@ -116,13 +116,23 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
     document.body.removeAttribute("inert");
   }
   press.inFlight--;
-  // The links that depend on the address (the Reopen dialogs' way back) are
-  // drawn for the new one, the open row held across it.
-  if (press.pressGen === gen) {
-    await swapRows();
-    const redrawnHead = specHead(key);
-    if (redrawnHead) keepInPlace(redrawnHead, before);
-  }
+  // Refresh address-dependent links while holding the open detail. A
+  // reader who scrolls during this request keeps that new position.
+  let readerScrolled = false;
+  // Scroll events also come from restoring the row; only user input cancels restoration.
+  const moved = (event: Event) => {
+    if (event.type !== "keydown" || ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes((event as KeyboardEvent).key)) readerScrolled = true;
+  };
+  const scrollInputs = ["wheel", "touchmove", "pointerdown", "keydown"];
+  for (const type of scrollInputs) document.addEventListener(type, moved, true);
+  try {
+    if (press.pressGen === gen) {
+      await swapRows();
+      const redrawnHead = specHead(key);
+      if (!readerScrolled && redrawnHead) keepInPlace(redrawnHead, before);
+    }
+  } finally { for (const type of scrollInputs) document.removeEventListener(type, moved, true); }
+
 }
 
 /** The row the spec will be drawn in, copied from the template the page
