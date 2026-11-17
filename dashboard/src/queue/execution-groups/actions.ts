@@ -61,6 +61,10 @@ export function executionGroupAction(
   return undefined;
 }
 
+export function canRemoveExecutionGroup(group: Pick<ExecutionGroup, "state">, busy = false): boolean {
+  return executionGroupActivity(group.state) === "idle" && !busy;
+}
+
 /** Splits a group's controls between its single State/Action button and
  *  the card menu. */
 export function executionGroupControls(
@@ -70,7 +74,7 @@ export function executionGroupControls(
   const decided = executionGroupAction(group, members);
   return {
     action: decided === "remove" ? undefined : decided,
-    menu: group.state === "completed" ? ["remove"] : group.state === "archiving" ? [] : ["edit"],
+    menu: group.state === "completed" ? ["remove"] : group.state === "archiving" ? [] : canRemoveExecutionGroup(group, members.some((member) => member.busy)) ? ["edit", "remove"] : ["edit"],
   };
 }
 

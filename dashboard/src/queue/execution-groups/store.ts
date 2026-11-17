@@ -55,7 +55,7 @@ export class ExecutionGroupStore {
     return group ? structuredClone(group) : undefined;
   }
   findUnfinished(project: string, name: string): ExecutionGroup | undefined {
-    return this.list().find((group) => group.project === project && (group.name === name || group.displayName === name) && group.state !== "completed");
+    return this.list().find((group) => !group.removedAt && group.project === project && (group.name === name || group.displayName === name) && group.state !== "completed");
   }
   create(input: PrepareExecutionGroup): ExecutionGroup {
     if (this.findUnfinished(input.project, input.name)) throw new Error(`execution group ${input.name} already exists`);

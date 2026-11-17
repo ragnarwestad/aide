@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness, ran, statusSaying } from "../helpers/queue-server.ts";
+import { makeSpecsRepo } from "../helpers/specs-repo.ts";
 import { listUntil, rowSaysDone } from "./fixtures.ts";
 
 const harness = queueHarness("aide-execution-group-members-");
@@ -159,24 +160,49 @@ describe("the group card's Remove", () => {
     expect(["79-older", "80-earlier"].map((folder) => specFiles(dir, folder))).toEqual(before);
   });
 
-  test("refuses to remove a group that is not completed (AC-7)", async () => {
+  test("removes a stopped group without deleting its record or history", async () => {
     const { base, dir } = twoArchivedMembers("stopped");
     const res = await groupAction(base, "remove");
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(200);
+    expect(groupsIn(dir)[0]?.removedAt).toBeDefined();
+  });
+
+  test.each(["queued", "running", "archiving"])("refuses Remove while the group is %s", async (state) => {
+    const { base, dir } = twoArchivedMembers(state);
+    expect((await groupAction(base, "remove")).status).toBe(409);
     expect(groupsIn(dir)[0]?.removedAt).toBeUndefined();
   });
 
-  test("refuses a group known only from its members' Group: lines, and records none (AC-7)", async () => {
+  test("removes a group known only from its members' Group: lines", async () => {
     const { base, dir } = harness.start({
       description: grouped("81-queue-and-runner", 1),
       alsoSpecs: ["82-next"],
       alsoDescriptions: { "82-next": grouped("82-next", 2) },
       extra: { queueDefaults: DEFAULTS },
+      before: makeSpecsRepo,
     });
     const res = await fetch(`${base}/api/queue/groups/${encodeURIComponent("membership:aide:Release")}/action`, {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ action: "remove" }),
     });
-    expect(res.status).toBe(409);
-    expect(groupsIn(dir)).toEqual([]);
+    expect(res.status).toBe(200);
+    expect(groupsIn(dir)[0]?.removedAt).toBeDefined();
   });
+});
+
+
+test("Remove dissolves an unfinished group's membership and preserves its spec content", async () => {
+  const { base, dir } = harness.start({
+    description: grouped("81-queue-and-runner", 1), alsoSpecs: ["82-next"],
+    alsoDescriptions: { "82-next": grouped("82-next", 2) }, executionGroups: record("stopped"),
+    extra: { queueDefaults: DEFAULTS }, before: makeSpecsRepo,
+  });
+  const path = join(dir, "root", "aide", "specs", "81-queue-and-runner", "1-description.md");
+  const before = readFileSync(path, "utf-8");
+  const res = await groupAction(base, "remove");
+  expect(res.status).toBe(200);
+  const after = readFileSync(path, "utf-8");
+  expect(after).toBe(before.replace(/^.*\*\*Group(?: position)?:\*\*.*\n/gm, ""));
+  const next = await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS,
+    body: JSON.stringify({ project: "aide", specFolder: "82-next", steps: ["analyze"] }) });
+  expect(next.status).toBe(200);
 });
