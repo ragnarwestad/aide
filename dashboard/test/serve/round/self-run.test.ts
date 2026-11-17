@@ -143,17 +143,19 @@ describe("POST /api/self-run", () => {
     // repository of their own, the way a round's `.aide/config` says.
     const code = join(dir, "root", "aide");
     const specs = join(dir, "specs-repo");
-    mkdirSync(specs, { recursive: true });
-    writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specs}\n`);
-    repoWithHistory(code, join(dir, "code-origin.git"), true);
-    repoWithHistory(specs, join(dir, "specs-origin.git"), false);
-    // The queue holds a row from the last round.
+    // The queue holds a row from the last round, while the harness's original
+    // specs path still names the row.
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { ...auth.headers, "content-type": "application/json" },
       body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);
+
+    mkdirSync(specs, { recursive: true });
+    writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specs}\n`);
+    repoWithHistory(code, join(dir, "code-origin.git"), true);
+    repoWithHistory(specs, join(dir, "specs-origin.git"), false);
 
     const pressed = await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
     expect(pressed.status).toBe(200);

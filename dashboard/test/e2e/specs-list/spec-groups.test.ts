@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 
 browserDeadline();
 const harness = queueHarness("aide-e2e-spec-groups-");
@@ -25,6 +26,8 @@ beforeAll(async () => {
     },
   });
   base = started.base;
+  makeSpecsRepo(started.dir);
+  await started.server.settle();
   await page.goto(`${base}/?live=0`);
   await page.getByRole("button", { name: "Release", exact: true }).click();
   const answered = page.waitForResponse((response) =>
@@ -106,13 +109,16 @@ test("Stop opens an automatic group's phase choices and Start uses the new selec
     steps: ["analyze", "implement"], stepIndex: 0, state: "stopped", stopReason: "provider-limit",
     usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true },
     model: {}, timeoutSec: {}, permissionMode: {}, results: [], createdAt: "2026-11-16T10:00:00Z" };
-  const { base: waitingBase } = waitingHarness.start({ description: description(folder, 1), alsoSpecs: ["82-next"],
+  const waiting = waitingHarness.start({ description: description(folder, 1), alsoSpecs: ["82-next"],
     alsoDescriptions: { "82-next": description("82-next", 2) }, queueMirror: JSON.stringify([job]),
     executionGroups: [{ id: "waiting-group", project: "aide", name: "Release", members: [folder, "82-next"],
       branch: "group/release", state: "stopped", currentMember: folder, completedMembers: [], jobs: [] }],
     extra: { queueDefaults: { model: { default: "sonnet" }, modelChoices: { sonnet: {}, opus: {} },
       timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" } } },
   });
+  const waitingBase = waiting.base;
+  makeSpecsRepo(waiting.dir);
+  await waiting.server.settle();
   const p = await browser.newPage();
   try {
     await p.goto(`${waitingBase}/?live=0`);

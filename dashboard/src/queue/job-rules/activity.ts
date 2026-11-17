@@ -19,3 +19,8 @@ export function automaticProviderWait(job: { state: string; stopReason?: string;
   return job.state === "stopped" && job.stopReason === "provider-limit" &&
     Number.isFinite(Date.parse(job.usageLimitWait?.until ?? ""));
 }
+
+
+export function canCancelDeploy(job: { state: string; errorReason?: string; deploy?: { restartedAt?: string } }): boolean {
+  return job.state === "queued" || (job.state === "running" && job.errorReason === "held-back" && !job.deploy?.restartedAt);
+}

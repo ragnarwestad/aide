@@ -18,6 +18,7 @@ import { type GitCall } from "../helpers/fake-git.ts";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { refreshSpecCaches, rereadSpec, type ScheduleContext } from "../../src/serve/schedules";
+import { firstSweepMark } from "../../src/serve/schedules/first-sweep.ts";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import type { GhRunner, PullRequestAnswer } from "../../src/integrations/pull-requests.ts";
@@ -653,5 +654,95 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     pullRequests.set("aide/99-not-archived", { merged: true, headSha: "old" });
     await refreshSpecCaches(ctx);
     expect([...pullRequests.keys()]).toEqual([OPEN_KEY]);
+  });
+});
+
+// Until a sweep has read every spec since the board started, nothing says what a
+// spec has done: the board's group Start, its moves to a next member and the Jobs
+// list all wait on this mark.
+describe("the first sweep that read every listed spec sets the board's mark", () => {
+  /** A context whose live specs `list()` names, each with a directory, and whose
+   *  checkers answer nothing. `events` records each checkout asked and each list taken. */
+  function markCtx(
+    list: () => { project: string; specFolder: string; dir: string }[],
+    historySucceeded = true,
+  ) {
+    const events: string[] = [];
+    let warming = false;
+    let notified = 0;
+    const mark = firstSweepMark(() => { notified += 1; });
+    const none = async () => null;
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: (p) => `/fake/${p}`,
+      scheduleStore: createScheduleStore(undefined),
+      branchStatus: new BranchStatusChecker({ run: async () => ({ code: 1, stdout: "" }), ttlMs: 0 }),
+      readWorkflowHistory: () => ({ read: none, readSucceeded: () => historySucceeded }) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({ isStale: none }) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({ createdAt: none }) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({ commitFor: none }) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({ read: none }) as unknown as BranchFileStepsChecker,
+      targets: () => { events.push("list"); return list(); },
+      readScan: () => ({ archived: [], dirs: new Map() }),
+      invalidateScan: () => {},
+      allowed: new Set(["aide"]),
+      ensureCheckout: async () => { events.push("checkout"); return undefined; },
+      getWarming: () => warming,
+      setWarming: (v) => { warming = v; },
+      queue: {} as unknown as QueueStore,
+      specRoots: () => [],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {},
+      specsScanned: mark.scanned,
+      markSpecsScanned: mark.mark,
+    };
+    return { ctx, mark, events, notified: () => notified };
+  }
+  const spec = (folder: string) => ({ project: "aide", specFolder: folder, dir: `/fake/specs/${folder}` });
+
+  test("a sweep that read every listed spec sets the mark, and open pages are told once (AC-1, AC-2, AC-4)", async () => {
+    const { ctx, mark, notified } = markCtx(() => [spec("81-one"), spec("82-two")]);
+    expect(mark.scanned()).toBe(false);
+    await refreshSpecCaches(ctx);
+    expect(mark.scanned()).toBe(true);
+    expect(notified()).toBe(1);
+    await refreshSpecCaches(ctx);
+    expect(notified()).toBe(1);
+  });
+
+  test("a sweep after which the list names a spec it did not read leaves the mark unset (AC-1, AC-2, AC-4)", async () => {
+    let lists = 0;
+    const { ctx, mark } = markCtx(() => (lists++ === 0 ? [spec("81-one")] : [spec("81-one"), spec("83-created-meanwhile")]));
+    await refreshSpecCaches(ctx);
+    expect(mark.scanned()).toBe(false);
+  });
+
+  test("a failed history answer leaves the mark unset (AC-1, AC-2, AC-4)", async () => {
+    const { ctx, mark } = markCtx(() => [spec("81-one")], false);
+    await refreshSpecCaches(ctx);
+    expect(mark.scanned()).toBe(false);
+  });
+
+  test("with no mark, the checkouts are asked before the list is taken; with it, the sweep is as before (AC-1, AC-5)", async () => {
+    const { ctx, events } = markCtx(() => [spec("81-one")]);
+    await refreshSpecCaches(ctx);
+    expect(events[0]).toBe("checkout");
+    events.length = 0;
+    await refreshSpecCaches(ctx);
+    expect(events[0]).toBe("list");
+  });
+
+  test("what waits for the mark runs once it is set, and at once after it (AC-2)", () => {
+    const mark = firstSweepMark(() => {});
+    const ran: string[] = [];
+    mark.whenScanned(() => { throw new Error("one waiter fails"); });
+    mark.whenScanned(() => ran.push("waited"));
+    expect(ran).toEqual([]);
+    mark.mark();
+    expect(ran).toEqual(["waited"]);
+    mark.whenScanned(() => ran.push("at once"));
+    expect(ran).toEqual(["waited", "at once"]);
   });
 });

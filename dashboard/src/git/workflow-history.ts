@@ -221,7 +221,7 @@ export class WorkflowHistoryChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; history: WorkflowHistory; stale?: boolean }>();
+  private readonly cache = new Map<string, { at: number; history: WorkflowHistory; succeeded: boolean; stale?: boolean }>();
 
   constructor(opts: WorkflowHistoryOptions) {
     this.run = opts.run;
@@ -250,15 +250,25 @@ export class WorkflowHistoryChecker {
     if (hit && !hit.stale && at - hit.at < this.ttlMs) return hit.history;
 
     let history = EMPTY;
+    let succeeded = false;
     try {
       const out = await this.run(dir, workflowLogArgs(specFolder, boundarySha));
-      if (out.code === 0) history = readWorkflowSubjects(out.stdout.split("\n"), specFolder);
+      if (out.code === 0) {
+        history = readWorkflowSubjects(out.stdout.split("\n"), specFolder);
+        succeeded = true;
+      }
     } catch {
       history = EMPTY;
     }
 
-    this.cache.set(key, { at, history });
+    this.cache.set(key, { at, history, succeeded });
     return history;
+  }
+
+  /** Whether the latest read for this exact spec and reopen boundary
+   *  completed successfully. Does not ask git. */
+  readSucceeded(dir: string, specFolder: string, boundarySha?: string): boolean {
+    return this.cache.get(JSON.stringify([dir, specFolder, boundarySha ?? null]))?.succeeded ?? false;
   }
 
   /** The LAST history this checker holds, without asking git at all

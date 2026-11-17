@@ -478,3 +478,40 @@ describe("restartAfterLanding for a deploy job: no deadline and a call before th
     expect(called).toBe(0);
   });
 });
+
+test("restart rechecks landings after asynchronous preparation", async () => {
+  const events: string[] = [];
+  const job = { id: "new-landing", landing: false };
+  await restartAfterLanding({
+    mergeLock: createRootLock(), restartPollMs: 1,
+    restart: { registered: async () => true, fire: () => { events.push("fire"); } },
+    queue: { list: () => [job] },
+    prepare: async () => {
+      events.push("prepare");
+      if (events.length === 1) {
+        job.landing = true;
+        setTimeout(() => { job.landing = false; }, 5);
+      }
+      return true;
+    },
+  });
+  expect(events).toEqual(["prepare", "prepare", "fire"]);
+});
+
+test("cancelling a waiting restart never fires it after the landing finishes", async () => {
+  let cancelled = false;
+  let fired = false;
+  const job = { id: "landing", landing: true };
+  const cancel = setTimeout(() => { cancelled = true; }, 5);
+  const finish = setTimeout(() => { job.landing = false; }, 25);
+  try {
+    const result = await restartAfterLanding({
+      mergeLock: createRootLock(), restartPollMs: 1,
+      restart: { registered: async () => true, fire: () => { fired = true; } },
+      queue: { list: () => [job] }, cancelled: () => cancelled,
+    });
+    expect(result).toBe(false);
+    expect(fired).toBe(false);
+    expect(job.landing).toBe(true);
+  } finally { clearTimeout(cancel); clearTimeout(finish); }
+});

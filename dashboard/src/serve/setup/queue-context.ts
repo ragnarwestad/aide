@@ -40,6 +40,8 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     rereadProject: inputs.rereadProject,
     targets: inputs.targets,
     withFreshness: inputs.withFreshness,
+    specsScanned: inputs.specsScanned,
+    whenSpecsScanned: inputs.whenSpecsScanned,
     specDir: inputs.specDir,
     specRef: inputs.specRef,
     specsRoot: inputs.specsRoot,
