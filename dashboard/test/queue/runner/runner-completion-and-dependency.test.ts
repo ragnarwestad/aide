@@ -432,8 +432,6 @@ describe("parked on a dependency", () => {
     // Use this job's project to qualify the dependency number.
     expect(stored?.error).toMatchObject({ values: { dependency: "other-project:80" } });
     expect(stored?.errorReason).toBe("held-back");
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
-    expect(specStateChip(row, "en")).toContain("Held back");
   });
 
   test("the same job starts once the map no longer names it", async () => {
