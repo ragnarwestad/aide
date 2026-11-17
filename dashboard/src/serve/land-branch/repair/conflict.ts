@@ -3,7 +3,7 @@ import type { Job, QueueDefaults } from "../../../queue/queue.ts";
 import type { MergeHooks } from "../../../git/merge-hooks.ts";
 import { runScript } from "../run-script.ts";
 import { stepLogLine } from "../test-gate.ts";
-import { repairModel } from "./model.ts";
+import { repairModel, repairSessionFailed } from "./model.ts";
 
 type Conflict = Parameters<NonNullable<MergeHooks["repairConflict"]>>[0];
 
@@ -47,7 +47,7 @@ export function conflictRepairSession(defaults: QueueDefaults, job: Job, cancell
       stepLogLine(job, `conflict repair transcript: ${transcript}`);
     }
     stepLogLine(job, `conflict repair session ended (exit ${result.code})${result.stderr ? `: ${result.stderr.slice(-400)}` : ""}`, result.code !== 0);
-    if (result.code || result.timedOut || /"(?:type|subtype)"\s*:\s*"(?:turn.failed|error[^"]*)"|"is_error"\s*:\s*true/.test(result.stdout)) return decline("the AI session failed or reached its time limit");
+    if (result.code || result.timedOut || repairSessionFailed(result.stdout)) return decline("the AI session failed or reached its time limit");
     const after = await git(["rev-parse", "HEAD"]);
     const afterMerge = await git(["rev-parse", "MERGE_HEAD"]);
     const afterOutside = await git(outsideArgs);

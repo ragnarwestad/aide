@@ -60,6 +60,16 @@ describe("the Land board job", () => {
     }
   });
 
+  test("reports the landing cause when only the permanent error was recorded", async () => {
+    const f = fixture();
+    const cause = "automatic conflict repair could not resolve jobs.ts";
+    const land = async () => { f.queue.update(f.job.id, { landingError: cause }); };
+    createLandJob({ queue: f.queue, machineryProjectDir: () => "/project" } as never, land)
+      .start(f.job, f.result, f.stream);
+    await Bun.sleep(20);
+    expect(JSON.parse(readFileSync(f.result, "utf8")).error).toContain(cause);
+  });
+
   test("a source branch left on origin stops the job (AC-6)", async () => {
     const f = fixture();
     const land = async (_ctx: unknown, _job: unknown, _outcome: unknown, what: { progress?: (stage: string) => void }) => {

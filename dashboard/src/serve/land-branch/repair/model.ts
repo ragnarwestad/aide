@@ -19,3 +19,14 @@ export function repairModel(defaults: QueueDefaults, job: Job, prompt: string) {
   if (!argv.length) return undefined;
   return { name, key: key ?? tool, argv, env: { ...(provider ? providerLoginEnv(provider, homedir()) : {}), AIDE_HEADLESS: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" } };
 }
+
+/** Provider events can contain recoverable tool errors inside a successful turn. */
+export function repairSessionFailed(stdout: string): boolean {
+  return stdout.split("\n").some(line => {
+    try {
+      const event = JSON.parse(line);
+      return event?.type === "turn.failed" || event?.type === "error" ||
+        (event?.type === "result" && (event.is_error === true || event.subtype?.startsWith("error")));
+    } catch { return false; }
+  });
+}

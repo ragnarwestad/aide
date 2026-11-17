@@ -24,9 +24,12 @@ for (const automatic of [false, true]) {
       expect(await older.count()).toBe(0);
       await page.locator('tr.spechead[data-folder="364-batch"] a.fold').click();
       const detail = page.locator('tr[data-spec-detail="aide/364-batch"]');
-      await detail.waitFor();
+      await detail.getByRole("link", { name: "Analysis", exact: true }).waitFor();
       const more = page.getByRole("link", { name: "Show more", exact: true });
-      if (automatic) await page.evaluate(() => document.querySelector("a[data-list-more]")?.scrollIntoView());
+      if (automatic) {
+        await detail.hover();
+        await page.mouse.wheel(0, 20000);
+      }
       else await more.click();
       await older.waitFor();
       await detail.waitFor();

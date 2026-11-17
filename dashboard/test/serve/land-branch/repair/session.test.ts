@@ -33,7 +33,9 @@ function fixture(body = "printf fixed > rule.txt", filesCommand = "true") {
 }
 
 test("a verified repair advances the source branch and leaves main untouched", async () => {
-  const f = fixture(); expect(await f.run()).toBe(true);
+  const f = fixture(`printf fixed > rule.txt
+echo '{"type":"item.completed","item":{"type":"error","message":"Ignoring unknown setting"}}'
+echo '{"type":"turn.completed"}'`); expect(await f.run()).toBe(true);
   expect(f.git("show", "origin/feature:rule.txt")).toBe("fixed");
   expect(f.git("rev-parse", "origin/main")).toBe(f.main);
 });

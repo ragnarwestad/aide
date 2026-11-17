@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync } from "node:fs";
 import type { Job, QueueDefaults } from "../../../queue/queue.ts";
-import { repairModel } from "./model.ts";
+import { repairModel, repairSessionFailed } from "./model.ts";
 import { resolveWorktreeLinks } from "../../../project/discover";
 import { runScript, scriptFor } from "../run-script.ts";
 import { stepLogLine } from "../test-gate.ts";
@@ -46,7 +46,7 @@ export function testRepairSession(defaults: QueueDefaults, job: Job, scriptDir?:
       stepLogLine(job, `test repair transcript: ${transcript}`);
     }
     stepLogLine(job, `test repair session ended (exit ${result.code})${result.stderr ? `: ${result.stderr.slice(-400)}` : ""}`, result.code !== 0);
-    if (result.code || result.timedOut || /"(?:type|subtype)"\s*:\s*"(?:turn.failed|error[^"]*)"|"is_error"\s*:\s*true/.test(result.stdout)) return false;
+    if (result.code || result.timedOut || repairSessionFailed(result.stdout)) return false;
     if ((await git(["rev-parse", "HEAD"])).stdout.trim() !== sha) return false;
     const changed = await git(["diff", "--name-only", "HEAD"]);
     const untracked = await git(["ls-files", "--others", "--exclude-standard"]);

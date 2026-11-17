@@ -1,3 +1,4 @@
+import { formatSentence } from "../../messages/format.ts";
 import { beginLand, checkLandStop, endLand } from "./control.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { SpawnResult } from "../../queue/runner";
@@ -55,8 +56,10 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
           return;
         }
         if (settled?.landingError || settled?.errorReason === "conflict" || settled?.errorReason === "tests-red") {
-          output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, `stopped: ${settled.errorReason ?? "landing failed"}`);
-          output.failed(settled.errorReason ?? "landing-failed", "Land did not reach the default branch", Array.isArray(settled.error) ? settled.error[0] : settled.error);
+          const cause = settled.landingError ?? settled.error;
+          const reason = formatSentence("en", cause) || settled.errorReason || "landing failed";
+          output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, `stopped: ${reason}`);
+          output.failed(settled.errorReason ?? "landing-failed", `${TASKS[currentTask]}: ${reason}`, Array.isArray(cause) ? cause[0] : cause);
           return;
         }
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "done");
