@@ -1,41 +1,45 @@
 #!/usr/bin/env bash
-# A spec's names, the runner's one copy: what a spec folder is, its branch,
+# A spec's names: what a spec folder is, its branch,
 # the keys a create and a scheduled job carry in place of a folder, the
 # spec's own files, and the human-facing name of a numbered spec. The
-# dashboard's copy is dashboard/src/project/spec-names.ts, and
-# dashboard/test/project/spec-names.test.ts runs both on the same names.
+# static values come from spec-identity.json, and
+# dashboard/test/project/spec-names.test.ts runs both adapters on the same names.
 # Machine-facing paths, branches, commits and record fields keep the
 # complete folder name.
 
-# The spec's own files, read by the runner's parts.
-# shellcheck disable=SC2034
-AIDE_DESCRIPTION_FILE="1-description.md"
-# shellcheck disable=SC2034
-AIDE_ANALYSIS_FILE="2-analysis.md"
-# shellcheck disable=SC2034
-AIDE_SOLUTION_FILE="3-solution.md"
-# shellcheck disable=SC2034
-AIDE_STATUS_FILE="4-status.md"
-# shellcheck disable=SC2034
-AIDE_STATE_FILE="4-status.json"
-# shellcheck disable=SC2034
-AIDE_AC_COVERAGE_FILE="ac-coverage.json"
+spec_identity_file="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/spec-identity.json"
+if command -v jq >/dev/null 2>&1; then
+  IFS=$'\t' read -r AIDE_SPEC_FOLDER_PATTERN AIDE_BRANCH_PREFIX AIDE_GROUP_BRANCH_PREFIX \
+    AIDE_PROVISIONAL_KEY_PATTERN AIDE_SCHEDULE_KEY_PREFIX AIDE_DESCRIPTION_FILE AIDE_ANALYSIS_FILE AIDE_SOLUTION_FILE \
+    AIDE_STATUS_FILE AIDE_STATE_FILE AIDE_AC_COVERAGE_FILE < <(
+      jq -r '[.specFolderPattern, .branchPrefix, .groupBranchPrefix,
+        .provisionalKeyPattern, .scheduleKeyPrefix,
+        .descriptionFile, .analysisFile, .solutionFile,
+        .statusFile, .stateFile, .acCoverageFile] | @tsv' "$spec_identity_file"
+    )
+
+  # The spec's own files, read by the runner's parts.
+  # shellcheck disable=SC2034
+  : "${AIDE_DESCRIPTION_FILE:?}" "${AIDE_ANALYSIS_FILE:?}" "${AIDE_SOLUTION_FILE:?}" \
+    "${AIDE_STATUS_FILE:?}" "${AIDE_STATE_FILE:?}" "${AIDE_AC_COVERAGE_FILE:?}"
+fi
+unset spec_identity_file
 
 # A numbered spec folder: digits, then a dash.
-aide_is_spec_folder() { [[ "$1" =~ ^[0-9]+- ]]; }
+aide_is_spec_folder() { [[ "$1" =~ $AIDE_SPEC_FOLDER_PATTERN ]]; }
 
 # The branch a step pushes to, named for the spec's folder.
-aide_spec_branch() { printf 'aide/%s' "$1"; }
+aide_spec_branch() { printf '%s%s' "$AIDE_BRANCH_PREFIX" "$1"; }
 
 # A group's branch, named for its immutable first member folder.
-aide_group_branch() { printf 'aide/group-%s' "$1"; }
+aide_group_branch() { printf '%s%s' "$AIDE_GROUP_BRANCH_PREFIX" "$1"; }
 
 # The key a create job carries until its merge names the spec. The dashboard
 # makes it; the runner only recognises it.
-aide_is_provisional_key() { [[ "$1" =~ ^new-[0-9a-f]{8}$ ]]; }
+aide_is_provisional_key() { [[ "$1" =~ $AIDE_PROVISIONAL_KEY_PATTERN ]]; }
 
 # The entry name inside a scheduled job's tracking key; any other key whole.
-aide_schedule_name() { printf '%s' "${1#schedule-}"; }
+aide_schedule_name() { printf '%s' "${1#"$AIDE_SCHEDULE_KEY_PREFIX"}"; }
 
 aide_spec_reference() {
   local project="$1" folder="$2" number

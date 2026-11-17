@@ -378,7 +378,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "git-error.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
     )
-    for name in ("spec-reference.sh", "tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
+    for name in ("spec-identity.json", "spec-reference.sh", "tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
         (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
