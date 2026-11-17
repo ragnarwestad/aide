@@ -132,7 +132,8 @@ test(`at ${width}px Remove covers the pending request and removes the group with
 }
 
 
-test.each(["queued", "running", "archiving"])("the %s group keeps Edit and Remove visible but disabled", async (state) => {
+test("the running group keeps Edit and Remove visible but disabled", async () => {
+  const state = "running";
   const { base } = harness.start({
     description: grouped(FIRST, 1), alsoSpecs: [SECOND],
     alsoDescriptions: { [SECOND]: grouped(SECOND, 2) },

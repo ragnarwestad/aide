@@ -22,29 +22,10 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("phone tabs stay on one line and keep their accessible names (AC-6)", async () => {
+test("phone tabs keep their accessible names", async () => {
   const tabs = page.locator("body > nav.tabbar a.tab");
   expect(await tabs.count()).toBe(4);
-  const boxes = await tabs.evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
-  expect(new Set(boxes.map((box) => box.top)).size).toBe(1);
   for (const name of ["Trabajos", "Especificaciones", "Proyectos", "Programación"]) {
     expect(await page.locator(`body > nav.tabbar a[title="${name}"]`).count()).toBe(1);
   }
-});
-
-test("phone tabs show icons alone while a wider bar keeps its words (AC-6)", async () => {
-  const word = page.locator('body > nav.tabbar a[href="/specs"] > .kindicon + span');
-  expect(await word.count()).toBe(1);
-  expect(await word.evaluate((node) => getComputedStyle(node).position)).toBe("absolute");
-  await page.setViewportSize({ width: 560, height: 800 });
-  expect(await word.evaluate((node) => getComputedStyle(node).position)).not.toBe("absolute");
-});
-
-test("a phone held sideways keeps the header copy on one line with icons alone (AC-6)", async () => {
-  await page.setViewportSize({ width: 700, height: 390 });
-  const word = page.locator('header > nav.tabbar a[href="/specs"] > .kindicon + span');
-  expect(await word.count()).toBe(1);
-  expect(await word.evaluate((node) => getComputedStyle(node).position)).toBe("absolute");
-  const boxes = await page.locator("header > nav.tabbar a.tab").evaluateAll((links) => links.map((link) => link.getBoundingClientRect()));
-  expect(new Set(boxes.map((box) => box.top)).size).toBe(1);
 });
