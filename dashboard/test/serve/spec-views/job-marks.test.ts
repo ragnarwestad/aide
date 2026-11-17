@@ -60,6 +60,19 @@ const STOPPED_IN_STEP_1 = () =>
   );
 
 describe("jobMarks", () => {
+  test("a cancelled Land marks the interrupted test step cancelled and keeps completed steps", () => {
+    for (const ending of [[], ["error: --- Step 2 of 4: Run tests — stopped: cancelled by user"]]) {
+      const file = step([], [
+        "--- Step 1 of 4: Merge branch — started",
+        "--- Step 1 of 4: Merge branch — done",
+        "--- Step 2 of 4: Run tests — started",
+        ...ending,
+      ]);
+      const got = jobStepLines(job({ state: "cancelled", steps: ["land"], streamFile: file }), "en");
+      expect(got.map((m) => m.state)).toEqual(["done", "cancelled", undefined, undefined]);
+    }
+  });
+
   test("a failed job's last running step is failed, and the reason is its error in the reader's language", () => {
     const error = { key: "landing.deployNoAnswer" } as const;
     const got = jobMarks(job({ state: "failed", streamFile: STOPPED_IN_STEP_1(), error }), "nb");
