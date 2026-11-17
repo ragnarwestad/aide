@@ -397,7 +397,7 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, opts.selection ? new Set(opts.selection.rows.map((row) => row.key)) : undefined, opts.executionGroups);
   const matched = sortGroups(shownGroups(groups, normalizedOpts), f, (group) => firstActionLabel(group, normalizedOpts), opts.lang ?? "en");
   const window = opts.selection ?? selectWindow(matched.map((g) => ({ key: groupKey(g.project, g.specFolder), group: g })), { limit: f.limit, opened: openedKeys(opts) });
-  if (opts.selection) normalizedOpts = { ...normalizedOpts, filter: { ...f, boundary: window.boundary, windowQuery: window.query, limit: f.limit ? String(window.requested) : undefined } };
+  if (opts.selection) normalizedOpts = { ...normalizedOpts, filter: { ...f, boundary: window.boundary, windowLoaded: String(window.loaded), windowQuery: window.query, limit: f.limit ? String(window.requested) : undefined } };
   const keys = new Set(window.rows.map((row) => row.key));
   const visible = matched.filter((g) => keys.has(groupKey(g.project, g.specFolder))).sort((a, b) => window.rows.findIndex((r) => r.key === groupKey(a.project, a.specFolder)) - window.rows.findIndex((r) => r.key === groupKey(b.project, b.specFolder)));
   const body = visible.length

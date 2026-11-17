@@ -19,6 +19,7 @@ export function requestWindow<T extends { key: string }>(rows: T[], url: URL, fi
   return selectWindow(rows, {
     limit: url.searchParams.get("limit") ?? undefined,
     boundary: url.searchParams.get("boundary") ?? undefined,
+    loaded: url.searchParams.get("windowLoaded") ?? undefined,
     grow: url.searchParams.get("grow") === "1",
     previousQuery: url.searchParams.get("windowQuery") ?? undefined,
     query: windowQuery(url.pathname.startsWith("/specs") ? "/specs" : "/", filter as Record<string, unknown>),

@@ -14,7 +14,7 @@ export function windowControl(window: ListWindow<unknown>, filter: SpecsFilter, 
   if (!window.hasMore) return "";
   const href = queuePath(filter, {
     limit: String(window.requested + 100), boundary: window.boundary,
-    windowQuery: window.query, grow: "1",
+    windowQuery: window.query, windowLoaded: String(window.loaded), grow: "1",
   }, path);
   return `<div class="row">${btnLink({ label: t(lang, "jobs.showMore"), href, data: { nav: "", "list-more": "" } })}</div>`;
 }

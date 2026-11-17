@@ -119,15 +119,19 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   // Refresh address-dependent links while holding the open detail. A
   // reader who scrolls during this request keeps that new position.
   let readerScrolled = false;
-  const moved = () => { readerScrolled = true; };
-  document.addEventListener("scroll", moved, true);
+  // Scroll events also come from restoring the row; only user input cancels restoration.
+  const moved = (event: Event) => {
+    if (event.type !== "keydown" || ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes((event as KeyboardEvent).key)) readerScrolled = true;
+  };
+  const scrollInputs = ["wheel", "touchmove", "pointerdown", "keydown"];
+  for (const type of scrollInputs) document.addEventListener(type, moved, true);
   try {
     if (press.pressGen === gen) {
       await swapRows();
       const redrawnHead = specHead(key);
       if (!readerScrolled && redrawnHead) keepInPlace(redrawnHead, before);
     }
-  } finally { document.removeEventListener("scroll", moved, true); }
+  } finally { for (const type of scrollInputs) document.removeEventListener(type, moved, true); }
 
 }
 

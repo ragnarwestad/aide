@@ -15,6 +15,7 @@ export function windowQuery(path: string, filter: Record<string, unknown>): stri
 export interface WindowRequest {
   limit?: string;
   boundary?: string;
+  loaded?: string;
   grow?: boolean;
   query?: string;
   previousQuery?: string;
@@ -34,8 +35,9 @@ export function selectWindow<T extends { key: string }>(rows: readonly T[], requ
   const reset = request.previousQuery !== undefined && request.query !== request.previousQuery;
   const requested = reset ? BATCH_SIZE : windowLimit(request.limit);
   const boundary = reset ? -1 : rows.findIndex((row) => row.key === request.boundary);
-  const previous = Math.max(BATCH_SIZE, requested - (request.grow ? BATCH_SIZE : 0), boundary + 1);
-  const count = request.grow && !reset ? previous + BATCH_SIZE : Math.max(requested, boundary + 1);
+  const accepted = !reset && request.loaded && /^\d+$/.test(request.loaded) && Number.isSafeInteger(Number(request.loaded)) ? Number(request.loaded) : 0;
+  const previous = Math.max(BATCH_SIZE, accepted, requested - (request.grow ? BATCH_SIZE : 0), boundary + 1);
+  const count = request.grow && !reset ? previous + BATCH_SIZE : Math.max(requested, accepted, boundary + 1);
   const loaded = Math.min(rows.length, count);
   return {
     rows: rows.filter((row, index) => index < loaded || request.opened?.has(row.key)),

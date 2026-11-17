@@ -86,6 +86,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     filter: {
       limit: url.searchParams.get("limit") ?? undefined,
       boundary: url.searchParams.get("boundary") ?? undefined,
+      windowLoaded: url.searchParams.get("windowLoaded") ?? undefined,
       windowQuery: url.searchParams.get("windowQuery") ?? undefined,
       open: url.searchParams.get("open") ?? undefined,
       checks: url.searchParams.get("checks") ?? undefined,

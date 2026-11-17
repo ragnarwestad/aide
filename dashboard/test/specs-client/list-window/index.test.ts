@@ -30,10 +30,11 @@ test("failed loads remain available and disposed observers cannot request (AC-2,
 });
 
 test("loading from a stale link keeps the current spec, filters and folds (AC-6, AC-7)", () => {
-  const next = batchAddress("/specs?limit=200&grow=1&boundary=old-end&q=old&open=old", "http://board.test/specs/aide/older?limit=100&q=current&open=aide%2Fmember&checks=aide%2Fmember#spec-aide/older");
+  const next = batchAddress("/specs?limit=200&grow=1&boundary=old-end&q=old&open=old", "http://board.test/specs/aide/older?limit=100&windowLoaded=102&q=current&open=aide%2Fmember&checks=aide%2Fmember#spec-aide/older");
   expect(next.pathname).toBe("/specs/aide/older");
   expect(next.hash).toBe("#spec-aide/older");
   expect(next.searchParams.get("limit")).toBe("200");
+  expect(next.searchParams.get("windowLoaded")).toBe("102");
   expect(next.searchParams.get("grow")).toBe("1");
   expect(next.searchParams.get("q")).toBe("current");
   expect(next.searchParams.get("open")).toBe("aide/member");

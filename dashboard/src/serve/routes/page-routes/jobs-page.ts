@@ -88,7 +88,6 @@ export async function jobsPage(
   const opened = new Set((filter.open ?? "").split(",").filter(Boolean));
   for (const row of summaries ?? []) if (row.facts.members?.some((member) => opened.has(`${member.project}/${member.specFolder}`))) opened.add(row.key);
   const selection = summaries ? requestWindow(matching, url, filter, opened) : undefined;
-  if (selection) for (const row of summaries ?? []) if (opened.has(row.key) && !selection.rows.includes(row)) selection.rows.push(row);
   const rowKeys = jobRowKeys(shown);
   const selectedKeys = new Set(selection?.rows.map((row) => row.key) ?? []);
   const keys = cut?.specs ?? new Set(selection?.rows.flatMap((row) => {

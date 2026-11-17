@@ -20,7 +20,7 @@ export const specTabPath = (project: string, specFolder: string, tab: string): s
 /** The parts of the Specs list's address that a spec's address inside the
  *  list carries along, so a link out of the open row keeps the list around
  *  it as it was cut and ordered. */
-export const LIST_VIEW_PARAMS = ["state", "project", "sort", "dir", "q", "limit", "boundary", "windowQuery"] as const;
+export const LIST_VIEW_PARAMS = ["state", "project", "sort", "dir", "q", "limit", "boundary", "windowQuery", "windowLoaded"] as const;
 export type ListView = Partial<Record<(typeof LIST_VIEW_PARAMS)[number], string>>;
 
 /** The list's view out of the values an address's query holds for it. */

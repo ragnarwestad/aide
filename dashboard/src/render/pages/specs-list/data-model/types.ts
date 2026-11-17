@@ -249,6 +249,7 @@ export interface SpecsFilter {
   limit?: string;
   boundary?: string;
   windowQuery?: string;
+  windowLoaded?: string;
   grow?: string;
   state?: string;
   project?: string;

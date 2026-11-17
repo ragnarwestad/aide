@@ -43,7 +43,7 @@ export function queueHref(f: SpecsFilter, patch: SpecsFilter): string {
 export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/specs"): string {
   const merged = { ...f, ...patch };
   if (["q", "project", "state", "kind", "sort", "dir"].some((key) => Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== (f as Record<string, unknown>)[key])) {
-    for (const key of ["limit", "boundary", "windowQuery", "grow"] as const) delete merged[key];
+    for (const key of ["limit", "boundary", "windowQuery", "windowLoaded", "grow"] as const) delete merged[key];
   }
   const q = Object.entries(merged)
     .filter(([, v]) => v)

@@ -760,7 +760,7 @@ test("accepted range metadata travels on the next live request (AC-7)", async ()
   h.location.href = `http://dash.test/${h.location.search}`;
   const query = h.rows.querySelector;
   h.rows.querySelector = ((selector: string) => selector === "[data-window-query]"
-    ? { dataset: { windowBoundary: "aide/last", windowQuery: "same-query", windowLimit: "200" } }
+    ? { dataset: { windowBoundary: "aide/last", windowQuery: "same-query", windowLimit: "200", windowLoaded: "202" } }
     : query(selector)) as typeof query;
   h.visibility("visible");
   h.live()!.emit("changed");
@@ -771,6 +771,7 @@ test("accepted range metadata travels on the next live request (AC-7)", async ()
   await flush();
   const last = new URL(h.requests.at(-1)!.url, "http://dash.test");
   expect(last.searchParams.get("limit")).toBe("200");
+  expect(last.searchParams.get("windowLoaded")).toBe("202");
   expect(last.searchParams.get("boundary")).toBe("aide/last");
   expect(last.searchParams.get("open")).toBe("aide/kept");
 });

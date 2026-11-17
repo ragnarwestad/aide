@@ -246,7 +246,7 @@ export function renderJobsRows(v: JobsView): string {
   const wanted = new Set(window.rows.map((row) => row.key));
   const shown = [...matching.filter((row) => wanted.has(row.key)), ...all.filter((row) => wanted.has(row.key) && !matching.includes(row))];
   const keys = new Set(shown.flatMap((row) => [row.key, ...(row.facts.members ?? []).map((member) => groupKey(member.project, member.specFolder))]));
-  const detailView = v.selection ? { ...v, list: { ...v.list, filter: { ...f, boundary: window.boundary, windowQuery: window.query } } } : v;
+  const detailView = v.selection ? { ...v, list: { ...v.list, filter: { ...f, boundary: window.boundary, windowLoaded: String(window.loaded), windowQuery: window.query } } } : v;
   const drawn = new Map(jobsEntries(detailView, (key) => keys.has(key)).map((row) => [row.key, row.html]));
   const more = windowControl(window, { ...f, limit: v.limit }, "/", lang);
   const body = shown.length

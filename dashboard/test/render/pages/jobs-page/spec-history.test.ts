@@ -108,3 +108,19 @@ test("a group is selected atomically and opened exceptions do not move the bound
   expect(selected.total).toBe(201);
   expect(selected.hasMore).toBe(true);
 });
+
+
+test("loaded running jobs remain visible after insertions and a completed boundary job (AC-7)", () => {
+  const running = Array.from({ length: 250 }, (_, i) => ({ key: String(i) }));
+  const initial = selectWindow(running);
+  const inserted = [{ key: "new-1" }, { key: "new-2" }, ...running];
+  const live = selectWindow(inserted, { boundary: initial.boundary, loaded: String(initial.loaded) });
+  expect(live.loaded).toBe(102);
+  const remaining = inserted.filter((row) => row.key !== live.boundary);
+  const refreshed = selectWindow(remaining, { boundary: live.boundary, loaded: String(live.loaded) });
+  for (const row of live.rows.filter((row) => row.key !== live.boundary)) expect(refreshed.rows).toContainEqual(row);
+  expect(refreshed.loaded).toBe(102);
+  const more = selectWindow(remaining, { limit: "200", grow: true, boundary: live.boundary, loaded: String(live.loaded) });
+  expect(more.loaded).toBe(202);
+  expect(selectWindow(remaining, { loaded: "202", query: "new", previousQuery: "old" }).loaded).toBe(100);
+});

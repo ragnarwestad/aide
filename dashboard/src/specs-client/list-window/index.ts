@@ -23,7 +23,7 @@ export function batchAddress(href: string, here: string): URL {
   const current = new URL(here);
   requested.pathname = current.pathname;
   requested.hash = current.hash;
-  for (const key of ["q", "project", "state", "kind", "sort", "dir", "open", "checks", "phases", "created"]) {
+  for (const key of ["windowLoaded", "q", "project", "state", "kind", "sort", "dir", "open", "checks", "phases", "created"]) {
     const value = current.searchParams.get(key);
     if (value) requested.searchParams.set(key, value);
     else requested.searchParams.delete(key);
@@ -87,6 +87,7 @@ export function acceptListWindow(body: Element): void {
   if (!window) return;
   const url = new URL(location.href);
   url.searchParams.delete("grow");
+  if (window.dataset.windowLoaded) url.searchParams.set("windowLoaded", window.dataset.windowLoaded);
   if (url.searchParams.has("limit") && window.dataset.windowLimit) url.searchParams.set("limit", window.dataset.windowLimit);
   if (window.dataset.windowBoundary) url.searchParams.set("boundary", window.dataset.windowBoundary);
   else url.searchParams.delete("boundary");
@@ -97,7 +98,7 @@ export function acceptListWindow(body: Element): void {
   for (const link of body.querySelectorAll<HTMLAnchorElement>("tr[data-spec-detail] a.tab")) {
     const target = new URL(link.href, location.href);
     if (target.pathname !== url.pathname) continue;
-    for (const key of ["state", "project", "sort", "dir", "q", "limit", "boundary", "windowQuery"]) {
+    for (const key of ["state", "project", "sort", "dir", "q", "limit", "boundary", "windowQuery", "windowLoaded"]) {
       const value = url.searchParams.get(key);
       if (value) target.searchParams.set(key, value);
       else target.searchParams.delete(key);

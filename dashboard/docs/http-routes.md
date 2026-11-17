@@ -256,9 +256,9 @@ dispatcher.
 ### Pages
 
 The HTML list reads at `/`, `/specs` and `/specs/<project>/<spec>` accept `limit` in whole multiples of 100
-(default 100), `boundary` as the last normal loaded identity, `windowQuery` as the query identity, and `grow=1`
+(default 100), `boundary` as the last normal loaded identity, `windowLoaded` as the accepted prefix count, `windowQuery` as the query identity, and `grow=1`
 for a further batch. A different query identity resets the range. Refreshes retain a contiguous prefix through
-at least `limit` and the matching boundary; a growth request extends that reconciled prefix by up to 100.
+at least `limit`, the accepted prefix count and the matching boundary; a growth request extends that reconciled prefix by up to 100.
 Explicitly opened exceptions do not consume normal slots or change the normal boundary. `only` and `detail=1`
 still select their own rows directly.
 

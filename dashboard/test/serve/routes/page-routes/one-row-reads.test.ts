@@ -294,6 +294,12 @@ test("an empty search distinguishes existing specs from an empty board (AC-4)", 
   expect(html()).toContain(t("en", "list.noSpecMatchesFilter"));
 });
 
+test("a new Jobs search excludes a previously opened nonmatching job (AC-4, AC-6)", async () => {
+  const { ask, read } = board();
+  await ask(jobsPage, "/?rows=1&open=aide%2Fschedule-report&q=missing-query-value");
+  expect(read().rows).toEqual([]);
+});
+
 for (const count of [1000, 10000]) {
   for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) {
     for (const limit of [100, 200]) {

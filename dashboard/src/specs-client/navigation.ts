@@ -64,7 +64,7 @@ export function submitSearch(event: Event): boolean {
   const q = String(new FormData(form).get("q") ?? "").trim();
   if (q === (new URLSearchParams(location.search).get("q") ?? "").trim()) return true;
   const url = new URL(location.href);
-  for (const key of ["limit", "boundary", "windowQuery", "grow"]) url.searchParams.delete(key);
+  for (const key of ["limit", "boundary", "windowQuery", "windowLoaded", "grow"]) url.searchParams.delete(key);
   if (q) url.searchParams.set("q", q);
   else url.searchParams.delete("q");
   history.replaceState(null, "", `${url.pathname}${url.search}`);

@@ -81,7 +81,7 @@ function windowParams(html: string): string {
   const doc = new Window().document;
   doc.body.innerHTML = html;
   const window = doc.querySelector("[data-window-query]");
-  return window ? `&${new URLSearchParams({ boundary: window.getAttribute("data-window-boundary") ?? "", windowQuery: window.getAttribute("data-window-query") ?? "" })}` : "";
+  return window ? `&${new URLSearchParams({ boundary: window.getAttribute("data-window-boundary") ?? "", windowLoaded: window.getAttribute("data-window-loaded") ?? "", windowQuery: window.getAttribute("data-window-query") ?? "" })}` : "";
 }
 
 /** Every key's one-row answer at `path` equals that key's rows in the whole
