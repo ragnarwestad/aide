@@ -95,6 +95,7 @@ export const en = {
   "list.state.implemented": "Implemented",
   "list.state.queued": "Queued",
   "list.state.waiting": "Waiting",
+  "list.state.cancelled": "Cancelled",
   "list.state.stopped": "Stopped",
   "list.state.failed": "Failed",
   "list.state.archived": "Archived",

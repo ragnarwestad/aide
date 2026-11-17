@@ -94,6 +94,7 @@ export const es: Record<TranslationKey, string> = {
   "list.state.implemented": "Implementada",
   "list.state.queued": "En cola",
   "list.state.waiting": "Esperando",
+  "list.state.cancelled": "Canceladas",
   "list.state.stopped": "Detenidas",
   "list.state.failed": "Fallidas",
   "list.state.archived": "Archivadas",

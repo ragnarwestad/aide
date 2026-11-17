@@ -94,6 +94,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.state.implemented": "Implémentée",
   "list.state.queued": "En file d’attente",
   "list.state.waiting": "En attente",
+  "list.state.cancelled": "Annulées",
   "list.state.stopped": "Arrêtées",
   "list.state.failed": "Échouées",
   "list.state.archived": "Archivées",
