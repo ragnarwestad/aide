@@ -394,11 +394,12 @@ async function runSuiteIn(
     const button = opts.button;
     let gate = await runOnce("");
     const firstResult = recordedFailures(gate.stdout);
-    // A red run gets the WHOLE command again (`LANDING_RETRIES.gateReruns`):
+    // A caller without repair gets the whole command again (`LANDING_RETRIES.gateReruns`):
     // a test that lost to a busy host passes the second time, and a real
     // failure fails twice. A run that timed out is not retried — a second
-    // one would hold the landing for as long again.
-    if (gate.code !== 0 && !gate.timedOut) {
+    // one would hold the landing for as long again. Repair-capable landings
+    // diagnose the first failure instead of repeating an unchanged full suite.
+    if (gate.code !== 0 && !gate.timedOut && !opts.repair) {
       const first = failingLines(gate.stdout, gate.stderr);
       for (let n = 0; n < LANDING_RETRIES.gateReruns && gate.code !== 0 && !gate.timedOut; n++) {
         stepLogLine(job, "the landing's tests are red — running them once more", true);

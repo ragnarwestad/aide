@@ -1,3 +1,4 @@
+import { landingPolicy } from "../policy/index.ts";
 import type { Job, QueueStore } from "../../../queue/queue.ts";
 import { runProjectSuiteBeforePush } from "../test-gate.ts";
 import { greenResultsForLand } from "../seen-green.ts";
@@ -21,10 +22,10 @@ export function repairLanding(run: (request: RepairRequest) => Promise<boolean>)
 export function createLandingGate(queue: QueueStore, scriptDir?: string) {
   const repairs = new Map<string, ReturnType<typeof repairLanding>>();
   return async (root: string, job: Job, branch: string, button: string) => {
-    const step = job.steps[job.stepIndex];
-    const gatedJob = step === "land" ? greenResultsForLand(job, queue.list()) : job;
+    const policy = landingPolicy(job.steps[job.stepIndex]);
+    const gatedJob = policy.sharesGreenResults ? greenResultsForLand(job, queue.list()) : job;
     let repair = repairs.get(job.id);
-    if (!repair && (step === "land" || step === "archive")) {
+    if (!repair && policy.repairsTests) {
       repair = repairLanding(testRepairSession(queue.defaults, job, scriptDir, () => queue.get(job.id)?.state === "cancelled"));
       repairs.set(job.id, repair);
     }

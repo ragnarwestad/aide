@@ -3,7 +3,7 @@
 // two runs point at unstable tests or a busy machine, and only then does
 // the sentence say so.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { failingLines, runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
@@ -41,7 +41,7 @@ function merged(): string {
 
 /** A recorder green on main alone, and red on the merge with the tests
  *  `first` names on its first run and `second` on its second. */
-function recorder(first: string, second: string): void {
+function recorder(first: string, second: string): string {
   const bin = mkdtempSync(join(tmpdir(), "aide-named-failures-bin-"));
   dirs.push(bin);
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
@@ -56,6 +56,7 @@ function recorder(first: string, second: string): void {
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
+  return runs;
 }
 
 const job = { project: "aide", specFolder: "81-x" };
@@ -157,4 +158,12 @@ test("a repair sees the tested merge before cleanup and requests a fresh full ga
   });
   expect(seen).toEqual(["x"]);
   expect(verdict).toEqual({ ok: false, repaired: true });
+});
+
+test("a repair-capable landing does not rerun the unchanged full suite before diagnosis", async () => {
+  const runs = recorder("test_one", "test_one");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive", repair: async () => false });
+  expect(readFileSync(runs, "utf8").trim().split("\n")).toHaveLength(1);
+  expect(verdict.ok).toBe(false);
+  expect(verdict.failedTests?.[0]?.file).toBe("t/test_a.py");
 });

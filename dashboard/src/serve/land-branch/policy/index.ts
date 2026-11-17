@@ -25,6 +25,8 @@ export interface LandingPolicy {
    *  root's own landing can still fail. Every other step lands the plan
    *  first and the code last. */
   readonly codeFirst: boolean;
+  readonly repairsTests: boolean;
+  readonly sharesGreenResults: boolean;
   /** What the code root's branch gets: merged; merged unless the project
    *  says `codeLanding: pr`, which leaves it open for review; or deleted,
    *  never merged. */
@@ -57,6 +59,8 @@ const PLAIN: LandingPolicy = {
   landsWhenStopped: true,
   stoppedPastCode: [],
   codeFirst: false,
+  repairsTests: false,
+  sharesGreenResults: false,
   codeRoot: "merge",
   specFolderOnly: false,
   numbersSpec: false,
@@ -87,6 +91,7 @@ export const LANDING_POLICIES: Readonly<Record<string, LandingPolicy>> = {
     checksOrigin: true,
     retriesLate: true,
     keepsFailedTests: true,
+    repairsTests: true,
   },
   // Lands on `closed` alone; every other ending moved nothing.
   close: { ...PLAIN, onOk: { landing: "close", endings: ["closed"] }, codeRoot: "discard", specFolderOnly: true },
@@ -94,7 +99,7 @@ export const LANDING_POLICIES: Readonly<Record<string, LandingPolicy>> = {
   // Leaves no spec branch for anyone to land.
   explore: PLAIN,
   deploy: PLAIN,
-  land: PLAIN,
+  land: { ...PLAIN, repairsTests: true, sharesGreenResults: true },
   cleanup: PLAIN,
 };
 
