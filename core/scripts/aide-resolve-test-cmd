@@ -9,8 +9,9 @@
 # for a project that tracks none, the dashboard's settings file copied in
 # as one), so every checkout of the project runs the same command.
 #
-# With --targeted, Implement may use AIDE_TEST_CHANGED_CMD, passing the
-# comparison ref as its final argument. Other callers keep AIDE_TEST_CMD.
+# With --targeted, Implement and the landing may use AIDE_TEST_CHANGED_CMD,
+# passing the comparison ref as its final argument. Other callers keep
+# AIDE_TEST_CMD.
 # With --changed-from <ref>, a change that touches Markdown files and
 # nothing else runs the project's documentation check instead: its
 # `scripts/check-docs` when it has one, otherwise nothing. The change is

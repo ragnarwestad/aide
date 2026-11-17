@@ -50,6 +50,7 @@ export const nb: Record<TranslationKey, string> = {
   "cleanup.stepPorts": "Finn ukjente testservere på tavlens porter",
   "cleanup.stepOrphans": "Finn foreldreløse testprosesser eldre enn 6 timer",
   "cleanup.stepStop": "Stopp gjenværende prosesser",
+  "cleanup.stepTemp": "Fjern testenes temp-mapper eldre enn 6 timer",
   "dialog.stepWaiting": "venter",
   "dialog.stepRunning": "kjører",
   "dialog.stepDone": "ferdig",

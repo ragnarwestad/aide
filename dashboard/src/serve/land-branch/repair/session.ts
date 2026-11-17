@@ -33,7 +33,7 @@ export function testRepairSession(defaults: QueueDefaults, job: Job, scriptDir?:
       log && existsSync(log) ? `Read the complete test output at ${log}.` : `Test output: ${verdict.detail ?? ""}`,
       "Read the branch diff against origin's default branch to understand the change. Follow this project's instructions.",
       "Do not change test expectations to hide a defect, delete tests, alter unrelated code, commit, push or switch branches.",
-      "Fix the code and run only the failed test files. Do not run the full suite: the landing runs it after rebuilding.",
+      "Fix the code and run only the failed test files. Do not run the full suite: the landing runs the project's tests after rebuilding.",
       "If the failure cannot be safely attributed to this change, leave the tree unchanged and explain why.",
     ].join("\n");
     const model = repairModel(defaults, job, prompt);

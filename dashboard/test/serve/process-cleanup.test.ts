@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { cleanupProcesses, type CleanupProcess } from "../../src/serve/process-cleanup";
 import type { CleanupProgress } from "../../src/serve/process-cleanup/engine.ts";
-import { hostProcesses, parseHostProcessLine, parseLsofCwds } from "../../src/serve/process-cleanup/host.ts";
+import { hostProcesses, parseHostProcessLine, parseLsofCwds, testTempDirs } from "../../src/serve/process-cleanup/host.ts";
 import { cancelCleanupJob, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
 import { runLogPath } from "../../src/queue/runner/run-log-path.ts";
 
@@ -119,7 +119,7 @@ describe("process cleanup", () => {
     expect(result.log.trim().split("\n")).toEqual(["Nothing to stop."]);
   });
 
-  test("reports the four operation boundaries and stopped process detail", async () => {
+  test("reports the five operation boundaries and stopped process detail", async () => {
     const events: CleanupProgress[] = [];
     const p = process({ pid: 240, command: "bun dashboard/src/index.ts" });
     await run([p], new Map([[8801, 240]]), [], (event) => events.push(event));
@@ -128,6 +128,7 @@ describe("process cleanup", () => {
       ["ports", "started"], ["ports", "done"],
       ["orphans", "started"], ["orphans", "done"],
       ["stop", "started"], ["stop", "detail"], ["stop", "done"],
+      ["temp", "started"], ["temp", "skipped"],
     ]);
     expect(events).toContainEqual({ step: "stop", state: "detail", text: "Stopped PID 240, age 7h, bun dashboard/src/index.ts" });
   });
@@ -135,13 +136,13 @@ describe("process cleanup", () => {
   test("reports an empty stop operation as skipped", async () => {
     const events: CleanupProgress[] = [];
     await run([], new Map(), [], (event) => events.push(event));
-    expect(events.at(-1)).toEqual({ step: "stop", state: "skipped" });
+    expect(events).toContainEqual({ step: "stop", state: "skipped" });
   });
 
   test("reports a stop operation as stopped when a candidate survives both signals", async () => {
     const events: CleanupProgress[] = [];
     await run([process({ pid: 202 })], new Map(), [], (event) => events.push(event));
-    expect(events.at(-1)).toEqual({ step: "stop", state: "stopped", text: "PID 202 is still running" });
+    expect(events).toContainEqual({ step: "stop", state: "stopped", text: "PID 202 is still running" });
   });
 
   test("writes numbered cleanup marks to the run log, not the transcript (AC-4)", async () => {
@@ -157,8 +158,43 @@ describe("process cleanup", () => {
     cleanup.start({ id: "cleanup-marks" } as never, resultFile, streamFile);
     while (!existsSync(resultFile)) await Promise.resolve();
     const runLog = readFileSync(runLogPath(streamFile), "utf8");
-    expect(runLog).toContain("--- Step 1 of 4: Read host processes and protect running jobs — started");
-    expect(runLog).toContain("--- Step 4 of 4: Stop leftover processes — skipped: nothing to stop");
+    expect(runLog).toContain("--- Step 1 of 5: Read host processes and protect running jobs — started");
+    expect(runLog).toContain("--- Step 4 of 5: Stop leftover processes — skipped: nothing to stop");
     expect(readFileSync(streamFile, "utf8")).toBe("");
+  });
+
+  // A suite stopped before it could remove its own temp folder leaves it
+  // behind, and macOS keeps indexing what is in it.
+  test("removes test-suite temp folders older than 6 hours that no process is in", async () => {
+    const removed: string[] = [];
+    const old = now - 7 * 60 * 60_000;
+    const { result } = await (async () => {
+      const r = await cleanupProcesses({
+        now: () => now, processes: async () => [process({ pid: 250, ppid: 99, startedAt: now - 60_000, cwd: "/T/aide-pytest-busy/x" })],
+        portOwner: async () => undefined, registeredPids: () => new Set(), protectedPids: () => new Set(), protectedRoots: () => [],
+        signal: () => true, alive: () => false, wait: async () => {}, ports: [], graceMs: 1,
+        tempDirs: async () => [
+          { path: "/T/aide-pytest-old", modifiedAt: old },
+          { path: "/T/aide-bun-test-old", modifiedAt: old },
+          { path: "/T/aide-pytest-new", modifiedAt: now - 60_000 },
+          { path: "/T/aide-pytest-busy", modifiedAt: old },
+          { path: "/T/aide-board-old", modifiedAt: old },
+        ],
+        removeDir: async (path) => { removed.push(path); },
+      });
+      return { result: r };
+    })();
+    expect(removed).toEqual(["/T/aide-pytest-old", "/T/aide-bun-test-old"]);
+    expect(result.log).toContain("Removed /T/aide-pytest-old, age 7h");
+  });
+
+  test("lists the test-suite temp folders in a directory with their age", () => {
+    const root = mkdtempSync(join(tmpdir(), "cleanup-temp-"));
+    for (const name of ["aide-pytest-a", "aide-bun-test-b", "aide-board-c", "other"]) mkdirSync(join(root, name));
+    writeFileSync(join(root, "aide-pytest-file"), "");
+    utimesSync(join(root, "aide-pytest-a"), new Date(now / 1000 * 1000), new Date(now));
+    const found = testTempDirs(root).sort((a, b) => a.path.localeCompare(b.path));
+    expect(found.map(({ path }) => path)).toEqual([join(root, "aide-bun-test-b"), join(root, "aide-pytest-a")]);
+    expect(found.find(({ path }) => path.endsWith("aide-pytest-a"))!.modifiedAt).toBe(now);
   });
 });

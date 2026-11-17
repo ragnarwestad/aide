@@ -155,7 +155,9 @@ The board runs one cleanup every night, filed under the first project name in so
 project list was read. It stops processes on the six test-server ports that
 are not in the Test servers register, and old orphaned test processes from the board's temporary
 folders. Registered test servers and processes belonging to queued, running or landing jobs are
-left alone.
+left alone. It then removes the test suites' own temp folders (`aide-pytest-*`, `aide-bun-test-*`) that are older
+than six hours and that no running process works in: a suite removes its folder when it ends, so one left behind
+belongs to a run that was stopped.
 
 The Test servers page also has a **Clean up** button that starts the same cleanup, once its question is answered
 OK. The cleanup is a

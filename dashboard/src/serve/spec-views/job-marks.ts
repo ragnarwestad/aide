@@ -12,8 +12,10 @@ import { deployPlan } from "../deploy-job/plan.ts";
 import { CLEANUP_OPERATIONS } from "../process-cleanup/engine.ts";
 import { readRunLog } from "./job-detail.ts";
 
-const cleanupPlan = (lang: Language): PlannedStep[] =>
-  CLEANUP_OPERATIONS.map(({ label }, index) => ({ key: stepKey(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, ""), label: t(lang, label) }));
+const cleanupPlan = (lang: Language, marks: StepMark[]): PlannedStep[] => {
+  const count = marks.some(mark => /^Step \d+ of 4$/.test(mark.key)) ? 4 : CLEANUP_OPERATIONS.length;
+  return CLEANUP_OPERATIONS.slice(0, count).map(({ label }, index) => ({ key: stepKey(`${index + 1} of ${count}`, ""), label: t(lang, label) }));
+};
 
 const LAND_LABELS = ["Merge branch", "Run tests", "Push default branch", "Delete source branch"];
 const landPlan = (): PlannedStep[] => LAND_LABELS.map((label, index) => ({ key: stepKey(`${index + 1} of 4`, ""), label }));
@@ -102,9 +104,9 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
 
 /** Every declared schedule step waits until the run marks it. */
 export function scheduleSteps(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {
-  if (jobKind(job) === "cleanup") return jobSteps(job, cleanupPlan(lang), lang);
   const { marks, logs } = jobMarks(job, lang);
-  return stepLinesOf(marks, logs, schedulePlan(logs, prompt), Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
+  const plan = jobKind(job) === "cleanup" ? cleanupPlan(lang, marks) : schedulePlan(logs, prompt);
+  return stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
 }
 
 export function jobStepLines(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {

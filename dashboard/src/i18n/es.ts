@@ -50,6 +50,7 @@ export const es: Record<TranslationKey, string> = {
   "cleanup.stepPorts": "Buscar servidores de prueba desconocidos en los puertos del panel",
   "cleanup.stepOrphans": "Buscar procesos de prueba sin proceso padre de más de 6 horas",
   "cleanup.stepStop": "Detener los procesos restantes",
+  "cleanup.stepTemp": "Eliminar las carpetas temporales de prueba de más de 6 horas",
   "dialog.stepWaiting": "en espera",
   "dialog.stepRunning": "en curso",
   "dialog.stepDone": "hecho",

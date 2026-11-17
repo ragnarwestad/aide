@@ -51,6 +51,7 @@ export const en = {
   "cleanup.stepPorts": "Find unknown test servers on board ports",
   "cleanup.stepOrphans": "Find parentless test processes older than 6 hours",
   "cleanup.stepStop": "Stop leftover processes",
+  "cleanup.stepTemp": "Remove test temp folders older than 6 hours",
   "dialog.stepWaiting": "waiting",
   "dialog.stepRunning": "running",
   "dialog.stepDone": "done",

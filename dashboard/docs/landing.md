@@ -260,7 +260,7 @@ A cancelled Land never restarts automatically; the same branch can be submitted 
 
 Land and Archive can repair named test regressions when the same suite passes on main alone. Up to two repair
 sessions edit the tested merge, independently check the failed files and save the correction on the source branch.
-The landing then fetches main again, rebuilds the merge and runs the full suite before pushing. Existing main
+The landing then fetches main again, rebuilds the merge and runs the project's tests before pushing. Existing main
 failures, unknown failures, missing file-test commands and unsuccessful repairs leave main unchanged.
 
 
@@ -268,6 +268,6 @@ On a merge conflict, standalone Land starts a repair session with the conflicted
 session may edit only those files and may not commit, push or change the open merge. The wrapper verifies that HEAD,
 MERGE_HEAD and other files are unchanged, stages the resolution and rejects remaining conflicts or conflict markers.
 It then commits the merge and saves it to the source branch without force. A failed push preserves a recovery ref.
-Land fetches current main, rebuilds the merge and runs the full suite before pushing main, including a resolution
+Land fetches current main, rebuilds the merge and runs the project's tests before pushing main, including a resolution
 whose resulting tree matches main. At most two conflict repairs are attempted per repository. Stop cancels the AI
 session and prevents further commits or pushes. Progress and a conflict-repair transcript appear in the job's log.

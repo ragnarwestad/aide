@@ -1,4 +1,6 @@
-import { homedir } from "node:os";
+import { readdirSync, statSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { writing, type Job } from "../../queue/queue.ts";
 import { signalProcess } from "../serve-helpers/signal-group.ts";
@@ -6,7 +8,7 @@ import { TEST_SERVER_PORTS } from "../test-servers/lifecycle.ts";
 import { portHolder } from "../test-servers/port-owner.ts";
 import type { TestServerStore } from "../test-servers/store.ts";
 import { landingProcessGroups } from "../land-branch/cancel-landing.ts";
-import { cleanupProcesses, type CleanupDependencies, type CleanupProcess } from "./engine.ts";
+import { cleanupProcesses, TEST_SUITE_TEMP_PREFIXES, type CleanupDependencies, type CleanupProcess } from "./engine.ts";
 
 // Started without waiting on it: the serving process answers every page,
 // and a command it waited for would hold every one of them.
@@ -53,6 +55,20 @@ export async function hostProcesses(): Promise<CleanupProcess[]> {
   });
 }
 
+/** The test suites' temp folders directly in `root`, each with when it last changed. */
+export function testTempDirs(root = tmpdir()): { path: string; modifiedAt: number }[] {
+  let names: string[];
+  try { names = readdirSync(root); } catch { return []; }
+  return names.flatMap((name) => {
+    if (!TEST_SUITE_TEMP_PREFIXES.some((prefix) => name.startsWith(prefix))) return [];
+    const path = join(root, name);
+    try {
+      const stat = statSync(path);
+      return stat.isDirectory() ? [{ path, modifiedAt: stat.mtimeMs }] : [];
+    } catch { return []; }
+  });
+}
+
 const alive = (pid: number): boolean => {
   try { process.kill(pid, 0); return true; } catch { return false; }
 };
@@ -73,6 +89,10 @@ export function hostCleanupDependencies(jobs: () => Job[], store: TestServerStor
     wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     ports: TEST_SERVER_PORTS,
     graceMs: 2_000,
+    tempDirs: async () => testTempDirs(),
+    // Asynchronous: a folder of a million files takes minutes to remove,
+    // and the serving process answers every page meanwhile.
+    removeDir: (path) => rm(path, { recursive: true, force: true }),
   };
 }
 

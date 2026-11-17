@@ -1,4 +1,5 @@
-// Land and Archive always resolve the full project command, including for prose.
+// Land and Archive resolve the tests the way Implement does: what the branch
+// changed beyond the default branch picks the command.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -23,11 +24,11 @@ function git(cwd: string, ...args: string[]): void {
 
 /** The commands the landing handed its test run, for a branch that
  *  changes the files named. */
-async function commandsRunFor(files: Record<string, string>): Promise<string> {
+async function commandsRunFor(files: Record<string, string>, manifest = "", withOrigin = false): Promise<string> {
   const root = mkdtempSync(join(tmpdir(), "aide-gate-docs-"));
   dirs.push(root);
   mkdirSync(join(root, ".aide"));
-  writeFileSync(join(root, ".aide", "project.yaml"), "name: demo\nAIDE_TEST_CMD: make it\n");
+  writeFileSync(join(root, ".aide", "project.yaml"), `name: demo\nAIDE_TEST_CMD: make it\n${manifest}`);
   writeFileSync(join(root, "README.md"), "# demo\n");
   mkdirSync(join(root, "scripts"));
   writeFileSync(join(root, "scripts", "check-docs"), "#!/bin/sh\nexit 0\n");
@@ -37,6 +38,14 @@ async function commandsRunFor(files: Record<string, string>): Promise<string> {
   git(root, "config", "user.email", "test@example.com");
   git(root, "add", "-A");
   git(root, "commit", "-qm", "first");
+  if (withOrigin) {
+    const origin = mkdtempSync(join(tmpdir(), "aide-gate-docs-origin-"));
+    dirs.push(origin);
+    git(origin, "init", "-q", "--bare", "-b", "main");
+    git(root, "remote", "add", "origin", origin);
+    git(root, "push", "-q", "origin", "main");
+    git(root, "fetch", "-q", "origin");
+  }
   git(root, "switch", "-q", "-c", "aide/1-x");
   for (const [name, text] of Object.entries(files)) writeFileSync(join(root, name), text);
   git(root, "add", "-A");
@@ -59,12 +68,22 @@ async function commandsRunFor(files: Record<string, string>): Promise<string> {
   return existsSync(seen) ? readFileSync(seen, "utf-8").trim() : "";
 }
 
-describe("a landing always runs the full command", () => {
-  test("Markdown-only changes still run the full suite", async () => {
-    expect(await commandsRunFor({ "README.md": "# demo, reworded\n", "NOTES.md": "new\n" })).toBe("make it");
+describe("a landing picks its tests from what the branch changed", () => {
+  test("Markdown-only changes run the documentation check", async () => {
+    expect(await commandsRunFor({ "README.md": "# demo, reworded\n", "NOTES.md": "new\n" })).toBe("scripts/check-docs");
   });
 
-  test("anything else changed too: the project's test command runs", async () => {
+  test("the project's changed-code command gets the default branch to compare with", async () => {
+    expect(await commandsRunFor({ "app.py": "print(1)\n" }, "AIDE_TEST_CHANGED_CMD: make changed\n"))
+      .toBe("make changed 'main'");
+  });
+
+  test("with an origin, the landing names the default branch as Implement does", async () => {
+    expect(await commandsRunFor({ "app.py": "print(1)\n" }, "AIDE_TEST_CHANGED_CMD: make changed\n", true))
+      .toBe("make changed 'origin/main'");
+  });
+
+  test("without a changed-code command the project's whole test command runs", async () => {
     expect(await commandsRunFor({ "README.md": "# demo, reworded\n", "app.py": "print(1)\n" })).toBe("make it");
   });
 });

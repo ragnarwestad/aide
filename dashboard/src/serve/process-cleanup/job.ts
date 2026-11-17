@@ -10,7 +10,7 @@ const cleanupMark = (event: CleanupProgress): { place?: string; title?: string; 
   if (event.state === "detail") return { note: event.text };
   const index = CLEANUP_OPERATIONS.findIndex(({ step }) => step === event.step);
   const operation = CLEANUP_OPERATIONS[index]!;
-  const ending = event.state === "skipped" ? "skipped: nothing to stop" : event.state === "stopped" ? `stopped: ${event.text}` : event.state;
+  const ending = event.state === "skipped" ? (event.step === "temp" ? "skipped: nothing to remove" : "skipped: nothing to stop") : event.state === "stopped" ? `stopped: ${event.text}` : event.state;
   return { place: `${index + 1} of ${CLEANUP_OPERATIONS.length}`, title: t("en", operation.label), ending };
 };
 

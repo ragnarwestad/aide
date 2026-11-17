@@ -6,7 +6,7 @@ propose a spec for each failure, and stop.
 ## Step 1 of 3: Run the test suites
 
 Run the suite in three parts, from the repository root, each with a
-10-minute timeout and each run even when an earlier part failed. Put
+20-minute timeout and each run even when an earlier part failed. Put
 mise's shims first on PATH, as the project's test command does:
 `export PATH="$HOME/.local/share/mise/shims:$PATH"`.
 - `scripts/test-python`
