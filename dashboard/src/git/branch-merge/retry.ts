@@ -39,6 +39,8 @@ export const LANDING_RETRIES = {
   /** A red suite on the merge is run this many more times, unless it
    *  timed out. */
   gateReruns: 1,
+  /** AI resolutions saved to the source before rebuilding a conflicting merge. */
+  conflictRepairs: 2,
   /** `archive`'s origin check merges a root that still holds the branch
    *  this many more times before it calls it unlanded. */
   originRechecks: 1,

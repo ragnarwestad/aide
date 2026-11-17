@@ -1,3 +1,4 @@
+import { conflictRepairSession } from "./land-branch/repair/conflict.ts";
 import { createLandingGate } from "./land-branch/repair/index.ts";
 import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
@@ -204,6 +205,7 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
+    conflictRepair: (work, job, branch, base, files) => conflictRepairSession(queue.defaults, job, () => queue.get(job.id)?.state === "cancelled")({ work, branch, base, files }),
     landingGate: opts.landingGate ?? createLandingGate(queue, opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, opts.queueMirrorPath),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers

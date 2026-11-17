@@ -178,6 +178,7 @@ export async function mergeBranchIntoDefault(
     let assignedSpecFolder: string | undefined;
     let repaired = false;
     let repairRebuilds = 0;
+    let conflictRepairs = 0;
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       // The tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
@@ -204,6 +205,15 @@ export async function mergeBranchIntoDefault(
         // The files in conflict, read before the abort clears them.
         const unmerged = await run(work, ["diff", "--name-only", "--diff-filter=U"]);
         conflicted = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
+        if (conflicted.length && gate && hooks?.repairConflict && conflictRepairs < LANDING_RETRIES.conflictRepairs) {
+          conflictRepairs++;
+          if (await hooks.repairConflict({ work, branch, base, files: conflicted })) {
+            repaired = true;
+            await run(work, ["fetch", "--quiet", "origin", base, branch]);
+            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
+            return null;
+          }
+        }
         await run(work, ["merge", "--abort"]);
         // git names a conflict on stdout and a lock it lost on stderr.
         lastStderr = `${real.stdout ?? ""}\n${real.stderr ?? ""}`.trim();
@@ -233,7 +243,7 @@ export async function mergeBranchIntoDefault(
         // this merge added nothing to `root` — there is nothing the
         // suite could fail for that this merge caused, so it never runs.
         const changed = await run(work, ["diff", "--quiet", preMergeHead, "HEAD"]);
-        if (changed.code !== 0) {
+        if (changed.code !== 0 || conflictRepairs > 0) {
           // An identical resulting tree reuses the
           // verdict already reached for it within this same call, rather
           // than running the suite again.

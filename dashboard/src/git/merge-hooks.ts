@@ -4,6 +4,8 @@
  *  page's watcher rescans on it — so whatever a reader must find already
  *  true at that moment is the caller's to settle in here. */
 export interface MergeHooks {
+  /** Save a verified conflict resolution on the source branch, then rebuild. */
+  repairConflict?: (info: { work: string; branch: string; base: string; files: string[] }) => Promise<boolean>;
   /** A standalone landing job advances its visible tasks at the three
    * boundaries inside the shared merge. Other landing callers omit it. */
   progress?: (stage: "tests" | "push" | "delete") => void;

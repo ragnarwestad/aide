@@ -26,6 +26,7 @@ export interface LandingPolicy {
    *  first and the code last. */
   readonly codeFirst: boolean;
   readonly repairsTests: boolean;
+  readonly repairsConflicts: boolean;
   readonly sharesGreenResults: boolean;
   /** What the code root's branch gets: merged; merged unless the project
    *  says `codeLanding: pr`, which leaves it open for review; or deleted,
@@ -60,6 +61,7 @@ const PLAIN: LandingPolicy = {
   stoppedPastCode: [],
   codeFirst: false,
   repairsTests: false,
+  repairsConflicts: false,
   sharesGreenResults: false,
   codeRoot: "merge",
   specFolderOnly: false,
@@ -99,7 +101,7 @@ export const LANDING_POLICIES: Readonly<Record<string, LandingPolicy>> = {
   // Leaves no spec branch for anyone to land.
   explore: PLAIN,
   deploy: PLAIN,
-  land: { ...PLAIN, repairsTests: true, sharesGreenResults: true },
+  land: { ...PLAIN, repairsConflicts: true, repairsTests: true, sharesGreenResults: true },
   cleanup: PLAIN,
 };
 

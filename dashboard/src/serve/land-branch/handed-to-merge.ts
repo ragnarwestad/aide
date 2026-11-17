@@ -97,6 +97,9 @@ export function handedToMerge(
     : undefined;
   const hooks: MergeHooks = {
     progress: what.progress,
+    repairConflict: gate && policy.repairsConflicts && ctx.conflictRepair
+      ? ({ work, base, files }) => ctx.conflictRepair!(work, job, branch, base, files)
+      : undefined,
     // A code root only: the translation files are the project's code.
     mergeArgs: codeRoots.has(root) && ctx.translationMergeArgs ? (work) => ctx.translationMergeArgs!(root, work) : undefined,
     beforeCheckoutMoves: (info) => {

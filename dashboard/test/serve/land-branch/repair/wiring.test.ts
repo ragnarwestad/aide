@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore } from "../../../../src/queue/queue.ts";
+import { handedToMerge } from "../../../../src/serve/land-branch/handed-to-merge.ts";
 import { createLandingGate } from "../../../../src/serve/land-branch/repair/index.ts";
 
 test("the gate factory runs the scripts beside the runner", async () => {
@@ -29,4 +30,18 @@ test("the gate factory runs the scripts beside the runner", async () => {
     if (previousLog === undefined) delete process.env.AIDE_TEST_GATE_LOG; else process.env.AIDE_TEST_GATE_LOG = previousLog;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+
+test("only a Land code root with a test gate gets automatic conflict repair", async () => {
+  let calls = 0;
+  const context = { landingGate: async () => ({ ok: true }), conflictRepair: async (work: string, _job: unknown, branch: string, base: string, files: string[]) => {
+    expect([work, branch, base, files]).toEqual(["/merge", "feature", "main", ["code.ts"]]); calls++; return true;
+  } };
+  const job = { project: "p", specFolder: "land" };
+  const hand = (step: string, roots = new Set(["/code"])) => handedToMerge(context as never, job as never, { step } as never, "/code", "feature", roots);
+  expect(await hand("land").hooks.repairConflict!({ work: "/merge", branch: "feature", base: "main", files: ["code.ts"] })).toBe(true);
+  expect(calls).toBe(1);
+  expect(hand("land", new Set()).hooks.repairConflict).toBeUndefined();
+  expect(hand("archive").hooks.repairConflict).toBeUndefined();
 });

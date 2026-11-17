@@ -63,6 +63,7 @@ export interface LandSetupInputs {
   restartDeferTimeoutMs?: number;
   dashboardRoot?: string;
   landingGate?: LandContext["landingGate"];
+  conflictRepair?: LandContext["conflictRepair"];
   finalizeCreateSpec?: LandContext["finalizeCreateSpec"];
   translationMergeArgs?: LandContext["translationMergeArgs"];
   testServers: TestServersContext;
@@ -105,6 +106,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     queueInstallTimeoutMs: inputs.queueInstallTimeoutMs,
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
+    conflictRepair: inputs.conflictRepair,
     finalizeCreateSpec: inputs.finalizeCreateSpec,
     translationMergeArgs: inputs.translationMergeArgs,
     testServers: inputs.testServers,

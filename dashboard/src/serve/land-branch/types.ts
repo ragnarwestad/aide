@@ -53,6 +53,7 @@ export interface LandContext {
    *  a code root's landing only. `button` is the one the landing step's
    *  row offers, named when the tests refuse the merge. Absent means no
    *  gate (tests). */
+  conflictRepair?: (work: string, job: Job, branch: string, base: string, files: string[]) => Promise<boolean>;
   landingGate?: (root: string, job: Job, branch: string, button: string) => Promise<GateVerdict>;
   /** Landing's own finalize step for a `create` job: renames
    *  the folder off its literal provisional key to its real `NN-slug`
