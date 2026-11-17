@@ -119,10 +119,11 @@ An archived member waiting for the group's shared Archive is not reported as an 
 Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
 Cancel also stops a landing's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
 
-A completed group's … menu offers Remove, and no other state does. It asks in the shared progress dialog, blocks input
+The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or landing. It asks in the shared progress dialog, blocks input
 while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the
 group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
-link — and changes no spec file.
+link — and deletes no spec or code branch. For an unfinished group, it removes the Group and Group position lines
+from the active members' descriptions, so they can run separately. A completed group's spec files stay unchanged.
 
 ### Execution group records
 

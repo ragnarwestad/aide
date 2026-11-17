@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { saveSpecFiles, type SpecFileEdit } from "../../../git/specs-pull.ts";
-import { withGroupLines } from "../../../project/discover/group.ts";
+import { withGroupLines, stripGroupLines } from "../../../project/discover/group.ts";
 import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
+import { canRemoveExecutionGroup } from "../../../queue/execution-groups/actions.ts";
+import { inFlight } from "../../../queue/job-rules/activity.ts";
 import { lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../queue/execution-groups";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
 import { executionGroupForAction } from "./execution-group-action.ts";
@@ -138,4 +140,44 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
   if (continueAfterEdit(ctx.queue, group.id, group.state, done)) await ctx.tickRunner();
   ctx.notifyQueueChanged();
   return json({ ok: true, group: outcome.group });
+}
+
+
+export async function removeExecutionGroup(ctx: RoutesContext, id: string): Promise<Response> {
+  const group = executionGroupForAction(ctx.queue.executionGroups, id, ctx.withFreshness(ctx.targets()));
+  if (!group || group.removedAt) return json({ error: "the group no longer exists" }, 409);
+  const canRemove = () => {
+    const latest = ctx.queue.executionGroups.get(group.id)!;
+    const busy = ctx.queue.list().some((job) => job.project === group.project &&
+      (job.executionGroupId === group.id || group.members.includes(job.specFolder)) && inFlight(job));
+    return canRemoveExecutionGroup(latest, busy);
+  };
+  if (!canRemove()) return json({ error: "stop the group before removing it" }, 409);
+  if (group.state !== "completed") {
+    const dirs = group.members.flatMap((folder) => {
+      const dir = ctx.specDir(group.project, folder);
+      return dir && !ctx.specRef(group.project, folder)?.archived ? [dir] : [];
+    });
+    const first = dirs[0];
+    if (first) {
+      const result = await ctx.mergeLock.run(await ctx.specsRoot(first), async () => {
+        if (!canRemove()) return { ok: false, note: "stop the group before removing it" };
+        const edits: SpecFileEdit[] = [];
+        for (const dir of dirs) {
+          const file = relative(first, `${dir}/${DESCRIPTION_FILE}`);
+          const current = readFileSync(`${dir}/${DESCRIPTION_FILE}`, "utf-8");
+          const text = stripGroupLines(current);
+          if (text !== current) edits.push({ file, text, baseSha: (await lastCommitOf(ctx.gitRun, first, file))?.sha ?? null });
+        }
+        if (!canRemove()) return { ok: false, note: "stop the group before removing it" };
+        return edits.length ? saveSpecFiles(ctx.gitRun, first, (root) => ctx.branchStatus.defaultBranch(root), edits,
+          { specLabel: group.name, message: editMessage(group.name, "execution group removal") }) : { ok: true };
+      });
+      if (!result.ok) return json({ error: result.note }, 409);
+    }
+  }
+  const removed = ctx.queue.executionGroups.remove(group.id);
+  await ctx.rereadProject(group.project);
+  ctx.notifyQueueChanged();
+  return json({ ok: true, group: removed });
 }

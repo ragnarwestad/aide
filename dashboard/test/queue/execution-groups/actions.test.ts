@@ -13,7 +13,7 @@ const member = (o: Partial<ExecutionGroupMemberState> = {}): ExecutionGroupMembe
   implemented: false, archived: false, acceptanceOpen: false, busy: false, ...o,
 });
 test("group controls keep one cell action and put Edit in the menu (AC-1, AC-2, AC-11)", () => {
-  expect(executionGroupControls({ state: "prepared" }, [member()])).toEqual({ action: "start", menu: ["edit"] });
+  expect(executionGroupControls({ state: "prepared" }, [member()])).toEqual({ action: "start", menu: ["edit", "remove"] });
   expect(executionGroupControls({ state: "running" }, [member({ busy: true })])).toEqual({ action: "stop", menu: ["edit"] });
   expect(executionGroupControls({ state: "archiving" }, [member({ busy: true })])).toEqual({ action: "stop", menu: [] });
 });
@@ -65,4 +65,12 @@ test("non-Run actions keep the active-group reservation boundary (AC-2, AC-3)", 
   }
   for (const state of ["prepared", "stopped", "waiting-acceptance", "completed"] as const)
     expect(groupReservesSpec({ executionGroups: { list: () => [{ ...group, state }] }, list: () => [] }, "aide", "2-next")).toBe(false);
+});
+
+
+test("an idle group offers Remove, but a member still working keeps it unavailable", () => {
+  for (const state of ["prepared", "stopped", "waiting-acceptance"] as const) {
+    expect(executionGroupControls({ state }, [member()]).menu).toContain("remove");
+    expect(executionGroupControls({ state }, [member({ busy: true })]).menu).not.toContain("remove");
+  }
 });

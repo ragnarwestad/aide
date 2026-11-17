@@ -20,7 +20,7 @@ import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, groupRowPicks, withRowPicks } from "../../queue/request/index.ts";
 import { executionGroupAction, waitingGroupJob, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
-import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
+import { createExecutionGroup, editGroup, removeExecutionGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
 
@@ -70,16 +70,7 @@ export async function handleJobActionRoutes(
     } catch { return json({ error: "malformed body" }, 400); }
     let groupId: string;
     try { groupId = decodeURIComponent(groupAction[1]!); } catch { return json({ error: "invalid group" }, 400); }
-    if (askedAction === "remove") {
-      // The record alone decides: a completed group's members are archived, so
-      // the member check below would refuse it, and a group known only from its
-      // members' `Group:` lines is never completed and must get no record here.
-      const recorded = ctx.queue.executionGroups.get(groupId);
-      if (!recorded || executionGroupAction(recorded, []) !== "remove") {
-        return json({ error: "only a completed group can be removed" }, 409);
-      }
-      return json({ ok: true, group: ctx.queue.executionGroups.remove(recorded.id) });
-    }
+    if (askedAction === "remove") return removeExecutionGroup(ctx, groupId);
     const execution = executionGroupForAction(ctx.queue.executionGroups, groupId, ctx.withFreshness(ctx.targets()));
     if (!execution) return json({ error: "the group no longer exists" }, 409);
     const { project, name } = execution;
