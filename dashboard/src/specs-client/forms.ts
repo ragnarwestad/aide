@@ -37,7 +37,11 @@ export async function submitAction(event: Event): Promise<void> {
   }
   await postForm(
     form,
-    async () => {
+    async (body) => {
+      if (form.hasAttribute("data-land-retry") && body?.job?.id) {
+        await swapPage(`/jobs/${encodeURIComponent(body.job.id)}`, { history: "push" });
+        return;
+      }
       // The press has gone through - the row's own hand-made ticks
       // have done their job and must not go on deciding a later run
       clearChosenSteps(form.id);

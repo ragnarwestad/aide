@@ -35,6 +35,7 @@ export interface QueueRowView {
   landing?: boolean;
   branch?: string;
   landPushStarted?: boolean;
+  landSuccessor?: { id: string; landed: boolean };
   deploy?: { restartedAt?: string };
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored

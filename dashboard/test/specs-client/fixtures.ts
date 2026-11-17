@@ -163,6 +163,7 @@ export function harness(
     querySelectorAll: () => [],
   };
   const form = {
+    hasAttribute: () => false,
     action: control.action,
     className: formClass,
     // The run form is the only one with an id, because it is the only

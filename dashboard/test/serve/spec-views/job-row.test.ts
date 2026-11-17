@@ -185,3 +185,16 @@ test("a group's waiting Archive keeps its identity when the authorized job is qu
   if (!made.ok) throw new Error(made.error);
   expect(queue.waiting.snapshot().entries.map(entry => entry.id)).toEqual([initial[0]!.id]);
 });
+
+test("a cancelled Land row points at its later successful attempt", async () => {
+  const queue = makeStore();
+  const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!old.ok) throw new Error(old.error);
+  queue.update(old.job.id, { state: "cancelled" });
+  const next = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!next.ok) throw new Error(next.error);
+  queue.update(next.job.id, { state: "done" });
+  const row = await jobRow({ queue, store: new AideRunStore() }, queue.get(old.job.id)!);
+  expect(row.landSuccessor).toEqual({ id: next.job.id, landed: true });
+  expect(row.state).toBe("cancelled");
+});

@@ -34,7 +34,7 @@ export interface JobLike {
   results?: readonly { terminalReason?: string }[];
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch">> & { steps: readonly string[] };
+type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch" | "landSuccessor">> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec.
