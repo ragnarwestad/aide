@@ -82,6 +82,14 @@ export const JOBS_CATALOG = {
       fr: "augmentez la limite de temps de l’étape",
     },
   },
+  "runner.deployPriority": {
+    en: "waiting for Deploy — this job continues automatically afterwards",
+    nb: "venter på Deploy — jobben fortsetter automatisk etterpå",
+    es: "esperando a Deploy — el trabajo continúa automáticamente después",
+    de: "wartet auf Deploy — der Job wird danach automatisch fortgesetzt",
+    fr: "en attente de Deploy — la tâche reprend automatiquement ensuite",
+    statement: "landings wait for a pending deploy and resume automatically",
+  },
   "runner.landingPause": {
     en: "held back: {message} — this deploy starts when it has finished",
     nb: "holdt tilbake: {message} — denne deployen starter når det er ferdig",

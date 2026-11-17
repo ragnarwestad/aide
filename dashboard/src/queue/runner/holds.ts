@@ -2,6 +2,7 @@
 // when it changed, and taken off again by the first pass that does not
 // hold it.
 
+import { pendingDeploy } from "../job-rules/deploy-priority.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import type { Job, QueueStore } from "../queue.ts";
 import { specReference } from "../../project/spec-folder.ts";
@@ -26,6 +27,7 @@ export const HOLD_NAMES = [
   "no-free-slot",
   "own-landing",
   "same-spec-running",
+  "deploy-priority",
   "project-landing",
   "deploy-waits-for-landing",
   "not-analyzed",
@@ -66,6 +68,9 @@ export const HOLDS: readonly Hold[] = [
   { name: "same-spec-running", check: (job, at) => at.jobs().some((candidate) =>
     candidate.state === "running" && candidate.project === job.project && candidate.specFolder === job.specFolder)
     ? WAIT : undefined },
+  { name: "deploy-priority", check: (job, at) =>
+    (stepOf(job) === "archive" || stepOf(job) === "land") && pendingDeploy(at.jobs())
+      ? { key: "runner.deployPriority" } : undefined },
   { name: "project-landing", check: (job, at) => {
     const step = stepOf(job);
     if (step !== "archive" && step !== "land") return undefined;

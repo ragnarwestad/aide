@@ -41,6 +41,21 @@ describe("the open criterion test fold", () => {
     expect(folds(rows).map((d) => d.open)).toEqual([true]);
   });
 
+  test("Unit and Browser folds keep their own open state after a redraw", () => {
+    const row = { task: "AC-1: x", tests: [
+      { file: "unit.ts", name: "unit", kind: "unit" as const },
+      { file: "browser.ts", name: "browser", kind: "browser" as const },
+    ] };
+    const rows = list(acTestsLine(row, "en", SCOPE));
+    const browser = rows.querySelector(`[data-testcriterion="${SCOPE}|1|browser"]`) as HTMLDetailsElement;
+    browser.open = true;
+    const open = openTestFiles(rows);
+    rows.innerHTML = acTestsLine(row, "en", SCOPE);
+    reopenTestFiles(rows, open);
+    expect((rows.querySelector(`[data-testcriterion="${SCOPE}|1|unit"]`) as HTMLDetailsElement).open).toBe(false);
+    expect((rows.querySelector(`[data-testcriterion="${SCOPE}|1|browser"]`) as HTMLDetailsElement).open).toBe(true);
+  });
+
   test("a key whose file is no longer drawn opens nothing", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
     folds(rows)[0]!.open = true;

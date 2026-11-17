@@ -79,6 +79,7 @@ export async function landBranch(
   outcome: Partial<StepOutcome>,
   what: Landing,
 ): Promise<void> {
+  if (ctx.beforeLanding && !(await ctx.beforeLanding(job))) return;
   const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>
     firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step, held);
   try {

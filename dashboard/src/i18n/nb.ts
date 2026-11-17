@@ -54,6 +54,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.leaveAppBody": "Endringene du gjorde blir kanskje ikke lagret.",
   "dialog.ok": "OK",
   "dialog.cancel": "Avbryt",
+  "shell.dismiss": "Skjul",
   "dialog.close": "Lukk",
   "usage.reading": "Leser forbruk…",
   "usage.left": "{percent} % igjen",
@@ -198,8 +199,8 @@ export const nb: Record<TranslationKey, string> = {
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
   "checks.coveredBy": "Tester: {names}",
-  "checks.unit": "Enhet",
-  "checks.browser": "Nettleser",
+  "checks.unit": "Enhetstester",
+  "checks.browser": "Nettlesertester",
   "checks.noTestNames": "Ingen test nevner {id}.",
   "list.branchLeftBehind":
     "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +

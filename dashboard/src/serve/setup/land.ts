@@ -1,3 +1,4 @@
+import { waitForDeploy } from "../deploy-job/landing-hold.ts";
 // A job's row, and landing a step's branch when it finishes. Split out
 // of serve.ts (split serve.ts by theme, restructuring createServer into
 // staged setup functions to get it under 500 lines).
@@ -81,6 +82,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   // the same getter/invalidator shape the queue and SSE contexts use,
   // closing over the same `state.scan`.
   const landCtx: LandContext = {
+    beforeLanding: (job) => waitForDeploy(inputs.queue, job.id),
     machineryProjectDir: inputs.machineryProjectDir,
     codeLanding: inputs.codeLanding,
     pullRequests: state.pullRequests,
@@ -133,7 +135,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     isBoard: (root) => isDashboardRoot(landCtx, root),
     // The deploy job's restart waits as long as landings take: nothing may
     // be cut short, so no deadline.
-    restartWhenSettled: ({ onWait, beforeFire, prepare, cancelled }) =>
+    restartWhenSettled: ({ onWait, beforeFire, prepare, cancelled, landings }) =>
       restartAfterLanding({
         mergeLock: inputs.mergeLock,
         restart: inputs.restart,
@@ -144,7 +146,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
           setPendingRestart(state, jobs);
           onWait(jobs);
         },
-        beforeFire, prepare, cancelled,
+        beforeFire, prepare, cancelled, landings,
       }),
   };
   /** The board's own deploy as a job: the runner starts it through

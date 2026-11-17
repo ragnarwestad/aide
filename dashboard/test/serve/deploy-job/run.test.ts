@@ -218,6 +218,7 @@ describe("a deploy waits for a landing before its fetch", () => {
     let release = (): void => {};
     const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
     store.update(landing.id, { state: "done", landing: true });
+    store.update(s.id, { deployWaitForLandings: [landing.id] });
     const held = s.lock.run(ROOT, () => new Promise<void>((r) => (release = r)));
     const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     await wait(60);
@@ -322,6 +323,7 @@ test("Deploy waits for a landing even before it takes the checkout lock", async 
   const s = setup();
   const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
   store.update(landing.id, { state: "done", landing: true });
+    store.update(s.id, { deployWaitForLandings: [landing.id] });
   const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
   try {
     await wait(30);
@@ -338,6 +340,7 @@ test("Cancel during a landing wait prevents fetch, install and any later restart
   const s = setup({ restartRegistered: async () => true });
   const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
   store.update(landing.id, { state: "done", landing: true });
+    store.update(s.id, { deployWaitForLandings: [landing.id] });
   const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
   await wait(20);
   store.transition(s.id, "cancel", { finishedAt: new Date().toISOString() });
@@ -370,16 +373,16 @@ test("a commit that lands during the restart wait is installed before the servic
   expect(store.get(s.id)?.deploy?.commit).toBe(HEAD);
 });
 
-test("a queued Land in the board's project finishes before Deploy fetches", async () => {
+test("Deploy fetches without waiting for a queued Land", async () => {
   const s = setup();
   const landing = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/pending" });
   const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
   try {
     await wait(20);
-    expect(s.git).toEqual([]);
+    expect(s.calls.install).toBe(1);
+    expect(store.get(landing.id)?.state).toBe("queued");
   } finally {
     store.update(landing.id, { state: "done" });
     await running;
   }
-  expect(s.calls.install).toBe(1);
 });

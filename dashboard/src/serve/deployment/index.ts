@@ -4,7 +4,7 @@ export interface DeployHooks {
   installCheckout: (root: string) => Promise<InstallResult>;
   restartRegistered: () => Promise<boolean>;
   isBoard: (root: string) => boolean;
-  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void; prepare?: () => Promise<boolean>; cancelled?: () => boolean }) => Promise<boolean>;
+  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void; prepare?: () => Promise<boolean>; cancelled?: () => boolean; landings?: () => string[] }) => Promise<boolean>;
 }
 
 export { installCheckout, type InstallResult } from "./install.ts";

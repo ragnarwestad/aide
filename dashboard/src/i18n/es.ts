@@ -54,6 +54,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.leaveAppBody": "Es posible que los cambios que hiciste no se guarden.",
   "dialog.ok": "OK",
   "dialog.cancel": "Cancelar",
+  "shell.dismiss": "Ocultar",
   "dialog.close": "Cerrar",
   "usage.reading": "Leyendo uso…",
   "usage.left": "{percent}% restante",
@@ -196,8 +197,8 @@ export const es: Record<TranslationKey, string> = {
     "y vuelve a hacer push desde una terminal.",
   "list.prError": "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
   "checks.coveredBy": "Tests: {names}",
-  "checks.unit": "Unidad",
-  "checks.browser": "Navegador",
+  "checks.unit": "Tests unitarios",
+  "checks.browser": "Tests de navegador",
   "checks.noTestNames": "Ningún test nombra {id}.",
   "list.branchLeftBehind":
     "Esta spec se mergeó, pero su branch no se pudo borrar en origin. — " +

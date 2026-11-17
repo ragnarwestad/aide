@@ -89,7 +89,9 @@ are in the server's log.
 **A check git did not finish is not a broken checkout.** When git is stopped before it answers — it took longer than
 its time limit, was killed, or could not start — the line at the top of the page says the dashboard could not check
 its checkout yet, names the check and how it ended, and leaves the checkout as it is. That checkout is checked again
-about every 30 seconds, and the line goes away as soon as a check succeeds.
+about every 30 seconds, and the line goes away as soon as a check succeeds. A check that has not
+finished is shown as a warning with Dismiss. Dismiss hides that notice on the current page without stopping the
+automatic recheck; a refresh shows the current answer, and a confirmed checkout fault remains an error.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What the form sets is
 saved after the clone by the same save the Config tab makes. The name, description, worktree links, code landing,

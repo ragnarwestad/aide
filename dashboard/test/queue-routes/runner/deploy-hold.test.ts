@@ -23,9 +23,9 @@ function landing() {
 
 describe("a queued deploy is held back while a landing is in flight", () => {
   test("the holds name the deploy with the landing sentence, and no other job", () => {
+    landing();
     const d = deploy();
     const other = enqueue({ steps: ["implement"] });
-    landing();
     const holds = deployLandingHolds(ctx());
     expect(holds.get(d.id)?.inner).toEqual([{ key: "runner.landingRunning", values: { doing: "analyze", spec: "aide:91" } }]);
     expect(holds.has(other.id)).toBe(false);
@@ -37,8 +37,8 @@ describe("a queued deploy is held back while a landing is in flight", () => {
   });
 
   test("a tick leaves it queued with the sentence on the row, and starts it once the landing has cleared", () => {
-    const d = deploy();
     const l = landing();
+    const d = deploy();
     const runner = makeRunner({ maxConcurrent: 3 });
     runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
     expect(store.get(d.id)?.state).toBe("queued");
@@ -59,4 +59,25 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     expect(store.get(d.id)?.state).toBe("running");
     expect(spawns).toHaveLength(1);
   });
+});
+
+test("newly ready landings cannot keep a priority Deploy queued", () => {
+  const d = deploy();
+  const first = landing();
+  store.update(d.id, { deployWaitForLandings: [first.id] });
+  const later = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+  store.update(later.id, { state: "done", landing: true });
+  expect(deployLandingHolds(ctx()).has(d.id)).toBe(true);
+  store.update(first.id, { landing: undefined });
+  expect(deployLandingHolds(ctx()).has(d.id)).toBe(false);
+  makeRunner().tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
+  expect(store.get(d.id)?.state).toBe("running");
+});
+
+test("enqueuing Deploy captures only the landings already in flight", () => {
+  const first = landing();
+  const d = deploy();
+  const later = enqueue({ steps: ["analyze"] });
+  store.update(later.id, { state: "done", landing: true });
+  expect(store.get(d.id)?.deployWaitForLandings).toEqual([first.id]);
 });

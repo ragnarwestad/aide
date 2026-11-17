@@ -54,6 +54,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.leaveAppBody": "Die von dir vorgenommenen Änderungen werden möglicherweise nicht gespeichert.",
   "dialog.ok": "OK",
   "dialog.cancel": "Abbrechen",
+  "shell.dismiss": "Ausblenden",
   "dialog.close": "Schließen",
   "usage.reading": "Nutzung wird gelesen…",
   "usage.left": "{percent}% übrig",
@@ -196,8 +197,8 @@ export const de: Record<TranslationKey, string> = {
     "und pushe ihn erneut von einem Terminal aus.",
   "list.prError": "Für diesen Branch konnte kein Pull Request geöffnet werden. — Öffne ihn von Hand, im Checkout auf dem Server.",
   "checks.coveredBy": "Tests: {names}",
-  "checks.unit": "Unit",
-  "checks.browser": "Browser",
+  "checks.unit": "Unit-Tests",
+  "checks.browser": "Browser-Tests",
   "checks.noTestNames": "Kein Test nennt {id}.",
   "list.branchLeftBehind":
     "Diese Spec wurde gemergt, aber ihr Branch konnte auf origin nicht gelöscht werden. — " +

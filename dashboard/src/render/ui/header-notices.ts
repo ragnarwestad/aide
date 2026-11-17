@@ -6,8 +6,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { checkoutFaults } from "./checkout-faults.ts";
-import { rowMessage } from "./components";
+import { checkoutFaults, checkoutFaultPresentation } from "./checkout-faults.ts";
+import { rowMessage, btn } from "./components";
 import { esc } from "./html.ts";
 import { jobsSentence } from "./components/spec-name.ts";
 import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
@@ -114,13 +114,14 @@ function missingModelsNotices(lang: Language): string {
  *  whole answer to "why is this project's list wrong". */
 function checkoutFaultNotices(lang: Language): string {
   return checkoutFaults()
-    .map(({ project, said, recheck }) =>
-      // A marked warning is a check git did not finish, not a failure.
-      rowMessage("failed", t(lang, recheck ? "shell.checkoutNotChecked" : "shell.checkoutFault", { project, said }), {
+    .map(({ project, said, recheck }) => {
+      const presentation = checkoutFaultPresentation(recheck);
+      return rowMessage(presentation.variant, t(lang, recheck ? "shell.checkoutNotChecked" : "shell.checkoutFault", { project, said }), {
         tag: "p",
         hook: "checkout-fault",
-      }),
-    )
+        actions: presentation.dismissible ? btn({ label: t(lang, "shell.dismiss"), type: "button", small: true, data: { "dismiss-checkout-warning": "" } }) : undefined,
+      });
+    })
     .join("");
 }
 

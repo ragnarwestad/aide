@@ -204,7 +204,9 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     const body = await answer(res);
     expect(body.ok).toBe(true);
     expect(body.job).toMatchObject({ project: "aide", specFolder: "deploy", steps: ["deploy"] });
-    expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
+    const jobs = (await queued(base)).filter((j) => j.specFolder === "deploy");
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ deployWaitForLandings: [] });
   });
 
   test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing", async () => {

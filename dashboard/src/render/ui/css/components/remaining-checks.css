@@ -34,14 +34,15 @@
    thing on it that is still worth reading. */
 .check .checknote { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
 /* The tests that prove the row, under its note; amber where none does. */
-.check .checktests { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
+.check .checktests { display: grid; gap: var(--sp-2); grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
 /* The link of a Failed row: a line under the text, not a stretched cell. */
 .check .btn { grid-column: 1; justify-self: start; }
-.check .checktests.untested { color: var(--warn); }
+.check .checktests .untested { color: var(--warn); }
 .checktests .foldbox > summary { display: flex; gap: var(--sp-2); align-items: center; }
 .testkind { display: inline-flex; gap: var(--sp-1); align-items: center; }
 .testkindicon { width: 1em; height: 1em; background: currentColor; mask: var(--icon-test-unit) center / contain no-repeat; }
-.testkindicon.browser { mask-image: var(--icon-test-browser); }
+.testkindicon.unit { color: var(--link-text); }
+.testkindicon.browser { color: var(--kind-spec); mask-image: var(--icon-test-browser); }
 .testfile { padding: var(--sp-1) 0 var(--sp-1) var(--sp-5); }
 .testfilepath { display: flex; gap: var(--sp-1); align-items: center; }
 .testnames { padding-left: var(--sp-4); }

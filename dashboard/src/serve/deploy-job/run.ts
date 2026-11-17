@@ -37,7 +37,7 @@ export interface DeployRunDeps {
   installCheckout: (root: string) => Promise<InstallResult>;
   restartRegistered: () => Promise<boolean>;
   waiting?: (jobs: string[]) => void;
-  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void; prepare?: () => Promise<boolean>; cancelled?: () => boolean }) => Promise<boolean>;
+  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void; prepare?: () => Promise<boolean>; cancelled?: () => boolean; landings?: () => string[] }) => Promise<boolean>;
   readServing: () => { sha: string | null; repoRoot: string | null };
   setFailure: (project: string, failure: DeployFailure | null) => void;
   setFault: (fault: Sentence | null) => void;
@@ -57,6 +57,9 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   const first = deps.queue.get(jobId);
   if (!first) return;
   const { project } = first;
+  if (!first.deployWaitForLandings) deps.queue.update(jobId, {
+    deployWaitForLandings: deps.queue.list().filter((job) => job.landing && job.id !== jobId).map((job) => job.id),
+  });
   const output = boardStep({ resultFile, streamFile: first.streamFile!, startedAt: first.stepStartedAt });
   const root = deps.projectRoot(project);
   let step: DeployStep = "fetch";
@@ -75,8 +78,8 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
   const hold = (on: boolean): void => {
     if (on === held) return;
     held = on;
-    deps.waiting?.(on ? deployWaitsFor(deps.queue.list(), project, jobId).map((job) => `${job.project}:${job.specFolder}`) : []);
-    deps.queue.update(jobId, on ? { error: deployHold(deps.queue.list(), jobId, project), errorReason: "held-back" } : { error: undefined, errorReason: undefined });
+    deps.waiting?.(on ? deployWaitsFor(deps.queue.list(), jobId).map((job) => `${job.project}:${job.specFolder}`) : []);
+    deps.queue.update(jobId, on ? { error: deployHold(deps.queue.list(), jobId), errorReason: "held-back" } : { error: undefined, errorReason: undefined });
   };
 
   const fail = (sentence: Sentence, detail?: string): void => {
@@ -101,7 +104,7 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
       while (active()) {
         at("fetch", "started");
         deps.setFailure(project, null);
-        const waitingJobs = () => deployWaitsFor(deps.queue.list(), project, jobId);
+        const waitingJobs = () => deployWaitsFor(deps.queue.list(), jobId);
         const waiting = () => deps.mergeLock.roots().includes(root) || waitingJobs().length > 0;
         if (waiting()) {
           hold(true);
@@ -147,6 +150,7 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
       let timer: ReturnType<typeof setTimeout> | undefined;
       const fired = await deps.restartWhenSettled({
         prepare,
+        landings: () => deployWaitsFor(deps.queue.list(), jobId).map((job) => `${job.project}:${job.specFolder}`),
         cancelled: () => !active() || existsSync(resultFile),
         onWait: (landings) => hold(landings.length > 0),
         beforeFire: () => {

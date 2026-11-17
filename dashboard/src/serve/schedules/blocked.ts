@@ -8,8 +8,7 @@ import { readSpecState } from "../../project/parse-spec-state.ts";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
-import { deployHold } from "../deploy-job/landing-hold.ts";
-import { landingJobNames } from "../deployment";
+import { deployHold, deployWaitsFor } from "../deploy-job/landing-hold.ts";
 import { jobKind, type Job } from "../../queue/queue.ts";
 import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
@@ -204,8 +203,9 @@ export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
  *  fetches into the board's checkout and restarts the process that runs the
  *  landings, so it starts when none is in flight. */
 export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
-  if (landingJobNames(ctx.queue).length === 0) return new Set();
-  return new Set(ctx.queue.list().filter((job) => job.state === "queued" && jobKind(job) === "deploy").map((job) => job.id));
+  const jobs = ctx.queue.list();
+  return new Set(jobs.filter((job) => job.state === "queued" && jobKind(job) === "deploy" &&
+    deployWaitsFor(jobs, job.id).length > 0).map((job) => job.id));
 }
 
 /** Queued jobs held because Analyze has not run. */
