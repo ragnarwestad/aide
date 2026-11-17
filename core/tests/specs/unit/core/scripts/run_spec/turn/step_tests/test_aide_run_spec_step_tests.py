@@ -618,12 +618,10 @@ def test_a_runner_started_by_hand_asks_for_four_workers_ac_1(runner, workspace, 
     assert seen.read_text().strip() == "4"
 
 
-def test_the_runners_own_run_gets_the_cores_divided_among_the_running_steps_ac_1(
+def test_the_runners_own_tests_ignore_ai_jobs_that_are_not_testing(
     runner, workspace, fake_claude, tmp_path, monkeypatch
 ):
-    """The board's queue mirror holds as many running jobs as the host
-    has cores, one of them landing: the run gets one worker, whatever the
-    host's core count is."""
+    """AI jobs and a pending landing do not consume test workers."""
     with_status(workspace, ["create", "analyze"])
     cores = os.cpu_count() or 1
     mirror = tmp_path / "aide-queue.json"
@@ -635,7 +633,8 @@ def test_the_runners_own_run_gets_the_cores_divided_among_the_running_steps_ac_1
     _project_with_test_cmd(workspace, f'echo "$AIDE_TEST_WORKERS" > {seen}')
     rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
     assert out["terminalReason"] == "completed", out
-    assert seen.read_text().strip() == "1"
+    assert seen.read_text().strip() == str(cores)
+    assert not list(tmp_path.glob("aide-queue.json.test-runs/run.*"))
 
 
 def test_a_failing_test_the_output_names_twice_is_reported_once(runner, workspace, fake_claude, tmp_path):

@@ -91,6 +91,7 @@ const STATE_FILTER_LABEL_KEYS: Record<string, TranslationKey> = {
   queued: "list.state.queued",
   waiting: "list.state.waiting",
   done: "list.done",
+  cancelled: "list.state.cancelled",
   stopped: "list.state.stopped",
   failed: "list.state.failed",
   created: "list.state.created",

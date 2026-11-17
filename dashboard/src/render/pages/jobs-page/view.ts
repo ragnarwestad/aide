@@ -8,7 +8,6 @@ import { waitingForGroup } from "../specs-list/data-model/spec-state.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   ACTIVE_FILTER_KEY,
-  NOT_VERIFIED_KEY,
   SORTS,
   SORT_DEFAULT_DIR,
   chosenStates,
@@ -38,7 +37,7 @@ export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
 /** The state entries the Jobs tab offers: All, Active, Running, Queued, Waiting,
- *  Done, Stopped, Failed, Not verified. Done is a spec archived or closed, or
+ *  Done, Stopped, Failed, Cancelled. Done is a spec archived or closed, or
  *  any other row's job that has ended done; a spec whose last job ended done
  *  waits for its next phase, as on the Specs list. Active is every row Done
  *  does not hold and that can still be acted on, under the Specs list's key
@@ -49,8 +48,7 @@ const finished = (g: unknown): boolean => {
   return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound || !!row.ownJob));
 };
 const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
-/** A cancelled job that is not a spec's offers nothing more: no Run, no
- *  Cancel. A spec's row can always run its phase again. */
+/** Cancelled standalone jobs remain in history rather than the Active view. */
 const endedForGood = (g: unknown): boolean => (g as RowFacts).state === "cancelled" && rowKind(g as RowFacts) !== "spec";
 const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknown) => !finished(g) && !endedForGood(g) } as StateEntry;
 const jobStateEntries: StateEntry[] = [
@@ -59,8 +57,8 @@ const jobStateEntries: StateEntry[] = [
   { key: "queued", label: "Queued", states: ["queued"] },
   { key: "waiting", label: "Waiting", where: (g) => (g.state === "done" && !finished(g)) || waitingForGroup(g as RowFacts) },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
-  { key: "failed", label: "Failed", states: ["failed", "interrupted", "cancelled", "archived-unlanded"] },
-  { key: NOT_VERIFIED_KEY, label: "Not verified", where: (g) => g.state !== "closed" && (g.notVerified ?? 0) + (g.failed ?? 0) > 0 },
+  { key: "failed", label: "Failed", states: ["failed", "interrupted", "archived-unlanded"] },
+  { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
 ];
 export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 4), doneState, ...jobStateEntries.slice(4)];
 
@@ -157,6 +155,20 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
   );
   const shown = sortGroups(kept, f);
   return shown.map((facts) => byFacts.get(facts)!);
+}
+
+/** Count matching work inside groups, deduplicating a shared job. */
+export function jobsMatchingCount<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: JobsFilter): number {
+  const states = jobsStateFilters(f.state);
+  const keys = new Set<string>();
+  for (const { facts } of jobsViewRows(entries, f)) {
+    for (const row of stateRows(facts)) {
+      if (!states.some((state) => matchesStateFilter(state, row))) continue;
+      if (!matchesSearch(facts, f) && !matchesSearch(row, f)) continue;
+      keys.add(row.lead?.id ?? `${row.project}/${row.specFolder}`);
+    }
+  }
+  return keys.size;
 }
 
 /** What the state dropdown offers: the entries, the chosen ones marked, each

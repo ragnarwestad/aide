@@ -285,16 +285,15 @@ def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_cla
     assert rc == 0, out
     assert "AIDE_HEADLESS=1" in fake_claude.env_log.read_text().splitlines()
 
-def test_a_model_turn_gets_the_cores_divided_among_the_running_steps_ac_2(runner, workspace, fake_claude, tmp_path, monkeypatch):
-    """The tests a session runs itself keep to the same worker count as
-    the runner's own run: the cores divided by the running steps."""
+def test_a_model_turn_does_not_reserve_test_workers_for_other_ai_jobs(runner, workspace, fake_claude, tmp_path, monkeypatch):
+    """AI jobs without active test recorders do not reduce test capacity."""
     mirror = tmp_path / "aide-queue.json"
     mirror.write_text(json.dumps([{"state": "running"}, {"state": "running"}]))
     monkeypatch.setenv("AIDE_QUEUE_MIRROR", str(mirror))
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    expected = max(1, (os.cpu_count() or 1) // 2)
+    expected = os.cpu_count() or 1
     assert f"AIDE_TEST_WORKERS={expected}" in fake_claude.env_log.read_text().splitlines()
 
 def test_a_model_turn_of_a_runner_started_by_hand_gets_no_worker_count_ac_2(runner, workspace, fake_claude, monkeypatch):

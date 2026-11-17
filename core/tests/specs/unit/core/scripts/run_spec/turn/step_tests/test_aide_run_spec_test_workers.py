@@ -1,54 +1,48 @@
-"""How many test workers a run may use (run-spec/turn/test-workers.sh).
-
-The host's cores divided among the steps and landings running on the board,
-rounded down and at least one. The landing makes the same decision in
-TypeScript (dashboard/src/queue/test-workers.ts), and
-core/tests/fixtures/test-workers.json pins both.
-"""
-
-import json
+"""Only live test recorders share the board's test workers."""
+import os
 import pathlib
 import subprocess
 
-import pytest
-
-CASES = json.loads(
-    (pathlib.Path(__file__).resolve().parents[7] / "fixtures" / "test-workers.json").read_text()
-)["cases"]
-PART = pathlib.Path(__file__).resolve().parents[9] / "core" / "scripts" / "lib" / "run-spec" / "turn" / "test-workers.sh"
+PART = pathlib.Path(__file__).resolve().parents[9] / "core/scripts/lib/run-spec/turn/test-workers.sh"
 
 
-def _bash(snippet, env=None):
-    return subprocess.run(
-        ["bash", "-c", f'set -uo pipefail; source "{PART}"; {snippet}'],
-        capture_output=True, text=True, env=env,
-    )
+def run(snippet, mirror):
+    env = {**os.environ, "AIDE_QUEUE_MIRROR": str(mirror)}
+    return subprocess.run(["bash", "-c", f'set -uo pipefail; source "{PART}"; {snippet}'], capture_output=True, text=True, env=env)
 
 
-@pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
-def test_the_share_is_the_cores_divided_by_the_jobs_running_or_landing_ac_1(case, tmp_path):
-    mirror = tmp_path / "aide-queue.json"
-    mirror.write_text(json.dumps(case["jobs"]))
-    r = _bash(f'test_workers_share {case["cores"]} "{mirror}"')
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == str(case["workers"])
+def test_ai_jobs_do_not_reduce_test_workers(tmp_path):
+    mirror = tmp_path / "queue.json"
+    mirror.write_text('[{"state":"running"},{"state":"done","landing":true}]')
+    result = run('host_cores() { echo 10; }; test_workers_begin; echo "$AIDE_TEST_WORKERS"; test_workers_end', mirror)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "10"
+    assert not list(tmp_path.glob("queue.json.test-runs/run.*"))
 
 
-def test_a_mirror_that_is_not_json_counts_as_this_run_alone_ac_1(tmp_path):
-    mirror = tmp_path / "aide-queue.json"
-    mirror.write_text("{ not json")
-    r = _bash(f'test_workers_share 10 "{mirror}"')
-    assert r.stdout.strip() == "10", r.stderr
+def test_another_live_recorder_shares_cores_and_a_dead_one_does_not(tmp_path):
+    mirror = tmp_path / "queue.json"
+    activity = tmp_path / "queue.json.test-runs"
+    activity.mkdir()
+    with subprocess.Popen(["sleep", "30"]) as other:
+        try:
+            (activity / f"run.{other.pid}").touch()
+            # Reap a child to get a known dead process rather than assume an unused PID.
+            dead = subprocess.Popen(["true"])
+            dead.wait()
+            (activity / f"run.{dead.pid}").touch()
+            result = run('host_cores() { echo 10; }; test_workers_begin; echo "$AIDE_TEST_WORKERS"; test_workers_end', mirror)
+            assert result.returncode == 0, result.stderr
+            assert result.stdout.strip() == "5"
+            assert (activity / f"run.{other.pid}").exists()
+            assert not (activity / f"run.{dead.pid}").exists()
+        finally:
+            other.terminate()
 
 
-def test_a_mirror_that_is_gone_counts_as_this_run_alone_ac_1(tmp_path):
-    r = _bash(f'test_workers_share 10 "{tmp_path}/missing.json"')
-    assert r.stdout.strip() == "10", r.stderr
-
-
-def test_without_a_queue_mirror_the_runner_works_out_no_share_ac_2():
-    import os
+def test_without_a_board_the_explicit_worker_count_is_preserved():
     env = {k: v for k, v in os.environ.items() if k != "AIDE_QUEUE_MIRROR"}
-    r = _bash("test_workers_now", env=env)
-    assert r.returncode == 0, r.stderr
-    assert r.stdout == ""
+    env["AIDE_TEST_WORKERS"] = "3"
+    result = subprocess.run(["bash", "-c", f'source "{PART}"; test_workers_begin; echo "$AIDE_TEST_WORKERS"; test_workers_end'], capture_output=True, text=True, env=env)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "3"

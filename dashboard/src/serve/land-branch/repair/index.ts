@@ -19,7 +19,7 @@ export function repairLanding(run: (request: RepairRequest) => Promise<boolean>)
   };
 }
 
-export function createLandingGate(queue: QueueStore, scriptDir?: string) {
+export function createLandingGate(queue: QueueStore, scriptDir?: string, queueMirrorPath?: string) {
   const repairs = new Map<string, ReturnType<typeof repairLanding>>();
   return async (root: string, job: Job, branch: string, button: string) => {
     const policy = landingPolicy(job.steps[job.stepIndex]);
@@ -30,7 +30,7 @@ export function createLandingGate(queue: QueueStore, scriptDir?: string) {
       repairs.set(job.id, repair);
     }
     try {
-      const verdict = await runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir, jobs: () => queue.list(), button, repair });
+      const verdict = await runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir, queueMirrorPath, button, repair });
       if (!verdict.repaired) repairs.delete(job.id);
       return verdict;
     } catch (error) {
