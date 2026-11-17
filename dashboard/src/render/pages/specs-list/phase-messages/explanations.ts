@@ -17,7 +17,7 @@ export function phaseExplanations(g: Pick<SpecGroup, "analyzeStale" | "done">, p
     prErrorOf(p) ? prErrorSentence(lang) : undefined,
     formatSentence(
       lang,
-      wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult, step: p.step }, lang)
+      wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, waiting: p.waiting, fileResult: p.fileResult, step: p.step }, lang)
         .qualifier,
     ),
   ];

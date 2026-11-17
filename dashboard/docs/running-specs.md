@@ -575,6 +575,12 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
+Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears.
+
+Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
+
+Saved priority survives refresh and server restart. The first eligible entry starts: prerequisites, provider limits, concurrency and repository locks still apply, so a blocked entry does not stop eligible work below it.
+
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls back
 to two**; it does not clamp.
 
@@ -851,8 +857,9 @@ The first view draws 50 cards. **Show more** adds the next 50 without reloading 
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
-after push begins the Stop control is unavailable. A stopped Land needs a new request to run again.
+such as `Land: fix/example`. A cancelled Land that had started offers Run once its cleanup finishes. Run queues a new
+job for the same branch through the normal branch checks; the old job stays Cancelled in history. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
+after push begins the Stop control is unavailable.
 
 Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
@@ -923,7 +930,8 @@ The board's own deploy is a job under the tracking key `deploy`, a step the serv
 (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
 reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A second
-deploy is refused while one is queued or running. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
+deploy is refused while one is queued or running. During that time, the header Deploy mark and the Deploy tab’s
+start button are disabled; they become available again when the job ends if deployment is still needed. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
 the Deploy and its planned restart; Archive and Land continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout

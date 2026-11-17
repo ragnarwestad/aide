@@ -25,7 +25,7 @@ export interface ProgressParts {
 }
 
 /** A step's state in a step list: the Running page's Close and Reopen lines. */
-export type ProgressStepState = "waiting" | "running" | "done" | "failed";
+export type ProgressStepState = "waiting" | "running" | "done" | "failed" | "cancelled";
 
 export function progressDialog(lang: Language, parts: ProgressParts): string {
   const ask = parts.ask;

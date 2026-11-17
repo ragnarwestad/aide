@@ -73,3 +73,8 @@ test("test repair is limited to Archive and Land; only standalone Land shares ot
   expect(WORKFLOW_STEPS.filter((step) => landingPolicy(step).repairsTests)).toEqual(["archive", "land"]);
   expect(WORKFLOW_STEPS.filter((step) => landingPolicy(step).sharesGreenResults)).toEqual(["land"]);
 });
+
+
+test("only standalone Land repairs conflicts in the landing merge", () => {
+  expect(WORKFLOW_STEPS.filter((step) => landingPolicy(step).repairsConflicts)).toEqual(["land"]);
+});

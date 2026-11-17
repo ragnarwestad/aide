@@ -1,6 +1,4 @@
-// The landing's test run is told how many workers it may use: the host's cores
-// divided among the steps and landings running as it starts, so a landing
-// leaves the other cores to the specs running beside it.
+// Land uses the same live-recorder capacity calculation as Implement.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -24,11 +22,11 @@ function git(cwd: string, ...args: string[]): void {
 }
 
 describe("the landing's test run", () => {
-  test("is given the cores divided among the running steps and landings (AC-1)", async () => {
+  test("shares cores with live test recorders, ignoring AI jobs", async () => {
     const root = mkdtempSync(join(tmpdir(), "aide-gate-workers-"));
     dirs.push(root);
     mkdirSync(join(root, ".aide"));
-    writeFileSync(join(root, ".aide", "project.yaml"), "name: demo\nAIDE_TEST_CMD: make it\n");
+    writeFileSync(join(root, ".aide", "project.yaml"), `name: demo\nAIDE_TEST_CMD: printf '%s' "$AIDE_TEST_WORKERS" > "${join(root, "workers.txt")}"\n`);
     writeFileSync(join(root, "app.py"), "print(0)\n");
     git(root, "init", "-q", "-b", "main");
     git(root, "config", "user.name", "Test");
@@ -41,24 +39,22 @@ describe("the landing's test run", () => {
 
     const bin = mkdtempSync(join(tmpdir(), "aide-gate-workers-bin-"));
     dirs.push(bin);
-    const seen = join(bin, "env.txt");
-    writeFileSync(
-      join(bin, "record"),
-      `#!/bin/sh\necho "$AIDE_TEST_WORKERS" > ${seen}\n`,
-      { mode: 0o755 },
-    );
+    const seen = join(root, "workers.txt");
     process.env.AIDE_RESOLVE_TEST_CMD_BIN = RESOLVER;
-    process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
+    process.env.AIDE_RECORD_TEST_RUN_BIN = join(import.meta.dir, "../../../../../core/scripts/aide-record-test-run");
     process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
 
-    // The landing itself and one running job fewer than the host has cores:
-    // every core is spoken for, so the run gets one worker.
-    const jobs = () => [
-      { state: "done", landing: true },
-      ...Array.from({ length: availableParallelism() - 1 }, () => ({ state: "running", landing: false })),
-    ] as { state: "running" | "done"; landing: boolean }[];
-    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { jobs, button: "Archive" });
-    expect(verdict.ok).toBe(true);
-    expect(readFileSync(seen, "utf-8").trim()).toBe("1");
+    const queueMirrorPath = join(bin, "queue.json");
+    writeFileSync(queueMirrorPath, JSON.stringify(Array.from({ length: 10 }, () => ({ state: "running" }))));
+    const options = { queueMirrorPath, button: "Archive" };
+    const first = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", options);
+    expect(first.ok).toBe(true);
+    expect(readFileSync(seen, "utf-8").trim()).toBe(String(availableParallelism()));
+    const activity = `${queueMirrorPath}.test-runs`;
+    writeFileSync(join(activity, `run.${process.pid}`), "");
+    const shared = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", options);
+    expect(shared.ok).toBe(true);
+    expect(readFileSync(seen, "utf-8").trim()).toBe(String(Math.max(1, Math.floor(availableParallelism() / 2))));
+
   });
 });

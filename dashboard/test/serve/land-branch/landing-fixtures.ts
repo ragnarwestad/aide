@@ -1,3 +1,5 @@
+import { WaitingQueue } from "../../../src/queue/waiting";
+import { createRootLock } from "../../../src/serve/serve-helpers/config.ts";
 // A `landBranch` that runs for real against a git that runs no git.
 //
 // Nothing here mocks a module: a `mock.module` is registered for the
@@ -56,7 +58,7 @@ export function landCtx(
       renamePendingModel: () => {},
     },
     gitRun,
-    mergeLock: { run: async (_root: string, fn: () => Promise<unknown>) => fn() },
+    mergeLock: createRootLock(),
     machineryProjectDir: () => "/repos/aide-code",
     machinerySpecsRoot: () => ROOT,
     codeLanding: () => undefined,
@@ -73,6 +75,8 @@ export function landCtx(
     },
     ...extra,
   };
+  const queue = ctx.queue as { waiting?: WaitingQueue };
+  queue.waiting ??= new WaitingQueue({});
   return { ctx, forgotten, remembered, merged };
 }
 

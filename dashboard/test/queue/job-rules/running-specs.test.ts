@@ -1,41 +1,33 @@
 import { expect, test } from "bun:test";
 import { specActivityCounts } from "../../../src/queue/job-rules/running-specs.ts";
 import type { Job } from "../../../src/queue/types.ts";
-
-const job = (overrides: Partial<Job> = {}): Job => ({
-  project: "aide", specFolder: "821-recover", state: "running", steps: ["implement"], stepIndex: 0, ...overrides,
+const job = (id: string, overrides: Partial<Job> = {}): Job => ({
+  id, project: "aide", specFolder: "821-recover", state: "running", steps: ["implement"], stepIndex: 0, ...overrides,
 } as Job);
 const served = (project: string) => project === "aide";
 
-test("counts each running spec once, including a landing and the members of a shared archive", () => {
+test("counts all running and queued job kinds, independent of the spec folder", () => {
   expect(specActivityCounts([
-    job(), job(),
-    job({ specFolder: "822-next", state: "done", landing: true }),
-    job({ specFolder: "823-group", steps: ["archive"], groupMembers: ["823-group", "824-member"] }),
-  ], served).running).toBe(4);
+    job("implement"), job("land", { steps: ["land"] }), job("deploy", { steps: ["deploy"] }),
+    job("schedule", { steps: ["schedule"] }), job("cleanup", { steps: ["cleanup"] }),
+    job("queued", { state: "queued" }), job("queued-land", { steps: ["land"], state: "queued" }),
+  ], served)).toEqual({ running: 5, queued: 2 });
 });
 
-test("queued, stopped, other job kinds and projects outside this board do not count", () => {
-  expect(specActivityCounts([
-    job({ state: "queued" }), job({ state: "stopped" }), job({ state: "done" }),
-    job({ project: "hidden" }),
-    job({ steps: ["schedule"], specFolder: "schedule-news" }),
-    job({ steps: ["deploy"] }), job({ steps: ["cleanup"] }),
-    job({ steps: ["close"] }), job({ steps: ["reopen"] }),
-  ], served).running).toBe(0);
+test("a shared archive is one running job, and duplicate records count once", () => {
+  const archive = job("archive", { state: "done", landing: true, steps: ["archive"], groupMembers: ["one", "two", "three"] });
+  expect(specActivityCounts([archive, archive], served)).toEqual({ running: 1, queued: 0 });
 });
 
-
-test("counts four running specs and six queued specs separately", () => {
-  const jobs = Array.from({ length: 10 }, (_, i) => job({ specFolder: `${i}-spec`, state: i < 4 ? "running" : "queued" }));
-  expect(specActivityCounts(jobs, served)).toEqual({ running: 4, queued: 6 });
+test("settled jobs and projects outside the board do not count", () => {
+  expect(specActivityCounts([
+    job("hidden", { project: "hidden" }), job("done", { state: "done" }),
+    job("failed", { state: "failed" }), job("cancelled", { state: "cancelled", landing: true }),
+    job("stopped", { state: "stopped" }),
+  ], served)).toEqual({ running: 0, queued: 0 });
 });
 
-test("running takes precedence over queued copies and shared archive members count once", () => {
-  expect(specActivityCounts([
-    job({ specFolder: "816-one" }),
-    job({ state: "queued", steps: ["archive"], groupMembers: ["816-one", "817-two"] }),
-    job({ specFolder: "818-three", state: "done", landing: true }),
-    job({ specFolder: "818-three", state: "queued" }),
-  ], served)).toEqual({ running: 2, queued: 1 });
+test("a running job held back from doing work counts as waiting", () => {
+  expect(specActivityCounts([job("deploy", { steps: ["deploy"], errorReason: "held-back" })], served))
+    .toEqual({ running: 0, queued: 1 });
 });

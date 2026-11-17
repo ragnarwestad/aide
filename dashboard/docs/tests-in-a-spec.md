@@ -52,8 +52,10 @@ landing. At most two repairs are saved to the source branch, without force, foll
 Stop cancels the repair too. Repair transcripts are kept beside the job's stream as `.repair.jsonl` files.
 
 Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
-divided by the steps and landings running at that moment, rounded down and at least one. An implement's own run and a
-landing's run work it out as they start; a step's session gets it as its turn starts, for the tests it runs itself.
+divided by the live test recorders at that moment, rounded down and at least one. Implement, Land and Archive use
+`aide-record-test-run` to register their tests beside the board's queue mirror and take their share as the tests
+start. AI turns and lock waits do not count. Finished recorders are removed, and dead processes are ignored.
+Already running test processes keep their original worker count.
 Aide's own suites keep to it: pytest starts that many workers, and the dashboard's `scripts/run-tests.sh` that many
 test processes. A project's own test command may read `AIDE_TEST_WORKERS` to do the same. Run outside the board,
 with nothing set, pytest starts one worker per core and `run-tests.sh` leaves two cores free.

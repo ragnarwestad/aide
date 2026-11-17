@@ -1,3 +1,4 @@
+import { dispatchFor } from "../../../queue/waiting/dispatch.ts";
 // Delete branch: an archived spec whose landing merged its branch but
 // could not delete it on origin has only this cleanup left, and the
 // row's button asks for it. Origin is asked fresh, and a branch that is
@@ -17,7 +18,7 @@ import type { LandContext } from "../types.ts";
 export type DeleteLeftBehindContext = Pick<
   LandContext,
   "machineryProjectDir" | "machinerySpecsRoot" | "branchStatus" | "gitRun" | "mergeLock" | "specsRoot" | "codeLanding"
-  | "pullRequests"
+  | "pullRequests" | "queue"
 >;
 
 export type DeleteLeftBehindResult = { ok: true } | { ok: false; error: string };
@@ -60,7 +61,7 @@ export async function deleteLeftBehindBranch(
     byRepo.set(top, [...(byRepo.get(top) ?? []), root]);
   }
   for (const [top, roots] of byRepo) {
-    const result = await ctx.mergeLock.run(top, () => deleteBranchOnly(ctx.gitRun, top, branch));
+    const result = await dispatchFor(ctx.queue.waiting).run({ id: `cleanup:${project}:${folder}:${top}`, project, label: branch, operation: "cleanup", reason: "Waiting for the repository merge lock" }, ctx.mergeLock, top, () => deleteBranchOnly(ctx.gitRun, top, branch));
     if (!result.ok || result.branchDeleteError) {
       console.error(`queue: deleting ${branch} in ${top} failed — ${result.detail ?? "unknown reason"}`);
       return { ok: false, error: `${branch} could not be deleted on origin. — Press Delete branch again.` };

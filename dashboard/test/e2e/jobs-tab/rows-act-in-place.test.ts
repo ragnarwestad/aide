@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { fakeGit, CLEAN_MASTER } from "../../helpers/fake-git.ts";
 import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 import { t } from "../../../src/i18n";
 
@@ -328,5 +328,36 @@ test("Types can select Land separately and its card names the source branch", as
     await page.getByText("Land: fix/example", { exact: true }).waitFor();
     expect(new URL(page.url()).searchParams.get("kind")).toBe("land");
     await page.getByText("Deploy aide", { exact: true }).waitFor({ state: "hidden" });
+  } finally { await page.close(); }
+});
+
+
+test("Run on a cancelled Land opens the queued new attempt without changing its history", async () => {
+  const old = { id: "cancelled-land", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
+    state: "cancelled", branch: "fix/topic", timeoutSec: {}, permissionMode: {}, model: {}, results: [],
+    createdAt: "2026-11-17T12:00:00Z", startedAt: "2026-11-17T12:00:00Z", finishedAt: "2026-11-17T12:01:00Z" };
+  const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 0, stdout: "abc\trefs/heads/fix/topic\n" } });
+  const { base } = harness.start({ queueMirror: JSON.stringify([old]), extra: { gitRun: git.run } });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?state=all&open=aide/land:land&live=0`);
+    await page.getByRole("button", { name: "Run", exact: true }).waitFor({ timeout: 3000 });
+    const loads = countLoads(page);
+    const response = page.waitForResponse((res) => res.url().endsWith("/api/queue/projects/aide/land") && res.request().method() === "POST");
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    const res = await response;
+    expect(res.ok()).toBe(true);
+    const fresh = (await res.json()).job;
+    expect(fresh).toMatchObject({ branch: "fix/topic", steps: ["land"] });
+    await page.waitForURL((url) => url.pathname === `/jobs/${fresh.id}`);
+    expect(await stateOf(base, fresh.id)).toBe("queued");
+    expect(await stateOf(base, old.id)).toBe("cancelled");
+    expect(loads.n).toBe(0);
+    await page.goto(`${base}/?state=cancelled&kind=land&open=aide/land:land@${old.id}&live=0`);
+    await page.getByRole("link", { name: "View run", exact: true }).waitFor();
+    expect(await page.getByRole("button", { name: "Run", exact: true }).count()).toBe(0);
+    await page.screenshot({ path: "/tmp/aide-land-feedback-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: "/tmp/aide-land-feedback-mobile.png" });
   } finally { await page.close(); }
 });

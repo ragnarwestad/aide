@@ -122,7 +122,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
     .filter((phase) => !(sharedGroup && phase.step === "archive"))
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step }, opts.lang);
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, waiting: p.waiting, step: p.step, fileResult: p.fileResult }, opts.lang);
       // The phase's own name, plain text: a phase line used to open the
       // tab the phase wrote, but the mapping did not hold for
       // every phase — archive writes no file of its own, and a step
@@ -279,7 +279,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
           // first, and the box sits in beside the model, so it needs no indent.
           `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
-          `<td data-col="state">${phaseWordCell(word, attemptCount)}</td>` +
+          `<td data-col="state">${phaseWordCell(word, attemptCount, opts.lang)}</td>` +
           // The phase's own duration, not when it began.
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what

@@ -11,8 +11,8 @@ import { capitalizeFirst } from "../../messages/shared/written.ts";
 import type { LogPart } from "./step-log.ts";
 
 /** A marked step's state: started is running, done and skipped are done,
- *  stopped is failed. */
-export type MarkState = "running" | "done" | "failed";
+ *  stopped is failed; the job reader distinguishes cancellation. */
+export type MarkState = "running" | "done" | "failed" | "cancelled";
 
 export interface StepMark {
   /** The step's place, `stepKey()`: "Step 4 of 4", "Step Aide: preparing". */

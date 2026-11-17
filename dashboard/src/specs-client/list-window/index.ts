@@ -50,6 +50,7 @@ export function bindListWindow(doc: Document = document): () => void {
       press.pressGen++;
       press.inFlight++;
       history.replaceState(null, "", requested.pathname + requested.search + requested.hash);
+      body.classList.add(AWAITING);
       let accepted = false;
       try { await swapRows(() => { accepted = true; }); }
       finally {

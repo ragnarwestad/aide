@@ -5,6 +5,15 @@
 // exact English text the covered surfaces already render — the
 // byte-identical default depends on that.
 export const en = {
+  "queue.title": "Waiting queue",
+  "queue.up": "Move up",
+  "queue.down": "Move down",
+  "queue.drag": "Drag to move",
+  "queue.empty": "The queue is empty.",
+  "queue.lost": "Editing ownership was lost. Close and open the queue again.",
+  "queue.removed": "The selected job is no longer waiting.",
+  "queue.help": "Order sets priority. Blocked work waits until it can start.",
+
   "shell.colorScheme": "Color scheme",
   "shell.language": "Language",
   "shell.unit": "Units",
@@ -76,6 +85,9 @@ export const en = {
   "dialog.closing": "closing…",
   "dialog.removing": "removing…",
   "shell.stopTestServer": "Stop",
+  "jobs.landAlreadyLanded": "Landed",
+  "jobs.landNewAttempt": "View run",
+  "jobs.runAgain": "Run",
   "shell.runTestRound": "Run",
   "shell.delay": "Delay: {value}",
   "shell.delayOff": "Off",
@@ -94,6 +106,7 @@ export const en = {
   "list.state.implemented": "Implemented",
   "list.state.queued": "Queued",
   "list.state.waiting": "Waiting",
+  "list.state.cancelled": "Cancelled",
   "list.state.stopped": "Stopped",
   "list.state.failed": "Failed",
   "list.state.archived": "Archived",

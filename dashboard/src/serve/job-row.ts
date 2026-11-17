@@ -1,15 +1,17 @@
+import { waitingKey } from "../queue/waiting/jobs.ts";
 // The queue row view: what every list, job page and spec page draws a
 // job from — pulled out of `createServer`'s closure the same way the
 // earlier clusters were (spec: split serve.ts, step 6). Small context:
 // unlike `schedules.ts`, nothing here reads a `let` reassigned later in
 // boot, so every field is a plain value.
 
-import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
+import { tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView, SideRunView } from "../render";
 import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
+import { landSuccessor } from "../queue/job-rules/land-retry.ts";
 import { requireWorkflowStep } from "../workflow-steps.ts";
 
 export interface JobRowContext {
@@ -22,6 +24,8 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
   const providerKey = step && requireWorkflowStep(step).runsModel ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
+  const waiting = ctx.queue.waiting.snapshot().entries;
+  const phases = Object.fromEntries(waiting.filter(entry => entry.jobId === job.id).map(entry => [entry.operation, positionOf(waiting, entry.id)!]));
   return {
     id: job.id,
     project: job.project,
@@ -36,11 +40,13 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // that takes its tick cannot disagree about where the tail
     // starts.
     editableSteps: tailEdits(job),
-    queuePosition: job.state === "queued" ? queuePosition(ctx.queue, job) : undefined,
+    queuePosition: queuePosition(waiting, job),
+    waitingPhases: phases,
     state: job.state,
     landing: job.landing,
     branch: job.branch,
     landPushStarted: job.landPushStarted,
+    landSuccessor: job.state === "cancelled" && job.steps[0] === "land" ? landSuccessor(job, ctx.queue.list()) : undefined,
     deploy: job.deploy,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no
@@ -117,20 +123,11 @@ function sideView(run: SideRun | undefined): SideRunView | undefined {
   return { outcome: run.outcome, tool: run.tool, durationSec: run.durationSec, costUsd: run.costUsd, tokens: run.tokens?.total, modelId: run.modelId, provider: run.provider, providerLimit: run.providerLimit };
 }
 
-/** The same `queuePriorityOrder()` `Runner.tick()` calls,
- *  applied to every currently `queued` job that is actually waiting for
- *  a slot, oldest-first as `list()` gives every other reader of the
- *  store. A job the runner is holding back for another reason
- *  (`errorReason === "held-back"`, set by `Runner.hold()`) is excluded
- *  from both the count and its own place — it is not
- *  competing for a slot at all. */
-function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } | undefined {
-  // Not competing for a slot: it stays where it is even if the queue
-  // were empty, so it gets no place, and it does not count toward
-  // anyone else's total either.
-  if (job.errorReason === "held-back") return undefined;
-  const queued = queuePriorityOrder(
-    [...queue.list()].reverse().filter((j) => j.state === "queued" && j.errorReason !== "held-back"),
-  );
-  return { n: queued.findIndex((j) => j.id === job.id) + 1, total: queued.length };
+function positionOf(entries: import("../queue/waiting").WaitingEntry[], id: string): QueueRowView["queuePosition"] {
+  const index = entries.findIndex(entry => entry.id === id);
+  return index < 0 ? undefined : { n: index + 1, total: entries.length, id, reason: entries[index]!.reason, operation: entries[index]!.operation };
+}
+function queuePosition(entries: import("../queue/waiting").WaitingEntry[], job: Job): QueueRowView["queuePosition"] {
+  const continuation = entries.find(entry => entry.jobId === job.id && (entry.id.startsWith("merge:") || entry.id.startsWith("deploy:")));
+  return positionOf(entries, continuation?.id ?? waitingKey(job));
 }

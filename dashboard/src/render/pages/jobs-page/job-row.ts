@@ -18,7 +18,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { btnLink, askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -60,7 +60,7 @@ function commitLines(row: QueueRowView, o: JobRowOptions): string {
   return `<tr class="phasemsgs"><td colspan="${LIST_COLUMNS}">${body}</td></tr>`;
 }
 
-const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", waiting: "todo" };
+const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", cancelled: "waiting", waiting: "todo" };
 
 /** A step's pip: done, running, failed, or not started yet. */
 export function jobStepPipKind(state: ProgressStepState | undefined): PipKind {
@@ -90,9 +90,16 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Stop or Cancel with the question it asks first. The dialog's OK posts the
+/** Run queues the same Land branch again. Stop or Cancel asks first; the dialog posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(row: QueueRowView, kind: "stop" | "cancel", lang: Language): string {
+function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language): string {
+  if (kind === "run") return buttonForm({
+    action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
+    hook: "actionform",
+    data: { "land-retry": "" },
+    hidden: { branch: row.branch! },
+    button: { label: t(lang, "jobs.runAgain"), variant: "primary", pending: t(lang, "list.starting") },
+  });
   const id = `jobask-${row.id}`;
   const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
   const stop = kind === "stop";
@@ -158,7 +165,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
-    `${kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
+    `${row.landSuccessor ? btnLink({ label: t(lang, row.landSuccessor.landed ? "jobs.landAlreadyLanded" : "jobs.landNewAttempt"), href: `/jobs/${encodeURIComponent(row.landSuccessor.id)}`, data: { goto: "" } }) : kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

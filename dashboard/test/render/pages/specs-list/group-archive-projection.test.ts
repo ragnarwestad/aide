@@ -97,3 +97,14 @@ test("every member follows the shared Archive job while it runs and lands", () =
     }
   }
 });
+
+test("acceptance waiting is shared by every Archive phase without inventing an attempted job", () => {
+  const waiting = { id: "group:group-1:archive", n: 2, total: 3, operation: "archive", reason: "Waiting for acceptance criteria to be checked" };
+  for (const source of members) {
+    const member = withGroupArchive(source, { executionGroups: [{ ...execution, state: "waiting-acceptance", queuePosition: waiting }], groupJobs: [] });
+    const archive = member.phases.find(phase => phase.step === "archive")!;
+    expect(archive.attempts).toEqual([]);
+    expect(phasePipKind(archive, member.done)).toBe("queued");
+    expect(wordPhase(false, archive.heldBack, undefined, { step: "archive", waiting: archive.waiting }).waiting).toEqual(waiting);
+  }
+});

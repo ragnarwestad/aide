@@ -1,3 +1,5 @@
+import type { BadgeVariant } from "./badge.ts";
+import { stateIconName } from "./state-icon.ts";
 // The button, the link drawn as one, and the Save/Cancel row every
 // document form carries. A confirm box's answers are `confirm-dialog.ts`'s.
 // `index.ts` re-exports every name here; the pages import it from there.
@@ -17,6 +19,7 @@ import { ICON_CLOSE, SPINNER } from "./icons.ts";
 export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 
 export interface BtnOptions {
+  badge?: BadgeVariant;
   label: string;
   /** Trusted inline SVG drawn before the escaped label. */
   icon?: string;
@@ -53,12 +56,13 @@ export interface BtnOptions {
 }
 
 export function btn(o: BtnOptions): string {
-  const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
+  const cls = o.badge ? `badge b-${o.badge}` : ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
   const attrs =
     (o.id ? `id="${esc(o.id)}" ` : "") +
     `type="${o.type ?? "submit"}" class="${cls}"` +
     (o.form ? ` form="${esc(o.form)}"` : "") +
     (o.value !== undefined ? ` value="${esc(o.value)}"` : "") +
+    (o.badge && stateIconName(o.label) ? ` data-icon="${stateIconName(o.label)}"` : "") +
     dataAttrs(o.data) +
     (o.pending ? ` data-pending="${esc(capitalizeFirst(o.pending))}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +

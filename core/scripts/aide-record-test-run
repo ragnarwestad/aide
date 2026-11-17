@@ -85,7 +85,9 @@ record_file="$target_dir/test-run.json"
 # Everything the commands print, both streams, kept to read the failing
 # tests from once they are done.
 output_file="$(mktemp)"
-trap 'rm -f "$output_file" "$output_file.rc"' EXIT
+source "$SCRIPT_DIR/lib/run-spec/turn/test-workers.sh"
+trap 'test_workers_end; rm -f "$output_file" "$output_file.rc"' EXIT
+test_workers_begin || aide_spec_refuse "cannot register the test run"
 
 # One command, run in the project. Its two streams pass through as they
 # are, and into $output_file. With --progress-file they pass through

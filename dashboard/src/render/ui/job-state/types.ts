@@ -28,19 +28,14 @@ export interface QueueRowView {
    *  every job that is not running: then the row locks as it always
    *  did. */
   editableSteps?: string[];
-  /** Where a queued job stands among every job waiting its turn:
-   *  `n` is its 1-indexed place in `queuePriorityOrder()`'s order
-   *  `total` the number of jobs `queued` right now. Computed by
-   *  `jobRow()` off the SAME function `Runner.tick()` calls, so
-   *  the two cannot disagree. Absent for every state but `queued`
-   *  genuinely waiting for a slot — a job the runner is holding back for
-   *  a different reason (`errorReason === "held-back"`) gets
-   *  none either, however `queuePriorityOrder()` would have sorted it. */
-  queuePosition?: { n: number; total: number };
+  /** Global priority and waiting identity, including blocked work and pending merges. */
+  waitingPhases?: Record<string, NonNullable<QueueRowView["queuePosition"]>>;
+  queuePosition?: { n: number; total: number; id?: string; reason?: string; operation?: string };
   state: JobState;
   landing?: boolean;
   branch?: string;
   landPushStarted?: boolean;
+  landSuccessor?: { id: string; landed: boolean };
   deploy?: { restartedAt?: string };
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored

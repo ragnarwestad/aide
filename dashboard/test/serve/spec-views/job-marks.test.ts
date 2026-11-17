@@ -60,6 +60,19 @@ const STOPPED_IN_STEP_1 = () =>
   );
 
 describe("jobMarks", () => {
+  test("a cancelled Land marks the interrupted test step cancelled and keeps completed steps", () => {
+    for (const ending of [[], ["error: --- Step 2 of 4: Run tests — stopped: cancelled by user"]]) {
+      const file = step([], [
+        "--- Step 1 of 4: Merge branch — started",
+        "--- Step 1 of 4: Merge branch — done",
+        "--- Step 2 of 4: Run tests — started",
+        ...ending,
+      ]);
+      const got = jobStepLines(job({ state: "cancelled", steps: ["land"], streamFile: file }), "en");
+      expect(got.map((m) => m.state)).toEqual(["done", "cancelled", undefined, undefined]);
+    }
+  });
+
   test("a failed job's last running step is failed, and the reason is its error in the reader's language", () => {
     const error = { key: "landing.deployNoAnswer" } as const;
     const got = jobMarks(job({ state: "failed", streamFile: STOPPED_IN_STEP_1(), error }), "nb");
@@ -249,6 +262,22 @@ describe("deploySteps", () => {
     expect(got.slice(2).map((s) => s.state)).toEqual(["done", "done", "done"]);
     expect(got[3]!.seconds).toBe(1);
     expect(got[4]!.seconds).toBe(1);
+  });
+
+  test("a held Deploy shows its active step as waiting in both the rows and pips", () => {
+    const file = step([], [
+      "--- Step 1 of 5: Fetch from origin — started",
+      "--- Step 1 of 5: Fetch from origin — done",
+      "--- Step 2 of 5: Install — started",
+    ]);
+    const waiting = deployJob(file, { state: "running", errorReason: "held-back" });
+    const lines = deploySteps(waiting, "en");
+    expect(lines.map((s) => s.state)).toEqual(["done", undefined, undefined, undefined, undefined]);
+    expect(lines[1]!.since).toBeUndefined();
+    expect(jobStepPips(waiting, "en").map((s) => s.state)).toEqual(lines.map((s) => s.state));
+    const resumed = deploySteps({ ...waiting, errorReason: undefined }, "en");
+    expect(resumed[1]!.state).toBe("running");
+    expect(resumed[1]!.since).toBeDefined();
   });
 
   test("a deploy with nothing marked yet lists the five steps, none with a state", () => {

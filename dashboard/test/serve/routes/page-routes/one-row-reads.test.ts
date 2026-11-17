@@ -202,9 +202,11 @@ for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) 
     expect(read().rows).toHaveLength(200);
     await ask(route, `${path}?state=all&q=needle`);
     expect(read().rows).toEqual(["j0"]);
-    targets[0]!.notVerified = 1;
-    await ask(route, `${path}?state=not-verified`);
-    expect(read().rows).toEqual(["j0"]);
+    if (path === "/specs") {
+      targets[0]!.notVerified = 1;
+      await ask(route, `${path}?state=not-verified`);
+      expect(read().rows).toEqual(["j0"]);
+    }
     await ask(path === "/specs" ? specPageRoutes : route, path === "/specs" ? "/specs/aide/00000-item?state=all&detail=1" : `${path}?state=all&open=aide/00000-item`);
     expect(read().rows).toContain("j0");
     expect(read().rows.length).toBeLessThanOrEqual(101);

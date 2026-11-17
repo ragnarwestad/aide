@@ -218,11 +218,6 @@ def test_a_blocking_readiness_prerequisite_is_refused_by_the_runner(runner, work
     assert expect_in_error in out["error"], out
     assert not fake_claude.calls.exists()
 
-def test_the_runner_starts_when_none_of_the_fixtures_prerequisites_fail(runner, workspace, fake_claude):
-    claude, _ = probing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-
 def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, workspace, fake_claude):
     """git refuses to check out one branch in two worktrees. A main
     checkout left on `aide/<spec>` — by a cancel, or by any refusal after

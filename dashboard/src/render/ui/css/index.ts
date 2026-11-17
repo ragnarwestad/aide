@@ -48,6 +48,7 @@ const SECTIONS = [
   "components/field.css",
   "components/radio-card.css",
   "components/form-dialog.css",
+  "components/queue-editor.css",
   "components/provider-face.css",
   "list/list.css",
   "list/execution-group-card.css",

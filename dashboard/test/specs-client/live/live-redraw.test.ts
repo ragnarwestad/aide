@@ -769,7 +769,7 @@ test("accepted range metadata travels on the next live request (AC-7)", async ()
   expect(new URLSearchParams(h.location.search).has("grow")).toBe(false);
   h.live()!.emit("changed");
   await flush();
-  const last = new URL(h.requests.at(-1)!.url, "http://dash.test");
+  const last = new URL(h.requests.filter((request) => request.url.includes("rows=1")).at(-1)!.url, "http://dash.test");
   expect(last.searchParams.get("limit")).toBe("200");
   expect(last.searchParams.get("windowLoaded")).toBe("202");
   expect(last.searchParams.get("boundary")).toBe("aide/last");

@@ -21,7 +21,7 @@ import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
-import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
+import { jobFacts, jobsMatchingCount, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
@@ -254,7 +254,7 @@ export function renderJobsRows(v: JobsView): string {
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices + executionGroupEditors(v, lang) +
-    jobsFilterBar(all.map((e) => e.facts), f, lang, matching.length) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f)) +
     `<div class="tablewrap"${windowAttributes(window)}><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table>${more}</div>`
   );
 }

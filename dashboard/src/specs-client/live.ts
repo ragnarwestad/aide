@@ -146,12 +146,14 @@ export function connect(): void {
   // to reload.
   source.addEventListener("open", () => {
     backoffMs = RECONNECT_BASE_MS;
+    void refreshDeployMark(browserMarkIo());
     document.dispatchEvent(new Event("aide:queue-changed"));
     void refreshRows();
     follow.request();
   });
   source.addEventListener("changed", onChanged);
   source.addEventListener("changed", announceCounts);
+  source.addEventListener("changed", () => void refreshDeployMark(browserMarkIo()));
   source.addEventListener("counts", announceCounts);
   source.addEventListener("deploy", () => void refreshDeployMark(browserMarkIo()));
   source.addEventListener("error", onError);

@@ -1,3 +1,5 @@
+import { dispatchFor } from "../waiting/dispatch.ts";
+import { waitingKey } from "../waiting/jobs.ts";
 // The scheduler: a configurable number of jobs at
 // once, every step bounded before it starts, and a restart reconciled
 // rather than guessed at.
@@ -33,7 +35,7 @@ import type { NotifyEvent } from "../../integrations/notify.ts";
 import { formatSentence, type BoardMessage, type Sentence } from "../../messages/format.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
-import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
+import { type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
@@ -121,6 +123,7 @@ export class Runner {
     // "another archive is running in this project" long after that
     // archive had landed, and the two whole-queue pauses below wrote
     // nothing at all on their way out (2026-09-04).
+    dispatchFor(this.o.store.waiting).drain();
     const heldNow = new Set<string>();
     const hold = (job: Job, reason: BoardMessage): void => holdJob(this.o.store, heldNow, job, reason);
 
@@ -146,8 +149,8 @@ export class Runner {
         endUntickedArchive(this.o.store, job, this.o.now());
       }
     }
-    // Quick steps first, oldest first within each group; list() is newest-first.
-    for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
+    const priority = this.o.store.waiting.snapshot().entries.map(entry => entry.id);
+    for (const job of this.o.store.list().sort((a, b) => priority.indexOf(waitingKey(a)) - priority.indexOf(waitingKey(b)))) {
       if (job.state !== "queued") continue;
       const held = holdFor(job, {
         jobs: () => this.o.store.list(),
@@ -156,10 +159,12 @@ export class Runner {
         answers,
       });
       if (held) {
+        this.o.store.waiting.reasons.set(waitingKey(job), held.reason ? formatSentence("en", held.reason) ?? "" : held.name.replaceAll("-", " "));
         if (held.reason) hold(job, held.reason);
         this.waits.held(job, held, this.o.now());
         continue;
       }
+      this.o.store.waiting.reasons.delete(waitingKey(job));
       if (this.startOne(job)) this.waits.started(job, this.o.now());
     }
     this.waits.keepOnly(new Set(this.o.store.list().filter((job) => job.state === "queued").map((job) => job.id)));
@@ -168,6 +173,7 @@ export class Runner {
 
   /** Start one job's next step. Returns whether a slot was taken. */
   private startOne(job: Job): boolean {
+    if (this.o.store.waiting.paused) return false;
     const step = job.steps[job.stepIndex];
     if (!step || (step === "archive" && isGroupMemberRun(job))) {
       this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now(), stepIndex: Math.max(0, job.stepIndex - (step === "archive" ? 1 : 0)) });

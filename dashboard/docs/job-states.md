@@ -248,7 +248,7 @@ in flight a queued deploy is held back, and a running one carries the same `held
 
 The row's badge is short by design, and what it does not say is on the notice line under it. A running job reads
 **Running**; a queued one **Queued 3/11** — its place among every job waiting its turn — or "<phase> queued" when it
-has no position, or **Held back**. Once nothing is running the badge is one word: **Ready**, **Done** or
+has no position. Blocked waiting work keeps its queue position and shows its reason on the notice line. Once nothing is running the badge is one word: **Ready**, **Done** or
 **Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
 
 The badge is that one word everywhere it appears: the row, the phase lines, the job page's chip and the schedule

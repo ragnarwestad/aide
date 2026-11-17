@@ -1,3 +1,4 @@
+import { deployUnderWay, type Job } from "../../../src/queue/queue.ts";
 // Whether the board's own project has commits on origin that this server
 // does not run yet: the header's Deploy mark is shown on that answer.
 
@@ -47,4 +48,12 @@ describe("whether the board has something to deploy", () => {
     expect(await deployWaiting(inputs({ run: async () => ({ code: 128, stdout: "", stderr: "bad" }) }))).toBeUndefined();
     expect(await deployWaiting(inputs({ serving: { sha: null, repoRoot: "/checkouts/aide" } }))).toBeUndefined();
   });
+});
+
+test("only queued and running deploys for this project disable its start controls", () => {
+  for (const state of ["queued", "running", "done", "failed", "cancelled", "stopped"] as const) {
+    const jobs = [{ id: "d", project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state }] as Job[];
+    expect(deployUnderWay(jobs, "aide")).toBe(state === "queued" || state === "running" ? state : undefined);
+    expect(deployUnderWay(jobs, "other")).toBeUndefined();
+  }
 });

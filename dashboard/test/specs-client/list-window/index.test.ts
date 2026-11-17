@@ -40,3 +40,43 @@ test("loading from a stale link keeps the current spec, filters and folds (AC-6,
   expect(next.searchParams.get("open")).toBe("aide/member");
   expect(next.searchParams.get("checks")).toBe("aide/member");
 });
+
+for (const fails of [false, true]) {
+  test(`Show more marks the list as waiting until the request ${fails ? "fails" : "answers"} (AC-3)`, async () => {
+    const { Window } = await import("happy-dom");
+    const { bindListWindow } = await import("../../../src/specs-client/list-window");
+    const { AWAITING } = await import("../../../src/specs-client/state.ts");
+    const win = new Window({ url: "http://board.test/specs" });
+    win.document.body.innerHTML = '<div id="jobrows"><a href="/specs?limit=200" data-list-more>Show more</a></div>';
+    const body = win.document.getElementById("jobrows")!;
+    const pending = Promise.withResolvers<Response>();
+    const keys = ["document", "location", "history", "fetch", "IntersectionObserver"] as const;
+    const previous = keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const);
+    let requested = 0;
+    let cleanup: (() => void) | undefined;
+    try {
+      Object.assign(globalThis, {
+        document: win.document, location: win.location, history: win.history,
+        IntersectionObserver: undefined,
+        fetch: () => { requested++; return pending.promise; },
+      });
+      cleanup = bindListWindow(win.document as unknown as Document);
+      body.querySelector("a")!.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+      expect(requested).toBe(1);
+      expect(body.classList.contains(AWAITING)).toBe(true);
+      if (fails) pending.reject(new Error("offline"));
+      else pending.resolve(new Response("", { status: 503 }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(body.classList.contains(AWAITING)).toBe(false);
+    } finally {
+      pending.resolve(new Response("", { status: 503 }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      cleanup?.();
+      for (const [key, descriptor] of previous) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+      }
+      await win.happyDOM.close();
+    }
+  });
+}

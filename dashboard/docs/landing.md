@@ -88,8 +88,8 @@ landing does — which endings land, which root goes first, what the code root g
 afterwards — is that step's entry in the landing policy (`src/serve/land-branch/policy/index.ts`), never a test of
 its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/git/branch-merge/retry.ts`:
 
-- **A conflict refuses and names the repo and the files.** The files in conflict are read before the failed merge is
-  aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
+- **An unresolved conflict refuses and names the repo and the files.** Standalone Land first attempts automatic
+  resolution on code roots with a test gate. The files in conflict are read before the failed merge is aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
   lines are the detail.
 - **A dirty tree decides nothing.** A file that genuinely collides raises git's own error.
 - **The shared checkout moves under the runner's lock.** The fetch, the `worktree add` and the catch-up after the
@@ -250,8 +250,8 @@ and the CODE root of an `archive` landing is not merged.
   purpose (`prOpen`, from `peekUnlanded` in `src/serve/spec-lookup.ts`) says a pull request is waiting for review,
   until it merges and the row offers Delete branch. The row stays on the list and `archive` stays queueable for it.
   `codeLanding` is never a reason to refuse a run.
-Land applies the same merge lock and test gate to a named branch already on origin. A conflict or red tests leave the
-default branch unchanged. A successful Land pushes the tested merge and deletes the source branch. Deploy is still a
+Land applies the same merge lock and test gate to a named branch already on origin. An unresolved conflict or red
+tests leave the default branch unchanged. A successful Land pushes the tested merge and deletes the source branch. Deploy is still a
 separate action.
 Stop cancels a queued Land or interrupts its merge and tests before push, keeping the source branch and leaving the
 remote default branch unchanged. Once push begins, Stop is unavailable and the operation finishes reporting its result.
@@ -262,3 +262,12 @@ Land and Archive can repair named test regressions when the same suite passes on
 sessions edit the tested merge, independently check the failed files and save the correction on the source branch.
 The landing then fetches main again, rebuilds the merge and runs the full suite before pushing. Existing main
 failures, unknown failures, missing file-test commands and unsuccessful repairs leave main unchanged.
+
+
+On a merge conflict, standalone Land starts a repair session with the conflicted files and both commit IDs. The
+session may edit only those files and may not commit, push or change the open merge. The wrapper verifies that HEAD,
+MERGE_HEAD and other files are unchanged, stages the resolution and rejects remaining conflicts or conflict markers.
+It then commits the merge and saves it to the source branch without force. A failed push preserves a recovery ref.
+Land fetches current main, rebuilds the merge and runs the full suite before pushing main, including a resolution
+whose resulting tree matches main. At most two conflict repairs are attempted per repository. Stop cancels the AI
+session and prevents further commits or pushes. Progress and a conflict-repair transcript appear in the job's log.

@@ -124,29 +124,6 @@ export function currentWorkRoundJobs<T extends {
  *  change the other. */
 export const PHASE_STEPS = workflowControls().map((step) => step.name);
 
-/** The steps quick enough to jump a queued job ahead of a slower one
- *  `create` and `archive` take minutes, `analyze` and
- *  `implement` a half hour or more. `close` does no model
- *  work either, in the same sense `archive` doesn't. Every step not
- *  named here — `explore`, `reopen`, `schedule` —
- *  stays in the slow group: none of them is characterized the way these
- *  are. Module-internal: nothing outside this file needs it directly
- *  (only `queuePriorityOrder`, below, is exported for other files to
- *  call). */
-const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive", "close"];
-
-/** The order a free slot is filled from, and the same order a
- *  queued row's position is read off: quick steps before slow
- *  ones, oldest first within each group. A STABLE sort — handed an
- *  already oldest-first list, it only ever reorders across the quick/
- *  slow boundary, never within a group. */
-export function queuePriorityOrder<T extends { steps: readonly WorkflowStep[]; stepIndex: number }>(
-  oldestFirst: readonly T[],
-): T[] {
-  const rank = (job: T): number => (QUICK_STEPS.includes(job.steps[job.stepIndex]) ? 0 : 1);
-  return [...oldestFirst].sort((a, b) => rank(a) - rank(b));
-}
-
 /** Which steps a reader may still tick or untick on a job, in workflow
  *  order — the tail that has not started, plus every phase the job does
  *  not have that would run AFTER the one running now.
@@ -318,6 +295,15 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
   const step = job.steps[job.stepIndex ?? 0];
   if (step === "deploy" || step === "land" || step === "cleanup" || step === "close" || step === "reopen") return step;
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
+}
+
+export function deployUnderWay(jobs: readonly Job[], project: string): "queued" | "running" | undefined {
+  const job = jobs.find((candidate) => candidate.project === project && jobKind(candidate) === "deploy" && inFlight(candidate));
+  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
+}
+
+export function canRetryLand(job: { landSuccessor?: { id: string }; state: string; landing?: boolean; branch?: string; steps: readonly string[]; stepIndex: number }): boolean {
+  return !job.landSuccessor && job.steps[job.stepIndex] === "land" && job.state === "cancelled" && !inFlight(job) && !!job.branch;
 }
 
 export const jobDismissible = (job: {

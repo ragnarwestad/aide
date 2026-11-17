@@ -1,3 +1,4 @@
+import { waitingGroups } from "../../../queue/waiting/jobs.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { scheduleNameOf } from "../../../project/spec-names.ts";
@@ -31,7 +32,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
   return {
     runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
     targets: ctx.withFreshness(ctx.targets()),
-    executionGroups: ctx.queue.executionGroups.list(),
+    executionGroups: waitingGroups(ctx.queue),
     groupJobs: ctx.queue.list(),
     archived: ctx.readScan()?.archived ?? [],
     lang,

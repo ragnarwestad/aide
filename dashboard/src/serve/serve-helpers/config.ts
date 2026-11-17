@@ -76,7 +76,22 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
  *  that grows for as long as the server is up. */
 export function createRootLock() {
   const chains = new Map<string, Promise<unknown>>();
+  const listeners = new Set<() => void>();
   return {
+    onRelease(fn: () => void): () => void { listeners.add(fn); return () => { listeners.delete(fn); }; },
+    tryRun<T>(root: string, fn: () => Promise<T>): Promise<T> | undefined {
+      if (chains.has(root)) return undefined;
+      let resolve!: (value: T | PromiseLike<T>) => void;
+      let reject!: (reason: unknown) => void;
+      const turn = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+      const done = turn.then(clear, clear);
+      function clear(): void {
+        if (chains.get(root) === done) { chains.delete(root); for (const fn of listeners) fn(); }
+      }
+      chains.set(root, done);
+      try { resolve(fn()); } catch (error) { reject(error); }
+      return turn;
+    },
     run<T>(root: string, fn: () => Promise<T>): Promise<T> {
       const prev = chains.get(root) ?? Promise.resolve();
       // Settled either way: one request's failure is its own, and the
@@ -87,7 +102,7 @@ export function createRootLock() {
         // Only the LAST chain clears the entry. An earlier waiter
         // deleting it would let the next request start beside the one
         // still running, which is the whole thing being prevented.
-        if (chains.get(root) === done) chains.delete(root);
+        if (chains.get(root) === done) { chains.delete(root); for (const fn of listeners) fn(); }
       }
       chains.set(root, done);
       return turn;

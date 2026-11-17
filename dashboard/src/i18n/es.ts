@@ -4,6 +4,15 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const es: Record<TranslationKey, string> = {
+  "queue.title": "Cola de espera",
+  "queue.up": "Subir",
+  "queue.down": "Bajar",
+  "queue.drag": "Arrastrar para mover",
+  "queue.empty": "La cola está vacía.",
+  "queue.lost": "Se perdió el bloqueo de edición. Cierra y abre la cola de nuevo.",
+  "queue.removed": "El trabajo seleccionado ya no está esperando.",
+  "queue.help": "El orden determina la prioridad. Los trabajos bloqueados esperan hasta poder empezar.",
+
   "shell.colorScheme": "Esquema de color",
   "shell.language": "Idioma",
   "shell.unit": "Unidades",
@@ -75,6 +84,9 @@ export const es: Record<TranslationKey, string> = {
   "dialog.closing": "cerrando…",
   "dialog.removing": "eliminando…",
   "shell.stopTestServer": "Detener",
+  "jobs.landAlreadyLanded": "Integrado",
+  "jobs.landNewAttempt": "Ver tarea",
+  "jobs.runAgain": "Ejecutar",
   "shell.runTestRound": "Ejecutar",
   "shell.delay": "Retardo: {value}",
   "shell.delayOff": "No",
@@ -93,6 +105,7 @@ export const es: Record<TranslationKey, string> = {
   "list.state.implemented": "Implementada",
   "list.state.queued": "En cola",
   "list.state.waiting": "Esperando",
+  "list.state.cancelled": "Canceladas",
   "list.state.stopped": "Detenidas",
   "list.state.failed": "Fallidas",
   "list.state.archived": "Archivadas",

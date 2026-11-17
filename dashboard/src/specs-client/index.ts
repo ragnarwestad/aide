@@ -1,3 +1,4 @@
+import { bindWaitingEditor } from "./waiting";
 import { dismissCheckoutWarning } from "./page-mount/notices.ts";
 // The spec list's browser code. TypeScript like the rest of the
 // repo — `tsc --noEmit` covers it, and the server bundles it on the way
@@ -40,6 +41,7 @@ import { RELOAD_FORM, submitReloadForm } from "./reload-form";
 // dropped, from listeners on the document. The counts themselves are drawn
 // per page, by `mountPage` below.
 bindLimits(document);
+bindWaitingEditor();
 
 // Every confirmation asks in a dialog its button names: one click
 // listener opens whichever it is, Cancel on a list row, Delete on a

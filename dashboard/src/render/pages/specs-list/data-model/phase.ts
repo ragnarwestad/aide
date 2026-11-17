@@ -62,6 +62,7 @@ export function runButton(
 }
 
 export interface Phase {
+  waiting?: QueueRowView["queuePosition"];
   step: string;
   /** Every job whose current/last step is this phase, newest first. A
    *  phase can be re-run — `85-dashboard-into-aide` archived three
