@@ -90,9 +90,15 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Stop or Cancel with the question it asks first. The dialog's OK posts the
+/** Run queues the same Land branch again. Stop or Cancel asks first; the dialog posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(row: QueueRowView, kind: "stop" | "cancel", lang: Language): string {
+function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language): string {
+  if (kind === "run") return buttonForm({
+    action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
+    hook: "actionform",
+    hidden: { branch: row.branch! },
+    button: { label: t(lang, "jobs.runAgain"), variant: "primary", pending: t(lang, "list.starting") },
+  });
   const id = `jobask-${row.id}`;
   const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
   const stop = kind === "stop";

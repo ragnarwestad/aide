@@ -851,8 +851,9 @@ The first view draws 50 cards. **Show more** adds the next 50 without reloading 
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
-after push begins the Stop control is unavailable. A stopped Land needs a new request to run again.
+such as `Land: fix/example`. A cancelled Land that had started offers Run once its cleanup finishes. Run queues a new
+job for the same branch through the normal branch checks; the old job stays Cancelled in history. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
+after push begins the Stop control is unavailable.
 
 Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.

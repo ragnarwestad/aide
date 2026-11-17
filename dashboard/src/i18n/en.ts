@@ -76,6 +76,7 @@ export const en = {
   "dialog.closing": "closing…",
   "dialog.removing": "removing…",
   "shell.stopTestServer": "Stop",
+  "jobs.runAgain": "Run",
   "shell.runTestRound": "Run",
   "shell.delay": "Delay: {value}",
   "shell.delayOff": "Off",
