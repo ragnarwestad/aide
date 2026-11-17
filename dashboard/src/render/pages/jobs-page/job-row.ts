@@ -60,7 +60,7 @@ function commitLines(row: QueueRowView, o: JobRowOptions): string {
   return `<tr class="phasemsgs"><td colspan="${LIST_COLUMNS}">${body}</td></tr>`;
 }
 
-const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", waiting: "todo" };
+const PIP_OF: Record<ProgressStepState, PipKind> = { done: "past", running: "now", failed: "refused", cancelled: "waiting", waiting: "todo" };
 
 /** A step's pip: done, running, failed, or not started yet. */
 export function jobStepPipKind(state: ProgressStepState | undefined): PipKind {
