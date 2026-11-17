@@ -25,6 +25,7 @@ export interface LandContext {
    *  keyed `project/folder` (`ServerState.pullRequests`). */
   pullRequests?: Map<string, PullRequestAnswer>;
   queue: QueueStore;
+  beforeLanding?: (job: Job) => Promise<boolean>;
   mergeLock: ReturnType<typeof createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;

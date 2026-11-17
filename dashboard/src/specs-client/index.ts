@@ -1,3 +1,4 @@
+import { dismissCheckoutWarning } from "./page-mount/notices.ts";
 // The spec list's browser code. TypeScript like the rest of the
 // repo — `tsc --noEmit` covers it, and the server bundles it on the way
 // out (`specsClientScript`, `serve/serve-helpers.ts`).
@@ -50,6 +51,7 @@ bindLimits(document);
 // which is why that copy runs in the capture phase. `?.` since a
 // stand-in document may have no body.
 document.body?.addEventListener("click", openAsk as EventListener);
+document.body?.addEventListener("click", dismissCheckoutWarning);
 document.body?.addEventListener("submit", ((event: Event) => {
   const target = event.target as Element | null;
   const progress = target?.closest?.("form[data-progress]") as HTMLFormElement | null;

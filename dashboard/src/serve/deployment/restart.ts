@@ -124,13 +124,14 @@ export async function restartAfterLanding(ctx: {
   beforeFire?: () => void;
   prepare?: () => Promise<boolean>;
   cancelled?: () => boolean;
+  landings?: () => string[];
 }): Promise<boolean> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
     return false;
   }
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
-  const running = (): string[] => landingJobNames(ctx.queue, ctx.exceptJobId);
+  const running = (): string[] => ctx.landings?.() ?? landingJobNames(ctx.queue, ctx.exceptJobId);
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
   let waiting = running();
   if (waiting.length > 0) {

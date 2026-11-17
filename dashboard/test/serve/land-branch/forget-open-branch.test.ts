@@ -1,3 +1,4 @@
+import { waitForDeploy } from "../../../src/serve/deploy-job/landing-hold.ts";
 // The one line the landing gained (2026-09-09): a merge whose branch
 // delete succeeded takes that branch out of the cached open set for the
 // root it just changed. Without it, `peekOpenSpecBranches` — which the
@@ -100,4 +101,27 @@ describe("a landing whose delete failed records the branch as merged", () => {
     const separateSpecs = { machineryProjectDir: () => ROOT, machinerySpecsRoot: () => "/repos/aide-specs" };
     expect(await landAs("close", refusedDelete, separateSpecs)).toEqual([]);
   });
+});
+
+
+test("a newly ready landing does not touch git while Deploy has priority", async () => {
+  const deploy = { id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", deployWaitForLandings: [] };
+  const jobs = [deploy, { ...JOB, steps: ["analyze"], stepIndex: 0, state: "done" }];
+  let calls = 0;
+  const git = landingGit();
+  const { ctx } = landCtx(async (...args) => { calls++; return git.run(...args); }, {
+    queue: {
+      list: () => jobs,
+      get: (id: string) => jobs.find((j) => j.id === id),
+      update: (id: string, patch: object) => Object.assign(jobs.find((j) => j.id === id)!, patch),
+      transition: () => ({ ok: true }),
+    },
+  });
+  ctx.beforeLanding = (job: { id: string }) => waitForDeploy(ctx.queue as Parameters<typeof waitForDeploy>[0], job.id, 1);
+  const work = landBranch(ctx as unknown as Parameters<typeof landBranch>[0], JOB as unknown as Parameters<typeof landBranch>[1], { branch: BRANCH }, LANDING as unknown as Parameters<typeof landBranch>[3]);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  expect(calls).toBe(0);
+  deploy.state = "cancelled";
+  await work;
+  expect(calls).toBeGreaterThan(0);
 });

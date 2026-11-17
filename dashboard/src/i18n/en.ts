@@ -55,6 +55,7 @@ export const en = {
   "shell.leaveAppBody": "Changes you made may not be saved.",
   "dialog.ok": "OK",
   "dialog.cancel": "Cancel",
+  "shell.dismiss": "Dismiss",
   "dialog.close": "Close",
   "usage.reading": "Reading usage…",
   "usage.left": "{percent}% left",

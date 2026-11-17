@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { formatMessage } from "../../../src/messages/format.ts";
 import { gerund } from "../../../src/format/gerund.ts";
-import { deployHold } from "../../../src/serve/deploy-job/landing-hold.ts";
+import { deployHold, deployWaitsFor, waitForDeploy } from "../../../src/serve/deploy-job/landing-hold.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 
 const job = (o: Partial<Job>): Job =>
@@ -40,4 +40,37 @@ describe("a {doing} value", () => {
     expect(text.toLowerCase()).toContain(gerund("nb", "archive").toLowerCase());
     expect(text).toContain("aide:745");
   });
+});
+
+
+test("Deploy waits only for the landing ids captured when it was requested", () => {
+  const deploy = job({ id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", deployWaitForLandings: ["first"] });
+  const jobs = [deploy, job({ id: "first", landing: true }), job({ id: "later", landing: true })];
+  expect(deployWaitsFor(jobs, deploy.id).map((j) => j.id)).toEqual(["first"]);
+  jobs[1]!.landing = false;
+  expect(deployWaitsFor(jobs, deploy.id)).toEqual([]);
+});
+
+test("a later landing waits outside the merge lock until Deploy ends or is cancelled", async () => {
+  for (const state of ["done", "cancelled", "failed"] as const) {
+    const deploy = job({ id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "running", deployWaitForLandings: ["first"] });
+    const first = job({ id: "first", landing: true });
+    const later = job({ id: "later", landing: true });
+    const jobs = [deploy, first, later];
+    const queue = {
+      list: () => jobs,
+      get: (id: string) => jobs.find((j) => j.id === id),
+      update: (id: string, patch: Partial<Job>) => Object.assign(jobs.find((j) => j.id === id)!, patch),
+    };
+    expect(await waitForDeploy(queue, first.id, 1)).toBe(true);
+    let released = false;
+    const wait = waitForDeploy(queue, later.id, 1).then((ok) => { released = ok; });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(released).toBe(false);
+    expect(later.errorReason).toBe("held-back");
+    deploy.state = state;
+    await wait;
+    expect(released).toBe(true);
+    expect(later.errorReason).toBeUndefined();
+  }
 });
