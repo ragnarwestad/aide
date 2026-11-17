@@ -9,6 +9,7 @@ import { providerPickerOptions } from "../../providers/options.ts";
 import { scheduleTrackingKey } from "../../../project/spec-names.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport } from "../../../queue/schedule.ts";
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
+import { SCHEDULE_OUTPUT_ROUTE_PREFIX, scheduleOutputRelativePath, scheduleRunOutputPath } from "../../../schedule-output-route.ts";
 import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, renderSchedulePromptPage, resolveBackHref,
@@ -25,11 +26,11 @@ export async function schedulePages(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  if (path.startsWith("/schedule-output/")) {
+  if (path.startsWith(SCHEDULE_OUTPUT_ROUTE_PREFIX)) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     return serveStatic(
       ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
-      path.slice("/schedule-output".length),
+      scheduleOutputRelativePath(path),
     );
   }
 
@@ -140,7 +141,7 @@ export async function schedulePages(
     let run: Parameters<typeof renderReportPanel>[0]["run"];
     if (shown) {
       const report = readScheduleRunReport(outputRoot, project, key, shown.id);
-      const runDir = `/schedule-output/${project}/${key}/runs/${shown.id}/`;
+      const runDir = scheduleRunOutputPath(project, key, shown.id);
       run = {
         view: await ctx.jobRow(shown),
         startedAt: shown.startedAt ?? shown.createdAt,

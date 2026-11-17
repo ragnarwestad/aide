@@ -80,7 +80,11 @@ const sitesIn = (text: string, constants: Record<string, string>): Site[] => {
       else if (local[m[2]!] !== undefined) paths.push(local[m[2]!]!);
       else throw new Error(`route-scan: cannot resolve the constant ${m[2]} on line ${line0 + 1}`);
     }
-    for (const m of line.matchAll(/\bpath\.startsWith\("([^"]*)"\)/g)) paths.push(`${m[1]}*`);
+    for (const m of line.matchAll(/\bpath\.startsWith\((?:"([^"]*)"|([A-Z][A-Z0-9_]*))\)/g)) {
+      if (m[1] !== undefined) paths.push(`${m[1]}*`);
+      else if (local[m[2]!] !== undefined) paths.push(`${local[m[2]!]!}*`);
+      else throw new Error(`route-scan: cannot resolve the constant ${m[2]} on line ${line0 + 1}`);
+    }
     for (const m of line.matchAll(new RegExp(String.raw`\bpath\.match\(${REGEX_BODY}\)`, "g"))) {
       paths.push(...regexPaths(m[1]!));
     }

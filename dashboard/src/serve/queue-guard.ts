@@ -5,6 +5,7 @@
 // getter/accessor dance here, unlike `schedules.ts` beside it.
 
 import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
+import { isScheduleOutputPath } from "../schedule-output-route.ts";
 
 /** `/jobs/<id>` joins the queue set HERE, never as a special case
  *  further down, so `handleRoutes` is what answers it. The retired
@@ -39,7 +40,7 @@ export const isQueuePath = (path: string) =>
   // carry real forms (the Edit section, the create form), guarded per
   // request exactly as the Add project page is.
   path.startsWith("/schedule/") ||
-  path.startsWith("/schedule-output/") ||
+  isScheduleOutputPath(path) ||
   path === "/queue" ||
   path === "/specs" ||
   path === "/api/queue" ||
