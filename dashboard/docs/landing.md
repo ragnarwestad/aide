@@ -257,3 +257,8 @@ Stop cancels a queued Land or interrupts its merge and tests before push, keepin
 remote default branch unchanged. Once push begins, Stop is unavailable and the operation finishes reporting its result.
 A cancelled Land never restarts automatically; the same branch can be submitted again.
 
+
+Land and Archive can repair named test regressions when the same suite passes on main alone. Up to two repair
+sessions edit the tested merge, independently check the failed files and save the correction on the source branch.
+The landing then fetches main again, rebuilds the merge and runs the full suite before pushing. Existing main
+failures, unknown failures, missing file-test commands and unsuccessful repairs leave main unchanged.

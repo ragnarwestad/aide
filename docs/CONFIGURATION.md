@@ -15,11 +15,11 @@
 A project tells Aide about itself in two files, and every setting lives in exactly one of them. A third file
 belongs to the machine and is the same for every project.
 
-| File                 | Committed | Holds                                                                     |
-|----------------------|-----------|---------------------------------------------------------------------------|
-| `.aide/config`       | never     | What belongs to one machine: where the specs are, how to install here     |
-| `.aide/project.yaml` | yes       | What is true of the project on every machine: its test command, its links |
-| `~/.aide/config`     | never     | What belongs to the machine for every project: where the board is         |
+| File                   | Committed   | Holds                                                                       |
+| ---------------------- | ----------- | --------------------------------------------------------------------------- |
+| `.aide/config`         | never       | What belongs to one machine: where the specs are, how to install here       |
+| `.aide/project.yaml`   | yes         | What is true of the project on every machine: its test command, its links   |
+| `~/.aide/config`       | never       | What belongs to the machine for every project: where the board is           |
 
 `.aide/config` is plain `KEY=value` lines with `#` comments, and is gitignored: it is lost the moment the project
 meets a new machine, so nothing the project needs everywhere belongs in it. `.aide/project.yaml`, the manifest, is
@@ -33,13 +33,13 @@ No project setting is read from both of its files. A key written in the other fi
 
 ## .aide/config
 
-| Key                | What it says                                                                                            | Read by                      | In Config |
-|--------------------|---------------------------------------------------------------------------------------------------------|------------------------------|-----------|
-| `AIDE_SPECS_PATH`  | Where this project's specs are kept, when not in its own `specs/`                                       | the skills, a run, the board | yes       |
-| `AIDE_INSTALL_CMD` | What installing the project means on this machine, run by the board after the project's code has merged | the board                    | yes       |
-| `AIDE_LINT_CMD`    | The lint command, when the one worked out from the project's files is wrong                             | the AI in `/aide-implement`  | no        |
-| `AIDE_BUILD_CMD`   | The build command, likewise                                                                             | the AI in `/aide-implement`  | no        |
-| `AIDE_CLAUDE_BIN`  | A stand-in for `claude`, for a test board that runs no real model                                       | a run                        | no        |
+| Key                  | What it says                                                                                              | Read by                        | In Config   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------ | ----------- |
+| `AIDE_SPECS_PATH`    | Where this project's specs are kept, when not in its own `specs/`                                         | the skills, a run, the board   | yes         |
+| `AIDE_INSTALL_CMD`   | What installing the project means on this machine, run by the board after the project's code has merged   | the board                      | yes         |
+| `AIDE_LINT_CMD`      | The lint command, when the one worked out from the project's files is wrong                               | the AI in `/aide-implement`    | no          |
+| `AIDE_BUILD_CMD`     | The build command, likewise                                                                               | the AI in `/aide-implement`    | no          |
+| `AIDE_CLAUDE_BIN`    | A stand-in for `claude`, for a test board that runs no real model                                         | a run                          | no          |
 
 `.aide/config.example` in this repository names each key with an example value.
 
@@ -50,9 +50,9 @@ No project setting is read from both of its files. A key written in the other fi
 The same `KEY=value` format as `.aide/config`, in the home directory, so one file serves every project on the
 machine. It is never committed.
 
-| Key              | What it says                                                                                                                                                                                                                                                                                                                                                                                          | Read by                                    |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). With it set, an `/aide-*` skill run in a session hands its step to the board. Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board | `aide-push-specs`, `aide`, `aide-hand-off` |
+| Key                | What it says                                                                                                                                                                                                                                                                                                                                                                                            | Read by                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `AIDE_BOARD_URL`   | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). With it set, an `/aide-*` skill run in a session hands its step to the board. Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board   | `aide-push-specs`, `aide`, `aide-hand-off`   |
 
 ---
 
@@ -60,18 +60,19 @@ machine. It is never committed.
 
 The settings a run uses:
 
-| Key                      | What it says                                                                                                                                                                                                                                                                                  | Read by                       | In Config |
-|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------|-----------|
-| `AIDE_TEST_CMD`          | The project's test command: the whole suite, run by implement, by the landing and by `/aide-implement` alike. Never guessed: without it no tests run                                                                                                                                          | a run, the landing, the board | yes       |
-| `AIDE_TEST_FILES_CMD`    | The command for running named test files once. Implement appends each red file and uses the exit code to distinguish a persistent failure from a test that may be unstable. Never guessed                                                                                                     | a run                         | no        |
-| `acPrefix`               | What implement puts before a criterion's id in a test's name; `{spec}` stands for the spec's number as its folder writes it, so `acPrefix: "F{spec}"` names the test for spec 02's AC-2 `(F02 AC-2)`. Absent means `(AC-2)`. Read from `.aide/project.yaml` in the checkout implement runs in | implement, the board          | yes       |
-| `worktreeLinks`          | Gitignored paths a run symlinks into its worktree, such as `node_modules` or `.venv`                                                                                                                                                                                                          | a run, the landing, the board | yes       |
-| `previewCmd`             | How to start the project for a look at one branch; it serves on `$PORT`                                                                                                                                                                                                                       | the board's test server       | yes       |
-| `deployment.previewFrom` | How one branch can be tried before it is merged: `cloudflare-pages` (the host builds every branch; the row links to its address), `command` (the board starts the project, with `previewCmd`) or `none`; absent means `none`                                                                  | the board                     | yes       |
-| `codeLanding`            | `pr` to leave archived code on its branch for a pull request; absent means merge into the default branch                                                                                                                                                                                      | a run, the board              | yes       |
-| `translationFiles`       | The project's translation files as space-separated patterns, such as `packages/i18n/messages/*.json`. Two specs adding messages to one of them merge key by key instead of conflicting, and Analyze never counts one as a file two specs share                                                | a run, the landing            | no        |
-| `description`            | One line saying what the project is, shown on the Projects list                                                                                                                                                                                                                               | the board                     | yes       |
-| `name`                   | The project's name                                                                                                                                                                                                                                                                            | a run, the board              | no        |
+| Key                        | What it says                                                                                                                                                                                                                                                                                    | Read by                         | In Config   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------- |
+| `AIDE_TEST_CMD`            | The project's test command: the whole suite, run by implement, by the landing and by `/aide-implement` alike. Never guessed: without it no tests run                                                                                                                                            | a run, the landing, the board   | yes         |
+| `AIDE_TEST_CHANGED_CMD`    | Optional command for Implement, given the comparison git ref as its final argument. It must select tests conservatively and fall back to the full suite when the change is unknown. Land and Archive always use `AIDE_TEST_CMD`                                                                 | a run                           | no          |
+| `AIDE_TEST_FILES_CMD`      | The command for running named test files once. Implement appends each red file and uses the exit code to distinguish a persistent failure from a test that may be unstable. Never guessed                                                                                                       | a run                           | no          |
+| `acPrefix`                 | What implement puts before a criterion's id in a test's name; `{spec}` stands for the spec's number as its folder writes it, so `acPrefix: "F{spec}"` names the test for spec 02's AC-2 `(F02 AC-2)`. Absent means `(AC-2)`. Read from `.aide/project.yaml` in the checkout implement runs in   | implement, the board            | yes         |
+| `worktreeLinks`            | Gitignored paths a run symlinks into its worktree, such as `node_modules` or `.venv`                                                                                                                                                                                                            | a run, the landing, the board   | yes         |
+| `previewCmd`               | How to start the project for a look at one branch; it serves on `$PORT`                                                                                                                                                                                                                         | the board's test server         | yes         |
+| `deployment.previewFrom`   | How one branch can be tried before it is merged: `cloudflare-pages` (the host builds every branch; the row links to its address), `command` (the board starts the project, with `previewCmd`) or `none`; absent means `none`                                                                    | the board                       | yes         |
+| `codeLanding`              | `pr` to leave archived code on its branch for a pull request; absent means merge into the default branch                                                                                                                                                                                        | a run, the board                | yes         |
+| `translationFiles`         | The project's translation files as space-separated patterns, such as `packages/i18n/messages/*.json`. Two specs adding messages to one of them merge key by key instead of conflicting, and Analyze never counts one as a file two specs share                                                  | a run, the landing              | no          |
+| `description`              | One line saying what the project is, shown on the Projects list                                                                                                                                                                                                                                 | the board                       | yes         |
+| `name`                     | The project's name                                                                                                                                                                                                                                                                              | a run, the board                | no          |
 
 ---
 

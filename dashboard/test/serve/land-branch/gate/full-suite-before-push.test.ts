@@ -1,6 +1,4 @@
-// A landing whose change touches Markdown files alone runs the project's
-// documentation check, not its whole suite — the same answer the step's
-// own run got from aide-resolve-test-cmd --changed-from.
+// Land and Archive always resolve the full project command, including for prose.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -61,9 +59,9 @@ async function commandsRunFor(files: Record<string, string>): Promise<string> {
   return existsSync(seen) ? readFileSync(seen, "utf-8").trim() : "";
 }
 
-describe("a landing tests a Markdown-only change with the documentation check", () => {
-  test("only Markdown changed: the documentation check runs, not the suite", async () => {
-    expect(await commandsRunFor({ "README.md": "# demo, reworded\n", "NOTES.md": "new\n" })).toBe("scripts/check-docs");
+describe("a landing always runs the full command", () => {
+  test("Markdown-only changes still run the full suite", async () => {
+    expect(await commandsRunFor({ "README.md": "# demo, reworded\n", "NOTES.md": "new\n" })).toBe("make it");
   });
 
   test("anything else changed too: the project's test command runs", async () => {

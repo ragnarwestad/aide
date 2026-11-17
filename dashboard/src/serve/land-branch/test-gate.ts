@@ -1,13 +1,5 @@
-// The landing's own test run: the project's own suite, run once on the
-// merged result before it is pushed. Green pushes; red drops the local
-// merge, and the branch stays where implement left it.
-//
-// The archive step ran it before (core/scripts/aide-archive-spec):
-// every archive re-ran the whole suite against a main
-// that had moved since implement's own run, and with several jobs
-// landing at once the same suite ran three and four times an hour for
-// one change. Here it runs exactly once per landing, on exactly what
-// main is about to become.
+// Test the merged result before push; confirmed regressions may be repaired
+// on the source branch and rebuilt against current main.
 
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { availableParallelism, homedir, tmpdir } from "node:os";
@@ -23,6 +15,7 @@ import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
 import type { Sentence } from "../../messages/types.ts";
+import type { RepairRequest } from "./repair/index.ts";
 import type { Job } from "../../queue/queue.ts";
 
 export const LANDING_GATE_TEMP_PREFIX = "aide-landing-gate-tree-";
@@ -79,6 +72,7 @@ function asFailedTests(named: { test: string; file: string; error: string }[]): 
  *  lines the first run failed on. */
 export interface GateVerdict {
   ok: boolean;
+  repaired?: boolean;
   terminalReason?: "tests-red" | "timeout";
   error?: Sentence;
   detail?: string;
@@ -93,6 +87,7 @@ export interface GateVerdict {
  *  it. A caller that passes none counts this landing alone. */
 export interface GateOpts {
   scriptDir?: string;
+  repair?: (request: RepairRequest) => Promise<boolean>;
   jobs?: () => readonly BusyJob[];
   /** The button the landing step's row offers, named by every sentence
    *  that refuses the merge for its tests. */
@@ -112,7 +107,12 @@ export async function runProjectSuiteBeforePush(
   // five tests failed that had nothing to do with the merge.
   const tree = await checkoutForGate(root);
   try {
-    return await runSuiteIn(tree.dir, root, job, branch, opts);
+    const verdict = await runSuiteIn(tree.dir, root, job, branch, opts);
+    if (!verdict.ok && opts.repair && await opts.repair({ root: tree.dir, job, branch, verdict })) {
+      stepLogLine(job, "test repairs saved on the source branch — rebuilding against current main");
+      return { ok: false, repaired: true };
+    }
+    return verdict;
   } finally {
     await tree.remove();
   }
@@ -323,10 +323,7 @@ async function runSuiteIn(
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
   const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
-  // Against the default branch, so a Markdown-only change is tested by
-  // the documentation check alone, as the step's own run was.
-  const base = await defaultBranchRef(root);
-  const resolved = await runScript([resolver, "--project-dir", root, ...(base ? ["--changed-from", base] : [])], root, 60_000);
+  const resolved = await runScript([resolver, "--project-dir", root], root, 60_000);
   let commands: string[] = [];
   try {
     const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");

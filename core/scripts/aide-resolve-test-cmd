@@ -9,6 +9,8 @@
 # for a project that tracks none, the dashboard's settings file copied in
 # as one), so every checkout of the project runs the same command.
 #
+# With --targeted, Implement may use AIDE_TEST_CHANGED_CMD, passing the
+# comparison ref as its final argument. Other callers keep AIDE_TEST_CMD.
 # With --changed-from <ref>, a change that touches Markdown files and
 # nothing else runs the project's documentation check instead: its
 # `scripts/check-docs` when it has one, otherwise nothing. The change is
@@ -35,6 +37,7 @@ source "$SCRIPT_DIR/lib/spec-result.sh"
 
 project_dir=""
 changed_from=""
+targeted="false"
 result_file=""
 
 while [ $# -gt 0 ]; do
@@ -42,10 +45,11 @@ while [ $# -gt 0 ]; do
     -h|--help)
       cat <<'USAGE'
 Usage:
-  aide-resolve-test-cmd --project-dir <path> [--changed-from <ref>]
+  aide-resolve-test-cmd --project-dir <path> [--changed-from <ref>] [--targeted]
 USAGE
       exit 0 ;;
     --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --targeted) targeted="true"; shift ;;
     --changed-from) changed_from="${2:-}"; shift 2 ;;
     *) aide_spec_refuse "unknown argument: $1" ;;
   esac
@@ -79,8 +83,8 @@ changed_files() {
   links="$(aide_manifest_get worktreeLinks "$manifest_dir")"
   {
     git -C "$project_dir" diff --name-only "$base" 2>/dev/null
-    git -C "$project_dir" ls-files --others --exclude-standard 2>/dev/null
-  } | grep -v '^\.aide/' | while IFS= read -r path; do
+    git -C "$project_dir" ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.aide/'
+  } | while IFS= read -r path; do
     for link in $links; do
       case "$path" in "${link%/}"|"${link%/}"/*) continue 2 ;; esac
     done
@@ -97,6 +101,14 @@ if [ -n "$cmd" ] && [ -n "$changed_from" ]; then
     fi
     exit 0
   fi
+fi
+changed_cmd="$(aide_manifest_get AIDE_TEST_CHANGED_CMD "$manifest_dir")"
+if [ "$targeted" = "true" ] && [ -n "$changed_from" ] && [ -n "$changed_cmd" ] && [ -n "$cmd" ]; then
+  # A ref is shell data, never part of the configured command.
+  quoted_ref="$(jq -rn --arg ref "$changed_from" '$ref | @sh')"
+  jq -cn --arg c "$changed_cmd $quoted_ref" --arg f "$files_cmd" \
+    '{ok:true, commands:[$c], targeted:true} + (if $f == "" then {} else {filesCommand:$f} end)'
+  exit 0
 fi
 if [ -n "$cmd" ]; then
   jq -cn --arg c "$cmd" --arg f "$files_cmd" \

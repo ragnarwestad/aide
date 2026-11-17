@@ -143,3 +143,18 @@ describe("failingLines", () => {
     expect(out).toBe("make sure the database is reachable");
   });
 });
+
+test("a repair sees the tested merge before cleanup and requests a fresh full gate", async () => {
+  recorder("test_one", "test_one");
+  const seen: string[] = [];
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", {
+    button: "Archive",
+    repair: async (request) => {
+      seen.push(Bun.spawnSync(["git", "-C", request.root, "show", "HEAD:spec-change"]).stdout.toString().trim());
+      expect(request.verdict.failedTests?.[0]?.file).toBe("t/test_a.py");
+      return true;
+    },
+  });
+  expect(seen).toEqual(["x"]);
+  expect(verdict).toEqual({ ok: false, repaired: true });
+});
