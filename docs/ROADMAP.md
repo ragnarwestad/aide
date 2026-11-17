@@ -29,6 +29,7 @@
   - [31. Try Modern Web Guidance on a web task](#31-try-modern-web-guidance-on-a-web-task)
   - [32. Switching provider before a usage limit is reached](#32-switching-provider-before-a-usage-limit-is-reached)
   - [33. Domain Specific / Standard Agents](#33-domain-specific--standard-agents)
+  - [34. Run specs only through the CLI and dashboard](#34-run-specs-only-through-the-cli-and-dashboard)
 
 ---
 
@@ -44,7 +45,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 34.
+same idea later. The next number is 35.
 
 ## To consider
 
@@ -708,3 +709,24 @@ References:
 - [Code examples, including GitHub issue triage and composition](https://standardagentspec.org/0.2.0/getting-started/examples/)
 - [Available runtimes](https://standardagentspec.org/runtimes/)
 - [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)
+
+### 34. Run specs only through the CLI and dashboard
+
+From the user's goal of continually adding work to the board and trusting it to finish the jobs: consider making
+CLI commands and the dashboard the only supported ways to run a spec. Both submit work to the same queue; the
+board owns execution, dependencies, retries and recovery, test runs, commits and landing.
+
+The runner currently invokes the spec skills internally, so stopping direct skill use alone would not remove that
+dependency. The proposed direction is to make the step instructions internal to the runner, rather than installing
+spec execution skills as another public entry point. Keep the instructions for analysis, implementation, review
+and archiving, while removing the separate interactive execution path and its special cases, installation,
+documentation and tests. Shared helpers and skills for work outside spec execution, such as Explore and Untangle,
+can remain.
+
+The benefit is one owner of every spec run, fewer ways to bypass the queue and less behaviour to maintain across
+AI tools. Existing code for the queue, repository handling, tests and landing still has to do its job; moving
+instructions out of skills is not itself a reason to remove it.
+
+Before committing to the change, map what can actually be deleted, how existing direct skill calls are redirected
+to the CLI, and what this means for projects without a board. Judge the result by reliable completion and reduced
+resource use, while keeping elapsed time in view.
