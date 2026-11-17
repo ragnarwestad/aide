@@ -1,3 +1,4 @@
+import { waitingFor } from "./waiting.ts";
 import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
 // The one rule for what a phase shows.
 
@@ -46,6 +47,7 @@ export interface PhaseWord {
   pip: PipKind;
   /** Absent means "nothing has happened and nothing was attempted" —
    *  the row's "not run yet". */
+  waiting?: QueueRowView["queuePosition"];
   badge?: { variant: BadgeVariant; label: string };
   /** Said only when the last attempt disagrees with the truth above.
    *  Never repeats what the badge already says.
@@ -128,6 +130,7 @@ function decidePhase(
     historyDone?: boolean;
     /** The phase this line is about, for the sentences that name it. */
     step?: string;
+    waiting?: QueueRowView["queuePosition"];
     /** This phase's latest run ended after the files and history were
      *  last read, so neither has seen it yet: nothing they say about it
      *  is a disagreement, only a picture from before it ran. */
@@ -135,6 +138,11 @@ function decidePhase(
   } = {},
   lang: Language = "en",
 ): PhaseWord {
+  const pending = history.waiting ?? waitingFor(attempt, history.step);
+  if (pending?.id) {
+    const pos = pending;
+    return { pip: "queued", waiting: pos, badge: { variant: "idle", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
+  }
   const running = !!attempt && inFlight(attempt);
   const disagrees = !!attempt && !running && attempt.state !== "done";
   // Said when the file and the history part company, and never over a

@@ -1,3 +1,4 @@
+import { dispatchFor, type RootAdmission } from "../../queue/waiting/dispatch.ts";
 // The deploy job's run, in the process the restart takes down: fetch the
 // board's own checkout, install, and restart the service. Each step is
 // marked in the job's run log, where the Running page reads it back.
@@ -25,7 +26,7 @@ import type { DeployFailure } from "../state.ts";
 /** What a deploy run is given: the queue it is a job in, the checkout's git,
  *  and the hooks the landing code already offers the Deploy button. */
 export interface DeployRunDeps {
-  queue: Pick<QueueStore, "get" | "update" | "list">;
+  queue: Pick<QueueStore, "get" | "update" | "list"> & Partial<Pick<QueueStore, "waiting">>;
   /** Where the project's checkout lives. */
   projectRoot: (project: string) => string;
   /** Whether `root` is the checkout the board runs from. */
@@ -112,7 +113,10 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
           hold(false);
         }
         if (!active()) return false;
-        const prepared = await deps.mergeLock.run(root, async () => {
+        const claim = <T>(root: string, fn: () => Promise<T>): Promise<T> => deps.queue.waiting && "tryRun" in deps.mergeLock
+          ? dispatchFor(deps.queue.waiting).run({ id: `deploy:${jobId}`, jobId, project, label: project, operation: "deploy", reason: "Waiting for the repository merge lock" }, deps.mergeLock as typeof deps.mergeLock & RootAdmission, root, fn, () => !active())
+          : deps.mergeLock.run(root, fn);
+        const prepared = await claim(root, async () => {
           if (!active()) return false;
           if (waitingJobs().length) return "retry";
           const base = await deps.branchStatus.defaultBranch(root);

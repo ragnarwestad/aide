@@ -39,6 +39,7 @@ import type { ServerOptions } from "../options.ts";
 import type { DeployFailure } from "../state.ts";
 import type { DeleteLeftBehindResult } from "../land-branch";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
+import { handleWaitingRoutes } from "./waiting";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
@@ -189,6 +190,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
 
 async function answerRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
   return (
+    (await handleWaitingRoutes(ctx, req, path)) ??
     selfStopRoute(ctx, req, path) ??
     (await selfDelayRoute(ctx, req, path)) ??
     selfRunRoute(ctx, req, path) ??

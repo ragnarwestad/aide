@@ -765,3 +765,18 @@ describe("a job held for a usage limit", () => {
     expect(store.get(held.id)?.error).toBeUndefined();
   });
 });
+
+test("editing pauses new starts while polling completes active work", () => {
+  const a = enqueue();
+  const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+  runner.tick();
+  const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+  const owner = store.waiting.open("editor");
+  runner.tick();
+  expect(store.get(b.id)?.state).toBe("queued");
+  runner.poll();
+  expect(store.get(a.id)?.state).toBe("done");
+  store.waiting.cancel(owner);
+  runner.tick();
+  expect(store.get(b.id)?.state).toBe("running");
+});

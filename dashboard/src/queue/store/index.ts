@@ -1,10 +1,11 @@
+import { createWaiting } from "../waiting/jobs.ts";
+import type { WaitingQueue } from "../waiting/index.ts";
 import { captureDeployPriority } from "../job-rules/deploy-priority.ts";
 // The queue store itself: one record per job, in
 // the shape aide-run-store.ts established — a written-down schema with
 // unknown fields ignored, an LRU cap, a mirror written-then-renamed and
 // reloaded on boot. No scheduler here: it stores and shows jobs, the
 // runner runs them.
-
 import { stepButton } from "../../format/step-label.ts";
 import {
   PHASE_STEPS,
@@ -26,7 +27,6 @@ import {
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
-
 import { loadJobs, writeJobs } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
 import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
@@ -35,9 +35,9 @@ import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 import { ExecutionGroupStore } from "../execution-groups/index.ts";
 import { cancelLine, discardOnCancel } from "./cancelled-job.ts";
-
 export class QueueStore {
   readonly executionGroups: ExecutionGroupStore;
+  readonly waiting: WaitingQueue;
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
   private readonly cap: number;
   private readonly mirrorPath?: string;
@@ -69,7 +69,6 @@ export class QueueStore {
   private readonly allowCreateProject: CreateProjectAllower;
   private readonly onChange: () => void;
   private readonly log: (line: string) => void;
-
   constructor(opts: QueueOptions) {
     this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
     this.cap = opts.cap ?? 1000;
@@ -98,8 +97,8 @@ export class QueueStore {
     loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
     loadModelIds(this.modelIdsPath, this.modelIds);
     loadPendingSteps(this.pendingStepsPath, this.pendingSteps);
+    this.waiting = createWaiting(this, opts.mirrorPath);
   }
-
   /** An unfinished job for the same spec that already covers one of
    *  these steps — never what anyone meant, as when one analyze was
    *  posted from the API and from the page seconds apart. */

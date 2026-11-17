@@ -4,6 +4,15 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const de: Record<TranslationKey, string> = {
+  "queue.title": "Warteschlange",
+  "queue.up": "Nach oben",
+  "queue.down": "Nach unten",
+  "queue.drag": "Zum Verschieben ziehen",
+  "queue.empty": "Die Warteschlange ist leer.",
+  "queue.lost": "Die Bearbeitungssperre ist verloren gegangen. Schließen und erneut öffnen.",
+  "queue.removed": "Der ausgewählte Auftrag wartet nicht mehr.",
+  "queue.help": "Die Reihenfolge bestimmt die Priorität. Blockierte Arbeit wartet, bis sie starten kann.",
+
   "shell.colorScheme": "Farbschema",
   "shell.language": "Sprache",
   "shell.unit": "Einheiten",

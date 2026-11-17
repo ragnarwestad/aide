@@ -1,3 +1,5 @@
+import { firstWaiting } from "../../ui/job-state/waiting.ts";
+import { queueBadge } from "../../ui/components/queue-editor";
 import { groupProviderLimitWait } from "../../../messages/jobs/group-stop.ts";
 import { automaticProviderWait, inFlight } from "../../../queue/job-rules/activity.ts";
 import { currentStep } from "../../ui/job-state";
@@ -47,10 +49,11 @@ export function executionGroupDisplayState(group: ExecutionGroup, archiveJob?: Q
 }
 
 export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language, archiveJob?: QueueRowView): string {
+  if (group.queuePosition) return t(lang, "list.stateQueuedPosition", { n: group.queuePosition.n, total: group.queuePosition.total });
   if (groupProviderLimitWait(group, members.map((member) => member.group))) return t(lang, "list.state.waiting");
   const lead = (group.state === "archiving" ? archiveJob : undefined) ?? members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
   const state = executionGroupDisplayState(group, lead);
-  const position = state === "queued" && lead?.state === "queued" ? lead.queuePosition : undefined;
+  const position = state === "queued" || lead?.queuePosition?.id ? lead?.queuePosition : undefined;
   return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[state]);
 }
 
@@ -176,7 +179,7 @@ export function executionGroupCard(
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state${open && control ? " hidden" : ""}>${badge(groupBadgeVariant(executionGroupDisplayState(group, archiveJob)), executionGroupStateLabel(group, members, lang as Language, archiveJob))}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state${open && control && !group.queuePosition ? " hidden" : ""}>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupBadgeVariant(executionGroupDisplayState(group, archiveJob)), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
@@ -191,7 +194,7 @@ export function executionGroupCard(
     executionGroupActive: false,
     lead: archiveJob,
     done: group.state === "completed" ? [...new Set([...archiveBase.done, "archive"])] : archiveBase.done.filter((step) => step !== "archive"),
-    phases: [{ step: "archive", attempts: archiveAttempts, history: {}, model: archiveModel }],
+    phases: [{ step: "archive", attempts: archiveAttempts, waiting: group.queuePosition, history: {}, model: archiveModel }],
   }, {
     ...(opts.list ?? { runnerAvailable: true, targets: [] }),
     executionGroups: [],

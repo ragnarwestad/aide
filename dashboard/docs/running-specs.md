@@ -575,6 +575,12 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
+Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears.
+
+Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
+
+Saved priority survives refresh and server restart. The first eligible entry starts: prerequisites, provider limits, concurrency and repository locks still apply, so a blocked entry does not stop eligible work below it.
+
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls back
 to two**; it does not clamp.
 

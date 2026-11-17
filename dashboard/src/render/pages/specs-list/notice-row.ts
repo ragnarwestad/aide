@@ -82,7 +82,7 @@ function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): 
         : formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(step, lang) }, inner: qualifier })!;
   let earliest: { step: string; qualifier: Sentence; stopped?: string } | undefined;
   for (const p of g.phases) {
-    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);
+    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, waiting: p.waiting, fileResult: p.fileResult }, lang);
     if (!word.qualifier) continue;
     if (p.attempts[0]?.state === "failed") return said(p.step, word.qualifier, p.history.stopped);
     earliest ??= { step: p.step, qualifier: word.qualifier, stopped: p.history.stopped };

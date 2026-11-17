@@ -288,6 +288,7 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
 
 /** Specs shows the spec's own state; Jobs and its open caption show the job's outcome. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
+  if (g.lead?.queuePosition?.id) return specStateChip(g.lead, lang);
   if (!onSpecs && waitingForGroup(g)) return badge("waiting", t(lang, "list.state.waiting"));
   if (!onSpecs && (g.lead || isArchivedRow(g))) {
     const state = jobState(g);

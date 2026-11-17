@@ -23,7 +23,6 @@ export {
   jobDismissible,
   jobKind,
   landingInProject,
-  queuePriorityOrder,
   tailEdits,
   takesSlot,
   waitsForPerson,

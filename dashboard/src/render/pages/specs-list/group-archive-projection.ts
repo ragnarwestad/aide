@@ -31,7 +31,7 @@ export function withGroupArchive(source: SpecGroup, opts: Pick<SpecsPageOptions,
   return {
     ...source,
     lead: attempts[0] && inFlight(attempts[0]) ? attempts[0] : source.lead,
-    phases: source.phases.map((phase) => phase.step === "archive" ? { ...phase, attempts, history: {}, fileResult: undefined } : phase),
+    phases: source.phases.map((phase) => phase.step === "archive" ? { ...phase, attempts, waiting: execution.queuePosition, history: {}, fileResult: undefined } : phase),
     done: execution.state === "completed"
       ? [...new Set([...source.done, "archive"])]
       : source.done.filter((step) => step !== "archive"),

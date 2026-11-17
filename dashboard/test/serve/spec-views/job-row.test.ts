@@ -1,8 +1,7 @@
-// JobRow()'s queuePosition must come off the same
-// queuePriorityOrder() the runner picks from.
+// Queue rows project the coordinator’s global waiting facts.
 
 import { describe, expect, test } from "bun:test";
-import { QueueStore, queuePriorityOrder } from "../../../src/queue/queue.ts";
+import { QueueStore } from "../../../src/queue/queue.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 
@@ -22,79 +21,17 @@ function makeStore(providers?: Record<string, { name: string; tool: "claude" | "
   });
 }
 
-describe("jobRow()'s queuePosition", () => {
-  test("matches queuePriorityOrder()'s own order for a mix of quick and slow queued jobs", async () => {
-    const store = makeStore();
-    const runStore = new AideRunStore();
-    const analyze = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze"] });
-    const implement = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
-    const archive = store.enqueue({ project: "aide", specFolder: "c", steps: ["archive"] });
-    if (!analyze.ok || !implement.ok || !archive.ok) throw new Error("enqueue failed");
-
-    const ctx = { queue: store, store: runStore };
-    const rows = await Promise.all(
-      [analyze.job, implement.job, archive.job].map((job) => jobRow(ctx, job)),
-    );
-
-    const expectedOrder = queuePriorityOrder(
-      [...store.list()].reverse().filter((j) => j.state === "queued"),
-    );
-
-    for (const row of rows) {
-      const job = [analyze.job, implement.job, archive.job].find((j) => j.id === row.id)!;
-      const expectedN = expectedOrder.findIndex((j) => j.id === job.id) + 1;
-      expect(row.queuePosition?.n).toBe(expectedN);
-      expect(row.queuePosition?.total).toBe(expectedOrder.length);
-    }
-
-    // archive is the only quick step here, so it must be first.
-    const archiveRow = rows.find((r) => r.id === archive.job.id)!;
-    expect(archiveRow.queuePosition?.n).toBe(1);
-  });
-
-});
-
-// A job the runner has held back (`errorReason: "held-back"`)
-// is not competing for a slot at all, so it gets no place, and it must
-// not be counted in any OTHER queued job's total either.
-describe("jobRow()'s queuePosition excludes held-back jobs", () => {
-  test("a held-back job gets no queuePosition, and the genuinely-queued job's total excludes it", async () => {
-    const store = makeStore();
-    const runStore = new AideRunStore();
-    const held = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
-    const waiting = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
-    if (!held.ok || !waiting.ok) throw new Error("enqueue failed");
-    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
-
-    const ctx = { queue: store, store: runStore };
-    const heldJob = store.get(held.job.id)!;
-    const waitingJob = store.get(waiting.job.id)!;
-    const heldRow = await jobRow(ctx, heldJob);
-    const waitingRow = await jobRow(ctx, waitingJob);
-
-    expect(heldRow.queuePosition).toBeUndefined();
-    expect(waitingRow.queuePosition?.n).toBe(1);
-    expect(waitingRow.queuePosition?.total).toBe(1);
-  });
-
-  test("same, with the held-back job sorting AFTER the genuinely-queued one", async () => {
-    const store = makeStore();
-    const runStore = new AideRunStore();
-    const waiting = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
-    const held = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
-    if (!waiting.ok || !held.ok) throw new Error("enqueue failed");
-    store.update(held.job.id, { error: "held back: depends on 80-x", errorReason: "held-back" });
-
-    const ctx = { queue: store, store: runStore };
-    const heldJob = store.get(held.job.id)!;
-    const waitingJob = store.get(waiting.job.id)!;
-    const heldRow = await jobRow(ctx, heldJob);
-    const waitingRow = await jobRow(ctx, waitingJob);
-
-    expect(heldRow.queuePosition).toBeUndefined();
-    expect(waitingRow.queuePosition?.n).toBe(1);
-    expect(waitingRow.queuePosition?.total).toBe(1);
-  });
+test("job rows include blocked entries and project the saved global order", async () => {
+  const store = makeStore();
+  const a = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
+  const b = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+  if (!a.ok || !b.ok) throw new Error("enqueue failed");
+  store.update(a.job.id, { error: "Waiting for a prerequisite", errorReason: "held-back" });
+  const owner = store.waiting.open("test");
+  store.waiting.save(owner, owner.entries.map(entry => entry.id).reverse());
+  const ctx = { queue: store, store: new AideRunStore() };
+  expect((await jobRow(ctx, store.get(a.job.id)!)).queuePosition).toMatchObject({ n: 2, total: 2, reason: "Waiting for a prerequisite" });
+  expect((await jobRow(ctx, b.job)).queuePosition).toMatchObject({ n: 1, total: 2 });
 });
 
 // `Job.stepStartedAt`/`StepResult.startedAt` are the one link
@@ -194,4 +131,57 @@ test("Land rows carry their branch and push boundary to the page controls", asyn
   if (!made.ok) throw new Error(made.error);
   const job = queue.update(made.job.id, { landPushStarted: true })!;
   expect(await jobRow({ queue, store: new AideRunStore() }, job)).toMatchObject({ branch: "topic", landPushStarted: true });
+});
+
+test("an active process retains its running fact while its next phase waits", async () => {
+  const queue = makeStore();
+  const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+  if (!made.ok) throw new Error(made.error);
+  const job = queue.update(made.job.id, { state: "running" })!;
+  expect(queue.waiting.snapshot().entries.map(entry => entry.operation)).toContain("implement");
+  const row = await jobRow({ queue, store: new AideRunStore() }, job);
+  expect(row.state).toBe("running");
+  expect(row.queuePosition).toBeUndefined();
+});
+
+test("future phases retain their waiting position while the current process runs", async () => {
+  const queue = makeStore();
+  const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+  if (!made.ok) throw new Error(made.error);
+  const job = queue.update(made.job.id, { state: "running" })!;
+  const view = await jobRow({ queue, store: new AideRunStore() }, job);
+  const { phasesFor } = await import("../../../src/render/pages/specs-list/data-model/phases.ts");
+  const { wordPhase } = await import("../../../src/render/ui/job-state/word-phase.ts");
+  const phase = phasesFor([view], undefined).find(phase => phase.step === "implement")!;
+  const word = wordPhase(false, undefined, phase.attempts[0], { step: "implement", waiting: phase.waiting });
+  expect(word.waiting).toMatchObject({ n: 1, total: 1, operation: "implement", reason: "Waiting for the previous step" });
+  expect(view.state).toBe("running");
+  expect(view.queuePosition).toBeUndefined();
+});
+test("a merge waiter and the next phase each keep their own position", async () => {
+  const queue = makeStore();
+  const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
+  if (!made.ok) throw new Error(made.error);
+  const job = queue.update(made.job.id, { state: "queued", stepIndex: 1, landing: true,
+    results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed" }] })!;
+  queue.waiting.pending.set("merge:test:analyze:repo", { id: "merge:test:analyze:repo", jobId: job.id, project: "aide", label: "a", operation: "analyze", reason: "Repository busy" });
+  const view = await jobRow({ queue, store: new AideRunStore() }, job);
+  const { phasesFor } = await import("../../../src/render/pages/specs-list/data-model/phases.ts");
+  const { wordPhase } = await import("../../../src/render/ui/job-state/word-phase.ts");
+  const words = phasesFor([view], undefined).filter(p => ["analyze", "implement"].includes(p.step))
+    .map(p => wordPhase(false, undefined, p.attempts[0], { step: p.step, waiting: p.waiting }));
+  expect(words[0]!.waiting).toMatchObject({ operation: "analyze", reason: "Repository busy", n: 2, total: 2 });
+  expect(words[1]!.waiting).toMatchObject({ operation: "implement", n: 1, total: 2 });
+});
+
+test("a group's waiting Archive keeps its identity when the authorized job is queued", () => {
+  const queue = makeStore();
+  const group = queue.executionGroups.create({ project: "aide", name: "Release", members: ["a", "b"], branch: "aide/release" });
+  queue.executionGroups.update(group.id, { state: "waiting-acceptance", completedMembers: ["a", "b"] });
+  const initial = queue.waiting.snapshot().entries;
+  expect(initial).toHaveLength(1);
+  expect(initial[0]!.operation).toBe("archive");
+  const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["archive"], executionGroupId: group.id });
+  if (!made.ok) throw new Error(made.error);
+  expect(queue.waiting.snapshot().entries.map(entry => entry.id)).toEqual([initial[0]!.id]);
 });

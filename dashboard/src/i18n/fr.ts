@@ -4,6 +4,15 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const fr: Record<TranslationKey, string> = {
+  "queue.title": "File d’attente",
+  "queue.up": "Monter",
+  "queue.down": "Descendre",
+  "queue.drag": "Glisser pour déplacer",
+  "queue.empty": "La file est vide.",
+  "queue.lost": "Le verrou de modification a été perdu. Fermez puis rouvrez la file.",
+  "queue.removed": "La tâche sélectionnée n’attend plus.",
+  "queue.help": "L’ordre définit la priorité. Les tâches bloquées attendent de pouvoir démarrer.",
+
   "shell.colorScheme": "Jeu de couleurs",
   "shell.language": "Langue",
   "shell.unit": "Unités",

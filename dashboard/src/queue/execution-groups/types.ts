@@ -17,6 +17,8 @@ export interface ExecutionGroupJob {
 }
 
 export interface ExecutionGroup {
+  /** Read-only queue facts added to a page projection, never an execution authorization. */
+  queuePosition?: { id: string; n: number; total: number; reason: string; operation: string };
   id: string;
   project: string;
   name: string;

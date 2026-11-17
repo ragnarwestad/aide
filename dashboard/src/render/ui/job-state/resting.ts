@@ -1,3 +1,5 @@
+import { waitingFor } from "./waiting.ts";
+import { queueBadge } from "../components/queue-editor";
 // What a row's chip says when nothing is running on it.
 
 import { badge } from "../components";
@@ -90,6 +92,8 @@ function heldBackBadge(r: QueueRowView, lang: Language): string {
 }
 
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
+  const waiting = waitingFor(r);
+  if (waiting?.id) return queueBadge(lang, waiting.id, waiting.n, waiting.total, waiting.reason);
   if (r.state === "running") {
     // A running job whose reason is a hold waits as a held-back one does: a
     // deploy's fetch or restart waiting for a landing to settle.
@@ -120,7 +124,6 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
     // never a stop, and its colour follows the same classification the
     // notice line already uses — neutral when the hold clears on its
     // own, amber when it waits on a person — so the two never disagree.
-    if (r.errorReason === "held-back") return heldBackBadge(r, lang);
     const pos = r.queuePosition;
     return badge(
       "idle",

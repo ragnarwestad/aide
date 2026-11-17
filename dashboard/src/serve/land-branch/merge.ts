@@ -1,3 +1,4 @@
+import { dispatchFor } from "../../queue/waiting/dispatch.ts";
 // The landing every self-landing step shares: merge a step's own
 // branch into the default branch of every repo it pushed to, and
 // report per repo.
@@ -158,13 +159,15 @@ export async function landBranch(
       // root while asking it would serialize page loads too.
       const handed = handedToMerge(ctx, job, what, repo.root, branch, codeRoots);
       const merge = () =>
-        ctx.mergeLock.run(
-          repo.root,
+        dispatchFor(ctx.queue.waiting).run(
+          { id: `merge:${job.id}:${what.step}:${repo.root}`, jobId: job.id, project: job.project, label: branch, operation: what.step, reason: "Waiting for the repository merge lock" },
+          ctx.mergeLock, repo.root,
           () => handed.specOnly
             ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
             : discard(repo.root)
               ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
               : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
+          () => !!what.cancelled?.() || ctx.queue.get(job.id)?.state === "cancelled",
         );
       retryUnlanded.set(repo.root, merge);
       let result = await merge();

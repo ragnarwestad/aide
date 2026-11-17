@@ -4,6 +4,15 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const nb: Record<TranslationKey, string> = {
+  "queue.title": "Kø",
+  "queue.up": "Flytt opp",
+  "queue.down": "Flytt ned",
+  "queue.drag": "Dra for å flytte",
+  "queue.empty": "Køen er tom.",
+  "queue.lost": "Du har mistet redigeringslåsen. Lukk og åpne køen igjen.",
+  "queue.removed": "Den valgte jobben venter ikke lenger.",
+  "queue.help": "Rekkefølgen bestemmer prioritet. Blokkert arbeid venter til det kan starte.",
+
   "shell.colorScheme": "Fargeskjema",
   "shell.language": "Språk",
   "shell.unit": "Enheter",

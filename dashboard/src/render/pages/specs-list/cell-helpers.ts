@@ -1,3 +1,4 @@
+import { queueBadge } from "../../ui/components/queue-editor";
 // The small cells a spec's header row and phase lines share: state,
 // duration, cost, and the phase pips. Split by theme into row-marks.ts
 // (the notice-line sentences an archived or live row's own fields can
@@ -43,6 +44,7 @@ export const phaseWordCell = (
    *  own state is said. The word is in the badge's title, since "(2)"
    *  alone does not say what it counts. */
   attempts = 0,
+  lang: Language = "en",
 ): string =>
   // `w.qualifier` is NOT drawn here, and there is nowhere in this cell
   // it could be. It is a sentence, and the "beside
@@ -55,7 +57,7 @@ export const phaseWordCell = (
   // for the whole spec and named for the phase it is about, and the
   // phase's own log says it too (`phaseExplanations`), so a phase line
   // is one line in every state a phase can be in.
-  (w.badge
+  (w.waiting?.id ? queueBadge(lang, w.waiting.id, w.waiting.n, w.waiting.total, w.waiting.reason) : w.badge
     ? badge(
         w.badge.variant,
         attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
@@ -226,7 +228,7 @@ export function phasePipKind(p: Phase, done: string[]): PipKind {
   // finished phase grey again.
   const attempt = pipAttempt(p);
   const live = attempt && waitsOnHold(attempt) ? undefined : attempt;
-  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, fileResult: p.fileResult, step: p.step }).pip;
+  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, waiting: p.waiting, step: p.step, fileResult: p.fileResult }).pip;
 }
 
 /** The Time column for a locked row: how long the work took, and never

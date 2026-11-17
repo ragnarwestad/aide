@@ -4,6 +4,15 @@
 import type { TranslationKey } from "./translations.ts";
 
 export const es: Record<TranslationKey, string> = {
+  "queue.title": "Cola de espera",
+  "queue.up": "Subir",
+  "queue.down": "Bajar",
+  "queue.drag": "Arrastrar para mover",
+  "queue.empty": "La cola está vacía.",
+  "queue.lost": "Se perdió el bloqueo de edición. Cierra y abre la cola de nuevo.",
+  "queue.removed": "El trabajo seleccionado ya no está esperando.",
+  "queue.help": "El orden determina la prioridad. Los trabajos bloqueados esperan hasta poder empezar.",
+
   "shell.colorScheme": "Esquema de color",
   "shell.language": "Idioma",
   "shell.unit": "Unidades",

@@ -1,3 +1,4 @@
+import { waitingGroups } from "../../../queue/waiting/jobs.ts";
 // The Jobs tab at `/`: the board's first page. One of the route families
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
@@ -60,7 +61,7 @@ export async function jobsPage(
   });
   // The jobs a spec's row is drawn from, as the Specs list draws it.
   const specJobs = listedSpecJobs(ctx, jobs);
-  const executionGroups = ctx.queue.executionGroups.list();
+  const executionGroups = waitingGroups(ctx.queue);
   // `only` is the one row a fold opened or shut: the view is cut to what that
   // row is built from, so no other row is read. A key that is neither a job
   // row's nor a spec's cuts nothing.

@@ -25,6 +25,10 @@ function stepsTouched(r: QueueRowView): string[] {
  *  and then it keeps the error); a step it has not reached yet is not an
  *  attempt at all. */
 function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
+  const waiting = r.waitingPhases?.[step];
+  if (waiting) {
+    r = { ...r, queuePosition: waiting };
+  }
   // A step the runner started again in the same job (a usage limit, then a
   // retry) has a result per try: the newest decides the state, and the
   // figures are the sum of all of them.
@@ -293,6 +297,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
     return {
       step,
       attempts,
+      waiting: recent.find(row => row.waitingPhases?.[step])?.waitingPhases?.[step],
       history: {},
       timeSpentMs: outcome?.timeSpentMs,
       cost: outcome?.cost,
@@ -451,6 +456,6 @@ const roundInFlight = (r: QueueRowView): boolean =>
  *  implement drawn as done here locked the very step the round exists
  *  to run again. */
 function phaseInRound(phase: Phase, round: QueueRowView): Phase {
-  if (phase.attempts.some((a) => a.id === round.id)) return phase;
+  if (phase.waiting || phase.attempts.some((a) => a.id === round.id)) return phase;
   return { step: phase.step, attempts: [], history: {} };
 }

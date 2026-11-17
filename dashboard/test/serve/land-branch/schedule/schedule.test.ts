@@ -167,9 +167,8 @@ describe("landScheduleRun", () => {
       machineryProjectDir: () => code,
       machinerySpecsRoot: () => undefined,
       mergeLock: {
-        run: async () => {
-          throw new Error("boom\nmore detail");
-        },
+        onRelease: () => () => {},
+        tryRun: async () => { throw new Error("boom\nmore detail"); },
       },
       queue: {
         get: () => undefined,
