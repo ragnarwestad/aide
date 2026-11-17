@@ -35,24 +35,13 @@ if [ -f "$GLOBAL_CLAUDE/agents/task-analyzer.md" ]; then
   echo "   🗑️  Removed old: ~/.claude/agents/task-analyzer.md"
 fi
 
-# Generic rules
-# The rules that apply to every turn, plus spec-structure, which is copied
-# here but loaded only for spec files (its `paths` frontmatter). The four
-# task-specific ones became skills in spec 147.
+# Generic rules. This includes the rules that apply to every turn plus
+# spec-structure, whose `paths` frontmatter limits where Claude loads it.
 source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
-for rule in $(rule_names); do
-  if [ -f "$WORKSPACE_ROOT/core/rules/$rule.md" ]; then
-    cp "$WORKSPACE_ROOT/core/rules/$rule.md" "$GLOBAL_CLAUDE/rules/"
-  fi
-done
+install_rules "$GLOBAL_CLAUDE/rules"
 echo "   ✅ Rules installed: ~/.claude/rules/"
 
-# Migrate: four rules became skills (spec 147). The loop above only ever
-# ADDS the files still on the list — it never diffs against what an
-# earlier install left behind, the way prune_retired_skills does on the
-# skills side. Without this, a machine that installed before the change
-# keeps loading the retired rule in every prompt AND gets the new skill:
-# the resident footprint grows instead of shrinking.
+# Migrate rules retired before rule manifests were installed.
 for retired in tools-and-scripts workflows documentation markdown-linting; do
   if [ -f "$GLOBAL_CLAUDE/rules/$retired.md" ]; then
     rm "$GLOBAL_CLAUDE/rules/$retired.md"

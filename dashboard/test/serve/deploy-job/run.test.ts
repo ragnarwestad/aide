@@ -226,6 +226,7 @@ describe("a deploy waits for a landing before its fetch", () => {
     expect(store.get(s.id)?.errorReason).toBe("held-back");
     expect(s.writes()).toBe(1);
 
+    store.update(landing.id, { landing: false });
     release();
     await held;
     await running;
@@ -315,4 +316,70 @@ describe("a deploy whose service can be restarted", () => {
     await wait(120);
     expect(s.result()).toBeUndefined();
   });
+});
+
+test("Deploy waits for a landing even before it takes the checkout lock", async () => {
+  const s = setup();
+  const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
+  store.update(landing.id, { state: "done", landing: true });
+  const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+  try {
+    await wait(30);
+    expect(s.calls.install).toBe(0);
+    expect(s.git).toEqual([]);
+  } finally {
+    store.update(landing.id, { landing: false });
+    await running;
+  }
+  expect(s.calls.install).toBe(1);
+});
+
+test("Cancel during a landing wait prevents fetch, install and any later restart", async () => {
+  const s = setup({ restartRegistered: async () => true });
+  const landing = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
+  store.update(landing.id, { state: "done", landing: true });
+  const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+  await wait(20);
+  store.transition(s.id, "cancel", { finishedAt: new Date().toISOString() });
+  const stopped = await Promise.race([running.then(() => true), wait(80).then(() => false)]);
+  store.update(landing.id, { landing: false });
+  await running;
+  expect(stopped).toBe(true);
+  expect(s.git).toEqual([]);
+  expect(s.calls.install).toBe(0);
+  expect(s.calls.restartWhenSettled).toBe(0);
+  expect(s.result()).toBeUndefined();
+});
+
+test("a commit that lands during the restart wait is installed before the service restarts", async () => {
+  let head = BEFORE;
+  const installed: string[] = [];
+  const s = setup({
+    gitRun: async (_root, args) => ({ code: 0, stdout: args.join(" ") === "rev-parse HEAD" ? head : args[0] === "rev-parse" ? "master" : "" }),
+    installCheckout: async () => { installed.push(head); return { ok: true }; },
+    restartRegistered: async () => true,
+    restartWhenSettled: async (h) => {
+      head = HEAD;
+      await h.prepare?.();
+      h.beforeFire();
+      return true;
+    },
+  });
+  await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+  expect(installed).toEqual([BEFORE, HEAD]);
+  expect(store.get(s.id)?.deploy?.commit).toBe(HEAD);
+});
+
+test("a queued Land in the board's project finishes before Deploy fetches", async () => {
+  const s = setup();
+  const landing = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/pending" });
+  const running = runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+  try {
+    await wait(20);
+    expect(s.git).toEqual([]);
+  } finally {
+    store.update(landing.id, { state: "done" });
+    await running;
+  }
+  expect(s.calls.install).toBe(1);
 });

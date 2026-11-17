@@ -65,16 +65,23 @@ export function canRemoveExecutionGroup(group: Pick<ExecutionGroup, "state">, bu
   return executionGroupActivity(group.state) === "idle" && !busy;
 }
 
+export function canEditExecutionGroup(group: Pick<ExecutionGroup, "state">, busy = false): boolean {
+  return group.state !== "completed" && canRemoveExecutionGroup(group, busy);
+}
+
 /** Splits a group's controls between its single State/Action button and
  *  the card menu. */
 export function executionGroupControls(
   group: Pick<ExecutionGroup, "state"> & Partial<Pick<ExecutionGroup, "stoppedByUser">>,
   members: readonly ExecutionGroupMemberState[],
-): { action: Exclude<ExecutionGroupAction, "remove"> | undefined; menu: ExecutionGroupMenuAction[] } {
+): { action: Exclude<ExecutionGroupAction, "remove"> | undefined; menu: ExecutionGroupMenuAction[]; disabledMenu: ExecutionGroupMenuAction[] } {
   const decided = executionGroupAction(group, members);
+  const busy = members.some((member) => member.busy);
+  const menu: ExecutionGroupMenuAction[] = group.state === "completed" ? ["remove"] : ["edit", "remove"];
   return {
     action: decided === "remove" ? undefined : decided,
-    menu: group.state === "completed" ? ["remove"] : group.state === "archiving" ? [] : canRemoveExecutionGroup(group, members.some((member) => member.busy)) ? ["edit", "remove"] : ["edit"],
+    menu,
+    disabledMenu: menu.filter((item) => !(item === "edit" ? canEditExecutionGroup(group, busy) : canRemoveExecutionGroup(group, busy))),
   };
 }
 

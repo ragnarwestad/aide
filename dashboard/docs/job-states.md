@@ -236,7 +236,8 @@ restart of the board keeps it.
   `<job id>.<step>.<n>.stream.jsonl`, so the stopped attempt's log stays.
 
 **A deploy across its own restart.** The board's own deploy takes no slot, has no process group to signal, and a
-cancel of a running one is refused (409). It writes `deploy.restartedAt`, restarts the server and is taken down with
+cancel while it fetches, installs or has committed its restart is refused (409). A running Deploy held back before
+the restart can be cancelled; its wait then ends without firing the restart. It writes `deploy.restartedAt`, restarts the server and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
 boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise or after three minutes. A
 deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is

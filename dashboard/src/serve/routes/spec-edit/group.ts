@@ -4,7 +4,7 @@ import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { saveSpecFiles, type SpecFileEdit } from "../../../git/specs-pull.ts";
 import { withGroupLines, stripGroupLines } from "../../../project/discover/group.ts";
 import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
-import { canRemoveExecutionGroup } from "../../../queue/execution-groups/actions.ts";
+import { canEditExecutionGroup, canRemoveExecutionGroup } from "../../../queue/execution-groups/actions.ts";
 import { inFlight } from "../../../queue/job-rules/activity.ts";
 import { lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../queue/execution-groups";
 import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
@@ -91,7 +91,13 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
   const group = executionGroupForAction(ctx.queue.executionGroups, id, targets);
   if (!group) return json({ error: "the group no longer exists" }, 409);
   const project = group.project;
-  if (group.state === "archiving" || group.state === "completed") return json({ error: `the group ${group.name} cannot be edited while it is ${group.state}` }, 409);
+  const canEdit = () => {
+    const latest = ctx.queue.executionGroups.get(group.id) ?? group;
+    const busy = ctx.queue.list().some((job) => job.project === group.project &&
+      (job.executionGroupId === group.id || latest.members.includes(job.specFolder)) && inFlight(job));
+    return !latest.removedAt && canEditExecutionGroup(latest, busy);
+  };
+  if (!canEdit()) return json({ error: `the group ${group.name} cannot be edited while it is ${group.state}` }, 409);
   const conflict = ctx.queue.executionGroups.findUnfinished(project, name);
   if ((conflict && conflict.id !== group.id) || targets.some((target) => target.project === project && target.group?.name === name && !group.members.includes(target.specFolder))) {
     return json({ error: `an unfinished execution group named ${name} already exists` }, 409);
@@ -104,6 +110,7 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
   const firstDir = ctx.specDir(project, group.members[0]!);
   if (!firstDir) return json({ error: `${group.members[0]} is no longer available` }, 409);
   const outcome = await ctx.mergeLock.run(await ctx.specsRoot(firstDir), async () => {
+    if (!canEdit()) return { error: "stop the group before editing it" };
     const latest = ctx.queue.executionGroups.get(group.id) ?? group;
     const conflict = ctx.queue.executionGroups.findUnfinished(project, name);
     if (conflict && conflict.id !== latest.id) return { error: `an unfinished execution group named ${name} already exists` };
@@ -128,6 +135,7 @@ export async function editGroup(ctx: RoutesContext, req: Request, rawId: string)
         edits.push({ file, text, baseSha: (await lastCommitOf(ctx.gitRun, firstDir, file))?.sha ?? null });
       }
     }
+    if (!canEdit()) return { error: "stop the group before editing it" };
     if (edits.length) {
       const saved = await saveSpecFiles(ctx.gitRun, firstDir, (root) => ctx.branchStatus.defaultBranch(root), edits, { specLabel: name, message: editMessage(name, "execution group") });
       if (!saved.ok) return { error: saved.note };

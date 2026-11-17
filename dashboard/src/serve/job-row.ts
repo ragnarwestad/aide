@@ -41,6 +41,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     landing: job.landing,
     branch: job.branch,
     landPushStarted: job.landPushStarted,
+    deploy: job.deploy,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no
     // result yet and speaks with the id of the attempt before it.
