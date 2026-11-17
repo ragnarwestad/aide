@@ -25,6 +25,11 @@ const held = (step: string, key: MessageKey, extra: Partial<QueueRowView> = {}):
   });
 
 describe("the pip of a phase on the Running tab", () => {
+  test("a completed Analyze recorded in its file has a done pip without a job or landed history", () => {
+    const phase = phasesFor([], undefined).find((p) => p.step === "analyze")!;
+    expect(phasePipKind({ ...phase, fileResult: "completed" }, ["create"])).toBe("past");
+  });
+
   test("a phase held back on a dependency draws the plain pip, not the moving one", () => {
     const jobs = [held("analyze", "runner.dependencyNotArchived")];
     expect(pipOf(jobs, "analyze", ["create"])).toBe("todo");
