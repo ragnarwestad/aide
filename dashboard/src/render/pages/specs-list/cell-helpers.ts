@@ -226,7 +226,7 @@ export function phasePipKind(p: Phase, done: string[]): PipKind {
   // finished phase grey again.
   const attempt = pipAttempt(p);
   const live = attempt && waitsOnHold(attempt) ? undefined : attempt;
-  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, step: p.step }).pip;
+  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, fileResult: p.fileResult, step: p.step }).pip;
 }
 
 /** The Time column for a locked row: how long the work took, and never
