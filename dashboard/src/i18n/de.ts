@@ -50,6 +50,7 @@ export const de: Record<TranslationKey, string> = {
   "cleanup.stepPorts": "Unbekannte Testserver auf Board-Ports finden",
   "cleanup.stepOrphans": "Elternlose Testprozesse finden, die älter als 6 Stunden sind",
   "cleanup.stepStop": "Übrig gebliebene Prozesse stoppen",
+  "cleanup.stepTemp": "Temporäre Testordner entfernen, die älter als 6 Stunden sind",
   "dialog.stepWaiting": "wartet",
   "dialog.stepRunning": "läuft",
   "dialog.stepDone": "fertig",

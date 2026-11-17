@@ -16,6 +16,7 @@ export const CLEANUP_OPERATIONS = [
   { step: "ports", label: "cleanup.stepPorts" },
   { step: "orphans", label: "cleanup.stepOrphans" },
   { step: "stop", label: "cleanup.stepStop" },
+  { step: "temp", label: "cleanup.stepTemp" },
 ] as const;
 
 void (CLEANUP_OPERATIONS satisfies readonly { step: string; label: TranslationKey }[]);
@@ -41,7 +42,14 @@ export interface CleanupDependencies {
   graceMs: number;
   cancelled?: () => boolean;
   progress?: (event: CleanupProgress) => void;
+  /** The test suites' temp folders, with when each last changed. */
+  tempDirs?: () => Promise<{ path: string; modifiedAt: number }[]>;
+  removeDir?: (path: string) => Promise<void>;
 }
+
+/** The folders a test suite makes for itself and removes when it ends; one
+ *  left behind belongs to a suite that was stopped before it could. */
+export const TEST_SUITE_TEMP_PREFIXES = ["aide-pytest-", "aide-bun-test-"] as const;
 
 const ORPHAN_AGE_MS = 6 * 60 * 60_000;
 const temporaryRoot = (text: string): boolean => TEMP_PREFIXES.some((prefix) => text.split("/").some((part) => part.startsWith(prefix)));
@@ -128,10 +136,34 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
     if (survivors.length) deps.progress?.({ step: "stop", state: STOPPED_PROGRESS, text: `PID ${survivors.map(({ pid }) => pid).join(", ")} is still running` });
     else deps.progress?.({ step: "stop", state: stopped.length ? DONE_PROGRESS : "skipped" });
   }
+  const removed = deps.cancelled?.() ? [] : await removeStaleTempDirs(deps);
   return {
     stopped: stopped.map((process) => process.pid),
-    log: stopped.length
+    log: (stopped.length
       ? stopped.map((process) => `Stopped PID ${process.pid}, age ${ageText(deps.now() - process.startedAt)}, ${process.command}`).join("\n") + "\n"
-      : "Nothing to stop.\n",
+      : "Nothing to stop.\n") + removed.map((line) => `${line}\n`).join(""),
   };
+}
+
+/** Test-suite temp folders older than the orphan age that no running
+ *  process works in or names: no suite runs that long. */
+async function removeStaleTempDirs(deps: CleanupDependencies): Promise<string[]> {
+  deps.progress?.({ step: "temp", state: "started" });
+  const lines: string[] = [];
+  if (deps.tempDirs && deps.removeDir) {
+    const processes = await deps.processes();
+    const inUse = (path: string) => processes.some((process) => under(process.cwd, path) || process.command.includes(path));
+    for (const dir of await deps.tempDirs()) {
+      if (deps.cancelled?.()) return lines;
+      const name = dir.path.split("/").pop() ?? "";
+      if (!TEST_SUITE_TEMP_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
+      if (deps.now() - dir.modifiedAt <= ORPHAN_AGE_MS || inUse(dir.path)) continue;
+      await deps.removeDir(dir.path);
+      const line = `Removed ${dir.path}, age ${ageText(deps.now() - dir.modifiedAt)}`;
+      lines.push(line);
+      deps.progress?.({ step: "temp", state: "detail", text: line });
+    }
+  }
+  deps.progress?.({ step: "temp", state: lines.length ? DONE_PROGRESS : "skipped" });
+  return lines;
 }
