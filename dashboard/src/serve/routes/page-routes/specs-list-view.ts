@@ -1,3 +1,6 @@
+import { groupBySpec, groupKey, applyFilter, sortGroups } from "../../../render/pages/specs-list/data-model";
+import { firstActionLabel } from "../../../render/pages/specs-list/head-row.ts";
+import { requestWindow, summaryJob, listSnapshot } from "../../list-window";
 // The Specs list's view and its answers, for the two addresses that draw
 // it: `/specs`, with every row shut, and a spec's own address, with that
 // row open and the spec in it. One function builds the view, so the two
@@ -37,6 +40,7 @@ export async function specsListParts(
   url: URL,
   openKey?: string,
   only?: string,
+  retry = true,
 ): Promise<SpecsListParts> {
   // The reader's own choice of language, from the address
   // or from the cookie it was last written into — the same shape as
@@ -44,6 +48,8 @@ export async function specsListParts(
   // resolves to a concrete language, never `{}`.
   const langResult = languageChoice(url, req);
   const base = specRowOptions(ctx, url, langResult.lang);
+  const jobs = ctx.queue.list();
+  const unchanged = listSnapshot(ctx, jobs);
   const archivedKeys = base.archived ?? [];
   // The archived keys the filter bar counts by; none where one row is asked for.
   const counted = only ? [] : archivedKeys;
@@ -76,12 +82,9 @@ export async function specsListParts(
   // event on every open tab, and the default view must not pay for
   // a set it does not show.
   const archivedState = (url.searchParams.get("q") ?? "").trim() ? "all" : chosenState;
-  let archivedSpecs = ctx.archivedSpecRows(archivedState, keys);
-  // The open spec's row is shown whatever the filter: an archived spec the
-  // chosen state hides is built alone, so only this address pays for it.
-  if (openKey && archivedKeys.includes(openKey) && !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)) {
-    const open = ctx.archivedSpecRows(ARCHIVED_STATE, keys).find((a) => `${a.project}/${a.folder}` === openKey);
-    if (open) archivedSpecs = [...archivedSpecs, open];
+  let archivedSpecs = only ? ctx.archivedSpecRows(archivedState, keys) : [];
+  if (only && openKey && archivedKeys.includes(openKey) && !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)) {
+    archivedSpecs = ctx.archivedSpecRows(ARCHIVED_STATE, new Set([openKey]));
   }
   // The reader's own choice of column, from the address or from the
   // cookie it was last written into.
@@ -135,11 +138,37 @@ export async function specsListParts(
   // allowlist keeps its jobs in the history (and in /api/queue), but
   // a row for it could only offer a Run that would be refused.
   // A schedule job is not a spec (`listedSpecJobs`).
-  const every = listedSpecJobs(ctx, ctx.queue.list());
-  const listed = only ? every.filter((job) => `${job.project}/${job.specFolder}` === only) : every;
+  const every = listedSpecJobs(ctx, jobs);
+  let selected = keys;
+  if (!only) {
+    const summaries = groupBySpec(every.map(summaryJob), base.targets, base.archived, ctx.archivedSpecSummaries?.() ?? [], Date.now(), undefined, base.executionGroups, true);
+    const f = view.filter ?? {};
+    const normalized = view.openSpec && (f.sort === "started" || f.sort === "cost") ? { ...f, sort: "created", dir: undefined } : f;
+    summaries.sort((a, b) => groupKey(a.project, a.specFolder).localeCompare(groupKey(b.project, b.specFolder)));
+    const matches = applyFilter(summaries, normalized);
+    const opened = new Set([...(normalized.open ?? "").split(",").filter(Boolean), ...(openKey ? [openKey] : [])]);
+    const ordered = sortGroups(matches, normalized, (group) => firstActionLabel(group, view), view.lang ?? "en");
+    view.selection = requestWindow(ordered.map((group) => ({ key: groupKey(group.project, group.specFolder) })), url, normalized, opened);
+    for (const group of summaries) {
+      const key = groupKey(group.project, group.specFolder);
+      if (opened.has(key) && !view.selection.rows.some((row) => row.key === key)) view.selection.rows.push({ key });
+    }
+    view.summaryGroups = summaries;
+    selected = new Set(view.selection.rows.map((row) => row.key));
+    view.archivedSpecs = ctx.archivedSpecRows("all", selected);
+  }
+  const listed = every.filter((job) => !selected || selected.has(`${job.project}/${job.specFolder}`));
   return {
     view,
-    rows: () => Promise.all(listed.map(ctx.jobRow)),
+    rows: async () => {
+      const rows = await Promise.all(listed.map(ctx.jobRow));
+      if (unchanged()) return rows;
+      if (!retry) throw new Error("List changed again; refresh the list.");
+      const fresh = await specsListParts(ctx, req, url, openKey, only, false);
+      const selectedRows = await fresh.rows();
+      Object.assign(view, fresh.view);
+      return selectedRows;
+    },
     setCookies: [chosenSort.setCookie, stateResult.setCookie, langResult.setCookie].filter((c): c is string => !!c),
   };
 }

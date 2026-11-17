@@ -1,3 +1,4 @@
+import { fakeGit } from "../../helpers/fake-git.ts";
 // The search box above the rows asks in place, as the filter links do: a
 // search draws the rows again without loading the page, and a search for
 // the term already shown, an empty one included, asks nothing at all.
@@ -62,21 +63,23 @@ for (const path of ["/", "/specs"]) {
 }
 
 
-test("Jobs loads further history in place and searches history outside the loaded window", async () => {
+test("Jobs loads further history with the keyboard and searches outside the loaded window (AC-3, AC-4, AC-6, AC-9)", async () => {
   const history = queueHarness("aide-e2e-job-window-");
-  const folders = Array.from({ length: 65 }, (_, i) => `schedule-window-history-${i}`);
+  const folders = Array.from({ length: 165 }, (_, i) => `schedule-window-history-${i}`);
   const jobs = folders.map((folder, i) => ({ ...createdJob(folder), steps: ["schedule"], createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() }));
   const { base } = history.start({ queueMirror: JSON.stringify(jobs) });
   const page = await browser.newPage();
   try {
+    await page.addInitScript(() => { Object.defineProperty(window, "IntersectionObserver", { value: undefined }); });
     await page.goto(`${base}/?live=0`);
     const older = page.locator('[id="spec-aide/schedule-window-history-0"]');
     expect(await older.count()).toBe(0);
     const loaded = page.waitForResponse((res) => new URL(res.url()).searchParams.get("rows") === "1");
-    await page.getByRole("link", { name: "Show more", exact: true }).click();
+    await page.getByRole("link", { name: "Show more", exact: true }).focus();
+    await page.keyboard.press("Enter");
     await loaded;
     await older.waitFor();
-    expect(new URL(page.url()).searchParams.get("limit")).toBe("100");
+    expect(new URL(page.url()).searchParams.get("limit")).toBe("200");
 
     await page.goto(`${base}/?live=0`);
     await page.getByRole("searchbox").fill("window-history-0");
@@ -90,4 +93,50 @@ test("Jobs loads further history in place and searches history outside the loade
     await page.close();
     history.cleanup();
   }
+});
+
+test("Jobs automatically loads the next batch when approaching the end (AC-2)", async () => {
+  const history = queueHarness("aide-e2e-jobs-auto-batch-");
+  const jobs = Array.from({ length: 165 }, (_, i) => ({ ...createdJob(`schedule-auto-${i}`), steps: ["schedule"], createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() }));
+  const { base } = history.start({ queueMirror: JSON.stringify(jobs) });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?live=0`);
+    const older = page.locator('[id="spec-aide/schedule-auto-0"]');
+    expect(await older.count()).toBe(0);
+    await page.getByRole("link", { name: "Show more", exact: true }).scrollIntoViewIfNeeded();
+    await older.waitFor();
+    expect(new URL(page.url()).searchParams.get("limit")).toBe("200");
+    expect(await page.getByRole("link", { name: "Show more", exact: true }).count()).toBe(0);
+  } finally { await page.close(); history.cleanup(); }
+});
+
+test("Jobs keeps an expanded group and member while loading and receiving new work (AC-7, AC-8)", async () => {
+  const history = queueHarness("aide-e2e-group-batch-live-");
+  const jobs = Array.from({ length: 165 }, (_, i) => ({ ...createdJob(`schedule-live-${i}`), steps: ["schedule"], createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() }));
+  const { base } = history.start({
+    queueMirror: JSON.stringify(jobs), alsoSpecs: ["82-member", "83-new"],
+    extra: { specCachePollMs: 0, gitRun: fakeGit({}).run },
+    executionGroups: [{ id: "batch-group", project: "aide", name: "Release", members: ["81-queue-and-runner", "82-member"], branch: "group/release", state: "prepared", completedMembers: [], jobs: [] }],
+  });
+  const page = await browser.newPage();
+  try {
+    await page.addInitScript(() => { Object.defineProperty(window, "IntersectionObserver", { value: undefined }); });
+    await page.goto(base);
+    const group = page.getByRole("button", { name: "Release", exact: true });
+    await group.click();
+    const member = page.locator('tr.spechead[data-folder="81-queue-and-runner"] a.fold');
+    await member.click();
+    await page.waitForFunction(() => document.querySelector('tr.spechead[data-folder="81-queue-and-runner"] a.fold')?.getAttribute("aria-expanded") === "true");
+    await page.getByRole("link", { name: "Show more", exact: true }).click();
+    await page.locator('[id="spec-aide/schedule-live-0"]').waitFor();
+    expect(await group.getAttribute("aria-expanded")).toBe("true");
+    expect(await member.getAttribute("aria-expanded")).toBe("true");
+    const queued = await page.request.post(`${base}/api/queue`, { data: { project: "aide", specFolder: "83-new", steps: ["analyze"] } });
+    expect(queued.ok()).toBe(true);
+    await page.locator('tr.spechead[data-folder="83-new"]').waitFor();
+    expect(await group.getAttribute("aria-expanded")).toBe("true");
+    expect(await member.getAttribute("aria-expanded")).toBe("true");
+    expect(await page.locator('[id="spec-aide/schedule-live-0"]').count()).toBe(1);
+  } finally { await page.close(); history.cleanup(); }
 });

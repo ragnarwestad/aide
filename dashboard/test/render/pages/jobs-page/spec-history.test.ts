@@ -1,3 +1,4 @@
+import { selectWindow, windowQuery } from "../../../../src/render/pages/list-window";
 import { expect, test } from "bun:test";
 import { jobsTabHasRows, type JobsView } from "../../../../src/render/pages/jobs-page";
 import { jobWindow, specHasWork } from "../../../../src/render/pages/jobs-page/rows.ts";
@@ -68,11 +69,42 @@ test("prepared groups remain on Jobs before any member has run", () => {
 });
 
 
-test("the Jobs window limits rendering while keeping explicitly opened cards", () => {
-  const all = Array.from({ length: 125 }, (_, i) => ({ key: String(i) }));
-  expect(jobWindow(all).map((row) => row.key)).toEqual(all.slice(0, 50).map((row) => row.key));
-  expect(jobWindow(all, "100")).toHaveLength(100);
-  expect(jobWindow(all, "invalid")).toHaveLength(50);
-  expect(jobWindow(all, "-1")).toHaveLength(50);
-  expect(jobWindow(all, undefined, new Set(["124"])).map((row) => row.key)).toEqual([...all.slice(0, 50).map((row) => row.key), "124"]);
+test("the Jobs window limits rendering while keeping explicitly opened cards (AC-1, AC-9)", () => {
+  const all = Array.from({ length: 225 }, (_, i) => ({ key: String(i) }));
+  expect(jobWindow(all)).toEqual(all.slice(0, 100));
+  expect(jobWindow(all, "200")).toHaveLength(200);
+  for (const invalid of ["invalid", "-1", "100.5", "1e3", "101", "9007199254741000"]) {
+    expect(jobWindow(all, invalid)).toHaveLength(100);
+  }
+  expect(jobWindow(all, undefined, new Set(["224"]))).toEqual([...all.slice(0, 100), all[224]!]);
+});
+
+test("a loaded boundary survives insertions and loads another complete batch (AC-7)", () => {
+  const all = Array.from({ length: 350 }, (_, i) => ({ key: String(i) }));
+  const first = selectWindow(all);
+  expect(first.boundary).toBe("99");
+  const changed = [{ key: "new" }, ...all];
+  const live = selectWindow(changed, { limit: "100", boundary: first.boundary });
+  expect(live.rows).toEqual(changed.slice(0, 101));
+  const more = selectWindow(changed, { limit: "200", boundary: first.boundary, grow: true });
+  expect(more.rows).toEqual(changed.slice(0, 201));
+  expect(new Set(more.rows.map((r) => r.key)).size).toBe(201);
+  expect(selectWindow(all.filter((r) => r.key !== "99"), { boundary: "99" }).loaded).toBe(100);
+});
+
+test("query identity ignores folds and resets ranges for a different query (AC-6)", () => {
+  const first = windowQuery("/specs", { state: "all", q: " hello ", sort: "created" });
+  expect(windowQuery("/specs", { state: "all", q: "hello", sort: "created", open: "p/old", limit: "200" })).toBe(first);
+  const all = Array.from({ length: 250 }, (_, i) => ({ key: String(i) }));
+  expect(selectWindow(all, { limit: "200", query: "new", previousQuery: first, boundary: "199" }).loaded).toBe(100);
+});
+
+test("a group is selected atomically and opened exceptions do not move the boundary (AC-8)", () => {
+  const all = Array.from({ length: 201 }, (_, i) => ({ key: String(i), members: i === 99 ? Array.from({ length: 150 }, (_, n) => n) : [] }));
+  const selected = selectWindow(all, { opened: new Set(["200"]) });
+  expect(selected.rows).toHaveLength(101);
+  expect(selected.rows[99]!.members).toHaveLength(150);
+  expect(selected.boundary).toBe("99");
+  expect(selected.total).toBe(201);
+  expect(selected.hasMore).toBe(true);
 });

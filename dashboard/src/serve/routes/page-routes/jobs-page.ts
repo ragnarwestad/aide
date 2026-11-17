@@ -1,3 +1,7 @@
+import { byTabPlace, jobRowKeys } from "../../../render/pages/jobs-page/rows.ts";
+import { jobsEntries, activeExecutionGroups, type JobsView } from "../../../render/pages/jobs-page";
+import { jobsViewRows } from "../../../render/pages/jobs-page/view.ts";
+import { requestWindow, summaryJob, listSnapshot } from "../../list-window";
 // The Jobs tab at `/`: the board's first page. One of the route families
 // `handlePageRoutes` asks in turn, and answers `null` for a path that is not
 // its own.
@@ -46,6 +50,7 @@ export async function jobsPage(
   req: Request,
   url: URL,
   path: string,
+  retry = true,
 ): Promise<Response | null> {
   if (path !== "/" && path !== APP_START_ROUTE) return null;
   if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -68,19 +73,44 @@ export async function jobsPage(
   const cut = only
     ? rowInputs(only, { shown, specJobs, groups: executionGroups, specsOf: (project) => specsOf(ctx, project) })
     : undefined;
-  const kept = cut ?? { shown, specJobs };
-  // The keys every read of the archive below is cut to; absent, it reads them all.
-  const keys = cut?.specs;
+  const rowOptions = specRowOptions(ctx, url, langResult.lang);
+  const unchanged = listSnapshot(ctx, jobs);
+  const filter = { ...rowOptions.filter, ...choice.view, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
+  const summaryArchive = cut ? [] : ctx.archivedSpecSummaries?.() ?? [];
+  const scheduleEntryExists = (project: string, name: string) => ctx.scheduleStore.list(project).some((entry) => entry.name === name);
+  const summaryView: JobsView = {
+    shown: shown.map(summaryJob), specJobs: specJobs.map(summaryJob), executionGroups,
+    historySpecs: summaryArchive, scheduleEntryExists, specsScanned: ctx.specsScanned?.() ?? true,
+    list: { ...rowOptions, summary: true, filter, archivedSpecs: summaryArchive },
+  };
+  const summaries = cut || only ? undefined : jobsEntries(summaryView, () => false).sort((a, b) => byTabPlace(a.place, b.place) || a.key.localeCompare(b.key));
+  const matching = summaries ? jobsViewRows(summaries, filter) : [];
+  const opened = new Set((filter.open ?? "").split(",").filter(Boolean));
+  for (const row of summaries ?? []) if (row.facts.members?.some((member) => opened.has(`${member.project}/${member.specFolder}`))) opened.add(row.key);
+  const selection = summaries ? requestWindow(matching, url, filter, opened) : undefined;
+  if (selection) for (const row of summaries ?? []) if (opened.has(row.key) && !selection.rows.includes(row)) selection.rows.push(row);
+  const rowKeys = jobRowKeys(shown);
+  const selectedKeys = new Set(selection?.rows.map((row) => row.key) ?? []);
+  const keys = cut?.specs ?? new Set(selection?.rows.flatMap((row) => {
+    const entry = summaries!.find((candidate) => candidate.key === row.key)!;
+    if (entry.facts.ownJob) return [];
+    return (entry.facts.members ?? [entry.facts]).map((member) => `${member.project}/${member.specFolder}`);
+  }) ?? []);
+  const kept = cut ?? {
+    shown: shown.filter((job) => selectedKeys.has(rowKeys.get(job.id)!)),
+    specJobs: specJobs.filter((job) => keys.has(`${job.project}/${job.specFolder}`)),
+  };
   const built = new Map(
     (await Promise.all([...new Set([...kept.specJobs, ...kept.shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
   );
-  const rowOptions = specRowOptions(ctx, url, langResult.lang);
-  const view = {
+  if (!unchanged()) return retry ? jobsPage(ctx, req, url, path, false) : new Response("List changed; refresh the list.", { status: 409 });
+  const view: JobsView = {
+    selection, summaryEntries: summaries, summaryExecutionGroups: cut ? undefined : activeExecutionGroups(summaryView),
     limit: url.searchParams.get("limit") ?? undefined,
     shown: kept.shown.map((j) => built.get(j.id)!),
     specJobs: kept.specJobs.map((j) => built.get(j.id)!),
-    specs: cut?.specs,
-    rowKeys: cut?.rowKeys,
+    specs: keys,
+    rowKeys: cut?.rowKeys ?? rowKeys,
     specsScanned: ctx.specsScanned?.() ?? true,
     executionGroups,
     historySpecs: ctx.archivedSpecRows("all", keys),
@@ -89,11 +119,7 @@ export async function jobsPage(
     list: {
       ...rowOptions,
       // The view travels in the rows' fold links, as the Specs list's filter does.
-      filter: {
-        ...rowOptions.filter,
-        ...choice.view,
-        open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs),
-      },
+      filter,
       // The archived rows the list's Active entry shows: those whose branch has not merged.
       archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY, keys),
       listPath: "/",

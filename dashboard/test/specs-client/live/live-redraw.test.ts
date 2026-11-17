@@ -754,3 +754,23 @@ test("a burst of live changes shares one row request and catches up once", async
   await flush();
   expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(before + 2);
 });
+
+test("accepted range metadata travels on the next live request (AC-7)", async () => {
+  const h = harness(() => ({ ok: true, text: "<table><tbody><tr><td>Changed</td></tr></tbody></table>" }), "actionform", "?limit=200&grow=1&open=aide%2Fkept");
+  h.location.href = `http://dash.test/${h.location.search}`;
+  const query = h.rows.querySelector;
+  h.rows.querySelector = ((selector: string) => selector === "[data-window-query]"
+    ? { dataset: { windowBoundary: "aide/last", windowQuery: "same-query", windowLimit: "200" } }
+    : query(selector)) as typeof query;
+  h.visibility("visible");
+  h.live()!.emit("changed");
+  await flush();
+  expect(new URLSearchParams(h.location.search).get("boundary")).toBe("aide/last");
+  expect(new URLSearchParams(h.location.search).has("grow")).toBe(false);
+  h.live()!.emit("changed");
+  await flush();
+  const last = new URL(h.requests.at(-1)!.url, "http://dash.test");
+  expect(last.searchParams.get("limit")).toBe("200");
+  expect(last.searchParams.get("boundary")).toBe("aide/last");
+  expect(last.searchParams.get("open")).toBe("aide/kept");
+});

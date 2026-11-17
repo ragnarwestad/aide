@@ -116,13 +116,19 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
     document.body.removeAttribute("inert");
   }
   press.inFlight--;
-  // The links that depend on the address (the Reopen dialogs' way back) are
-  // drawn for the new one, the open row held across it.
-  if (press.pressGen === gen) {
-    await swapRows();
-    const redrawnHead = specHead(key);
-    if (redrawnHead) keepInPlace(redrawnHead, before);
-  }
+  // Refresh address-dependent links while holding the open detail. A
+  // reader who scrolls during this request keeps that new position.
+  let readerScrolled = false;
+  const moved = () => { readerScrolled = true; };
+  document.addEventListener("scroll", moved, true);
+  try {
+    if (press.pressGen === gen) {
+      await swapRows();
+      const redrawnHead = specHead(key);
+      if (!readerScrolled && redrawnHead) keepInPlace(redrawnHead, before);
+    }
+  } finally { document.removeEventListener("scroll", moved, true); }
+
 }
 
 /** The row the spec will be drawn in, copied from the template the page

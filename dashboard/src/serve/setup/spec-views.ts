@@ -26,5 +26,5 @@ export function setupSpecViews(ctx: SpecViewsContext) {
   function jobDetailView(job: Job) {
     return jobDetailViewImpl(ctx, job);
   }
-  return { archivedSpecRows, specPageView, jobDetailView };
+  return { archivedSpecRows, archivedSpecSummaries: () => archivedSpecRowsImpl(ctx, "all", undefined, true), specPageView, jobDetailView };
 }

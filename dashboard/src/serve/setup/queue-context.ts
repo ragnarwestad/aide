@@ -66,6 +66,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     persistAllowlist: inputs.persistAllowlist,
     answerProjectChange: inputs.answerProjectChange,
     archivedSpecRows: inputs.archivedSpecRows,
+    archivedSpecSummaries: inputs.archivedSpecSummaries,
     specPageView: inputs.specPageView,
     jobDetailView: inputs.jobDetailView,
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),

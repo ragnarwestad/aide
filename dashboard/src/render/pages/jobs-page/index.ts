@@ -1,3 +1,5 @@
+import { windowAttributes, windowControl } from "../list-window/control.ts";
+import { selectWindow, type ListWindow } from "../list-window";
 // The Jobs tab: the board's first page. Specs with recorded work,
 // prepared groups, and the scheduled jobs that
 // are in flight or wait for the user, whatever started them. Which jobs live
@@ -6,7 +8,6 @@
 // columns. Both sit in `#jobrows`, in one order, so the page script redraws and
 // presses them as it does the list's.
 
-import { btnLink } from "../../ui/components";
 import { t } from "../../../i18n";
 import type { Language } from "../../../i18n";
 import type { QueueRowView } from "../../ui/job-state";
@@ -19,8 +20,8 @@ import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, jobWindow, jobWindowLimit, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
-import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewPath, jobsViewRows, type RowFacts } from "./view.ts";
+import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { jobFacts, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
@@ -44,6 +45,9 @@ export function executionGroupRowState(group: ExecutionGroup, failed: boolean): 
  *  list's options its spec rows are drawn with. */
 export interface JobsView {
   limit?: string;
+  selection?: ListWindow<{ key: string }>;
+  summaryEntries?: ReturnType<typeof jobsEntries>;
+  summaryExecutionGroups?: ExecutionGroup[];
   /** The scheduled jobs `jobsShown` picks. */
   shown: QueueRowView[];
   /** Every job a spec's row is drawn from (`listedSpecJobs`): the Active rows are built from them. */
@@ -71,7 +75,7 @@ export interface JobsView {
  *  view's filter and sort read: the Active specs, each once, among the
  *  scheduled jobs, by where each stands. A row that `draws` answers no for
  *  keeps its key, place and facts, with an empty `html`. */
-function entries(v: JobsView, draws: Draws = () => true): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
+export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
   const now = v.now ?? Date.now();
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
@@ -151,7 +155,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
   const drawn = new Set(rows.map((row) => row.key));
   const history = (v.historySpecs ?? []).filter((spec) => !drawn.has(groupKey(spec.project, spec.folder)));
   const historyKeys = history.map((spec) => groupKey(spec.project, spec.folder));
-  const historyGroups = groupBySpec(historyKeys.flatMap((key) => bySpec.get(key) ?? []), [], historyKeys, history, now);
+  const historyGroups = groupBySpec(historyKeys.flatMap((key) => bySpec.get(key) ?? []), [], historyKeys, history, now, undefined, [], v.list.summary ?? ((key) => !draws(key)));
   rows.push(...specRowsOf(historyGroups, list, now, draws).map((row) => ({ ...row, jobs: roundOf(row.key) })));
 
   const targets = new Map<string, SpecTarget>(v.list.targets.map((target) => [groupKey(target.project, target.specFolder), target]));
@@ -169,8 +173,8 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
       const key = `${baseKey}@${encodeURIComponent(round.startedAt)}`;
       const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
       const createdAt = specJobCreatedAt(round.jobs) ?? round.startedAt;
-      const roundTarget = { ...target, createdAt };
-      const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now), {
+      const roundTarget = Object.assign(Object.create(Object.getPrototypeOf(target), Object.getOwnPropertyDescriptors(target)), { createdAt }) as SpecTarget;
+      const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now, undefined, [], v.list.summary ?? !draws(key)), {
         ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
       }, now, () => draws(key))[0];
       if (!built) continue;
@@ -188,7 +192,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
   return rows.map((row) => ({ ...row, html: markedWithKind(row.html, "spec") }));
 }
 
-function activeExecutionGroups(v: JobsView, specRows: { key: string; group: SpecGroup; html: string }[] = roundSpecRows(v, v.now ?? Date.now())): ExecutionGroup[] {
+export function activeExecutionGroups(v: JobsView, specRows: { key: string; group: SpecGroup; html: string }[] = roundSpecRows(v, v.now ?? Date.now(), () => false)): ExecutionGroup[] {
   const registered = v.executionGroups ?? [];
   const known = new Set(registered.map((group) => `${group.project}\n${group.name}`));
   const legacy = new Map<string, typeof specRows>();
@@ -223,14 +227,14 @@ function activeExecutionGroups(v: JobsView, specRows: { key: string; group: Spec
  *  list by, and what decides whether this tab names the Specs list as the
  *  page a browser tab starts on. A failed create's message is not a row. */
 export function jobsTabHasRows(v: JobsView): boolean {
-  return jobsViewRows(entries(v, () => false), v.list.filter ?? {}).length > 0;
+  return jobsViewRows(v.summaryEntries ?? jobsEntries(v, () => false), v.list.filter ?? {}).length > 0;
 }
 
 /** The failed-create messages, the bar and the table, with an empty row
  *  when there is nothing to show. */
 export function renderJobsRows(v: JobsView): string {
   const lang = v.list.lang ?? "en";
-  const all = entries(v, () => false);
+  const all = v.summaryEntries ?? jobsEntries(v, () => false);
   const notices = renderFailedCreateNotices(v.list.failedCreates ?? [], lang);
   const f = v.list.filter ?? {};
   const matching = jobsViewRows(all, f);
@@ -238,28 +242,29 @@ export function renderJobsRows(v: JobsView): string {
   for (const row of matching) {
     if (row.facts.members?.some((member) => opened.has(groupKey(member.project, member.specFolder)))) opened.add(row.key);
   }
-  const shown = jobWindow(matching, v.limit, opened);
+  const window = v.selection ?? selectWindow(matching, { limit: v.limit, opened });
+  const wanted = new Set(window.rows.map((row) => row.key));
+  const shown = [...matching.filter((row) => wanted.has(row.key)), ...all.filter((row) => wanted.has(row.key) && !matching.includes(row))];
   const keys = new Set(shown.flatMap((row) => [row.key, ...(row.facts.members ?? []).map((member) => groupKey(member.project, member.specFolder))]));
-  const drawn = new Map(entries(v, (key) => keys.has(key)).map((row) => [row.key, row.html]));
-  const moreFilter = { ...f, limit: String(jobWindowLimit(v.limit) + 50) };
-  const moreUrl = jobsViewPath(moreFilter, {});
-  const more = matching.length > shown.length ? btnLink({ label: t(lang, "jobs.showMore"), href: moreUrl, data: { nav: "" } }) : "";
+  const detailView = v.selection ? { ...v, list: { ...v.list, filter: { ...f, boundary: window.boundary, windowQuery: window.query } } } : v;
+  const drawn = new Map(jobsEntries(detailView, (key) => keys.has(key)).map((row) => [row.key, row.html]));
+  const more = windowControl(window, { ...f, limit: v.limit }, "/", lang);
   const body = shown.length
     ? shown.map((r) => drawn.get(r.key) ?? "").join("")
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices + executionGroupEditors(v, lang) +
     jobsFilterBar(all.map((e) => e.facts), f, lang, matching.length) +
-    `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table>${more ? `<div class="row">${more}</div>` : ""}</div>`
+    `<div class="tablewrap"${windowAttributes(window)}><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table>${more}</div>`
   );
 }
 
 /** The jobs a spec offered for a group is checked against: one in flight is not offered. */
 const groupJobs = (v: JobsView): { project: string; specFolder: string; state: string }[] =>
-  [...v.shown, ...v.specJobs].map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
+  (v.list.groupJobs ?? [...v.shown, ...v.specJobs]).map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
 
 function executionGroupEditors(v: JobsView, lang: Language): string {
-  const groups = activeExecutionGroups(v);
+  const groups = v.summaryExecutionGroups ?? activeExecutionGroups({ ...v, list: { ...v.list, summary: true } });
   const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
   const jobs = groupJobs(v);
   const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
@@ -271,7 +276,7 @@ function executionGroupEditors(v: JobsView, lang: Language): string {
 export function renderJobsSpecRows(v: JobsView, key: string): string {
   // The asked row alone is drawn. A card holds its members' rows, so a card's key draws every row.
   const draws: Draws = key.startsWith("execution-group:") ? () => true : (k) => k === key;
-  const shown = jobsViewRows(entries(v, draws), v.list.filter ?? {});
+  const shown = jobsViewRows(jobsEntries(v, draws), v.list.filter ?? {});
   const own = shown.filter((r) => r.key === key).map((r) => r.html);
   return `<table><tbody>${own.length ? own.join("") : groupMemberRows(v, key, new Set(shown.map((r) => r.key)), draws)}</tbody></table>`;
 }

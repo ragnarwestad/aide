@@ -1,3 +1,5 @@
+import { bindListWindow, acceptListWindow } from "../list-window";
+import { holdListAnchor } from "../list-window/anchor.ts";
 import { openPhaseAttemptLogs, reopenPhaseAttemptLogs } from "./phase-attempt-logs.ts";
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
@@ -275,6 +277,8 @@ let lastRows: RowSplit | null = null;
  *  written under its row again. `open` was read before the rows were replaced. */
 function redrawn(body: Element, open: ReadonlySet<string>): void {
   syncSpecGroups(body);
+  if (pendingRows) resumeListWindow = true;
+  else bindListWindow();
   drawLimits(body);
   restoreChosen(body);
   reopenTestFiles(body, open);
@@ -343,13 +347,20 @@ export async function swapSpec(key: string): Promise<void> {
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
 // tick would quietly throw the filter away.
-export async function swapRows(): Promise<void> {
+let pendingRows = 0;
+let resumeListWindow = false;
+export const rowsPending = (): boolean => pendingRows > 0;
+let rowAsk = 0;
+export async function swapRows(onAccepted?: () => void): Promise<void> {
   const body = document.getElementById("jobrows");
   if (!body) return;
   const gen = press.pressGen;
+  const ask = ++rowAsk;
+  const askedPath = location.pathname;
   const asked = location.search;
   const params = new URLSearchParams(asked);
   params.set("rows", "1");
+  pendingRows++;
   try {
     const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
@@ -358,7 +369,7 @@ export async function swapRows(): Promise<void> {
     // the answer predates it, and the press's own swap, or the next thing the
     // server pushes, supplies the page's current one. This one must not land
     // on top of what the press just drew.
-    if (press.pressGen !== gen || location.search !== asked) return;
+    if (press.pressGen !== gen || location.search !== asked || location.pathname !== askedPath || ask !== rowAsk || document.getElementById("jobrows") !== body) return;
     // A progress dialog open on a row — Reopen's, not yet answered, or
     // kept open by a refusal — would go with the rows it sits in, and so
     // would an open dialog that holds a form, with what was typed in it.
@@ -378,6 +389,7 @@ export async function swapRows(): Promise<void> {
     // `applyGroupDiff` declines whenever anything outside the rows
     // differs — a chip's count changing when a job starts or finishes
     // is exactly that.
+    const restoreAnchor = holdListAnchor(body);
     const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     const open = openTestFiles(body);
     const openPhaseLogs = openPhaseAttemptLogs([body]);
@@ -411,7 +423,10 @@ export async function swapRows(): Promise<void> {
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
+    restoreAnchor();
+    acceptListWindow(body);
     redrawn(body, open);
+    onAccepted?.();
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   } finally {
@@ -420,6 +435,8 @@ export async function swapRows(): Promise<void> {
     // container left wearing it would say the page is still working on
     // something that is over. `finally`, because three of the paths
     // above are early returns.
+    pendingRows--;
+    if (!pendingRows && resumeListWindow) { resumeListWindow = false; bindListWindow(); }
     body.classList.remove(AWAITING);
   }
 }

@@ -1,3 +1,4 @@
+import { phaseRecords } from "../../../../project/phase-records";
 // One spec, however many jobs it took. The list is about SPECS. A spec
 // taken through analyze, implement and archive as three separate jobs
 // is still one spec, and how far it has got — and what its phases cost
@@ -190,7 +191,7 @@ interface SpecTotal {
   since?: string;
   }
 
-function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
+function totalDuration(phases: Iterable<Phase>, now: number): SpecTotal | undefined {
   let settled = 0;
   let measured = false;
   let liveSince: string | undefined;
@@ -249,7 +250,15 @@ export function computeSpecTotalDurationMs(
   now: number,
   dir?: string,
 ): SpecTotal | undefined {
-  return totalDuration(specPhases(rows, dir), now);
+  return totalDuration(specPhases(rows, dir, false), now);
+}
+
+/** Queue-preferred duration over recorded aggregate facts, without phase rows. */
+export function recordedDuration(jobs: QueueRowView[], outcomes: Record<string, { timeSpentMs?: number }>, now: number): SpecTotal | undefined {
+  const attempts = attemptsPerStep(jobs);
+  return totalDuration((function* () {
+    for (const step of PHASE_LINES) yield { step, attempts: attempts[step] ?? [], history: {}, timeSpentMs: outcomes[step]?.timeSpentMs };
+  })(), now);
 }
 
 /** Which of a spec's own remembered queue jobs speak for each phase
@@ -276,9 +285,9 @@ export function attemptsPerStep(jobs: QueueRowView[]): Record<string, QueueRowVi
  *  the four in order and nothing else — reopen, close, explore and the
  *  rest are steps, and the Logs tab lists them — each with the attempts
  *  that speak for it, newest first. */
-function specPhases(all: QueueRowView[], dir?: string): Phase[] {
+function* specPhases(all: QueueRowView[], dir?: string, details = true): Generator<Phase> {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
-  return PHASE_LINES.map((step) => {
+  for (const step of PHASE_LINES) {
     const attempts = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
     // No queue job ever ran this phase: the only other place its
     // duration/cost could be is the file the interactive counterpart
@@ -286,11 +295,11 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
     // archived path's reader) — the same fallback the archived path already leans on
     // (readerGroup, group-builders.ts). A phase a job DID attempt keeps
     // its job-derived answer only, never merged with the file's.
-    const fileOutcome = dir ? specPhaseOutcome(dir, step) : undefined;
+    const fileOutcome = dir ? (details ? specPhaseOutcome(dir, step) : phaseRecords(dir).outcomes[step]) : undefined;
     // Only used for time/cost/tokens when the queue has NOTHING for this
     // phase — a queue-derived attempt always wins when one exists.
     const outcome = attempts.length === 0 ? fileOutcome : undefined;
-    return {
+    yield {
       step,
       attempts,
       history: {},
@@ -306,9 +315,9 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       fileResult: fileOutcome?.result,
       fileAnalysis: fileOutcome?.analysis,
       fileSentBack: fileOutcome?.sentBack,
-      ...(step === "analyze" && dir ? { planReviewed: specPlanReviewed(dir) } : {}),
+      ...(details && step === "analyze" && dir ? { planReviewed: specPlanReviewed(dir) } : {}),
     };
-  });
+  }
 }
 
 /** Archive's own file-side answer, on archive's line and nowhere else.
@@ -359,19 +368,29 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
  *  now because a third caller — the spec page's own Overview tab —
  *  needs the identical join, and writing it a third time is the exact
  *  hand-copied-list shape `development.md` already names six of. */
-export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
+function* phaseFactsFor(all: QueueRowView[], target: SpecTarget | undefined, details: boolean): Generator<Phase> {
   const round = roundUnderWayIn(all);
   const analyzedAtMs = lastAnalyzeEndedMs(all);
-  return specPhases(all, target?.dir).map((phase) => {
+  for (const phase of specPhases(all, target?.dir, details)) {
     const joined = {
       ...phase,
       ...heldBackFor(phase.step, target),
       ...historyFor(phase.step, target, phase.attempts[0]),
     };
-    if (round && comesAfterRoundStart(phase.step, round)) return phaseInRound(joined, round);
-    if (phase.step === "archive" && refusalAnswered(joined, target)) return { step: phase.step, attempts: [], history: {} };
-    return supersededByAnalysis(joined, target, analyzedAtMs);
-  });
+    if (round && comesAfterRoundStart(phase.step, round)) yield phaseInRound(joined, round);
+    else if (phase.step === "archive" && refusalAnswered(joined, target)) yield { step: phase.step, attempts: [], history: {} };
+    else yield supersededByAnalysis(joined, target, analyzedAtMs);
+  }
+}
+
+/** Full phase lines are built only for selected rows. Selection consumes
+ * the same duration facts without retaining phase lines or reading review details. */
+export function phasesFor(all: QueueRowView[], target: SpecTarget | undefined): Phase[] {
+  return [...phaseFactsFor(all, target, true)];
+}
+
+export function summaryDuration(all: QueueRowView[], target: SpecTarget | undefined, now: number): SpecTotal | undefined {
+  return totalDuration(phaseFactsFor(all, target, false), now);
 }
 
 /** When the newest analyze the queue remembers finishing ended, epoch ms. */

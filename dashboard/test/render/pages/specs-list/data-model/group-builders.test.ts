@@ -60,3 +60,23 @@ test("automatic waiting fixes the phase choices for every group member until Sto
   expect(build(false).map((member) => member.executionGroupAutomaticWait)).toEqual([true, true]);
   expect(build(true).map((member) => member.executionGroupAutomaticWait)).toEqual([false, false]);
 });
+
+test("summary projection preserves global search, state, ordering and membership facts without phase rows (AC-4, AC-5, AC-8, AC-10)", () => {
+  const scenarios = [
+    targets,
+    targets.map((target) => ({ ...target, done: ["create", "analyze"], reopenedRound: true })),
+    targets.map((target) => ({ ...target, notVerified: 2, failed: 1, group: { name: "Release", position: 1 } })),
+  ];
+  for (const source of scenarios) {
+    const details = groupBySpec(jobs, source, archived, archivedSpecs, NOW);
+    const summaries = groupBySpec(jobs, source, archived, archivedSpecs, NOW, undefined, [], true);
+    const facts = (group: typeof details[number]) => ({
+      key: groupKey(group.project, group.specFolder), state: group.state, createdAt: group.createdAt,
+      title: group.title, description: group.description, done: group.done, spentUsd: group.spentUsd,
+      duration: group.totalDurationMs, notVerified: group.notVerified, failed: group.failed, group: group.group,
+      executionGroupActive: group.executionGroupActive,
+    });
+    expect(summaries.map(facts)).toEqual(details.map(facts));
+    expect(summaries.every((group) => group.phases.length === 0)).toBe(true);
+  }
+});

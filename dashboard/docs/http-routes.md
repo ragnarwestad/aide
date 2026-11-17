@@ -255,6 +255,18 @@ dispatcher.
 
 ### Pages
 
+The HTML list reads at `/`, `/specs` and `/specs/<project>/<spec>` accept `limit` in whole multiples of 100
+(default 100), `boundary` as the last normal loaded identity, `windowQuery` as the query identity, and `grow=1`
+for a further batch. A different query identity resets the range. Refreshes retain a contiguous prefix through
+at least `limit` and the matching boundary; a growth request extends that reconciled prefix by up to 100.
+Explicitly opened exceptions do not consume normal slots or change the normal boundary. `only` and `detail=1`
+still select their own rows directly.
+
+The list wrapper carries `data-window-query`, `data-window-limit`, `data-window-loaded`, `data-window-total`,
+`data-window-more` and `data-window-boundary`. Row answers replace the complete selected prefix. The client accepts
+the boundary only with a current answer, clears the transient growth flag, and carries the range on subsequent
+refreshes. No queue persistence or `/api/queue` response format changes.
+
 Answered by the files under `src/serve/routes/page-routes/`, `src/serve/routes/spec-edit/` and
 `src/serve/routes/spec-pdf.ts`. No page takes a message from its query: a refusal or a notice is written in by the page
 script, from the answer to the press that made it. Every page route also reads
