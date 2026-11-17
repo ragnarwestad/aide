@@ -4,6 +4,7 @@ import type { QueueStore } from "../store/index.ts";
 import type { Job } from "../types.ts";
 import { formatSentence } from "../../messages/format.ts";
 import { seedOrder } from "./order.ts";
+import { usageLimitStopSuperseded } from "../runner/usage-limit.ts";
 
 export function waitingKey(job: Job): string {
   return job.executionGroupId && job.steps[job.stepIndex] === "archive" ? `group:${job.executionGroupId}:archive` : job.executionGroupId
@@ -20,7 +21,7 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
     refresh: () => {
       const jobs = store.list();
-      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j => j.state === "queued" || (j.state === "stopped" && !!j.usageLimitWait) || ((j.state === "done" || j.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(j.results.at(-1)?.terminalReason ?? "") && !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
+      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j => j.state === "queued" || (j.state === "stopped" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) || ((j.state === "done" || j.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(j.results.at(-1)?.terminalReason ?? "") && !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
       const entries = pending.map(jobEntry);
       for (const job of jobs.filter(job => job.state === "running" || job.state === "queued")) {
         for (let index = job.stepIndex + 1; index < job.steps.length; index++) {
@@ -53,6 +54,8 @@ export function waitingGroups(store: QueueStore) {
   const entries = store.waiting.snapshot().entries;
   return store.executionGroups.list().map(group => {
     const index = entries.findIndex(entry => entry.groupId === group.id);
-    return { ...group, queuePosition: index < 0 ? undefined : { id: entries[index]!.id, n: index + 1, total: entries.length, reason: entries[index]!.reason, operation: entries[index]!.operation } };
+    const prefix = `group:${group.id}:`;
+    const queuedMembers = group.members.filter((member) => entries.some((entry) => entry.id.startsWith(`${prefix}${member}:`)));
+    return { ...group, queuedMembers, queuePosition: index < 0 ? undefined : { id: entries[index]!.id, n: index + 1, total: entries.length, reason: entries[index]!.reason, operation: entries[index]!.operation } };
   });
 }

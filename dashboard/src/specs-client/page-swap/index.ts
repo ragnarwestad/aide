@@ -133,6 +133,7 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
     if (!finalUrl.hash) finalUrl.hash = requestedUrl.hash;
     if (!response.ok || !contentType.includes("text/html") || finalUrl.origin !== location.origin) throw new Error("not a board page");
     const html = await response.text();
+    if (controller.signal.aborted) return false;
     const next = new DOMParser().parseFromString(html, "text/html");
     if (!isBoardPage(next, finalUrl)) throw new Error("not a board page");
     // A newer server drew it: loaded whole, so the script that runs it is the new one too.
@@ -191,6 +192,8 @@ export function bindPageSwap(doc: Document, nextHooks: MountHooks = {}): void {
       return;
     }
     if (onBack()) {
+      inFlight?.abort();
+      inFlight = null;
       shownAddress = location.href;
       return;
     }

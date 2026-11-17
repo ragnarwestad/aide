@@ -42,6 +42,11 @@ without showing a remembered page first.
 
 ## Address, history and scroll
 
+Loading more Jobs or Specs and receiving live changes keep the loaded range, expanded groups, open rows and held
+spec detail. The first visible row keeps its place when preceding rows change. New work is reconciled with the
+current list through its last loaded identity, so insertions do not duplicate or skip matching rows. Answers from
+an older search, page or action are ignored. Opening a spec and switching its tabs keep the loaded range too.
+
 The address bar and page title follow the content. Back and Forward show a remembered page when there is one and
 fetch a fresh page for their address. A different page starts at the top. An action that refreshes the same page
 keeps its scroll position.

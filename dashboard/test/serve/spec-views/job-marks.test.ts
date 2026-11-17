@@ -372,19 +372,21 @@ describe("scheduleSteps", () => {
     expect(text("Read the list")).not.toContain("wrote the report line");
   });
 
-  test("a running cleanup lists all four operations before any mark (AC-4, AC-6)", () => {
+  test("a running cleanup lists all five operations before any mark (AC-4, AC-6)", () => {
     const got = scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], state: "running" }), "en");
     expect(got.map(({ label, state }) => [label, state])).toEqual([
       ["Read host processes and protect running jobs", undefined],
       ["Find unknown test servers on board ports", undefined],
       ["Find parentless test processes older than 6 hours", undefined],
       ["Stop leftover processes", undefined],
+      ["Remove test temp folders older than 6 hours", undefined],
     ]);
     expect(scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], state: "running" }), "nb").map(({ label }) => label)).toEqual([
       "Les prosessene på maskinen og beskytt aktive jobber",
       "Finn ukjente testservere på tavlens porter",
       "Finn foreldreløse testprosesser eldre enn 6 timer",
       "Stopp gjenværende prosesser",
+      "Fjern testenes temp-mapper eldre enn 6 timer",
     ]);
   });
 

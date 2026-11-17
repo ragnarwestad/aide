@@ -466,6 +466,12 @@ on the queue job, which the queue drops after 200 jobs.
 
 ## Filtering and searching the list
 
+Jobs and Specs initially show up to 100 matching top-level elements. Scrolling near the end loads up to 100 more;
+Show more offers the same action without automatic loading. A Jobs group and all its members count as one element.
+Search, filters, sorting and counts cover the complete eligible list, including older elements not loaded yet.
+Changing the search, a filter or the sort starts with the first 100 matches again. A direct link can open an older
+spec without loading every row before it.
+
 The state filter is one axis, and `?state=` is where it lives. It is a dropdown of checkbox links. Ticking several
 shows every row that matches any of them. `?state=` holds their keys separated by commas; one key still shows that
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs

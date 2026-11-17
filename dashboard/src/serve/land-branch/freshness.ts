@@ -62,8 +62,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
     );
     if (!resolved) return t;
     const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
-    const withHistory: SpecTarget = {
-      ...t,
+    const withHistory: SpecTarget = Object.assign(Object.create(Object.getPrototypeOf(t), Object.getOwnPropertyDescriptors(t)), {
       // Not `...resolved`: `resolved.fileSteps` is the prose half alone
       // (`resolveWorkflowState`'s own `answer.proseSteps`),
       // and nothing downstream ever reads `SpecTarget.fileSteps` again
@@ -81,12 +80,8 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       // `git mv` — and then the cell shows a dash rather than a
       // job's own time, which is the field this replaces.
       createdAt: createdAtPeek.createdAt ?? undefined,
-    };
+    });
     if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
-    return {
-      ...withHistory,
-      analyzeStale: true,
-      done: resolved.done.filter((s) => s !== "analyze"),
-    };
+    return Object.assign(withHistory, { analyzeStale: true, done: resolved.done.filter((s) => s !== "analyze") });
   });
 }

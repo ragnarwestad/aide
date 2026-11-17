@@ -141,6 +141,9 @@ export async function specPageRoutes(
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     // The list's view the spec's links carry, so a click keeps the list around the row.
     const listView = listViewIn({
+      limit: url.searchParams.get("limit"),
+      boundary: url.searchParams.get("boundary"),
+      windowQuery: url.searchParams.get("windowQuery"),
       state: url.searchParams.get("state"),
       project: url.searchParams.get("project"),
       sort: url.searchParams.get("sort"),
@@ -153,6 +156,11 @@ export async function specPageRoutes(
     const key = `${project}/${specFolder}`;
     const parts = await specsListParts(ctx, req, url, key, oneRowKey(url, key));
     if (url.searchParams.get("rows")) return specsRowsAnswer(parts, url);
+    if (parts.view.selection) {
+      listView.boundary = parts.view.selection.boundary;
+      listView.windowQuery = parts.view.selection.query;
+      if (listView.limit) listView.limit = String(parts.view.selection.requested);
+    }
     const lang = parts.view.lang ?? "en";
     const inRow = (view: SpecView) =>
       specInRow(view, {

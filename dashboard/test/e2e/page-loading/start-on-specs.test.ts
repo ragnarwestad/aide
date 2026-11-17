@@ -32,7 +32,7 @@ describe("a board with nothing running", () => {
   test("a browser tab whose first page is the Running tab ends on the Specs list, with no way Back to it", async () => {
     const page = await newTab();
     await withBrowser(page.goto(`${base}/`), "page.goto(/)");
-    await withBrowser(page.waitForURL(/\/specs$/), "the move to the Specs list");
+    await withBrowser(page.waitForURL((url) => url.pathname === "/specs"), "the move to the Specs list");
     await page.goBack().catch(() => undefined);
     expect(new URL(page.url()).pathname).not.toBe("/");
   });

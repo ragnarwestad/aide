@@ -1,3 +1,6 @@
+import type { ListWindow } from "../list-window";
+import { selectWindow } from "../list-window";
+import { windowAttributes, windowControl } from "../list-window/control.ts";
 // `/`: the one list of every spec there IS — cut and ordered on
 // demand, one line per spec with its workflow phases beneath it, and
 // every spec run from its own row.
@@ -104,6 +107,9 @@ import type { Job } from "../../../queue/queue.ts";
 export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
+  summary?: boolean;
+  selection?: ListWindow<{ key: string }>;
+  summaryGroups?: SpecGroup[];
   /** On Jobs, the row's job creation time replaces the spec's creation time. */
   jobCreatedAt?: (project: string, specFolder: string) => string | undefined;
   /** The creates that ended without a spec and have not been dismissed
@@ -244,8 +250,6 @@ export interface SpecsPageOptions {
    *  disabled with the reason. */
   pdfAvailable?: boolean;
 }
-
-
 // Which rows the reader has opened — the exceptions, not the rule. The
 // default is collapsed: a row says what the spec IS and how it is
 // doing, and the controls that act on it come with expanding it.
@@ -259,7 +263,7 @@ const openedKeys = (opts: SpecsPageOptions): Set<string> =>
 
 /** The groups the filter shows, and the open spec's too where the filter
  *  would hide it: the address names it, so the list must show it. */
-function shownGroups(groups: SpecGroup[], opts: SpecsPageOptions): SpecGroup[] {
+export function shownGroups(groups: SpecGroup[], opts: SpecsPageOptions): SpecGroup[] {
   const f = opts.filter ?? {};
   const shown = applyFilter(groups, f);
   const key = opts.openSpec?.key;
@@ -300,7 +304,7 @@ export function activeSpecRows(
   only?: ReadonlySet<string>,
   draws?: (key: string) => boolean,
 ): { key: string; group: SpecGroup; html: string }[] {
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, only, opts.executionGroups);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, only, opts.executionGroups, opts.summary ?? (draws ? (key) => !draws(key) : false));
   return specRowsOf(applyFilter(groups, { state: ACTIVE_FILTER_KEY }), opts, now, draws);
 }
 
@@ -384,45 +388,41 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 // every one, each showing a single progress pip. It is one spec, and it
 // gets one line, with its phases beneath it.
 //
-// EVERY spec the filter matches, for every filter. There was
-// a 25-row cap here, with a line under the table counting what it had
-// dropped. Hiding rows is wrong in every view: the archived and the
-// combined views are read with the browser's own find, and find cannot
-// reach a row the server never sent. The cap was a performance guess,
-// and if the poll's payload ever turns out to matter the fix is
-// server-side — send only the rows that changed, or cache the fragment
-// — never a cap again.
 export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
   const requested = opts.filter ?? {};
   const f = opts.openSpec && (requested.sort === "started" || requested.sort === "cost")
     ? { ...requested, sort: "created" as const, dir: undefined }
     : requested;
-  const normalizedOpts = f === requested ? opts : { ...opts, filter: f };
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, undefined, opts.executionGroups);
+  let normalizedOpts = f === requested ? opts : { ...opts, filter: f };
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now, opts.selection ? new Set(opts.selection.rows.map((row) => row.key)) : undefined, opts.executionGroups);
   const matched = sortGroups(shownGroups(groups, normalizedOpts), f, (group) => firstActionLabel(group, normalizedOpts), opts.lang ?? "en");
-  const body = matched.length
+  const window = opts.selection ?? selectWindow(matched.map((g) => ({ key: groupKey(g.project, g.specFolder), group: g })), { limit: f.limit, opened: openedKeys(opts) });
+  if (opts.selection) normalizedOpts = { ...normalizedOpts, filter: { ...f, boundary: window.boundary, windowLoaded: String(window.loaded), windowQuery: window.query, limit: f.limit ? String(window.requested) : undefined } };
+  const keys = new Set(window.rows.map((row) => row.key));
+  const visible = matched.filter((g) => keys.has(groupKey(g.project, g.specFolder))).sort((a, b) => window.rows.findIndex((r) => r.key === groupKey(a.project, a.specFolder)) - window.rows.findIndex((r) => r.key === groupKey(b.project, b.specFolder)));
+  const body = visible.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
       // still in the way of the row that names it.
-      groupRows(matched, normalizedOpts, now, openedKeys(normalizedOpts), groups)
+      groupRows(visible, normalizedOpts, now, openedKeys(normalizedOpts), groups)
     : `<tr><td colspan="${opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
       // all" is not, and telling that reader to pick one above is
       // pointing at an empty dropdown.
-      (groups.length
+      ((opts.summaryGroups ?? groups).length
         ? t(opts.lang ?? "en", "list.noSpecMatchesFilter")
         : t(opts.lang ?? "en", "list.noSpecAtAll")) +
       `</td></tr>`;
   return (
     renderFailedCreateNotices(opts.failedCreates ?? [], opts.lang ?? "en") +
-    filterBar(groups, f, opts, matched.length) +
+    filterBar(opts.summaryGroups ?? groups, f, opts, window.total) +
     // "speclist" beside "list": the mobile stylesheet lays THIS table
     // out as stacked blocks (its rows are flex lines there), and the
     // archive page and the settings table share .list without wanting
     // any of that. `data-list` tells the Specs list's own columns apart
     // from the Running tab's, which share the class.
-    `<div class="tablewrap"><table class="list speclist"${opts.openSpec ? ` data-list="specs"` : ""}>` +
-    `${sortableHead(f, opts.lang ?? "en", !!opts.openSpec)}<tbody>${body}</tbody></table></div>`
+    `<div class="tablewrap"${windowAttributes(window)}><table class="list speclist"${opts.openSpec ? ` data-list="specs"` : ""}>` +
+    `${sortableHead(f, opts.lang ?? "en", !!opts.openSpec)}<tbody>${body}</tbody></table>${windowControl(window, f, opts.listPath ?? "/specs", opts.lang ?? "en")}</div>`
   );
 }
 

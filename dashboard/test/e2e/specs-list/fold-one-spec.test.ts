@@ -63,7 +63,7 @@ test("a chevron opens the spec at its own address, one row at a time, and Back s
   for (let i = 0; i < 2; i++) await page.goBack();
   await page.waitForURL((url) => url.pathname === "/specs");
   expect(await openRows()).toEqual([]);
-  expect(await page.$("tr[data-spec-detail]")).toBeNull();
+  await page.locator("tr[data-spec-detail]").waitFor({ state: "detached" });
 });
 
 // The description's editor sits under the row and the spec's settings, and

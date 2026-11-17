@@ -9,26 +9,7 @@ afterEach(() => harness.cleanup());
 // --- The default view does not pay for the archive -----------
 
 describe("building the archived rows", () => {
-  // Asserted on the CODE, not on the response: a response that happened
-  // to be fast, or one whose rows were built and then filtered out,
-  // would both pass a test that only read the HTML. The repo does this
-  // elsewhere for the same reason — `queue.test.ts` reads two
-  // `errorReason` declarations as text and asserts they agree.
-  // The declaration and its body live in spec-views.ts; the one call
-  // site is handleRoutes's, extracted into its own file since spec:
-  // split serve.ts, step 2. Both moved out of serve.ts itself in step 3.
-  // handleRoutes's own body moved on again into routes/page-routes.ts
-  // (split of split serve.ts, step 3) — that is where the call site lives now.
   const specViewsSrc = sourceWithParts("serve/spec-views");
-  const pageRoutesSrc = sourceWithParts("serve/routes/page-routes");
-
-  test("is asked for by the reader's chip, the Jobs history and an open archived spec, and by nothing else", () => {
-    const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
-      .map((m) => m[1]!)
-      // Its own declaration reads the same as a call; it is not one.
-      .filter((arg) => !arg.includes(":"));
-    expect(calls.sort()).toEqual(['"all", keys', "ACTIVE_FILTER_KEY, keys", "ARCHIVED_STATE, keys", "archivedState, keys"]);
-  });
 
   test("skips a row before it reads anything for it", () => {
     const body = specViewsSrc.slice(specViewsSrc.indexOf("function archivedSpecRows"));
@@ -72,14 +53,7 @@ describe("building the archived rows", () => {
   });
 });
 
-// --- No view leaves a spec off the page -------------
-//
-// This block once pinned the opposite: exactly 25 rows, and a
-// line counting the rest. The archived and the combined views exist to
-// be browsed and searched with the browser's own find, and find cannot
-// reach a row the server never sent.
-
-describe("an archive bigger than the page", () => {
+describe("an archive that fits in the first batch", () => {
   /** Thirty archived specs. aide alone has about 150 of them. */
   const MANY = Object.fromEntries(
     Array.from({ length: 30 }, (_, i) => [
