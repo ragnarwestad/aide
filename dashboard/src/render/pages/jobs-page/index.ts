@@ -95,7 +95,10 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
     // Each member's current row, by its key: an earlier round of a reopened
     // member is a row of its own, and is counted there.
     const current: RowFacts[] = group.members
-      .map((folder) => specRows.find((row) => row.key === groupKey(group.project, folder))?.group)
+      .map((folder) => {
+        const row = specRows.find((candidate) => candidate.key === groupKey(group.project, folder))?.group;
+        return row && group.queuedMembers?.includes(folder) ? { ...row, inQueue: true } : row;
+      })
       .filter((member): member is SpecGroup => !!member);
     const facts = {
       project: group.project, specFolder: group.name,
