@@ -1,3 +1,4 @@
+import { jobTitle as jobListTitle } from "../jobs-page/rows.ts";
 // /jobs/<id>: one job, in full. Its parts — what the job is,
 // what it has been doing, what it has run — sit behind tabs, because
 // under plain headings they ran together and a reader scrolled past the
@@ -210,7 +211,7 @@ export function renderJobDetailPage(
   const panel = tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : head;
 
   // A cleanup job's folder is the queue's own key, not a spec: it is named by its step.
-  const jobTitle = job.specFolder === CLEANUP_KEY ? stepLabel(CLEANUP_KEY, lang) : job.specFolder;
+  const jobTitle = job.specFolder === "land" ? jobListTitle(job, lang) : job.specFolder === CLEANUP_KEY ? stepLabel(CLEANUP_KEY, lang) : job.specFolder;
   const body = tabbedBody(
     followPart("head", banner),
     tabBar(JOB_TABS, `/jobs/${esc(job.id)}`, tab, {

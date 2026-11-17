@@ -167,6 +167,8 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Typer",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Utrulling",
   "jobs.kindSchedule": "Planlagt jobb",
   "jobs.kindCleanup": "Opprydding",
@@ -196,6 +198,8 @@ export const nb: Record<TranslationKey, string> = {
     "Det kunne ikke opprettes en pull-forespørsel for denne grenen. — Opprett en for hånd, " +
     "i det lokale repoet på serveren.",
   "checks.coveredBy": "Tester: {names}",
+  "checks.unit": "Enhet",
+  "checks.browser": "Nettleser",
   "checks.noTestNames": "Ingen test nevner {id}.",
   "list.branchLeftBehind":
     "Denne specen ble merget, men grenen kunne ikke slettes på origin. — " +

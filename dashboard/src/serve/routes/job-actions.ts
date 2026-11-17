@@ -1,3 +1,5 @@
+import { stopLand } from "../land-job/control.ts";
+import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
@@ -16,7 +18,7 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, groupRowPicks, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, groupMemberSteps, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { executionGroupAction, waitingGroupJob, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
 import { createExecutionGroup, editGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -59,11 +61,13 @@ export async function handleJobActionRoutes(
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
+    let memberSteps: Record<string, string[]> = {};
     let askedAction: ExecutionGroupAction | undefined;
     let askedModel: string | undefined;
     let askedProvider: string | undefined;
     try {
       const body = sent.text ? bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown> : {};
+      memberSteps = readGroupPhaseChoices(body.memberSteps);
       if (body.action === "start" || body.action === "stop" || body.action === "archive" || body.action === "remove") askedAction = body.action;
       if (typeof body.model === "string" && body.model) askedModel = body.model;
       if (typeof body.provider === "string" && body.provider) askedProvider = body.provider;
@@ -90,7 +94,10 @@ export async function handleJobActionRoutes(
     const archived = execution.members.filter((folder) =>
       !members.some((member) => member.specFolder === folder) && ctx.specRef(project, folder)?.archived);
     if (members.length === 0 || members.length + archived.length < 2) return json({ error: "the group no longer exists" }, 409);
-    const next = members.find((member) => !(member.done ?? []).includes("implement"));
+    if (Object.keys(memberSteps).some((folder) => !members.some((member) => member.specFolder === folder))) return json({ error: "unknown group member" }, 400);
+    const plan = groupStartPlan(members, Object.fromEntries(members.map((member) => [member.specFolder,
+      ctx.queue.pendingSteps[`${project}/${member.specFolder}`] ?? []])), memberSteps);
+    const next = members.find((member) => plan[member.specFolder]!.length > 0);
     const input = {
       project,
       name,
@@ -98,10 +105,12 @@ export async function handleJobActionRoutes(
       branch: groupBranch(members[0]!.specFolder, name),
     };
     const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
+    const waiting = waitingGroupJob(execution, historical);
     const available = executionGroupAction(execution, [...members.map((member) => ({
-      implemented: (member.done ?? []).includes("implement"),
+      implemented: (member.done ?? []).includes("implement") && !memberSteps[member.specFolder]?.length,
       archived: false,
       acceptanceOpen: !!member.acceptanceOpen,
+      automaticWaiting: waiting?.specFolder === member.specFolder,
       busy: historical.some((job) => job.specFolder === member.specFolder && inFlight(job)),
     })), ...archived.map(() => ({ implemented: true, archived: true, acceptanceOpen: false, busy: false }))])
       ?? (execution.state === "prepared" ? "start" : undefined);
@@ -110,7 +119,10 @@ export async function handleJobActionRoutes(
     if (!action || action !== available) return json({ error: `the execution group cannot ${askedAction ?? "run"} while it is ${execution.state}` }, 409);
     if (action === "stop") {
       ctx.queue.executionGroups.stop(execution.id, true);
-      for (const job of historical.filter(inFlight)) cancelJob(ctx, job);
+      for (const job of historical) {
+        if (inFlight(job)) cancelJob(ctx, job);
+        else if (job.usageLimitWait) ctx.queue.update(job.id, { usageLimitWait: undefined, usageLimitProbe: undefined });
+      }
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
     if (action === "start") {
@@ -133,14 +145,14 @@ export async function handleJobActionRoutes(
         }), execution.id);
         if (!saved.ok) return saved;
         return handleJobActionRoutes(ctx, new Request(req.url, {
-          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start" }),
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start", memberSteps }),
         }), path);
       }
     }
     const raw = action === "start"
       ? next ? withRowPicks({
           project, specFolder: next.specFolder, executionGroupId: execution.id,
-          steps: groupMemberSteps(ctx.queue.pendingSteps[`${project}/${next.specFolder}`], next.done ?? []),
+          steps: plan[next.specFolder],
         }, ctx.queue) : null
       : action === "archive" && !members.some((member) => member.acceptanceOpen)
         ? (() => {
@@ -166,9 +178,11 @@ export async function handleJobActionRoutes(
           };
         })()
         : null;
-    if (!raw) return json({ error: "every acceptance criterion in the group must be ticked before Archive" }, 409);
+    if (!raw) return json({ error: action === "start" ? "select a member phase before Start" : "every acceptance criterion in the group must be ticked before Archive" }, 409);
     const result = enqueueRequest(ctx.queue, raw, "manual");
     if (!result.ok) return refusal(result, { spec: `${project}/${raw.specFolder}` });
+    if (action === "start") ctx.queue.executionGroups.update(execution.id, { memberSteps: plan, sharedChoices: false,
+      completedMembers: execution.completedMembers.filter((folder) => !plan[folder]?.length) });
     ctx.queue.executionGroups.update(execution.id, { state: action === "start" ? "queued" : "archiving", currentMember: raw.specFolder, error: undefined });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
@@ -380,6 +394,9 @@ export async function handleJobActionRoutes(
       logRefusal("cancel", `${job.project}/${job.specFolder}`, reason);
       return json({ error: reason, spec: `${job.project}/${job.specFolder}` }, 409);
     }
+    if (jobKind(job) === "land" && job.state === "running" && job.landPushStarted) {
+      return json({ error: "Land cannot be stopped after push has begun", spec: `${job.project}/${job.specFolder}` }, 409);
+    }
     // Only a job that still owns its work can be cancelled. A finished
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had
@@ -466,6 +483,7 @@ export async function handleJobActionRoutes(
 }
 
 function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
+  if (job.state === "running" && jobKind(job) === "land") stopLand(job.id);
   const result = endStep(ctx.queue, job.id, "cancel", {
     finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined,
   });

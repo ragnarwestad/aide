@@ -1,3 +1,4 @@
+import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
 // One line per phase, in the workflow's own order, whether or not it
 // has happened.
 
@@ -222,11 +223,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
             // the step, not what a fresh press would pre-tick
             // (`ticked`) — a step queued behind the running one is
             // still one this job named, and still reads as ticked.
-            checked: busy ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
+            checked: busy || (g.lead && automaticProviderWait(g.lead)) ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
             // The step being run needs no carve-out here: a running
             // step is never `live` — `live` names a step the
             // run has NOT reached — so `busy && !live` disables it.
-            disabled: busy && !live,
+            disabled: !!g.executionGroupAutomaticWait || (busy && !live),
             // Inert, but not padlocked: the tick already says whether
             // this job will get to the step.
             plain: true,

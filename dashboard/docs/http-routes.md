@@ -144,6 +144,8 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop`, `archive` or `remove`   | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
 | `POST /api/queue/groups/<id>`                 | action | name and the full ordered member list              | `{ ok, group }`; 409 if refused                                            | form      |
 
+Start also accepts an optional `memberSteps` map from member folder to the selected Analyze/Implement steps.
+
 The execution-group routes have these authoritative handlers:
 
 - `POST /api/queue/groups` — `src/serve/routes/spec-edit/group.ts`

@@ -12,6 +12,25 @@ import { AC_COVERAGE_FILE } from "./spec-names.ts";
 export interface AcTest {
   file: string;
   name: string;
+  kind?: "unit" | "browser";
+}
+
+function kindFromFile(codeRoot: string, file: string): AcTest["kind"] {
+  try {
+    const code = readFileSync(join(codeRoot, file), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "")
+      .replace(/^\s*#.*$/gm, "");
+    const module = String.raw`(?:@playwright\/test|playwright)`;
+    const named = String.raw`(?:\{[\s\S]*?\}|\*\s+as\s+\w+|[\w$]+(?:\s*,\s*(?:\{[\s\S]*?\}|\*\s+as\s+\w+))?)`;
+    const browser = new RegExp(String.raw`\b(?:import|export)\s+(?:type\s+)?${named}\s+from\s*["']${module}["']`).test(code)
+      || new RegExp(String.raw`\bimport\s*["']${module}["']`).test(code)
+      || new RegExp(String.raw`\brequire\s*\(\s*["']${module}["']\s*\)`).test(code)
+      || /^\s*(?:from\s+playwright(?:[._\s]|$)|import\s+playwright(?:[._\s]|$))/m.test(code);
+    return browser ? "browser" : "unit";
+  } catch {
+    return undefined;
+  }
 }
 
 /** The record beside a spec's `4-status.md`, or `null` where there is
@@ -54,12 +73,17 @@ export function parseAcCoverage(text: string): Record<string, AcTest[]> | null {
 export function withAcCoverage<T extends { task: string; note?: string }>(
   rows: T[],
   coverage: Record<string, AcTest[]> | null,
+  codeRoot?: string,
 ): (T & { tests?: AcTest[]; untested?: boolean })[] {
   if (!coverage) return rows;
   return rows.map((row) => {
     const id = /^(AC-\d+):/.exec(row.task)?.[1];
     if (!id || !(id in coverage)) return row;
-    const tests = coverage[id] ?? [];
+    const tests = (coverage[id] ?? []).map((test) => {
+      if (test.kind || !codeRoot) return test;
+      const kind = kindFromFile(codeRoot, test.file);
+      return kind ? { ...test, kind } : test;
+    });
     return tests.length > 0
       ? { ...row, tests }
       : { ...row, untested: !(row.note ?? "").startsWith("Not tested:") };

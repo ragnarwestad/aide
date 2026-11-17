@@ -849,7 +849,11 @@ Prepared group cards and their members remain on Jobs so the group can be starte
 The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
-Every row starts with an icon for its kind: a spec, a deploy, a scheduled job, the cleanup or an execution group.
+A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
+such as `Land: fix/example`. Cancel removes a queued Land. Stop interrupts merge or testing and keeps the source branch;
+after push begins the Stop control is unavailable. A stopped Land needs a new request to run again.
+
+Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
 
 When the board starts with nothing running, the first page a browser tab loads, if it is the Jobs tab with no row left
@@ -868,7 +872,7 @@ the group's creation date, its progress and the one action allowed by its curren
 menu: Edit while the group can be changed, or Remove after it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
-it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs or is queued, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
+it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs, is queued or waits for an automatic usage-limit retry, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
@@ -877,6 +881,11 @@ acceptance rows left to tick, each member a link to its spec page.
 When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
 is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
 When the user presses Stop on the group, the message says so instead of attributing the cancelled member job as the cause.
+A group waiting for a provider's usage limit shows Waiting and keeps its phase checkboxes locked. AI and model choices
+remain available. Choosing another provider resumes the same job and phases; choosing another model on the same provider
+keeps that provider's reset time. Stop cancels automatic restart and unlocks the phase choices. The next Start follows
+the choices for each member, including explicitly chosen reruns of completed work. Untouched members do not repeat
+completed phases.
 The same notice covers failed, interrupted and cancelled member jobs, and a failed Archive landing even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.
@@ -935,7 +944,7 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
-Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Deploys,
+Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Land, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is

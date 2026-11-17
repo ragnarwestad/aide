@@ -26,6 +26,7 @@ const KEPT = ["sort", "dir", "open", "checks", "phases"] as const;
 const KIND_LABELS = {
   spec: "jobs.filterKindSpec",
   deploy: "jobs.filterKindDeploy",
+  land: "jobs.filterKindLand",
   schedule: "jobs.filterKindSchedule",
   cleanup: "jobs.filterKindCleanup",
   group: "jobs.filterKindGroup",

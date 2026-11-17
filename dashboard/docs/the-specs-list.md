@@ -380,9 +380,12 @@ A phase that is only queued, or that nothing touched, has no ›.
 AC-id, from `ac-coverage.json`, which the runner writes into the spec's folder after a completed implement
 (`core/scripts/lib/run-spec/record/ac-coverage.sh`). It is read from the spec's open branch, where implement wrote it, and
 from the default branch once archive has merged it. Only lines the branch added count, since `AC-1` is in the tests of
-many specs. Tests are grouped by file: each file is one shut line with its path and the number of its tests, which
-opens in place to its test names and shuts again without a page load. A file the reader has opened stays open when the
-list redraws itself. Display names omit trailing criterion ids and carry no browser-test tag; the coverage record keeps the original names.
+many specs. Each criterion with tests has one compact line. It says **Unit** when a test that does not drive a browser
+names the criterion, and **Browser** when a Playwright test names it. The line opens in place to a list grouped by file,
+with the test names below each path and the Browser icon beside each Playwright file. The opened criterion stays open
+when the list redraws itself. A file is a browser test when it imports `playwright`, `@playwright/test` or Python's
+`playwright`, regardless of which folder contains it. Display names omit trailing criterion ids; the coverage record
+keeps the original names.
 A criterion
 no test names gets an amber line saying so, unless analyze's Notes cell already says `Not tested:` and why.
 

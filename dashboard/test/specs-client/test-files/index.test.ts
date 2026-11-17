@@ -30,22 +30,22 @@ function list(html: string): HTMLElement {
 
 const folds = (rows: HTMLElement) => [...rows.querySelectorAll("details")] as HTMLDetailsElement[];
 
-describe("the open files under a criterion", () => {
-  test("an opened file is open again after the list's markup is replaced, and the other stays shut", () => {
+describe("the open criterion test fold", () => {
+  test("an opened criterion is open again after the list's markup is replaced (AC-8)", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
     folds(rows)[0]!.open = true;
     const open = openTestFiles(rows);
     rows.innerHTML = acTestsLine(ROW, "en", SCOPE);
-    expect(folds(rows).map((d) => d.open)).toEqual([false, false]);
+    expect(folds(rows).map((d) => d.open)).toEqual([false]);
     reopenTestFiles(rows, open);
-    expect(folds(rows).map((d) => d.open)).toEqual([true, false]);
+    expect(folds(rows).map((d) => d.open)).toEqual([true]);
   });
 
   test("a key whose file is no longer drawn opens nothing", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
-    folds(rows)[1]!.open = true;
+    folds(rows)[0]!.open = true;
     const open = openTestFiles(rows);
-    rows.innerHTML = acTestsLine({ ...ROW, tests: [ROW.tests[0]!] }, "en", SCOPE);
+    rows.innerHTML = acTestsLine({ task: "AC-2: changed", tests: [ROW.tests[0]!] }, "en", SCOPE);
     reopenTestFiles(rows, open);
     expect(folds(rows).map((d) => d.open)).toEqual([false]);
   });

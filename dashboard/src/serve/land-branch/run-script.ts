@@ -1,3 +1,4 @@
+import { checkLandStop } from "../land-job/control.ts";
 // Running one of aide's own installed scripts from inside a landing
 // worktree, and finding it on disk — shared by the landing's test gate
 // and its create-finalize step, neither of which can rely on the
@@ -31,10 +32,13 @@ export async function runScript(
   // this server, under launchd, cannot see `~/.local/bin` — where aide's
   // scripts and Claude Code itself live — so a script run from here
   // would report a CLI missing that a real run finds.
-  return runProcess(argv, cwd, timeoutMs, extraEnv, {
+  checkLandStop(owner);
+  const result = await runProcess(argv, cwd, timeoutMs, extraEnv, {
     started: owner ? (pid) => trackLandingProcess(owner, pid) : undefined,
     ended: owner ? (pid) => untrackLandingProcess(owner, pid) : undefined,
   });
+  checkLandStop(owner);
+  return result;
 }
 
 /** The `git -c` arguments that make a merge in `work` merge the project's

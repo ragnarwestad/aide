@@ -107,7 +107,7 @@ describe("the tests behind an acceptance row", () => {
 
 // The files under a criterion: one shut line each, its count on the line,
 // its test names inside, drawn by one function for both pages.
-describe("a criterion's tests, one shut line per file", () => {
+describe("a criterion's tests, one fold with its test kinds", () => {
   const windows: Window[] = [];
   afterEach(async () => {
     while (windows.length) await windows.pop()!.happyDOM.close();
@@ -122,41 +122,75 @@ describe("a criterion's tests, one shut line per file", () => {
   }
 
   const TESTS = [
-    { file: "dashboard/test/a.test.ts", name: "the total shows (AC-1)" },
-    { file: "dashboard/test/e2e/b.test.ts", name: "it fits a phone (AC-1)" },
-    { file: "dashboard/test/a.test.ts", name: "the total updates (AC-1)" },
+    { file: "dashboard/test/a.test.ts", name: "the total shows (AC-1)", kind: "unit" as const },
+    { file: "dashboard/test/browser/b.test.ts", name: "it fits a phone (AC-1)", kind: "browser" as const },
+    { file: "dashboard/test/a.test.ts", name: "the total updates (AC-1)", kind: "unit" as const },
   ];
 
-  test("each file is a shut line with its count and holds only its own names", () => {
+  test("Browser and Unit share one criterion fold with grouped files (AC-1, AC-2, AC-3, AC-7, AC-8)", () => {
     const body = drawn(acTestsLine({ task: "AC-1: x", tests: TESTS }, "en", SCOPE));
     const folds = [...body.querySelectorAll("details")];
-    expect(folds.map((d) => d.querySelector("summary")!.textContent!.trim())).toEqual([
-      "dashboard/test/a.test.ts (2)",
-      "dashboard/test/e2e/b.test.ts (1)",
-    ]);
-    expect(folds.map((d) => d.open)).toEqual([false, false]);
-    const inside = (d: Element) => d.textContent!.replace(d.querySelector("summary")!.textContent!, "");
-    expect(inside(folds[0]!)).toContain("the total shows");
-    expect(inside(folds[0]!)).toContain("the total updates");
-    expect(inside(folds[0]!)).not.toContain("it fits a phone");
-    expect(inside(folds[1]!)).toContain("it fits a phone");
+    expect(folds).toHaveLength(1);
+    expect(folds[0]!.querySelector("summary")!.textContent).toContain("Unit");
+    expect(folds[0]!.querySelector("summary")!.textContent).toContain("Browser");
+    expect(folds[0]!.textContent).toContain("dashboard/test/a.test.ts");
+    expect(folds[0]!.textContent).toContain("dashboard/test/browser/b.test.ts");
+    expect(folds[0]!.querySelector('[aria-label="Browser"]')).not.toBeNull();
   });
 
   test("the same test listed twice counts twice and both names are inside", () => {
     const twice = { file: "a.test.ts", name: "the total shows (AC-1)" };
     const body = drawn(acTestsLine({ task: "AC-1: x", tests: [twice, twice] }, "en", SCOPE));
     const fold = body.querySelector("details")!;
-    expect(fold.querySelector("summary")!.textContent).toContain("a.test.ts (2)");
+    expect(fold.textContent).toContain("a.test.ts");
     expect(fold.innerHTML.match(/the total shows/g)).toHaveLength(2);
   });
 
-  test("each fold is keyed by the spec, the criterion's number and the file, with no AC- text", () => {
+  test("the criterion fold is keyed by spec and criterion, with no AC- text", () => {
     const html = acTestsLine({ task: "AC-3: x", tests: [{ file: "a.test.ts", name: "t (AC-3)" }] }, "en", SCOPE);
-    expect(html).toContain(`data-testfile="${SCOPE}|3|a.test.ts"`);
+    expect(html).toContain(`data-testcriterion="${SCOPE}|3"`);
     expect(html).not.toContain("AC-");
   });
 
-  test("the Status tab and the Specs list draw exactly the markup acTestsLine gives", () => {
+  test("the closed kind line ends with its fold arrow (AC-8)", () => {
+    const body = drawn(acTestsLine({ task: "AC-1: x", tests: TESTS }, "en", SCOPE));
+    expect(body.querySelector("summary")!.lastElementChild?.tagName).toBe("svg");
+  });
+
+  test("an old record is classified from an existing file and a missing file stays unknown (AC-6)", () => {
+    const root = mkdtempSync(join(tmpdir(), "aide-ac-code-"));
+    dirs.push(root);
+    writeFileSync(join(root, "browser.test.ts"), 'import { test } from "@playwright/test";\n');
+    const rows = withAcCoverage([row("AC-1: x")], { "AC-1": [
+      { file: "browser.test.ts", name: "browser (AC-1)" },
+      { file: "gone.test.ts", name: "gone (AC-1)" },
+    ] }, root);
+    expect(rows[0]!.tests).toEqual([
+      { file: "browser.test.ts", name: "browser (AC-1)", kind: "browser" },
+      { file: "gone.test.ts", name: "gone (AC-1)" },
+    ]);
+  });
+
+  test("an old record recognises a multiline Playwright import (AC-6)", () => {
+    const root = mkdtempSync(join(tmpdir(), "aide-ac-code-"));
+    dirs.push(root);
+    const module = ["play", "wright"].join("");
+    writeFileSync(join(root, "browser.test.ts"), `import {\n  test\n} from "${module}";\n`);
+    const [covered] = withAcCoverage([row("AC-1: x")], { "AC-1": [
+      { file: "browser.test.ts", name: "browser (AC-1)" },
+    ] }, root);
+    expect(covered!.tests![0]!.kind).toBe("browser");
+  });
+
+  test("kind icons have translated accessible names in every language (AC-11, AC-12)", () => {
+    const expected = { en: ["Unit", "Browser"], nb: ["Enhet", "Nettleser"], es: ["Unidad", "Navegador"], de: ["Unit", "Browser"], fr: ["Unitaire", "Navigateur"] } as const;
+    for (const [lang, labels] of Object.entries(expected)) {
+      const body = drawn(acTestsLine({ task: "AC-11: x", tests: TESTS }, lang as keyof typeof expected, SCOPE));
+      expect([...body.querySelectorAll("summary [aria-label]")].map((el) => el.getAttribute("aria-label"))).toEqual([...labels]);
+    }
+  });
+
+  test("the Status tab and the Specs list draw exactly the shared markup (AC-10)", () => {
     const folder = "624-x";
     const key = groupKey("aide", folder);
     const task = "AC-1: it counts";
@@ -172,7 +206,7 @@ describe("a criterion's tests, one shut line per file", () => {
     expect(checklist(page, "en")).toContain(expected);
   });
 
-  test("a criterion no test names still shows its warning and no fold", () => {
+  test("a criterion no test names still shows its warning and no fold (AC-9)", () => {
     const body = drawn(acTestsLine({ task: "AC-4: x", untested: true }, "en", SCOPE));
     expect(body.querySelector(".checktests.untested")?.textContent).toBe("No test names AC-4.");
     expect(body.querySelector("details")).toBeNull();

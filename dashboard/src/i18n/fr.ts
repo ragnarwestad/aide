@@ -167,6 +167,8 @@ export const fr: Record<TranslationKey, string> = {
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Déploiement",
   "jobs.kindSchedule": "Tâche planifiée",
   "jobs.kindCleanup": "Nettoyage",
@@ -194,6 +196,8 @@ export const fr: Record<TranslationKey, string> = {
     "puis repoussez-la depuis un terminal.",
   "list.prError": "Aucune pull request n'a pu être ouverte pour cette branch. — Ouvrez-en une à la main, dans le checkout sur le serveur.",
   "checks.coveredBy": "Tests : {names}",
+  "checks.unit": "Unitaire",
+  "checks.browser": "Navigateur",
   "checks.noTestNames": "Aucun test ne nomme {id}.",
   "list.branchLeftBehind":
     "Cette spec a été mergée, mais sa branch n'a pas pu être supprimée sur origin. — " +

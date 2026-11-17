@@ -167,6 +167,8 @@ export const de: Record<TranslationKey, string> = {
   "jobs.kindHeading": "Typ",
   "jobs.typesLabel": "Typen",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Bereitstellung",
   "jobs.kindSchedule": "Geplanter Job",
   "jobs.kindCleanup": "Bereinigung",
@@ -194,6 +196,8 @@ export const de: Record<TranslationKey, string> = {
     "und pushe ihn erneut von einem Terminal aus.",
   "list.prError": "Für diesen Branch konnte kein Pull Request geöffnet werden. — Öffne ihn von Hand, im Checkout auf dem Server.",
   "checks.coveredBy": "Tests: {names}",
+  "checks.unit": "Unit",
+  "checks.browser": "Browser",
   "checks.noTestNames": "Kein Test nennt {id}.",
   "list.branchLeftBehind":
     "Diese Spec wurde gemergt, aber ihr Branch konnte auf origin nicht gelöscht werden. — " +

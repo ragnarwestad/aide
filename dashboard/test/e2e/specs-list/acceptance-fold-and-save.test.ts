@@ -81,15 +81,15 @@ describe("the criteria unfolded on the specs list", () => {
     await page.waitForSelector(`tr.specnotice[data-folder="${FOLDER}"] .rowchecks`, { state: "detached" });
   });
 
-  test("a file's line under a criterion opens and shuts its test names in place", async () => {
+  test("a criterion's test line opens and shuts its test names in place (AC-8, AC-10)", async () => {
     await page.goto(`${base}/specs?live=0&checks=aide%2F${FOLDER}`);
     await page.evaluate(() => { (window as unknown as { loadMark: boolean }).loadMark = true; });
-    const file = notice().locator("details[data-testfile]").first();
+    const file = notice().locator("details[data-testcriterion]").first();
     await file.locator("summary").click();
-    await page.waitForFunction(() => document.querySelector("details[data-testfile]")?.hasAttribute("open"));
+    await page.waitForFunction(() => document.querySelector("details[data-testcriterion]")?.hasAttribute("open"));
     expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
     await file.locator("summary").click();
-    await page.waitForFunction(() => !document.querySelector("details[data-testfile]")?.hasAttribute("open"));
+    await page.waitForFunction(() => !document.querySelector("details[data-testcriterion]")?.hasAttribute("open"));
     expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
     expect(await page.evaluate(() => (window as unknown as { loadMark?: boolean }).loadMark)).toBe(true);
   });
@@ -110,11 +110,11 @@ describe("saving from the list", () => {
       if (before) await page.waitForFunction((el) => !(el as Element).isConnected, before, { timeout: 10_000 });
     };
     await notice().locator(`input[name="tick"]`).first().check();
-    await notice().locator("details[data-testfile] summary").first().click();
+    await notice().locator("details[data-testcriterion] summary").first().click();
     await save();
     await waitUntil(async () => (await notice().locator("input[name=\"tick\"]:checked").count()) === 1, 10_000, "the first tick to be saved");
     // The redraw that the save set off keeps the file the reader opened open.
-    await waitUntil(async () => (await notice().locator("details[data-testfile][open]").count()) === 1, 10_000, "the opened file to stay open");
+    await waitUntil(async () => (await notice().locator("details[data-testcriterion][open]").count()) === 1, 10_000, "the opened criterion to stay open");
     expect(await notice().textContent()).toContain("Tick the ACs in the panel below");
     await notice().locator(`input[name="tick"]`).nth(1).check();
     await save();

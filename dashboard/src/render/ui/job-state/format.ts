@@ -1,6 +1,7 @@
 // State labels, durations, the state chip, and "is this job still
 // going".
 
+import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
 import { durationLabel } from "../../../format/duration.ts";
 export { durationLabel };
 
@@ -29,7 +30,8 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
  *  step's own time limit — is the error sentence's to tell, in the
  *  row's message and the popover beside the chip, and is never written
  *  after the word. */
-export function stateWord(r: Pick<QueueRowView, "state">, lang: Language = "en"): string {
+export function stateWord(r: Pick<QueueRowView, "state"> & Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait">>, lang: Language = "en"): string {
+  if (automaticProviderWait(r)) return t(lang, "list.state.waiting");
   return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
 }
 

@@ -62,6 +62,7 @@ def test_a_completed_implement_records_the_tests_that_name_each_requirement(
         "the total keeps its place (AC-1)",
         "the total shows on a phone (AC-1)",
     ]
+    assert {t["kind"] for t in acs["AC-1"]} == {"unit"}
     # Only lines the branch added: main's own `AC-2` test is another
     # spec's, and a comment is not a test — in a test file either: a
     # row once read "Tests: // The control on the Notifications tab".
@@ -150,3 +151,27 @@ def test_a_test_naming_two_prefixed_criteria_is_listed_under_both():
         ["AC-2", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],
         ["AC-3", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],
     ]
+
+
+def _kind(source, suffix="test/widget.test.ts"):
+    import pathlib
+    import subprocess
+    import tempfile
+    lib = pathlib.Path(__file__).resolve().parents[8] / "core/scripts/lib/run-spec/record/ac-coverage.sh"
+    with tempfile.TemporaryDirectory() as directory:
+        path = pathlib.Path(directory) / suffix
+        path.parent.mkdir(parents=True)
+        path.write_text(source)
+        return subprocess.run(
+            ["bash", "-c", f'source "{lib}"; ac_coverage_test_kind "$1" "$2"', "bash", directory, suffix],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+
+
+def test_playwright_imports_decide_the_stored_kind_ac_4_ac_5():
+    assert _kind('import { test } from "@playwright/test";\n') == "browser"
+    assert _kind('import {\n  test\n} from "playwright";\n') == "browser"
+    assert _kind('const pw = require("playwright");\n', "test/not-e2e.test.js") == "browser"
+    assert _kind('from playwright.sync_api import sync_playwright\n', "tests/test_ui.py") == "browser"
+    assert _kind('test("ordinary", () => {});\n', "test/e2e/misleading.test.ts") == "unit"
+    assert _kind('// import { test } from "@playwright/test"\n') == "unit"

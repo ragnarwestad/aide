@@ -1,3 +1,4 @@
+import { automaticProviderWait } from "../../queue/job-rules/activity.ts";
 import type { ExecutionGroup } from "../../queue/execution-groups";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import type { Language } from "../../i18n";
@@ -28,8 +29,7 @@ function stoppedMember(group: GroupStop, members: readonly GroupStopMember[]): G
 export function groupProviderLimitWait(group: GroupStop, members: readonly GroupStopMember[]): QueueRowView | undefined {
   if (group.state !== "stopped" || group.stoppedByUser) return undefined;
   const lead = stoppedMember(group, members)?.lead;
-  return lead?.state === "stopped" && lead.stopReason === "provider-limit" &&
-    Number.isFinite(Date.parse(lead.usageLimitWait?.until ?? "")) ? lead : undefined;
+  return lead && automaticProviderWait(lead) ? lead : undefined;
 }
 
 export function getGroupStopMessage(

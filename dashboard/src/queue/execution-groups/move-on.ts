@@ -48,10 +48,11 @@ export function moveGroupOn({ store, job, step, specsRoot, whenSpecsScanned, log
 
 function queueNextMember(store: QueueStore, job: Job, specsRoot: string | undefined, log: GroupMove["log"]): boolean {
   if (!specsRoot) return false;
-  const next = nextGroupMember(specFolders(specsRoot, false), job.specFolder);
-  if (!next) return false;
-  const steps = job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
   const group = job.executionGroupId ? store.executionGroups.get(job.executionGroupId) : undefined;
+  const next = nextGroupMember(specFolders(specsRoot, false).filter((spec) =>
+    spec.folder === job.specFolder || group?.memberSteps?.[spec.folder]?.length !== 0), job.specFolder);
+  if (!next) return false;
+  const steps = group?.memberSteps?.[next.folder] ?? job.steps?.filter((step) => step === "analyze" || step === "implement") ?? ["analyze", "implement"];
   const request = group?.sharedChoices
     ? followOnRequest(job.project, next.folder, steps, job)
     : withRowPicks({ project: job.project, specFolder: next.folder, steps, executionGroupId: job.executionGroupId }, store);

@@ -17,11 +17,11 @@ export function continueAfterEdit(
   const group = queue.executionGroups.get(groupId);
   if (!group || group.state !== "waiting-acceptance") return false;
   if (queue.list().some((job) => job.project === group.project && group.members.includes(job.specFolder) && inFlight(job))) return false;
-  const member = group.members.find((folder) => !group.completedMembers.includes(folder));
+  const member = group.members.find((folder) => !group.completedMembers.includes(folder) && group.memberSteps?.[folder]?.length !== 0);
   if (!member) return false;
   const made = enqueueRequest(queue, withRowPicks({
     project: group.project, specFolder: member, executionGroupId: group.id,
-    steps: groupMemberSteps(queue.pendingSteps[`${group.project}/${member}`], done(member)),
+    steps: group.memberSteps?.[member] ?? groupMemberSteps(queue.pendingSteps[`${group.project}/${member}`], done(member)),
   }, queue), "automatic");
   if (!made.ok) return false;
   queue.executionGroups.queueMember(group.id, member);

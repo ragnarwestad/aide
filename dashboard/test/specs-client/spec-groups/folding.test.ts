@@ -103,3 +103,38 @@ test("a card marked for a chosen state opens; a reader's choice holds under that
   draw();
   expect(shut()).toBe(true);
 });
+
+test("group Start submits only the members whose phase choices were changed", async () => {
+  const { groupPhaseChoices, rememberGroupPhases } = await import("../../../src/specs-client/spec-groups");
+  const win = new Window();
+  windows.push(win);
+  const doc = win.document as unknown as Document;
+  doc.body.innerHTML = `<table><tr data-spec-group="aide\nRelease"><td>
+    <form id="start"></form><table><tr data-folder="1-first"><td>
+    <input type="checkbox" name="steps" value="analyze" form="rowrun-aide/1-first" checked>
+    <input type="checkbox" name="steps" value="implement" form="rowrun-aide/1-first">
+    </td></tr><tr data-folder="2-next"><td></td></tr></table></td></tr></table>`;
+  const form = doc.getElementById("start") as HTMLFormElement;
+  expect(groupPhaseChoices(form)).toEqual({});
+  rememberGroupPhases(doc.querySelector("input") as HTMLInputElement);
+  expect(groupPhaseChoices(form)).toEqual({ "1-first": ["analyze"] });
+});
+
+test("a changed phase on an implemented group submits Start instead of Archive", async () => {
+  const { rememberGroupPhases } = await import("../../../src/specs-client/spec-groups");
+  const win = new Window();
+  windows.push(win);
+  const doc = win.document as unknown as Document;
+  doc.body.innerHTML = `<table><tr data-spec-group="aide\nRelease"><td>
+    <span data-group-action><form data-group-default-action="archive" data-group-label-start="Start" data-group-label-archive="Archive">
+    <input name="action" value="archive"><button>Archive</button></form></span>
+    <table><tr data-folder="3-done"><td><input type="checkbox" name="steps" value="analyze" form="rowrun-aide/3-done"></td></tr></table>
+    </td></tr></table>`;
+  const box = doc.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  box.checked = true;
+  rememberGroupPhases(box);
+  expect(doc.querySelector<HTMLInputElement>('input[name="action"]')!.value).toBe("start");
+  box.checked = false;
+  rememberGroupPhases(box);
+  expect(doc.querySelector<HTMLInputElement>('input[name="action"]')!.value).toBe("archive");
+});

@@ -168,6 +168,8 @@ export const en = {
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
   "jobs.kindSpec": "Spec",
+  "jobs.kindLand": "Land",
+  "jobs.filterKindLand": "Land",
   "jobs.kindDeploy": "Deploy",
   "jobs.kindSchedule": "Scheduled job",
   "jobs.kindCleanup": "Cleanup",
@@ -195,6 +197,8 @@ export const en = {
     "then push it again from a terminal.",
   "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
   "checks.coveredBy": "Tests: {names}",
+  "checks.unit": "Unit",
+  "checks.browser": "Browser",
   "checks.noTestNames": "No test names {id}.",
   "list.branchLeftBehind":
     "This spec merged, but its branch could not be deleted on origin. — " +

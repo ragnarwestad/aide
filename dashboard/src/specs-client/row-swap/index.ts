@@ -119,6 +119,7 @@ export function restoreChosen(body: Element): void {
   for (const box of body.querySelectorAll(".aimodel")) refreshAiModelBox(box);
   for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;
+    if (box.disabled) continue;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;
     box.checked = want;

@@ -4,7 +4,7 @@
 
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import { activeGroupForSpec, executionGroupActivity, type ExecutionGroup } from "../../../../queue/execution-groups";
+import { activeGroupForSpec, executionGroupActivity, waitingGroupJob, type ExecutionGroup } from "../../../../queue/execution-groups";
 import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
 import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
@@ -103,6 +103,7 @@ export function groupBySpec(
   only?: ReadonlySet<string>,
   executionGroups: readonly ExecutionGroup[] = [],
 ): SpecGroup[] {
+  const automaticWaitGroups = new Set(executionGroups.filter((group) => waitingGroupJob(group, rows)).map((group) => group.id));
   const wanted = (key: string): boolean => !only || only.has(key);
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
@@ -192,6 +193,7 @@ export function groupBySpec(
       hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
       ...(executionGroup ? {
         executionGroupActive: true,
+        executionGroupAutomaticWait: automaticWaitGroups.has(executionGroup.id),
         executionGroupReserved: executionGroupActivity(executionGroup.state) !== "idle",
       } : {}),
     };

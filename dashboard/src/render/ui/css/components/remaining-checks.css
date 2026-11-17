@@ -38,6 +38,13 @@
 /* The link of a Failed row: a line under the text, not a stretched cell. */
 .check .btn { grid-column: 1; justify-self: start; }
 .check .checktests.untested { color: var(--warn); }
+.checktests .foldbox > summary { display: flex; gap: var(--sp-2); align-items: center; }
+.testkind { display: inline-flex; gap: var(--sp-1); align-items: center; }
+.testkindicon { width: 1em; height: 1em; background: currentColor; mask: var(--icon-test-unit) center / contain no-repeat; }
+.testkindicon.browser { mask-image: var(--icon-test-browser); }
+.testfile { padding: var(--sp-1) 0 var(--sp-1) var(--sp-5); }
+.testfilepath { display: flex; gap: var(--sp-1); align-items: center; }
+.testnames { padding-left: var(--sp-4); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
    for a row that is still open. Fixed width so every row

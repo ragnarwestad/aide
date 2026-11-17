@@ -125,7 +125,7 @@ export async function specPageView(
     phase: parsedStatus.phase ?? undefined,
     acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
   };
-  const rows = withAcCoverage(parsedStatus.checks, branchCoverage ?? readAcCoverage(dir));
+  const rows = withAcCoverage(parsedStatus.checks, branchCoverage ?? readAcCoverage(dir), ctx.machineryProjectDir?.(project));
   // The Acceptance section alone: the Phase tables are the implement
   // run's own record and the Checks tab no longer offers them (see
   // `checklist`'s own comment), so a spec whose only open rows are

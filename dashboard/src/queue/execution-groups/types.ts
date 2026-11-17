@@ -38,6 +38,8 @@ export interface ExecutionGroup {
   stoppedByUser?: boolean;
   /** Run-created groups reuse the first Run dialog's choices for every member. */
   sharedChoices?: boolean;
+  /** The member phase choices consumed by the latest manual Start. */
+  memberSteps?: Record<string, string[]>;
   /** The choice owned by the group's shared Archive line. */
   archiveModel?: string;
   archiveProvider?: string;

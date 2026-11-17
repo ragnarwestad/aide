@@ -21,6 +21,7 @@ import type { TestServersContext } from "../test-servers/lifecycle.ts";
  *  never see a later refresh. */
 export interface SpecViewsContext {
   projectRoot: string | undefined;
+  machineryProjectDir?: (project: string) => string;
   targets: () => SpecTarget[];
   peekUnlanded: () => string[];
   peekUnlandedCheckedAt: () => number | null;

@@ -187,3 +187,11 @@ describe("jobRow()'s provider", () => {
     expect(row.provider).toBeUndefined();
   });
 });
+
+test("Land rows carry their branch and push boundary to the page controls", async () => {
+  const queue = makeStore();
+  const made = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!made.ok) throw new Error(made.error);
+  const job = queue.update(made.job.id, { landPushStarted: true })!;
+  expect(await jobRow({ queue, store: new AideRunStore() }, job)).toMatchObject({ branch: "topic", landPushStarted: true });
+});
