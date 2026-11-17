@@ -414,10 +414,12 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
     expect(jobKey(row)).toBe("aide/deploy:deploy");
   });
 
-  test("offers Cancel while queued, held back or not, and nothing once it runs", () => {
+  test("offers Cancel while queued or waiting, but not once the restart is committed", () => {
     expect(jobControl(deploy({ state: "queued" }))).toBe("cancel");
     expect(jobControl(deploy({ state: "queued", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
     expect(jobControl(deploy({ state: "running" }))).toBeUndefined();
+    expect(jobControl(deploy({ state: "running", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
+    expect(jobControl(deploy({ state: "running", errorReason: "held-back", deploy: { restartedAt: "2026-11-17T00:00:00Z" } } as Partial<J>))).toBeUndefined();
   });
 });
 

@@ -1,3 +1,4 @@
+import { canCancelDeploy } from "../../../queue/job-rules/activity.ts";
 import { scheduleRunPath, scheduleSettingsPath } from "../schedule-page/tabs.ts";
 // The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
 // where every row stands, what a job row is called, what the line under its
@@ -32,7 +33,7 @@ export interface JobLike {
   results?: readonly { terminalReason?: string }[];
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & { steps: readonly string[] };
+type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & Partial<Pick<QueueRowView, "errorReason" | "deploy">> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec. */
@@ -216,14 +217,14 @@ export function scheduleStreamKey(key: string): string | undefined {
 /** What a row offers to end its job: Cancel for a queued one, Stop for a
  *  running or landing one, nothing for a finished one. Never a Run. A Close or
  *  Reopen offers nothing: stopped part-way, it would leave the spec between
- *  its two places. A deploy offers Cancel while it is queued; once it runs it
- *  is the server itself and cannot be stopped. */
+ *  its two places. A deploy offers Cancel while queued or held back before its restart;
+ *  a restart already fired cannot be stopped. */
 export function jobControl(row: StateRow): "cancel" | "stop" | undefined {
   const step = row.steps[row.stepIndex];
   const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
   if (step === "land" && row.landPushStarted) return undefined;
   if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
-  if (kind === "deploy") return row.state === "queued" ? "cancel" : undefined;
+  if (kind === "deploy") return canCancelDeploy(row) ? "cancel" : undefined;
   return row.state === "queued" && !row.landing ? "cancel" : "stop";
 }
 

@@ -122,6 +122,8 @@ export async function restartAfterLanding(ctx: {
   /** Called once, right before the restart fires: the last thing the
    *  process that is about to be taken down can write. */
   beforeFire?: () => void;
+  prepare?: () => Promise<boolean>;
+  cancelled?: () => boolean;
 }): Promise<boolean> {
   if (!(await ctx.restart.registered())) {
     ctx.onJobsWaitChange?.([]);
@@ -135,10 +137,19 @@ export async function restartAfterLanding(ctx: {
     console.error(`queue: a code change landed; the restart waits for landings: ${waiting.join(", ")}`);
     ctx.onJobsWaitChange?.(waiting);
   }
-  while ((waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, pollMs));
+  for (;;) {
+    while ((waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline && !ctx.cancelled?.()) {
+      await new Promise((r) => setTimeout(r, pollMs));
+      waiting = running();
+      ctx.onJobsWaitChange?.(waiting);
+    }
+    if (ctx.cancelled?.() || (ctx.prepare && !(await ctx.prepare())) || ctx.cancelled?.()) {
+      ctx.onJobsWaitChange?.([]);
+      return false;
+    }
     waiting = running();
-    ctx.onJobsWaitChange?.(waiting);
+    if (ctx.prepare && (waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) continue;
+    break;
   }
   if (waiting.length > 0) {
     console.error(
