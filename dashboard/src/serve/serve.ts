@@ -204,7 +204,7 @@ export function createServer(opts: ServerOptions) {
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
     dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
-    landingGate: opts.landingGate ?? createLandingGate(queue, opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined),
+    landingGate: opts.landingGate ?? createLandingGate(queue, opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, opts.queueMirrorPath),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
     // with that branch's own copy.

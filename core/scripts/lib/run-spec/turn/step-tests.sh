@@ -80,12 +80,9 @@ run_step_tests_within_time() {
   rm -f "$work_dir/step-test-run.json"
   step_test_active_log="$work_dir/step-test-run.log"
   set -m
-  # The host's cores divided among the steps and landings running now
-  # (run-spec/turn/test-workers.sh): taken as the run starts, since the
-  # session before it can take most of the step's time limit. A runner
-  # started by hand has no board to share with, and keeps four.
-  ( workers="$(test_workers_now)"
-    export AIDE_TEST_WORKERS="${workers:-${AIDE_TEST_WORKERS:-4}}"
+  # The recorder registers the live test run and sets its worker share.
+  # A runner started without a board keeps its explicit count, or four.
+  ( export AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}"
     exec "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
       --folder "$step_tests_folder" "${step_test_args[@]}" \
       --progress-file "$work_dir/step-test-progress" \

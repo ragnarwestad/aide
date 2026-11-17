@@ -169,6 +169,9 @@ done
 # outside — the machine short of memory, another job's cleanup — and says
 # nothing about the code. Its files are run once more, and only a second
 # failure counts; a failing test anywhere in it is red as it stands.
+# Preserve the expensive cases before isolated retries replace worker output.
+bun "$(dirname "$0")/test-timings.ts" "$OUT"/out.* || true
+
 failed=""
 for p in $pids; do
   w=${p##*:}

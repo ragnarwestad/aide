@@ -48,6 +48,7 @@ class TestTheTestTarget:
 # time only, `red` every time. Like bun, it heads the file's output with
 # its path.
 _FAKE_BUN = r'''() {
+  [ "$1" = test ] || return 0
   f="${@: -1}"; name="$(basename "$f" .test.ts)"
   echo "$f:"
   case "$name" in
@@ -131,7 +132,7 @@ def _run_files(workspace_root, tmp_path, env_extra):
     import os
     import subprocess
     calls = tmp_path / "calls.txt"
-    fake = r'''() { echo "$*" >> "$AIDE_FAKE_BUN_CALLS"; echo "Ran 1 tests across 1 file."; }'''
+    fake = r'''() { [ "$1" = test ] || return 0; echo "$*" >> "$AIDE_FAKE_BUN_CALLS"; echo "Ran 1 tests across 1 file."; }'''
     env = {k: v for k, v in os.environ.items() if k != "AIDE_TEST_WORKERS"}
     env.update({"BASH_FUNC_bun%%": fake, "AIDE_FAKE_BUN_CALLS": str(calls), **env_extra})
     r = subprocess.run(
