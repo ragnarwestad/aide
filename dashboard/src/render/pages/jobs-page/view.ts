@@ -7,7 +7,6 @@
 import { waitingForGroup } from "../specs-list/data-model/spec-state.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
-  ACTIVE_FILTER_KEY,
   SORTS,
   SORT_DEFAULT_DIR,
   chosenStates,
@@ -36,21 +35,16 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
 export const jobsKindValue = (value: string | undefined): string =>
   jobsKindFilters(value).map((entry) => entry.key).join(",");
 
-/** The state entries the Jobs tab offers: All, Active, Running, Queued, Waiting,
+/** The state entries the Jobs tab offers: All, Running, Queued, Waiting,
  *  Done, Stopped, Failed, Cancelled. Done is a spec archived or closed, or
  *  any other row's job that has ended done; a spec whose last job ended done
- *  waits for its next phase, as on the Specs list. Active is every row Done
- *  does not hold and that can still be acted on, under the Specs list's key
- *  so it takes the list's label. */
+ *  waits for its next phase, as on the Specs list. */
 type StateEntry = StateFilterEntry;
 const finished = (g: unknown): boolean => {
   const row = g as RowFacts;
   return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound || !!row.ownJob));
 };
 const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
-/** Cancelled standalone jobs remain in history rather than the Active view. */
-const endedForGood = (g: unknown): boolean => (g as RowFacts).state === "cancelled" && rowKind(g as RowFacts) !== "spec";
-const activeState = { key: ACTIVE_FILTER_KEY, label: "Active", where: (g: unknown) => !finished(g) && !endedForGood(g) } as StateEntry;
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
@@ -60,7 +54,7 @@ const jobStateEntries: StateEntry[] = [
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "archived-unlanded"] },
   { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
 ];
-export const JOBS_STATE_FILTERS = [jobStateEntries[0]!, activeState, ...jobStateEntries.slice(1, 4), doneState, ...jobStateEntries.slice(4)];
+export const JOBS_STATE_FILTERS = [...jobStateEntries.slice(0, 4), doneState, ...jobStateEntries.slice(4)];
 
 /** The entry a key names on this tab: one it does not offer is All. */
 export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_FILTERS)[number][] =>

@@ -33,12 +33,16 @@ test("a member's rows are answered while its group's card is on the list", () =>
 
 test("a prepared group whose members have not started has no row under Stopped (AC-3)", () => {
   expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"], state: "stopped" }))).toBe(false);
-  expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"], state: "not-archived" }))).toBe(true);
+  expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"] }))).toBe(true);
 });
 
 test("a chosen state reaches the card, drawn open with its members (AC-4)", () => {
-  const card = rowsOf(view([release], { state: "not-archived" }), CARD);
-  expect(card).toContain('data-group-open="not-archived"');
+  const running = {
+    id: "r", project: "aide", specFolder: "82-first", steps: ["analyze"], stepIndex: 0, state: "running",
+    spentUsd: 0, timeoutSec: 600, results: [], createdAt: "2026-11-12T11:00:00Z", startedAt: "2026-11-12T11:00:00Z",
+  } as QueueRowView;
+  const card = rowsOf(view([release], { state: "active:all", specJobs: [running] }), CARD);
+  expect(card).toContain('data-group-open="active:all"');
   expect(card).not.toContain("data-group-body hidden");
   expect(card).toContain('id="spec-aide/83-second"');
   expect(rowsOf(view([release]), CARD)).not.toContain("data-group-open");

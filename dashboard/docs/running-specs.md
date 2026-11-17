@@ -957,18 +957,17 @@ a finished one has no action. Which scheduled jobs show is decided in
 The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
 Rows with the same creation time keep their order by state and most recent change.
 
-The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Active, Running,
+The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
 Queued, Waiting, Done, Stopped, Failed and Not verified under a States heading, then lists the kinds All, Specs, Land, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done; a spec whose last job ended done, such as one just created, is
 Waiting for its next phase. Members reserved by an active group also show Waiting while they await their turn or the shared Archive; their own queued, running or failed job keeps its own state.
 Queued holds only jobs in the queue; they do not count under Waiting.
-Group members count under their own states. Active holds every row Done does not, except a cancelled job that is not a spec's: its
-row offers nothing more, while a spec's row can run its phase again. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
+Group members count under their own states. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view. A
-job row is never Not verified. An old address naming Archived or Closed gets All. There is no Project dropdown: typing a project's
+job row is never Not verified. An old address naming Archived, Closed or Not archived gets All. There is no Project dropdown: typing a project's
 name, or `name:`, narrows the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's
 rules; a third press on a sorted heading returns to Created, newest first. A view that hides every row says "Nothing on
 this tab matches this filter."
