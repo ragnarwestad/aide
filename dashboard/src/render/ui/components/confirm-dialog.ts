@@ -102,6 +102,7 @@ export function askButton(o: {
   /** A button that stays shut, and a hover line that says why. */
   disabled?: boolean;
   title?: string;
+  data?: Record<string, string>;
 }): string {
   return btn({
     label: o.label,
@@ -110,6 +111,6 @@ export function askButton(o: {
     ariaLabel: o.ariaLabel,
     disabled: o.disabled,
     title: o.title,
-    data: { ask: o.dialogId },
+    data: { ...o.data, ask: o.dialogId },
   });
 }

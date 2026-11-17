@@ -64,6 +64,8 @@ describe("Deploy on the board's own project page", () => {
     await row.waitFor({ state: "visible", timeout: 5000 });
     await page.locator('tr.subrow[data-step="Step 1 of 5"]').waitFor({ state: "visible", timeout: 5000 });
     expect(await page.locator("tr.subrow[data-step]").count()).toBe(5);
+    await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
+    expect(await page.getByRole("button", { name: "Deploy", exact: true }).isDisabled()).toBe(true);
     await page.close();
   });
 });

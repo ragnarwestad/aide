@@ -297,8 +297,14 @@ export function jobKind(job: { steps: readonly string[]; stepIndex: number; spec
   return step === "schedule" && isScheduleKey(job.specFolder) ? "schedule" : "spec";
 }
 
+export function deployUnderWay(jobs: readonly Job[], project: string): "queued" | "running" | undefined {
+  const job = jobs.find((candidate) => candidate.project === project && jobKind(candidate) === "deploy" && inFlight(candidate));
+  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
+}
+
 export function canRetryLand(job: { state: string; landing?: boolean; branch?: string; steps: readonly string[]; stepIndex: number }): boolean {
   return job.steps[job.stepIndex] === "land" && job.state === "cancelled" && !inFlight(job) && !!job.branch;
+
 }
 
 export const jobDismissible = (job: {

@@ -14,6 +14,7 @@ export interface DeployWaiting {
   commits: number;
   /** The default branch the check compared with. */
   branch: string;
+  underWay?: "queued" | "running";
 }
 
 let waitingNow: (() => DeployWaiting | undefined) | undefined;
@@ -31,18 +32,21 @@ export const currentDeployWaiting = (): DeployWaiting | undefined => waitingNow?
 
 export function deployMark(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
   if (!waiting) return `<span class="deploymark" aria-hidden="true"></span>`;
+  const activity = ` data-deploy-project="${esc(waiting.project)}" data-deploy-under-way="${!!waiting.underWay}" data-deploy-commits="${waiting.commits}"`;
   if (waiting.commits === 0) {
     const label = esc(t(lang, "shell.deployUpToDate", { project: waiting.project, branch: waiting.branch }));
-    return `<span class="deploymark uptodate" role="img" title="${label}" aria-label="${label}"></span>`;
+    return `<span class="deploymark uptodate"${activity} role="img" title="${label}" aria-label="${label}"></span>`;
   }
   const key = waiting.commits === 1 ? "shell.deployWaitingOne" : "shell.deployWaiting";
-  const label = esc(t(lang, key, { project: waiting.project, count: waiting.commits }));
-  return `<button class="deploymark iconlink" type="button" data-ask="${DEPLOY_MARK_DIALOG}" title="${label}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
+  const label = esc(waiting.underWay
+    ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${waiting.underWay}`) })
+    : t(lang, key, { project: waiting.project, count: waiting.commits }));
+  return `<button class="deploymark iconlink"${activity} type="button"${waiting.underWay ? " disabled" : ` data-ask="${DEPLOY_MARK_DIALOG}"`} title="${label}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
 }
 
 /** The Deploy tab's question, drawn by the same function for the header. */
 export function deployMarkDialog(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
-  return waiting && waiting.commits > 0 ? deployAskDialog(lang, waiting.project, DEPLOY_MARK_DIALOG) : "";
+  return waiting && waiting.commits > 0 && !waiting.underWay ? deployAskDialog(lang, waiting.project, DEPLOY_MARK_DIALOG) : "";
 }
 
 /** The fragment an open page receives when the mark changes. */

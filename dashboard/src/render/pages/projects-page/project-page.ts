@@ -198,7 +198,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${opts.deployUnderWay}`) })
     : undefined;
   const ask =
-    askButton({ label: t(lang, "project.deployButton"), dialogId, variant: "primary", disabled, title: underWay ?? title }) +
+    askButton({ label: t(lang, "project.deployButton"), dialogId, variant: "primary", disabled: disabled || !!opts.deployUnderWay, title: underWay ?? title, data: { "deploy-project": name, "deploy-ready": String(!disabled), "deploy-idle-title": title ?? "" } }) +
     deployAskDialog(lang, name, dialogId);
   return checked(
     name,

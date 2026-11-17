@@ -264,6 +264,22 @@ describe("deploySteps", () => {
     expect(got[4]!.seconds).toBe(1);
   });
 
+  test("a held Deploy shows its active step as waiting in both the rows and pips", () => {
+    const file = step([], [
+      "--- Step 1 of 5: Fetch from origin — started",
+      "--- Step 1 of 5: Fetch from origin — done",
+      "--- Step 2 of 5: Install — started",
+    ]);
+    const waiting = deployJob(file, { state: "running", errorReason: "held-back" });
+    const lines = deploySteps(waiting, "en");
+    expect(lines.map((s) => s.state)).toEqual(["done", undefined, undefined, undefined, undefined]);
+    expect(lines[1]!.since).toBeUndefined();
+    expect(jobStepPips(waiting, "en").map((s) => s.state)).toEqual(lines.map((s) => s.state));
+    const resumed = deploySteps({ ...waiting, errorReason: undefined }, "en");
+    expect(resumed[1]!.state).toBe("running");
+    expect(resumed[1]!.since).toBeDefined();
+  });
+
   test("a deploy with nothing marked yet lists the five steps, none with a state", () => {
     const got = deploySteps(job({ specFolder: "deploy", steps: ["deploy"], state: "queued" }), "en");
     expect(got.map((s) => s.key)).toEqual(KEYS);

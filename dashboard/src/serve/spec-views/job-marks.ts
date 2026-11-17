@@ -95,7 +95,9 @@ export function closeOrReopenSteps(job: Job, step: string, lang: Language): Clos
 /** A deploy's five steps, in the reader's language. The process that starts
  *  after the restart marks its two in the same log, so they read done there. */
 export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
-  return jobSteps(job, deployPlan(lang), lang);
+  const steps = jobSteps(job, deployPlan(lang), lang);
+  if (job.errorReason !== "held-back" || !inFlight(job)) return steps;
+  return steps.map((step) => step.state === "running" ? { ...step, state: undefined, since: undefined } : step);
 }
 
 /** Every declared schedule step waits until the run marks it. */
