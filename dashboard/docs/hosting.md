@@ -178,12 +178,14 @@ drops from the launchd job's plist every option the serve code no longer accepts
 not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
 changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The board's own Deploy is a job: the
-process that runs it fetches and installs, then fires the restart and is taken down with it. It writes the restart into
+process waits for landings and queued Land jobs in its project before fetching and installing under the checkout
+lock. It checks main again after any restart wait, reinstalls if it changed, then restarts and is taken down. It writes the restart into
 the job first (`deploy.restartedAt`), and the process that starts checks that it runs the fetched commit, or one that
 contains it, and writes the job's result before the runner reconciles at boot. A restart with no new process within
 three minutes ends the job failed. The restart of that job waits for every merge to settle with no time limit: a
-landing that never settles holds the deploy and its row says why; Cancel on that landing ends the wait, and a deploy that
-is still queued can be cancelled itself. A running step
+landing that never settles holds the deploy and its row says why. Cancel on the waiting Deploy ends that Deploy
+without stopping Archive or Land or firing its planned restart. Cancel is unavailable while it installs and after
+the restart is committed. A running step
 does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
 process reads its result. A landing runs inside the process, so the restart waits for every step whose landing has not
 settled and for any merge in flight (two hours at most), and every page shows a warning line under the header naming

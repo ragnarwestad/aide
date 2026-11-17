@@ -1,3 +1,4 @@
+import { canCancelDeploy } from "../../queue/job-rules/activity.ts";
 import { stopLand } from "../land-job/control.ts";
 import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
@@ -369,10 +370,8 @@ export async function handleJobActionRoutes(
     // is bounded like every other request's.
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
-    // A running deploy is this process itself: marked cancelled, it would
-    // go on fetching and restarting under a row that says it ended. A
-    // queued one has no run yet and is cancelled like any queued job.
-    if (job.state === "running" && jobKind(job) === "deploy") {
+    // A waiting deploy observes cancellation before fetching or firing the restart.
+    if (job.state === "running" && jobKind(job) === "deploy" && !canCancelDeploy(job)) {
       const reason = "a deploy cannot be stopped part-way";
       logRefusal("cancel", `${job.project}/${job.specFolder}`, reason);
       return json({ error: reason, spec: `${job.project}/${job.specFolder}` }, 409);

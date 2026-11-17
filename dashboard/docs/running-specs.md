@@ -916,14 +916,15 @@ The board's own deploy is a job under the tracking key `deploy`, a step the serv
 (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
 reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A second
-deploy is refused while one is queued or running. It offers Cancel while queued and nothing once it runs, since a job
-marked cancelled would go on restarting the service. The open row lists five steps: fetch from origin, install, restart
+deploy is refused while one is queued or running. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
+the Deploy and its planned restart; Archive and Land continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout
 stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
 origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. While a merge is
 in flight, a queued deploy waits, and a running one waits before its fetch and before its restart; the row says "Held
-back" with the reason.
+back" with the reason. It waits for queued Land jobs in its project before fetching. Fetch and install share the
+checkout lock. After a restart wait it fetches main again and reinstalls if the commit changed, before restarting.
 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads
 with the project: "<project>:<name>". Every job row's second line holds when the job was made and one pip per step, the

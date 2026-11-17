@@ -133,7 +133,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     isBoard: (root) => isDashboardRoot(landCtx, root),
     // The deploy job's restart waits as long as landings take: nothing may
     // be cut short, so no deadline.
-    restartWhenSettled: ({ onWait, beforeFire }) =>
+    restartWhenSettled: ({ onWait, beforeFire, prepare, cancelled }) =>
       restartAfterLanding({
         mergeLock: inputs.mergeLock,
         restart: inputs.restart,
@@ -144,7 +144,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
           setPendingRestart(state, jobs);
           onWait(jobs);
         },
-        beforeFire,
+        beforeFire, prepare, cancelled,
       }),
   };
   /** The board's own deploy as a job: the runner starts it through
@@ -159,6 +159,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     installCheckout: deploy.installCheckout,
     restartRegistered: deploy.restartRegistered,
     restartWhenSettled: deploy.restartWhenSettled,
+    waiting: (jobs) => setPendingRestart(state, jobs),
     readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
     setFailure: (project, failure) => setDeployFailure(state, project, failure),
     setFault: (fault) => setDeployFault(state, fault),
