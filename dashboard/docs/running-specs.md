@@ -575,7 +575,7 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
-Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears.
+Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
 
 Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
 

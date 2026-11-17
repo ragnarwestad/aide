@@ -4,6 +4,7 @@ import type { QueueStore } from "../store/index.ts";
 import type { Job } from "../types.ts";
 import { formatSentence } from "../../messages/format.ts";
 import { seedOrder } from "./order.ts";
+import { usageLimitStopSuperseded } from "../runner/usage-limit.ts";
 
 export function waitingKey(job: Job): string {
   return job.executionGroupId && job.steps[job.stepIndex] === "archive" ? `group:${job.executionGroupId}:archive` : job.executionGroupId
@@ -20,7 +21,7 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
     refresh: () => {
       const jobs = store.list();
-      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j => j.state === "queued" || (j.state === "stopped" && !!j.usageLimitWait) || ((j.state === "done" || j.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(j.results.at(-1)?.terminalReason ?? "") && !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
+      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j => j.state === "queued" || (j.state === "stopped" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) || ((j.state === "done" || j.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(j.results.at(-1)?.terminalReason ?? "") && !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
       const entries = pending.map(jobEntry);
       for (const job of jobs.filter(job => job.state === "running" || job.state === "queued")) {
         for (let index = job.stepIndex + 1; index < job.steps.length; index++) {
