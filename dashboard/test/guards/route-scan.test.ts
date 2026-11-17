@@ -48,6 +48,12 @@ describe("scanSource reads the ways a route is matched", () => {
     expect(scan(`if (path.startsWith("/queue/")) return redirect();`)).toEqual([{ path: "/queue/*", methods: [] }]);
   });
 
+  test("a startsWith prefix held in a constant becomes a wildcard path", () => {
+    expect(scan(`if (path.startsWith(OUTPUT_ROUTE)) return redirect();`, { OUTPUT_ROUTE: "/output/" })).toEqual([
+      { path: "/output/*", methods: [] },
+    ]);
+  });
+
   test("an inline regex, every capture a wildcard", () => {
     const src = `const m = path.match(/^\\/api\\/queue\\/([A-Za-z0-9-]+)\\/cancel$/);\nif (m) {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
     expect(scan(src)).toEqual([{ path: "/api/queue/*/cancel", methods: ["POST"] }]);

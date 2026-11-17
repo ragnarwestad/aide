@@ -3,8 +3,9 @@
 // script out.
 import { describe, expect, test } from "bun:test";
 import { buildReportDocument } from "../../../../src/render";
+import { scheduleRunOutputPath } from "../../../../src/schedule-output-route.ts";
 
-const BASE = "/schedule-output/aide/schedule-nightly/runs/j1/";
+const BASE = scheduleRunOutputPath("aide", "schedule-nightly", "j1");
 
 const DIRTY =
   `<html><head><style>body{color:red}</style><link rel="stylesheet" href="x.css"><meta http-equiv="refresh" content="0">` +
@@ -39,7 +40,7 @@ describe("buildReportDocument", () => {
     }
   });
 
-  test("its base names the run's directory, so a relative link resolves next to the report", async () => {
+  test("its base names the shared route for the run, so a relative link resolves next to the report (AC-3)", async () => {
     const doc = await buildReportDocument("<p>x</p>", BASE);
     expect(doc).toContain(`<base href="${BASE}" target="_blank">`);
   });

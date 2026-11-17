@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { bindWarning, isLoopbackBind } from "../../src/serve/queue-guard.ts";
+import { bindWarning, isLoopbackBind, isQueuePath } from "../../src/serve/queue-guard.ts";
+
+describe("isQueuePath", () => {
+  test("guards scheduled-report output but not a neighboring path (AC-4, AC-6)", () => {
+    expect(isQueuePath("/schedule-output/aide/report.html")).toBe(true);
+    expect(isQueuePath("/schedule-output-neighbor/report.html")).toBe(false);
+  });
+});
 
 describe("isLoopbackBind", () => {
   test("no address given is the default, which is loopback", () => {
