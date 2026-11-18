@@ -97,6 +97,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",
+  "list.state.none": "Ingen",
   "list.state.all": "Alle",
   "list.state.active": "Aktive",
   "list.state.running": "Kjører",
@@ -781,7 +782,8 @@ export const nb: Record<TranslationKey, string> = {
   "client.limitDiscarded": "{n} tegn fikk ikke plass og ble forkastet — dette feltet tar høyst {bound}.",
   "schedule.cronInvalid": "ikke et gyldig cron-uttrykk",
   "pwa.notReachable": "ikke tilgjengelig",
-  "pwa.notReachableBody": "Dashboardet ligger på tailnettet, og denne enheten når det ikke akkurat nå.",
+  "pwa.notReachableBody": "Boardet svarte ikke. Sjekk tilkoblingen eller prøv å åpne det igjen.",
+  "pwa.stillConnecting": "Boardet har ikke svart ennå. Prøver igjen automatisk …",
   "pwa.tryAgain": "Prøv igjen",
   "pwa.connectingTitle": "kobler til",
   "pwa.connecting": "Kobler til {host}…",

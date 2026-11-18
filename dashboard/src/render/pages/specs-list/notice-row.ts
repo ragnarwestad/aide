@@ -44,7 +44,7 @@ export const refusalRowTemplate = (columns = LIST_COLUMNS): string =>
 export const specLoadingRowTemplate = (columns: number, lang: Language): string =>
   `<template id="${SPEC_LOADING_ROW_ID}"><table><tbody>` +
   `<tr class="specdetail" data-failed="${esc(t(lang, "list.specLoadFailed"))}"><td colspan="${columns}">` +
-  `<p class="muted">${esc(t(lang, "shell.loadingPage"))}</p>${messageSlot("refused", "failed")}` +
+  messageSlot("refused", "failed") +
   `</td></tr></tbody></table></template>`;
 
 /** The list's own refusal line, above the rows. */

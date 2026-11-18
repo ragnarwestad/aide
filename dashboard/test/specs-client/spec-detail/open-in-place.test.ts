@@ -24,6 +24,7 @@ const reloads: number[] = [];
 const saved: Record<string, unknown> = {};
 interface Held { resolve: (r: unknown) => void; reject: (e: unknown) => void; aborted: boolean }
 let held: Held[] = [];
+let covered = false;
 const answer = (body: string, status = 200) => ({ ok: status >= 200 && status < 300, status, text: async () => body });
 
 const link = (key: string, open: boolean) =>
@@ -64,14 +65,18 @@ beforeEach(async () => {
   [A, B, C] = ["a", "b", "c"].map((s) => `aide/${counter}${s}-spec`) as [string, string, string];
   win = new Window({ settings: { disableJavaScriptFileLoading: true, disableJavaScriptEvaluation: true } });
   parseRowsInContext(win);
+  covered = false;
+  win.document.addEventListener("aide-cover", () => { covered = true; });
+  win.document.addEventListener("aide-cover-done", () => { covered = false; });
   mod = await openModule();
   const { specLoadingRowTemplate } = await import("../../../src/render/pages/specs-list/notice-row.ts");
   asked.length = pushed.length = assigned.length = reloads.length = 0;
   held = [];
-  for (const name of ["document", "location", "fetch", "history", "Event"]) saved[name] = (globalThis as Record<string, unknown>)[name];
+  for (const name of ["document", "location", "fetch", "history", "Event", "CustomEvent"]) saved[name] = (globalThis as Record<string, unknown>)[name];
   Object.assign(globalThis, {
     document: win.document,
     Event: win.Event,
+    CustomEvent: win.CustomEvent,
     location: {
       pathname: "/specs", search: "?q=x", hash: "", href: "http://dash.test/specs?q=x",
       assign: (to: string) => { assigned.push(to); },
@@ -113,7 +118,6 @@ let taken: boolean | null = null;
 const headRow = (key: string) => win.document.getElementById(`spec-${key}`) as unknown as Element;
 const chevron = (key: string) => headRow(key).querySelector("a.fold") as unknown as HTMLAnchorElement;
 const details = () => Array.from(win.document.querySelectorAll("tr[data-spec-detail]")) as unknown as Element[];
-const inert = () => win.document.body.hasAttribute("inert");
 const settle = async (): Promise<void> => { for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); };
 
 function press(key: string, init: Record<string, unknown> = {}): MouseEvent {
@@ -150,7 +154,7 @@ describe("a press on a shut › opens the row in place", () => {
     held[0]!.resolve(answer(html));
     await settle();
     expect(detailRowOf(B).querySelector("#group-spec-action")).not.toBeNull();
-    expect(inert()).toBe(false);
+    expect(covered).toBe(false);
   });
 
   test("refreshing the spec before a group leaves the group's controls on the page", async () => {
@@ -241,20 +245,18 @@ describe("a press on a shut › opens the row in place", () => {
 });
 
 describe("while the spec is on its way", () => {
-  test("the page has one detail row, keyed to the pressed spec, before its gap row, holding the Loading line", () => {
+  test("the page has one detail row, keyed to the pressed spec, before its gap row", () => {
     press(B);
     const rows = details();
     expect(rows).toHaveLength(1);
     expect(rows[0]!.getAttribute("data-spec-detail")).toBe(B);
     expect(rows[0]!.nextElementSibling!.className).toBe("specgap");
     expect(rows[0]!.previousElementSibling).toBe(headRow(B) as never);
-    expect(rows[0]!.textContent).toContain("Loading …");
-    expect(win.document.body.textContent!.match(/Loading …/g)).toHaveLength(1);
   });
 
   test("the page cannot be pressed, and a request is on its way for the spec alone", () => {
     press(B);
-    expect(inert()).toBe(true);
+    expect(covered).toBe(true);
     expect(asked).toHaveLength(1);
     expect(asked[0]).toContain(`/specs/${B}?`);
     expect(asked[0]).toContain("detail=1");
@@ -262,7 +264,7 @@ describe("while the spec is on its way", () => {
 });
 
 describe("when the spec arrives", () => {
-  test("its rows are the answer's, the Loading line is gone, the page can be pressed, the event is sent and the script added", async () => {
+  test("its rows are the answer's, the cover is released, the event is sent and the script added", async () => {
     let drawn = 0;
     win.document.addEventListener(mod.SPEC_DETAIL_DRAWN, () => { drawn++; });
     press(B);
@@ -270,10 +272,9 @@ describe("when the spec arrives", () => {
     await settle();
     expect(details().map((d) => d.getAttribute("data-spec-detail"))).toEqual([B]);
     expect(detailRowOf(B).textContent).toContain("the spec");
-    expect(win.document.body.textContent).not.toContain("Loading …");
     expect(chevron(B).getAttribute("aria-expanded")).toBe("true");
     expect(chevron(B).getAttribute("href")).toBe("/specs?q=x#spec-" + B);
-    expect(inert()).toBe(false);
+    expect(covered).toBe(false);
     expect(drawn).toBe(1);
     expect(Array.from(win.document.querySelectorAll("script[src]")).map((s) => s.getAttribute("src"))).toEqual(["/spec-editor.js"]);
   });
@@ -302,7 +303,7 @@ describe("when the spec cannot be loaded", () => {
       expect(cell).toContain("could not be loaded");
       expect(cell).not.toContain("Loading");
       expect(details()).toHaveLength(1);
-      expect(inert()).toBe(false);
+      expect(covered).toBe(false);
       expect(asked.some((u) => u.includes("rows=1") && u.includes(`only=${encodeURIComponent(B)}`))).toBe(true);
     });
   }
@@ -335,7 +336,7 @@ describe("Back", () => {
     back();
     await settle();
     expect(held[0]!.aborted).toBe(true);
-    expect(inert()).toBe(false);
+    expect(covered).toBe(false);
     held[0]!.resolve(answer(table(openGroup(B, "<p>late</p>"))));
     await settle();
     expect(win.document.body.textContent).not.toContain("late");

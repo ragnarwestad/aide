@@ -31,10 +31,15 @@ describe("a state value names every ticked entry", () => {
     expect(stateFilters("idle,no-such-entry").map((entry) => entry.key)).toEqual(["idle"]);
   });
 
-  test("adds and removes entries and returns to All (AC-3, AC-4)", () => {
-    expect(toggledState(STATE_FILTERS, chosenStates(STATE_FILTERS, "all"), "idle")).toBe("idle");
+  test("clears every state or toggles individual states from All", () => {
+    const all = chosenStates(STATE_FILTERS, "all");
+    expect(toggledState(STATE_FILTERS, all, "idle"))
+      .toBe("not-archived,active,created,reopened,archived,closed,not-verified");
+    expect(toggledState(STATE_FILTERS, all, "none")).toBe("none");
+    expect(applyFilter(rows, { state: "none" })).toEqual([]);
+    expect(toggledState(STATE_FILTERS, stateFilters("none"), "idle")).toBe("idle");
     expect(toggledState(STATE_FILTERS, stateFilters("active"), "idle")).toBe("active,idle");
-    expect(toggledState(STATE_FILTERS, stateFilters("idle"), "idle")).toBe("all");
+    expect(toggledState(STATE_FILTERS, stateFilters("idle"), "idle")).toBe("none");
     expect(toggledState(STATE_FILTERS, stateFilters("active,idle"), "idle")).toBe("active");
     expect(toggledState(STATE_FILTERS, stateFilters("active,idle"), "all")).toBe("all");
   });

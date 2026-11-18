@@ -323,6 +323,8 @@ test("Types can select Merge separately and its card names the source branch (AC
     await page.goto(`${base}/?live=0`);
     const menu = page.locator('details.menu[data-filter="kind"]');
     await menu.locator("summary").click();
+    await menu.getByRole("checkbox", { name: "None", exact: true }).click();
+    await menu.getByRole("checkbox", { name: "None", exact: true, checked: true }).waitFor();
     await menu.getByRole("checkbox", { name: "Merge (1)", exact: true }).click();
     await page.waitForURL((url) => url.searchParams.get("kind") === "land");
     await page.getByText(/Merge to .* · fix\/example/, { exact: true }).waitFor();

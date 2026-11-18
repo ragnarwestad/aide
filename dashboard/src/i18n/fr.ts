@@ -97,6 +97,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.testRound": "le tour",
 
   "list.statesLabel": "États",
+  "list.state.none": "Aucun",
   "list.state.all": "Tous",
   "list.state.active": "Actives",
   "list.state.running": "En cours",
@@ -778,7 +779,8 @@ export const fr: Record<TranslationKey, string> = {
   "client.limitDiscarded": "{n} caractères ne tenaient pas et ont été supprimés — ce champ en contient au plus {bound}.",
   "schedule.cronInvalid": "pas une expression cron valide",
   "pwa.notReachable": "inaccessible",
-  "pwa.notReachableBody": "Le dashboard est sur le tailnet, et cet appareil ne peut pas l'atteindre pour l'instant.",
+  "pwa.notReachableBody": "Le tableau de bord n’a pas répondu. Vérifiez votre connexion ou essayez de le rouvrir.",
+  "pwa.stillConnecting": "Le tableau de bord ne répond pas encore. Nouvelle tentative automatique…",
   "pwa.tryAgain": "Réessayer",
   "pwa.connectingTitle": "connexion",
   "pwa.connecting": "Connexion à {host}…",

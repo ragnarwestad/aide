@@ -101,6 +101,15 @@ describe("kind choices narrow rows independently of state", () => {
     expect(view(kinds, { kind: "deploy,schedule" })).toEqual(["nightly", "deploy"]);
   });
 
+  test("an empty state or type selection stays empty through search and view links", () => {
+    expect(view(kinds, { state: "none" })).toEqual([]);
+    expect(view(kinds, { kind: "none" })).toEqual([]);
+    expect(jobsStateValue("none")).toBe("none");
+    expect(jobsKindValue("none")).toBe("none");
+    const link = new URL(`http://x${jobsViewPath({ state: "none", kind: "none" }, { q: "aide" })}`);
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "none", kind: "none", q: "aide" });
+  });
+
   test("kind and state both have to match (AC-4)", () => {
     expect(view(kinds, { kind: "spec", state: "queued" })).toEqual(["reopen"]);
     expect(view(kinds, { kind: "deploy,spec", state: "failed" })).toEqual(["close", "deploy"]);
@@ -199,7 +208,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(options.map((o) => [o.key, o.count])).toEqual([
       ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
     ]);
-    expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
+    expect(options.every((o) => o.on)).toBe(true);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { state: "stopped" }).find((o) => o.on)?.key).toBe("stopped");
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");

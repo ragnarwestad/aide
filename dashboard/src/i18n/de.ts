@@ -97,6 +97,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.testRound": "die Runde",
 
   "list.statesLabel": "Zustände",
+  "list.state.none": "Keine",
   "list.state.all": "Alle",
   "list.state.active": "Aktiv",
   "list.state.running": "Läuft",
@@ -778,7 +779,8 @@ export const de: Record<TranslationKey, string> = {
   "client.limitDiscarded": "{n} Zeichen passten nicht und wurden verworfen — dieses Feld fasst höchstens {bound}.",
   "schedule.cronInvalid": "kein gültiger Cron-Ausdruck",
   "pwa.notReachable": "nicht erreichbar",
-  "pwa.notReachableBody": "Das Dashboard liegt im Tailnet, und dieses Gerät erreicht es gerade nicht.",
+  "pwa.notReachableBody": "Das Board hat nicht geantwortet. Prüfe die Verbindung oder öffne es erneut.",
+  "pwa.stillConnecting": "Das Board hat noch nicht geantwortet. Es wird automatisch erneut versucht …",
   "pwa.tryAgain": "Erneut versuchen",
   "pwa.connectingTitle": "verbinde",
   "pwa.connecting": "Verbinde mit {host}…",

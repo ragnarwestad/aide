@@ -97,6 +97,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.testRound": "la ronda",
 
   "list.statesLabel": "Estados",
+  "list.state.none": "Ninguno",
   "list.state.all": "Todos",
   "list.state.active": "Activas",
   "list.state.running": "En curso",
@@ -778,7 +779,8 @@ export const es: Record<TranslationKey, string> = {
   "client.limitDiscarded": "{n} caracteres no cabían y se descartaron — este campo admite como máximo {bound}.",
   "schedule.cronInvalid": "no es una expresión cron válida",
   "pwa.notReachable": "no accesible",
-  "pwa.notReachableBody": "El dashboard está en la tailnet y este dispositivo no puede alcanzarlo ahora mismo.",
+  "pwa.notReachableBody": "El tablero no respondió. Comprueba la conexión o intenta abrirlo de nuevo.",
+  "pwa.stillConnecting": "El tablero aún no responde. Volviendo a intentar automáticamente…",
   "pwa.tryAgain": "Reintentar",
   "pwa.connectingTitle": "conectando",
   "pwa.connecting": "Conectando con {host}…",

@@ -7,7 +7,9 @@ import { connect, disconnect, resumeRowUpdates } from "./live.ts";
 import { SPINNER } from "./press.ts";
 import { swapRows, swapSpec } from "./row-swap/index.ts";
 import { openSpecInPlace } from "./spec-detail/open.ts";
-import { AWAITING, press } from "./state.ts";
+import { holdLoadingCover } from "./progress-dialog";
+import { holdOpenFilterMenu } from "./filter-menu-hold.ts";
+import { press } from "./state.ts";
 
 /** The parts of the address one spec's › opens or shuts, and so the only
  *  ones a swap of that spec alone leaves stale in every OTHER link's
@@ -42,13 +44,7 @@ export function navigate(event: MouseEvent): void {
     disconnect();
     connect();
   }
-  // SOMETHING has to change the moment it is pressed — the
-  // same rule the buttons have kept, applied to the
-  // sort and the filter links, which changed nothing at all between the
-  // click and the fetch resolving. The container carries it, because
-  // the page stays and the rows are what get replaced.
-  document.getElementById("jobrows")?.classList.add(AWAITING);
-  void swapRows();
+  void reloadList();
 }
 
 /** The search box above the rows, asked in place as the filter links are:
@@ -68,9 +64,25 @@ export function submitSearch(event: Event): boolean {
   if (q) url.searchParams.set("q", q);
   else url.searchParams.delete("q");
   history.replaceState(null, "", `${url.pathname}${url.search}`);
-  document.getElementById("jobrows")?.classList.add(AWAITING);
-  void swapRows();
+  void reloadList();
   return true;
+}
+
+/** Keep background refreshes from overtaking a requested sort, filter or search. */
+async function reloadList(): Promise<void> {
+  const body = document.getElementById("jobrows");
+  const reopenMenu = body ? holdOpenFilterMenu(body) : () => {};
+  const release = holdLoadingCover();
+  press.pressGen++;
+  press.inFlight++;
+  try {
+    await swapRows();
+  } finally {
+    release();
+    if (body?.isConnected) reopenMenu();
+    press.inFlight--;
+    resumeRowUpdates();
+  }
 }
 
 /** A spec's own › — its row or its criteria. The address is worked out

@@ -52,9 +52,7 @@ time. It carries the list's view (state, project, sort, search) and ends in the 
 open row is in view. The open row's chevron leads back to `/specs`.
 
 On the Specs list the page script takes a plain press on a shut chevron and opens the row where it is, without loading
-a page. The row gets a detail row of its own that reads "Loading …", copied from the `#spec-loading-row` template the
-list carries; the header, the filters and every other row stay as they are, and the page is inert, so no press
-anywhere on it does anything until the spec is in. The spec's address is pushed, and the page asks that address with
+a page. The standard Loading dialog blocks page input until the detail request settles. The spec's address is pushed, and the page asks that address with
 `?detail=1`: the answer is that spec's rows with the spec drawn in its detail row, followed by a `<script src>` for the
 tab's editor or viewer when it needs one, which the page script adds as a new script so the bundle mounts in the row.
 `spec-detail-drawn` is then sent on `document`, which `spec-form-actions.ts` hears and binds Save and Cancel for the
@@ -477,9 +475,10 @@ shows every row that matches any of them. `?state=` holds their keys separated b
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs
 the table shows, in brackets. On Jobs and Specs, a filter with a choice other than All has an accent-coloured dot and
 border; choosing All clears them without changing the button's width. The phone's menu shows the dot beside the
-filter's name. Each entry's count is its own count over the rows the search lets through. The nine entries are:
+filter's name. Counts reflect the rows the search lets through. The choices are:
 
-- **All** — the default.
+- **All** — the default, checks every state and includes every row the search lets through.
+- **None** — clears every state and shows an empty list.
 - **Not archived** — everything not archived and not closed.
 - **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group.
 - **Created**.
@@ -490,7 +489,7 @@ filter's name. Each entry's count is its own count over the rows the search lets
 - **Not verified**.
 
 The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
-default for every reader. All is the same as ticking nothing. Every entry, including "All", carries its own `state=`
+default for every reader. Every entry, including All and None, carries its own `state=`
 value explicitly, so choosing one always overrides whatever is remembered (see below).
 
 **The ticked entries are remembered across visits, the same way the sort column is.** Choosing one sets the
