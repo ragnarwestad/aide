@@ -27,20 +27,22 @@ for (const width of [1440, 390]) {
         }
         Object.assign(window, {
           EventSource: FakeStream,
-          showRunning: (running: number, queued = 0, openSpecs = 7) => streams.forEach((stream) => stream.dispatchEvent(new MessageEvent("changed", { data: JSON.stringify({ running, queued, openSpecs }) }))),
+          showCounts: (needsAttention: number, openSpecs = 7) => streams.forEach((stream) => stream.dispatchEvent(new MessageEvent("changed", { data: JSON.stringify({ needsAttention, openSpecs }) }))),
         });
       });
       await page.goto(`${base}/specs?q=no-match&state=active`);
       expect(await page.getByRole("link", { name: "Specs (1)", exact: true }).count()).toBe(1);
-      await page.getByRole("link", { name: "Jobs (0+0)", exact: true }).waitFor();
-      await page.evaluate(() => (window as unknown as { showRunning: (n: number, q?: number, o?: number) => void }).showRunning(4, 6));
-      expect(await page.getByRole("link", { name: "Jobs (4+6)", exact: true }).count()).toBe(1);
-      await page.evaluate(() => (window as unknown as { showRunning: (n: number, q?: number, o?: number) => void }).showRunning(4, 5));
-      expect(await page.getByRole("link", { name: "Jobs (4+5)", exact: true }).count()).toBe(1);
+      await page.getByRole("link", { name: "Jobs (0)", exact: true }).waitFor();
+      expect(await page.getByRole("link", { name: "Jobs (0)", exact: true }).getAttribute("title")).toBe("Jobs that need your attention");
+      expect(await page.getByRole("link", { name: "Specs (1)", exact: true }).getAttribute("title")).toBe("Open specs: Created, Idle or Reopened");
+      await page.evaluate(() => (window as unknown as { showCounts: (n: number, o?: number) => void }).showCounts(4));
+      expect(await page.getByRole("link", { name: "Jobs (4)", exact: true }).count()).toBe(1);
+      await page.evaluate(() => (window as unknown as { showCounts: (n: number, o?: number) => void }).showCounts(5));
+      expect(await page.getByRole("link", { name: "Jobs (5)", exact: true }).count()).toBe(1);
       expect(await page.getByRole("link", { name: "Specs (7)", exact: true }).count()).toBe(1);
       await page.screenshot({ path: `/tmp/aide-running-count-${width}.png` });
-      await page.evaluate(() => (window as unknown as { showRunning: (n: number, q?: number, o?: number) => void }).showRunning(0, 0, 0));
-      await page.getByRole("link", { name: "Jobs (0+0)", exact: true }).waitFor();
+      await page.evaluate(() => (window as unknown as { showCounts: (n: number, o?: number) => void }).showCounts(0, 0));
+      await page.getByRole("link", { name: "Jobs (0)", exact: true }).waitFor();
       await page.getByRole("link", { name: "Specs (0)", exact: true }).waitFor();
     } finally { await page.close(); }
   });

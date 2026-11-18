@@ -91,17 +91,15 @@ export function onChanged(): void {
 
 // Queue counts update independently of row redraws and presses in flight.
 // The app icon receives its waiting count as an event; the Jobs tab shows
-// the running count directly, including zero.
+// jobs that need attention, including zero.
 function announceCounts(e: Event): void {
   let waiting: unknown;
-  let running: unknown;
-  let queued: unknown;
+  let needsAttention: unknown;
   let openSpecs: unknown;
   try {
     const counts = JSON.parse(String((e as MessageEvent).data));
     waiting = counts.waiting;
-    running = counts.running;
-    queued = counts.queued;
+    needsAttention = counts.needsAttention;
     openSpecs = counts.openSpecs;
   } catch {
     return;
@@ -109,9 +107,8 @@ function announceCounts(e: Event): void {
   if (typeof waiting === "number" && Number.isInteger(waiting) && waiting >= 0) {
     document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
   }
-  if (typeof running === "number" && Number.isInteger(running) && running >= 0 &&
-      typeof queued === "number" && Number.isInteger(queued) && queued >= 0) {
-    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${running}+${queued})`;
+  if (typeof needsAttention === "number" && Number.isInteger(needsAttention) && needsAttention >= 0) {
+    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${needsAttention})`;
   }
   if (typeof openSpecs === "number" && Number.isInteger(openSpecs) && openSpecs >= 0) {
     for (const count of document.querySelectorAll('nav.tabbar a[href="/specs"] [data-tab-count]')) count.textContent = ` (${openSpecs})`;

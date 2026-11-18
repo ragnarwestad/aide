@@ -28,6 +28,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",
   "shell.themeAuto": "Auto",
+  "shell.jobsCountHint": "Jobber som trenger oppfølging fra deg",
+  "shell.specsCountHint": "Åpne specs: Opprettet, Inaktiv eller Gjenåpnet",
   "shell.tabRunning": "Jobber",
   "shell.tabSpecs": "Spesifikasjoner",
   "shell.tabProjects": "Prosjekter",
