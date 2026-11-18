@@ -8,8 +8,10 @@ that is still running works on its own branch, and a push then moves nothing und
 
 A landing moves the main of its project's code repo and of its specs repo, which other projects may share, and nothing
 else. So a push is held only when the repo it runs in has the same origin as one of the board's own checkouts of a
-landing project (`~/.aide/dashboard/checkouts/<project>/{code,specs}`). A queue, a repo or an origin that cannot be
-read blocks the push too: not knowing is not "nothing is running".
+landing project (`~/.aide/dashboard/checkouts/<project>/{code,specs}`), and only when it can move origin's default
+branch: every push in the command is read on its own, up to the shell operator that ends it, and one naming no branch
+is read as where git itself would push it. A queue, a repo or an origin that cannot be read blocks the push too: not knowing
+is not "nothing is running".
 
 Exit 0 lets the command run; exit 2 blocks it, with the reason on stderr for the session to read.
 """
@@ -22,11 +24,14 @@ import shlex
 from pathlib import Path
 
 PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
-GIT_C = re.compile(r"(?:^|[;&|(\s])git((?:\s+-[Cc]\s+\S+)+)\s+push(?:\s|$)")
+# Any git, by name or path and with any options, followed by `push` before the shell operator that ends it: what
+# might be a push, read or not. A command holding one is never let through unasked.
+ANY_PUSH = re.compile(r"(?:^|[;&|(\s])(?:\S*/)?git(?:\s[^;&|\n]*?)?\spush(?:\s|$)")
 CD = re.compile(r"(?:^|[;&|(\s])cd\s+(\S+)")
 MIRROR = ".aide/dashboard/aide-queue.json"
 CHECKOUTS = ".aide/dashboard/checkouts"
 PROJECT = re.compile(r"^[A-Za-z0-9._-]+$")
+REDIRECT = re.compile(r"(?<!\S)\d*(?:>>?|<)&?\s*\S+")
 
 
 def read_queue():
@@ -73,44 +78,95 @@ def origin_of(path):
     return same_repo(done.stdout) if done.returncode == 0 and done.stdout.strip() else None
 
 
-def pushed_repo(command, cwd):
-    """The origin of the repo the push runs in: `git -C <dir> push`, else the last `cd <dir>` before it, else the
-    session's own directory. None when that cannot be told."""
-    push_at = PUSH.search(command).start()
-    flags = GIT_C.search(command)
-    if flags:
-        where = re.findall(r"-[Cc]\s+(\S+)", flags.group(1))[-1]
+def push_words(command, start):
+    """The words of the `git ... push` at `start`, up to the shell operator or line end that ends it, without its
+    redirections. None when they cannot be read."""
+    line = REDIRECT.sub(" ", command[start:].split("\n", 1)[0])
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|()")
+    lexer.whitespace_split = True
+    try:
+        words = list(lexer)
+    except ValueError:
+        return None
+    end = next((i for i, word in enumerate(words) if word and set(word) <= set(";&|()")), len(words))
+    return words[:end]
+
+
+def push_dir(command, start, words, cwd):
+    """The directory a push runs in: its own `git -C <dir>`, else the last `cd <dir>` before it, else the session's
+    own directory."""
+    dirs = [words[i + 1] for i in range(words.index("push")) if words[i] == "-C"]
+    if dirs:
+        where = dirs[-1]
     else:
-        cds = [m.group(1) for m in CD.finditer(command[:push_at])]
+        cds = [m.group(1) for m in CD.finditer(command[:start])]
         where = cds[-1] if cds else (cwd or os.getcwd())
     path = Path(os.path.expanduser(where.strip("'\"")))
     if not path.is_absolute():
         path = Path(cwd or os.getcwd()) / path
+    return path
+
+
+def pushed_repo(command, cwd):
+    """The origin of the repo the first push runs in. None when that cannot be told."""
+    match = PUSH.search(command)
+    if not match:
+        return None
+    start = match.start() + len(match.group(1))
+    words = push_words(command, start)
+    if not words or "push" not in words:
+        return None
+    path = push_dir(command, start, words, cwd)
     return origin_of(path) if path.is_dir() else None
 
 
+def git_out(path, *args):
+    done = subprocess.run(["git", "-C", str(path), *args], capture_output=True, text=True)
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
 def pushes_only_non_default(command, cwd):
-    """True only when every explicit refspec targets a branch other than origin's default."""
-    try:
-        words = shlex.split(command)
-        push = words.index("push")
-    except (ValueError, IndexError):
+    """True only when every push in the command targets a branch other than origin's default: the branches it
+    names, or, naming none, where git itself would push (`@{push}`) when the repo's settings push that one branch and
+    nothing else. A push the parser does not read as one of its own (a git started by its path, or with options other
+    than `-C`) is not known to spare main, so it fails closed."""
+    pushes = list(PUSH.finditer(command))
+    if len(ANY_PUSH.findall(command)) > len(pushes):
         return False
-    refs = [word for word in words[push + 1:] if not word.startswith("-")]
-    if refs and (refs[0] == "origin" or "/" in refs[0] or refs[0].endswith(".git")):
-        refs = refs[1:]
-    if not refs:
-        return False
-    repo = Path(cwd or os.getcwd())
-    head = subprocess.run(
-        ["git", "-C", str(repo), "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
-        capture_output=True, text=True,
-    )
-    if head.returncode != 0:
-        return False
-    default = head.stdout.strip().removeprefix("origin/")
-    destinations = [ref.lstrip("+").rsplit(":", 1)[-1].removeprefix("refs/heads/") for ref in refs]
-    return bool(default) and all(destination != default for destination in destinations)
+    for match in pushes:
+        start = match.start() + len(match.group(1))
+        words = push_words(command, start)
+        if not words or "push" not in words:
+            return False
+        if "-c" in words[:words.index("push")]:
+            return False
+        args = words[words.index("push") + 1:]
+        if any(arg in ("--all", "--mirror", "--branches") for arg in args):
+            return False
+        path = push_dir(command, start, words, cwd)
+        if not path.is_dir():
+            return False
+        default = git_out(path, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD").removeprefix("origin/")
+        if not default:
+            return False
+        refs = [arg for arg in args if not arg.startswith("-")]
+        if refs and (refs[0] in git_out(path, "remote").split() or ":" in refs[0] or refs[0].endswith(".git")):
+            refs = refs[1:]
+        if not refs:
+            # `matching` and `nothing`, a configured push refspec and a mirror remote push other branches than
+            # `@{push}` names, or none, so those are not read at all.
+            if git_out(path, "config", "push.default") not in ("", "simple", "current", "upstream"):
+                return False
+            if git_out(path, "config", "--get-regexp", r"^remote\..*\.(push|mirror)$"):
+                return False
+            target = git_out(path, "rev-parse", "--symbolic-full-name", "@{push}")
+            if not target.startswith("refs/remotes/"):
+                return False
+            refs = [target.split("/", 3)[-1]]
+        destinations = [ref.lstrip("+").rsplit(":", 1)[-1].removeprefix("refs/heads/") for ref in refs]
+        if any(not destination or destination == default for destination in destinations):
+            return False
+    return True
 
 
 def landing_origins(projects):
@@ -146,7 +202,7 @@ def main():
     except ValueError:
         return 0
     command = (payload.get("tool_input") or {}).get("command") or ""
-    if not PUSH.search(command):
+    if not ANY_PUSH.search(command):
         return 0
     jobs, why = read_queue()
     if jobs is None:
