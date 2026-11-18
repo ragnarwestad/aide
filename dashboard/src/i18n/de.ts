@@ -263,8 +263,6 @@ export const de: Record<TranslationKey, string> = {
 
   "newSpec.dependsOn": "Hängt ab von",
   "newSpec.select": "Auswählen",
-  "newSpec.tabSpec": "Spezifikation",
-  "newSpec.tabOptions": "Optionen",
 
   "job.started": "Gestartet",
   "job.model": "Modell",
@@ -748,7 +746,7 @@ export const de: Record<TranslationKey, string> = {
   "list.specArchived": "diese Spec ist archiviert",
   "list.alreadyDone": "bereits erledigt",
   "list.starting": "startet…",
-  "list.runDialogTitle": "Spec ausführen",
+  "list.runDialogTitle": "Spec ausführen {spec}",
   "list.runTogetherWith": "Zusammen in einer Gruppe ausführen",
   "message.itsButton": "die Schaltfläche",
   "message.thisPhase": "diese Phase",

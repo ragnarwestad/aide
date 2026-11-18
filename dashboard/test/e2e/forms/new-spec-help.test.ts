@@ -24,10 +24,8 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-/** `/new` on its Options tab, where the settings are. */
-async function openOptions(): Promise<void> {
+async function openForm(): Promise<void> {
   await withBrowser(page.goto(`${base}/new?live=0`), "page.goto(/new)");
-  await page.locator("nav[data-new-spec-tabs]").getByRole("link", { name: "Options", exact: true }).click();
 }
 
 // The field holding the control, by the control's own name or id; its
@@ -38,7 +36,7 @@ const CONTROLS: [string, string][] = [
 ];
 
 test.each(CONTROLS)("the (?) of %s opens an explanation", async (_label, fieldSelector) => {
-  await openOptions();
+  await openForm();
   const help = page.locator(`#new-spec-form ${fieldSelector} > .fieldhead details.intro`);
   expect(await help.count()).toBe(1);
   await help.locator("summary").click();
@@ -47,7 +45,7 @@ test.each(CONTROLS)("the (?) of %s opens an explanation", async (_label, fieldSe
 });
 
 test("Let me choose the approach is not ticked when the form opens, and its (?) explains it", async () => {
-  await openOptions();
+  await openForm();
   const box = page.locator('#new-spec-form [name="chooseApproach"]');
   expect(await box.isChecked()).toBe(false);
   const help = page.locator('#new-spec-form .field:has(> .fieldhead [name="chooseApproach"]) > .fieldhead details.intro');

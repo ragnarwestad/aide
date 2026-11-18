@@ -19,7 +19,7 @@ const active = (state: string): boolean => state === "queued" || state === "runn
 
 export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
   const owned = new Set(input.groups
-    .filter((group) => group.state !== "completed")
+    .filter((group) => !group.removedAt && group.state !== "completed")
     .flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
   const busy = new Set(input.jobs.filter((job) => active(job.state)).map((job) => `${job.project}/${job.specFolder}`));
   return input.targets.filter((target) => {

@@ -20,6 +20,7 @@ import { resolveProvider } from "./model-resolve.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 import { headStateBadge } from "./head-row.ts";
+import { specReference } from "../../../project/spec-folder.ts";
 import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
@@ -363,7 +364,7 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
   const control = askButton({ label: t(lang, "shell.runTestRound"), dialogId: id, variant: "primary" });
   const dialog = formDialog(lang, {
     id,
-    title: t(lang, "list.runDialogTitle"),
+    title: t(lang, "list.runDialogTitle", { spec: specReference(g.project, g.specFolder) }),
     action: "/api/queue",
     hook: `actionform${peers.length ? "" : ""}`,
     data: { goto: "/" },

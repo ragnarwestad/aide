@@ -147,17 +147,10 @@ test("the Add project form drawn in place asks for the test command when its Git
 });
 
 const NEW_SPEC = `
-  <nav data-new-spec-tabs>
-    <a class="tab" href="/new?tab=spec" aria-current="page">Spec</a>
-    <a class="tab" href="/new?tab=options">Options</a>
-  </nav>
   <form class="newspecform" id="new-spec-form">
-    <div data-tab-panel="spec">
       <select name="project"><option value="a" selected>a</option><option value="b">b</option></select>
       <label data-project="a"><input type="checkbox" name="dependsOn" value="1"></label>
       <label data-project="b"><input type="checkbox" name="dependsOn" value="2"></label>
-    </div>
-    <div data-tab-panel="options" hidden>
       <select data-ai="model.analyze" form="new-spec-form">
         <option value="Claude" data-tool="claude" data-default="sonnet" selected>Claude</option>
         <option value="Codex" data-tool="codex" data-default="gpt">Codex</option>
@@ -166,21 +159,9 @@ const NEW_SPEC = `
         <option value="sonnet" data-tool="claude" selected>sonnet</option>
         <option value="gpt" data-tool="codex">gpt</option>
       </select>
-    </div>
   </form>`;
 
-test("the New spec tabs drawn in place switch without a page load (AC-1, AC-2)", async () => {
-  await mounted(NEW_SPEC, "http://board.test/new?live=0");
-  const options = document.querySelector('a.tab[href="/new?tab=options"]') as HTMLAnchorElement;
-  const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
-  options.dispatchEvent(click);
-  expect(click.defaultPrevented).toBe(true);
-  expect((document.querySelector('[data-tab-panel="options"]') as HTMLElement).hidden).toBe(false);
-  expect((document.querySelector('[data-tab-panel="spec"]') as HTMLElement).hidden).toBe(true);
-  expect(options.getAttribute("aria-current")).toBe("page");
-});
-
-test("the New spec form's AI select drawn in place narrows its model (AC-2)", async () => {
+test("an AI select drawn in place narrows its model (AC-2)", async () => {
   await mounted(NEW_SPEC, "http://board.test/new?live=0");
   const ai = document.querySelector("select[data-ai]") as HTMLSelectElement;
   ai.value = "Codex";

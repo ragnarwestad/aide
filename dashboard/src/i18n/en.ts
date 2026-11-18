@@ -273,8 +273,6 @@ export const en = {
 
   "newSpec.dependsOn": "Depends on",
   "newSpec.select": "Select",
-  "newSpec.tabSpec": "Spec",
-  "newSpec.tabOptions": "Options",
 
   "job.started": "Started",
   "job.model": "Model",
@@ -759,7 +757,7 @@ export const en = {
   "list.specArchived": "this spec is archived",
   "list.alreadyDone": "already done",
   "list.starting": "starting…",
-  "list.runDialogTitle": "Run spec",
+  "list.runDialogTitle": "Run spec {spec}",
   "list.runTogetherWith": "Run together in a group",
   "message.itsButton": "its button",
   "message.thisPhase": "this phase",

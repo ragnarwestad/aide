@@ -265,8 +265,6 @@ export const nb: Record<TranslationKey, string> = {
 
   "newSpec.dependsOn": "Avhenger av",
   "newSpec.select": "Velg",
-  "newSpec.tabSpec": "Spesifikasjon",
-  "newSpec.tabOptions": "Valg",
 
   "job.started": "Startet",
   "job.model": "Modell",
@@ -751,7 +749,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.specArchived": "denne specen er arkivert",
   "list.alreadyDone": "allerede gjort",
   "list.starting": "starter…",
-  "list.runDialogTitle": "Kjør spec",
+  "list.runDialogTitle": "Kjør spec {spec}",
   "list.runTogetherWith": "Kjør sammen i en gruppe",
   "message.itsButton": "knappen",
   "message.thisPhase": "denne fasen",
