@@ -2,6 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { QueueStore } from "../../../src/queue/queue.ts";
+import { validateWaitingArchives } from "../../../src/queue/waiting/jobs.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 
@@ -133,18 +134,17 @@ test("Land rows carry their branch and push boundary to the page controls", asyn
   expect(await jobRow({ queue, store: new AideRunStore() }, job)).toMatchObject({ branch: "topic", landPushStarted: true });
 });
 
-test("an active process retains its running fact while its next phase waits", async () => {
+test("an active process retains its running fact without a waiting position (AC-1)", async () => {
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
   const job = queue.update(made.job.id, { state: "running" })!;
-  expect(queue.waiting.snapshot().entries.map(entry => entry.operation)).toContain("implement");
   const row = await jobRow({ queue, store: new AideRunStore() }, job);
   expect(row.state).toBe("running");
   expect(row.queuePosition).toBeUndefined();
 });
 
-test("future phases retain their waiting position while the current process runs", async () => {
+test("future phases have no waiting position while the current process runs (AC-1)", async () => {
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
@@ -154,11 +154,13 @@ test("future phases retain their waiting position while the current process runs
   const { wordPhase } = await import("../../../src/render/ui/job-state/word-phase.ts");
   const phase = phasesFor([view], undefined).find(phase => phase.step === "implement")!;
   const word = wordPhase(false, undefined, phase.attempts[0], { step: "implement", waiting: phase.waiting });
-  expect(word.waiting).toMatchObject({ n: 1, total: 1, operation: "implement", reason: "Waiting for the previous step" });
+  expect(phase.attempts).toEqual([]);
+  expect(word.waiting).toBeUndefined();
+  expect(word.badge).toBeUndefined();
   expect(view.state).toBe("running");
   expect(view.queuePosition).toBeUndefined();
 });
-test("a merge waiter and the next phase each keep their own position", async () => {
+test("a merge waiter has a position while its successor remains unattempted (AC-1)", async () => {
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
@@ -170,20 +172,20 @@ test("a merge waiter and the next phase each keep their own position", async () 
   const { wordPhase } = await import("../../../src/render/ui/job-state/word-phase.ts");
   const words = phasesFor([view], undefined).filter(p => ["analyze", "implement"].includes(p.step))
     .map(p => wordPhase(false, undefined, p.attempts[0], { step: p.step, waiting: p.waiting }));
-  expect(words[0]!.waiting).toMatchObject({ operation: "analyze", reason: "Repository busy", n: 2, total: 2 });
-  expect(words[1]!.waiting).toMatchObject({ operation: "implement", n: 1, total: 2 });
+  expect(words[0]!.waiting).toMatchObject({ operation: "analyze", reason: "Repository busy", n: 1, total: 1 });
+  expect(words[1]!.waiting).toBeUndefined();
+  expect(words[1]!.badge).toBeUndefined();
 });
 
-test("a group's waiting Archive keeps its identity when the authorized job is queued", () => {
+test("an admitted group Archive projects its stable identity to the job row (AC-4)", async () => {
   const queue = makeStore();
   const group = queue.executionGroups.create({ project: "aide", name: "Release", members: ["a", "b"], branch: "aide/release" });
   queue.executionGroups.update(group.id, { state: "waiting-acceptance", completedMembers: ["a", "b"] });
-  const initial = queue.waiting.snapshot().entries;
-  expect(initial).toHaveLength(1);
-  expect(initial[0]!.operation).toBe("archive");
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["archive"], executionGroupId: group.id });
   if (!made.ok) throw new Error(made.error);
-  expect(queue.waiting.snapshot().entries.map(entry => entry.id)).toEqual([initial[0]!.id]);
+  validateWaitingArchives(queue);
+  const row = await jobRow({ queue, store: new AideRunStore() }, made.job);
+  expect(row.queuePosition).toMatchObject({ id: `group:${group.id}:archive`, operation: "archive", n: 1, total: 1 });
 });
 
 test("a cancelled Land row points at its later successful attempt", async () => {

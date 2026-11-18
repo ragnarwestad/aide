@@ -35,11 +35,11 @@ export class WaitingQueue {
   reconcile(entries: WaitingEntry[]): void {
     entries = [...entries, ...this.pending.values()];
     this.entries = new Map(entries.map(e => [e.id, e]));
-    // Retain historical positions until a Save; a landing can briefly disappear
-    // between repository segments before registering its next pending segment.
-    const additions = entries.filter(e => !this.order.includes(e.id)).map(e => e.id);
-    if (additions.length) {
-      const next = [...this.order, ...additions];
+    // Merge segments retain their place between repository registrations.
+    const retained = this.order.filter(id => this.entries.has(id) || (this.options.retainAbsent?.(id) ?? true));
+    const additions = entries.filter(e => !retained.includes(e.id)).map(e => e.id);
+    const next = [...retained, ...additions];
+    if (next.length !== this.order.length || next.some((id, i) => id !== this.order[i])) {
       this.persist(next, this.revision);
       this.order = next;
     }
@@ -106,7 +106,9 @@ export class WaitingQueue {
       throw new Error("Save must contain each entry from the issued snapshot exactly once");
     }
     const present = new Set(this.entries.keys());
-    const next = [...ids.filter(id => present.has(id)), ...this.order.filter(id => present.has(id) && !issued.includes(id))];
+    const visible = [...ids.filter(id => present.has(id)), ...this.order.filter(id => present.has(id) && !issued.includes(id))];
+    const next = this.order.flatMap(id => !present.has(id) && this.options.retainAbsent?.(id) ? [id] : visible.length ? [visible.shift()!] : []);
+    next.push(...visible);
     this.persist(next, this.revision + 1);
     this.order = next;
     this.revision++;

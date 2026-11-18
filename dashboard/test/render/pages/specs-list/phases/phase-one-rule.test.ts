@@ -2,6 +2,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { phasesFor, doneOutsideRound } from "../../../../../src/render/pages/specs-list/data-model/phases.ts";
+import { wordPhase } from "../../../../../src/render/ui/job-state";
 import { row, openKeys } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
@@ -334,16 +336,16 @@ describe("a phase in transition reads as what it is doing", () => {
     results: [{ step: "analyze", ok: true, costUsd: 1, terminalReason: "completed" }],
   });
 
-  test("the landing belongs to the step being merged, not the one queued behind it", () => {
+  test("the landing leaves an unattempted successor empty (AC-1)", () => {
+    expect(phasesFor([landingAnalyze], target()).find(p => p.step === "implement")?.attempts).toEqual([]);
     const html = rows([landingAnalyze], [target({ done: ["create"] })]);
     expect(stateCell(subRow(html, "analyze"))).toContain("Running");
     expect(stateCell(subRow(html, "implement"))).not.toContain("Running");
     expect(html).not.toMatch(FAULTS);
   });
 
-  // Another round on a spec held back on its checks: archive has not run
-  // in it yet, so whatever its line said belongs to the round before.
-  test("archive reads as not run while a new round is under way", () => {
+  // The earlier Archive refusal remains visible during another round.
+  test("archive keeps its earlier refusal while a new round runs (AC-6)", () => {
     const refused = row({
       id: "before",
       specFolder: "480-transition",
@@ -361,26 +363,13 @@ describe("a phase in transition reads as what it is doing", () => {
       state: "running",
       startedAt: "2026-09-17T09:50:00Z",
     });
-    const html = rows(
-      [refused, round],
-      [target({
-        done: ["create", "analyze", "implement"],
-        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-        stopped: { archive: "acceptance-criteria-unticked" },
-      })],
-    );
-    const archive = stateCell(subRow(html, "archive"));
-    expect(archive).toContain(PHASE_NOT_RUN);
-    expect(archive).not.toContain("Held back");
-    expect(archive).not.toContain("Stopped");
+    const archive = phasesFor([refused, round], target()).find(p => p.step === "archive")!;
+    expect(archive.attempts.map(a => a.id)).toEqual(["before"]);
+    expect(wordPhase(false, archive.heldBack, archive.attempts[0], { ...archive.history, step: "archive" }).badge).toBeDefined();
   });
 
-  // The same round, started from analyze with implement left out so the
-  // reader can read the new plan first. The
-  // implement that is done belongs to the round before this analyze —
-  // drawing it as Done, box ticked and locked "already done", took away
-  // the one step the round exists to run again.
-  test("implement reads as not run, and can be chosen, while a round from analyze is under way", () => {
+  // Previous Implement attempts stay visible without completing this round.
+  test("implement keeps its attempt without completing the new round (AC-6)", () => {
     const implementedBefore = row({
       id: "before",
       specFolder: "480-transition",
@@ -401,16 +390,10 @@ describe("a phase in transition reads as what it is doing", () => {
       state: "running",
       startedAt: "2026-09-17T09:50:00Z",
     });
-    const html = rows(
-      [implementedBefore, round],
-      [target({
-        done: ["create", "analyze", "implement"],
-        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-      })],
-    );
-    const implement = subRow(html, "implement");
-    expect(stateCell(implement)).toContain(PHASE_NOT_RUN);
-    expect(implement).not.toContain("already done");
+    const implement = phasesFor([implementedBefore, round], target()).find(p => p.step === "implement")!;
+    expect(implement.attempts.map(a => a.id)).toEqual(["before"]);
+    expect(doneOutsideRound(["create", "analyze", "implement"], round)).not.toContain("implement");
+    expect(wordPhase(false, undefined, implement.attempts[0], { ...implement.history, step: "implement" }).qualifier).toBeDefined();
   });
 
   // A spec made from New spec runs create → analyze → implement →

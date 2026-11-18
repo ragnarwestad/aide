@@ -577,6 +577,11 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
 
+Only the next selected step gets a queue position, after its preceding work has finished, including review and any required merge. It joins behind the work already waiting. Later selected steps and later group members have no reserved position or editor row. A phase with no recorded attempt shows the existing dash; earlier attempts keep their status.
+
+An Archive waiting for acceptance has no queue position. Tick the required acceptance checks and press Archive through the existing action to continue.
+
+
 Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
 
 Saved priority survives refresh and server restart. The first eligible entry starts: prerequisites, provider limits, concurrency and repository locks still apply, so a blocked entry does not stop eligible work below it.

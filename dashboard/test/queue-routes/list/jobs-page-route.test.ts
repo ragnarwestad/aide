@@ -564,7 +564,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(jobsTab).toContain("data-caption");
     expect(jobsTab).toContain("data-step=");
     expect(list).toContain('class="checklist"');
-    expect(jobsTab).toContain("data-waiting-open=");
   });
 
   test("a spec with no job opened on each: the Jobs tab has its Run, the list has none", async () => {

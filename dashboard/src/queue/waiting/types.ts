@@ -23,4 +23,5 @@ export interface WaitingOptions {
   persist?: (order: string[], revision: number) => void;
   changed?: () => void;
   refresh?: () => WaitingEntry[];
+  retainAbsent?: (id: string) => boolean;
 }

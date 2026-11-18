@@ -321,3 +321,33 @@ test("manual Start's per-member plan decides the next member's phases", async ()
     "analyze", { ok: true, terminalReason: "completed" });
   expect(store.list()).toMatchObject([{ specFolder: "2-next", steps: ["implement"] }]);
 });
+
+for (const ending of ["success", "rejected", "recorded-failure", "cancelled", "stopped"] as const)
+  test(`Analyze-only continuation waits for landing: ${ending} (AC-3)`, async () => {
+    member("1-first", 1); member("2-next", 2);
+    const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-release" });
+    const made = store.enqueue({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["analyze"] });
+    if (!made.ok) throw new Error(made.error);
+    store.update(made.job.id, { state: "running", landing: true });
+    let resolve!: () => void;
+    let reject!: (reason: Error) => void;
+    const landing = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
+    const handle = stepDoneHandler({
+      store, machinerySpecsRoot: () => join(root, "specs"), specDir: () => undefined,
+      peekMachinerySpecDir: (_p: string, d: string) => d,
+      forgetSpecCaches: () => {}, rereadSpecCaches: () => {}, landStepBranch: () => landing,
+    } as unknown as Parameters<typeof stepDoneHandler>[0]);
+    const finishing = Promise.resolve(handle(store.get(made.job.id)!, "analyze", { ok: true, terminalReason: "completed" }));
+    expect(store.list().map(j => j.specFolder)).toEqual(["1-first"]);
+    expect(store.executionGroups.get(group.id)?.completedMembers).toEqual([]);
+    store.update(made.job.id, { state: "done", landing: true });
+    const unrelated = store.enqueue({ project: "other-project", specFolder: "1-first", steps: ["analyze"] });
+    if (!unrelated.ok) throw new Error(unrelated.error);
+    if (ending === "recorded-failure") store.update(made.job.id, { landingError: "tests failed" });
+    if (ending === "cancelled") store.update(made.job.id, { state: "cancelled" });
+    if (ending === "stopped") store.executionGroups.stop(group.id, true);
+    if (ending === "rejected") reject(new Error("merge failed")); else resolve();
+    await finishing.catch(() => {});
+    expect(store.list().filter(j => j.specFolder === "2-next")).toHaveLength(ending === "success" ? 1 : 0);
+    if (ending === "success") expect(store.waiting.snapshot().entries.map(e => e.jobId)).toEqual([unrelated.job.id, store.list()[0]!.id]);
+  });

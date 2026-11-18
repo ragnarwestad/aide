@@ -85,10 +85,10 @@ test("touch dragging changes priority on a phone", async () => {
   await dialog().waitFor({ state: "detached" });
   expect(await savedOrder()).toEqual(["b", "a"]);
 });
-test("live arrivals preserve a reordered draft and ownership loss disables Save", async () => {
+test("live arrivals preserve a reordered draft and ownership loss disables Save (AC-6)", async () => {
   await open();
   await dialog().getByRole("button", { name: "Move down", exact: true }).first().click();
-  const added = await page.request.post(`${base}/api/queue`, { data: { project: "aide", specFolder: "83-added", steps: ["analyze"] } });
+  const added = await page.request.post(`${base}/api/queue`, { data: { project: "aide", specFolder: "83-added", steps: ["analyze", "implement", "archive"] } });
   expect(added.status()).toBe(200);
   await dialog().getByRole("listitem").nth(2).waitFor();
   const saving = page.waitForRequest(request => request.url().endsWith("/waiting/save"));
@@ -96,6 +96,7 @@ test("live arrivals preserve a reordered draft and ownership loss disables Save"
   const request = await saving;
   expect(request.postDataJSON().ids.slice(0, 2)).toEqual(["job:b:0", "job:a:0"]);
   await dialog().waitFor({ state: "detached" });
+  expect(await savedOrder()).toEqual(["b", "a", (await added.json()).job.id]);
   await page.reload();
   await page.getByRole("button", { name: /Queued 1\/3/ }).first().click();
   await dialog().waitFor();

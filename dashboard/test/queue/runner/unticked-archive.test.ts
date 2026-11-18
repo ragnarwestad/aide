@@ -11,9 +11,11 @@ beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 describe("an archive whose acceptance rows are open", () => {
-  test("ends done with the acceptance refusal, without being started", () => {
+  test("ends done with the acceptance refusal, without reserving a place (AC-4)", () => {
     const job = enqueue({ steps: ["archive"] });
+    expect(store.waiting.snapshot().entries).toEqual([]);
     makeRunner({}).tick({ acceptanceOpen: new Set([job.id]) });
+    expect(store.waiting.snapshot().entries).toEqual([]);
     const after = store.get(job.id)!;
     expect(spawns).toHaveLength(0);
     expect(after.state).toBe("done");
@@ -51,4 +53,16 @@ describe("an archive whose acceptance rows are open", () => {
     makeRunner({}).tick({ acceptanceOpen: new Set() });
     expect(store.get(job.id)?.state).toBe("running");
   });
+});
+
+test("acceptance needs an explicit new Archive before admission (AC-4)", () => {
+  const first = enqueue({ steps: ["archive"] });
+  const runner = makeRunner();
+  runner.tick({ acceptanceOpen: new Set([first.id]) });
+  runner.tick();
+  expect(spawns).toEqual([]);
+  const next = enqueue({ steps: ["archive"] });
+  expect(store.waiting.snapshot().entries).toEqual([]);
+  runner.tick();
+  expect(spawns.map(s => s.jobId)).toEqual([next.id]);
 });
