@@ -141,8 +141,9 @@ export function phaseMessagesRow(
   ];
 }
 
-/** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
+/** A step's state, or a dash until the step has a state. */
 export function stepState(state: ProgressStepState | undefined, lang: Language): string {
+  if (state === undefined) return "–";
   if (state === "done") return badge("done", t(lang, "dialog.stepDone"));
   if (state === "queued") return badge("idle", t(lang, "list.state.queued"));
   if (state === "running") return badge("running", t(lang, "dialog.stepRunning"));
