@@ -94,11 +94,17 @@ def test_an_explicit_push_to_a_non_default_branch_passes_during_a_landing_ac_11(
     assert guard(tmp_path, "git push origin +main", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
 
 
-def landing_repo(tmp_path, name, on):
-    """A clone of aide whose origin's default is main, standing on branch `on`."""
+def landing_repo(tmp_path, name, on, upstream=None):
+    """A clone of aide whose origin's default is main, standing on branch `on`, which tracks origin's `upstream`
+    (its own name unless said)."""
     path = repo(tmp_path, name, AIDE)
-    subprocess.run(["git", "-C", str(path), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], check=True)
-    subprocess.run(["git", "-C", str(path), "symbolic-ref", "HEAD", f"refs/heads/{on}"], check=True)
+    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.com", "-C", str(path)]
+    subprocess.run([*git, "commit", "-q", "--allow-empty", "-m", "start"], check=True)
+    for branch in {"main", on, upstream or on}:
+        subprocess.run([*git, "update-ref", f"refs/remotes/origin/{branch}", "HEAD"], check=True)
+    subprocess.run([*git, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], check=True)
+    subprocess.run([*git, "switch", "-q", "-C", on], check=True)
+    subprocess.run([*git, "branch", "-q", f"--set-upstream-to=origin/{upstream or on}"], check=True)
     return path
 
 
@@ -111,19 +117,23 @@ def test_a_branch_push_is_read_on_its_own_whatever_else_the_command_holds(tmp_pa
     assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=elsewhere).returncode == 0
 
 
-def test_a_push_naming_no_branch_is_the_branch_its_repo_stands_on(tmp_path):
+def test_a_push_naming_no_branch_is_read_as_where_git_would_push_it(tmp_path):
     topic = landing_repo(tmp_path, "topic", "topic")
     main = landing_repo(tmp_path, "main", "main")
-    assert guard(tmp_path, "git push -u", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 0
+    onto_main = landing_repo(tmp_path, "onto-main", "topic", upstream="main")
+    subprocess.run(["git", "-C", str(onto_main), "config", "push.default", "upstream"], check=True)
+    assert guard(tmp_path, "git push", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 0
     assert guard(tmp_path, "git push && echo topic", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=main).returncode == 2
     assert guard(tmp_path, f"git -C {main} push origin", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 2
+    assert guard(tmp_path, "git push", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=onto_main).returncode == 2
 
 
 def test_every_push_in_a_command_must_spare_main(tmp_path):
     aide = landing_repo(tmp_path, "aide", "topic")
-    command = "git push origin topic; git push origin main"
-    assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
-    assert guard(tmp_path, "git push --all origin", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
+    for command in ("git push origin topic; git push origin main", "git push --all origin",
+                    "git push origin topic; /usr/bin/git push origin main",
+                    "git push origin topic && git -c push.default=current push"):
+        assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2, command
 
 
 def test_the_block_names_only_the_landings_that_move_the_pushed_repo(tmp_path):

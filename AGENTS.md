@@ -133,7 +133,7 @@ while the board lands a project whose code or specs repo has the same
 origin, or when the queue or those origins cannot be read. A landing in
 another project does not block it, and nor does a push of a branch other
 than the default one: each push in the command is read on its own, and
-one naming no branch pushes the branch its repo stands on. Off the
+one naming no branch is read as where git itself would push it. Off the
 machine that serves the board it reads the queue over ssh from
 `AIDE_BOARD_HOST`, set under `"env"` in that folder's
 `.claude/settings.local.json`.
