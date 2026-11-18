@@ -225,7 +225,8 @@ test("a request that fails says so in the row, and the page can be pressed again
   await p.waitForSelector(detail("81-queue-and-runner"));
   fail(500);
   await p.waitForFunction(() => document.querySelector("tr[data-spec-detail]")?.textContent?.includes("could not be loaded"));
-  expect(await p.getByRole("dialog").filter({ hasText: "Loading…" }).isVisible()).toBe(false);
+  // The row says so before the cover lifts: wait for the cover, not the word.
+  await p.getByRole("dialog").filter({ hasText: "Loading…" }).waitFor({ state: "hidden" });
   const address = p.url();
   await p.click("th a.sortlink");
   await p.waitForFunction((was) => location.href !== was, address);
