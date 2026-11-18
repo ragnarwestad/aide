@@ -102,3 +102,14 @@ test("a pending Deploy holds new Archive and Land jobs but not Implement", () =>
   const waiting = store.list().find((job) => job.steps[0] === "land")!;
   expect(holdFor(waiting, { ...context({}), maxConcurrent: 10 })).toBeUndefined();
 });
+
+test("a Land behind another landing Land names the landing, not the same spec", () => {
+  const first = enqueue({ specFolder: "land", steps: ["land"], branch: "one" });
+  store.update(first.id, { state: "running", landing: true });
+  const second = enqueue({ specFolder: "land", steps: ["land"], branch: "two" });
+  expect(holdFor(second, context({}))?.name).toBe("project-landing");
+  const spec = enqueue({ steps: ["analyze"] });
+  store.update(spec.id, { state: "running" });
+  const again = enqueue({ steps: ["implement"] });
+  expect(holdFor(again, { ...context({}), maxConcurrent: 2 })?.name).toBe("same-spec-running");
+});
