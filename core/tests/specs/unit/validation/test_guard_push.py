@@ -94,6 +94,38 @@ def test_an_explicit_push_to_a_non_default_branch_passes_during_a_landing_ac_11(
     assert guard(tmp_path, "git push origin +main", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
 
 
+def landing_repo(tmp_path, name, on):
+    """A clone of aide whose origin's default is main, standing on branch `on`."""
+    path = repo(tmp_path, name, AIDE)
+    subprocess.run(["git", "-C", str(path), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], check=True)
+    subprocess.run(["git", "-C", str(path), "symbolic-ref", "HEAD", f"refs/heads/{on}"], check=True)
+    return path
+
+
+def test_a_branch_push_is_read_on_its_own_whatever_else_the_command_holds(tmp_path):
+    aide = landing_repo(tmp_path, "aide", "topic")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    command = (f"cd {aide} && git commit -q -F - <<'EOF'\nKeep the session's copy\nEOF\n"
+               "git push -q -u origin topic 2>&1 | tail -3; git log --oneline -1")
+    assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=elsewhere).returncode == 0
+
+
+def test_a_push_naming_no_branch_is_the_branch_its_repo_stands_on(tmp_path):
+    topic = landing_repo(tmp_path, "topic", "topic")
+    main = landing_repo(tmp_path, "main", "main")
+    assert guard(tmp_path, "git push -u", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 0
+    assert guard(tmp_path, "git push && echo topic", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=main).returncode == 2
+    assert guard(tmp_path, f"git -C {main} push origin", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 2
+
+
+def test_every_push_in_a_command_must_spare_main(tmp_path):
+    aide = landing_repo(tmp_path, "aide", "topic")
+    command = "git push origin topic; git push origin main"
+    assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
+    assert guard(tmp_path, "git push --all origin", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2
+
+
 def test_the_block_names_only_the_landings_that_move_the_pushed_repo(tmp_path):
     aide = repo(tmp_path, "aide", AIDE)
     skjera_landing = {**ARCHIVE_LANDING, "project": "skjera", "specFolder": "71-skjera"}
