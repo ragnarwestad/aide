@@ -34,7 +34,7 @@ import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./h
 import { isDashboardRoot } from "../deployment";
 import type { LandContext, Landing } from "./types.ts";
 import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
-import { takeLandingCancel } from "./cancel-landing.ts";
+import { landingCancelled, takeLandingCancel } from "./cancel-landing.ts";
 import { retryArchiveLanding } from "./retry";
 import { landingPolicy } from "./policy/index.ts";
 import { isJobStop } from "../../step-endings.ts";
@@ -167,7 +167,7 @@ export async function landBranch(
             : discard(repo.root)
               ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
               : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
-          () => !!what.cancelled?.() || ctx.queue.get(job.id)?.state === "cancelled",
+          () => !!what.cancelled?.() || landingCancelled(job.id) || ctx.queue.get(job.id)?.state === "cancelled",
         );
       retryUnlanded.set(repo.root, merge);
       let result = await merge();
@@ -461,6 +461,10 @@ export async function landBranch(
     }
   } catch (err) {
     if (what.cancelled?.()) return;
+    if (takeLandingCancel(job.id)) {
+      ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() });
+      return;
+    }
     // Never rethrown: the `landing` flag holds this job's own next
     // step, and the runner clears it when this promise settles — which
     // it must do, however this went.

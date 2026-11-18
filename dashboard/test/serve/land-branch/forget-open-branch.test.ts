@@ -1,3 +1,6 @@
+import { cancelLanding, landingCancelled } from "../../../src/serve/land-branch/cancel-landing.ts";
+import { createRootLock } from "../../../src/serve/serve-helpers/config.ts";
+import { WaitingQueue } from "../../../src/queue/waiting";
 import { waitForDeploy } from "../../../src/serve/deploy-job/landing-hold.ts";
 // The one line the landing gained (2026-09-09): a merge whose branch
 // delete succeeded takes that branch out of the cached open set for the
@@ -124,4 +127,43 @@ test("a newly ready landing does not touch git while Deploy has priority", async
   deploy.state = "cancelled";
   await work;
   expect(calls).toBeGreaterThan(0);
+});
+
+test("cancelling Archive while it waits for the merge lock prevents the merge", async () => {
+  const job = { ...JOB, id: "cancel-waiting-archive" };
+  const git = landingGit();
+  const mergeLock = createRootLock();
+  const waiting = new WaitingQueue({});
+  const transitions: string[] = [];
+  const { ctx } = landCtx(git.run, {
+    mergeLock,
+    queue: {
+      waiting,
+      get: () => undefined,
+      transition: (_id: string, event: string) => { transitions.push(event); return { ok: true }; },
+    },
+  });
+  let unlock!: () => void;
+  const lock = mergeLock.tryRun(ROOT, () => new Promise<void>(resolve => { unlock = resolve; }));
+  const work = landBranch(
+    ctx as unknown as Parameters<typeof landBranch>[0],
+    job as unknown as Parameters<typeof landBranch>[1],
+    { branch: BRANCH },
+    { ...LANDING, step: "archive" } as unknown as Parameters<typeof landBranch>[3],
+  );
+  let callsBeforeCancel = 0;
+  try {
+    await Bun.sleep(0);
+    expect(waiting.snapshot().entries.map(entry => entry.jobId)).toEqual([job.id]);
+    callsBeforeCancel = git.calls.length;
+    cancelLanding(job.id);
+  } finally {
+    unlock();
+    await lock;
+    await work;
+  }
+  expect(git.calls).toHaveLength(callsBeforeCancel);
+  expect(transitions).toEqual(["landing-cancelled"]);
+  expect(waiting.snapshot().entries).toEqual([]);
+  expect(landingCancelled(job.id)).toBe(false);
 });

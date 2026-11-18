@@ -140,6 +140,7 @@ test("Cancel stops the tests running on main after a red merge", async () => {
   const id = "cancel-main-test";
   let settled = false;
   const work = runProjectSuiteBeforePush(root, { ...job, id }, "aide/81-x", { button: "Archive" }).finally(() => { settled = true; });
+  const outcome = work.then(() => undefined, (error: unknown) => error);
   let pid = 0;
   let tracked = false;
   let stopped = false;
@@ -153,9 +154,10 @@ test("Cancel stops the tests running on main after a red merge", async () => {
     stopped = settled;
   } finally {
     if (pid > 1) signalGroup(pid, "SIGKILL");
-    await work;
+    await outcome;
     takeLandingCancel(id);
   }
   expect(tracked).toBe(true);
   expect(stopped).toBe(true);
+  expect(await outcome).toEqual(new Error("landing cancelled by user"));
 }, 30_000);
