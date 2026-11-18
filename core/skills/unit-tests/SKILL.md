@@ -73,7 +73,8 @@ Følg prosjektets stil (Steg 0.3). Bruk eksisterende test som mal.
 
 ### Steg 3 — Kjør og verifiser
 - Kjør de nye testene med prosjektets kommando (engangs-modus). Fiks til alt er grønt.
-- Kjør så **hele** suiten for å fange regresjoner.
+- I en økt for et prosjekt med board kjører du bare testfilene som dekker endringen. Land kjører
+  de konfigurerte testene før main oppdateres. Uten board følger du prosjektets testregler.
 
 ### Steg 4 — Dekning
 - Har prosjektet en coverage-kommando, kjør den. Vis før/etter + antall nye tester.
@@ -100,7 +101,7 @@ Følg prosjektets stil (Steg 0.3). Bruk eksisterende test som mal.
 Test-analyse for <fil>:
   Enheter: N (M mangler tester)
   Nye tester: K  (happy / edge / error)
-  Kjøring: K/K passerer · full suite grønn
+  Kjøring: K/K passerer · Land tester koden som skal inn på main (prosjekt med board)
   Coverage: <før> → <etter>
 Forslag til commit-melding følger prosjektets git-konvensjon.
 ```

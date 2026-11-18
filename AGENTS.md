@@ -66,11 +66,12 @@ says nothing about types.
 pull request only) runs the same script, so a bash change that passes it
 locally passes there.
 
-Both full runs take minutes, not seconds, and grow with the suites. Run
-the full suite ONCE, before the commit, in the background; while working,
-run only the narrow files that cover the change (`bun test <file>`, or for
-`core/` alone `.venv/bin/pytest core/tests/specs/unit/core/validation`, which
-covers the rules, the templates and the skills in seconds).
+Interactive sessions run only the test files covering the change, plus
+relevant type, lint or documentation checks. Do not run the full suites
+before commit or push: push the working branch and use `aide land aide <branch>`
+when asked to put the change on main. The board tests the merged result and
+updates main. See `core/rules/git.md` and `core/rules/testing.md` for the
+shared Land instructions.
 
 The dashboard on the serving host runs as a launchd job
 (`com.aide-dashboard.serve`), and code reaching `main` changes nothing

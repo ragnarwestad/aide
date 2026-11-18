@@ -94,7 +94,9 @@ pnpm test -- --run <test-file>
 **Automated checks that have to pass before REFACTOR**
 
 The project's own type check and lint, and its tests as its rules say
-(inside a spec's /aide-implement run the whole suite is the runner's):
+(Land verifies the merged result in a board-backed session, and the runner
+verifies a spec's /aide-implement run). In a board-backed session,
+run only the test files covering the change, plus the relevant type and lint checks:
 
 ```bash
 npx tsc --noEmit            # TypeScript check
@@ -109,7 +111,7 @@ All checks must pass. If anything fails, fix it in the GREEN phase before moving
 
 ```bash
 # Step 1: Refactor the code
-# Step 2: Rerun all tests and quality checks
+# Step 2: Rerun the relevant tests and quality checks
 # Step 3: Verify that everything still passes
 ```
 

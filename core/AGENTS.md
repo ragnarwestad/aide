@@ -245,15 +245,26 @@ why, with the context a reader needs.
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
 standing instruction for later requests. The user pushes from the IDE.
 
-**A push to the default branch waits while the Aide board lands a spec in that project.** Look at
-the board before pushing; if one of the project's specs is landing, hold the push until it has
-landed. A push during a landing moves the default branch under the landing's test run, which then
-has to run again, and gives up after the second move.
+**Session code changes in a project with an Aide board reach the default branch through Land.**
+A request to merge or push to main authorizes this sequence:
+
+1. Keep the changes on a working branch and run only the tests covering the change, plus relevant
+   type, lint or documentation checks. Land verifies the merged result with the project's configured tests.
+2. Commit and push that working branch to origin.
+3. Run `aide land <project> <branch>`. The board tests the merged result, pushes the default branch
+   only when the tests pass, and deletes the source branch.
+4. Report whether the board accepted the job. The board takes the landing from there and
+   reports its outcome. A server change takes effect after Land and Deploy.
+
+Do not merge into the default branch or push it directly from the session in a board-backed
+project. Do not bypass Land because local tests passed, another Land is running, or the command
+was refused. Report the refusal and keep the working branch. Projects without a board keep their
+own merge and test process. The spec-creation exception below still applies to its specs repo.
 
 **When a job you committed is done, say so, and say it is ready to push.** Run
 `git log origin/main..main --oneline` in that same reply and end the report with what it shows:
-the commits waiting for a push, and, when they change something that runs on a server, that it
-takes effect only after the push and a deploy. Work that is finished but never pushed gets
+the commits waiting for a push. For board-backed work also report whether the working branch
+has reached main through Land; a server change takes effect only after Land and Deploy. Work that is finished but never pushed gets
 forgotten; this line is what stops that.
 
 Otherwise, don't report repository state from memory, in any phrasing — "N commits ahead of
@@ -450,7 +461,11 @@ below about running tests applies to unit tests.
 1. Run the new or changed test immediately.
 2. Verify that it passes (green ✅). If it fails (red ❌), analyze the error message, fix the
    problem — either the test or the code — and re-run until it passes.
-3. Before committing, run the entire test suite to check for regressions.
+3. In a session for a project with an Aide board, run only the tests covering the change and the
+   relevant type, lint or documentation checks. Do not run the full unit or browser suite before
+   commit, push or Land, including after a rebase or merge. Land runs the project's configured tests on the
+   merged result before it updates the default branch. See the git rules for `aide land`.
+   Without a board, run the full suite before committing as the project requires.
 
 ### Slow tests never block the session
 
@@ -461,8 +476,8 @@ user does nothing else.
   in a repo are slow before running anything broad.
 - Run anything slow in the background, announced with what it is and roughly how long, while the
   job and the conversation continue. Report the result when it lands.
-- Run the full suite exactly once per job, in the background, before commit — never inline, never
-  repeated per iteration.
+- For a project without a board, run the full suite once per job in the background before commit.
+  For a board-backed session, Land verifies the merged result.
 - When the user is waiting to see something, deploy or show it first and verify in the background.
 
 ### A red full run is fixed file by file
@@ -471,7 +486,8 @@ The full run finds what broke; it does not confirm each fix.
 
 1. When it comes back red, list the failing files from that run's own output.
 2. Fix them running only the file at hand (`bun test <file>`, `pytest <file>`) until each is green.
-3. Run the full suite again once, when every file on the list is green — never between fixes.
+3. When every file on the list is green, submit a new Land for a board-backed session. Otherwise
+   run the full suite again once — never between fixes.
 
 A test that fails in the full run and passes on its own is the machine's load, not a fault: name it,
 and do not run the full suite again for it.
@@ -482,9 +498,11 @@ and do not run the full suite again for it.
 
 ### Unit tests
 
-Use the project's own test command: `AIDE_TEST_CMD` in `.aide/project.yaml`, and nothing else (see
-"Project commands" in the tools-and-scripts rules). Without it the project has no test command —
-say so rather than guessing one. Always run it in single-run mode.
+The full-suite command is `AIDE_TEST_CMD` in `.aide/project.yaml` (see "Project commands" in the
+tools-and-scripts rules). Land uses this command when the project has no configured test selection. A session uses
+`AIDE_TEST_FILES_CMD` for named files when configured, or the project's documented file-specific
+command. Without a configured or documented command, say so rather than guessing one. Always run
+in single-run mode.
 
 ### E2E tests (Playwright)
 
@@ -492,13 +510,9 @@ say so rather than guessing one. Always run it in single-run mode.
 on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aide (since 27
 September 2026). Elsewhere, ask the user to run it.**
 
-**Aide: run `cd dashboard && make test-e2e` before every commit headed for main**, whatever the
-change touched — about 30 seconds, in the background beside the full suite. Otherwise only a
-landing runs it, and a browser test broken on main stops the next spec's archive as if that spec
-had broken it. Running it at commit time means a push that follows waits for nothing. Run it
-again at push time only when the rebase onto origin brought in new commits. The one exception is
-a change to markdown files only: no browser test reads them, and `scripts/check-docs` is their
-check.
+**In a session for a project with a board, run only the browser test files covering the changed
+interaction.** Do not run the full e2e suite before commit or push: Land runs the configured tests before main is updated. For an Aide change to markdown files only, run `scripts/check-docs`; no browser test
+reads them.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
 show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the
@@ -522,8 +536,9 @@ Where it is allowed:
 ## Red, green, refactor
 
 New functionality is written test first: a test that fails because the behaviour is missing
-(red), then the least code that makes it pass (green), then the whole suite, to see nothing else
-broke (refactor).
+(red), then the least code that makes it pass (green), then refactoring with the relevant tests
+and checks. In a board-backed session Land verifies the merged result. Without a board, follow the
+project's full-suite requirement.
 
 ---
 
