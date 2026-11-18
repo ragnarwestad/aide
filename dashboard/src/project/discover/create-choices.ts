@@ -1,4 +1,4 @@
-// The four choices New spec's Options tab makes, read off a spec's own
+// The spec's saved settings, read off a spec's own
 // `1-description.md`. Each comes with the value a spec with nothing
 // recorded runs with, so a spec created before a choice was recorded reads
 // as the runner treats it. The three lines other than `Acceptance:` are

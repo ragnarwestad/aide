@@ -1,7 +1,4 @@
-// The New spec page's Options tab: the phase table with each phase's box,
-// AI and model, and the four settings about the spec as a whole beside
-// it. Kept apart from the page itself, which draws the Spec tab and the
-// frame.
+// Shared spec settings for the New spec form and the open Specs row.
 
 import { helpPopover, phaseChip } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
@@ -22,11 +19,7 @@ export const NEW_SPEC_VALUES: CardValues = {
   chooseApproach: false,
 };
 
-/** The Options tab: the phase table, then the four settings as one group
- *  beside it, one to a line, going under it where the screen has no room
- *  for both. One `.frow`, a full-width row of the form's own wrapping
- *  flex. `card` is what `cardStep` says the card shows. */
-export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardView): string {
+export function newSpecOptions(opts: NewSpecPageOptions, formId: string, card: CardView): string {
   return (
     `<span class="frow options-row">` +
     optionsGroup({
@@ -45,7 +38,7 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
 }
 
 /** What the four settings show, and whether they post. A setting posts its
- *  name only while its lock is null: New spec posts all four to its form;
+ *  name only while its lock is null: New spec posts its settings to its form;
  *  the open row on the Specs list shows what the spec was created with and
  *  posts the three analyze reads until a job is in flight or analyze has run. */
 export interface OptionsGroupValues {
@@ -69,7 +62,7 @@ export interface OptionsGroupValues {
 }
 
 /** The four settings' labels, in the reader's language: the same words on
- *  New spec's Options tab and on the Specs list's open row. */
+ *  the New spec form and on the Specs list's open row. */
 export function optionLabels(lang: Language): Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string> {
   return {
     acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
