@@ -31,3 +31,37 @@ test("a board link changes the page without replacing the header (AC-1, AC-3, AC
   await page.waitForURL((url) => url.pathname === "/");
   await page.close();
 });
+
+test("sorting opens the loading dialog and blocks links until the list answers", async () => {
+  const page = await browser.newPage();
+  const release = Promise.withResolvers<void>();
+  try {
+    await page.goto(`${base}/?live=0`);
+    const specs = page.locator('a[href="/specs"]:visible').first();
+    const box = (await specs.boundingBox())!;
+    let navigations = 0;
+    await page.route((url) => url.pathname === "/specs", (route) => {
+      navigations++;
+      return route.continue();
+    });
+    await page.route((url) => url.searchParams.get("rows") === "1", async (route) => {
+      await release.promise;
+      await route.fulfill({ status: 503, body: "" });
+    });
+    await page.locator("a.sortlink:visible").first().click();
+    const cover = page.getByRole("dialog").filter({ hasText: "Loading…" });
+    await cover.waitFor({ timeout: 2000 });
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.press("Escape");
+    expect(navigations).toBe(0);
+    expect(await cover.isVisible()).toBe(true);
+    release.resolve();
+    await cover.waitFor({ state: "hidden" });
+    await specs.click();
+    await page.waitForURL((url) => url.pathname === "/specs");
+    expect(navigations).toBeGreaterThan(0);
+  } finally {
+    release.resolve();
+    await page.close();
+  }
+});

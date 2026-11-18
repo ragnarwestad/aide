@@ -24,6 +24,12 @@ const browserIo: ProgressIo = {
   uncover: () => void document.dispatchEvent(new Event(COVER_DONE)),
 };
 
+/** The standard loading dialog for a request that must block page input. */
+export function holdLoadingCover(): () => void {
+  browserIo.cover("");
+  return browserIo.uncover;
+}
+
 /** The dialog's line for a refusal: empty when `why` is. */
 function say(dialog: HTMLDialogElement, why: string): void {
   writeLine(dialog.querySelector(".refused"), why);

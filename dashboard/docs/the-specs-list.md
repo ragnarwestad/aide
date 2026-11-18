@@ -52,9 +52,7 @@ time. It carries the list's view (state, project, sort, search) and ends in the 
 open row is in view. The open row's chevron leads back to `/specs`.
 
 On the Specs list the page script takes a plain press on a shut chevron and opens the row where it is, without loading
-a page. The row gets a detail row of its own that reads "Loading …", copied from the `#spec-loading-row` template the
-list carries; the header, the filters and every other row stay as they are, and the page is inert, so no press
-anywhere on it does anything until the spec is in. The spec's address is pushed, and the page asks that address with
+a page. The standard Loading dialog blocks page input until the detail request settles. The spec's address is pushed, and the page asks that address with
 `?detail=1`: the answer is that spec's rows with the spec drawn in its detail row, followed by a `<script src>` for the
 tab's editor or viewer when it needs one, which the page script adds as a new script so the bundle mounts in the row.
 `spec-detail-drawn` is then sent on `document`, which `spec-form-actions.ts` hears and binds Save and Cancel for the

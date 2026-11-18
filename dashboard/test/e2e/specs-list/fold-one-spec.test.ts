@@ -142,33 +142,22 @@ async function pressAt(p: Page, selector: string): Promise<void> {
   await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-test("the rest of the page stays drawn while a row loads, and Loading is only in that row", async () => {
+test("opening a spec shows the loading dialog without replacing the page", async () => {
   const p = await browser.newPage();
-  await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-  const { release } = await holdDetail(p);
-  await p.evaluate(() => {
-    (window as unknown as { kept: Element[] }).kept = [
-      document.querySelector("table.speclist thead")!,
-      document.querySelector("th a.sortlink")!,
-      [...document.querySelectorAll("nav a")].find((a) => a.getBoundingClientRect().height > 0)!,
-      document.getElementById("spec-aide/82-second")!,
-    ];
-  });
-  await p.click(fold("81-queue-and-runner"));
-  await p.waitForSelector(`${detail("81-queue-and-runner")}`);
-  // Past the overlay's delay: a page-leaving link would be covered by now.
-  await p.waitForTimeout(400);
-  const seen = await p.evaluate(() => ({
-    kept: (window as unknown as { kept: Element[] }).kept.map((el) => el.isConnected && el.getBoundingClientRect().height > 0),
-    loading: document.body.innerText.match(/Loading …/g)?.length ?? 0,
-    inRow: document.querySelector("tr[data-spec-detail]")!.textContent!.includes("Loading …"),
-    overlay: document.querySelectorAll("dialog[open], .pageloading").length,
-  }));
-  expect(seen).toEqual({ kept: [true, true, true, true], loading: 1, inRow: true, overlay: 0 });
-  release();
-  await p.waitForSelector(`${detail("81-queue-and-runner")} .spec-editor-mount[data-mounted]`);
-  expect(await p.evaluate(() => document.body.innerText.includes("Loading …"))).toBe(false);
-  await p.close();
+  try {
+    await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
+    const { release } = await holdDetail(p);
+    await p.evaluate(() => {
+      (window as unknown as { kept: Element | null }).kept = document.querySelector("header");
+    });
+    await p.click(fold("81-queue-and-runner"));
+    const cover = p.getByRole("dialog").filter({ hasText: "Loading…" });
+    await cover.waitFor();
+    expect(await p.evaluate(() => document.querySelector("header") === (window as unknown as { kept: Element }).kept)).toBe(true);
+    release();
+    await cover.waitFor({ state: "hidden" });
+    await p.waitForSelector(`${detail("81-queue-and-runner")} .spec-editor-mount[data-mounted]`);
+  } finally { await p.close(); }
 });
 
 test("a press anywhere else does nothing while the row loads", async () => {
@@ -236,7 +225,7 @@ test("a request that fails says so in the row, and the page can be pressed again
   await p.waitForSelector(detail("81-queue-and-runner"));
   fail(500);
   await p.waitForFunction(() => document.querySelector("tr[data-spec-detail]")?.textContent?.includes("could not be loaded"));
-  expect(await p.evaluate(() => document.body.innerText.includes("Loading …"))).toBe(false);
+  expect(await p.getByRole("dialog").filter({ hasText: "Loading…" }).isVisible()).toBe(false);
   const address = p.url();
   await p.click("th a.sortlink");
   await p.waitForFunction((was) => location.href !== was, address);
