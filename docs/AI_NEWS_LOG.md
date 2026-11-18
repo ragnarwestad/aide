@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-18](#2026-11-18)
   - [2026-11-17](#2026-11-17)
   - [2026-11-14](#2026-11-14)
   - [2026-11-13](#2026-11-13)
@@ -154,6 +155,79 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-18
+
+Review period: 2026-11-17 to 2026-11-18. All 14 source addresses, all watched pages and all 14 YouTube channels were fetched.
+Three watched pages changed; only Codex model-selection guidance changed substantively. X: 520 posts collected,
+seven retained; its exact 24-hour interval is 2026-11-17 06:18:45 UTC to 2026-11-18 06:18:45 UTC.
+YouTube: 21 videos listed, five selected, all five captions read. No source fetch failed.
+
+**Claude Code (review period):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                      | Source                                                                    |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Nov 17 | v2.1.327 | MCP JSON can come from stdin; /status lists broken configuration. Fixes headless resume, proxy startup, stalled model settings and hooks. Permission/path checks and unattended worktree removal changed; relative --add-dir behavior needs verification. | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.327) |
+| Nov 17 | —        | Linked billing beta lets third-party platforms charge a linked Claude Platform organization without receiving its API key; no integration change needed here.                                                                                             | [Source](https://claude.com/blog/linked-billing-on-claude-platform)       |
+| Nov 17 | —        | Code Mode announcement: still experimental and interactive-only, unavailable to -p and the Agent SDK.                                                                                                                                                     | [Source](https://code.claude.com/docs/en/code-mode)                       |
+| Nov 17 | —        | Chase AI compares five plugins against plain Claude Code; advises measuring quality, time and cost before keeping extra instructions. Small creator-run experiments, not proof that Aide should remove its rules.                                         | [Source](https://www.youtube.com/watch?v=rLdgRGJDPx0)                     |
+| Nov 17 | —        | Simon Willison demonstrates long-running work with repeated simulation; reports 1,000 play-tested battles over 12 hours. A case study, not a general performance claim.                                                                                   | [Source](https://www.youtube.com/watch?v=9RKrSF9d2SE)                     |
+
+**GitHub Copilot CLI (review period):**
+
+| Date      | Version            | News                                                                                                                                                                        | Source                                                                                                            |
+|-----------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Nov 17–18 | v1.0.113; v1.0.114 | 1.0.113 adds managed features.browserUse; 1.0.114 and 1.0.114-0 have no detailed notes.                                                                                     | [Source](https://github.com/github/copilot-cli/releases)                                                          |
+| Nov 17    | 1.0.113+           | Microsoft Entra sign-in preview on Windows/macOS; EMU OIDC and eligible Microsoft 365 Copilot inference are distinct paths.                                                 | [Source](https://github.blog/changelog/2026-11-17-github-copilot-cli-adds-microsoft-entra-sign-in-as-a-preview/)  |
+| Nov 17    | —                  | Browser use preview through the Chrome extension and /plugin; Evals preview plugin provides repeatable checks for skills, agents and MCP.                                   | [Source](https://github.blog/changelog/2026-11-17-let-github-copilot-interact-with-your-browser/)                 |
+| Nov 17    | —                  | GPT-6.2 Astra/Sol and MAI Code 2/Flash available in eligible Copilot plans. MAI-Code-1.1-Flash retires Dec 18; no matching configured model found in the checked reference. | [Source](https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot/)             |
+| Nov 17    | —                  | Code review adds Adaptive effort, cross-repository context and secret detection. Other Ignite announcements concern app, IDE, enterprise reporting and benchmarks.          | [Source](https://github.blog/changelog/2026-11-17-copilot-code-review-adaptive-effort-secret-detection-and-more/) |
+
+**OpenAI Codex CLI (review period):**
+
+| Date      | Version             | News                                                                                                                                                                                                                                                 | Source                                                               |
+|-----------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| Nov 17–18 | v0.169.1; v0.170.0  | Stable 0.170.0 adds realtime voice WebRTC, refreshed OTLP HTTP authentication and experimental same-named MCP servers across environments; fixes OAuth races, reconnects and sandbox restrictions. Alpha.13 is the newest fetched 0.171 pre-release. | [Source](https://github.com/openai/codex/releases/tag/rust-v0.170.0) |
+| Nov 17    | GPT-6.2 Astra / Sol | New models in Work/Codex; watched guidance now recommends Sol for most tasks and Astra across packages, using the client default effort. Official launch reports omissions of blockers in two tests and mitigating Codex instructions.               | [Source](https://openai.com/index/introducing-gpt-6-2-astra-sol/)    |
+| Nov 17    | —                   | New Ways of Working with Codex: repository context, connected tools, review, model effort and measured use of subagents. Reassess old scaffolding after model changes.                                                                               | [Source](https://www.youtube.com/watch?v=IPh9YsWvDQk)                |
+| Nov 17    | —                   | Revolut code-review service: plan work, assign agents distinct tasks and review their output; the engineer remains responsible.                                                                                                                      | [Source](https://www.youtube.com/watch?v=R_sl8zEp9ng)                |
+| Nov 17    | —                   | GPT-6.2 launch video is a promotional office sketch, with no additional coding-agent procedure in its captions.                                                                                                                                      | [Source](https://www.youtube.com/watch?v=C1zYX5jwqq4)                |
+
+**OpenCode (review period):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                    | Source                                                               |
+|--------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| Nov 18 | v2.3.1  | Restores CLAUDE.md fallback; timed-out shell commands continue in background, timeout: 0 uses 120 seconds; background compaction defaults on with compaction.background: false opt-out. Adds GPT-6.2 for ChatGPT sign-in; schedules become automations. | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.1)  |
+| Nov 18 | v2.3.2  | Fixes GPT-6.2 prompt caching by sending the system prompt as a leading developer message on Responses routes; less redundant webfetch structured output.                                                                                                | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.2)  |
+| Nov 17 | v1.19.6 | OpenCode 1 offers an optional upgrade to 2.0; plugins for version 1 need an update. Image-history and oversized-request fixes.                                                                                                                          | [Source](https://github.com/anomalyco/opencode/releases/tag/v1.19.6) |
+
+**Across tools (review period):**
+
+| Date      | Version | News                                                                                                                                                                                                                      | Source                                                                              |
+|-----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| Nov 17    | —       | AAIF article on moving a skill between agents: describe needed evidence rather than host-specific tool names, then verify discovery, access and output using the same task.                                               | [Source](https://aaif.io/blog/how-to-move-a-skill-from-one-coding-agent-to-another) |
+| Nov 18    | —       | Watched pages: Codex model-selection advice changed; Claude best-practices wording about $defaults softened without changing its advice; agents.md changed repository counters only.                                      | [Source](https://developers.openai.com/codex/learn/best-practices)                  |
+| Nov 17–18 | —       | Artificial Analysis still says Harness Comparison: Coming soon; numerical charts unavailable in fetched HTML. Martin Fowler, OpenAI developer blog and GitHub Copilot blog contain no newly dated article in this period. | [Source](https://artificialanalysis.ai/agents/coding-agents)                        |
+
+**Relevance for aide:**
+
+- ⭐ OpenCode 2.3.1 restores project/global CLAUDE.md fallback. Correct the OpenCode instruction-file rows in docs/AI_SUPPORT_MATRIX.md; add the behavior and disable variables to the configuration reference. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.1)
+- ⚠️ OpenCode 2.3.1 changes shell timeout and compaction defaults. Verify that core/scripts/lib/run-spec/setup/invocation.sh and turn completion still wait for actual command results; document the defaults and opt-out. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.1)
+- ⚠️ Claude Code 2.1.327 changes path, --add-dir, deny-rule and unattended ExitWorktree checks. Verify the runner with code/specs worktrees before relying on the new permission behavior; release fixes to headless resume and hooks are useful. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.327)
+- ⭐ Codex watched best practices now recommend GPT-6.2 Sol for most work and Astra for changes across packages. Add the guidance to the reference and compare the new models with the existing review/plan evaluations before changing defaults. [Source](https://developers.openai.com/codex/learn/best-practices) [Source](https://openai.com/index/introducing-gpt-6-2-astra-sol/)
+- ⚠️ The GPT-6.2 launch confirms blocker omissions in two tests, mitigated by new Codex instructions. Add a missing-file/unavailable-tool case to the runner evaluation so successful reports cannot conceal an incomplete check. X raised this claim; the official launch confirms it. [Source](https://openai.com/index/introducing-gpt-6-2-astra-sol/) [Source](https://x.com/somi_ai/status/2122812399355130038)
+- ⭐ Copilot Evals supplies a preview plugin for repeated skill/agent/MCP checks. Document the optional mechanism in the support matrix/reference; it requires approval per eval run and should not be silently added to unattended jobs. [Source](https://github.blog/changelog/2026-11-17-github-copilot-evals-is-now-in-public-preview/)
+- ⭐ Copilot browser-use preview and Entra sign-in add mechanisms missing from the current reference. Document Chrome-extension/plugin setup and features.browserUse; document the Windows/macOS Entra preview and its license/inference requirements. [Source](https://github.blog/changelog/2026-11-17-let-github-copilot-interact-with-your-browser/) [Source](https://github.blog/changelog/2026-11-17-github-copilot-cli-adds-microsoft-entra-sign-in-as-a-preview/)
+- ⭐ AAIF skill-portability article touches docs/SKILL_GUIDE.md and shared skills: add separate checks for automatic discovery, access to known evidence and output correctness across hosts; format checks alone do not establish behavior. [Source](https://aaif.io/blog/how-to-move-a-skill-from-one-coding-agent-to-another) [Source](https://x.com/AgenticAIFdn/status/2122744558765138141)
+- ⭐ Video: New Ways of Working with Codex. The speakers recommend trying a new model without accumulated scaffolding, restoring only what helps, and lowering effort where it works. Compare these alternatives in docs/REPLAY.md evaluations rather than carrying every old instruction forward. [Source](https://www.youtube.com/watch?v=IPh9YsWvDQk)
+- ✅ Video: STOP Using These Claude Code Plugins (You're Nerfing Yourself). Its small comparisons support measuring instructions/skills against plain Claude Code with fixed tasks, hidden checks, blind grading, time and cost. Useful for the existing replay work; no plugin should be removed on this evidence alone. [Source](https://www.youtube.com/watch?v=rLdgRGJDPx0)
+- ✅ Video: 2026 in LLMs — Simon Willison, Datasette. Repeated simulations provide an independent feedback loop for long tasks. Relevant to test design and replay cases; the reported game result does not establish general coding quality. [Source](https://www.youtube.com/watch?v=9RKrSF9d2SE) [Source](https://x.com/somi_ai/status/2122857187991253345)
+- ✅ Video: How one engineer built a code review service with Codex. Planning, distinct agent tasks and human responsibility agree with Aide's analysis and review practice. [Source](https://www.youtube.com/watch?v=R_sl8zEp9ng)
+- ✅ OpenCode 2.3.2 fixes repeated uncached GPT-6.2 prompt billing; Codex 0.170.0 fixes sandbox and MCP races. Useful vendor fixes; no installer modification required. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.2) [Source](https://github.com/openai/codex/releases/tag/rust-v0.170.0)
+- ℹ Linked billing, Copilot model releases and review updates, desktop release channels and the GPT-6.2 promotional video do not require a current installer or rule change. Code Mode remains unavailable to headless Claude runs. [Source](https://claude.com/blog/linked-billing-on-claude-platform) [Source](https://code.claude.com/docs/en/code-mode) [Source](https://www.youtube.com/watch?v=C1zYX5jwqq4)
+- ℹ All sources and all 14 YouTube channels fetched successfully. Twenty-one videos listed, five selected and all five captions read. Other videos were screened by title/description only. Artificial Analysis numerical charts were unavailable in fetched HTML; no ranking inferred. X article payloads such as Theo's model review contained previews but empty content blocks; their full articles remain unassessed. [Source](https://artificialanalysis.ai/agents/coding-agents) [Source](https://x.com/theo/status/2122760447103484410)
+- ℹ Other fresh X posts were replies, product announcements, research links and conflicting personal model/review opinions. They do not establish a change to Aide. Zach Lloyd's call for task-specific evaluations agrees with the existing replay approach. [Source](https://x.com/zachlloydtweets/status/2122706371905049006)
+
 ### 2026-11-17
 
 Nov 17. All sources were fetched again. The X list was read fresh (647 posts for Nov 16 to Nov 17; the 41 long enough

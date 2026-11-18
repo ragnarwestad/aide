@@ -28,10 +28,10 @@ and which configuration files each tool reads.
 
 | Tool               | Version | Last verified | Status       |
 |--------------------|---------|---------------|--------------|
-| Claude Code        | 2.1.326 | 2026-11-17    | ✅ Supported |
-| GitHub Copilot CLI | 1.0.112 | 2026-11-17    | ✅ Supported |
-| Codex CLI          | 0.169.0 | 2026-11-17    | ✅ Supported |
-| OpenCode           | 2.3.0   | 2026-11-17    | ✅ Supported |
+| Claude Code        | 2.1.327 | 2026-11-18    | ✅ Supported |
+| GitHub Copilot CLI | 1.0.112 | 2026-11-18    | ✅ Supported |
+| Codex CLI          | 0.169.0 | 2026-11-18    | ✅ Supported |
+| OpenCode           | 2.3.0   | 2026-11-18    | ✅ Supported |
 
 **The Version and Last verified columns are stamped from probing — do not
 edit them by hand.** Run:
