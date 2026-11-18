@@ -310,10 +310,10 @@ function worker(networkAnswer: (request: { method: string; url: string }) => Pro
     /** One navigation through the worker; it answers when the worker does,
      *  so a slow one is awaited after `advance`. `undefined` means the
      *  worker declined to answer, which leaves the request to the browser. */
-    navigate: async (mode = "navigate", method = "GET", url = "https://board.test/"): Promise<Response | undefined> => {
+    navigate: async (mode = "navigate", method = "GET", url = "https://board.test/", headers = new Headers()): Promise<Response | undefined> => {
       let answered: Promise<Response> | undefined;
       listeners.fetch!({
-        request: { mode, method, url },
+        request: { mode, method, url, headers },
         respondWith: (r: Promise<Response>) => void (answered = r),
       });
       return answered ? await answered : undefined;
@@ -493,6 +493,29 @@ describe("a slow page load gets a wait page", () => {
     expect(await (await next)!.text()).toContain("Connecting to");
   });
 
+  test("a completed probe after a long wait lets the next navigation wait for its answer", async () => {
+    const { w, requests } = slowServer();
+    const url = "https://board.test/specs";
+    const probe = w.navigate("cors", "GET", url, new Headers({ "X-Aide-Wait-Probe": "1" }));
+    await w.advance(45000);
+    requests[0]!.answer(new Response("probe answered"));
+    await probe;
+    const reload = w.navigate("navigate", "GET", url);
+    await w.advance(2000);
+    requests[1]!.answer(new Response("the live page"));
+    expect(await (await reload)!.text()).toBe("the live page");
+  });
+
+  test("a failed reload goes back to the wait page", async () => {
+    const { w, requests } = slowServer();
+    const first = w.navigate();
+    await w.advance(500);
+    await first;
+    const reload = w.navigate();
+    requests[1]!.fail(new Error("temporarily unreachable"));
+    expect(await (await reload)!.text()).toContain("Connecting to");
+  });
+
   test("a server answer that arrives after the wait page is dropped, and a later load asks again", async () => {
     const { w, requests } = slowServer();
     const first = w.navigate();
@@ -529,24 +552,26 @@ function waitScript(asks: (n: number) => Promise<unknown>, leftMs = 29500) {
   const clock = fakeClock();
   let fetches = 0;
   let reloads = 0;
-  const written: string[] = [];
+  const status = { textContent: "Connecting" };
+  const retry = { hidden: true, addEventListener: (_type: string, listener: () => void) => { click = listener; } };
+  let click = () => {};
   const location = { href: "https://board.test/specs", reload: () => void reloads++ };
-  const document = { open: () => {}, write: (html: string) => void written.push(html), close: () => {} };
+  const document = { getElementById: (id: string) => id === "connection-status" ? status : retry };
   const fetchFake = (url: string) => {
     expect(url).toBe(location.href);
     return asks(++fetches);
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
-  new Function("fetch", "location", "document", "setTimeout", "clearTimeout", "OFFLINE_PAGE", "LEFT_MS", WAIT_SCRIPT)(
+  new Function("fetch", "location", "document", "setTimeout", "clearTimeout", "SLOW_MESSAGE", "LEFT_MS", WAIT_SCRIPT)(
     fetchFake,
     location,
     document,
     clock.setTimeout,
     clock.clearTimeout,
-    "<p>offline</p>",
+    "Still connecting",
     leftMs,
   );
-  return { advance: clock.advance, fetches: () => fetches, reloads: () => reloads, written };
+  return { advance: clock.advance, fetches: () => fetches, reloads: () => reloads, status, retry, click: () => (click as (event: { preventDefault(): void }) => void)({ preventDefault() {} }) };
 }
 
 describe("the wait page's script", () => {
@@ -573,28 +598,44 @@ describe("the wait page's script", () => {
     expect(s.fetches()).toBe(1);
   });
 
-  test("at the deadline it shows the not reachable page and asks no more", async () => {
-    const s = waitScript(async () => {
+  test("after repeated failures, it keeps retrying and accepts a manual retry", async () => {
+    const response = pending();
+    const s = waitScript(async (n) => {
+      if (n > 1) return response.promise;
       throw new TypeError("down");
-    });
-    await s.advance(29499);
-    expect(s.written).toEqual([]);
-    await s.advance(1);
-    expect(s.written).toEqual(["<p>offline</p>"]);
-    const asked = s.fetches();
-    await s.advance(10000);
-    expect(s.fetches()).toBe(asked);
-    expect(s.reloads()).toBe(0);
+    }, 500);
+    await s.advance(500);
+    expect(s.status.textContent).toBe("Still connecting");
+    expect(s.retry.hidden).toBe(false);
+    s.click();
+    s.click();
+    await s.advance(5000);
+    expect(s.fetches()).toBe(2);
+    response.answer(new Response("live page"));
+    await s.advance(0);
+    expect(s.reloads()).toBe(1);
   });
 
-  test("an answer that comes after the deadline does not reload over the not reachable page", async () => {
-    let answer!: () => void;
-    const s = waitScript(() => new Promise<void>((resolve) => void (answer = resolve)));
-    await s.advance(29500);
-    answer();
-    await s.advance(0);
-    expect(s.reloads()).toBe(0);
+  test("automatic retries continue beyond the slow message", async () => {
+    const s = waitScript(async () => { throw new TypeError("down"); }, 500);
+    await s.advance(1000);
+    expect(s.fetches()).toBe(2);
+    await s.advance(4999);
+    expect(s.fetches()).toBe(2);
+    await s.advance(1);
+    expect(s.fetches()).toBe(3);
   });
+
+  test("after a slow response, it still opens the board automatically", async () => {
+    const response = pending();
+    const s = waitScript(() => response.promise);
+    await s.advance(29500);
+    expect(s.fetches()).toBe(1);
+    response.answer(new Response("live page"));
+    await s.advance(0);
+    expect(s.reloads()).toBe(1);
+  });
+
 });
 
 // --- push: what the worker does with a message and a tap ---------

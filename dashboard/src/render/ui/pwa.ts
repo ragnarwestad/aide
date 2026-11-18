@@ -166,9 +166,7 @@ const APPLE_TOUCH_ICON_BASE64 = [
 export const APPLE_TOUCH_ICON = Buffer.from(APPLE_TOUCH_ICON_BASE64, "base64");
 
 /** What the worker answers a page load with when the server cannot be
- *  reached. Deliberately not the dashboard: the point is to say the
- *  tailnet is not there, not to imitate a page whose every line is
- *  live state. */
+ *  reached after a submission. The browser must not repeat that submission. */
 const offlinePageIn = (lang: Language): string => `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -190,18 +188,47 @@ body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
 </html>
 `;
 
-/** The wait page's script: ask for this address until the server answers,
- *  then reload; at the deadline, write the not reachable page over the wait
- *  page and stop asking. `OFFLINE_PAGE` and `LEFT_MS` are constants the
- *  page declares before it. A script and not a function so a test runs it
- *  against fakes, as `restart-watch.test.ts` runs its own. */
-export const WAIT_SCRIPT =
-  "let done = false;" +
-  "const giveUp = setTimeout(() => { done = true; document.open(); document.write(OFFLINE_PAGE); document.close(); }, LEFT_MS);" +
-  "const ask = () => { if (done) return; fetch(location.href, { cache: 'no-store', redirect: 'manual' }).then(" +
-  "() => { if (done) return; done = true; clearTimeout(giveUp); location.reload(); }," +
-  "() => { if (!done) setTimeout(ask, 1000); }); };" +
-  "ask();";
+const WAIT_PROBE_HEADER = "X-Aide-Wait-Probe";
+
+/** Keep retrying the same address, with one request at a time. */
+export const WAIT_SCRIPT = `
+  const status = document.getElementById("connection-status");
+  const retry = document.getElementById("connection-retry");
+  let retryTimer;
+  let fetching = false;
+  let done = false;
+  let slower = false;
+  const slowTimer = setTimeout(() => {
+    slower = true;
+    status.textContent = SLOW_MESSAGE;
+    retry.hidden = false;
+  }, LEFT_MS);
+
+  async function ask() {
+    if (fetching || done) return;
+    clearTimeout(retryTimer);
+    fetching = true;
+    try {
+      await fetch(location.href, {
+        cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45000),
+        headers: { "${WAIT_PROBE_HEADER}": "1" },
+      });
+      done = true;
+      clearTimeout(slowTimer);
+      location.reload();
+    } catch {
+      retryTimer = setTimeout(ask, slower ? 5000 : 1000);
+    } finally {
+      fetching = false;
+    }
+  }
+
+  retry.addEventListener("click", event => {
+    event.preventDefault();
+    void ask();
+  });
+  void ask();
+`;
 
 /** JSON for a `<script>`: every `<` is escaped, so the markup it carries
  *  can never close the script it sits in. */
@@ -210,18 +237,23 @@ const scriptJson = (value: string) => JSON.stringify(value).replace(/</g, "\\u00
 /** What the worker answers a page load with when the server has not
  *  answered within half a second: the spec page's loading element, with
  *  the board's own tokens and nothing fetched. The worker fills in
- *  `__HOST__` and `__LEFT_MS__` (the time left of its 30 seconds). */
+ *  `__HOST__` and `__LEFT_MS__` (the time left before showing the slow-connection message). */
 const waitPageIn = (lang: Language): string => `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>aide -board — ${esc(t(lang, "pwa.connectingTitle"))}</title>
-<style>${TOKENS_CSS}${LOADING_CSS}body { margin: 0; font-family: var(--sans); }</style>
+<style>${TOKENS_CSS}${LOADING_CSS}
+body { margin: 0; font-family: var(--sans); }
+.pageloading { padding-inline: var(--sp-4); text-align: center; }
+#connection-retry { color: var(--accent); }
+</style>
 </head>
 <body>
-<div class="pageloading" role="status">${MARK}<span>${esc(t(lang, "pwa.connecting", { host: "__HOST__" }))}</span></div>
-<script>(() => { const OFFLINE_PAGE = ${scriptJson(offlinePageIn(lang))}; const LEFT_MS = __LEFT_MS__; ${WAIT_SCRIPT} })();</script>
+<div class="pageloading" role="status">${MARK}<span id="connection-status">${esc(t(lang, "pwa.connecting", { host: "__HOST__" }))}</span>
+<a id="connection-retry" href="" hidden>${esc(t(lang, "pwa.tryAgain"))}</a></div>
+<script>(() => { const SLOW_MESSAGE = ${scriptJson(t(lang, "pwa.stillConnecting"))}; const LEFT_MS = __LEFT_MS__; ${WAIT_SCRIPT} })();</script>
 </body>
 </html>
 `;
@@ -241,7 +273,7 @@ export const serviceWorker = (lang: Language): string => `// Served from /sw.js 
 const OFFLINE_PAGE = ${JSON.stringify(offlinePageIn(lang))};
 const WAIT_PAGE = ${JSON.stringify(waitPageIn(lang))};
 const WAIT_AFTER_MS = 500;
-const GIVE_UP_AFTER_MS = 30000;
+const SLOW_AFTER_MS = 30000;
 const HTML = { "content-type": "text/html; charset=utf-8" };
 
 // The addresses this worker answered with a wait page, and when. The next
@@ -252,9 +284,9 @@ const offlinePage = () => new Response(OFFLINE_PAGE, { status: 503, headers: HTM
 
 const waitPage = (url, startedAt) => {
   const now = Date.now();
-  for (const [address, at] of waited) if (now - at >= GIVE_UP_AFTER_MS) waited.delete(address);
+  for (const [address, at] of waited) if (now - at >= SLOW_AFTER_MS) waited.delete(address);
   waited.set(url, now);
-  const left = Math.max(0, GIVE_UP_AFTER_MS - (now - startedAt));
+  const left = Math.max(0, SLOW_AFTER_MS - (now - startedAt));
   const html = WAIT_PAGE
     .replace("__HOST__", () => new URL(url).host)
     .replace("__LEFT_MS__", () => String(left));
@@ -317,6 +349,14 @@ self.addEventListener("notificationclick", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+  // A successful wait-page probe earns one direct reload even after a long wait.
+  if (request.method === "GET" && request.headers.get("${WAIT_PROBE_HEADER}") === "1") {
+    event.respondWith(fetch(request).then((response) => {
+      waited.set(request.url, Date.now());
+      return response;
+    }));
+    return;
+  }
   // Page loads only. An image or an API call that fails is the page's
   // own business, and answering one with HTML would lie about its type.
   if (request.mode !== "navigate") return;
@@ -328,8 +368,9 @@ self.addEventListener("fetch", (event) => {
   }
   const at = waited.get(request.url);
   waited.delete(request.url);
-  if (at !== undefined && Date.now() - at < GIVE_UP_AFTER_MS) {
-    event.respondWith(fetch(request).catch(offlinePage));
+  if (at !== undefined && Date.now() - at < SLOW_AFTER_MS) {
+    const startedAt = Date.now();
+    event.respondWith(fetch(request).catch(() => waitPage(request.url, startedAt)));
     return;
   }
   const startedAt = Date.now();
