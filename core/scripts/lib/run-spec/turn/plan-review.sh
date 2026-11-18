@@ -16,7 +16,7 @@
 #
 # On a handover the runner starts one fresh read-only session on the chosen
 # AI and model, which runs the three reviewers of the installed routine
-# (core/skills/aide-analyze/references/plan-review.md) and reports them,
+# (core/scripts/lib/steps/aide-analyze/references/plan-review.md) and reports them,
 # ending `plan review: done`. Their findings go back to the ORIGINAL analyze
 # session as one follow-up turn, which consolidates them, revises the plan
 # and finishes the step, as review.sh's fix turn does for implement. A
@@ -48,16 +48,12 @@ plan_review_field() {  # <solution file> <label>
   ' "$1"
 }
 
-# The plan review routine: the copy beside the runner's own folder in a
-# checkout, else Claude Code's installed skills, else the shared ones.
+# The plan review routine, beside the analyze instructions in the runner's
+# own copy.
 plan_review_routine() {
-  local candidate
-  for candidate in "${RUNNER_ORIGIN_DIR:-$SCRIPT_DIR}/../skills/aide-analyze/references/plan-review.md" \
-    "$HOME/.claude/skills/aide-analyze/references/plan-review.md" \
-    "$HOME/.agents/skills/aide-analyze/references/plan-review.md"; do
-    [ -f "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
-  done
-  return 1
+  local candidate="$SCRIPT_DIR/lib/steps/aide-analyze/references/plan-review.md"
+  [ -f "$candidate" ] || return 1
+  printf '%s\n' "$candidate"
 }
 
 # Whether <reply>'s last line that is not empty is <line>, backticks and

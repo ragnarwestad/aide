@@ -20,8 +20,8 @@ run `aide create <project> "<title>"` for each spec, with the description on
 standard input, `--depends-on` for each dependency and
 `--acceptance-not-required` unless the user wants acceptance ticked. It
 queues the create on the board as the New spec form does. Where `aide`
-answers that the project has no board, invoke `/aide-create` instead. Never
-the board's HTTP routes, `aide-create-spec` by hand, or the files written
+answers that the project has no board, say so: a spec is created only on a
+board. Never the board's HTTP routes, `aide-create-spec` by hand, or the files written
 directly.
 
 For a user-interface change, before writing Solution or criteria, read the

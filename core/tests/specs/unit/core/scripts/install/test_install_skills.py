@@ -176,15 +176,38 @@ class TestInstallAgentsSkillsPrunes:
         assert result.returncode == 0, result.stderr
         assert not (target / "aide-to-html").exists()
         # And the real skills went in, so the prune did not eat the install.
-        assert (target / "aide-create" / "SKILL.md").exists()
+        assert (target / "aide-explore" / "SKILL.md").exists()
         manifest = (target / ".aide-installed-manifest").read_text().split()
-        assert "aide-create" in manifest
+        assert "aide-explore" in manifest
         assert "aide-to-html" not in manifest
         assert set(manifest) == {
             d.name
             for d in (workspace_root / "core" / "skills").iterdir()
             if (d / "SKILL.md").exists()
         }
+
+    def test_a_spec_steps_instructions_are_not_a_skill_and_an_earlier_copy_goes(
+        self, helper, tmp_path
+    ):
+        """The spec steps run only on the board: their instructions sit beside
+        the runner, and no AI session is offered them as skills."""
+        home = tmp_path / "home"
+        target = home / ".agents" / "skills"
+        steps = ("aide-create", "aide-analyze", "aide-implement", "aide-archive", "aide-close", "aide-reopen")
+        for name in steps:
+            installed(target, name)
+        (target / ".aide-installed-manifest").write_text("".join(f"{name}\n" for name in steps))
+
+        result = subprocess.run(
+            [BASH, "-c", f'set -e; source "{helper}"; install_agents_skills'],
+            capture_output=True,
+            text=True,
+            env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert [name for name in steps if (target / name).exists()] == []
+        assert (target / "aide-explore" / "SKILL.md").exists()
 
 
 @pytest.mark.unit

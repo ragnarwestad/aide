@@ -71,7 +71,7 @@ aide_next_spec_number() {
   printf '%02d\n' "$(( 10#${max:-0} + 1 ))"
 }
 
-# The slug side of Step 3 in core/skills/aide-create/SKILL.md, made
+# The slug side of Step 3 in core/scripts/lib/steps/aide-create/SKILL.md, made
 # deterministic: lowercase, transliterate the diacritics this
 # project's own titles actually use, drop anything else non-ASCII, spaces
 # and runs of special characters collapse to one hyphen, no leading or
@@ -268,7 +268,7 @@ aide_spec_record_ai_formulate() {
 
 # The three files a work round fills in — 2-analysis.md, 3-solution.md
 # and 4-status.md — written fresh from the templates in
-# core/skills/aide-create/references/file-templates.md. One writer for
+# core/scripts/lib/steps/aide-create/references/file-templates.md. One writer for
 # create (a new spec) and aide-reset-spec (a spec whose round must not count):
 # 0-README.md and 1-description.md are never touched here.
 # Usage: aide_write_placeholder_files <dest-dir> <title> <folder>

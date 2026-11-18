@@ -156,7 +156,7 @@ Run `./install.sh` again to update after changes.
 **Cause:** Skill not loaded or misplaced
 
 **Solution:**
-1. Check that the directory exists: `~/.claude/skills/aide-create/SKILL.md`
+1. Check that the directory exists: `~/.claude/skills/aide-explore/SKILL.md`
 2. Restart Claude Code
 3. Try again
 

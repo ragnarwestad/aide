@@ -9,6 +9,11 @@
 #
 # Claude Code has its own native location (~/.claude/skills/) and is
 # handled by its own installer, not here.
+#
+# A spec step's instructions (create, analyze, implement, archive, close,
+# reopen) are not skills: they sit in core/scripts/lib/steps/ and are
+# installed beside the runner with the rest of lib/. An install removes the
+# copies an earlier install wrote here, through the manifest below.
 
 _CORE_SKILLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../skills" 2>/dev/null && pwd)"
 
@@ -18,7 +23,7 @@ _CORE_SKILLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../skills" 2>/dev/null &&
 # copying /Applications into ~/.agents/skills. Fail fast instead.
 _require_core_skills_dir() {
   if [ -z "$_CORE_SKILLS_DIR" ] || [ ! -d "$_CORE_SKILLS_DIR" ] ||
-     [ ! -f "$_CORE_SKILLS_DIR/aide-create/SKILL.md" ]; then
+     ! compgen -G "$_CORE_SKILLS_DIR/*/SKILL.md" >/dev/null; then
     echo "   ❌ _install-skills.sh: cannot locate core/skills/ (must be sourced from bash)" >&2
     return 1
   fi

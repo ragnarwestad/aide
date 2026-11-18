@@ -14,13 +14,13 @@ import json
 import pytest
 
 from ...conftest import run
-from ..run_spec_invoking import CREATE_KEY
 from ..run_spec_status_files import with_status
 from ..run_spec_results import (
     OPENCODE_SESSION_ID,
     OPENCODE_STREAM_FAILED,
     OPENCODE_STREAM_OK,
     OPENCODE_TOTALS,
+    asks_for_step,
     emits,
 )
 
@@ -175,33 +175,13 @@ def test_an_unknown_permission_mode_refuses_rather_than_guessing(
     assert "opencode" in json.dumps(out)
 
 
-def test_the_prompt_names_the_skill_because_opencode_has_no_slash_command(
-    runner, workspace, fake_opencode
-):
-    """Claude Code and Codex read `/aide-analyze <spec>`. opencode finds
-    the same SKILL.md files and reaches them through a `skill` tool, by
-    name, so the prompt has to say the name in words."""
+def test_opencode_is_asked_to_read_the_same_instructions_file(runner, workspace, fake_opencode):
+    """Every tool gets the same sentence: the step's instructions file
+    beside the runner, and the spec's own number."""
     oc = fake_opencode(emits(OPENCODE_STREAM_OK))
     run(runner, workspace, tool="opencode", opencode=oc, command="analyze")
     prompt = fake_opencode.prompt_log.read_text()
-    assert "aide-analyze" in prompt, prompt
-    assert not prompt.startswith("/aide-analyze"), prompt
-    # The spec's own number, which is what every tool is given — the
-    # folder name is resolved on the runner's side, not the model's.
-    assert workspace["folder"].split("-")[0] in prompt, prompt
-
-
-def test_a_create_names_the_skill_with_no_argument(runner, workspace, fake_opencode):
-    """A create hands the skill nothing as its argument: the title and the
-    description are in tags further down, so the sentence that names the
-    skill must not promise an argument it then leaves empty."""
-    oc = fake_opencode(emits(OPENCODE_STREAM_OK))
-    rc, out, _ = run(
-        runner, workspace, tool="opencode", opencode=oc, command="create",
-        spec=CREATE_KEY, title="A new spec", description="Do the thing", dry_run=True,
-    )
-    assert rc == 0, out
-    assert out["prompt"].splitlines()[0] == "Use the aide-create skill.", out["prompt"]
+    assert asks_for_step(prompt, "analyze", workspace["folder"].split("-")[0]), prompt
 
 
 def test_the_stream_is_asked_for_as_json_on_stdout(runner, workspace, fake_opencode):

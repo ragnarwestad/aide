@@ -8,42 +8,17 @@ description: >-
   implementation plan, coding based on 3-solution.md.
   Do NOT use for: creation (use aide-create),
   analysis (use aide-analyze).
-argument-hint: "[PROJ-XXXX or task number]"
 effort: high
 ---
 
 Implement the solution for a spec with TDD.
 
-**Input:** $ARGUMENTS (all arguments after the command)
+**Input:** the argument the run's prompt gives
 
-## Smart detection
+## The spec
 
-Parse `$ARGUMENTS`:
-
-**The spec:** the first word is its number, its folder name, or an issue key its title began with
-- Example: `/aide-implement 55` or `/aide-implement 55-dark-mode`
-
-**Error handling:** If the argument is missing or has an invalid format, show:
-
-```text
-Missing argument
-
-Usage:
-/aide-implement 55               # the spec's number
-/aide-implement 55-dark-mode      # or its folder
-```
-
----
-
-## A project with a board
-
-Working interactively, hand the step to the board first:
-
-```bash
-aide-hand-off implement <spec>
-```
-
-Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+The argument's first word is the spec: its number, its folder name, or an issue key its title began with —
+`55` or `55-dark-mode`.
 
 ---
 
@@ -88,9 +63,6 @@ branch afterwards, as it lands every step's work.
 First write `--- Step 1 of 4: Preparation — started`, and when this step ends, `--- Step 1 of 4: Preparation — done`.
 
 
-Working interactively, run `date +%s` before anything else and keep the
-number for the record at the end of Step 4.
-
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
 2. Read `specs/XX-slug/3-solution.md` (implementation plan). Build its
    recommended solution. On a spec that asked to choose the approach, a
@@ -103,16 +75,13 @@ number for the record at the end of Step 4.
    for want of a plan; it is one only when the spec turned out not to be
    small. Before any test or code is written, check the change against the
    limits of a short analysis (the prompt states them: the files to change
-   and the grade). When it is past one, a headless run writes one sentence
+   and the grade). When it is past one, write one sentence
    saying what made the spec larger to the file the prompt names, changes
    nothing else and ends with `--- Step 1 of 4: Preparation — stopped: sent
    back to a full analysis`; the runner then sends the spec back to a full
-   analysis. Working interactively there is no such file: say what made the
-   spec larger and suggest `/aide-analyze`. Never write that file on a full
-   analysis
+   analysis. Never write that file on a full analysis
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
-   section: suggest re-running `/aide-analyze` first (proceed if the
-   user declines)
+   section: proceed, and say in the summary that the plan was not reviewed
 4. Read the project's coding standard, where it has one (its
    `CLAUDE.md`, `AGENTS.md` or `CONTRIBUTING.md`)
 5. Read `specs/XX-slug/4-status.md`'s task tables. An earlier run
@@ -248,7 +217,7 @@ decides nothing.
      run
      `bun dashboard/scripts/look-at-pages.ts --scene <scene.json> --out <folder> <path>...`
      once, with every affected path. The folder is the one the prompt
-     names; working interactively, use a folder under `$TMPDIR`. The
+     names. The
      script serves this checkout's own code on throwaway data and takes
      each path at 1440 px and at 390 px wide.
    - Read every picture with your image viewer and look at it against the
@@ -267,7 +236,7 @@ decides nothing.
 8. Before reporting anything: confirm every row in this step's own table
    reads ✅, the full-suite row apart. This is a separate, required
    write, the last one this step makes.
-9. Show a summary — ready for commit
+9. Show a summary
 
 **Find a table in `4-status.md` by its HEADING TEXT, never by its
 number.** This skill's RED, GREEN and VERIFY are its Steps 2-4;
@@ -297,7 +266,7 @@ only the user the spec is for can make.
 
 **One narrow carve-out.** On a held-back spec, or a reopened spec
 (`aide-reopen-spec`, files kept), taking another round on its open checks
-(`core/skills/aide-analyze/references/requirements-tracing.md`'s
+(`../aide-analyze/references/requirements-tracing.md`'s
 "A held-back spec's second round"), the Notes cell of a row that is
 still OPEN (`⬜`) may be written. The Status cell of that same row, and
 every cell of a row that is already ticked, stays exactly as found
@@ -318,55 +287,12 @@ as the reason the round is needed.
 
 Leave `Workflow steps completed:` and this phase's `Repo`/`Model`/
 `Result`/`Time spent`/`Cost` lines in `3-solution.md` as you found them:
-headless, `aide-run-spec` writes them. Working interactively, once Step 4
-has passed and before offering the commit, record the step:
+`aide-run-spec` writes them. The percentage above it is still yours: it
+says how far RED, GREEN and VERIFY got, which is the field for partial
+work.
 
-```bash
-aide-record-step --step implement --specs-root "<specs-root>" \
-  --folder "<spec-folder>" --start-epoch "<the number from Step 1>" \
-  --model "<tool> <model>"   # leave --model out when you cannot name your model
-```
-
-The commit carries every file the answer's `files` names, `4-status.json`
-too. A step that stopped records nothing.
-
-The percentage above it is still yours: it says how far
-RED, GREEN and VERIFY got, which is the field for partial work.
-
-A headless run gets its commit for free — this session does not run
-`git commit` or `git push` itself, headless or not. Working
-interactively, ASK whether to commit the work, and suggest this message
-so the step is recognised the same way:
-
-```text
-Run /aide-implement for <spec-folder> (model: <tool> <model>)
-```
-
-That subject belongs to the specs repository alone. When the step also
-changed the project's own code, suggest a separate commit there whose
-message describes the change as a developer on the project would, and
-names no tool, spec or step — the project may have nothing to do with
-Aide (the git rules, "No tool in a project's history").
-
-Add the `(model: ...)` part only when you can name your own model with
-certainty. A Claude Code session is told which model it is running in
-its own context, so it can write `claude claude-opus-5`; an assistant
-that cannot name itself offers the bare subject without the suffix and
-never guesses.
-
-Offer it only once the verification in Step 4 has passed. A red
-suite, a failing build or a step of this skill you could not finish is not a step
-that completed.
-
-When the person asks for the specs repository to be pushed too, push it with
-
-```bash
-aide-push-specs --specs-root "<specs-root>"
-```
-
-never with a bare `git push`: the command rebases and pushes again when
-origin has moved, and tells the board, so its specs list shows the work
-at once. The project's own code is pushed as before.
+This session does not run `git commit` or `git push`: the runner commits
+the specs repository and the project's code, and pushes them.
 
 ### Reporting RED, GREEN and VERIFY
 

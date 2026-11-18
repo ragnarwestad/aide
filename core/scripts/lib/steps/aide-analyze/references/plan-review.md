@@ -35,10 +35,9 @@ over](#handing-the-review-over).
 
 ## Handing the review over
 
-A headless run whose prompt carries the line
+A run whose prompt carries the line
 `The plan review runs in a session of its own on`, followed by an AI and
-a model, hands the review over; a run without it, and every interactive
-run, reviews as below.
+a model, hands the review over; a run without it reviews as below.
 When Step 8 runs, write its started mark, end the reply with the line
 `plan review: handed over` and end the turn. That handover is the one
 exception to the headless note. The runner starts a fresh read-only

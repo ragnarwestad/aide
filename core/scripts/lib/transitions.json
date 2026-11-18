@@ -19,7 +19,7 @@
       "condition": null },
 
     { "phase": "created", "event": "implement", "next": null,
-      "refusal": { "reason": "not-analyzed-yet", "message": "spec %s has not been analyzed yet — run /aide-analyze first" },
+      "refusal": { "reason": "not-analyzed-yet", "message": "spec %s has not been analyzed yet — run Analyze first" },
       "condition": null },
     { "phase": "analyzed", "event": "implement", "next": "implemented", "refusal": null, "condition": null },
     { "phase": "implemented", "event": "implement", "next": "implemented", "refusal": null, "condition": null },
@@ -28,10 +28,10 @@
       "condition": null },
 
     { "phase": "created", "event": "archive", "next": null,
-      "refusal": { "reason": "not-implemented-yet", "message": "the spec has not reached implement yet — run /aide-implement next" },
+      "refusal": { "reason": "not-implemented-yet", "message": "the spec has not reached implement yet — run Implement next" },
       "condition": null },
     { "phase": "analyzed", "event": "archive", "next": null,
-      "refusal": { "reason": "not-implemented-yet", "message": "the spec has not reached implement yet — run /aide-implement next" },
+      "refusal": { "reason": "not-implemented-yet", "message": "the spec has not reached implement yet — run Implement next" },
       "condition": null },
     { "phase": "implemented", "event": "archive", "next": "archived", "refusal": null, "condition": null },
     { "phase": "archived", "event": "archive", "next": null,

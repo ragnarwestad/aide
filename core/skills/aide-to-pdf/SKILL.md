@@ -63,7 +63,7 @@ The user has run:
 
 4. **Check that documentation exists:**
    - `$REPORTS_ROOT/<NN-slug>/` (flat structure)
-   - If not: Inform the user that they must run `/aide-create` first
+   - If not: Inform the user that the spec must be created first (`aide create`)
 
 5. **Generate PDF:**
    ```bash
@@ -100,15 +100,15 @@ npx md-to-pdf
 ```text
 Could not find documentation for <ISSUE_ID>
 
-Have you run the create command first?
+Has the spec been created on the board?
 
-/aide-create "<title>" <description>
-/aide-analyze <number>
+aide create <project> "<title>"   # the description on standard input
+aide analyze <number>
 ```
 
 ## Notes
 
-- **Input detection:** Same logic as `/aide-analyze`
+- **Input detection:** a spec number, a full folder name, or an issue key its title began with
 - **Output location:** Same directory as the markdown files (keeps everything together)
 - **AIDE_SPECS_PATH:** read from `.aide/config` in the project root (no environment variable)
 - **Styling:** The PDF includes a header with the issue number and a footer with page numbers

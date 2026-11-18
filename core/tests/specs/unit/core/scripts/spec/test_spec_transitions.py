@@ -109,7 +109,7 @@ def test_archive_refused_before_implement(tmp_path):
     result = may_apply(status_file, "archive")
     assert result["RC"] == "1"
     assert result["REASON"] == "not-implemented-yet"
-    assert "run /aide-implement next" in result["MESSAGE"]
+    assert "run Implement next" in result["MESSAGE"]
 
 
 def test_archive_is_legal_from_implemented(tmp_path):

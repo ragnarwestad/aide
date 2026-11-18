@@ -124,9 +124,3 @@ hasn't landed, ahead/behind, staged content. When the user asks, run `git status
 
 Why: the user pushes continuously from the IDE and other sessions commit to the same repo, so any
 claim about repo state is stale unless it comes from a command run in that same reply.
-
-**One exception lives elsewhere, not here:** creating a spec with `/aide-create` commits and
-pushes immediately, with no separate ask for either step — see that skill's own "Stage in git"
-instructions (`core/skills/aide-create/SKILL.md`), which specify it precisely (message format, when
-to omit the model suffix, what "nothing to stage" means) with no gap left for a general rule to
-fill. Kept in the skill rather than duplicated here so the two copies cannot drift.

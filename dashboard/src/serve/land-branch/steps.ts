@@ -128,7 +128,7 @@ export async function landStoppedStepBranch(
  *
  *  Safe to do unpressed for a reason `implement` cannot claim: a
  *  headless archive writes two markdown changes in the specs repo and
- *  nothing else (`core/skills/aide-archive/SKILL.md` forbids it to
+ *  nothing else (`core/scripts/lib/steps/aide-archive/SKILL.md` forbids it to
  *  touch the project's docs or to ask), so there is no diff for a
  *  person to weigh and nothing that reaches the serving host. The
  *  judgment happened before the run — someone pressed Archive, and the
@@ -199,7 +199,7 @@ async function recordedOrOnOrigin(ctx: LandContext, job: Job, outcome: Partial<S
  *
  *  `repos` is `landArchivedSpec`'s own reasoning, unchanged: a headless
  *  close writes only the specs repo (`core/scripts/aide-close-spec`,
- *  `core/skills/aide-close/SKILL.md`), so whether its own git touches
+ *  `core/scripts/lib/steps/aide-close/SKILL.md`), so whether its own git touches
  *  the code root is not guaranteed — `branchesFor` is the record that
  *  still has it, from whichever earlier `implement` step pushed it. */
 export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
@@ -241,7 +241,7 @@ const firstLine = (text: string): string => text.split(/\r?\n/, 1)[0] ?? text;
 /** The merge into the default branch is the last step of every skill
  *  whose work lands, and the phase is finished only when the merge is:
  *  the step's Log marks it in the skill's own words, the heading of that
- *  skill's last step in `core/skills/aide-<step>/SKILL.md`: its place by
+ *  skill's last step in `core/scripts/lib/steps/aide-<step>/SKILL.md`: its place by
  *  step, and a title naming the files it lands. */
 const MERGE_TITLES: Partial<Record<WorkflowStep, string>> = { archive: "Merge code and spec files into main" };
 export const mergeStepTitle = (step: WorkflowStep): string => MERGE_TITLES[step] ?? "Merge spec files into main";

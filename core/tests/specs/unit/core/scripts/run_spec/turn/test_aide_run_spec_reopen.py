@@ -12,7 +12,7 @@ from ...conftest import git, run
 from ..run_spec_fakes import specs_only_claude, writing_claude
 from ..run_spec_invoking import BRANCH
 from ..run_spec_origins import archive_the_spec, has_branch, make_branch, origin
-from ..run_spec_results import RESULT_OK
+from ..run_spec_results import asks_for_step, RESULT_OK
 from ..run_spec_status_files import (
     already_ran, branch_file, recorded_line, reopen_line, reset_line, state_of, subject, with_status, write_raw_status,
 )
@@ -56,7 +56,7 @@ def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_cl
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="reopen", dry_run=True, reset_files=True)
     assert rc == 0, out
-    assert out["prompt"].startswith("/aide-reopen 81"), out["prompt"]
+    assert asks_for_step(out["prompt"], "reopen", "81"), out["prompt"]
 
 def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     runner, workspace, fake_claude

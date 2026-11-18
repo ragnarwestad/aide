@@ -59,8 +59,9 @@ the next run.
 
 1. `core/rules/spec-structure.md` — the rule itself
 2. `core/templates/todo/*.template` — what a new spec starts from
-3. `core/skills/aide-create/references/file-templates.md`
-4. `core/skills/aide-analyze/SKILL.md` and
+3. The create step's `references/file-templates.md`, in the steps
+   folder beside the runner's own libraries
+4. The analyze step's `SKILL.md`, in the same folder, and
    `core/skills/task-workflow-assistant/SKILL.md` — the instructions
    that decide where an AI actually writes what
 5. `core/skills/spec-structure/SKILL.md` — generated from item 1 by

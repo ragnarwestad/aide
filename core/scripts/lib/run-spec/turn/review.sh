@@ -33,7 +33,7 @@
 #
 # A completed analyze gets one line of its own instead: the plan review's
 # counts, read from the `**Findings:**` line the analyze skill opens its
-# Plan review section with (core/skills/aide-analyze/references/
+# Plan review section with (core/scripts/lib/steps/aide-analyze/references/
 # plan-review.md), and where the findings are. The runner never counts
 # the lists itself: a section without that line is logged as giving no
 # counts.
