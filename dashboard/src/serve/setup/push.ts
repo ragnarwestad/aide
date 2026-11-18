@@ -5,7 +5,7 @@ import { createPush, type Push } from "../../push";
 import { openSpecCount } from "../../render/pages/specs-list/data-model/spec-state.ts";
 import type { SpecTarget } from "../../render/pages/specs-list/data-model/types.ts";
 import type { ExecutionGroup } from "../../queue/execution-groups";
-import { specActivityCounts } from "../../queue/job-rules/running-specs.ts";
+import { jobsNeedingAttention } from "../../queue/job-rules/attention-count.ts";
 import { setSpecActivityCounts } from "../../render/ui/running-specs";
 import { waitingCount } from "../../push/attention.ts";
 import { setWaitingCount } from "../../render/ui/pwa.ts";
@@ -25,9 +25,18 @@ export function setupPush(
   setWaitingCount(waiting);
   setSpecActivityCounts(() => {
     const jobs = inputs.jobs();
+    const groups = inputs.groups();
+    const schedules = new Map<string, Set<string>>();
     return {
-      ...specActivityCounts(jobs, (project) => inputs.served.has(project)),
-      openSpecs: openSpecCount(inputs.targets(), jobs, inputs.groups()),
+      needsAttention: jobsNeedingAttention(jobs, groups, (project) => inputs.served.has(project), (project, key) => {
+        let keys = schedules.get(project);
+        if (!keys) {
+          keys = new Set(inputs.scheduleStore.list(project).map(entry => scheduleTrackingKey(entry.name)));
+          schedules.set(project, keys);
+        }
+        return keys.has(key);
+      }),
+      openSpecs: openSpecCount(inputs.targets(), jobs, groups),
     };
   });
   return createPush({

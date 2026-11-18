@@ -29,6 +29,8 @@ export const en = {
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
   "shell.themeAuto": "Auto",
+  "shell.jobsCountHint": "Jobs that need your attention",
+  "shell.specsCountHint": "Open specs: Created, Idle or Reopened",
   "shell.tabRunning": "Jobs",
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",

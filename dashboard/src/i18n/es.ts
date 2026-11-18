@@ -28,6 +28,8 @@ export const es: Record<TranslationKey, string> = {
   "shell.themeDark": "Oscuro",
   "shell.themeLight": "Claro",
   "shell.themeAuto": "Auto",
+  "shell.jobsCountHint": "Trabajos que requieren tu atención",
+  "shell.specsCountHint": "Especificaciones abiertas: creadas, inactivas o reabiertas",
   "shell.tabRunning": "Trabajos",
   "shell.tabSpecs": "Especificaciones",
   "shell.tabProjects": "Proyectos",
