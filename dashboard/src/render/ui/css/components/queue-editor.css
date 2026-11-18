@@ -1,7 +1,9 @@
 /* The queue uses the same form dialog as Edit group. Only its list scrolls. */
 [data-waiting-list] { display: flex; flex-direction: column; gap: var(--sp-3); padding: 0; list-style-position: inside; max-height: 55vh; overflow-y: auto; overscroll-behavior: contain; }
 [data-waiting-id] { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r); overflow-wrap: anywhere; }
-[data-waiting-id]:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Inside the row's own edge: the list scrolls, and a scroller cuts off anything drawn outside it. */
+[data-waiting-id]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+[data-waiting-position] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 [data-waiting-id] .factions { flex-wrap: wrap; }
 [data-waiting-drag] { touch-action: none; cursor: grab; }
 [data-waiting-open] { font-family: inherit; cursor: pointer; }

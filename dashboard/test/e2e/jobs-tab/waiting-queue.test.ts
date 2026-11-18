@@ -34,6 +34,9 @@ test("a badge focuses its entry; keyboard moves save priority and Escape cancels
   expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.waitingId)).toBe("job:a:0");
   const move = dialog().getByRole("button", { name: "Move down", exact: true }).first();
   await move.focus(); await page.keyboard.press("Enter");
+  // The new place goes to a screen reader, not into the dialog's own message.
+  expect(await dialog().locator("[data-waiting-position]").textContent()).toBe("2/2");
+  expect(await dialog().locator("[data-waiting-announcement]").textContent()).toBe("");
   await dialog().getByRole("button", { name: "Save", exact: true }).click();
   await dialog().waitFor({ state: "detached" });
   expect(await savedOrder()).toEqual(["b", "a"]);

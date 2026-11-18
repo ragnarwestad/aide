@@ -40,6 +40,8 @@ export function bindWaitingEditor(): void {
     const box = dialog.querySelector<HTMLElement>("[data-waiting-queue]")!;
     const list = dialog.querySelector<HTMLOListElement>("[data-waiting-list]")!;
     const note = dialog.querySelector<HTMLElement>("[data-waiting-announcement]")!;
+    // A moved row's new place, for a screen reader only: the page already shows it.
+    const position = dialog.querySelector<HTMLElement>("[data-waiting-position]")!;
     const refused = dialog.querySelector<HTMLElement>(".refused")!;
     const save = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
     let current = new Map<string, WaitingEntry>();
@@ -56,7 +58,7 @@ export function bindWaitingEditor(): void {
         row.querySelector<HTMLButtonElement>('[data-waiting-move="down"]')!.disabled = index === rows.length - 1;
       });
       if (selected && (document.activeElement as HTMLButtonElement)?.disabled) selected.focus();
-      if (selected) note.textContent = `${rows.indexOf(selected) + 1}/${rows.length}`;
+      if (selected) position.textContent = `${rows.indexOf(selected) + 1}/${rows.length}`;
     };
     const render = (entries: WaitingEntry[]) => {
       current = new Map(entries.map(entry => [entry.id, entry]));
