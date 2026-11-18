@@ -959,7 +959,7 @@ Rows with the same creation time keep their order by state and most recent chang
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
 Queued, Done, Stopped, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Land, Deploys,
-Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
+Scheduled, Cleanup and Groups under a Kind heading. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in
 it, whatever its row reads (one waiting for a usage limit to reset, or an Archive waiting for its criteria to be

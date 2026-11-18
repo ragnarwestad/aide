@@ -133,21 +133,26 @@ export function stateFilter(key: string | undefined): StateFilterEntry {
 }
 
 export function chosenStates<E extends { key: string }>(offered: readonly E[], value: string | undefined): E[] {
+  if (value === "none") return [];
   const keys = new Set((value ?? "").split(",").filter(Boolean));
   const chosen = offered.filter((entry) => entry.key !== offered[0]?.key && keys.has(entry.key));
-  return chosen.length ? chosen : offered.slice(0, 1);
+  return chosen.length > 0 && chosen.length < offered.length - 1 ? chosen : offered.slice(0, 1);
 }
 
 export function stateFilters(value: string | undefined): StateFilterEntry[] {
+  if (value === "none") return [];
   const resolved = (value ?? "").split(",").map((key) => stateFilter(key).key).join(",");
   return chosenStates(STATE_FILTERS, resolved);
 }
 
 export function toggledState<E extends { key: string }>(offered: readonly E[], chosen: readonly E[], key: string): string {
   if (key === offered[0]?.key) return offered[0]!.key;
-  const keys = new Set(chosen.map((entry) => entry.key).filter((chosenKey) => chosenKey !== offered[0]?.key));
+  if (key === "none") return "none";
+  const choices = offered.slice(1);
+  const keys = new Set((chosen[0]?.key === offered[0]?.key ? choices : chosen).map((entry) => entry.key));
   if (keys.has(key)) keys.delete(key); else if (offered.some((entry) => entry.key === key)) keys.add(key);
-  return offered.filter((entry) => keys.has(entry.key)).map((entry) => entry.key).join(",") || offered[0]!.key;
+  if (keys.size === choices.length) return offered[0]!.key;
+  return choices.filter((entry) => keys.has(entry.key)).map((entry) => entry.key).join(",") || "none";
 }
 
 /** Whether one entry admits one state. Written once because `applyFilter`

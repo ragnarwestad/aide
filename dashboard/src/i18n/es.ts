@@ -95,6 +95,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.testRound": "la ronda",
 
   "list.statesLabel": "Estados",
+  "list.state.none": "Ninguno",
   "list.state.all": "Todos",
   "list.state.active": "Activas",
   "list.state.running": "En curso",
