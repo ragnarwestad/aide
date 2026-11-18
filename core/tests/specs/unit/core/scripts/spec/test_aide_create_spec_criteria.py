@@ -15,7 +15,7 @@ def criteria(*lines):
 
 
 def create(script, specs_root, given, written):
-    return run(script, specs_root, "42", "do-a-thing", "Do a thing", written,
+    return run(script, specs_root, "42-do-a-thing", "Do a thing", written,
                extra_args=["--given-description", given])
 
 
@@ -33,7 +33,7 @@ def assert_refused(out, specs_root, ac_id):
 
 def test_without_the_given_description_nothing_is_compared(script, specs_root):
     written = criteria("- **AC-2:** The board SHALL a.", "- **AC-5:** The board SHALL b.")
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", written)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", written)
     assert rc == 0, out
     assert ac_lines(specs_root) == ["- **AC-2:** The board SHALL a.", "- **AC-5:** The board SHALL b."]
 

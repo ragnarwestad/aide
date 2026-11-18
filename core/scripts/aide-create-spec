@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
-# aide-create-spec — three Bash-only modes on the same file, all keeping
-# specs-repo writes off the Write/Edit tool (see below): the mechanical
-# step of /aide-create's Step 4, creating a spec's directory
-# and its 5 files given specs-root/number/slug/title/description/
-# depends-on; --folder-name, the same creation with no number or slug
-# computed at all — a caller-given literal folder name, for a headless
-# run whose real number is assigned later, at landing;
-# and --assign-number, landing's own finalize step that renumbers such a
-# folder in place once it is known to be the only one landing.
+# aide-create-spec — Bash-only modes on the same file, all keeping
+# specs-repo writes off the Write/Edit tool. Creating a spec's directory
+# and its 5 files: with --folder-name, under the literal folder name the
+# board gives a create step, whose real number is assigned later, at
+# landing; without it, for the board's direct create, under the next
+# number and a slug made from the title. And --assign-number, landing's
+# own finalize step that renumbers a literally-named folder in place
+# once it is known to be the only one landing.
 #
-# This is what lets file creation stay on a Bash-only path: before this
-# script existed, /aide-create's Step 4 wrote the 5 files with the Write
-# tool, which is indistinguishable, at the permission layer, from an AI
-# assistant mistakenly hand-writing spec files outside any skill. Once
-# this script is the only path a legitimate write takes, a Write/Edit
-# permission rule can be scoped to the specs-repo path with no
-# legitimate /aide-create case left to break.
+# File creation stays on a Bash-only path, so a Write/Edit permission
+# rule can be scoped to the specs-repo path with no legitimate create
+# left to break.
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?, files?}
@@ -23,11 +18,7 @@
 # terminalReason: refused | created | assigned
 #
 # Usage:
-#   aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>
-#                     --title <title> --description <text>
-#                     [--given-description <text>]
-#                     [--depends-on <value>] [--result-file <path>]
-#   aide-create-spec --specs-root <path> --folder-name <name>
+#   aide-create-spec --specs-root <path> [--folder-name <name>]
 #                     --title <title> --description <text>
 #                     [--given-description <text>]
 #                     [--depends-on <value>] [--result-file <path>]
@@ -39,11 +30,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 aide_create_spec_usage() {
   printf '%s\n' 'Usage:' \
-    '  aide-create-spec --specs-root <path> [--number <NN>] --slug <slug>' \
-    '                    --title <title> --description <text>' \
-    '                    [--given-description <text>]' \
-    '                    [--depends-on <value>] [--result-file <path>]' \
-    '  aide-create-spec --specs-root <path> --folder-name <name>' \
+    '  aide-create-spec --specs-root <path> [--folder-name <name>]' \
     '                    --title <title> --description <text>' \
     '                    [--given-description <text>]' \
     '                    [--depends-on <value>] [--result-file <path>]' \
@@ -61,7 +48,7 @@ for arg in "$@"; do
   case "$arg" in
     -h|--help) aide_create_spec_usage; exit 0 ;;
     --result-file) bootstrap_value="result" ;;
-    --specs-root|--number|--slug|--title|--description|--given-description|--depends-on|--folder|--folder-name) bootstrap_value="value" ;;
+    --specs-root|--title|--description|--given-description|--depends-on|--folder|--folder-name) bootstrap_value="value" ;;
   esac
 done
 require_library() {
@@ -79,7 +66,7 @@ require_library "lib/tracking-info.sh"
 require_library "lib/create-spec/create.sh"
 require_library "lib/create-spec/assign-number.sh"
 # `aide_next_spec_number` — the one place that answers "what is the next
-# number", shared with every other caller so two answers cannot drift.
+# number", shared by a create without --folder-name and --assign-number.
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
 source "$SCRIPT_DIR/lib/spec-result.sh"
@@ -87,7 +74,7 @@ source "$SCRIPT_DIR/lib/spec-reference.sh"
 source "$SCRIPT_DIR/lib/create-spec/create.sh"
 source "$SCRIPT_DIR/lib/create-spec/assign-number.sh"
 
-specs_root=""; number=""; slug=""; title=""; description=""
+specs_root=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
 folder=""
 folder_name=""; assign_number="no"
@@ -97,7 +84,7 @@ folder_name=""; assign_number="no"
 # behaviour every caller before this flag existed already has.
 acceptance_not_required="no"
 criteria_checks=""; choose_approach=""
-# The description as /aide-create received it, before it added criteria.
+# The description as the create step received it, before it added criteria.
 # A flag of its own, so an empty value still counts as given.
 given_description=""; given_set="no"
 
@@ -105,8 +92,6 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) aide_create_spec_usage; exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
-    --number) number="${2:-}"; shift 2 ;;
-    --slug) slug="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --given-description) given_description="${2:-}"; given_set="yes"; shift 2 ;;

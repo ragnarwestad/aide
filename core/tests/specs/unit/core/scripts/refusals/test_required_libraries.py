@@ -84,7 +84,7 @@ def fixture_args(command: str, tmp_path: Path):
 
     if command == "aide-create-spec":
         return (
-            "--specs-root", str(specs), "--number", "771", "--slug", "new",
+            "--specs-root", str(specs), "--folder-name", "771-new",
             "--title", "New", "--description", "Description",
         ), specs / "771-new", None
     if command == "aide-archive-spec":
@@ -152,7 +152,7 @@ def test_help_text_used_as_a_create_description_is_not_an_option_ac_4(
 
     result = run(
         scripts / "aide-create-spec", "--specs-root", str(specs),
-        "--number", "770", "--slug", "example", "--title", "Example",
+        "--folder-name", "770-example", "--title", "Example",
         "--description", "--help",
     )
 
@@ -214,18 +214,6 @@ def test_existing_safe_commands_still_name_a_missing_required_library_ac_2_ac_3(
     payload = json.loads(result.stdout)
     assert payload["terminalReason"] == "refused"
     assert "_aide-spec-lib.sh" in payload["error"]
-
-
-def test_push_specs_keeps_its_plain_text_missing_library_refusal_ac_2(
-    scripts, tmp_path,
-):
-    copied = copy_scripts(scripts, tmp_path, "_aide-spec-lib.sh")
-
-    result = run(copied / "aide-push-specs", "--specs-root", str(tmp_path))
-
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert "_aide-spec-lib.sh" in result.stderr
 
 
 def test_record_test_run_keeps_its_optional_tree_hash_library_ac_4(

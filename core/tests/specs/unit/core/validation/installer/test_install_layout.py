@@ -7,6 +7,7 @@ unchanged and keep their names.
 """
 
 import os
+import shutil
 import re
 import subprocess
 import pytest
@@ -226,3 +227,59 @@ class TestSpecTransitionsLibIsInstalled:
         lib = tmp_path / ".local" / "bin" / "lib"
         assert (lib / "spec-transitions.sh").is_file()
         assert (lib / "transitions.json").is_file()
+
+
+class TestInstallRemovesWhatItNoLongerHas:
+    @staticmethod
+    def _install_from(core_dir, home):
+        installer = core_dir / "scripts" / "_install-bin.sh"
+        return subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True,
+            env={"PATH": os.environ["PATH"], "HOME": str(home)},
+        )
+
+    def test_a_script_an_earlier_install_wrote_goes_when_the_repo_drops_it(
+        self, workspace_root, tmp_path,
+    ):
+        earlier = tmp_path / "earlier" / "core"
+        shutil.copytree(workspace_root / "core" / "scripts", earlier / "scripts")
+        (earlier / "scripts" / "aide-dropped").write_text("#!/bin/bash\n")
+        (earlier / "scripts" / "lib" / "dropped").mkdir()
+        (earlier / "scripts" / "lib" / "dropped" / "part.sh").write_text("# part\n")
+        home = tmp_path / "home"
+        assert self._install_from(earlier, home).returncode == 0
+        bin_dir = home / ".local" / "bin"
+        assert (bin_dir / "aide-dropped").is_file()
+
+        result = self._install_from(workspace_root / "core", home)
+
+        assert result.returncode == 0, result.stderr
+        assert not (bin_dir / "aide-dropped").exists()
+        assert not (bin_dir / "lib" / "dropped").exists()
+        assert (bin_dir / "aide-run-spec").is_file()
+
+    def test_a_file_the_installer_never_wrote_stays(self, workspace_root, tmp_path):
+        bin_dir = tmp_path / ".local" / "bin"
+        bin_dir.mkdir(parents=True)
+        (bin_dir / "aide-written-by-hand").write_text("#!/bin/bash\n")
+        (bin_dir / "someone-elses-tool").write_text("#!/bin/bash\n")
+
+        self._install_from(workspace_root / "core", tmp_path)
+        result = self._install_from(workspace_root / "core", tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        assert (bin_dir / "aide-written-by-hand").is_file()
+        assert (bin_dir / "someone-elses-tool").is_file()
+
+    def test_a_library_file_left_by_an_install_without_a_record_goes(
+        self, workspace_root, tmp_path,
+    ):
+        stale = tmp_path / ".local" / "bin" / "lib" / "gone" / "old.sh"
+        stale.parent.mkdir(parents=True)
+        stale.write_text("# old\n")
+
+        result = self._install_from(workspace_root / "core", tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        assert not stale.parent.exists()

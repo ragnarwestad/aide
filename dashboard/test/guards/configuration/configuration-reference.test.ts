@@ -72,11 +72,11 @@ describe("the configuration reference's ~/.aide/config table", () => {
     expect(machineTableKeys()).toContain("AIDE_BOARD_URL");
   });
 
-  test("every key in it is read from $HOME by a script in core/scripts (AC-7)", () => {
+  test("every key is read from $HOME by an entry point or a script library", () => {
     const scripts = join(REPO, "core", "scripts");
-    const sources = readdirSync(scripts, { withFileTypes: true })
+    const sources = readdirSync(scripts, { withFileTypes: true, recursive: true })
       .filter((f) => f.isFile())
-      .map((f) => readFileSync(join(scripts, f.name), "utf-8"));
+      .map((f) => readFileSync(join(f.parentPath, f.name), "utf-8"));
     for (const key of machineTableKeys()) {
       const reads = sources.some((text) => text.includes(`aide_config_get ${key} "$HOME"`));
       expect([key, reads]).toEqual([key, true]);

@@ -105,10 +105,11 @@ if [ "$step" = "create" ]; then
 
   specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
   [ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
-  number="$(aide_next_spec_number "$specs_root")"
-  slug="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
-  say "claude-stub: create $number-$slug"
-  args=(--specs-root "$specs_root" --number "$number" --slug "$slug" --title "$title" --description "$description")
+  # The board names the folder; landing gives it its number.
+  folder_name="$(printf '%s' "$prompt" | sed -n 's/^.*create the spec folder under exactly this name — \([^ ]*\) — .*$/\1/p' | head -1)"
+  [ -n "$folder_name" ] || fail "claude-stub: no folder name in the create prompt: $prompt"
+  say "claude-stub: create $folder_name"
+  args=(--specs-root "$specs_root" --folder-name "$folder_name" --title "$title" --description "$description")
   [ -n "$depends" ] && args+=(--depends-on "$depends")
   result="$("$SCRIPTS/aide-create-spec" "${args[@]}")" || fail "claude-stub: aide-create-spec refused"
   ok_flag="$(printf '%s' "$result" | jq -r .ok)"

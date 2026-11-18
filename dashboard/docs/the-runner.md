@@ -310,8 +310,6 @@ merge. The result carries them as `conflict`: `repo`, `branch`, `base`, `files` 
 besides). The row's sentence names the repo, the branch, the base and the files, as `a.ts, b.ts (+3)`, and says to
 merge it by hand in the checkout on the serving host.
 
-`aide-push-specs` sorts its own push the same way and prints the cause in English.
-
 ## What a step can reach
 
 **A Claude step runs in Claude Code's own sandbox, with a fixed list of paths it may not read or write.** The list is

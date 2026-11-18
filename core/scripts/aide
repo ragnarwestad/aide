@@ -5,7 +5,7 @@
 # Usage:  see usage() below, or `aide --help`.
 #
 # The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
-# machine (as aide-push-specs reads it). Without it, or with a board that
+# machine. Without it, or with a board that
 # does not know the project, no request is made: the command says so and
 # exits 3 (NO_BOARD_EXIT in lib/board-request.sh). A spec's steps run only
 # on a board.

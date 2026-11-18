@@ -1,7 +1,7 @@
 import os
-"""Tests for core/scripts/aide-create-spec — the mechanical steps of
-/aide-create's Step 4: creating a spec's directory and its 5
-files given specs-root/number/slug/title/description/depends-on.
+"""Tests for core/scripts/aide-create-spec — creating a spec's directory
+and its 5 files under the folder name the board gives, and renumbering
+that folder at landing.
 
 No AI is involved anywhere in this file: the point of the script is to
 make file creation a Bash-only path, so a permission rule can be scoped
@@ -58,13 +58,12 @@ def git_specs_root(tmp_path):
     return d
 
 
-def run(script, specs_root, number, slug, title, description,
-        depends_on=None, result_file=None, extra_args=None, acceptance_not_required=False):
+def run(script, specs_root, folder, title, description, depends_on=None,
+        result_file=None, extra_args=None, acceptance_not_required=False):
     args = [
         str(script),
         "--specs-root", str(specs_root),
-        *(["--number", number] if number is not None else []),
-        "--slug", slug,
+        "--folder-name", folder,
         "--title", title,
         "--description", description,
     ]
@@ -87,7 +86,7 @@ def test_help_names_every_public_mode_ac_1_ac_10(script):
     )
 
     assert result.returncode == 0
-    for flag in ("--number", "--folder-name", "--assign-number"):
+    for flag in ("--folder-name", "--assign-number"):
         assert flag in result.stdout
 
 
@@ -95,7 +94,7 @@ def test_help_names_every_public_mode_ac_1_ac_10(script):
 
 
 def test_creates_the_folder_and_5_files(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.\n\nSolution: Y.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.\n\nSolution: Y.")
     assert rc == 0, out
     assert out["ok"] is True
     assert out["exitCode"] == 0
@@ -108,7 +107,7 @@ def test_creates_the_folder_and_5_files(script, specs_root):
 
 
 def test_substitutes_title_folder_and_date(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert desc.startswith("# Do a thing - Description\n")
@@ -117,17 +116,13 @@ def test_substitutes_title_folder_and_date(script, specs_root):
     assert "Problem: X." in desc
 
 
-def test_derives_the_slug_and_records_direct_create_settings_ac_1_ac_5(script, specs_root):
-    args = [
-        str(script), "--specs-root", str(specs_root), "--title", "A Direct Spec",
-        "--description", "Problem: X.", "--criteria-checks", "warn",
-        "--choose-approach", "yes",
-    ]
-    proc = subprocess.run(args, capture_output=True, text=True)
-    answer = json.loads(proc.stdout.strip().splitlines()[-1])
-    assert proc.returncode == 0, answer
-    assert answer["specFolder"] == "01-a-direct-spec"
-    desc = (specs_root / answer["specFolder"] / "1-description.md").read_text()
+def test_records_the_direct_create_settings_ac_1_ac_5(script, specs_root):
+    rc, out, _ = run(
+        script, specs_root, "01-a-direct-spec", "A Direct Spec", "Problem: X.",
+        extra_args=["--criteria-checks", "warn", "--choose-approach", "yes"],
+    )
+    assert rc == 0, out
+    desc = (specs_root / "01-a-direct-spec" / "1-description.md").read_text()
     assert "- **Acceptance criteria checks:** warn" in desc
     assert "- **Let me choose the approach:** yes" in desc
 
@@ -139,7 +134,7 @@ def test_depends_on_formats_and_places_the_line(script, specs_root):
     (specs_root / "10-earlier-spec").mkdir()
     (specs_root / "11-a-spec-can-depend").mkdir()
     rc, out, _ = run(
-        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.",
         depends_on=" 10 , 11-a-spec-can-depend ",
     )
     assert rc == 0, out
@@ -154,7 +149,7 @@ def test_depends_on_resolves_unique_numbers_and_refuses_ambiguity_ac_1_ac_2_ac_3
 ):
     (specs_root / "77-old").mkdir()
     rc, out, _ = run(
-        script, specs_root, "78", "do-a-thing", "Do a thing", "Problem: X.",
+        script, specs_root, "78-do-a-thing", "Do a thing", "Problem: X.",
         depends_on="77",
     )
     assert rc == 0, out
@@ -163,7 +158,7 @@ def test_depends_on_resolves_unique_numbers_and_refuses_ambiguity_ac_1_ac_2_ac_3
 
     (specs_root / "77-second").mkdir()
     rc, out, _ = run(
-        script, specs_root, "79", "another", "Another", "Problem: X.",
+        script, specs_root, "79-another", "Another", "Problem: X.",
         depends_on="77",
     )
     assert rc == 2
@@ -173,7 +168,7 @@ def test_depends_on_resolves_unique_numbers_and_refuses_ambiguity_ac_1_ac_2_ac_3
 
 
 def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "Depends on" not in desc
@@ -184,7 +179,7 @@ def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
 
 def test_acceptance_not_required_flag_writes_the_line_after_created(script, specs_root):
     rc, out, _ = run(
-        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.",
         acceptance_not_required=True,
     )
     assert rc == 0, out
@@ -195,7 +190,7 @@ def test_acceptance_not_required_flag_writes_the_line_after_created(script, spec
 
 
 def test_no_acceptance_flag_writes_no_acceptance_line(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "Acceptance" not in desc
@@ -204,7 +199,7 @@ def test_no_acceptance_flag_writes_no_acceptance_line(script, specs_root):
 def test_acceptance_and_depends_on_both_land_after_created_in_order(script, specs_root):
     (specs_root / "10-earlier-spec").mkdir()
     rc, out, _ = run(
-        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.",
         depends_on="10", acceptance_not_required=True,
     )
     assert rc == 0, out
@@ -221,7 +216,7 @@ def test_acceptance_and_depends_on_both_land_after_created_in_order(script, spec
 def test_refuses_when_the_folder_already_exists(script, specs_root):
     (specs_root / "42-do-a-thing").mkdir()
     (specs_root / "42-do-a-thing" / "marker.txt").write_text("keep me\n")
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
@@ -229,41 +224,12 @@ def test_refuses_when_the_folder_already_exists(script, specs_root):
     assert [p.name for p in contents] == ["marker.txt"]
 
 
-# A number a caller hands in must lie above every number already there
-# (2026-09-10): the
-# create session gave a new spec the number 100 by sorting the archive alphabetically
-# (where "99-…" is the highest), and 100 was already taken by an archived spec.
-def test_refuses_a_number_that_is_already_taken(script, specs_root):
-    (specs_root / "archive").mkdir()
-    (specs_root / "archive" / "99-old").mkdir()
-    (specs_root / "archive" / "431-newest").mkdir()
-    rc, out, _ = run(script, specs_root, "100", "a-thing", "A thing", "Problem: X.")
-    assert rc != 0
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
-    assert "already taken" in out["error"] and "432" in out["error"]
-    assert not (specs_root / "100-a-thing").exists()
-
-
-def test_accepts_a_number_above_every_existing_one(script, specs_root):
-    (specs_root / "archive").mkdir()
-    (specs_root / "archive" / "99-old").mkdir()
-    (specs_root / "archive" / "431-newest").mkdir()
-    rc, out, _ = run(script, specs_root, "432", "a-thing", "A thing", "Problem: X.")
-    assert rc == 0, out
-    assert out["specFolder"] == "432-a-thing"
-
-
-# `--number` is deliberately absent from this list: it is optional now,
-# and its own tests below cover what the script picks when it is left
-# out.
 @pytest.mark.parametrize("missing", ["--specs-root", "--title", "--description"])
 def test_refuses_on_missing_required_flag(script, specs_root, missing):
     args = [
         str(script),
         "--specs-root", str(specs_root),
-        "--number", "42",
-        "--slug", "do-a-thing",
+        "--folder-name", "42-do-a-thing",
         "--title", "Do a thing",
         "--description", "Problem: X.",
     ]
@@ -275,7 +241,7 @@ def test_refuses_on_missing_required_flag(script, specs_root, missing):
     assert proc.returncode != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
-    assert not (specs_root / "42-do-a-thing").exists()
+    assert list(specs_root.iterdir()) == []
 
 
 # --- result-file ------------------------------------------------------
@@ -284,7 +250,7 @@ def test_refuses_on_missing_required_flag(script, specs_root, missing):
 def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
     result_file = tmp_path / "result.json"
     rc, out, _ = run(
-        script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.",
+        script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.",
         result_file=result_file,
     )
     assert rc == 0, out
@@ -303,7 +269,7 @@ def _extract_readme_block(file_templates):
 
 
 def test_readme_matches_file_templates_byte_for_byte(script, specs_root, file_templates):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     actual = (specs_root / "42-do-a-thing" / "0-README.md").read_text()
     expected = _extract_readme_block(file_templates)
@@ -311,7 +277,7 @@ def test_readme_matches_file_templates_byte_for_byte(script, specs_root, file_te
 
 
 def test_analysis_has_no_solution_only_sections(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     analysis = (specs_root / "42-do-a-thing" / "2-analysis.md").read_text()
     for heading in ("## Scope", "## Complexity", "## Risk analysis"):
@@ -320,7 +286,7 @@ def test_analysis_has_no_solution_only_sections(script, specs_root):
 
 
 def test_solution_has_scope_and_risk_analysis_and_placeholder_date(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     solution = (specs_root / "42-do-a-thing" / "3-solution.md").read_text()
     assert "## Scope" in solution
@@ -330,7 +296,7 @@ def test_solution_has_scope_and_risk_analysis_and_placeholder_date(script, specs
 
 
 def test_status_opens_with_placeholder_progress_and_no_workflow_steps_line(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
     status = (specs_root / "42-do-a-thing" / "4-status.md").read_text()
     lines = status.splitlines()
@@ -346,7 +312,7 @@ def test_bolds_an_acceptance_criteria_line_written_without_bold(script, specs_ro
     """A refusal leaves nothing to correct: the person has no spec. The
     line has one right shape, so it is written in that shape instead."""
     description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: The system SHALL do a thing.\n"
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "- **AC-1:** The system SHALL do a thing." in desc
@@ -355,7 +321,7 @@ def test_bolds_an_acceptance_criteria_line_written_without_bold(script, specs_ro
 
 def test_moves_misplaced_bold_on_an_acceptance_criteria_line(script, specs_root):
     description = "Problem: X.\n\n## Acceptance criteria\n\n- **AC-1**: The system SHALL do **a** thing.\n"
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "- **AC-1:** The system SHALL do **a** thing." in desc
@@ -363,7 +329,7 @@ def test_moves_misplaced_bold_on_an_acceptance_criteria_line(script, specs_root)
 
 def test_still_refuses_an_acceptance_criteria_line_it_cannot_rewrite(script, specs_root):
     description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-**1**: The system SHALL do a thing.\n"
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
@@ -379,7 +345,7 @@ def test_accepts_and_preserves_correctly_bolded_acceptance_criteria_lines(script
         "- **AC-1:** The system SHALL do a thing.\n"
         "- **AC-2:** The system SHALL do another thing.\n"
     )
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "- **AC-1:** The system SHALL do a thing." in desc
@@ -388,7 +354,7 @@ def test_accepts_and_preserves_correctly_bolded_acceptance_criteria_lines(script
 
 def test_passes_through_old_req_shaped_line_as_ordinary_text(script, specs_root):
     description = "Problem: X.\n\n## Requirements\n\n- REQ-1: The system SHALL do a thing.\n"
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert "- REQ-1: The system SHALL do a thing." in desc
@@ -404,64 +370,62 @@ def test_description_with_slashes_backticks_and_multiple_lines_is_preserved(scri
         "Solution: see path/with/slashes and a literal $(echo hi) that "
         "must not run."
     )
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", description)
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert description in desc
 
 
-# --- the number is the script's to pick -----------------------------------
+# --- without --folder-name: the board's direct create --------------------
 #
-# It used to be worked out by the calling session and handed over as
-# --number, so two sessions read the same highest number and wrote the
-# same folder. That is why the round had to send its fixture specs one
-# at a time. `mkdir` settles it now.
+# The script picks the next number and makes the slug from the title.
+# `mkdir` settles a race between two creates.
 
-def test_picks_the_next_number_when_none_is_given(script, specs_root):
+def run_unnamed(script, specs_root, title, description="why", extra_args=None):
+    args = [
+        str(script), "--specs-root", str(specs_root),
+        "--title", title, "--description", description, *(extra_args or []),
+    ]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    return proc.returncode, json.loads(line), proc.stdout
+
+
+def test_derives_the_slug_and_picks_the_next_number(script, specs_root):
     (specs_root / "07-earlier").mkdir()
-    rc, out, _ = run(script, specs_root, None, "a-new-one", "A new one", "why")
+    rc, out, _ = run_unnamed(script, specs_root, "A Direct Spec")
     assert rc == 0, out
-    assert out["specFolder"] == "08-a-new-one"
-    assert (specs_root / "08-a-new-one").is_dir()
+    assert out["specFolder"] == "08-a-direct-spec"
+    assert (specs_root / "08-a-direct-spec" / "1-description.md").is_file()
 
 
 def test_an_archived_number_is_never_reused(script, specs_root):
     (specs_root / "archive").mkdir()
     (specs_root / "archive" / "12-gone").mkdir()
-    rc, out, _ = run(script, specs_root, None, "a-new-one", "A new one", "why")
+    rc, out, _ = run_unnamed(script, specs_root, "A new one")
     assert rc == 0, out
     assert out["specFolder"] == "13-a-new-one"
 
 
 def test_an_empty_specs_root_starts_at_01(script, specs_root):
-    rc, out, _ = run(script, specs_root, None, "the-first", "The first", "why")
+    rc, out, _ = run_unnamed(script, specs_root, "The first")
     assert rc == 0, out
     assert out["specFolder"] == "01-the-first"
 
 
-def test_a_given_number_is_still_used_exactly_as_stated(script, specs_root):
-    (specs_root / "07-earlier").mkdir()
-    rc, out, _ = run(script, specs_root, "42", "chosen", "Chosen", "why")
-    assert rc == 0, out
-    assert out["specFolder"] == "42-chosen"
-
-
 def test_two_creates_at_once_get_different_numbers(script, specs_root):
-    """The whole point: concurrent creates, each with its own number and
-    its own folder, neither refused."""
     import concurrent.futures
 
-    def one(slug):
-        return run(script, specs_root, None, slug, slug.title(), "why")
+    def one(title):
+        return run_unnamed(script, specs_root, title)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        results = list(pool.map(one, ["alpha", "beta", "gamma", "delta"]))
+        results = list(pool.map(one, ["Alpha", "Beta", "Gamma", "Delta"]))
 
     for rc, out, _ in results:
         assert rc == 0, out
     folders = sorted(out["specFolder"] for _, out, _ in results)
-    numbers = sorted(f.split("-")[0] for f in folders)
-    assert numbers == ["01", "02", "03", "04"], folders
+    assert sorted(f.split("-")[0] for f in folders) == ["01", "02", "03", "04"], folders
     for f in folders:
         assert (specs_root / f).is_dir()
 
@@ -471,29 +435,9 @@ def test_two_creates_at_once_get_different_numbers(script, specs_root):
 # landing, under the specs repo's own lock.
 
 
-def run_folder_name(script, specs_root, name, title, description,
-                     depends_on=None, acceptance_not_required=False, result_file=None):
-    args = [
-        str(script),
-        "--specs-root", str(specs_root),
-        "--folder-name", name,
-        "--title", title,
-        "--description", description,
-    ]
-    if depends_on is not None:
-        args += ["--depends-on", depends_on]
-    if acceptance_not_required:
-        args += ["--acceptance-not-required"]
-    if result_file:
-        args += ["--result-file", str(result_file)]
-    proc = subprocess.run(args, capture_output=True, text=True)
-    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
-    return proc.returncode, json.loads(line), proc.stdout
-
-
 def test_folder_name_creates_exactly_that_path_no_number_computed(script, specs_root):
     (specs_root / "07-earlier").mkdir()
-    rc, out, _ = run_folder_name(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
     assert rc == 0, out
     assert out["ok"] is True
     assert out["specFolder"] == "new-abcd1234"
@@ -508,7 +452,7 @@ def test_folder_name_creates_exactly_that_path_no_number_computed(script, specs_
 def test_folder_name_refuses_on_an_existing_name(script, specs_root):
     (specs_root / "new-abcd1234").mkdir()
     (specs_root / "new-abcd1234" / "marker.txt").write_text("keep me\n")
-    rc, out, _ = run_folder_name(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
     assert rc != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
@@ -516,33 +460,26 @@ def test_folder_name_refuses_on_an_existing_name(script, specs_root):
 
 
 def test_folder_name_refuses_an_invalid_name(script, specs_root):
-    rc, out, _ = run_folder_name(script, specs_root, "../escape", "A new spec", "Problem: X.")
+    rc, out, _ = run(script, specs_root, "../escape", "A new spec", "Problem: X.")
     assert rc != 0
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
 
 
 def test_folder_name_two_calls_with_the_same_name_collide(script, specs_root):
-    """The literal-name mode has no lock and needs none — the caller's
-    own name is already unique per job — but a genuine collision (the
-    same name given twice) still refuses exactly like a duplicate
-    --number/no-number folder already does."""
-    rc1, out1, _ = run_folder_name(script, specs_root, "new-dupe0001", "First", "Problem: X.")
+    """There is no lock: the caller's own name is already unique per job,
+    and the same name given twice is refused."""
+    rc1, out1, _ = run(script, specs_root, "new-dupe0001", "First", "Problem: X.")
     assert rc1 == 0, out1
-    rc2, out2, _ = run_folder_name(script, specs_root, "new-dupe0001", "Second", "Problem: Y.")
+    rc2, out2, _ = run(script, specs_root, "new-dupe0001", "Second", "Problem: Y.")
     assert rc2 != 0
     assert out2["ok"] is False
     assert out2["terminalReason"] == "refused"
 
 
-def test_folder_name_needs_no_slug(script, specs_root):
-    rc, out, _ = run_folder_name(script, specs_root, "new-noslug01", "A new spec", "Problem: X.")
-    assert rc == 0, out
-
-
 def test_folder_name_still_validates_depends_on_and_acceptance(script, specs_root):
     (specs_root / "105-earlier-spec").mkdir()
-    rc, out, _ = run_folder_name(
+    rc, out, _ = run(
         script, specs_root, "new-abcd5678", "A new spec", "Problem: X.",
         depends_on="105", acceptance_not_required=True,
     )
@@ -556,7 +493,7 @@ def test_folder_name_bolds_an_acceptance_criteria_line_too(script, specs_root):
     """The dashboard's New spec form creates through --folder-name; the
     line written there without bold made no spec at all."""
     description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: forgot the bold markers.\n"
-    rc, out, _ = run_folder_name(script, specs_root, "new-abcd9999", "A new spec", description)
+    rc, out, _ = run(script, specs_root, "new-abcd9999", "A new spec", description)
     assert rc == 0, out
     desc = (specs_root / "new-abcd9999" / "1-description.md").read_text()
     assert "- **AC-1:** forgot the bold markers." in desc
@@ -586,7 +523,7 @@ def commit_all(repo, message="add spec"):
 
 
 def test_assign_number_renumbers_and_rewrites_all_four_task_lines(script, git_specs_root):
-    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    rc, out, _ = run(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
     assert rc == 0, out
     commit_all(git_specs_root)
 
@@ -622,7 +559,7 @@ def test_assign_number_counts_existing_folders_on_disk(script, git_specs_root):
     (git_specs_root / "07-earlier").mkdir()
     (git_specs_root / "archive").mkdir()
     (git_specs_root / "archive" / "12-gone").mkdir()
-    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    rc, out, _ = run(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
     assert rc == 0, out
     commit_all(git_specs_root)
     rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
@@ -640,7 +577,7 @@ def test_assign_number_refuses_on_a_missing_folder(script, git_specs_root):
 def test_assign_number_refuses_when_a_task_line_is_missing(script, git_specs_root):
     """A hand-edited Tracking info section:
     refuse loudly rather than leave a stale Task: line behind."""
-    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    rc, out, _ = run(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
     assert rc == 0, out
     analysis = git_specs_root / "new-abcd1234" / "2-analysis.md"
     text = analysis.read_text().replace("- **Task:** `new-abcd1234/`", "- **Task:** `something-else/`")
@@ -656,7 +593,7 @@ def test_assign_number_refuses_when_a_task_line_is_missing(script, git_specs_roo
 
 
 def test_assign_number_reads_the_title_off_1_description_mds_h1(script, git_specs_root):
-    rc, out, _ = run_folder_name(
+    rc, out, _ = run(
         script, git_specs_root, "new-abcd1234", "Clean up the console log output", "Problem: X.",
     )
     assert rc == 0, out
@@ -667,7 +604,7 @@ def test_assign_number_reads_the_title_off_1_description_mds_h1(script, git_spec
 
 
 def test_assign_number_result_file_mirrors_stdout(script, git_specs_root, tmp_path):
-    rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
+    rc, out, _ = run(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
     assert rc == 0, out
     commit_all(git_specs_root)
     result_file = tmp_path / "assign-result.json"

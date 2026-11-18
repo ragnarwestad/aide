@@ -43,8 +43,8 @@ in the Takes column of the one row.
 **Made for** says what a route is meant for, not who has called it. `page` is an HTML page or a file a browser loads.
 `form` is a control the dashboard's own pages draw, as a form or through their script, meant for nothing else.
 `interface` is meant to be called by something other than those pages: a script, a hook, another machine. The callers
-the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`, `aide-push-specs` posts to
-`/api/queue/projects/<project>/fetch-specs` from the machine a session ran on, the round script and
+the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`, `aide` posts to
+`/api/queue/projects/<project>/fetch-specs` before every request it makes, the round script and
 `scripts/test-linux-install` use `/api/queue`, and a browser tab can hold `/api/queue/events` open. That is what the
 repository shows, not a census of every caller.
 

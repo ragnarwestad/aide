@@ -808,8 +808,7 @@ Two things this deliberately does NOT do:
 - The runner's own two-second poll is not made faster.
 
 What arrives from elsewhere shows within five minutes, the interval at which the board fetches every project's
-checkouts and asks which `aide/*` branches origin still has (`SPEC_CACHE_POLL_MS`). A spec pushed with
-`aide-push-specs` from a machine whose `~/.aide/config` names the board shows at once. What the board does itself
+checkouts and asks which `aide/*` branches origin still has (`SPEC_CACHE_POLL_MS`). What the board does itself
 refreshes at once. The Deploy tab's check of how far a checkout is behind origin runs every 30 seconds, and when the
 tab is opened.
 

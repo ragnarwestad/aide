@@ -40,6 +40,14 @@ echo '{"type":"turn.completed"}'`); expect(await f.run()).toBe(true);
   expect(f.git("rev-parse", "origin/main")).toBe(f.main);
 });
 
+test("a test-only repair must pass independent verification before it is saved", async () => {
+  const f = fixture("printf updated > rule.test.ts", "grep -qx updated");
+  expect(await f.run()).toBe(true);
+  expect(f.git("show", "origin/feature:rule.test.ts")).toBe("updated");
+  expect(f.git("show", "origin/feature:rule.txt")).toBe("broken");
+  expect(f.git("rev-parse", "origin/main")).toBe(f.main);
+});
+
 test("red isolated tests leave the source branch untouched", async () => {
   const f = fixture(undefined, "false"); expect(await f.run()).toBe(false);
   expect(f.git("rev-parse", "origin/feature")).toBe(f.source);

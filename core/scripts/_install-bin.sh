@@ -74,6 +74,44 @@ _install_file() {   # $1 = source, $2 = destination path
   cp "$1" "$2.aide-tmp" && chmod +x "$2.aide-tmp" && mv -f "$2.aide-tmp" "$2"
 }
 
+# What install_common_bin wrote, one path under ~/.local/bin per line, so
+# the next install removes what the repo no longer has and nothing else:
+# ~/.local/bin also holds files no installer wrote.
+_BIN_MANIFEST_NAME=".aide-installed-manifest"
+
+_bin_installed_paths() {
+  local s
+  for s in $COMMON_BIN_SCRIPTS; do printf '%s\n' "$s"; done
+  for s in $COMMON_BIN_HOOK_SCRIPTS; do printf 'hooks/%s\n' "$s"; done
+  for s in $COMMON_BIN_LIB_SCRIPTS; do printf 'lib/%s\n' "$s"; done
+}
+
+# What an earlier install wrote: its manifest, or, for an install without
+# one, every file under lib/ and hooks/, which hold nothing but Aide's.
+_bin_previous_paths() {
+  local bin="$HOME/.local/bin"
+  if [ -f "$bin/$_BIN_MANIFEST_NAME" ]; then
+    cat "$bin/$_BIN_MANIFEST_NAME"
+  elif [ -d "$bin/lib" ] || [ -d "$bin/hooks" ]; then
+    (cd "$bin" && find lib hooks -type f ! -name '*.aide-tmp' 2>/dev/null)
+  fi
+}
+
+_remove_dropped_bin_files() {
+  local bin="$HOME/.local/bin" current path
+  current="$(_bin_installed_paths)"
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    case "$path" in /*|*..*) continue ;; esac
+    grep -Fxq -- "$path" <<<"$current" && continue
+    [ -f "$bin/$path" ] || continue
+    rm -f "$bin/$path"
+    echo "   ✅ Removed: ~/.local/bin/$path (no longer in aide)"
+  done < <(_bin_previous_paths)
+  [ -d "$bin/lib" ] && find "$bin/lib" -mindepth 1 -type d -empty -delete
+  _bin_installed_paths > "$bin/$_BIN_MANIFEST_NAME"
+}
+
 install_common_bin() {
   mkdir -p ~/.local/bin
   local s
@@ -98,6 +136,7 @@ install_common_bin() {
       echo "   ✅ Installed: ~/.local/bin/lib/$s"
     fi
   done
+  _remove_dropped_bin_files
   # Records which repo checkout and commit this ~/.local/bin copy came
   # from, so a later aide-preflight run can tell it apart from the
   # repo's current HEAD. One name=value line per field, read by name.
@@ -155,6 +194,7 @@ uninstall_common_bin() {
       echo "   ✅ Removed: ~/.local/bin/lib/$s"
     fi
   done
+  rm -f "$HOME/.local/bin/$_BIN_MANIFEST_NAME"
 }
 
 # --- PATH for non-interactive shells ------------------------------

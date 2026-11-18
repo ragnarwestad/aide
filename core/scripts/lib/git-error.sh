@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # What git said when a push failed, sorted for the board. Sourced by
-# aide-run-spec (run-spec/publish/publish.sh) and aide-push-specs; the
+# aide-run-spec (run-spec/publish/publish.sh); the
 # landing sorts its own pushes the same way in TypeScript
 # (dashboard/src/format/git-error.ts), and core/tests/fixtures/git-errors.json
 # pins both.

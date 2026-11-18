@@ -244,10 +244,18 @@ abort_unfinished_merges() {
 # exit the deadline loop below would simply resume.
 on_signal() {
   trap '' TERM INT
+  # Only the runner may save work or remove its worktrees. A shell fork
+  # hit by a group signal can enter this trap before resetting its traps.
+  if [ "$BASH_SUBSHELL" -ne 0 ]; then
+    trap - EXIT
+    exit 143
+  fi
   if [ -n "$child" ]; then
     cleanup_owned_process "$child" terminate
   fi
-  preserve_step_test_log
+  if declare -F preserve_step_test_log >/dev/null; then
+    preserve_step_test_log
+  fi
   # Cancel keeps what the step wrote: committed and pushed to its branch
   # before the EXIT trap removes the worktree with --force, so the next
   # run of the step finds it there. Once the worktrees exist, that is —

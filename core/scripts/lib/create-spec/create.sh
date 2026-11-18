@@ -1,19 +1,12 @@
 # shellcheck shell=bash
 aide_create_spec_create() {
-# --number is OPTIONAL: given, it is used as stated; omitted, this
-# script picks it, and picking it HERE is what lets two creates run at
-# once. Read-then-write from two sessions reads the same highest number
-# and writes the same folder — which is why the round had to send its
-# fixture specs one at a time. `mkdir` settles it instead: the loser of
-# the race takes the next free number and tries again.
-#
-# --folder-name is a THIRD shape, for a headless run whose real number
-# is not decided here at all any more: the caller already
-# has a unique name (the job's own provisional key), so there is
-# nothing to race over and no lock to take — `--number`'s validation
-# and the auto-pick lock below are both skipped entirely.
+# Two shapes. --folder-name is the literal name a create step is given:
+# the board's own provisional key, unique per job, so there is nothing
+# to race over and no lock to take; its real number is assigned at
+# landing. Without it, the board's direct create, the script picks the
+# next number and makes the slug from the title, and `mkdir` settles a
+# race between two creates.
 [ -n "$title" ] || aide_spec_refuse "missing --title"
-[ -n "$folder_name" ] || [ -n "$slug" ] || slug="$(aide_slug_from_title "$title")"
 [ -n "$description" ] || aide_spec_refuse "missing --description"
 
 if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
@@ -117,27 +110,10 @@ if [ -n "$folder_name" ]; then
   folder="$folder_name"
   dest="$specs_root/$folder"
   [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
-elif [ -n "$number" ]; then
-  # A number handed in must lie above every number already there — a
-  # spec number is never reused, and a caller
-  # that counted wrong — a session that sorted the archive's folder
-  # names alphabetically and read "99-…" as the highest, then asked for
-  # 100, which an archived spec already had (2026-09-10) — must be
-  # refused, not obeyed. Skipped only where the helper is missing, so a
-  # bare copy of the script still creates what it is asked to.
-  if declare -f aide_next_spec_number >/dev/null 2>&1; then
-    expected="$(aide_next_spec_number "$specs_root")"
-    highest="$(( 10#$expected - 1 ))"
-    if [ "$((10#$number))" -le "$highest" ]; then
-      aide_spec_refuse "spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
-    fi
-  fi
-  folder="${number}-${slug}"
-  dest="$specs_root/$folder"
-  [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
 else
+  slug="$(aide_slug_from_title "$title")"
   declare -f aide_next_spec_number >/dev/null 2>&1 \
-    || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide, or pass --number"
+    || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
   # The lock has to be on the NUMBER, not on the folder: two creates
   # with different slugs make different directories at the same number,
   # so `mkdir "$dest"` locks nothing. `mkdir` of one shared name does —
@@ -171,6 +147,7 @@ else
   done
   [ -n "$claimed" ] || aide_spec_refuse "could not claim a spec number under $specs_root — $lock is held"
 fi
+
 
 today="$(date -u +%Y-%m-%d)"
 

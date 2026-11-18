@@ -74,7 +74,7 @@ def test_trailing_whitespace_in_the_section_is_not_compared(script, specs_root):
 
 def test_without_the_given_description_an_added_section_is_created_as_typed(script, specs_root):
     written = description(SECTION)
-    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", written)
+    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", written)
     assert rc == 0, out
     assert SECTION.strip() in written_description(specs_root)
 

@@ -96,6 +96,33 @@ def test_model_tests_and_cancellation_share_the_cleanup_contract_ac_1_ac_5_ac_6_
     assert "sleep 2" not in tests
 
 
+def test_only_the_runner_handles_cancellation_and_saves_its_work():
+    script = _function(CHECKOUTS.read_text(), "on_signal") + """
+child=""
+roots=(project)
+work_roots=(worktree)
+take_signal_lock() { echo "lock $1"; }
+stop_suffix() { :; }
+abort_unfinished_merges() { :; }
+commit_and_push_roots() { echo "save" >&3; }
+aide_part_close() { :; }
+preserve_step_test_log() { :; }
+spec_label=example
+exec 3>&1
+
+# Model a signal handler entered by a fork during group cancellation.
+( on_signal )
+[ "$?" -eq 143 ] || exit 1
+
+trap on_signal TERM
+kill -TERM "$$"
+"""
+    result = subprocess.run(["bash", "-c", script], text=True, capture_output=True, timeout=10)
+
+    assert result.returncode == 143, result.stderr
+    assert result.stdout.splitlines() == ["lock project", "save"]
+
+
 def test_interrupted_named_tests_cannot_be_recorded_as_passed_ac_5_ac_6():
     tests = STEP_TESTS.read_text()
 

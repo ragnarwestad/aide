@@ -187,6 +187,11 @@ It runs each AI implementation's own installer. Each installer is
 including `aide-generate-pdf`, `aide-generate-html` and `upgrade-ai-tools`)
 and its own AI-specific setup.
 
+The installer records what it writes to `~/.local/bin/` in
+`~/.local/bin/.aide-installed-manifest`. The next install removes a recorded file that
+Aide no longer has. A file the installer did not write stays, even if its name starts
+with `aide-`.
+
 In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh`
 (or `/uninstall-all`) reverses everything — each installer asks for its own confirmation.
 
