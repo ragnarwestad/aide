@@ -147,13 +147,12 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
       body: JSON.stringify({ ...JOB, specFolder }),
     });
 
-  test("subscribing to counts supplies the current running count before any job changes", async () => {
+  test("subscribing to counts supplies the current attention count before any job changes", async () => {
     const { base } = harness.start();
     const s = await connect(base, "?counts=1");
     const event = await s.next();
     expect(event).toStartWith("event: counts\n");
-    expect(event).toContain('"running":0');
-    expect(event).toContain('"queued":0');
+    expect(event).toContain('"needsAttention":0');
     expect(event).toContain('"openSpecs":1');
   });
 
@@ -161,7 +160,9 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
     const { base } = harness.start({ alsoSpecs: ["82-another-spec"], queueMirror: JSON.stringify([failedJob]) });
     const s = await connect(base);
     expect((await enqueueFor(base, "82-another-spec")).status).toBe(200);
-    expect(await s.next()).toContain('"waiting":1');
+    const event = await s.next();
+    expect(event).toContain('"waiting":1');
+    expect(event).toContain('"needsAttention":1');
   });
 
   test("a new job for the failed spec itself leaves nothing waiting: the event says 0", async () => {

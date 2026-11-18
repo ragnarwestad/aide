@@ -13,44 +13,49 @@ export function waitingKey(job: Job): string {
     : `job:${job.id}:${job.stepIndex}`;
 }
 export function jobEntry(job: Job): WaitingEntry {
-  return { id: waitingKey(job), jobId: job.id, project: job.project,
+  return { id: waitingKey(job), jobId: job.id, groupId: job.steps[job.stepIndex] === "archive" ? job.executionGroupId : undefined, project: job.project,
     label: job.createTitle ?? job.branch ?? job.specFolder, operation: job.steps[job.stepIndex] ?? "",
     reason: formatSentence("en", job.error) ?? (job.results.at(-1)?.terminalReason === "acceptance-criteria-unticked" ? "Waiting for acceptance criteria to be checked" : job.landing ? "Waiting for this job's merge" : "") };
 }
+const archiveChecks = new WeakMap<QueueStore, Set<string>>();
+
+/** Called after the runner has ended archives with open acceptance. */
+export function validateWaitingArchives(store: QueueStore): void {
+  const checked = archiveChecks.get(store)!;
+  for (const job of store.list()) {
+    if (job.state === "queued" && !job.landing && !job.landingCut && job.steps[job.stepIndex] === "archive") checked.add(waitingKey(job));
+  }
+}
+
 export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQueue {
+  const checked = new Set<string>();
+  const unresolved = new Set<string>();
+  const running = new Set<string>();
+  archiveChecks.set(store, checked);
   const waiting: WaitingQueue = new WaitingQueue({
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
+    retainAbsent: id => running.has(id) || unresolved.has(id) || (!id.startsWith("job:") && !id.startsWith("group:")),
     refresh: () => {
       const jobs = store.list();
-      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j => j.state === "queued" || (j.state === "stopped" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) || ((j.state === "done" || j.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(j.results.at(-1)?.terminalReason ?? "") && !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
-      const entries = pending.map(jobEntry);
-      for (const job of jobs.filter(job => job.state === "running" || job.state === "queued")) {
-        for (let index = job.stepIndex + 1; index < job.steps.length; index++) {
-          const future = jobEntry({ ...job, stepIndex: index });
-          entries.push({ ...future, reason: "Waiting for the previous step" });
-        }
-      }
-      for (const group of store.executionGroups.list()) {
-        if (group.removedAt || !["queued", "running", "archiving", "waiting-acceptance"].includes(group.state)) continue;
-        if (group.state === "waiting-acceptance") {
-          entries.push({ id: `group:${group.id}:archive`, groupId: group.id, project: group.project,
-            label: group.displayName ?? group.name, operation: "archive", reason: "Waiting for acceptance criteria to be checked" });
-        }
-        for (const member of group.members) {
-          if (group.completedMembers.includes(member)) continue;
-          const steps = group.memberSteps?.[member] ?? ["analyze", "implement"];
-          if (jobs.some(j => j.executionGroupId === group.id && j.specFolder === member)) continue;
-          for (const step of steps) entries.push({ id: `group:${group.id}:${member}:${step}`, project: group.project,
-            label: `${group.displayName ?? group.name} / ${member}`, operation: step, reason: "Waiting for the previous group member" });
-        }
-      }
-      return entries;
+      running.clear();
+      for (const job of jobs) if (job.state === "running" && !job.landing && !job.landingCut) running.add(waitingKey(job));
+      const archives = new Set(jobs.filter(j => j.state === "queued" && !j.landing && !j.landingCut && j.steps[j.stepIndex] === "archive").map(waitingKey));
+      for (const id of checked) if (!archives.has(id)) checked.delete(id);
+      unresolved.clear();
+      for (const id of archives) if (!checked.has(id)) unresolved.add(id);
+      const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j =>
+        (j.state === "queued" && !j.landing && !j.landingCut && !unresolved.has(waitingKey(j))) ||
+        (j.state === "stopped" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) ||
+        ((j.state === "done" || j.state === "stopped") && j.results.at(-1)?.terminalReason === "approach-choice" &&
+          !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
+      return pending.map(jobEntry);
     },
   });
+  waiting.snapshot();
   return waiting;
 }
 
-/** Group summaries read the same global position as the editor, even without a queued job. */
+/** Group summaries read the same admitted work as the editor. */
 export function waitingGroups(store: QueueStore) {
   const entries = store.waiting.snapshot().entries;
   return store.executionGroups.list().map(group => {

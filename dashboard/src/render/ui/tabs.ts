@@ -71,6 +71,8 @@ export function tabBar<T extends string>(
     label?: (key: T) => string;
     /** Decorative markup drawn before a tab's word. */
     icon?: (key: T) => string | undefined;
+    /** An explanation shown on hover. */
+    title?: (key: T) => string | undefined;
     /** The reader's language, for the words `tabLabel()` gives. */
     lang?: Language;
     /** Each key written as `data-<key>` on the `<nav>`: a hook, like
@@ -112,7 +114,8 @@ export function tabBar<T extends string>(
         const body = o.site && n !== undefined
           ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${esc(String(n))})</span>`
           : icon ? `${icon}<span>${text}</span>` : text;
-        const title = icon ? ` title="${esc(label)}"` : "";
+        const hint = o.title?.(t) ?? (icon ? label : undefined);
+        const title = hint === undefined ? "" : ` title="${esc(hint)}"`;
         // data-goto: a real page load — nav-busy.ts marks it waiting.
         return to === undefined
           ? `<span class="tab"${title}${here}>${body}</span>`

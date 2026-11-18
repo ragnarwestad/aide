@@ -79,8 +79,9 @@ export async function jobsPage(
   const filter = { ...rowOptions.filter, ...choice.view, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
   const summaryArchive = cut ? [] : ctx.archivedSpecSummaries?.() ?? [];
   const scheduleEntryExists = (project: string, name: string) => ctx.scheduleStore.list(project).some((entry) => entry.name === name);
+  const waiting = ctx.queue.waiting.snapshot().entries;
   const summaryView: JobsView = {
-    shown: shown.map(summaryJob), specJobs: specJobs.map(summaryJob), executionGroups,
+    shown: shown.map(job => summaryJob(job, waiting)), specJobs: specJobs.map(job => summaryJob(job, waiting)), executionGroups,
     historySpecs: summaryArchive, scheduleEntryExists, specsScanned: ctx.specsScanned?.() ?? true,
     list: { ...rowOptions, summary: true, filter, archivedSpecs: summaryArchive },
   };

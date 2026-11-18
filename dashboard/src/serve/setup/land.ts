@@ -70,9 +70,19 @@ export interface LandSetupInputs {
 }
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {
+  const targets = new Map<string, Promise<string | null>>();
+  function mergeTarget(project: string): Promise<string | null> {
+    const existing = targets.get(project);
+    if (existing) return existing;
+    const pending = Promise.resolve().then(() => inputs.branchStatus.defaultBranch(inputs.machineryProjectDir(project)))
+      .catch(() => null).finally(() => { if (targets.get(project) === pending) targets.delete(project); });
+    targets.set(project, pending);
+    return pending;
+  }
   const jobRowCtx: JobRowContext = {
     queue: inputs.queue,
     store: inputs.store,
+    mergeTarget,
   };
   function jobRow(job: Job) {
     return jobRowImpl(jobRowCtx, job);

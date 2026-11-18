@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 
-SKILLS = Path(__file__).resolve().parents[6] / "core" / "skills"
+SKILLS = Path(__file__).resolve().parents[6] / "core" / "scripts" / "lib" / "steps"
 STEP = re.compile(r"^#+ Step (\d+) of (\d+):", re.M)
 
 

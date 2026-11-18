@@ -107,13 +107,13 @@ describe("its row, open and shut", () => {
 });
 
 describe("what its row says", () => {
-  test("a queued deploy keeps its position and hold reason while a running deploy keeps its hold state", async () => {
+  test("automatic deploy waits keep the reason and available position (AC-3)", async () => {
     const error = { key: "runner.landingPause" } as const;
     for (const state of ["queued", "running"]) {
       const { base } = board([deploy({ state, errorReason: "held-back", error })]);
       const html = await rows(base);
       expect(html).toContain(sentence(error));
-      expect(html).toContain(state === "queued" ? ">Queued 1/1<" : ">Held back<");
+      expect(html).toContain(state === "queued" ? ">Queued 1/1<" : ">Queued<");
     }
   });
 

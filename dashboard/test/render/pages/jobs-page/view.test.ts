@@ -101,6 +101,15 @@ describe("kind choices narrow rows independently of state", () => {
     expect(view(kinds, { kind: "deploy,schedule" })).toEqual(["nightly", "deploy"]);
   });
 
+  test("an empty state or type selection stays empty through search and view links", () => {
+    expect(view(kinds, { state: "none" })).toEqual([]);
+    expect(view(kinds, { kind: "none" })).toEqual([]);
+    expect(jobsStateValue("none")).toBe("none");
+    expect(jobsKindValue("none")).toBe("none");
+    const link = new URL(`http://x${jobsViewPath({ state: "none", kind: "none" }, { q: "aide" })}`);
+    expect(Object.fromEntries(link.searchParams)).toEqual({ state: "none", kind: "none", q: "aide" });
+  });
+
   test("kind and state both have to match (AC-4)", () => {
     expect(view(kinds, { kind: "spec", state: "queued" })).toEqual(["reopen"]);
     expect(view(kinds, { kind: "deploy,spec", state: "failed" })).toEqual(["close", "deploy"]);
@@ -185,16 +194,6 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     }
   });
 
-  // Queued is the shared queue: every job the queue holds, whatever state its
-  // row reads, and nothing it does not.
-  test("Queued holds every job the shared queue holds, whatever its row's state", () => {
-    const place = { n: 1, total: 3 };
-    const limitWait = jobEntry("limit", { specFolder: "schedule-limit", state: "stopped", queuePosition: place, createdAt: T(6) });
-    const acceptance = spec("acceptance", { specFolder: "149-acceptance", state: "done", lead: jobRowView({ state: "done", queuePosition: place }) });
-    const stoppedOut = spec("stopped", { specFolder: "150-stopped", state: "stopped", lead: jobRowView({ state: "stopped" }) });
-    expect(view([limitWait, acceptance, stoppedOut], { state: "queued" }).sort()).toEqual(["acceptance", "limit"]);
-  });
-
   test("a key the tab does not offer is All, and filters as All does", () => {
     for (const key of [undefined, "", "archived", "closed", "not-archived", "waiting", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
@@ -209,7 +208,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     expect(options.map((o) => [o.key, o.count])).toEqual([
       ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
     ]);
-    expect(options.filter((o) => o.on).map((o) => o.key)).toEqual(["all"]);
+    expect(options.every((o) => o.on)).toBe(true);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { state: "stopped" }).find((o) => o.on)?.key).toBe("stopped");
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");
@@ -415,4 +414,11 @@ test("Types counts and filters Land independently of Deploy", () => {
   expect(view([land, deploy], { kind: "land" })).toEqual(["land"]);
   expect(view([land, deploy], { kind: "deploy" })).toEqual(["deploy"]);
   expect(jobsKindOptions([land.facts, deploy.facts], {}).find((entry) => entry.key === "land")?.count).toBe(1);
+});
+
+test("Queued filter uses the same automatic wait decision as the row (AC-7)", () => {
+  const auto = jobEntry("automatic", { state: "running", errorReason: "held-back", error: { key: "runner.landingPause" } });
+  const manual = jobEntry("manual", { state: "queued", queuePosition: { n: 1, total: 1, id: "job:m" }, errorReason: "held-back", error: "Choose an approach" });
+  expect(jobsViewRows([auto, manual], { state: "queued" }).map(e => e.name)).toEqual(["automatic"]);
+  expect(jobsStateOptions([auto.facts, manual.facts], {}).find(o => o.key === "queued")?.count).toBe(1);
 });

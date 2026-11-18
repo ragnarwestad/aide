@@ -17,7 +17,7 @@ from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import phase_file_text, with_status
 
 PLAN_REVIEW_REFERENCE = (
-    Path(__file__).resolve().parents[8] / "core" / "skills" / "aide-analyze" / "references" / "plan-review.md"
+    Path(__file__).resolve().parents[8] / "core" / "scripts" / "lib" / "steps" / "aide-analyze" / "references" / "plan-review.md"
 )
 
 

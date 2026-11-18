@@ -363,11 +363,19 @@ export function stepDoneHandler(
       queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
     const completedGroupMember = outcome.ok && outcome.terminalReason === "completed" &&
-      (step === "implement" || (step !== undefined && step !== "archive" && step === job.steps?.filter((phase) => phase !== "archive").at(-1)));
-    if (completedGroupMember) moveGroupOn({
-      store: ctx.store, job, step, specsRoot: ctx.machinerySpecsRoot?.(job.project),
-      whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal,
-    });
+      (step === "implement" || (step === "analyze" && step === job.steps?.filter((phase) => phase !== "archive").at(-1)));
+    const continueGroup = () => {
+      const settled = ctx.store.get(job.id);
+      const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
+      if (settled && (settled.error || settled.landingError || ["failed", "stopped", "cancelled", "interrupted"].includes(settled.state))) return;
+      if (group?.stoppedByUser || group?.state === "stopped") return;
+      moveGroupOn({ store: ctx.store, job, step: step!, specsRoot: ctx.machinerySpecsRoot?.(job.project),
+        whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal });
+    };
+    if (completedGroupMember) {
+      if (landing) return landing.then(continueGroup);
+      continueGroup();
+    }
     if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
         if (settled && (settled.state === "cancelled" || settled.state === "interrupted"))

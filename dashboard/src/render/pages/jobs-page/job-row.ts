@@ -93,7 +93,7 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Run retries a schedule with its own choices or queues the same Land branch again.
+/** Run retries a schedule with its own choices; Merge queues the same source branch again.
  *  Stop or Cancel asks first; the dialog posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
 function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language, o: JobRowOptions): string {
@@ -115,7 +115,7 @@ function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Langu
     hook: "actionform",
     data: { "land-retry": "" },
     hidden: { branch: row.branch! },
-    button: { label: t(lang, "jobs.runAgain"), variant: "primary", pending: t(lang, "list.starting") },
+    button: { label: stepLabel("land", lang), variant: "primary", pending: t(lang, "list.starting") },
   });
   const id = `jobask-${row.id}`;
   const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);

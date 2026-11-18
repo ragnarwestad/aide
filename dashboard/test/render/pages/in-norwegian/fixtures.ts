@@ -266,8 +266,7 @@ export function newSpecStates(): PageState[] {
   const page = (state: string, html: string): PageState => ({ page: `New spec › ${state}`, html, data });
   const opts = { createProjects: ["kvitsyl"], targets, modelChoices: MODELS, defaultModels: DEFAULTS, ...nb };
   return [
-    page("Options tab", renderNewSpecPage(NAV, NOW, { ...opts, tab: "options" })),
-    page("Spec tab", renderNewSpecPage(NAV, NOW, opts)),
+    page("form", renderNewSpecPage(NAV, NOW, opts)),
     page("no project", renderNewSpecPage(NAV, NOW, { ...nb })),
   ];
 }

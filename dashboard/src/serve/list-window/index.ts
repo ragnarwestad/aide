@@ -1,12 +1,14 @@
+import { jobWaiting } from "../job-row.ts";
+import type { WaitingEntry } from "../../queue/waiting";
 import type { Job } from "../../queue/queue.ts";
 import type { QueueRowView, SpecsFilter } from "../../render";
 import { selectWindow, windowQuery, type ListWindow } from "../../render/pages/list-window";
 
-/** Only the queue facts global grouping and ordering need. Provider names,
- * live transcripts and queue positions belong to the selected-row builder. */
-export function summaryJob(job: Job): QueueRowView {
+/** Only the queue facts global grouping and ordering need. Queue positions are needed for filtering; provider names
+ * and live transcripts belong to the selected-row builder. */
+export function summaryJob(job: Job, waiting: WaitingEntry[] = []): QueueRowView {
   return {
-    ...job, timeoutSec: 0, model: undefined,
+    ...job, ...jobWaiting(waiting, job), timeoutSec: 0, model: undefined,
     results: job.results.map((result) => ({
       step: result.step, ok: result.ok, costUsd: result.costUsd, costMeasured: result.costMeasured,
       at: result.at, startedAt: result.startedAt, terminalReason: result.terminalReason,

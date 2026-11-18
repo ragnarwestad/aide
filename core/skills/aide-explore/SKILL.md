@@ -1,12 +1,12 @@
 ---
 name: aide-explore
 description: >-
-  No-stakes thinking partner before /aide-create: explore a problem or idea,
+  No-stakes thinking partner before a spec is created: explore a problem or idea,
   weigh approaches, sharpen the scope — without creating any files.
   Use when: an idea is not ready for a spec yet, weighing whether/how to
   do something, unclear scope, "what would it take to ...".
-  Do NOT use for: creating specs (use aide-create), analysis of an existing
-  spec (use aide-analyze), implementation.
+  Do NOT use for: creating specs (`aide create`), analysis of an existing
+  spec (`aide analyze`), implementation.
 argument-hint: "[topic, question or idea]"
 effort: high
 ---
@@ -25,7 +25,7 @@ understanding, and an offer to crystallize it.
   on. Half of the value is discarding approaches cheaply, before a spec
   gives them weight.
 - **Do not drift into implementation.** When the talk turns into "then
-  let's build it", hand over to `/aide-create` instead of coding.
+  let's build it", hand over to `aide create` instead of coding.
 
 ## How to explore
 
@@ -68,7 +68,7 @@ confirmed, offer no handoff and name what is still open. The handoff:
 ```text
 Ready to make this a task?
 
-/aide-create "<the title>" <the sharpened description>
+aide create <project> "<the title>"   # the sharpened description on standard input
 
 Or leave it here — nothing has been created.
 ```

@@ -26,14 +26,12 @@ test("GET cannot pause scheduling and cross-origin acquisition is refused", asyn
   expect(cross.status).toBe(403);
 });
 
-test("a group waiting for acceptance exposes its shared Archive in the queue and summary", async () => {
-  const group = { id: "release", project: "aide", name: "Release", members: ["81-queue-and-runner", "82-next"], branch: "aide/release",
-    state: "waiting-acceptance", completedMembers: ["81-queue-and-runner", "82-next"], jobs: [] };
+test("acceptance-held groups have no queue row while real waiting work remains editable (AC-4)", async () => {
+  const group = { id: "release", project: "aide", name: "Release", members: ["82-next"], branch: "aide/release",
+    state: "waiting-acceptance", completedMembers: ["82-next"], jobs: [] };
   const { base } = harness.start({ alsoSpecs: ["82-next"], executionGroups: [group] });
+  await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(JOB) });
   const owner = await (await post(base, "open", { requestId: "group-test" })).json();
-  expect(owner.entries).toHaveLength(1);
-  expect(owner.entries[0]).toMatchObject({ groupId: "release", operation: "archive", reason: "Waiting for acceptance criteria to be checked" });
-  const page = await (await fetch(`${base}/?live=0`)).text();
-  expect(page).toContain('data-waiting-open="group:release:archive"');
-  await post(base, "cancel", owner);
+  expect(owner.entries.map((e: any) => e.operation)).toEqual(["analyze"]);
+  expect((await post(base, "save", { ...owner, ids: owner.entries.map((e: any) => e.id) })).status).toBe(200);
 });

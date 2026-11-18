@@ -33,8 +33,8 @@ effort: medium
 **Principle:** Match the scope of the documentation to the complexity of the task.
 
 **Grading:** the grade is set once the code has been read, by the risk of
-the change. The criteria and two worked examples are in `aide-analyze`'s
-`complexity-and-analysis.md`, section "Classification", and nowhere else. Each level
+the change. The criteria and two worked examples are in the analyze step's
+`complexity-and-analysis.md` (installed in `~/.local/bin/lib/steps/aide-analyze/references/`), section "Classification", and nowhere else. Each level
 below says what its grade means for the analysis and for the documents.
 
 ### LOW complexity (Quick Fix)
@@ -135,11 +135,11 @@ The phases are written out in full in
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
 problem through with the user first — no files, no spec. Use it when the
-idea or scope is not ready for `/aide-create` yet. **Review runs at
-every complexity of a full analysis:** `/aide-analyze` attacks
+idea or scope is not ready for a spec yet. **Review runs at
+every complexity of a full analysis:** the analyze step attacks
 `3-solution.md` from three reviewer perspectives before the first test is
 written, as its own last step. A small spec gets a short analysis instead,
-with no plan and no review (the aide-analyze skill's `spec-files.md`, section "A short analysis").
+with no plan and no review (the analyze step's `spec-files.md`, section "A short analysis").
 
 The rest of the detail lives beside this file:
 

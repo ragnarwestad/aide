@@ -136,3 +136,12 @@ describe("the line under a job row's state", () => {
     });
   });
 });
+
+test("a declined step retains the named action even with a queue position (AC-4)", () => {
+  for (const terminalReason of ["acceptance-criteria-unticked", "approach-choice"]) {
+    const row = job({ state: "done", queuePosition: { n: 1, total: 1, id: "job:one" },
+      results: [{ step: "archive", ok: true, costUsd: 0, terminalReason }] });
+    const key = terminalReason === "approach-choice" ? "runner.approachChoice" : "wordPhase.stopAcceptanceCriteriaUnticked";
+    expect(getJobMessage(row, "en")).toEqual({ variant: "waiting", text: formatSentence("en", { key })! });
+  }
+});

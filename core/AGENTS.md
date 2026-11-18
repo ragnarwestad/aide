@@ -131,8 +131,8 @@ there.** The user creates it from the dashboard. Create it only when the
 user asks, and then with the `aide` command, which queues it on the board
 as the New spec form does: `aide create <project> "<title>"` with the
 description on standard input, and `--depends-on` for each dependency.
-Where `aide` answers that the project has no board, use `/aide-create`
-instead. Never write, commit or push anything in the specs repo on your
+Where `aide` answers that the project has no board, say so: a spec is
+created only on a board. Never write, commit or push anything in the specs repo on your
 own initiative. The format the text is handed over in is the `spec-handover`
 skill: load it before writing the text.
 
@@ -275,12 +275,6 @@ hasn't landed, ahead/behind, staged content. When the user asks, run `git status
 
 Why: the user pushes continuously from the IDE and other sessions commit to the same repo, so any
 claim about repo state is stale unless it comes from a command run in that same reply.
-
-**One exception lives elsewhere, not here:** creating a spec with `/aide-create` commits and
-pushes immediately, with no separate ask for either step — see that skill's own "Stage in git"
-instructions (`core/skills/aide-create/SKILL.md`), which specify it precisely (message format, when
-to omit the model suffix, what "nothing to stage" means) with no gap left for a general rule to
-fill. Kept in the skill rather than duplicated here so the two copies cannot drift.
 
 ---
 

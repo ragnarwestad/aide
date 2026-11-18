@@ -2,10 +2,11 @@
 // them, and how a job that did not end done is read: the step it stopped at,
 // and why.
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, spyOn } from "bun:test";
+import * as helpers from "../../../src/serve/serve-helpers";
 import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { stepPlan } from "../../../src/queue/parse-stream";
@@ -462,4 +463,32 @@ test("a schedule that fails preparing retains every fixed prompt step", () => {
   expect(got.map(({ label, state }) => [label, state])).toEqual([
     ["Preparing", "failed"], ["Run browser tests", undefined], ["Write report", undefined], ["Tests and commit files", undefined],
   ]);
+});
+
+test("merge activity, pips and lines share fresh snapshots without mutable marks (AC-5, AC-6)", () => {
+  const file = step([], ["--- Step 1 of 4: Merge branch — started"]);
+  const own = job({ id: "shared-merge", steps: ["land"], streamFile: file });
+  const read = spyOn(helpers, "tailFileAt");
+  try {
+    const first = jobMarks(own, "en");
+    const reads = read.mock.calls.length;
+    first.marks[0]!.state = "failed";
+    jobStepPips(own, "en");
+    expect(jobStepLines(own, "en")[0]?.state).toBe("running");
+    expect(read.mock.calls.length).toBe(reads);
+    writeFileSync(file.replace(".stream.jsonl", ".run.log"), "aide-run-spec 12:00:02 +2s --- Step 2 of 4: Run tests — started\n");
+    expect(jobMarks(own, "en").marks.at(-1)?.key).toBe("Step 2 of 4");
+    expect(read.mock.calls.length).toBeGreaterThan(reads);
+    expect(jobMarks({ ...own, state: "cancelled" }, "en").marks.at(-1)?.state).toBe("cancelled");
+  } finally { read.mockRestore(); }
+});
+
+test("settled merge pips invalidate when the log changes or disappears (AC-5, AC-6)", () => {
+  const file = step([], ["--- Step 2 of 4: Run tests — started"]);
+  const own = job({ id: "settled-merge", state: "cancelled", steps: ["land"], streamFile: file });
+  expect(jobStepPips(own, "en")[1]?.state).toBe("cancelled");
+  writeFileSync(file.replace(".stream.jsonl", ".run.log"), "aide-run-spec 12:00:03 +3s --- Step 3 of 4: Push — started\n");
+  expect(jobStepPips(own, "en")[2]?.state).toBe("cancelled");
+  rmSync(file.replace(".stream.jsonl", ".run.log"));
+  expect(jobStepPips(own, "en").every(mark => mark.state === undefined)).toBe(true);
 });

@@ -67,7 +67,7 @@ test("Run asks for a group name when a peer is selected and submits the entered 
     await page.goto(`${base}/specs?live=0`);
     await page.evaluate((html) => document.getElementById("jobrows")!.insertAdjacentHTML("beforeend", html), rendered.control + rendered.dialog);
     await page.locator('button[data-ask="runask-aide/81-first"]').click();
-    const dialog = page.locator('dialog[id^="runask-"][open]');
+    const dialog = page.getByRole("dialog", { name: "Run spec aide:81", exact: true });
     const name = dialog.getByRole("textbox", { name: "Group name", exact: true });
     expect(await name.isVisible()).toBe(false);
     await dialog.getByRole("checkbox", { name: "82-next", exact: true }).check();

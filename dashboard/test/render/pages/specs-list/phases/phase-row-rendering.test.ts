@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { t } from "../../../../../src/i18n";
 import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
@@ -178,11 +179,8 @@ describe("a busy job holds every step on the row", () => {
 
 // --- The first line says what is happening, or what is next --------
 //
-// One rule for the badge, whatever the row is doing: a verb while
-// something runs, and the resting state plus the next move when nothing
-// does. `done` and `queued` were the two words that carried neither —
-// `done` because the sentence disambiguating it sat one line lower, and
-// `queued` because nothing said WHICH step was waiting.
+// The badge names active work, automatic waiting, or the resting state.
+// Automatic waiting uses Queued, with a position when one is known.
 
 describe("the State line says what is happening, or what is next", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
@@ -213,14 +211,12 @@ describe("the State line says what is happening, or what is next", () => {
   };
   const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
-  // A queued row said one word and nothing else, while
-  // the step it was waiting to run was known all along.
-  test("a queued job names the phase it is waiting to run", () => {
+  test("a queued job without a position uses the shared Queued label (AC-3, AC-7)", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
       [target("132-a")],
     );
-    expect(chip(html)).toBe("Implementing queued");
+    expect(chip(html)).toBe(t("en", "list.state.queued"));
   });
 
   // A row that carries its place in the queue says so in the

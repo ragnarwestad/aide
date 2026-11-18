@@ -85,7 +85,7 @@ describe("parseApproaches", () => {
   });
 
   test("the marked leads the spec-files reference shows parse as it says", () => {
-    const rule = readFileSync(join(REPO, "core", "skills", "aide-analyze", "references", "spec-files.md"), "utf-8");
+    const rule = readFileSync(join(REPO, "core", "scripts", "lib", "steps", "aide-analyze", "references", "spec-files.md"), "utf-8");
     const block = rule.split(/^[ \t]*```/m).find((part) => part.includes("(real alternative)"));
     expect(block).toBeDefined();
     const example = block!.replace(/^markdown\n/, "").replace(/^[ \t]+/gm, "");

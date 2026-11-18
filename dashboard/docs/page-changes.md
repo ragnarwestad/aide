@@ -42,6 +42,8 @@ without showing a remembered page first.
 
 ## Address, history and scroll
 
+Changing the sort, a filter or the search on Jobs or Specs opens the Loading dialog until the list request settles.
+
 Loading more Jobs or Specs and receiving live changes keep the loaded range, expanded groups, open rows and held
 spec detail. The first visible row keeps its place when preceding rows change. New work is reconciled with the
 current list through its last loaded identity, so insertions do not duplicate or skip matching rows. Answers from

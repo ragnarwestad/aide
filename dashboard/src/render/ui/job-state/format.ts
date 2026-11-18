@@ -1,7 +1,7 @@
 // State labels, durations, the state chip, and "is this job still
 // going".
 
-import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
+import { jobPresentation } from "./presentation.ts";
 import { durationLabel } from "../../../format/duration.ts";
 export { durationLabel };
 
@@ -30,9 +30,11 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
  *  step's own time limit — is the error sentence's to tell, in the
  *  row's message and the popover beside the chip, and is never written
  *  after the word. */
-export function stateWord(r: Pick<QueueRowView, "state"> & Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait">>, lang: Language = "en"): string {
-  if (automaticProviderWait(r)) return t(lang, "list.state.waiting");
-  return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
+export function stateWord(r: Parameters<typeof jobPresentation>[0], lang: Language = "en"): string {
+  const state = jobPresentation(r).state;
+  if (state === "needs-action") return t(lang, "state.heldBack");
+  if (state === "testing" || state === "merging") return t(lang, `state.${state}`);
+  return state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[state]);
 }
 
 /** How a step ended, in one word for a table cell. A reason that is not a
@@ -70,7 +72,7 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   // The word alone (see `stateWord`); why it stopped is what the popover
   // beside it is for.
-  const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
+  const b = badge(jobPresentation(r).variant, capitalizeFirst(stateWord(r, lang)));
   // Why it stopped is the popover's, not the badge's — and a stop with
   // no sentence of its own gets no popover at all.
   const detail = r.state === "stopped" ? formatSentence(lang, r.error) : undefined;

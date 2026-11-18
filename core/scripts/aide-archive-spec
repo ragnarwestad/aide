@@ -285,7 +285,7 @@ remove_held_back_section() {
 
 if [ "$implement_present" = "no" ]; then
   [ -f "$status_file" ] && remove_held_back_section
-  aide_spec_emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
+  aide_spec_emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run Implement next"}'
 fi
 
 # --- the acceptance-criteria gate --------------------------------

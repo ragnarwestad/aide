@@ -18,7 +18,7 @@ from ..run_spec_results import emits
 from ..run_spec_status_files import status_with_phase, with_status
 
 PLAN_REVIEW_REFERENCE = (
-    Path(__file__).resolve().parents[8] / "core" / "skills" / "aide-analyze" / "references" / "plan-review.md"
+    Path(__file__).resolve().parents[8] / "core" / "scripts" / "lib" / "steps" / "aide-analyze" / "references" / "plan-review.md"
 )
 
 COUNTS_TAIL = " — the findings are under Plan review in the plan (3-solution.md)"

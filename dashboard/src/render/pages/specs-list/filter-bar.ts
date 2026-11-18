@@ -142,7 +142,7 @@ function stateDropdown(
   // its own copy.
   const ticked = stateFilters(f.state);
   const rows = STATE_FILTERS.map((s) => {
-    const on = ticked.some((entry) => entry.key === s.key);
+    const on = ticked[0]?.key === "all" || ticked.some((entry) => entry.key === s.key);
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
       (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
@@ -153,6 +153,7 @@ function stateDropdown(
   });
   return menuDropdown({
     filter: "state",
+    none: { label: t(lang, "list.state.none"), href: queueHref(f, { state: "none" }) },
     ariaLabel: t(lang, "list.statesLabel"),
     triggerLabel: t(lang, "list.statesLabel"),
     options: rows.map(({ s, on, count }) => ({
@@ -176,7 +177,7 @@ export interface MenuOption {
   /** A heading put immediately before this option. */
   heading?: string;
   label: string;
-  count: number;
+  count?: number;
   on: boolean;
   href: string;
 }
@@ -189,19 +190,18 @@ export function resultCount(n: number): string {
 /** A filter dropdown of checkbox links, its button named by `triggerLabel`
  *  whatever is ticked. `filter` names the control for the page script and
  *  the tests. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string }): string {
-  const options = o.options
-    .map(
-      (opt) =>
-        (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
-        `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
-        `<span class="check" ${opt.key === "all" ? "" : `data-filter-option="${esc(opt.key)}" `}aria-hidden="true"></span>${esc(opt.label)} (${opt.count})</a>`,
-    )
-    .join("");
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string; none: Pick<MenuOption, "label" | "href"> }): string {
+  const [all, ...choices] = o.options;
+  const option = (opt: MenuOption) =>
+    (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
+    `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
+    `<span class="check" aria-hidden="true"></span>${esc(opt.label)}${opt.count === undefined ? "" : ` (${opt.count})`}</a>`;
+  const none = { key: "none", ...o.none, on: !o.options.some((opt) => opt.on) };
+  const options = `<div class="row">${option(all!)}${option(none)}</div>` + choices.map(option).join("");
   const visible = esc(o.triggerLabel);
   const widths = `<span aria-hidden="true">${visible}</span>`;
   return (
-    `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}">` +
+    `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}"${all?.on ? "" : " data-filter-active"}>` +
     `<summary aria-label="${o.ariaLabel}">` +
     `<span class="menuwidth"><span>${visible}</span>${widths}</span>${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="group" aria-label="${o.ariaLabel}">${options}</div>` +

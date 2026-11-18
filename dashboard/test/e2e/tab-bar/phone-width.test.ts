@@ -26,6 +26,6 @@ test("phone tabs keep their accessible names", async () => {
   const tabs = page.locator("body > nav.tabbar a.tab");
   expect(await tabs.count()).toBe(4);
   for (const name of ["Trabajos", "Especificaciones", "Proyectos", "Programación"]) {
-    expect(await page.locator(`body > nav.tabbar a[title="${name}"]`).count()).toBe(1);
+    expect(await page.getByRole("link", { name: new RegExp(`^${name}( \\(\\d+\\))?$`) }).count()).toBe(1);
   }
 });

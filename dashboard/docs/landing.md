@@ -140,7 +140,7 @@ continues to receive default-branch updates during the group's work.
 confined to the status files of the specs the run covers (its own, and a group's members) it settles itself: the
 default branch's `4-status.md` wins, and `4-status.json` is rebuilt from the merged `4-status.md`. A `4-status.json`
 that cannot be read is never used: the phase is read from `4-status.md` instead. The rest reaches the
-skill, which follows `core/skills/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
+skill, which follows `core/scripts/lib/steps/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
 decide not to, finish the merge with `git commit --no-edit`, run the project's own test command. The step never
 touches the default branch; the dashboard lands the resolved branch afterwards.
 

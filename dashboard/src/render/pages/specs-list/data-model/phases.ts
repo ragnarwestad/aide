@@ -71,7 +71,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   // Not yet run, while an EARLIER step of the same job is landing: a
   // chained job has already moved its `stepIndex` on to this step when
   // the one before it starts merging. The landing is that step's.
-  if (r.landing && landingStep(r) !== step) return { ...r, landing: undefined, modelId: undefined };
+  if (r.landing && landingStep(r) !== step) return null;
   // What the finished steps did not account for. A job's `spentUsd` is
   // the sum over its steps, so the step in flight owns the remainder.
   const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
@@ -406,14 +406,8 @@ function lastAnalyzeEndedMs(all: QueueRowView[]): number | undefined {
   return ends.length ? Math.max(...ends) : undefined;
 }
 
-/** A phase a completed analysis cancelled: git names it in
- *  `target.superseded` and the state file no longer counts it done. The
- *  queue's memory of the earlier run and the phase file's stamped result
- *  are that round's, not a run of the phase — so the line keeps no attempt
- *  and no file record, and reads as not run, until an attempt is in flight
- *  or ended after the analysis (the new round's own, which keeps every
- *  attempt). With no analysis the queue remembers, an attempt cannot be
- *  shown to precede one and is kept. */
+/** Superseded completion records do not count for the current round.
+ * Recorded attempts still describe what happened before it. */
 function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, analyzedAtMs: number | undefined): Phase {
   if (!target?.superseded?.includes(phase.step) || target.done?.includes(phase.step)) return phase;
   const newer = (a: QueueRowView): boolean => {
@@ -421,7 +415,7 @@ function supersededByAnalysis(phase: Phase, target: SpecTarget | undefined, anal
     return inFlight(a) || analyzedAtMs === undefined || !endedAt || Date.parse(endedAt) > analyzedAtMs;
   };
   if (phase.attempts.some(newer)) return phase;
-  return { step: phase.step, attempts: [], history: phase.history, ...(phase.heldBack ? { heldBack: phase.heldBack } : {}) };
+  return { step: phase.step, attempts: phase.attempts, history: phase.history, ...(phase.heldBack ? { heldBack: phase.heldBack } : {}) };
 }
 
 /** Archive's last attempt only refused over open criteria, and every
@@ -468,13 +462,9 @@ function comesAfterRoundStart(step: string, round: QueueRowView): boolean {
 const roundInFlight = (r: QueueRowView): boolean =>
   inFlight(r) && r.steps.slice(r.stepIndex).some((s) => s === "analyze" || s === "implement");
 
-/** A later phase's line while a round is under way. Until the round
- *  itself reaches that phase, every answer the line has — the hold, the
- *  stop reason, the last attempt, the file's stamped result and time —
- *  is the previous round's, and the phase has not run in this one. An
- *  implement drawn as done here locked the very step the round exists
- *  to run again. */
+/** Keep earlier attempts visible without carrying previous completion
+ * records into the round now running. */
 function phaseInRound(phase: Phase, round: QueueRowView): Phase {
   if (phase.waiting || phase.attempts.some((a) => a.id === round.id)) return phase;
-  return { step: phase.step, attempts: [], history: {} };
+  return { step: phase.step, attempts: phase.attempts, history: {} };
 }

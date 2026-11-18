@@ -388,15 +388,6 @@ than every `implement` and `archive` before it, and those no longer count: the s
 (`--date-order`) and skips them, and the run's own completed analyze takes them off the line as well. The
 TypeScript twin (`readWorkflowSubjects`) applies the same rule and names the steps it skipped.
 
-**A session writes the line for a step it ran.** An interactive `/aide-analyze` or `/aide-implement` that has completed
-runs `aide-record-step`, which sources the same `completed_steps_for`, `write_phase_stamp`, `write_spec_state` and
-`rebuild_acceptance_after_analysis` and writes the line, `4-status.json`, the acceptance rows (after an analyze) and
-the phase's own `Model` and `Time spent` into the working tree, for the session's own commit. It reads the line as the
-specs repo's `HEAD` has it, so a session cannot credit itself with a later step. It refuses under `AIDE_HEADLESS`, where
-the runner stays the one that writes the line, and where the transitions table refuses the step (`implement` before an
-analyze, any step on an archived or closed spec), writing nothing. A session that stopped never runs it, so the line
-is left as it was.
-
 **A completed analyze of a spec that stood at `implemented` before the session also rebuilds the acceptance table.**
 `rebuild_acceptance_after_analysis` (same file) reads the state at the ref taken before the session with
 `analysis_follows_implement`, and `rebuild_acceptance_rows` (`core/scripts/lib/spec-transitions.sh`) rewrites the table from `1-description.md`, every

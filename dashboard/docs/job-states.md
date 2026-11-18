@@ -80,7 +80,7 @@ group. For each queued job it uses this ordered list; the first hold that applie
   landing.
 - Leaves a `schedule` job queued, with a reason, while anything else in its project is running or landing.
 - Leaves a deploy queued, with a reason, while a landing is in flight.
-- Leaves a job queued with "held back: not analyzed yet — run /aide-analyze first" until its spec's `analyze` has
+- Leaves a job queued with "held back: not analyzed yet — run Analyze first" until its spec's `analyze` has
   completed.
 - Leaves an `implement` queued with "held back: choose the approach to build, then press Save" when its spec asked to
   choose the approach, has two or more real alternatives and none is chosen. An `implement` started on its own is

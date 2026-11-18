@@ -184,7 +184,7 @@ describe("several jobs at once", () => {
   // project" for minutes after that archive had landed, while the real
   // reason was a landing in flight (2026-09-04).
   test("the hold-back sentence goes when the reason does", () => {
-    enqueue({ steps: ["archive"] });
+    enqueue({ steps: ["analyze"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
@@ -376,21 +376,20 @@ describe("schedule jobs share the queue with spec work", () => {
   });
 });
 
-// A quick step (create/archive) jumps a queued slow step
-// (analyze/implement), whatever the age of either.
-describe("quick steps before slow ones", () => {
-  test("a younger queued archive starts before an older queued analyze", () => {
+// Eligible work joins behind work already admitted to the shared queue.
+describe("shared queue admission order", () => {
+  test("a newly validated archive follows an already admitted analyze (AC-2)", () => {
     const analyze = enqueue({ steps: ["analyze"] });
     const archive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
     expect(spawns.length).toBe(1);
-    expect(spawns[0]?.step).toBe("archive");
-    expect(store.get(archive.id)?.state).toBe("running");
-    expect(store.get(analyze.id)?.state).toBe("queued");
+    expect(spawns[0]?.step).toBe("analyze");
+    expect(store.get(analyze.id)?.state).toBe("running");
+    expect(store.get(archive.id)?.state).toBe("queued");
   });
 
-  test("oldest first within the same group", () => {
+  test("archives admitted together keep their arrival order", () => {
     const first = enqueue({ steps: ["archive"] });
     enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 1 });
@@ -399,10 +398,13 @@ describe("quick steps before slow ones", () => {
     expect(store.get(first.id)?.state).toBe("running");
   });
 
-  test("a held-back quick job does not block an older unblocked slow job behind it", () => {
+  test("a held-back admitted archive does not block ready work behind it", () => {
     const archive = enqueue({ steps: ["archive"] });
-    const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 1 });
+    const owner = store.waiting.open("admit before dispatch");
+    runner.tick();
+    store.waiting.cancel(owner);
+    const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const blocked = new Map([[archive.id, "80-some-dependency"]]);
     runner.tick({ dependencies: blocked });
     expect(spawns.length).toBe(1);

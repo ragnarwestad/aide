@@ -217,6 +217,7 @@ export class QueueStore {
    *  other side channel on this surface: a listener that throws must
    *  not turn a stored job into a refused one. */
   private changed(): void {
+    this.waiting.snapshot();
     try {
       this.onChange();
     } catch {
@@ -475,7 +476,7 @@ export class QueueStore {
           : job.state === "queued" ? "queued"
             : archive && job.state === "done" && (group.state === "running" || group.state === "queued") ? "archiving"
               : archive && job.state === "cancelled" && group.state === "archiving" ? "stopped"
-                : (group.state === "running" || group.state === "queued") && !othersInFlight ? "stopped"
+                : (group.state === "running" || group.state === "queued") && !othersInFlight && !job.landing ? "stopped"
                 : group.state;
     this.executionGroups.update(group.id, { jobs, state, currentMember: job.specFolder });
   }

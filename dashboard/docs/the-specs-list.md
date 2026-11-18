@@ -52,9 +52,7 @@ time. It carries the list's view (state, project, sort, search) and ends in the 
 open row is in view. The open row's chevron leads back to `/specs`.
 
 On the Specs list the page script takes a plain press on a shut chevron and opens the row where it is, without loading
-a page. The row gets a detail row of its own that reads "Loading …", copied from the `#spec-loading-row` template the
-list carries; the header, the filters and every other row stay as they are, and the page is inert, so no press
-anywhere on it does anything until the spec is in. The spec's address is pushed, and the page asks that address with
+a page. The standard Loading dialog blocks page input until the detail request settles. The spec's address is pushed, and the page asks that address with
 `?detail=1`: the answer is that spec's rows with the spec drawn in its detail row, followed by a `<script src>` for the
 tab's editor or viewer when it needs one, which the page script adds as a new script so the bundle mounts in the row.
 `spec-detail-drawn` is then sent on `document`, which `spec-form-actions.ts` hears and binds Save and Cancel for the
@@ -145,7 +143,7 @@ in place; Cancel puts back what the server drew. A tick not yet saved outlives a
 the others. While a job of the spec is queued, running or landing the picker shows only what the spec depends on, with
 no list to pick from and no Save or Cancel, as the phase lines above it are locked then. A spec alone in its project that depends on nothing reads "Depends on: none", with no list to pick
 from. Under the picker, in the same form and saved by the same Save, are the four settings the spec was created
-with, laid out as New spec's Options tab: the three analyze reads — Acceptance ticking required, "Acceptance criteria
+with, using the same settings as New spec: the three analyze reads — Acceptance ticking required, "Acceptance criteria
 checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
 running or landing; "Let AI formulate acceptance criteria", which create has already used, is locked with
 no field name. A change not yet saved outlives a redraw and offers Save and Cancel, which are pressable only while a field differs from what was saved, as a tick does, and it outlives a job too: the locked card shows
@@ -477,9 +475,10 @@ shows every row that matches any of them. `?state=` holds their keys separated b
 state alone. The button reads States whatever is ticked, as on the Jobs tab, and beside it stands the number of specs
 the table shows, in brackets. On Jobs and Specs, a filter with a choice other than All has an accent-coloured dot and
 border; choosing All clears them without changing the button's width. The phone's menu shows the dot beside the
-filter's name. Each entry's count is its own count over the rows the search lets through. The nine entries are:
+filter's name. Counts reflect the rows the search lets through. The choices are:
 
-- **All** — the default.
+- **All** — the default, checks every state and includes every row the search lets through.
+- **None** — clears every state and shows an empty list.
 - **Not archived** — everything not archived and not closed.
 - **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group.
 - **Created**.
@@ -490,7 +489,7 @@ filter's name. Each entry's count is its own count over the rows the search lets
 - **Not verified**.
 
 The default is `STATE_FILTERS[0]` and nothing else — moving an entry to the front changes the
-default for every reader. All is the same as ticking nothing. Every entry, including "All", carries its own `state=`
+default for every reader. Every entry, including All and None, carries its own `state=`
 value explicitly, so choosing one always overrides whatever is remembered (see below).
 
 **The ticked entries are remembered across visits, the same way the sort column is.** Choosing one sets the
@@ -731,7 +730,13 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It
   offers Cancel while queued and nothing once it runs. The open row has a line per step (`deploySteps`,
   `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed or was interrupted, as one message
-  line under its state, open or shut. A running deploy that waits for a merge reads "Held back".
+  line under its state, open or shut. A running deploy that waits for a merge reads "Queued".
+- **A standalone Merge names its destination and source**, for example "Merge to trunk · feature/topic".
+  The destination is the project's current default branch; an unreadable destination is shown as unknown.
+  Merge is also the type filter and the retry action. Archive keeps its own step name.
+  Automatic waits read Queued on cards and open rows, with the reason and queue position when available;
+  those jobs appear under Queued. A wait that needs a person keeps its action message and is outside that filter.
+  A Merge running its tests reads Testing; while merging it reads Merging. With no live task information it reads Running.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only
   the `title` carries the pending word ("starting…", "cancelling…", "queueing…",

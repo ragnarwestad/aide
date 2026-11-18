@@ -15,6 +15,9 @@ import pytest
 
 # core/tests/specs/unit/core/validation/test_core_skills.py -> aide/
 CORE_SKILLS_DIR = Path(__file__).parents[7] / "core" / "skills"
+# The spec steps' instructions: installed beside the runner, not as skills,
+# and held to the same size and resource rules.
+CORE_STEPS_DIR = Path(__file__).parents[7] / "core" / "scripts" / "lib" / "steps"
 
 VALID_EFFORT_LEVELS = {"low", "medium", "high", "xhigh"}
 
@@ -41,7 +44,8 @@ def skills_over_the_size_limit(skills_dir):
 @pytest.mark.validation
 def test_every_core_skill_is_under_the_size_limit():
     assert get_skill_dirs(), "No skill directories with SKILL.md in core/skills/"
-    assert not (problems := skills_over_the_size_limit(CORE_SKILLS_DIR)), "\n".join(problems)
+    problems = skills_over_the_size_limit(CORE_SKILLS_DIR) + skills_over_the_size_limit(CORE_STEPS_DIR)
+    assert not problems, "\n".join(problems)
 
 
 @pytest.mark.validation
@@ -63,7 +67,7 @@ def test_skill_size_boundaries_name_the_skill(tmp_path, lines, characters, over)
 @pytest.mark.validation
 def test_long_analyze_references_start_with_contents():
     problems = []
-    for path in sorted((CORE_SKILLS_DIR / "aide-analyze" / "references").glob("*.md")):
+    for path in sorted((CORE_STEPS_DIR / "aide-analyze" / "references").glob("*.md")):
         lines = path.read_text(encoding="utf-8").splitlines()
         if len(lines) <= 100:
             continue
@@ -592,7 +596,8 @@ def test_all_skills_report_all_failures(tmp_path):
 
 
 def test_every_skill_meets_the_standard():
-    assert not (problems := all_skill_standard_problems(CORE_SKILLS_DIR)), "\n".join(problems)
+    problems = all_skill_standard_problems(CORE_SKILLS_DIR) + all_skill_standard_problems(CORE_STEPS_DIR)
+    assert not problems, "\n".join(problems)
 
 
 @pytest.mark.parametrize("body", [

@@ -183,3 +183,7 @@ test("a step waiting in the queue shows Queued, not Running", () => {
   expect(html).toContain("Queued");
   expect(html).not.toContain(t("en", "dialog.stepRunning"));
 });
+
+test("an unstarted step displays a dash", () => {
+  expect(stepState(undefined, "en")).toBe("–");
+});

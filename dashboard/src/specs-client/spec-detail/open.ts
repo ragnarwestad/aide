@@ -1,6 +1,5 @@
 // A press on a shut › on the Specs list opens that row where it is. The page
-// is not replaced: the row says "Loading …" in its own detail row, the rest of
-// the page is drawn as it was and cannot be pressed, the spec's address is
+// is not replaced: the loading dialog blocks page input, the spec's address is
 // pushed, and the spec fills the row when the server has built it. Without
 // this script, or for a click the browser should handle itself, the › is the
 // link it is and loads the spec's address.
@@ -8,6 +7,7 @@
 import { writeLine } from "../press.ts";
 import { groupEnd } from "../row-refusal/index.ts";
 import { placeSpecRows, swapRows, swapSpec } from "../row-swap/index.ts";
+import { holdLoadingCover } from "../progress-dialog";
 import { press } from "../state.ts";
 import { SPEC_DETAIL_DRAWN, SPEC_HEAD_CLASS, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";
 export { SPEC_DETAIL_DRAWN, SPEC_LOADING_ROW_ID } from "../../page-contract.ts";
@@ -82,7 +82,7 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   drawLoadingRow(head, key);
   keepInPlace(head, before);
 
-  document.body.setAttribute("inert", "");
+  const release = holdLoadingCover();
   const href = link.getAttribute("href") ?? "";
   history.pushState(null, "", href);
   drawn = location.pathname;
@@ -107,15 +107,15 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
     // Back aborts the request and bumps the generation: nothing is drawn then.
     failed = press.pressGen === gen;
   }
-  if (failed) await showFailure(body, key);
-  await shutPrevious;
-  keepInPlace(head, before);
-
-  if (current?.controller === controller) {
-    current = null;
-    document.body.removeAttribute("inert");
+  try {
+    if (failed) await showFailure(body, key);
+    await shutPrevious;
+    keepInPlace(head, before);
+  } finally {
+    if (current?.controller === controller) current = null;
+    release();
+    press.inFlight--;
   }
-  press.inFlight--;
   // Refresh address-dependent links while holding the open detail. A
   // reader who scrolls during this request keeps that new position.
   let readerScrolled = false;
@@ -174,7 +174,6 @@ export function addScripts(html: string): void {
  *  are drawn again for the new address, with this row held in place. */
 async function showFailure(body: HTMLElement, key: string): Promise<void> {
   const row = Array.from(body.querySelectorAll(DETAIL)).find((el) => el.getAttribute(KEY) === key);
-  row?.querySelector("p.muted")?.remove();
   writeLine(row?.querySelector(".refused"), row?.getAttribute("data-failed") ?? "");
   await swapSpec(key);
 }

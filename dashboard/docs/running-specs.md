@@ -189,16 +189,12 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
   whether it starts now or what it waits for. The AI behind a model is named when this machine holds the board's queue
   config (`~/.aide/dashboard/queue-config.json`), as on the board's host.
 - **A refused request** prints the board's own reason on stderr and exits 1. A call made wrongly exits 2.
-- **Without `AIDE_BOARD_URL`, or with a board that does not know the project,** nothing is queued: the command says so,
-  names the `/aide-<step>` skill to run in an AI session instead, and exits 3. A board that cannot be reached, or does
-  not answer in time, is said so with exit 1; a request that got no answer may still have been queued.
-- **A skill run in an AI session hands its step to `aide`** when the project has a board. `/aide-analyze`,
-  `/aide-implement`, `/aide-archive`, `/aide-close` and `/aide-reopen` queue their step, and `/aide-create` queues the
-  title, the description and any dependencies, through `aide-hand-off`; the session does nothing else and ends on
-  `aide`'s answer. A board that is set but cannot be reached ends the session on that sentence. Without a board the skill
-  does the step in the session. A headless run never hands its step over, since it is the board's own step. A reopen that
-  asks for a reset is not handed over, because `aide reopen` cannot carry it: the answer says it is chosen with Reopen
-  on the spec's page, and nothing is queued. This holds for every AI tool that reads the skills.
+- **Without `AIDE_BOARD_URL`, or with a board that does not know the project,** nothing is queued: the command says so
+  and exits 3. A board that cannot be reached, or does not answer in time, is said so with exit 1; a request that got
+  no answer may still have been queued.
+- **A spec's steps run only on the board.** Their instructions are installed beside the runner
+  (`~/.local/bin/lib/steps/`), not as skills, so no AI session offers `/aide-analyze` or the other steps. An AI session
+  queues a step the way a terminal does, with `aide`.
 - **`aide status`** fetches origin once and uses that result for both a numeric lookup and the phase it reports. It says
   when it had to use this machine's copy for the phase. For a project with no checkout here it says only what the job
   is doing.
@@ -585,6 +581,11 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
 
+Only the next selected step gets a queue position, after its preceding work has finished, including review and any required merge. It joins behind the work already waiting. Later selected steps and later group members have no reserved position or editor row. A phase with no recorded attempt shows the existing dash; earlier attempts keep their status.
+
+An Archive waiting for acceptance has no queue position. Tick the required acceptance checks and press Archive through the existing action to continue.
+
+
 Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
 
 Saved priority survives refresh and server restart. The first eligible entry starts: prerequisites, provider limits, concurrency and repository locks still apply, so a blocked entry does not stop eligible work below it.
@@ -967,7 +968,7 @@ Rows with the same creation time keep their order by state and most recent chang
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
 Queued, Done, Stopped, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Land, Deploys,
-Scheduled, Cleanup and Groups under a Kind heading. All is the default in both parts. Ticking several entries in one part shows every row that matches any of
+Scheduled, Cleanup and Groups under a Kind heading. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in
 it, whatever its row reads (one waiting for a usage limit to reset, or an Archive waiting for its criteria to be

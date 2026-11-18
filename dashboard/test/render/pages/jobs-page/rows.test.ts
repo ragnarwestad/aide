@@ -491,11 +491,6 @@ test("Jobs dates drive both the spec row and its position relative to Deploy, wh
   ], { sort: "created", dir: "desc" }).map((row) => row.key)).toEqual(["807", "deploy"]);
 });
 
-test("Land names its exact source branch and has its own row kind", () => {
-  const row = { project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "fix/stop-land-before-push" };
-  expect(jobTitle(row)).toBe("Land: fix/stop-land-before-push");
-  expect(jobRowKind(row)).toBe("land");
-});
 
 test("Land offers Stop only before its push boundary", () => {
   const row = { state: "running" as const, steps: ["land"], stepIndex: 0 };
@@ -520,3 +515,9 @@ test("a cancelled Land can run again after its landing has settled", () => {
   for (const state of ["cancelled", "stopped", "failed"] as const) expect(jobControl(sched({ state }))).toBe("run");
   expect(jobControl({ ...waiting, landing: true })).toBe("stop");
  });
+test("merge titles use the resolved target and visible source without guessing main (AC-2)", () => {
+  const base = { project: "p", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "feature/topic" };
+  expect(jobTitle({ ...base, mergeTarget: "trunk" })).toBe("Merge to trunk · feature/topic");
+  expect(jobRowKind(base)).toBe("land");
+  expect(jobTitle(base)).toBe("Merge to unknown default branch · feature/topic");
+});

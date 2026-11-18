@@ -1,9 +1,3 @@
-// What a spec's phase lines say once a new analysis has completed on a
-// spec that had implemented. The record (the state file and git) says
-// implement has not run; the queue's memory of the earlier implement job
-// and the phase's own stamped file outlive that, and the row must not
-// read them as a phase that ran.
-
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -64,11 +58,12 @@ describe("a phase line after a new analysis", () => {
     return dir;
   };
 
-  test("an implement job the queue remembers from before the analysis is not an attempt", () => {
+  test("earlier attempts stay visible without completing superseded work (AC-6)", () => {
     const line = implementLine([analysis, earlierImplement], target());
-    expect(line.attempts).toEqual([]);
+    expect(line.attempts.map(a => a.id)).toEqual(["earlier"]);
     expect(line.fileResult).toBeUndefined();
-    expect(wordOf([analysis, earlierImplement], target()).badge).toBeUndefined();
+    expect(wordOf([analysis, earlierImplement], target()).qualifier).toBeDefined();
+    expect(target().done).not.toContain("implement");
   });
 
   test("an implement the stamped file remembers, with no job, is not a result either", () => {

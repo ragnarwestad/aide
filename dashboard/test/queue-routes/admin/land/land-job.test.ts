@@ -33,7 +33,7 @@ describe("POST /api/queue/projects/:project/land", () => {
       });
       const res = await handleLandSteps(ctx as never, req, "/api/queue/projects/aide/land");
       expect(res?.status).toBe(200);
-      expect(await res?.json()).toMatchObject({ ok: true, message: "Queued Land for topic in aide." });
+      expect(await res?.json()).toMatchObject({ ok: true, message: "Queued Merge for topic in aide." });
       expect(queue.list()).toHaveLength(1);
       expect(queue.list()[0]).toMatchObject({ project: "aide", specFolder: "land", branch: "topic", steps: ["land"] });
     } finally { cleanup(); }
@@ -77,7 +77,7 @@ for (const state of ["queued", "running", "done"] as const) {
 }
 
 
-test("Run from a cancelled Land form queues a fresh job for the same branch", async () => {
+test("Merge retries a cancelled job with the same branch and kind (AC-1)", async () => {
   const { ctx, queue, cleanup } = context(true);
   try {
     const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });

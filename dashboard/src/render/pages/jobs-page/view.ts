@@ -4,6 +4,7 @@
 // where a view link goes. The filter and the sort are the Specs list's own,
 // run over the facts a row has; the bar and the page draw what this decides.
 
+import { jobPresentation } from "../../ui/job-state/presentation.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
   SORTS,
@@ -32,12 +33,11 @@ export const jobsKindFilters = (value: string | undefined): { key: JobsKind }[] 
   chosenStates(kindEntries, value);
 
 export const jobsKindValue = (value: string | undefined): string =>
-  jobsKindFilters(value).map((entry) => entry.key).join(",");
+  jobsKindFilters(value).map((entry) => entry.key).join(",") || "none";
 
 /** The state entries the Jobs tab offers: All, Running, Queued, Done,
- *  Stopped, Failed, Cancelled. Queued is everything the shared queue holds:
- *  a job with a place in it, whatever its row reads, and a group's member the
- *  queue holds before its job exists. Done is a spec archived or closed, or
+ *  Stopped, Failed, Cancelled. Queued is work the board can continue automatically,
+ *  including a group's member held before its job exists. Done is a spec archived or closed, or
  *  any other row's job that has ended done. */
 type StateEntry = StateFilterEntry;
 const finished = (g: unknown): boolean => {
@@ -48,7 +48,7 @@ const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
-  { key: "queued", label: "Queued", where: (g) => g.state === "queued" || !!g.lead?.queuePosition || !!(g as RowFacts).inQueue },
+  { key: "queued", label: "Queued", where: (g) => g.lead ? jobPresentation(g.lead).queued : g.state === "queued" || !!(g as RowFacts).inQueue },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
   { key: "failed", label: "Failed", states: ["failed", "interrupted", "archived-unlanded"] },
   { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
@@ -60,10 +60,10 @@ export const jobsStateFilters = (value: string | undefined): (typeof JOBS_STATE_
   chosenStates(JOBS_STATE_FILTERS, value);
 
 export const jobsStateValue = (value: string | undefined): string =>
-  jobsStateFilters(value).map((entry) => entry.key).join(",");
+  jobsStateFilters(value).map((entry) => entry.key).join(",") || "none";
 
 /** Whether the view's state part is All: no entry narrows it. */
-const choosesAll = (value: string | undefined): boolean => jobsStateFilters(value)[0]!.key === JOBS_STATE_FILTERS[0]!.key;
+const choosesAll = (value: string | undefined): boolean => jobsStateFilters(value)[0]?.key === JOBS_STATE_FILTERS[0]!.key;
 
 /** The view's state value when it names an entry other than All, which opens every group card it shows. */
 export const jobsStateOpensGroups = (value: string | undefined): string | undefined =>
@@ -174,7 +174,7 @@ export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: stri
   return JOBS_STATE_FILTERS.map((s) => ({
     key: s.key,
     count: counted.reduce((sum, g) => sum + stateRows(g).filter((row) => matchesStateFilter(s, row)).length, 0),
-    on: chosen.some((entry) => entry.key === s.key),
+    on: chosen[0]?.key === "all" || chosen.some((entry) => entry.key === s.key),
     state: toggledState(JOBS_STATE_FILTERS, chosen, s.key),
   }));
 }
@@ -186,7 +186,7 @@ export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKi
   return JOBS_KIND_FILTERS.map((key) => ({
     key,
     count: counted.filter((row) => key === "all" || rowKind(row) === key).length,
-    on: chosen.some((entry) => entry.key === key),
+    on: chosen[0]?.key === "all" || chosen.some((entry) => entry.key === key),
     kind: toggledState(kindEntries, chosen, key),
   }));
 }

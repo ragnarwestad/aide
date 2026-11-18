@@ -25,19 +25,13 @@ Structure - follow the spec structure § 1-description:
   prompt states one — Depends on=the stated value, one backticked
   identifier per comma-separated entry, on the line after `Created`
   (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
-  when nothing was stated. Then, by default (see this skill's own
-  "Acceptance" paragraph), a `- **Acceptance:** not required` line —
-  omitted only when the user creating the spec has said they want
-  acceptance ticking required. Nothing about a phase outcome record either —
-  the template names none of it, and this file has two writers for it
-  now: `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no
-  `Repo` — nothing has been analyzed against yet) into this file's own
-  Tracking info once a headless `create` has actually run, plus a time
-  of day onto `Created:`; `aide-create-spec --stamp-outcome`, called from
-  this skill's own Step 5, writes `Model` (optional) and `Time spent`
-  (always) for an interactive run instead — same fields, same
-  absence-not-guess rule for `Model`, no `Repo`/`Result`/`Cost` either
-  way
+  when nothing was stated. Then, when the prompt says acceptance is not
+  required (see the step's own "Acceptance" paragraph), a
+  `- **Acceptance:** not required` line. Nothing about a phase outcome record either —
+  the template names none of it: `aide-run-spec` writes
+  `Model`/`Result`/`Time spent`/`Cost` (no `Repo` — nothing has been
+  analyzed against yet) into this file's own Tracking info once the
+  `create` has run, plus a time of day onto `Created:`
 - **Description:** DESC + editable note — DESC may include an optional
   `## Acceptance criteria` section with AC-n criteria in the five EARS
   patterns, per aide-create's own Step 4, and the author's optional

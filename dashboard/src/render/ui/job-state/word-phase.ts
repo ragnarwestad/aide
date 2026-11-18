@@ -1,5 +1,5 @@
 import { waitingFor } from "./waiting.ts";
-import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
+import { jobPresentation } from "./presentation.ts";
 // The one rule for what a phase shows.
 
 import type { BadgeVariant, PipKind } from "../components";
@@ -139,7 +139,8 @@ function decidePhase(
   lang: Language = "en",
 ): PhaseWord {
   const pending = history.waiting ?? waitingFor(attempt, history.step);
-  if (pending?.id) {
+  const shown = attempt ? jobPresentation(attempt, history.step, pending) : undefined;
+  if (pending?.id && (!shown || shown.queued)) {
     const pos = pending;
     return { pip: "queued", waiting: pos, badge: { variant: "idle", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
   }
@@ -156,8 +157,13 @@ function decidePhase(
   // State column says is archiving is the row saying two things at once
   // (reported 2026-08-23). Only the pip moved before, and a pip is not
   // a word.
-  if (attempt && automaticProviderWait(attempt) && attempt.steps[attempt.stepIndex] === history.step) {
-    return { pip: "waiting", badge: { variant: "waiting", label: stateWord(attempt, lang) }, qualifier: filesDisagree };
+  if (attempt && shown && ["queued", "needs-action", "testing", "merging"].includes(shown.state) &&
+      (!history.step || history.step === attempt.steps[attempt.stepIndex] || !!pending)) {
+    return { pip: shown.queued ? "queued" : shown.state === "needs-action" ? "waiting" : "now",
+      badge: { variant: shown.variant, label: shown.waiting
+        ? t(lang, "list.stateQueuedPosition", { n: shown.waiting.n, total: shown.waiting.total })
+        : capitalizeFirst(stateWord({ ...attempt, queuePosition: shown.waiting }, lang)) },
+      qualifier: pending?.reason ?? filesDisagree };
   }
   if (running) {
     // A step whose own process already ended is still "running" from a

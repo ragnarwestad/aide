@@ -6,7 +6,7 @@ import { pendingDeploy } from "../job-rules/deploy-priority.ts";
 import type { BoardMessage } from "../../messages/types.ts";
 import type { Job, QueueStore } from "../queue.ts";
 import { specReference } from "../../project/spec-folder.ts";
-import { takesSlot, writing } from "../steps.ts";
+import { jobKind, takesSlot, writing } from "../steps.ts";
 import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 
 export interface HoldAnswers {
@@ -65,7 +65,9 @@ export const HOLDS: readonly Hold[] = [
     at.jobs().filter((candidate) => candidate.state === "running" && takesSlot(candidate)).length >= at.maxConcurrent
     ? WAIT : undefined },
   { name: "own-landing", check: (job) => job.landing ? WAIT : undefined },
-  { name: "same-spec-running", check: (job, at) => at.jobs().some((candidate) =>
+  // Only a spec's own steps share a folder: every Land, Deploy and cleanup
+  // carries the same key, and one waiting for another is named below.
+  { name: "same-spec-running", check: (job, at) => jobKind(job) === "spec" && at.jobs().some((candidate) =>
     candidate.state === "running" && candidate.project === job.project && candidate.specFolder === job.specFolder)
     ? WAIT : undefined },
   { name: "deploy-priority", check: (job, at) =>

@@ -2,7 +2,7 @@ import { t, type Language, type TranslationKey } from "../../i18n/index.ts";
 import { formatSentence } from "../format.ts";
 import type { Message } from "../types.ts";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
-import { heldBackResolvesOnItsOwn } from "./holds.ts";
+import { jobPresentation } from "../../render/ui/job-state/presentation.ts";
 import { getUsageLimitMessage } from "../usage-limit/get.ts";
 
 /** The line under a job row's state, or none. A job that failed, stopped or
@@ -13,7 +13,7 @@ import { getUsageLimitMessage } from "../usage-limit/get.ts";
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
 type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
-  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider" | "specFolder" | "landing">> & {
+  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider" | "specFolder" | "landing" | "queuePosition">> & {
     steps: readonly string[];
   };
 
@@ -24,6 +24,14 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
 };
 
 export function getJobMessage(row: MessageRow, lang: Language): Message | undefined {
+  const shown = jobPresentation(row);
+  if (shown.queued && row.queuePosition?.reason) return { variant: "info", text: row.queuePosition.reason };
+  if (shown.state === "needs-action" && !row.error) {
+    const key = row.results?.at(-1)?.terminalReason === "approach-choice"
+      ? "runner.approachChoice" : "wordPhase.stopAcceptanceCriteriaUnticked";
+    const text = formatSentence(lang, { key });
+    if (text) return { variant: "waiting", text };
+  }
   const ended = ENDED[row.state];
   if (ended) {
     // A usage-limit stop is told in its own sentence, which names the
@@ -39,7 +47,7 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
   }
   if (row.errorReason === "held-back") {
     const text = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now())?.text ?? formatSentence(lang, row.error);
-    if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
+    if (text) return { variant: shown.queued ? "info" : "waiting", text };
   }
   return undefined;
 }

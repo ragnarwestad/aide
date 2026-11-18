@@ -37,7 +37,7 @@ const BY_WORD: [RegExp, string][] = [
   // Standing still until another spec is done: no icon, though the word
   // would otherwise fall to the "-ing" catch below.
   [stateWords("list.state.waiting"), ""],
-  [stateWords("state.running"), "loader"],
+  [stateWords("state.running", "state.testing", "state.merging"), "loader"],
   [/^\w+ing\b|^\w+er\b/, "loader"],
 ];
 

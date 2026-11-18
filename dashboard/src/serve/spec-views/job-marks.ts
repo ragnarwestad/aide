@@ -2,6 +2,8 @@
 // job's step log has marked (`stepMarks`), and for a job that ended any
 // other way than done, or done with its merge into main stopped, the step
 // it stopped at and why.
+import { statSync } from "node:fs";
+import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, schedulePlan, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
@@ -20,7 +22,7 @@ const cleanupPlan = (lang: Language, marks: StepMark[]): PlannedStep[] => {
 const LAND_LABELS = ["Merge branch", "Run tests", "Push default branch", "Delete source branch"];
 const landPlan = (): PlannedStep[] => LAND_LABELS.map((label, index) => ({ key: stepKey(`${index + 1} of 4`, ""), label }));
 
-export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
+function readJobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
   const result = job.results.at(-1);
   const file = job.streamFile ?? result?.streamFile;
@@ -43,6 +45,33 @@ export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?
   const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
   const reason = formatSentence(lang, said) || failed?.why;
   return reason ? { marks, reason, logs } : { marks, logs };
+}
+
+type Snapshot = ReturnType<typeof readJobMarks>;
+const mergeSnapshots = new Map<string, { stamp: string; snapshot: Snapshot }>();
+function signature(path: string | undefined): unknown {
+  if (!path) return null;
+  try { const s = statSync(path); return [path, s.ino, s.size, s.mtimeMs, s.ctimeMs]; }
+  catch { return [path, "missing"]; }
+}
+
+function mergeStamp(job: Job, lang: Language): string {
+  const file = job.streamFile ?? job.results.at(-1)?.streamFile;
+  return JSON.stringify([lang, signature(file), signature(file ? runLogPath(file) : undefined),
+    job.state, job.landing, job.error, job.landingError, job.results.at(-1)]);
+}
+
+export function jobMarks(job: Job, lang: Language): Snapshot {
+  if (jobKind(job) !== "land") return readJobMarks(job, lang);
+  const stamp = mergeStamp(job, lang);
+  const key = `${job.id}|${lang}`;
+  const kept = mergeSnapshots.get(key);
+  if (kept?.stamp === stamp) return structuredClone(kept.snapshot);
+  const snapshot = readJobMarks(job, lang);
+  mergeSnapshots.delete(key);
+  mergeSnapshots.set(key, { stamp, snapshot });
+  if (mergeSnapshots.size > 2000) mergeSnapshots.delete(mergeSnapshots.keys().next().value!);
+  return structuredClone(snapshot);
 }
 
 /** One step of a Close, Reopen, deploy, scheduled job or a spec's phase: its state, how long it took
@@ -130,7 +159,7 @@ const pipsRead = new Map<string, { stamp: string; pips: JobStepPip[] }>();
 export function jobStepPips(job: Job, lang: Language, prompt = ""): JobStepPip[] {
   const read = (): JobStepPip[] => jobStepLines(job, lang, prompt).map(({ label, state }) => ({ label, state }));
   if (inFlight(job)) return read();
-  const stamp = `${job.state}|${job.finishedAt ?? ""}|${lang}|${prompt}`;
+  const stamp = jobKind(job) === "land" ? mergeStamp(job, lang) : `${job.state}|${job.finishedAt ?? ""}|${lang}|${prompt}`;
   const kept = pipsRead.get(job.id);
   if (kept?.stamp === stamp) return kept.pips;
   const pips = read();

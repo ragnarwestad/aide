@@ -20,7 +20,7 @@
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
 problem through with the user first — no files, no spec. Use it when
-the idea or scope is not ready for `/aide-create` yet.
+the idea or scope is not ready for a spec yet.
 
 ### Phase 1: Create document structure
 
@@ -46,12 +46,12 @@ specs/05-class-to-functional/
 **What is done:**
 1. Reads `1-description.md`
 2. Analyzes the codebase (specific files + line numbers, and what depends on them, an interface's other side included)
-3. **Grades the complexity** by the change's risk (the criteria are in `aide-analyze`'s `references/complexity-and-analysis.md`)
+3. **Grades the complexity** by the change's risk (the criteria are in the analyze step's `references/complexity-and-analysis.md`)
 4. Identifies affected projects (frontend, backend, etc.)
 5. Assesses API impact (see [api-impact.md](./api-impact.md))
 6. Updates all 4 document files
 7. **Reviews the plan** — at every complexity of a full analysis; a short analysis (a small spec,
-   `aide-analyze`'s `references/spec-files.md`) has no plan and no review. Reviewers with distinct perspectives (feasibility, scope
+   the analyze step's `references/spec-files.md`) has no plan and no review. Reviewers with distinct perspectives (feasibility, scope
    guardian, coherence) attack `3-solution.md` BEFORE any test is
    written — where mistakes are cheapest to catch. Findings land in a
    "Plan review" section of `3-solution.md`, and the plan is REVISED for
@@ -80,7 +80,7 @@ branch when the change warrants one (user-triggered, requires a git repo).
 
 ### Phase 4: Archive
 
-When the work is done, run `/aide-archive <ID>`:
+When the work is done, queue Archive (`aide archive <ID>` or the dashboard):
 
 1. Verifies that `4-status.md` shows finished work
 2. Feeds durable knowledge (decisions, conventions, gotchas) back into the

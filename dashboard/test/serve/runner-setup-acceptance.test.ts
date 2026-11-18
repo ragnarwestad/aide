@@ -112,7 +112,7 @@ describe("stepDoneHandler", () => {
         calls.push("land archive");
         return Promise.resolve();
       },
-      store: { forgetPendingSteps: () => {} },
+      store: { forgetPendingSteps: () => {}, get: () => undefined },
     };
     return { calls, handle: stepDoneHandler(ctx as unknown as Parameters<typeof stepDoneHandler>[0]) };
   };

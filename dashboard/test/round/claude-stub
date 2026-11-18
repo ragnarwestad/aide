@@ -77,7 +77,7 @@ if printf '%s' "$prompt" | grep -q "^A scheduled job that fails\.$"; then
   fail "the scheduled job failed on purpose"
 fi
 
-step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
+step="$(printf '%s' "$prompt" | sed -n 's#^Read .*/lib/steps/aide-\([a-z-]*\)/SKILL\.md.*#\1#p' | head -1)"
 [ -n "$step" ] || fail "claude-stub: the prompt does not name a step: $prompt"
 
 # The board's Delay (src/integrations/round-delay.ts): a wait before each
@@ -116,7 +116,7 @@ if [ "$step" = "create" ]; then
   ok "created $(printf '%s' "$result" | jq -r .specFolder)"
 fi
 
-spec="$(printf '%s' "$prompt" | sed -n 's#^/aide-[a-z-]* \([^[:space:]]*\).*#\1#p' | head -1)"
+spec="$(printf '%s' "$prompt" | sed -n 's#^Read .*/lib/steps/aide-[a-z-]*/SKILL\.md and follow it, with this argument: \([^[:space:]]*\)\..*#\1#p' | head -1)"
 specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
 [ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
 folder="$(aide_resolve_spec "$spec" "$specs_root")"
@@ -216,7 +216,7 @@ append_fact() {  # append_fact <text>
 }
 
 # The section a real analyze writes into 4-status.md
-# (core/skills/aide-analyze/references/requirements-tracing.md, step 8),
+# (core/scripts/lib/steps/aide-analyze/references/requirements-tracing.md, step 8),
 # so it lands on the default branch with analyze and the Checks tab can
 # offer the row while implement's own work is still on its branch.
 #

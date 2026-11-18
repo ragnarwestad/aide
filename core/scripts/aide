@@ -6,9 +6,9 @@
 #
 # The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
 # machine (as aide-push-specs reads it). Without it, or with a board that
-# does not know the project, no request is made: the command says so, names
-# the /aide-<step> skill to run in an AI session instead, and exits 3
-# (NO_BOARD_EXIT in lib/board-request.sh).
+# does not know the project, no request is made: the command says so and
+# exits 3 (NO_BOARD_EXIT in lib/board-request.sh). A spec's steps run only
+# on a board.
 #
 # Every answer is one plain sentence and no link. An accepted request says
 # what was created or queued and, for queued work, which model it uses and
@@ -461,22 +461,22 @@ main() {
   find_target_root
   case "$command" in
     create)
-      require_board "queue create" "/aide-create"
+      require_board "queue create"
       run_create ;;
     land)
-      require_board "queue Land for $land_branch in" ""
+      require_board "queue Land for $land_branch in"
       run_land ;;
     status)
-      require_board "ask about $spec_arg" ""
+      require_board "ask about $spec_arg"
       prepare_status_ref
       resolve_spec "$spec_arg"
       run_status ;;
     close)
-      require_board "queue close on" "/aide-close $spec_arg"
+      require_board "queue close on"
       resolve_spec "$spec_arg"
       run_close ;;
     *)
-      require_board "queue $command on" "/aide-$command $spec_arg"
+      require_board "queue $command on"
       resolve_spec "$spec_arg"
       run_step ;;
   esac

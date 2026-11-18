@@ -38,6 +38,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
   const kindOptions = jobsKindOptions(facts, f);
   const state = menuDropdown({
     filter: "state",
+    none: { label: t(lang, "list.state.none"), href: esc(jobsViewPath(f, { state: "none" })) },
     ariaLabel: t(lang, "list.statesLabel"),
     triggerLabel: t(lang, "list.statesLabel"),
     options: stateOptions.map((o) => ({
@@ -50,6 +51,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
   });
   const kind = menuDropdown({
     filter: "kind",
+    none: { label: t(lang, "list.state.none"), href: esc(jobsViewPath(f, { kind: "none" })) },
     ariaLabel: t(lang, "jobs.typesLabel"),
     triggerLabel: t(lang, "jobs.typesLabel"),
     options: kindOptions.map((o) => ({

@@ -13,7 +13,7 @@ test("all picker pages use the shared select renderers (AC-4, AC-11)", () => {
     expect(readFileSync(join(root, file), "utf8")).toContain("providerSelect");
     expect(readFileSync(join(root, file), "utf8")).toContain("modelSelect");
   }
-  const options = readFileSync(join(root, "src/render/pages/new-spec-page/options-tab.ts"), "utf8");
+  const options = readFileSync(join(root, "src/render/pages/new-spec-page/options.ts"), "utf8");
   expect(options).not.toContain("newSpecPhaseTable");
   expect(options).not.toContain("phaseChoiceTable");
 });

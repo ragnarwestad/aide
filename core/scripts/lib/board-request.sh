@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# board-request.sh — how `aide` and `aide-hand-off` talk to the board: the
+# board-request.sh — how `aide` talks to the board: the
 # project and the board's address, one request with its timeouts, the
 # board's refusal as a sentence, and the check that a board is set and knows
-# the project. Sourced by core/scripts/aide and core/scripts/aide-hand-off,
-# after _aide-spec-lib.sh; each defines die() and sets project.
+# the project. Sourced by core/scripts/aide after _aide-spec-lib.sh; it
+# defines die() and sets project.
 
 # The exit for "there is no board for this project here": no address, no
 # curl, or a board that does not know the project. A caller tells it from a
@@ -107,17 +107,16 @@ accepted() {
 }
 
 # The board must be set and must know the project before anything else.
-# $1 names what the user wanted, $2 the skill to run instead ("" for status).
+# $1 names what the user wanted.
 require_board() {
-  local what="$1" instead="$2" tail=""
-  [ -n "$instead" ] && tail=" — run $instead in an AI session instead"
-  [ -n "$board_url" ] || no_board "AIDE_BOARD_URL is not set in ~/.aide/config, so there is no board to $what$tail"
-  command -v curl >/dev/null 2>&1 || no_board "curl is not on this machine, so there is no way to reach the board$tail"
+  local what="$1"
+  [ -n "$board_url" ] || no_board "AIDE_BOARD_URL is not set in ~/.aide/config, so there is no board to $what"
+  command -v curl >/dev/null 2>&1 || no_board "curl is not on this machine, so there is no way to reach the board"
   # The fetch asks origin and rereads the project, which a loaded board
   # takes as long over as a queued request.
   http_or_die POST "/api/queue/projects/$project/fetch-specs" "$ANSWER_SECONDS"
   case "$http_status" in
-    404) no_board "the board at $board_url does not know the project $project, so there is nothing to $what$tail" ;;
+    404) no_board "the board at $board_url does not know the project $project, so there is nothing to $what" ;;
     200|400) ;;
     *) refuse ;;
   esac

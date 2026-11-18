@@ -1,5 +1,5 @@
 import { dispatchFor } from "../waiting/dispatch.ts";
-import { waitingKey } from "../waiting/jobs.ts";
+import { waitingKey, validateWaitingArchives } from "../waiting/jobs.ts";
 // The scheduler: a configurable number of jobs at
 // once, every step bounded before it starts, and a restart reconciled
 // rather than guessed at.
@@ -149,6 +149,7 @@ export class Runner {
         endUntickedArchive(this.o.store, job, this.o.now());
       }
     }
+    validateWaitingArchives(this.o.store);
     const priority = this.o.store.waiting.snapshot().entries.map(entry => entry.id);
     for (const job of this.o.store.list().sort((a, b) => priority.indexOf(waitingKey(a)) - priority.indexOf(waitingKey(b)))) {
       if (job.state !== "queued") continue;

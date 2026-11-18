@@ -170,7 +170,7 @@ class TestImplementSkillReportsItsPhases:
     def test_the_skill_reports_each_tdd_phase(self, workspace_root):
         """The events are worth nothing if the skill never sends them —
         the design puts one line in each TDD phase."""
-        skill = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md").read_text()
+        skill = (workspace_root / "core" / "scripts" / "lib" / "steps" / "aide-implement" / "SKILL.md").read_text()
         for phase in ("red", "green", "verify"):
             assert f"aide-emit-run --phase {phase}" in skill, (
                 f"the {phase.upper()} phase must report its boundary"

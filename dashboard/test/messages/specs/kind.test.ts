@@ -30,7 +30,7 @@ describe("getSpecMessage's held-back branch reads errorReason, not a text prefix
   });
 
   test("text starting with 'held back:' but a different errorReason renders failed", () => {
-    const notice = getSpecMessage(lead({ error: "held back: not analyzed yet — run /aide-analyze first", errorReason: "conflict" }));
+    const notice = getSpecMessage(lead({ error: "held back: not analyzed yet — run Analyze first", errorReason: "conflict" }));
     expect(notice?.variant).toBe("failed");
   });
 
