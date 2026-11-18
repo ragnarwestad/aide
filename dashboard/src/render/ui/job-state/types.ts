@@ -34,6 +34,8 @@ export interface QueueRowView {
   state: JobState;
   landing?: boolean;
   branch?: string;
+  mergeTarget?: string;
+  mergeActivity?: "testing" | "merging" | "running";
   landPushStarted?: boolean;
   landSuccessor?: { id: string; landed: boolean };
   deploy?: { restartedAt?: string };

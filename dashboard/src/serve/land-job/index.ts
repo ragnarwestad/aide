@@ -18,7 +18,7 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
       const output = boardStep({ resultFile, streamFile, startedAt: stepStartedAt });
       const branch = job.branch;
       if (!branch) {
-        output.failed("invalid-request", "the Land job has no branch");
+        output.failed("invalid-request", "the Merge job has no branch");
         return { pid: process.pid, pgid: 0 };
       }
       beginLand(job.id);
@@ -35,7 +35,7 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
         currentTask = next;
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "started");
       };
-      output.note(`Land branch: ${branch}`);
+      output.note(`Merge branch: ${branch}`);
       output.mark("1 of 4", TASKS[0]!, "started");
       const work = land(ctx, { ...job, resultFile, streamFile, stepStartedAt }, {
         branch,
@@ -45,14 +45,14 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
         cancelled: () => ctx.queue.get(job.id)?.state === "cancelled",
         repos: [{ root, url: `origin/${branch}` }],
         progress,
-        failedNote: (why) => ({ key: "landing.stepLandingFailed", values: { step: "Land", why, button: "Land" } }),
+        failedNote: (why) => ({ key: "landing.stepLandingFailed", values: { step: "Merge", why, button: "Merge" } }),
       }).then(() => {
         const settled = ctx.queue.get(job.id);
         if (settled?.state === "cancelled") return stopped();
         if (settled?.branchDeleteError) {
           const deleteError = Array.isArray(settled.branchDeleteError) ? settled.branchDeleteError[0] : settled.branchDeleteError;
           output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "stopped: branch delete failed");
-          output.failed("branch-delete-failed", "Land left the source branch on origin", deleteError);
+          output.failed("branch-delete-failed", "Merge left the source branch on origin", deleteError);
           return;
         }
         if (settled?.landingError || settled?.errorReason === "conflict" || settled?.errorReason === "tests-red") {
@@ -68,7 +68,7 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
         .finally(() => endLand(job.id));
       function stopped(): void {
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "stopped: cancelled by user");
-        output.failed("cancelled", "Land stopped by user");
+        output.failed("cancelled", "Merge stopped by user");
       }
       const held = holdLanding(ctx.queue, job.id, work);
       ctx.queue.update(job.id, held.patch);

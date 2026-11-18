@@ -185,16 +185,6 @@ describe("the state filter offers the states a row on the tab can be in", () => 
     }
   });
 
-  // Queued is the shared queue: every job the queue holds, whatever state its
-  // row reads, and nothing it does not.
-  test("Queued holds every job the shared queue holds, whatever its row's state", () => {
-    const place = { n: 1, total: 3 };
-    const limitWait = jobEntry("limit", { specFolder: "schedule-limit", state: "stopped", queuePosition: place, createdAt: T(6) });
-    const acceptance = spec("acceptance", { specFolder: "149-acceptance", state: "done", lead: jobRowView({ state: "done", queuePosition: place }) });
-    const stoppedOut = spec("stopped", { specFolder: "150-stopped", state: "stopped", lead: jobRowView({ state: "stopped" }) });
-    expect(view([limitWait, acceptance, stoppedOut], { state: "queued" }).sort()).toEqual(["acceptance", "limit"]);
-  });
-
   test("a key the tab does not offer is All, and filters as All does", () => {
     for (const key of [undefined, "", "archived", "closed", "not-archived", "waiting", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
@@ -415,4 +405,11 @@ test("Types counts and filters Land independently of Deploy", () => {
   expect(view([land, deploy], { kind: "land" })).toEqual(["land"]);
   expect(view([land, deploy], { kind: "deploy" })).toEqual(["deploy"]);
   expect(jobsKindOptions([land.facts, deploy.facts], {}).find((entry) => entry.key === "land")?.count).toBe(1);
+});
+
+test("Queued filter uses the same automatic wait decision as the row (AC-7)", () => {
+  const auto = jobEntry("automatic", { state: "running", errorReason: "held-back", error: { key: "runner.landingPause" } });
+  const manual = jobEntry("manual", { state: "queued", queuePosition: { n: 1, total: 1, id: "job:m" }, errorReason: "held-back", error: "Choose an approach" });
+  expect(jobsViewRows([auto, manual], { state: "queued" }).map(e => e.name)).toEqual(["automatic"]);
+  expect(jobsStateOptions([auto.facts, manual.facts], {}).find(o => o.key === "queued")?.count).toBe(1);
 });

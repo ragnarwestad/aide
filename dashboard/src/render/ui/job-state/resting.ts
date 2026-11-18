@@ -1,4 +1,4 @@
-import { waitingFor } from "./waiting.ts";
+import { jobPresentation } from "./presentation.ts";
 import { queueBadge } from "../components/queue-editor";
 // What a row's chip says when nothing is running on it.
 
@@ -7,7 +7,6 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status
 import { t, type Language } from "../../../i18n";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { BADGE_VARIANT, currentStep, stateWord } from "./format.ts";
-import { heldBackResolvesOnItsOwn } from "../../../messages/jobs/holds.ts";
 import type { QueueRowView } from "./types.ts";
 import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
 
@@ -86,62 +85,21 @@ export function landingStep(r: { steps: readonly string[]; stepIndex: number; st
   return r.steps[landingStepIndex(r.state, r.stepIndex)] ?? currentStep(r);
 }
 
-/** "Held back", neutral when the hold clears on its own and amber when it waits on a person. */
-function heldBackBadge(r: QueueRowView, lang: Language): string {
-  return badge(heldBackResolvesOnItsOwn(r) ? "idle" : "waiting", capitalizeFirst(t(lang, "state.heldBack")));
-}
-
+/** Current operation, using the same wait decision as the phase and filter. */
 export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
-  const waiting = waitingFor(r);
-  if (waiting?.id) return queueBadge(lang, waiting.id, waiting.n, waiting.total, waiting.reason);
-  if (r.state === "running") {
-    // A running job whose reason is a hold waits as a held-back one does: a
-    // deploy's fetch or restart waiting for a landing to settle.
-    if (r.errorReason === "held-back") return heldBackBadge(r, lang);
-    return badge("running", gerund(lang, currentStep(r)));
+  const shown = jobPresentation(r);
+  if (shown.waiting?.id) {
+    const pos = shown.waiting;
+    return queueBadge(lang, pos.id!, pos.n, pos.total, pos.reason);
   }
-  // A landing in flight is what the row says, whichever state the job
-  // has reached — `done` with the step's own branch still merging, or
-  // already `queued` on the NEXT step while the last one lands. Read as
-  // the queued case below, that second shape drew "implementing" over a
-  // job whose analyze was the thing landing, and the landing — the one
-  // reason nothing else in the queue could start — was nowhere on the
-  // page (2026-09-04). The step named is the landing's own: the step
-  // just finished, never the one queued behind it.
-  // The step's own gerund, not a word for the merge: from outside, a
-  // spec whose archive branch is being merged is archiving. Splitting
-  // "the step ran" from "its branch is merging" is the machinery's own
-  // division, and a reader is asked to act on neither half. The STEP
-  // named is still the landing's own — that is what keeps the merge
-  // visible as the reason nothing else in the queue can start.
-  if (r.landing) return badge("running", gerund(lang, landingStep(r)));
-  if (r.state === "queued") {
-    const step = currentStep(r);
-    // Held back: not competing for a slot, so no number
-    // claims it is next in line for one — the row's own panel
-    // (getSpecMessage) already says the actual reason underneath.
-    // Its own word, not "stopped": a hold is a routine wait,
-    // never a stop, and its colour follows the same classification the
-    // notice line already uses — neutral when the hold clears on its
-    // own, amber when it waits on a person — so the two never disagree.
-    const pos = r.queuePosition;
-    return badge(
-      "idle",
-      pos
-        ? t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total })
-        : t(lang, "list.stateQueued", { step: gerund(lang, step) }),
-    );
+  if (["queued", "needs-action", "testing", "merging"].includes(shown.state)) {
+    const pos = shown.waiting;
+    return badge(shown.variant, pos
+      ? t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total })
+      : capitalizeFirst(stateWord(r, lang)));
   }
-  // The step finished and `state` already reads "done", but its branch
-  // has not landed yet (`Runner.complete()` writes both in the same
-  // update — `runner.ts`). A row that fell through to `restingChip`
-  // here would offer "ready" for a spec whose files do not exist yet.
+  if (r.landing) return badge("running", r.steps[0] === "land" ? stateWord(r, lang) : gerund(lang, landingStep(r)));
+  if (r.state === "running") return badge("running", r.steps[0] === "land" ? stateWord(r, lang) : gerund(lang, currentStep(r)));
   if (r.state === "done") return restingChip(lang, resting);
-  // Bare word only — `stateLabel()`'s "stopped —
-  // <reason>" suffix is the notice line's to say now (`lead.error`,
-  // verified always populated for every stopReason). `stateChip` still
-  // carries the full text, for the job DETAIL page's own big badge
-  // (`job-page.ts`, which this does not change).
   return badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
 }
-

@@ -16,20 +16,20 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
   const body = await parseBody(req);
   if (body instanceof Response) return body;
   const branch = body.branch;
-  if (typeof branch !== "string" || !SAFE_BRANCH.test(branch)) return refuse("Land needs a safe branch name");
+  if (typeof branch !== "string" || !SAFE_BRANCH.test(branch)) return refuse("Merge needs a safe branch name");
   const root = ctx.machineryProjectDir(project);
   const base = await ctx.branchStatus.defaultBranch(root);
   if (!base) return refuse(`the default branch for ${project} could not be read`);
-  if (branch === base) return refuse(`${branch} is ${project}'s default branch, so there is nothing for Land to merge`);
+  if (branch === base) return refuse(`${branch} is ${project}'s default branch, so there is nothing for Merge to merge`);
   const found = await ctx.gitRun(root, lsRemoteBranch(branch));
   if (found.code === LS_REMOTE_NO_MATCH) return refuse(`origin has no branch named ${branch}`);
   if (found.code !== 0) return refuse(`origin could not be checked for branch ${branch}`);
   const running = ctx.queue.list().find((job) => job.project === project && jobKind(job) === "land" && job.branch === branch && inFlight(job));
-  if (running) return refuse(`a Land job for ${branch} is already ${running.state} in ${project}`);
+  if (running) return refuse(`a Merge job for ${branch} is already ${running.state} in ${project}`);
   const result = enqueueRequest(ctx.queue, { project, specFolder: LAND_KEY, steps: ["land"], branch }, "manual");
   if (!result.ok) return refuse(result.error);
   await ctx.tickRunner();
-  return json({ ok: true, job: result.job, message: `Queued Land for ${branch} in ${project}.` });
+  return json({ ok: true, job: result.job, message: `Queued Merge for ${branch} in ${project}.` });
 }
 
 export async function handleLandSteps(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {

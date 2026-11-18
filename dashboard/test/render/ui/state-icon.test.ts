@@ -18,3 +18,8 @@ describe("stateIconName()", () => {
     expect(stateIconName("Analyzing")).toBe("loader");
   });
 });
+
+test("translated merge activities use the running icon (AC-5, AC-6)", () => {
+  expect(stateIconName(t("fr", "state.testing"))).toBe("loader");
+  expect(stateIconName(t("fr", "state.merging"))).toBe("loader");
+});

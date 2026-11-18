@@ -556,7 +556,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(list).toContain("81-queue-and-runner");
   });
 
-  test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines", async () => {
+  test("an acceptance wait keeps its acceptance panel on both pages (AC-4)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
     const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
@@ -564,7 +564,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(jobsTab).toContain("data-caption");
     expect(jobsTab).toContain("data-step=");
     expect(list).toContain('class="checklist"');
-    expect(jobsTab).toContain("data-waiting-open=");
   });
 
   test("a spec with no job opened on each: the Jobs tab has its Run, the list has none", async () => {

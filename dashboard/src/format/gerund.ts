@@ -20,7 +20,7 @@ import { stepLabel } from "./step-label.ts";
 export const GERUND_EN: Record<string, string> = {
   create: "Creating", analyze: "Analyzing", implement: "Implementing", archive: "Archiving",
   explore: "Exploring", reopen: "Reopening", reset: "Resetting",
-  schedule: t("en", "list.state.running"), close: "Closing", deploy: "Deploying", land: "Landing", cleanup: "Cleaning up",
+  schedule: t("en", "list.state.running"), close: "Closing", deploy: "Deploying", land: "Merging", cleanup: "Cleaning up",
 };
 export const GERUND_NB: Record<string, string> = {
   create: "Oppretter", analyze: "Analyserer", implement: "Implementerer", archive: "Arkiverer",

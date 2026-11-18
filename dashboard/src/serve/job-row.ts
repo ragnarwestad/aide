@@ -1,3 +1,4 @@
+import { jobMarks } from "./spec-views/job-marks.ts";
 import { waitingKey } from "../queue/waiting/jobs.ts";
 // The queue row view: what every list, job page and spec page draws a
 // job from — pulled out of `createServer`'s closure the same way the
@@ -5,7 +6,7 @@ import { waitingKey } from "../queue/waiting/jobs.ts";
 // unlike `schedules.ts`, nothing here reads a `let` reassigned later in
 // boot, so every field is a plain value.
 
-import { tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
+import { jobKind, writing, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView, SideRunView } from "../render";
 import type { SideRun } from "../queue/runner/side-run.ts";
@@ -17,15 +18,21 @@ import { requireWorkflowStep } from "../workflow-steps.ts";
 export interface JobRowContext {
   queue: QueueStore;
   store: AideRunStore;
+  mergeTarget?: (project: string) => Promise<string | null | undefined>;
 }
 
 export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView> {
+  const standaloneMerge = jobKind(job) === "land";
+  const target = standaloneMerge ? Promise.resolve().then(() => ctx.mergeTarget?.(job.project)).catch(() => undefined) : undefined;
+  const mark = standaloneMerge && writing(job)
+    ? jobMarks(job, "en").marks.findLast(mark => mark.state === "running" && /^Step [1-4] of 4$/.test(mark.key))?.key : undefined;
+  const mergeActivity = mark === "Step 2 of 4" ? "testing" : mark === "Step 1 of 4" ? "merging" : mark ? "running" : undefined;
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
   const providerKey = step && requireWorkflowStep(step).runsModel ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
   const waiting = ctx.queue.waiting.snapshot().entries;
-  const phases = Object.fromEntries(waiting.filter(entry => entry.jobId === job.id).map(entry => [entry.operation, positionOf(waiting, entry.id)!]));
+  const waitingFacts = jobWaiting(waiting, job);
   return {
     id: job.id,
     project: job.project,
@@ -40,11 +47,12 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // that takes its tick cannot disagree about where the tail
     // starts.
     editableSteps: tailEdits(job),
-    queuePosition: queuePosition(waiting, job),
-    waitingPhases: phases,
+    ...waitingFacts,
     state: job.state,
     landing: job.landing,
     branch: job.branch,
+    mergeTarget: (await target) ?? undefined,
+    mergeActivity,
     landPushStarted: job.landPushStarted,
     landSuccessor: job.state === "cancelled" && job.steps[0] === "land" ? landSuccessor(job, ctx.queue.list()) : undefined,
     deploy: job.deploy,
@@ -130,4 +138,11 @@ function positionOf(entries: import("../queue/waiting").WaitingEntry[], id: stri
 function queuePosition(entries: import("../queue/waiting").WaitingEntry[], job: Job): QueueRowView["queuePosition"] {
   const continuation = entries.find(entry => entry.jobId === job.id && (entry.id.startsWith("merge:") || entry.id.startsWith("deploy:")));
   return positionOf(entries, continuation?.id ?? waitingKey(job));
+}
+
+export function jobWaiting(entries: import("../queue/waiting").WaitingEntry[], job: Job): Pick<QueueRowView, "queuePosition" | "waitingPhases"> {
+  return {
+    queuePosition: queuePosition(entries, job),
+    waitingPhases: Object.fromEntries(entries.filter(entry => entry.jobId === job.id).map(entry => [entry.operation, positionOf(entries, entry.id)!])),
+  };
 }

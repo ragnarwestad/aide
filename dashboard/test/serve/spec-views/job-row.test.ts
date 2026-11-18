@@ -198,3 +198,60 @@ test("a cancelled Land row points at its later successful attempt", async () => 
   expect(row.landSuccessor).toEqual({ id: next.job.id, landed: true });
   expect(row.state).toBe("cancelled");
 });
+
+test("merge rows resolve the destination and forward current numeric activity (AC-2, AC-5, AC-6)", async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "merge-row-"));
+  try {
+    const file = join(dir, "job.land.stream.jsonl");
+    writeFileSync(file, "");
+    const queue = makeStore();
+    const queued = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+    if (!queued.ok) throw new Error(queued.error);
+    const ctx = { queue, store: new AideRunStore(), mergeTarget: async () => "trunk" };
+    for (const [task, activity] of [[1, "merging"], [2, "testing"], [3, "running"], [4, "running"]] as const) {
+      writeFileSync(file.replace(".stream.jsonl", ".run.log"), `aide-run-spec 12:00:00 +0s --- Step ${task} of 4: Task — started\n`);
+      queue.update(queued.job.id, { state: "running", streamFile: file });
+      expect(await jobRow(ctx, queue.get(queued.job.id)!)).toMatchObject({ mergeTarget: "trunk", mergeActivity: activity });
+    }
+    expect((await jobRow({ ...ctx, mergeTarget: async () => { throw new Error("unavailable"); } }, queue.get(queued.job.id)!)).mergeTarget).toBeUndefined();
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("concurrent merge rows share targets and subsequent refreshes retry failed lookups (AC-2)", async () => {
+  const { setupLand } = await import("../../../src/serve/setup/land.ts");
+  const { QueueStore } = await import("../../../src/queue/queue.ts");
+  const { AideRunStore } = await import("../../../src/queue/aide-run-store.ts");
+  const queue = new QueueStore({ mirrorPath: undefined, defaults: { timeoutSec: { default: 60 }, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
+  let calls = 0;
+  let target: string | null = null;
+  const rows = setupLand({} as never, {
+    queue, store: new AideRunStore(), machineryProjectDir: (project: string) => project,
+    branchStatus: { defaultBranch: async () => { calls++; await Promise.resolve(); if (!target) throw new Error("unavailable"); return target; } },
+  } as never);
+  const own = (id: string, project = "aide") => ({ id, project, specFolder: "land", steps: ["land"], stepIndex: 0, state: "done", results: [], timeoutSec: {}, permissionMode: {}, model: {} }) as never;
+  const first = await Promise.all([rows.jobRow(own("a")), rows.jobRow(own("b")), rows.jobRow(own("c", "other"))]);
+  expect(calls).toBe(2);
+  expect(first.map(row => row.mergeTarget)).toEqual([undefined, undefined, undefined]);
+  target = "trunk";
+  expect((await rows.jobRow(own("a"))).mergeTarget).toBe("trunk");
+  expect(calls).toBe(3);
+  target = "develop";
+  expect((await rows.jobRow(own("a"))).mergeTarget).toBe("develop");
+  expect(calls).toBe(4);
+});
+
+test("window selection keeps pending merges in the Queued filter (AC-3, AC-7)", async () => {
+  const { summaryJob } = await import("../../../src/serve/list-window/index.ts");
+  const { jobFacts, jobsViewRows } = await import("../../../src/render/pages/jobs-page/view.ts");
+  const queue = makeStore();
+  const made = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
+  if (!made.ok) throw new Error(made.error);
+  const own = queue.update(made.job.id, { state: "done", landing: true })!;
+  queue.waiting.pending.set("merge:waiting", { id: "merge:waiting", jobId: own.id, project: "aide", label: "Merge", operation: "land", reason: "Repository busy" });
+  const summary = summaryJob(own, queue.waiting.snapshot().entries);
+  const facts = jobFacts(summary, Date.now());
+  expect(jobsViewRows([{ facts, place: { band: 0, changedAt: 0 } }], { state: "queued" })).toHaveLength(1);
+});
