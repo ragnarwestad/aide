@@ -596,6 +596,37 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     assert not is_ancestor(project, before, branch), \
         "a branch whose work already landed must be rebuilt, not reused"
 
+def test_a_branch_landed_as_one_squashed_commit_is_not_reused(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """A code root lands a branch as one squashed commit, so the branch's
+    own commits never become ancestors of main: the leftover is recognised
+    by its content being on main already."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "landed.txt").write_text("this reached main\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "the spec's own work")
+    before = git(project, "rev-parse", branch)
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+
+    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
+    git(project, "merge", "-q", "--squash", branch)
+    git(project, "commit", "-q", "-m", "Squashed landing")
+    git(project, "push", "-q", "origin", "throwaway-landing:main")
+    git(project, "push", "-q", "origin", "--delete", branch)
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-D", "throwaway-landing")
+    git(project, "update-ref", "-d", "refs/remotes/origin/main")
+
+    claude = project_only_claude(fake_claude)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert not is_ancestor(project, before, branch), \
+        "a branch whose work landed squashed must be rebuilt, not reused"
+
 def test_a_branch_that_has_not_landed_is_still_reused(
     runner, workspace, fake_claude, fetchable_origin
 ):

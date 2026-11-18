@@ -1,3 +1,5 @@
+import type { SquashMessage } from "./branch-merge/squash.ts";
+
 /** What `mergeBranchIntoDefault` lets its caller do once the merge has
  *  reached origin and before the shared checkout is fast-forwarded to
  *  it. That fast-forward is what makes a landed folder visible — the
@@ -15,4 +17,8 @@ export interface MergeHooks {
    *  merged key by key (`aide-translation-merge-args`). None means git's
    *  own merge, as before. */
   mergeArgs?: (work: string) => Promise<string[]>;
+  /** Land as one commit with this message, once the merge is tested
+   *  (`branch-merge/squash.ts`). A code root's landing only; absent keeps
+   *  the merge commit, as the specs repo does. */
+  squashMessage?: SquashMessage;
 }

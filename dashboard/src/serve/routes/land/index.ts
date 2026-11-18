@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { basename, dirname, isAbsolute } from "node:path";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../../git/branch-status.ts";
 import { enqueueRequest } from "../../../queue/request/index.ts";
 import { inFlight, jobKind, LAND_KEY } from "../../../queue/queue.ts";
@@ -26,10 +28,27 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
   if (found.code !== 0) return refuse(`origin could not be checked for branch ${branch}`);
   const running = ctx.queue.list().find((job) => job.project === project && jobKind(job) === "land" && job.branch === branch && inFlight(job));
   if (running) return refuse(`a Merge job for ${branch} is already ${running.state} in ${project}`);
+  const landFrom = await sessionCheckout(ctx, root, body.checkout);
   const result = enqueueRequest(ctx.queue, { project, specFolder: LAND_KEY, steps: ["land"], branch }, "manual");
   if (!result.ok) return refuse(result.error);
+  if (landFrom) ctx.queue.update(result.job.id, { landFrom });
   await ctx.tickRunner();
   return json({ ok: true, job: result.job, message: `Queued Merge for ${branch} in ${project}.` });
+}
+
+/** The main checkout of the repository a session ran `aide land` in, when
+ *  it is a clone of the same origin as the project; anything else is
+ *  ignored, and the Land then cleans nothing up outside the board. */
+async function sessionCheckout(ctx: RoutesContext, root: string, given: unknown): Promise<string | undefined> {
+  if (typeof given !== "string" || !isAbsolute(given) || !existsSync(given)) return undefined;
+  const common = await ctx.gitRun(given, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  const dir = common.stdout.trim();
+  if (common.code !== 0 || basename(dir) !== ".git") return undefined;
+  const checkout = dirname(dir);
+  const theirs = await ctx.gitRun(checkout, ["remote", "get-url", "origin"]);
+  const ours = await ctx.gitRun(root, ["remote", "get-url", "origin"]);
+  if (theirs.code !== 0 || ours.code !== 0 || theirs.stdout.trim() !== ours.stdout.trim()) return undefined;
+  return checkout;
 }
 
 export async function handleLandSteps(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {

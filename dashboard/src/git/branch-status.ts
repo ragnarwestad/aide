@@ -5,9 +5,10 @@
 // the project's own checkout.
 //
 // Local git only: no `gh`, no token, no GitHub. `origin` is already
-// whatever host the checkout was cloned from, and a merge here is a real
-// merge commit, so `merge-base --is-ancestor` answers the question for
-// every push mode this project uses.
+// whatever host the checkout was cloned from. A specs repo lands with a
+// merge commit, so `merge-base --is-ancestor` answers there; a code root
+// lands one squashed commit, so there the branch has landed when merging
+// it into the default branch would change nothing.
 
 import { join } from "node:path";
 import { specBranch } from "../project/spec-names.ts";
@@ -106,8 +107,8 @@ export class BranchStatusChecker {
   }
 
   /** True only when git can PROVE there is nothing left to merge: the
-   *  branch is an ancestor of the project's default branch, or origin
-   *  no longer has it at all. Everything else — no checkout, no default
+   *  branch is an ancestor of the project's default branch, its content
+   *  is already there (a squashed landing), or origin no longer has it. Everything else — no checkout, no default
    *  branch, a git that errors or times out — is false: "not confirmed
    *  merged". Uncertainty leaves the caveat on the page rather than
    *  removing it.
@@ -159,7 +160,8 @@ export class BranchStatusChecker {
           `refs/remotes/origin/${branch}`,
           `refs/remotes/origin/${base}`,
         ]);
-        merged = ancestor.code === 0;
+        merged = ancestor.code === 0
+          || (await contentLandedIn(this.run, projectDir, `refs/remotes/origin/${branch}`, `refs/remotes/origin/${base}`));
       }
     } catch {
       merged = false;
@@ -454,4 +456,16 @@ export class BranchStatusChecker {
  *  the runner already uses for the directory it runs a spec in. */
 export function projectCheckout(root: string | undefined, project: string): string {
   return join(root ?? "", project);
+}
+
+/** Whether `tip`'s content is already on `base`: merging it in would leave
+ *  base's tree as it is. A code root lands a branch as one squashed commit,
+ *  so its commits never become ancestors of base, and this is how a landed
+ *  branch is told apart from one with work of its own. */
+export async function contentLandedIn(run: GitRunner, dir: string, tip: string, base: string): Promise<boolean> {
+  const merged = await run(dir, ["merge-tree", "--write-tree", base, tip]);
+  if (merged.code !== 0) return false;
+  const tree = await run(dir, ["rev-parse", `${base}^{tree}`]);
+  const mergedTree = merged.stdout.split("\n")[0]?.trim();
+  return tree.code === 0 && !!mergedTree && mergedTree === tree.stdout.trim();
 }

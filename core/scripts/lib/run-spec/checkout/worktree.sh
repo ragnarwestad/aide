@@ -275,6 +275,15 @@ branch_already_landed() {
      && git -C "$root" merge-base --is-ancestor "$tip" refs/aide-branch/landed-base >/dev/null 2>&1; then
     landed=0
   fi
+  # A code root lands a branch as one squashed commit, so its commits never
+  # become ancestors of the base: there the work has landed when merging
+  # the branch into the base would change nothing.
+  if [ "$landed" -ne 0 ] && [ -n "$tip" ]; then
+    local merged_tree="" base_tree=""
+    merged_tree="$(git -C "$root" merge-tree --write-tree refs/aide-branch/landed-base "$tip" 2>/dev/null | head -1)" || merged_tree=""
+    base_tree="$(git -C "$root" rev-parse refs/aide-branch/landed-base^{tree} 2>/dev/null || true)"
+    [ -n "$merged_tree" ] && [ "$merged_tree" = "$base_tree" ] && landed=0
+  fi
   # The verdict is captured above and returned below: the cleanup runs in
   # between, and $? belongs to whatever ran last.
   git -C "$root" update-ref -d refs/aide-branch/landed-base >/dev/null 2>&1 || true

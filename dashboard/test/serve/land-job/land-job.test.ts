@@ -97,3 +97,26 @@ test("the test gate writes progress into the Land job's run log", async () => {
   await Bun.sleep(20);
   expect(readFileSync(runLogPath(f.stream), "utf8")).toContain("tests: pytest 40%");
 });
+
+test("a landed Land removes the branch's copy in the checkout it was pushed from", async () => {
+  const f = fixture();
+  const removed: string[][] = [];
+  const gitRun = async (dir: string, args: string[]) => {
+    if (dir !== "/session") return { code: 1, stdout: "" };
+    if (args[0] === "rev-parse" && args.includes("--verify")) return { code: 0, stdout: "tip\n" };
+    if (args[0] === "merge-tree") return { code: 0, stdout: "landed-tree\n" };
+    if (args[0] === "rev-parse") return { code: 0, stdout: "landed-tree\n" };
+    if (args.join(" ") === "worktree list --porcelain") {
+      return { code: 0, stdout: "worktree /session\nHEAD a\nbranch refs/heads/main\n\nworktree /session-topic\nHEAD tip\nbranch refs/heads/topic\n" };
+    }
+    if (args[0] === "worktree" || args[0] === "branch") removed.push(args);
+    return { code: 0, stdout: "" };
+  };
+  f.queue.update(f.job.id, { landFrom: "/session" });
+  const ctx = { queue: f.queue, machineryProjectDir: () => "/project", gitRun, branchStatus: { defaultBranch: async () => "main" } };
+  createLandJob(ctx as never, (async () => {}) as never).start(f.queue.get(f.job.id)!, f.result, f.stream);
+  await Bun.sleep(50);
+  expect(removed).toEqual([["worktree", "remove", "/session-topic"], ["branch", "-D", "topic"]]);
+  expect(readFileSync(runLogPath(f.stream), "utf8")).toContain("Removed branch topic in /session");
+  expect(readFileSync(f.result, "utf8")).toContain('"terminalReason":"completed"');
+});

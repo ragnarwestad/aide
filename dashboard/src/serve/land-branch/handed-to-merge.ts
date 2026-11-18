@@ -11,7 +11,7 @@
 // row read "still on origin — re-run archive").
 
 import { realPathOrOriginal as real } from "../../git/real-path.ts";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import type { CreateFinalizer } from "../../git/create-finalizer.ts";
 import type { LandingGate } from "../../git/branch-merge/index.ts";
@@ -23,6 +23,8 @@ import { checkLandingCancel } from "./cancel-landing.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { landingPolicy } from "./policy/index.ts";
+import { squashMessage } from "../../git/branch-merge/squash.ts";
+import { specTitle } from "../../project/discover/spec-files.ts";
 
 /** The roots the open-branch cache is keyed by that this repo holds:
  *  the cache is asked per spec root — the project dir, and the specs
@@ -106,6 +108,11 @@ export function handedToMerge(
       : undefined,
     // A code root only: the translation files are the project's code.
     mergeArgs: codeRoots.has(root) && ctx.translationMergeArgs ? (work) => ctx.translationMergeArgs!(root, work) : undefined,
+    // A code root's history gets one commit per landing; the specs repo
+    // keeps one commit per step.
+    squashMessage: codeRoots.has(root)
+      ? (subjects) => squashMessage(branch, landedSpecTitle(ctx.machinerySpecsRoot(job.project), job.specFolder))(subjects)
+      : undefined,
     beforeCheckoutMoves: (info) => {
       if (info.assignedSpecFolder) {
         // The pendingModels rename runs BEFORE the job's own specFolder
@@ -152,4 +159,11 @@ function specPathsIn(root: string, specsRoot: string | undefined, folder: string
   if (rel.startsWith("..") || isAbsolute(rel)) return undefined;
   const prefix = rel ? `${rel.split(sep).join("/")}/` : "";
   return [`${prefix}${folder}`, `${prefix}archive/${folder}`];
+}
+
+/** The title of the spec a landing is for, from its active or archived
+ *  folder; none for a landing that is no spec's (a Land, a schedule). */
+export function landedSpecTitle(specsRoot: string | undefined, folder: string): string | undefined {
+  if (!specsRoot || !folder) return undefined;
+  return specTitle(join(specsRoot, folder)) ?? specTitle(join(specsRoot, "archive", folder)) ?? undefined;
 }

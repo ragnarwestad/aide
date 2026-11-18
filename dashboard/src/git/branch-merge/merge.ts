@@ -31,6 +31,7 @@ import type { MergeHooks } from "../merge-hooks.ts";
 import { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
 import { GIT_LOCKED, LANDING_RETRIES, pushWithRetry, sleep, type Wait } from "./retry.ts";
 import { withCheckoutLock } from "../checkout-lock/index.ts";
+import { squashOnto } from "./squash.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
  *  landing into, named for the branch so two landings in one repo never
@@ -179,12 +180,15 @@ export async function mergeBranchIntoDefault(
     let repaired = false;
     let repairRebuilds = 0;
     let conflictRepairs = 0;
+    // The branch's tip as the last attempt fetched it, kept for step 8.
+    let sourceTip = "";
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
       // The tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
       // that does.
-      const preMergeHead = gate ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
+      const preMergeHead = gate || hooks?.squashMessage ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
       await run(work, ["fetch", "--quiet", "origin", base, branch]);
+      if (hooks?.squashMessage) sourceTip = (await run(work, ["rev-parse", ref])).stdout.trim();
       // A merge that lost a lock race is retried like the pull is — it
       // used to be reported as a conflict, which it is not.
       let merged = false;
@@ -277,6 +281,14 @@ export async function mergeBranchIntoDefault(
               reason: verdict.terminalReason ?? "tests-red",
             };
           }
+        }
+      }
+      // A code root lands as one commit: the tested tree, on the base.
+      if (hooks?.squashMessage && preMergeHead) {
+        const failed = await squashOnto(run, work, preMergeHead, hooks.squashMessage);
+        if (failed) {
+          await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
+          return refuse(root, branch, { key: "landing.squashFailed", values: { base } }, gitErrorDetail(failed) || undefined);
         }
       }
       hooks?.progress?.("push");
@@ -392,7 +404,15 @@ export async function mergeBranchIntoDefault(
     //    ever follows a merge that landed. Best effort and unreported,
     //    like the fetch at step 2 — this host may not even have the ref,
     //    and a cleanup must never turn a landed merge into a failure.
-    await run(root, ["branch", "-d", branch]);
+    //    A squashed branch is never an ancestor of base, so `-d` would
+    //    refuse it: there the copy goes only when it is exactly the tip
+    //    that landed, and a newer local commit keeps it.
+    if (sourceTip) {
+      const local = await run(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]);
+      if (local.code === 0 && local.stdout.trim() === sourceTip) await run(root, ["branch", "-D", branch]);
+    } else {
+      await run(root, ["branch", "-d", branch]);
+    }
     return { root, ok: true, ...(assignedSpecFolder ? { assignedSpecFolder } : {}) };
   } catch (err) {
     return refuse(

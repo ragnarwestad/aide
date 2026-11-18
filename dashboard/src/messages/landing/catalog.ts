@@ -227,6 +227,20 @@ export const LANDING_CATALOG = {
       fr: "mergez-le à la main, dans le checkout sur le serveur",
     },
   },
+  "landing.squashFailed": {
+    en: "tests passed, but git could not make the single commit for {base} ({ref} in {root})",
+    nb: "testene var grønne, men git klarte ikke å lage den ene commiten til {base} ({ref} i {root})",
+    es: "las pruebas pasaron, pero git no pudo crear el commit único para {base} ({ref} en {root})",
+    de: "die Tests waren grün, aber git konnte den einen Commit für {base} nicht anlegen ({ref} in {root})",
+    fr: "les tests sont passés, mais git n'a pas pu créer le commit unique pour {base} ({ref} dans {root})",
+    solution: {
+      en: "nothing reached the default branch; run the landing again",
+      nb: "ingenting kom inn på hovedgrenen; kjør landingen på nytt",
+      es: "nada llegó a la rama principal; vuelve a ejecutar el aterrizaje",
+      de: "nichts hat den Hauptzweig erreicht; starte die Landung erneut",
+      fr: "rien n'a atteint la branche principale ; relancez l'atterrissage",
+    },
+  },
   "landing.pushFailed": {
     en: "merged locally, but the push of {base} failed: {pushError} ({ref} in {root})",
     nb: "merget lokalt, men push av {base} feilet: {pushError} ({ref} i {root})",

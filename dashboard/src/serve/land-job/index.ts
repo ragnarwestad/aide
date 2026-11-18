@@ -5,6 +5,7 @@ import type { SpawnResult } from "../../queue/runner";
 import { boardStep } from "../board-step.ts";
 import { holdLanding } from "../../queue/runner/landing.ts";
 import { landBranch } from "../land-branch/merge.ts";
+import { removeLandedCopy } from "../../git/branch-merge/landed-copy.ts";
 import type { LandContext } from "../land-branch/types.ts";
 
 const TASKS = ["Merge branch", "Run tests", "Push default branch", "Delete source branch"];
@@ -46,7 +47,7 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
         repos: [{ root, url: `origin/${branch}` }],
         progress,
         failedNote: (why) => ({ key: "landing.stepLandingFailed", values: { step: "Merge", why, button: "Merge" } }),
-      }).then(() => {
+      }).then(async () => {
         const settled = ctx.queue.get(job.id);
         if (settled?.state === "cancelled") return stopped();
         if (settled?.branchDeleteError) {
@@ -63,9 +64,17 @@ export function createLandJob(ctx: LandContext, land: Land = landBranch) {
           return;
         }
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "done");
+        if (job.landFrom) await cleanUpSessionCopy(job.landFrom, branch);
         output.done();
       }).catch((error) => ctx.queue.get(job.id)?.state === "cancelled" ? stopped() : output.failed("landing-failed", String(error)))
         .finally(() => endLand(job.id));
+      async function cleanUpSessionCopy(checkout: string, landed: string): Promise<void> {
+        const base = await ctx.branchStatus.defaultBranch(root);
+        if (!base) return;
+        const { removed, kept } = await removeLandedCopy(ctx.gitRun, checkout, landed, base);
+        for (const what of removed) output.note(`Removed ${what} in ${checkout}`);
+        for (const what of kept) output.note(`Kept ${what}`);
+      }
       function stopped(): void {
         output.mark(`${currentTask + 1} of 4`, TASKS[currentTask]!, "stopped: cancelled by user");
         output.failed("cancelled", "Merge stopped by user");
