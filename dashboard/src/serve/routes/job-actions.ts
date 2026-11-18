@@ -1,3 +1,4 @@
+import { canCancelScheduleWait, cancelScheduleWait, scheduleCancellationFields } from "../../queue/schedule-attempt";
 import { canCancelDeploy } from "../../queue/job-rules/activity.ts";
 import { stopLand } from "../land-job/control.ts";
 import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
@@ -391,7 +392,7 @@ export async function handleJobActionRoutes(
     // job's state is history — done, failed, stopped — and writing
     // "cancelled" over it would say someone ended a run that had
     // already ended on its own. The table's own `queued`/`running`
-    // entries for `cancel` are what draws that line now.
+    // entries for `cancel` draw that line, with a separate event for a scheduled quota wait.
     const result = cancelJob(ctx, job);
     // A finished step whose work is being merged and tested is still
     // under way: Cancel stops that, and the job ends cancelled.
@@ -473,8 +474,10 @@ export async function handleJobActionRoutes(
 }
 
 function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
+  if (canCancelScheduleWait(job)) return cancelScheduleWait(ctx.queue, job);
   if (job.state === "running" && jobKind(job) === "land") stopLand(job.id);
   const result = endStep(ctx.queue, job.id, "cancel", {
+    ...(jobKind(job) === "schedule" ? scheduleCancellationFields : {}),
     finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined,
   });
   if (!result.ok && job.state === "done" && job.landing) cancelLanding(job.id);

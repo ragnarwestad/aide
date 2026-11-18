@@ -33,7 +33,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
 | `stopped`     | A step reached its own time limit, a provider limit ended it, an analyze stopped on its acceptance criteria, or a landing's test run went red. `stopReason` says which.                                     |
 | `failed`      | A step reported failure, or a landing after a successful step did not finish.                                                                                                                               |
-| `cancelled`   | A user pressed Cancel.                                                                                                                                                                                      |
+| `cancelled`   | Cancelled by a user, or an expired scheduled quota wait.                                                                                                                                                    |
 | `interrupted` | The step's process died without leaving a result.                                                                                                                                                           |
 
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
@@ -57,6 +57,7 @@ stateDiagram-v2
     done --> stopped: the landing's suite went red
     done --> queued: archive landing gets its automatic second attempt
     done --> cancelled: Cancel pressed while it merged
+    stopped --> cancelled: scheduled quota wait cancelled or next occurrence due
     stopped --> queued: usage limit reset or a late check gets its automatic second attempt
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
@@ -135,7 +136,7 @@ A job whose process is gone but whose result is on disk is completed from that f
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
 and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
-has already finished is refused with 409 and keeps its state. A job cancelled while it was queued and before any
+has already finished is refused with 409 and keeps its state, except a scheduled job waiting for quota. Cancelling that wait uses `cancel-schedule-wait`, clears its automatic retry and probe metadata, and signals no process. A job cancelled while it was queued and before any
 step started has no log, cost or result, and is removed from the queue instead of kept as `cancelled`, unless it is
 a scheduled job. Scheduled jobs keep their cancelled records so the same scheduled occurrence is not queued again;
 the next occurrence and a manual Run now are still allowed. The same retention rule applies when the queue loads.

@@ -171,3 +171,21 @@ test("cancel ends a running step the way every ending does, and signals the grou
   expect([job.resultFile, job.streamFile]).toEqual([join(site, "run-1.json"), join(site, "run-1.analyze.stream.jsonl")]);
   expect(killSpy).toHaveBeenCalledWith(-424242, "SIGTERM");
 });
+
+test("cancel settles a quota waiting schedule without signalling its old group (AC-2)", async () => {
+  const site = mkdtempSync(join(tmpdir(), "aide-cancel-wait-")); ownDirs.push(site);
+  const mirror = join(site, "queue.json");
+  writeFileSync(mirror, JSON.stringify([{ id: "waiting-report", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"],
+    stepIndex: 0, state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
+    usageLimitProbe: { results: 0, at: "2026-11-01T00:00:00Z", since: "2026-11-01T00:00:00Z" },
+    timeoutSec: {}, permissionMode: {}, model: {}, results: [], createdAt: "2026-11-01T00:00:00Z", pgid: 424242 }]));
+  const { base } = start({ queueMirrorPath: mirror });
+  killSpy.mockClear();
+  const res = await fetch(`${base}/api/queue/waiting-report/cancel`, { method: "POST" });
+  expect(res.status).toBe(200);
+  const job = (await res.json()).job;
+  expect(job.state).toBe("cancelled");
+  expect([job.usageLimitWait, job.usageLimitProbe, job.stopReason, job.retry]).toEqual([undefined, undefined, undefined, undefined]);
+  expect(killSpy).not.toHaveBeenCalled();
+  expect((await fetch(`${base}/api/queue/waiting-report/cancel`, { method: "POST" })).status).toBe(409);
+});

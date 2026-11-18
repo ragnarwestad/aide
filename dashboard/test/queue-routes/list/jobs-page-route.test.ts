@@ -190,9 +190,7 @@ describe("which kind of row a job gets", () => {
       expect(text(line)).toContain(t("en", "jobs.endedFailed"));
       expect(line).toContain('href="/jobs/reportf?tab=steps"');
       expect(line).not.toContain("dismiss");
-      expect(g.match(/<form\b/g) ?? []).toHaveLength(0);
       expect(g).not.toContain("/api/queue/reportf/cancel");
-      expect(g).not.toContain("data-ask");
     }
   });
 

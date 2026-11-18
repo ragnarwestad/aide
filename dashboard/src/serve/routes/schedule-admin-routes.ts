@@ -1,3 +1,6 @@
+import { jobKind } from "../../queue/queue.ts";
+import { automaticProviderWait } from "../../queue/job-rules/activity.ts";
+import { scheduleTrackingKey } from "../../project/spec-names.ts";
 // The schedule entry API routes: create, edit, the Enabled
 // toggle, Run-now, and the live cron-next preview. Modeled on
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
@@ -73,13 +76,29 @@ export async function handleScheduleAdminRoutes(
     const project = decodeURIComponent(runPost[1]!);
     const name = decodeURIComponent(runPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    // A thin wrapper over the same enqueue/tick pair `refreshSchedules`
-    // itself calls — no new mechanism. It reads
-    // the entry's own model for the same reason that tick does: "Run
-    // now" is this entry firing early, not a different job, and it may
-    // not quietly run on a different model than the schedule does.
+    const sent = await readJsonBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const body = sent.body;
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "malformed body" }, 400);
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
-    const result = enqueueRequest(ctx.queue, scheduleRequest(project, entry ?? { name }), "manual");
+    if (!entry) return json({ error: "the scheduled job no longer exists" }, 400);
+    if (body.sourceJobId !== undefined) {
+      const source = typeof body.sourceJobId === "string" ? ctx.queue.get(body.sourceJobId) : undefined;
+      if (!source || source.project !== project || source.specFolder !== scheduleTrackingKey(name) ||
+          jobKind(source) !== "schedule" || source.landing || automaticProviderWait(source) ||
+          !["cancelled", "stopped", "failed"].includes(source.state)) {
+        return json({ error: "this attempt cannot be run again" }, 400);
+      }
+    }
+    for (const field of ["model", "provider"] as const) {
+      if (body[field] !== undefined && (typeof body[field] !== "string" || !body[field].trim())) {
+        return json({ error: `invalid ${field} selection` }, 400);
+      }
+    }
+    const request = scheduleRequest(project, entry);
+    if (body.model !== undefined) request.model = body.model;
+    if (body.provider !== undefined) request.provider = body.provider;
+    const result = enqueueRequest(ctx.queue, request, "manual");
     if (!result.ok) {
       logRefusal("run now", `${project}/${name}`, result.error);
       return refusal({

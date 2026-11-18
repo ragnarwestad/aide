@@ -379,7 +379,7 @@ describe("what a job row offers to stop it", () => {
   });
 
   test("a finished job offers nothing", () => {
-    for (const state of ["done", "failed", "stopped", "interrupted", "cancelled"] as const) {
+    for (const state of ["done", "interrupted"] as const) {
       expect(jobControl(sched({ state }))).toBeUndefined();
     }
   });
@@ -511,3 +511,12 @@ test("a cancelled Land can run again after its landing has settled", () => {
   expect(jobControl({ ...row, branch: undefined })).toBeUndefined();
   expect(jobControl({ ...row, state: "done" })).toBeUndefined();
 });
+
+ test("schedule controls distinguish quota waits and terminal retries (AC-1, AC-3, AC-4)", () => {
+  const waiting = { ...sched({ state: "stopped" }), stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z" } };
+  expect(jobControl(waiting)).toBe("cancel");
+  expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
+  expect(jobControl(sched({ state: "running" }))).toBe("stop");
+  for (const state of ["cancelled", "stopped", "failed"] as const) expect(jobControl(sched({ state }))).toBe("run");
+  expect(jobControl({ ...waiting, landing: true })).toBe("stop");
+ });

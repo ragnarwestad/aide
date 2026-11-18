@@ -1,3 +1,5 @@
+import { modelFields, type ScheduleFormOptions } from "../schedule-page/form.ts";
+import { scheduleNameOf } from "../../../project/spec-names.ts";
 // A scheduled job's row on the Jobs tab, in the Specs list's own
 // shape: a title line, a state line and a gap, in the same columns. It has no
 // spec folder, phases or target for the list's row builder to read, so it is
@@ -35,6 +37,7 @@ import { jobDurationMs, jobEndMs } from "./view.ts";
 export type { JobStep };
 
 export interface JobRowOptions {
+  scheduleOptions?: (project: string, name: string) => ScheduleFormOptions | undefined;
   lang: Language;
   now: number;
   /** How the rows are folded, from the address: `open` names the rows shown open. */
@@ -90,9 +93,23 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Run queues the same Land branch again. Stop or Cancel asks first; the dialog posts the
+/** Run retries a schedule with its own choices or queues the same Land branch again.
+ *  Stop or Cancel asks first; the dialog posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language): string {
+function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language, o: JobRowOptions): string {
+  if (kind === "run" && currentStep(row) === "schedule") {
+    const name = scheduleNameOf(row.specFolder);
+    const opts = o.scheduleOptions?.(row.project, name);
+    if (!opts) return "";
+    const id = `jobrun-${row.id}`;
+    return askButton({ label: t(lang, "jobs.runAgain"), dialogId: id, variant: "primary" }) + confirmDialog(lang, {
+      id, title: t(lang, "jobs.runAgain"),
+      control: (formId) => modelFields(opts, lang, formId),
+      ok: { variant: "primary", pending: t(lang, "list.starting") },
+      post: { action: `/api/queue/schedule/${encodeURIComponent(row.project)}/${encodeURIComponent(name)}/run`,
+        hook: "actionform", hidden: { sourceJobId: row.id } },
+    });
+  }
   if (kind === "run") return buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
     hook: "actionform",
@@ -165,7 +182,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
-    `${row.landSuccessor ? btnLink({ label: t(lang, row.landSuccessor.landed ? "jobs.landAlreadyLanded" : "jobs.landNewAttempt"), href: `/jobs/${encodeURIComponent(row.landSuccessor.id)}`, data: { goto: "" } }) : kind ? `<span class="actionslot">${control(row, kind, lang)}</span>` : ""}</td>` +
+    `${row.landSuccessor ? btnLink({ label: t(lang, row.landSuccessor.landed ? "jobs.landAlreadyLanded" : "jobs.landNewAttempt"), href: `/jobs/${encodeURIComponent(row.landSuccessor.id)}`, data: { goto: "" } }) : kind ? `<span class="actionslot">${control(row, kind, lang, o)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

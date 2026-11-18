@@ -199,6 +199,7 @@ export type TransitionEvent =
   | "landing-failed" // done -> failed: a landing did not finish
   | "landing-held" // done -> stopped: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
+  | "cancel-schedule-wait" // stopped -> cancelled: a scheduled quota wait ended
   | "limit-reset"; // stopped -> queued: its provider's usage limit has reset
 
 /** The one table every state change is checked against. Each
@@ -239,10 +240,10 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     // tested: nothing was pushed, and the job says a person ended it.
     "landing-cancelled": "cancelled",
   },
-  // The one way out of `stopped`: a step its provider's usage limit stopped
-  // is queued again by the board once the limit has reset
-  // (`restartAfterUsageLimit`). Every other stop waits for a person.
+  // A provider wait can restart after reset or end as cancelled.
+  // Other stops wait for a person, apart from a late check retry.
   stopped: {
+    "cancel-schedule-wait": "cancelled",
     "retry-late": "queued",
     "limit-reset": "queued",
   },

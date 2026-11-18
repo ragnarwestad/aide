@@ -140,7 +140,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `POST /api/queue/cleanup`                     | action | nothing                                            | `{ ok, job }`; 400 `{ error }`                                             | form      |
 | `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                                     | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=`, `?open=` and `?deploy=1`      | a held-open `text/event-stream` of queue changes                           | interface |
-| `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
+| `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 when cancellation is not allowed                        | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                             | interface |
@@ -219,7 +219,7 @@ Answered by `src/serve/routes/schedule-admin-routes.ts`.
 | `POST /api/queue/schedule`                          | action | project, name, cron, prompt, model, notify, chrome, sandbox, back | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
 | `POST /api/queue/schedule/<project>/<name>`         | action | name, cron, prompt, model, notify, chrome, sandbox, back          | `{ ok, location }`: `back`, or the project's Schedule tab; 400 `{ error }` | form     |
 | `POST /api/queue/schedule/<project>/<name>/enabled` | action | enabled                                                           | `{ ok, enabled }`; 400 `{ error }`                                         | form     |
-| `POST /api/queue/schedule/<project>/<name>/run`     | action | nothing                                                           | `{ ok, job }`; 400 `{ error }`                                             | form     |
+| `POST /api/queue/schedule/<project>/<name>/run`     | action | optional `sourceJobId`, `provider`, `model`                       | `{ ok, job }`; 400 `{ error }`                                             | form     |
 | `POST /api/queue/schedule/<project>/<name>/delete`  | action | nothing                                                           | `{ ok }`; 400 `{ error }`                                                  | form     |
 
 ### Push

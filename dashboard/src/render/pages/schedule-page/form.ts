@@ -72,7 +72,7 @@ export const SCHEDULE_FORM_ID = "schedule-form";
  *  configuration, never in the browser), and the select PRE-FILLED with
  *  what the entry is actually on — its own saved pick, else what the
  *  configuration would give the `schedule` step. */
-function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
+export function modelFields(opts: ScheduleFormOptions, lang: Language = "en", formId = SCHEDULE_FORM_ID): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
   const configured = opts.defaultModels?.schedule ?? opts.defaultModels?.default;
@@ -85,7 +85,7 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   // Drawn only where there is more than one provider to choose between.
   const pickerOpts = { modelChoices: models, providerChoices: providers };
   const aiSelect = providers.length > 1
-    ? providerSelect({ name: "provider", modelName: "model", form: SCHEDULE_FORM_ID, opts: pickerOpts, configured, chosenProvider: resting?.key, wrap: false })
+    ? providerSelect({ name: "provider", modelName: "model", form: formId, opts: pickerOpts, configured, chosenProvider: resting?.key, wrap: false })
     : "";
   // The two side by side in ONE grid item, not one per column track.
   // `.scheduleform` is a two-column grid whose tracks are sized by Cron
@@ -99,7 +99,7 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
     (aiSelect ? field(t(lang, "schedule.ai"), aiSelect) : "") +
     field(
       t(lang, "schedule.model"),
-      modelSelect({ name: "model", form: SCHEDULE_FORM_ID, opts: pickerOpts, chosen }),
+      modelSelect({ name: "model", form: formId, opts: pickerOpts, chosen }),
     ) +
     `</span>`
   );

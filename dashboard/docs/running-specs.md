@@ -520,7 +520,7 @@ stays on the page with the reason and what was typed. The pages post to:
 - `POST /api/queue/schedule` — create.
 - `POST /api/queue/schedule/<project>/<name>` — edit.
 - `POST .../enabled` — toggle.
-- `POST .../run` — fire now.
+- `POST .../run` — fire now, optionally with choices for this attempt.
 - `POST .../delete` — remove.
 
 `GET /api/queue/schedule/cron-next` previews a cron expression's next fire time for the form.
@@ -529,6 +529,14 @@ An entry whose model the queue config does not offer is flagged in its Name cell
 are refused: Run now writes the queue's reason above the project's Schedule tab list, and the timer logs the refusal once
 per fire window and reason. The step sends the named file's contents to the model verbatim, with no Aide skill or spec
 folder involved.
+
+**Cancel and Run on Jobs.** Open a scheduled job's row to Cancel a queued attempt or one waiting for quota.
+Cancel asks for confirmation, keeps the attempt as Cancelled and ends its automatic restart. A running attempt
+keeps Stop. Cancelled, stopped and failed attempts offer Run: its confirmation starts with the current Schedule
+AI and model settings, and lets you choose a valid pair for one new attempt. The old attempt stays in history;
+the recurring schedule and saved settings stay unchanged. A deleted schedule cannot be run again from history.
+When the next enabled occurrence becomes due, the old quota wait ends before any quota restart. The ordinary
+schedule handles the new occurrence, without backfilling missed runs.
 
 **A run's steps.** A prompt can define its complete plan with `## Step N of X: Title` headings. The runner
 announces these steps before the AI turn so the expanded row shows them waiting from the outset. Without fixed

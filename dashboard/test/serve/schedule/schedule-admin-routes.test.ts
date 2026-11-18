@@ -419,3 +419,58 @@ describe("GET /api/queue/schedule/cron-next", () => {
     expect(body.error).toBeTruthy();
   });
 });
+
+const retryDefaults = { ...DEFAULTS, providers: { Claude: { name: "Claude", tool: "claude" as const }, Codex: { name: "Codex", tool: "codex" as const } } };
+const oldAttempt = { id: "old-report", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0,
+  state: "stopped", stopReason: "timeout", createdAt: "2026-11-01T00:00:00Z", timeoutSec: {}, permissionMode: {}, model: {}, results: [] };
+
+test("retry stores transient choices once and keeps schedule settings and history (AC-4, AC-5, AC-6)", async () => {
+  const t = start();
+  const mirror = join(t.dir, "retry.json");
+  // Seed a second server with a settled attempt.
+  writeFileSync(mirror, JSON.stringify([oldAttempt]));
+  const r = start([nightly({ model: "sonnet", provider: "Claude", notify: "always", chrome: true, sandbox: false })],
+    { queueDefaults: retryDefaults, queueMirrorPath: mirror });
+  const before = readFileSync(r.file, "utf8");
+  const url = `${r.base}/api/queue/schedule/aide/nightly/run`;
+  const picked = { sourceJobId: oldAttempt.id, provider: "Codex", model: "codex-fast" };
+  const response = await fetch(url, jsonPost(picked));
+  expect(response.status).toBe(200);
+  const fresh = (await response.json()).job;
+  expect(fresh.id).not.toBe(oldAttempt.id);
+  expect(fresh.model.schedule).toBe("codex-fast");
+  expect(fresh.provider.schedule).toBe("Codex");
+  expect((await fetch(url, jsonPost(picked))).status).toBe(400);
+  expect(readFileSync(r.file, "utf8")).toBe(before);
+  const listed = (await (await fetch(`${r.base}/api/queue`)).json()).jobs;
+  expect(listed.find((j: { id: string }) => j.id === oldAttempt.id).state).toBe("stopped");
+  expect(listed).toHaveLength(2);
+  expect((await fetch(`${r.base}/api/queue/${fresh.id}/cancel`, jsonPost({}))).status).toBe(200);
+  expect(readFileSync(r.file, "utf8")).toBe(before);
+  const ordinary = await fetch(url, jsonPost({}));
+  expect((await ordinary.json()).job.model.schedule).toBe("sonnet");
+});
+
+test("retry refuses unknown sources, missing entries and invalid choices (AC-4, AC-5)", async () => {
+  const t = start([nightly()], { queueDefaults: retryDefaults });
+  for (const body of [null, [], "invalid", { model: 7 }, { provider: "" }, { sourceJobId: "missing" }, { model: "retired" }, { provider: "Claude", model: "codex-fast" }]) {
+    expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, jsonPost(body))).status).toBe(400);
+  }
+  expect((await fetch(`${t.base}/api/queue/schedule/aide/missing/run`, jsonPost({}))).status).toBe(400);
+  expect((await (await fetch(`${t.base}/api/queue`)).json()).jobs).toHaveLength(0);
+});
+
+test("retry checks the source identity and settled state before insertion (AC-5)", async () => {
+  for (const over of [{ state: "queued" }, { state: "running" }, { state: "done" },
+    { project: "other" }, { specFolder: "schedule-other" }, { steps: ["analyze"] },
+    { stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } }]) {
+    const t = start();
+    const mirror = join(t.dir, "seed.json");
+    writeFileSync(mirror, JSON.stringify([{ ...oldAttempt, ...over }]));
+    const r = start([nightly()], { queueMirrorPath: mirror });
+    const res = await fetch(`${r.base}/api/queue/schedule/aide/nightly/run`, jsonPost({ sourceJobId: oldAttempt.id }));
+    expect(res.status).toBe(400);
+    expect((await (await fetch(`${r.base}/api/queue`)).json()).jobs).toHaveLength(1);
+    harness.cleanup();
+  }
+});

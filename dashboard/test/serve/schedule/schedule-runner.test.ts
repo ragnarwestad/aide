@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
-import { refreshSchedules, type ScheduleContext } from "../../../src/serve/schedules";
+import { refreshSchedules, tickRunner, type ScheduleContext } from "../../../src/serve/schedules";
 
 const harness = queueHarness("aide-schedule-runner-");
 
@@ -316,3 +316,70 @@ describe("refreshSchedules and a refused fire", () => {
     });
   });
 });
+
+for (const first of ["poll", "runner"] as const) {
+  test(`obsolete quota wait ends before ${first} can restart it (AC-7)`, async () => {
+    const { QueueStore } = await import("../../../src/queue/queue.ts");
+    const queue = new QueueStore({ mirrorPath: join(cfgDir, "queue.json"), defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
+    const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
+    if (!made.ok) throw new Error(made.error);
+    queue.update(made.job.id, { state: "stopped", stopReason: "provider-limit", createdAt: "2026-11-17T00:00:00Z",
+      usageLimitWait: { until: "2026-11-18T12:00:00Z", resetKnown: true } });
+    writeSchedule("aide", [NIGHTLY]);
+    const ctx = { projectRoot: cfgDir, allowed: new Set(["aide"]), queue, scheduleStore: createScheduleStore(cfg),
+      now: () => Date.parse("2026-11-18T12:00:01Z"), readRunner: () => ({ tick: () => {} }),
+      checkoutEnsurer: { fresh: async () => {} }, targets: () => [], machineryProjectDir: () => cfgDir, codeLanding: () => "direct" } as unknown as ScheduleContext;
+    if (first === "runner") {
+      await tickRunner(ctx);
+    } else await refreshSchedules(ctx);
+    expect(queue.get(made.job.id)?.state).toBe("cancelled");
+    expect(queue.get(made.job.id)?.usageLimitWait).toBeUndefined();
+    await refreshSchedules(ctx);
+    await refreshSchedules(ctx);
+    expect(queue.list().filter((j) => j.state === "queued")).toHaveLength(1);
+  });
+}
+
+test("expiry leaves disabled, deleted, not due, unrelated and running attempts alone (AC-7)", async () => {
+  const { QueueStore } = await import("../../../src/queue/queue.ts");
+  for (const scenario of ["disabled", "deleted", "not-due", "unrelated", "running", "edited"] as const) {
+    const queue = new QueueStore({ defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
+    const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
+    if (!made.ok) throw new Error(made.error);
+    queue.update(made.job.id, { state: scenario === "running" ? "running" : "stopped", stopReason: "provider-limit",
+      createdAt: scenario === "not-due" ? "2026-11-18T12:00:00Z" : "2026-11-17T00:00:00Z",
+      usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } });
+    const entry = { ...NIGHTLY, ...(scenario === "disabled" ? { enabled: false } : {}),
+      ...(scenario === "unrelated" ? { name: "another" } : {}), ...(scenario === "edited" ? { since: "2026-11-18T12:00:00Z" } : {}) };
+    writeSchedule("aide", scenario === "deleted" ? [] : [entry]);
+    const ctx = { projectRoot: cfgDir, allowed: new Set(["aide"]), queue, scheduleStore: createScheduleStore(cfg),
+      now: () => Date.parse("2026-11-18T12:00:01Z"), readRunner: () => null } as unknown as ScheduleContext;
+    await tickRunner(ctx);
+    expect(queue.get(made.job.id)?.state).toBe(scenario === "running" ? "running" : "stopped");
+    expect(queue.get(made.job.id)?.usageLimitWait).toBeDefined();
+  }
+});
+
+for (const timer of ["poll", "runner"] as const) {
+  test(`Run now before the ${timer} tick cannot preserve an obsolete quota wait (AC-7)`, async () => {
+    const { QueueStore } = await import("../../../src/queue/queue.ts");
+    const queue = new QueueStore({ defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
+    const request = { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] };
+    const old = queue.enqueue(request);
+    if (!old.ok) throw new Error(old.error);
+    queue.update(old.job.id, { state: "stopped", stopReason: "provider-limit", createdAt: "2026-11-17T12:00:01Z",
+      usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } });
+    const manual = queue.enqueue(request);
+    if (!manual.ok) throw new Error(manual.error);
+    queue.update(manual.job.id, { createdAt: "2026-11-18T12:00:01Z" });
+    writeSchedule("aide", [NIGHTLY]);
+    const ctx = { projectRoot: cfgDir, allowed: new Set(["aide"]), queue, scheduleStore: createScheduleStore(cfg),
+      now: () => Date.parse("2026-11-18T12:00:02Z"), readRunner: () => null } as unknown as ScheduleContext;
+    if (timer === "poll") await refreshSchedules(ctx);
+    else await tickRunner(ctx);
+    expect(queue.get(old.job.id)?.state).toBe("cancelled");
+    expect(queue.get(old.job.id)?.usageLimitWait).toBeUndefined();
+    expect(queue.get(manual.job.id)?.state).toBe("queued");
+    expect(queue.list()).toHaveLength(2);
+  });
+}
