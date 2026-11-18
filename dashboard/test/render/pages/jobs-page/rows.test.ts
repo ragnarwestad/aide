@@ -521,3 +521,13 @@ test("merge titles use the resolved target and visible source without guessing m
   expect(jobRowKind(base)).toBe("land");
   expect(jobTitle(base)).toBe("Merge to unknown default branch · feature/topic");
 });
+
+test("Jobs shows only the newest Merge attempt for each project and branch", () => {
+  const merge = { specFolder: "land", steps: ["land"], branch: "feat/topic" };
+  const retry = job({ ...merge, state: "queued" });
+  const cancelled = job({ ...merge, state: "cancelled" });
+  const failed = job({ ...merge, state: "failed" });
+  const otherBranch = job({ ...merge, branch: "feat/other", state: "cancelled" });
+  const otherProject = job({ ...merge, project: "another", state: "cancelled" });
+  expect(ids([retry, cancelled, failed, otherBranch, otherProject])).toEqual([retry.id, otherBranch.id, otherProject.id]);
+});

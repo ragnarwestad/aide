@@ -20,7 +20,7 @@ import { scheduleNameOf } from "../../../project/spec-names.ts";
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { btnLink, askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -113,7 +113,7 @@ function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Langu
   if (kind === "run") return buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
     hook: "actionform",
-    data: { "land-retry": "" },
+    data: { "land-retry": o.key ?? jobKey(row) },
     hidden: { branch: row.branch! },
     button: { label: stepLabel("land", lang), variant: "primary", pending: t(lang, "list.starting") },
   });
@@ -142,12 +142,10 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The line under the state, open or shut, from `getJobMessage`; its Log link
- *  and, for a scheduled job, Dismiss end the line. */
+/** The message under the state, with Dismiss where offered. */
 function messageLine(row: QueueRowView, lang: Language): string {
   const m = getJobMessage(row, lang);
   if (!m) return "";
-  const log = m.log ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>` : "";
   const dismiss = m.dismiss
     ? buttonForm({
         action: m.dismiss,
@@ -155,7 +153,7 @@ function messageLine(row: QueueRowView, lang: Language): string {
         button: { label: t(lang, "list.createDismiss"), small: true },
       })
     : "";
-  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: log + dismiss })}</td></tr>`;
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: dismiss })}</td></tr>`;
 }
 
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open
@@ -182,7 +180,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
-    `${row.landSuccessor ? btnLink({ label: t(lang, row.landSuccessor.landed ? "jobs.landAlreadyLanded" : "jobs.landNewAttempt"), href: `/jobs/${encodeURIComponent(row.landSuccessor.id)}`, data: { goto: "" } }) : kind ? `<span class="actionslot">${control(row, kind, lang, o)}</span>` : ""}</td>` +
+    `${kind ? `<span class="actionslot">${control(row, kind, lang, o)}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

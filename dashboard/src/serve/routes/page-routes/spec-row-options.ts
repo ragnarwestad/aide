@@ -7,13 +7,14 @@ import { scheduleNameOf } from "../../../project/spec-names.ts";
 // take these options from here and add what is their own.
 
 import { providerPickerOptions } from "../../providers/options.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import { inFlight, jobKind, waitsForPerson } from "../../../queue/queue.ts";
 import type { SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
-import { jobStepLines, jobStepPips } from "../../spec-views/job-marks.ts";
+import { jobMarks, jobStepLines, jobStepPips } from "../../spec-views/job-marks.ts";
+import { createdLabel } from "../../../render/pages/specs-list/cell-helpers.ts";
 import { deployCommits } from "../../deploy-job/commits.ts";
 import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
@@ -48,7 +49,18 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? queuedWhileMergeWaits(jobStepLines(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id) : [];
+      if (!job) return [];
+      const steps = queuedWhileMergeWaits(jobStepLines(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id);
+      if (jobKind(job) !== "land" || !job.branch) return steps;
+      const history = ctx.queue.list();
+      const older = history.slice(history.findIndex(attempt => attempt.id === job.id) + 1)
+        .filter(attempt => attempt.project === job.project && attempt.branch === job.branch && jobKind(attempt) === "land");
+      return [...steps, ...older.map(attempt => ({
+        key: attempt.id,
+        label: `${t(lang, "jobs.previousAttempt")} · ${createdLabel(attempt.createdAt)}`,
+        state: attempt.state === "done" || attempt.state === "cancelled" || attempt.state === "failed" ? attempt.state : undefined,
+        logs: jobMarks(attempt, lang).logs,
+      }))];
     },
     jobStepPips: (jobId: string) => {
       const job = ctx.queue.get(jobId);

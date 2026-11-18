@@ -27,19 +27,19 @@ describe("the line under a job row's state", () => {
     expect((m as { dismiss?: string })?.dismiss).toBeUndefined();
   });
 
-  test("a failed job of any kind says why, in its own sentence, red, with its log's address", () => {
+  test("a failed job of any kind says why, in its own sentence, red", () => {
     for (const [, make] of kinds) {
       const row = make({ id: "f1", state: "failed", error: said });
-      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, log: "/jobs/f1?tab=steps" });
+      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf });
     }
   });
 
-  test("a stopped job says why in amber, an interrupted one in red, each with the log's address", () => {
+  test("a stopped job says why in amber, an interrupted one in red", () => {
     expect(message(schedule({ id: "s1", state: "stopped", error: said }))).toEqual({
-      variant: "waiting", text: sentenceOf, log: "/jobs/s1?tab=steps",
+      variant: "waiting", text: sentenceOf,
     });
     expect(message(schedule({ id: "i1", state: "interrupted", error: said }))).toEqual({
-      variant: "failed", text: sentenceOf, log: "/jobs/i1?tab=steps",
+      variant: "failed", text: sentenceOf,
     });
   });
 
@@ -53,7 +53,6 @@ describe("the line under a job row's state", () => {
       for (const [, make] of kinds) {
         const m = message(make({ id: "e1", state }));
         expect(m?.text).toBe(t("en", key));
-        expect(m?.log).toBe("/jobs/e1?tab=steps");
       }
     }
     expect(message(schedule({ state: "failed" }))?.text).not.toBe(message(schedule({ state: "stopped" }))?.text);
@@ -64,13 +63,7 @@ describe("the line under a job row's state", () => {
     expect(m?.text).toBe(t("nb", "jobs.endedFailed"));
   });
 
-  test("a queued or running job, or a done one landing, offers no log, with or without a sentence", () => {
-    for (const [, make] of kinds) {
-      for (const row of [make({ state: "queued" }), make({ state: "running" }), make({ state: "done", landing: true })]) {
-        expect(message(row)?.log).toBeUndefined();
-        expect(message({ ...row, error: said } as J)?.log).toBeUndefined();
-      }
-    }
+  test("queued and running jobs without a hold have no notice", () => {
     for (const make of [schedule, close, reopen]) {
       expect(message(make({ state: "running", error: said }))).toBeUndefined();
       expect(message(make({ state: "queued" }))).toBeUndefined();
@@ -81,7 +74,7 @@ describe("the line under a job row's state", () => {
     for (const make of [schedule, close, reopen]) expect(message(make({ state: "cancelled", error: said }))).toBeUndefined();
   });
 
-  test("a deploy held back for a landing says so in the info colour, with no log", () => {
+  test("a deploy held back for a landing says so in the info colour", () => {
     const error = { key: "runner.landingPause" } as const;
     for (const state of ["queued", "running"] as const) {
       const m = message(deploy({ state, errorReason: "held-back", error }));
@@ -89,11 +82,10 @@ describe("the line under a job row's state", () => {
     }
   });
 
-  test("a deploy held back for a hold that does not clear on its own is amber, with no log", () => {
+  test("a deploy held back for a hold that does not clear on its own is amber", () => {
     const error = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
     const m = message(deploy({ state: "queued", errorReason: "held-back", error }));
     expect(m?.variant).toBe("waiting");
-    expect(m?.log).toBeUndefined();
   });
 
   test("a held-back job shows its reason instead of its provider", () => {
@@ -119,7 +111,7 @@ describe("the line under a job row's state", () => {
         expect(message(make({ state: "cancelled", provider: "Work", results: onWork } as Msg))).toBeUndefined();
       }
       const failed = job({ id: "f2", state: "failed", error: said, results: onWork } as never);
-      expect(message(failed)).toEqual({ variant: "failed", text: sentenceOf, log: "/jobs/f2?tab=steps" });
+      expect(message(failed)).toEqual({ variant: "failed", text: sentenceOf });
     });
 
     test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the provider once (AC-10)", () => {
@@ -132,7 +124,6 @@ describe("the line under a job row's state", () => {
       const m = message(row);
       expect(m?.text.split("Work").length).toBe(2);
       expect(m?.variant).toBe("info");
-      expect(m?.log).toBeUndefined();
     });
   });
 });

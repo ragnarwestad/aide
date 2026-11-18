@@ -5,11 +5,6 @@ import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import { jobPresentation } from "../../render/ui/job-state/presentation.ts";
 import { getUsageLimitMessage } from "../usage-limit/get.ts";
 
-/** The line under a job row's state, or none. A job that failed, stopped or
- *  was interrupted says why, in its own sentence or, with none, in one saying
- *  how it ended, and the line carries the address of the job's own page for
- *  its Log link. A held-back job says why it waits, with no link. Every
- *  other row has no line: the AI a step runs on is on its phase line. */
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
 type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
@@ -42,7 +37,6 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
       text: formatSentence(lang, row.error) || t(lang, ended),
-      log: `/jobs/${row.id}?tab=steps`,
     };
   }
   if (row.errorReason === "held-back") {

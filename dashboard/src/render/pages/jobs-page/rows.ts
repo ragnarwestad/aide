@@ -28,6 +28,7 @@ export interface JobLike {
   stepIndex: number;
   state: QueueRowView["state"];
   landing?: boolean;
+  branch?: string;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -111,12 +112,8 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jo
 /** Running or landing first, then queued, then the rest; the newest change first in each. */
 export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
 
-/** The jobs that are rows of their own: the scheduled jobs, the Close and
- *  Reopen jobs and the board's own deploys, in flight, or waiting for a person and not yet dealt with. A
- *  waiting job is dealt with when a job of the same project and tracking key
- *  was created after it and was not cancelled; a scheduled job also when its
- *  entry is deleted or a person dismissed it. Any other job of a spec is never returned: its spec's row
- *  stands for it. */
+/** Standalone job cards, with only the latest Merge attempt per project and branch.
+ *  Queue history is newest first. Older attempts keep their own detail URL. */
 export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   jobs: T[],
   o: {
@@ -124,8 +121,13 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   },
 ): T[] {
   void o;
+  const mergeBranches = new Set<string>();
   return jobs.filter((job) => {
     if (!requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow) return false;
+    if (jobKind(job) !== "land" || !job.branch) return true;
+    const key = JSON.stringify([job.project, job.branch]);
+    if (mergeBranches.has(key) && !inFlight(job)) return false;
+    mergeBranches.add(key);
     return true;
   });
 }
