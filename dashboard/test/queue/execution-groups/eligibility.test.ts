@@ -15,6 +15,19 @@ test("offers only current same-project members without conflicting work (AC-4)",
   expect(offered.map((item) => item.specFolder)).toEqual(["1-ready"]);
 });
 
+test("a removed group no longer owns a spec with only a cancelled attempt", () => {
+  const offered = eligibleGroupMembers({
+    project: "aide",
+    targets: [target("1-peer"), target("2-still-owned")],
+    groups: [
+      { id: "removed", project: "aide", name: "Old", members: ["1-peer"], branch: "group/1", state: "stopped", completedMembers: [], jobs: [], removedAt: "2026-11-18T07:28:49Z" },
+      { id: "active", project: "aide", name: "Active", members: ["2-still-owned"], branch: "group/2", state: "stopped", completedMembers: [], jobs: [] },
+    ],
+    jobs: [{ project: "aide", specFolder: "1-peer", state: "cancelled" }],
+  });
+  expect(offered.map((item) => item.specFolder)).toEqual(["1-peer"]);
+});
+
 test("excludes specs whose work already started outside a group (AC-4, AC-7)", () => {
   const offered = eligibleGroupMembers({
     project: "aide",

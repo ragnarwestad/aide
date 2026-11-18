@@ -744,7 +744,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.specArchived": "cette spec est archivée",
   "list.alreadyDone": "déjà fait",
   "list.starting": "démarrage…",
-  "list.runDialogTitle": "Exécuter la spec",
+  "list.runDialogTitle": "Exécuter la spec {spec}",
   "list.runTogetherWith": "Exécuter ensemble dans un groupe",
   "message.itsButton": "son bouton",
   "message.thisPhase": "cette phase",

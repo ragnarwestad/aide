@@ -747,7 +747,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.specArchived": "denne specen er arkivert",
   "list.alreadyDone": "allerede gjort",
   "list.starting": "starter…",
-  "list.runDialogTitle": "Kjør spec",
+  "list.runDialogTitle": "Kjør spec {spec}",
   "list.runTogetherWith": "Kjør sammen i en gruppe",
   "message.itsButton": "knappen",
   "message.thisPhase": "denne fasen",

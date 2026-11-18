@@ -755,7 +755,7 @@ export const en = {
   "list.specArchived": "this spec is archived",
   "list.alreadyDone": "already done",
   "list.starting": "starting…",
-  "list.runDialogTitle": "Run spec",
+  "list.runDialogTitle": "Run spec {spec}",
   "list.runTogetherWith": "Run together in a group",
   "message.itsButton": "its button",
   "message.thisPhase": "this phase",
