@@ -19,6 +19,7 @@ import type { MergeHooks } from "../../git/merge-hooks.ts";
 import type { SpecFolderLanding } from "../../git/spec-folder-landing.ts";
 import type { Job } from "../../queue/queue.ts";
 import type { LandContext, Landing } from "./types.ts";
+import { checkLandingCancel } from "./cancel-landing.ts";
 import { keepLandingFailedTests } from "./stopped-reason.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { landingPolicy } from "./policy/index.ts";
@@ -96,7 +97,10 @@ export function handedToMerge(
     ? (work: string) => ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
     : undefined;
   const hooks: MergeHooks = {
-    progress: what.progress,
+    progress: (stage) => {
+      if (stage !== "delete") checkLandingCancel(job.id);
+      what.progress?.(stage);
+    },
     repairConflict: gate && policy.repairsConflicts && ctx.conflictRepair
       ? ({ work, base, files }) => ctx.conflictRepair!(work, job, branch, base, files)
       : undefined,

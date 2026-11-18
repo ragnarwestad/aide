@@ -94,15 +94,26 @@ why, with the context a reader needs.
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
 standing instruction for later requests. The user pushes from the IDE.
 
-**A push to the default branch waits while the Aide board lands a spec in that project.** Look at
-the board before pushing; if one of the project's specs is landing, hold the push until it has
-landed. A push during a landing moves the default branch under the landing's test run, which then
-has to run again, and gives up after the second move.
+**Session code changes in a project with an Aide board reach the default branch through Land.**
+A request to merge or push to main authorizes this sequence:
+
+1. Keep the changes on a working branch and run only the tests covering the change, plus relevant
+   type, lint or documentation checks. Land verifies the merged result with the project's configured tests.
+2. Commit and push that working branch to origin.
+3. Run `aide land <project> <branch>`. The board tests the merged result, pushes the default branch
+   only when the tests pass, and deletes the source branch.
+4. Report whether the board accepted the job. The board takes the landing from there and
+   reports its outcome. A server change takes effect after Land and Deploy.
+
+Do not merge into the default branch or push it directly from the session in a board-backed
+project. Do not bypass Land because local tests passed, another Land is running, or the command
+was refused. Report the refusal and keep the working branch. Projects without a board keep their
+own merge and test process. The spec-creation exception below still applies to its specs repo.
 
 **When a job you committed is done, say so, and say it is ready to push.** Run
 `git log origin/main..main --oneline` in that same reply and end the report with what it shows:
-the commits waiting for a push, and, when they change something that runs on a server, that it
-takes effect only after the push and a deploy. Work that is finished but never pushed gets
+the commits waiting for a push. For board-backed work also report whether the working branch
+has reached main through Land; a server change takes effect only after Land and Deploy. Work that is finished but never pushed gets
 forgotten; this line is what stops that.
 
 Otherwise, don't report repository state from memory, in any phrasing — "N commits ahead of

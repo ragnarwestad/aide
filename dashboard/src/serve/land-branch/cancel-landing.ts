@@ -14,10 +14,8 @@ export function landingProcessGroups(): number[] {
   return [...running.values()].flatMap((pids) => [...pids]);
 }
 
-/** A script started for this job's landing, in a group of its own. The
- *  first one of a landing also clears a Cancel left from an earlier one. */
+/** A script started for this job's landing, in a group of its own. */
 export function trackLandingProcess(jobId: string, pid: number): void {
-  if (!running.has(jobId)) cancelled.delete(jobId);
   const pids = running.get(jobId) ?? new Set<number>();
   pids.add(pid);
   running.set(jobId, pids);
@@ -40,4 +38,12 @@ export function cancelLanding(jobId: string): void {
 /** Whether Cancel was pressed for this job's landing, once: asking clears it. */
 export function takeLandingCancel(jobId: string): boolean {
   return cancelled.delete(jobId);
+}
+
+export function landingCancelled(jobId: string): boolean {
+  return cancelled.has(jobId);
+}
+
+export function checkLandingCancel(jobId: string | undefined): void {
+  if (jobId && landingCancelled(jobId)) throw new Error("landing cancelled by user");
 }

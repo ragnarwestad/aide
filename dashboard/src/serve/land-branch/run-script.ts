@@ -5,7 +5,7 @@ import { checkLandStop } from "../land-job/control.ts";
 // installer's own shell PATH (launchd does not reach ~/.local/bin).
 
 import { runProcess, scriptFor } from "../process";
-import { trackLandingProcess, untrackLandingProcess } from "./cancel-landing.ts";
+import { checkLandingCancel, trackLandingProcess, untrackLandingProcess } from "./cancel-landing.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -33,11 +33,13 @@ export async function runScript(
   // scripts and Claude Code itself live — so a script run from here
   // would report a CLI missing that a real run finds.
   checkLandStop(owner);
+  checkLandingCancel(owner);
   const result = await runProcess(argv, cwd, timeoutMs, extraEnv, {
     started: owner ? (pid) => trackLandingProcess(owner, pid) : undefined,
     ended: owner ? (pid) => untrackLandingProcess(owner, pid) : undefined,
   });
   checkLandStop(owner);
+  checkLandingCancel(owner);
   return result;
 }
 
