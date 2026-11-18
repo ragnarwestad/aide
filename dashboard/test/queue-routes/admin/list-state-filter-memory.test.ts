@@ -17,6 +17,10 @@ describe("the state filter the reader chose is remembered", () => {
   const tickedLabels = (html: string): string[] =>
     [...html.matchAll(/<a data-nav href="[^"]*" role="checkbox" aria-checked="true"><span[^>]*><\/span>([^<]+) \(\d+\)<\/a>/g)]
       .map((match) => match[1]!);
+  /** Every state the filter offers: All ticks each of them. */
+  const offeredLabels = (html: string): string[] =>
+    [...html.matchAll(/<a data-nav href="[^"]*" role="checkbox" aria-checked="(?:true|false)"><span[^>]*><\/span>([^<]+) \(\d+\)<\/a>/g)]
+      .map((match) => match[1]!);
 
   test("choosing one writes it down, and a bare / gets it back", async () => {
     const { base, server } = start();
@@ -51,7 +55,9 @@ describe("the state filter the reader chose is remembered", () => {
     const res = await fetch(`${base}/specs?state=all`, {
       headers: { cookie: `aide_state_${server.port}=not-archived` },
     });
-    expect(tickedLabels(await res.text())).toEqual(["All"]);
+    const html = await res.text();
+    expect(tickedLabels(html)[0]).toBe("All");
+    expect(tickedLabels(html)).toEqual(offeredLabels(html));
     // And it becomes the new memory, so the next bare `/` agrees with
     // what the reader is looking at.
     expect(stateCookie(res, server.port)).toContain(`aide_state_${server.port}=all`);
@@ -60,7 +66,9 @@ describe("the state filter the reader chose is remembered", () => {
   test("with nothing remembered the default (All) stands", async () => {
     const { base, server } = start();
     const res = await fetch(`${base}/specs`);
-    expect(tickedLabels(await res.text())).toEqual(["All"]);
+    const html = await res.text();
+    expect(tickedLabels(html)[0]).toBe("All");
+    expect(tickedLabels(html)).toEqual(offeredLabels(html));
     expect(stateCookie(res, server.port)).toBe("");
   });
 
