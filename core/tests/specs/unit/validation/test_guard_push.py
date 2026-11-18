@@ -128,11 +128,21 @@ def test_a_push_naming_no_branch_is_read_as_where_git_would_push_it(tmp_path):
     assert guard(tmp_path, "git push", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=onto_main).returncode == 2
 
 
+def test_a_push_naming_no_branch_where_settings_push_more_than_one_branch_is_blocked(tmp_path):
+    for name, setting in (("matching", ("push.default", "matching")), ("refspec", ("remote.origin.push", "refs/heads/*")),
+                          ("mirror", ("remote.origin.mirror", "true"))):
+        topic = landing_repo(tmp_path, name, "topic")
+        subprocess.run(["git", "-C", str(topic), "config", *setting], check=True)
+        assert guard(tmp_path, "git push", queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=topic).returncode == 2, name
+
+
 def test_every_push_in_a_command_must_spare_main(tmp_path):
     aide = landing_repo(tmp_path, "aide", "topic")
     for command in ("git push origin topic; git push origin main", "git push --all origin",
                     "git push origin topic; /usr/bin/git push origin main",
-                    "git push origin topic && git -c push.default=current push"):
+                    "git push origin topic && git -c push.default=current push",
+                    "/usr/bin/git push origin main", "git --git-dir=.git push origin main",
+                    "git -c push.default=matching push origin topic"):
         assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2, command
 
 

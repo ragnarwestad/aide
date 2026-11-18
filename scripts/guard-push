@@ -24,6 +24,9 @@ import shlex
 from pathlib import Path
 
 PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
+# Any git, by name or path and with any options, followed by `push` before the shell operator that ends it: what
+# might be a push, read or not. A command holding one is never let through unasked.
+ANY_PUSH = re.compile(r"(?:^|[;&|(\s])(?:\S*/)?git(?:\s[^;&|\n]*?)?\spush(?:\s|$)")
 CD = re.compile(r"(?:^|[;&|(\s])cd\s+(\S+)")
 MIRROR = ".aide/dashboard/aide-queue.json"
 CHECKOUTS = ".aide/dashboard/checkouts"
@@ -107,6 +110,8 @@ def push_dir(command, start, words, cwd):
 def pushed_repo(command, cwd):
     """The origin of the repo the first push runs in. None when that cannot be told."""
     match = PUSH.search(command)
+    if not match:
+        return None
     start = match.start() + len(match.group(1))
     words = push_words(command, start)
     if not words or "push" not in words:
@@ -122,15 +127,18 @@ def git_out(path, *args):
 
 def pushes_only_non_default(command, cwd):
     """True only when every push in the command targets a branch other than origin's default: the branches it
-    names, or, naming none, where git itself would push (`@{push}`). A `push` word the parser does not read as a git
-    push of its own (a git started by its path, or with `-c`) is not known to spare main, so it fails closed."""
+    names, or, naming none, where git itself would push (`@{push}`) when the repo's settings push that one branch and
+    nothing else. A push the parser does not read as one of its own (a git started by its path, or with options other
+    than `-C`) is not known to spare main, so it fails closed."""
     pushes = list(PUSH.finditer(command))
-    if len(re.findall(r"(?<![\w./-])push(?![\w-])", command)) > len(pushes):
+    if len(ANY_PUSH.findall(command)) > len(pushes):
         return False
     for match in pushes:
         start = match.start() + len(match.group(1))
         words = push_words(command, start)
         if not words or "push" not in words:
+            return False
+        if "-c" in words[:words.index("push")]:
             return False
         args = words[words.index("push") + 1:]
         if any(arg in ("--all", "--mirror", "--branches") for arg in args):
@@ -145,6 +153,12 @@ def pushes_only_non_default(command, cwd):
         if refs and (refs[0] in git_out(path, "remote").split() or ":" in refs[0] or refs[0].endswith(".git")):
             refs = refs[1:]
         if not refs:
+            # `matching` and `nothing`, a configured push refspec and a mirror remote push other branches than
+            # `@{push}` names, or none, so those are not read at all.
+            if git_out(path, "config", "push.default") not in ("", "simple", "current", "upstream"):
+                return False
+            if git_out(path, "config", "--get-regexp", r"^remote\..*\.(push|mirror)$"):
+                return False
             target = git_out(path, "rev-parse", "--symbolic-full-name", "@{push}")
             if not target.startswith("refs/remotes/"):
                 return False
@@ -188,7 +202,7 @@ def main():
     except ValueError:
         return 0
     command = (payload.get("tool_input") or {}).get("command") or ""
-    if not PUSH.search(command):
+    if not ANY_PUSH.search(command):
         return 0
     jobs, why = read_queue()
     if jobs is None:
