@@ -305,8 +305,14 @@ run_create() {
 }
 
 run_land() {
-  local body
-  body="$(jq -nc --arg branch "$land_branch" '{branch: $branch}')"
+  local body checkout=""
+  # The checkout this was run in, so the board can remove the branch's
+  # copy here once it has landed. The board checks it is a clone of the
+  # project's own origin and ignores it otherwise.
+  checkout="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  checkout="${checkout%/.git}"
+  body="$(jq -nc --arg branch "$land_branch" --arg checkout "$checkout" \
+    '{branch: $branch} + (if $checkout != "" then {checkout: $checkout} else {} end)')"
   http_or_die POST "/api/queue/projects/$project/land" "$ANSWER_SECONDS" "$body"
   accepted || refuse
   jq -r '.message // empty' "$answer_file"

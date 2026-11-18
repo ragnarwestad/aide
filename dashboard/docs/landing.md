@@ -76,10 +76,29 @@ The places are `MERGE_STEP` and the titles come from `mergeStepTitle()` in `src/
 Code reaches the default branch through `archive` alone. The landing can only merge the repos it knows about, so it
 asks origin afterwards ([Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)).
 
+### A code root gets one commit per landing
+
+A code root's landing builds the merge, repairs it and runs the tests on it as a real merge, and then replaces it by
+one commit with the same tree, whose only parent is the default branch (`src/git/branch-merge/squash.ts`). What was
+tested is exactly what is pushed. The message is the spec's title, or for a Land or a schedule the branch's only
+commit's subject or else the branch name, followed by the subjects of every commit squashed. A branch that is one
+ordinary commit on the default branch lands as it is. The specs repo keeps its merge commits, so every step's own
+commit stays in its history.
+
+A squashed branch's commits are never ancestors of the default branch, so "has it landed" asks whether merging it
+in would change the default branch's tree (`contentLandedIn` in `src/git/branch-status.ts`, and
+`branch_already_landed` in `core/scripts/lib/run-spec/checkout/worktree.sh`).
+
 ### A merged branch is deleted
 
 Once the merge is on origin, the landing deletes the branch, first on origin and then locally. A delete that fails is
-never fatal: it is reported beside the merge.
+never fatal: it is reported beside the merge. The local copy is deleted only when it is exactly the tip that landed.
+
+A Land started with `aide land` also cleans up where the session made the branch. `aide land` sends the main
+checkout of the repository it ran in, and the board keeps it when that checkout is a clone of the project's origin.
+Once the Land has landed, the branch's copy there is removed: every worktree holding it, and then the branch
+(`src/git/branch-merge/landed-copy.ts`). A branch with work that is not on the default branch is kept, and so is a worktree with
+changes or untracked files, along with its branch. The Land's log names what was removed and what was kept.
 
 ### What is refused, and what is tried again
 

@@ -245,6 +245,10 @@ export interface Job {
   closeReason?: string;
   /** The exact origin branch a standalone Land job merges. */
   branch?: string;
+  /** The checkout a session pushed a standalone Land's branch from. Once
+   *  the branch has landed, its copy there — the branch, and a clean
+   *  worktree holding it — is removed (`git/landed-copy.ts`). */
+  landFrom?: string;
   /** Stop is unavailable once a standalone Land has begun publishing. */
   landPushStarted?: boolean;
   /** A `reopen` job that also resets the analysis, the plan and the

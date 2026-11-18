@@ -996,5 +996,7 @@ there instead (see Queueing from a terminal).
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
 `aide land <project> <branch>` queues a Land job for a branch that already exists on origin. Land uses no AI slot. Its
-row shows merge, tests, push and source-branch deletion. Deploy remains a separate press after Land has finished.
+row shows merge, tests, push and source-branch deletion. The branch lands as one commit, and its copy in the
+checkout `aide land` ran in is removed afterwards ([A merged branch is deleted](landing.md#a-merged-branch-is-deleted)).
+Deploy remains a separate press after Land has finished.
 
