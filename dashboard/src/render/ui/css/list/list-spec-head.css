@@ -218,7 +218,7 @@ table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .specpart > .kindicon svg {
   width: 15px; height: 15px;
 }
-table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) > .foldcell > .fold > svg {
+table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) > .foldcell > .fold > :is(svg, .spin) {
   position: relative; left: 2.5px; top: var(--sp-3);
 }
 table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.grouphead .groupheadline { margin-left: 0; }
@@ -229,5 +229,5 @@ table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.g
 @media (max-width: 40rem) {
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell { width: 0; }
   table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .spec-name > .label { padding-left: 6px; }
-  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > svg { left: -5px; top: var(--sp-3); }
+  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: var(--sp-3); }
 }
