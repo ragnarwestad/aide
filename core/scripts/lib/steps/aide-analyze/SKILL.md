@@ -10,45 +10,17 @@ description: >-
   affected files and API impact.
   Do NOT use for: creating a new task (use aide-create),
   implementation (use aide-implement).
-argument-hint: "[PROJ-XXXX or task number]"
 effort: xhigh
 ---
 
 Analyze the codebase for a spec.
 
-**Input:** $ARGUMENTS (all arguments after the command)
+**Input:** the argument the run's prompt gives
 
-## Smart detection
+## The spec
 
-Parse `$ARGUMENTS`:
-
-**The spec:** the first word is its number, its folder name, or an issue key its title began with
-- Example: `/aide-analyze 55` or `/aide-analyze 55-dark-mode`
-
-**Error handling:** If the argument is missing or has an invalid format, show:
-
-```text
-Missing argument
-
-Usage:
-/aide-analyze 55               # the spec's number
-/aide-analyze 55-dark-mode      # or its folder
-
-Examples:
-/aide-analyze 55
-```
-
----
-
-## A project with a board
-
-Working interactively, hand the step to the board first:
-
-```bash
-aide-hand-off analyze <spec>
-```
-
-Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+The argument's first word is the spec: its number, its folder name, or an issue key its title began with —
+`55` or `55-dark-mode`.
 
 ---
 
@@ -69,30 +41,23 @@ done.
 First write `--- Step 1 of 11: Read the description — started`, and when this step ends, `--- Step 1 of 11: Read the description — done`.
 
 
-- Working interactively, run `date +%s` before anything else and keep the
-  number for Step 9.
 - Read `specs/XX-slug/1-description.md`
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
   its `AC-n` ids for Steps 5, 7 and 8 — see `references/requirements-tracing.md`.
 - **Learn the acceptance criteria checks level** — `off`, `warn` or
-  `stop`, for Steps 7, 8 and 10. A headless run states it in the prompt
-  (`criteriaChecks: <level>`). Working interactively, read the
-  `Acceptance criteria checks:` line in Tracking info of the spec's own
-  `1-description.md`. Absent or any other value is `off`.
+  `stop`, for Steps 7, 8 and 10. The prompt states it
+  (`criteriaChecks: <level>`). Absent or any other value is `off`.
 - **Learn whether the spec asks to choose the approach**, for Steps 4,
-  7 and 8. A headless run says so in the prompt (`Let me choose the
+  7 and 8. The prompt says so (`Let me choose the
   approach is on for this spec`) and says nothing when it is not.
-  Working interactively, read the `Let me choose the approach:` line in
-  Tracking info of the spec's own `1-description.md`. Only `yes` is on.
 - **Learn whether a short analysis is allowed**, for Steps 3, 5, 7, 8 and
-  9. A headless run says so in the prompt, in the line `A short analysis is allowed for this spec, per Step 3`
-  followed by the runner's limits, and says nothing when it is not.
-  Working interactively there is no such line: write the full analysis. The runner sets
+  9. The prompt says so, in the line `A short analysis is allowed for this spec, per Step 3`
+  followed by the runner's limits, and says nothing when it is not. The runner sets
   the limits and checks the analysis against them after the turn. A spec whose
   `1-description.md` has a `Sent back to a full
-  analysis:` line in Tracking info is never given a short analysis, run
-  headless or not: implement found it is not small.
+  analysis:` line in Tracking info is never given a short analysis:
+  implement found it is not small.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -103,7 +68,7 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
 documents** — not application source, not test files, nothing in the
 project repo, by any tool (Edit, Write, Bash included). If Step 7's own
 "Recommended solution" reads as obviously correct and ready to apply,
-stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
+stop anyway: applying it is the implement step's job, in its own turn, not
 something this skill does on its behalf because it happens to be
 possible in the same session.
 
@@ -349,57 +314,18 @@ Sections already filled in per Step 4 are left untouched.
 When AC-n ids exist, see `references/requirements-tracing.md` Step 9
 for the `## Acceptance criteria` section this file gains — one row per
 AC-n id, unticked, for the user the spec is for to judge and tick,
-never for this skill or `/aide-implement` to tick themselves.
+never for this step or the implement step to tick themselves.
 
 Leave `Workflow steps completed:` and this phase's `Repo`/`Model`/
 `Result`/`Time spent`/`Cost` lines in `2-analysis.md` as you found them:
-headless, `aide-run-spec` writes them. Working interactively, once the
-analysis has completed and before offering the commit, record the step:
-
-```bash
-aide-record-step --step analyze --specs-root "<specs-root>" \
-  --folder "<spec-folder>" --start-epoch "<the number from Step 1>" \
-  --model "<tool> <model>"   # leave --model out when you cannot name your model
-```
-
-The commit carries every file the answer's `files` names, `4-status.json`
-too. A step that stopped records nothing.
-A run Step 6 stopped on shared files has not completed and records
-nothing.
-
-A headless run gets its commit for free — this session does not run
-`git commit` or `git push` itself, headless or not. Working
-interactively, ASK whether to commit the analysis, and suggest this
-message so the step is recognised the same way:
-
-```text
-Run /aide-analyze for <spec-folder> (model: <tool> <model>)
-```
-
-Add the `(model: ...)` part only when you can name your own model with
-certainty. A Claude Code session is told which model it is running in
-its own context, so it can write `claude claude-opus-5`; an assistant
-that cannot name itself offers the bare subject without the suffix and
-never guesses.
-
-Offer it only when the analysis actually completed; one that failed, or
-that you stopped part-way, has nothing to record.
-
-When the person asks for the specs to be pushed too, push them with
-
-```bash
-aide-push-specs --specs-root "<specs-root>"
-```
-
-never with a bare `git push`: the command rebases and pushes again when
-origin has moved, and tells the board, so its specs list shows the
-analysis at once.
+`aide-run-spec` writes them. This session does not run `git commit` or
+`git push`: the runner commits the files and pushes them.
 
 ### Step 10 of 11: Confirm
 
 First write `--- Step 10 of 11: Confirm — started`, and when this step ends, `--- Step 10 of 11: Confirm — done`.
 
-In a headless run nothing of this is on the default branch yet: the
+Nothing of this is on the default branch yet: the
 analyze is finished only once Step 11, the merge of spec files into main, is done. So the
 report's first line ends `— not finished, the merge of spec files into main is next
 (Step 11)`, and the report never calls the analyze done or complete.
@@ -410,26 +336,21 @@ full), number of affected files, the plan
 review's verdict (a short analysis has none) (counts of must-fix/should-fix, what was revised), the
 Criteria check line, and the next step.
 
-At `stop` with a fault on that line, a headless run is ended stopped by
+At `stop` with a fault on that line, the run is ended stopped by
 Aide after this session, and the next step is to put the description
-right and run Analyze again. Working interactively there is no runner
-to stop it: say that the analysis would have ended stopped, and that the
-description is to be put right before `/aide-implement`.
+right and run Analyze again.
 
 ### Step 11 of 11: Merge spec files into main
 
 Aide writes `--- Step 11 of 11: Merge spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
-Not this session's step, and it writes no mark for it. In a headless
-run Aide merges the spec files committed on the spec's branch into
-the specs repository's default branch once the session has ended, and the analyze is finished
-when that merge is, not before. Working interactively there is no such
-step: the steps above say what reaches the default branch.
+Not this session's step, and it writes no mark for it. Aide merges the
+spec files committed on the spec's branch into the specs repository's
+default branch once the session has ended, and the analyze is finished
+when that merge is, not before.
 
 ---
 
 ## Next step
 
-```text
-/aide-implement 55
-```
+Implement, which the board runs next.

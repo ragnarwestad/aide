@@ -36,7 +36,7 @@ describe("isLegalMove", () => {
     expect(move.ok).toBe(false);
     if (!move.ok) {
       expect(move.reason).toBe("not-analyzed-yet");
-      expect(move.message).toBe("spec 7-x has not been analyzed yet — run /aide-analyze first");
+      expect(move.message).toBe("spec 7-x has not been analyzed yet — run Analyze first");
     }
   });
 

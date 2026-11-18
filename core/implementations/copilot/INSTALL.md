@@ -96,8 +96,8 @@ cd aide/implementations/copilot
    ✅ Installed: ~/.copilot/copilot-instructions.md
 
 3️⃣  Installing skills to ~/.agents/skills/...
-   ✅ Installed: ~/.agents/skills/aide-analyze
-   ✅ Installed: ~/.agents/skills/aide-archive
+   ✅ Installed: ~/.agents/skills/aide-explore
+   ✅ Installed: ~/.agents/skills/aide-to-pdf
    … one line per skill
 
 4️⃣  Verifying PATH...
@@ -131,8 +131,8 @@ head -3 ~/.copilot/copilot-instructions.md
 ```bash
 cd ~/develop/my-app
 copilot
-/skills info aide-create
-# Should show: Location: /Users/<you>/.agents/skills/aide-create/SKILL.md
+/skills info aide-explore
+# Should show: Location: /Users/<you>/.agents/skills/aide-explore/SKILL.md
 ```
 
 ---

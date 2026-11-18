@@ -45,7 +45,7 @@ Each entry says what the word is and links the page that has the rest.
   and where the tests sit, with no plan and no plan review. The runner
   states the limits in the analyze prompt (set in
   `core/scripts/lib/run-spec/setup/arguments.sh`) and fails a short analysis
-  over any of them. [Spec files](../core/skills/aide-analyze/references/spec-files.md).
+  over any of them. [Spec files](../core/scripts/lib/steps/aide-analyze/references/spec-files.md).
 - **Sent back** — a spec whose short analysis turned out too small: either
   its implement found it so, or its analyze wrote a short analysis over a
   limit. The step stops, the description keeps a `Sent back to a full

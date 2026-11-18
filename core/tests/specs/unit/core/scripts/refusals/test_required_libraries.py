@@ -12,7 +12,7 @@ REQUIRED_LIBRARIES = {
     "aide-create-spec": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",
         "lib/tracking-info.sh", "lib/create-spec/create.sh",
-        "lib/create-spec/stamp-outcome.sh", "lib/create-spec/assign-number.sh",
+        "lib/create-spec/assign-number.sh",
     ),
     "aide-archive-spec": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",

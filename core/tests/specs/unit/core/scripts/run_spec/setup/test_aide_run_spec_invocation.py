@@ -16,7 +16,7 @@ from ..run_spec_invoking import BRANCH, _standalone_runner_copy
 from ..run_spec_project_state import (
     CHOOSE_APPROACH, CRITERIA_CHECKS, SENT_BACK, configure_choose_approach, configure_criteria_checks, configure_sent_back,
 )
-from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
+from ..run_spec_results import asks_for_step, FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
 from ..run_spec_result_fields import assert_written_as_in_fixture
 
 def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspace, fake_claude):
@@ -39,7 +39,7 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     assert argv[argv.index("--permission-mode") + 1] == "bypassPermissions"
     # The spec ID is the folder's numeric prefix, and the prompt SAYS the
     # run is headless rather than leaving it in the environment.
-    assert out["prompt"].startswith("/aide-implement 81")
+    assert asks_for_step(out["prompt"], "implement", "81"), out["prompt"]
     assert "headless" in out["prompt"].lower()
     assert not fake_claude.calls.exists(), "a dry run must not invoke claude"
 
@@ -54,7 +54,7 @@ def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude
     rc, out, _ = run(runner, workspace, claude, dry_run=True)
     assert rc == 0
     prompt = out["prompt"]
-    assert prompt.startswith("/aide-analyze 81"), prompt
+    assert asks_for_step(prompt, "analyze", "81"), prompt
     lowered = prompt.lower()
     assert "headless" in lowered
     # And it must say what follows from it, not merely name the state.
@@ -508,7 +508,7 @@ def test_analyze_prompt_does_not_delegate_acceptance_marks(runner, workspace, fa
         acceptance_not_required=True, dry_run=True,
     )
     assert rc == 0, out
-    assert out["prompt"].startswith("/aide-analyze")
+    assert asks_for_step(out["prompt"], "analyze", "81"), out["prompt"]
     assert "Acceptance ticking" not in out["prompt"]
     assert "Not verified" not in out["prompt"]
 
@@ -520,7 +520,7 @@ def test_close_states_the_reason_the_person_typed(runner, workspace, fake_claude
     )
     assert rc == 0, out
     prompt = out["prompt"]
-    assert prompt.startswith("/aide-close"), prompt
+    assert asks_for_step(prompt, "close", "81"), prompt
     assert "Use exactly this reason when closing the spec: this idea does not hold" in prompt, prompt
 
 def test_close_without_a_reason_says_nothing_about_one(runner, workspace, fake_claude):

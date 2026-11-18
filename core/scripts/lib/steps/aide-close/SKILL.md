@@ -11,7 +11,6 @@ description: >-
   Do NOT use for: finished work (use aide-archive), another round on the
   same spec (change an acceptance criterion and run analyze again),
   unfinished work that is still worth finishing.
-argument-hint: "[spec number] [reason]"
 effort: medium
 ---
 
@@ -19,20 +18,8 @@ Close a spec that turned out not to work: stamp the reason, move it to
 `archive/`, and let the code branch it never used be deleted rather than
 merged.
 
-**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with,
-plus the reason the user closing it typed)
-
-## A project with a board
-
-Working interactively, hand the step to the board first:
-
-```bash
-aide-hand-off close <spec> --reason "<the reason>"
-```
-
-Ask for the reason first when none was given. Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
-
----
+**Input:** the argument the run's prompt gives: a spec number, a full folder ID, or an issue key
+its title began with. The prompt states the reason the user closing it typed.
 
 ## Workflow
 
@@ -62,9 +49,8 @@ aide-close-spec --project-dir <project root> --spec <argument> \
 ```
 
 The reason is the one thing this script refuses to run without. Read it
-from wherever this run was told it (the prompt's own "Use exactly this
-reason when closing the spec:" line for a headless run; ask for it
-directly when interactive and none was given).
+from the prompt's own "Use exactly this reason when closing the spec:"
+line.
 
 Pass `--specs-dir` whenever the specs root lives in a different git repo
 from the project — same reasoning as `/aide-archive`'s own Step 1.
@@ -108,40 +94,14 @@ exactly as you found it. The same script writes this phase's `Repo`/
 `Model`/`Result`/`Time spent`/`Cost` block into `4-status.md`'s own
 Tracking info — leave those lines alone too.
 
-A headless run gets its commit for free — this session does not run
-`git commit` or `git push` itself, headless or not. Working
-interactively, ASK whether to commit the move, and suggest this message
-so the step is recognised the same way:
-
-```text
-Run /aide-close for <spec-folder> (model: <tool> <model>)
-```
-
-Add the `(model: ...)` part only when you can name your own model with
-certainty. A Claude Code session is told which model it is running in
-its own context, so it can write `claude claude-opus-5`; an assistant
-that cannot name itself offers the bare subject without the suffix and
-never guesses.
-
-Offer it only after the move actually happened — a `refused`,
-`already-closed` or `already-archived` outcome in Step 1 has nothing to
-commit here beyond its own decline.
-
-When the person asks for the specs to be pushed too, push them with
-
-```bash
-aide-push-specs --specs-root "<specs-root>"
-```
-
-never with a bare `git push`: the command rebases and pushes again when
-origin has moved, and tells the board, so its specs list shows the move
-at once.
+This session does not run `git commit` or `git push`: the runner
+commits the specs repository and pushes it.
 
 ### Step 3 of 4: Confirm
 
 First write `--- Step 3 of 4: Confirm — started`, and when this step ends, `--- Step 3 of 4: Confirm — done`.
 
-In a headless run nothing of this is on the default branch yet: the
+Nothing of this is on the default branch yet: the
 close is finished only once Step 4, the merge of spec files into main, is done. So the
 report's first line ends `— not finished, the merge of spec files into main is next
 (Step 4)`, and the report never calls the close done or complete.
@@ -161,16 +121,14 @@ The spec stays findable: /aide-to-pdf 17
 
 Aide writes `--- Step 4 of 4: Merge spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
-Not this session's step, and it writes no mark for it. In a headless
-run Aide merges the spec files committed on the spec's branch into
-the specs repository's default branch once the session has ended, and the close is finished
-when that merge is, not before. Working interactively there is no such
-step: the steps above say what reaches the default branch.
+Not this session's step, and it writes no mark for it. Aide merges the
+spec files committed on the spec's branch into the specs repository's
+default branch once the session has ended, and the close is finished
+when that merge is, not before.
 
 Rules:
 - Closing is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's
 - The code branch is left for the landing after this step, which deletes
-  it; this skill never pushes or merges it, and pushes the specs only when
-  the person asks, through `aide-push-specs`
+  it; this step never pushes or merges it

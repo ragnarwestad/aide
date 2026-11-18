@@ -81,8 +81,9 @@ echo "== in a new terminal (interactive shell)"
 for tool in mise node jq bun gh claude aide-run-spec aide-create-spec; do
   check "$tool" bash -i -c "command -v $tool"
 done
-check "Claude Code skills" test -f ~/.claude/skills/aide-create/SKILL.md
-check "shared skills" test -f ~/.agents/skills/aide-create/SKILL.md
+check "Claude Code skills" test -f ~/.claude/skills/aide-explore/SKILL.md
+check "shared skills" test -f ~/.agents/skills/aide-explore/SKILL.md
+check "step instructions beside the runner" test -f ~/.local/bin/lib/steps/aide-create/SKILL.md
 # The rest of this script runs with the PATH a new terminal has, since
 # the tools mise installed are on no other.
 PATH="$(bash -i -c 'printf %s "$PATH"' 2>/dev/null)"

@@ -146,7 +146,7 @@ found, ticked or not: after a completed analysis of an implemented spec
 the runner rebuilds the table from `1-description.md` itself, every row
 unticked, and the session writes none of it. This is also the one exception to
 `aide-implement`'s own "never touch the Acceptance criteria section"
-rule: see `core/skills/aide-implement/SKILL.md` for the narrow carve-out
+rule: see `core/scripts/lib/steps/aide-implement/SKILL.md` for the narrow carve-out
 that lets Implement write an open row's Notes cell — rewritten from
 scratch each round, one or two sentences on what is missing for a
 user to tick, with this round's own findings going into the

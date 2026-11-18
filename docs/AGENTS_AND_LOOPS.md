@@ -68,7 +68,7 @@ No subagents and no review.
 4. The session writes the plan in `3-solution.md`, with more than one approach when the spec asks for a choice and the
    approaches really differ.
 5. **The plan review.** The session starts subagents that read only the spec's four files, never the reasoning behind
-   the plan (`core/skills/aide-analyze/references/plan-review.md`):
+   the plan (`core/scripts/lib/steps/aide-analyze/references/plan-review.md`):
    three reviewers, in parallel, each with one perspective and no sight of the others' findings, whatever the spec's
    complexity. A tool with no way to start a subagent runs the same reviews one after the other in its own session.
    With a Review under Analyze chosen, the session hands the review over instead: the runner runs the three reviewers
@@ -82,7 +82,7 @@ The analyze session grades the spec LOW, MEDIUM or HIGH itself, once it has sear
 grade, and the runner does not check it.
 
 - **What decides it:** the risk of the change, judged from the code. The criteria, with two worked examples, are in
-  `core/skills/aide-analyze/references/complexity-and-analysis.md`, and nowhere else.
+  `core/scripts/lib/steps/aide-analyze/references/complexity-and-analysis.md`, and nowhere else.
 - **What it decides:**
   - how deep the analysis goes, and how long `2-analysis.md` is;
   - whether the plan comes in phases, for HIGH.

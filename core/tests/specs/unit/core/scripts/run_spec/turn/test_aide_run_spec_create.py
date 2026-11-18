@@ -11,7 +11,7 @@ import pytest
 
 from ...conftest import READ_SPECS, git, init_repo, run
 from ..run_spec_fakes import creating_claude
-from ..run_spec_results import RESULT_ERROR, RESULT_OK
+from ..run_spec_results import RESULT_ERROR, RESULT_OK, asks_for_step
 from ..run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
 
 
@@ -34,7 +34,7 @@ def test_every_other_step_still_refuses_an_unknown_spec(runner, workspace, fake_
 
 def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, workspace, fake_claude):
     """The queue calls `/aide-create` with no argument, the skill's own
-    documented form for it (core/skills/aide-create/SKILL.md): the title
+    documented form for it (core/scripts/lib/steps/aide-create/SKILL.md): the title
     and the description are each in a tag of their own, so the session can
     tell the text the spec is made from apart from the instructions around
     it."""
@@ -46,13 +46,13 @@ def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, works
     )
     assert rc == 0, out
     prompt = out["prompt"]
-    assert prompt.splitlines()[0] == "/aide-create", prompt
+    assert asks_for_step(prompt, "create"), prompt
     assert "<title>A new spec</title>" in prompt, prompt
     assert "<description>\nDo the thing that was asked for\n</description>" in prompt, prompt
     assert "headless" in prompt.lower()
     # The generic shape every other step uses would name a spec id this
     # spec does not have yet.
-    assert f"/aide-create {CREATE_KEY}" not in prompt
+    assert CREATE_KEY not in prompt.splitlines()[0], prompt
 
 
 def test_create_keeps_an_instruction_in_the_description_inside_its_tag(runner, workspace, fake_claude):
@@ -96,7 +96,7 @@ def test_create_states_the_depends_on_value_the_form_chose(runner, workspace, fa
     prompt = out["prompt"]
     assert "Use exactly this Depends-on value in Tracking info: 92,97-freshness" in prompt, prompt
     # Still the skill's own argument shape, and still the title beside it.
-    assert prompt.startswith("/aide-create\n"), prompt
+    assert asks_for_step(prompt, "create"), prompt
     assert "<title>A new spec</title>" in prompt, prompt
 
 def test_create_without_the_flag_says_nothing_about_dependencies(runner, workspace, fake_claude):
@@ -334,7 +334,7 @@ def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, dry_run=True)
     assert rc == 0, out
-    assert out["prompt"].startswith("/aide-create\n"), out
+    assert asks_for_step(out["prompt"], "create"), out
 
 
 def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, workspace, fake_claude):
@@ -504,7 +504,7 @@ def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     prompt = out["prompt"]
     assert prompt.startswith("Summarize last night's traffic."), prompt
     assert "headless" in prompt.lower()
-    assert "/aide-" not in prompt, prompt
+    assert "lib/steps/" not in prompt, prompt
 
 def test_schedule_requires_a_prompt_file(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")

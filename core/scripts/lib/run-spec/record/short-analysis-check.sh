@@ -11,7 +11,7 @@
 # run-spec/record/criteria-check.sh and run-spec/record/outcome.sh, which act
 # on the verdict left here.
 #
-# The analyze skill writes three fields (core/skills/aide-analyze/references/
+# The analyze skill writes three fields (core/scripts/lib/steps/aide-analyze/references/
 # spec-files.md): `- **Analysis:** short|full` in 2-analysis.md's Tracking
 # info, `- **Grade:**` and `- **Acceptance criteria:**` in 3-solution.md's, and
 # the paths under `### Files to change` in 2-analysis.md. The limits, the grade

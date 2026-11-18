@@ -151,16 +151,13 @@ if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
   [ ! -d "$_source_dir/lib" ] || cp -RL "$_source_dir/lib" "$_snapshot/" || exit 2
   AIDE_RUN_SPEC_SELF_COPY="$_snapshot/runner" \
   AIDE_RUN_SPEC_SOURCE_DIR="$_snapshot" \
-  AIDE_RUN_SPEC_ORIGIN_DIR="$_source_dir" \
     exec "$BASH" "$_snapshot/runner" "$@"
 fi
 # Drop the markers before spawning any child, so a nested runner makes
 # its own copy and cannot delete the installation or its parent's copy.
 SCRIPT_DIR="$AIDE_RUN_SPEC_SOURCE_DIR"
 _runner_snapshot="$SCRIPT_DIR"
-# Where the runner was started from: a checkout keeps the skills beside it.
-RUNNER_ORIGIN_DIR="${AIDE_RUN_SPEC_ORIGIN_DIR:-$SCRIPT_DIR}"
-unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR AIDE_RUN_SPEC_ORIGIN_DIR
+unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
 trap 'rm -rf "$_runner_snapshot"' EXIT
 rm -f "$0"
 

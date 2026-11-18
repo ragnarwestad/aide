@@ -8,7 +8,7 @@
 # from the verdict left here.
 #
 # The analyze skill makes the checks and writes one line under the Plan
-# review section's Findings line (core/skills/aide-analyze/references/
+# review section's Findings line (core/scripts/lib/steps/aide-analyze/references/
 # plan-review.md): `**Criteria check:** <level> — <faults>`, the faults
 # joined by `; `, or `none found`. The runner reads that line and never
 # judges the criteria itself: any text after ` — ` other than `none found`

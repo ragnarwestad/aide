@@ -9,7 +9,6 @@ description: >-
   early, a shipped change has to be redone from its own description.
   Do NOT use for: creating a new spec (use aide-create), analysis (use
   aide-analyze), archiving (use aide-archive).
-argument-hint: "[spec number]"
 effort: medium
 ---
 
@@ -18,19 +17,11 @@ folder back among the active specs. By default every file is kept and
 the spec takes a round on what changed in its description; only when
 asked are the analysis, the plan and the status reset as well.
 
-**Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
+**Input:** a spec number, a full folder ID, or an issue key its title began with
 
----
-
-## A project with a board
-
-Working interactively, hand the step to the board first:
-
-```bash
-aide-hand-off reopen <spec>
-```
-
-Add `--reset` when the arguments ask for a reset. Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+The runner does this step itself, with no model turn: it makes the
+`aide-reopen-spec` call below, and the board reads this file's step
+headings for the lines it shows while the job runs.
 
 ---
 
@@ -42,15 +33,15 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-Step 6, the merge of spec files into the default branch, is Aide's, after a reopen on
-the board: Aide writes its marks there.
+Step 6, the merge of spec files into the default branch, is Aide's, after
+the reopen: Aide writes its marks there.
 
 ### Step 1 of 6: Find the spec
 
 First write `--- Step 1 of 6: Find the spec — started`, and when this step ends, `--- Step 1 of 6: Find the spec — done`.
 
 
-Resolve `$ARGUMENTS` to a folder, looking under `archive/` — that is
+Resolve the spec to a folder, looking under `archive/` — that is
 where the spec is. `aide_resolve_spec` in `_aide-spec-lib.sh` already
 searches both and returns `archive/<NN>-slug` for an archived spec.
 
@@ -58,10 +49,8 @@ If it is NOT archived, stop and say so: a spec already in the active
 list has nothing to reopen, and resetting its files would throw away the
 round that is running.
 
-Then ask: "Reset the analysis, the plan and the status as well?
-(default: no)". No, or no answer, is the keep mode; yes is the reset
-mode. A headless run never reaches this skill at all: the runner makes
-the same `aide-reopen-spec` call itself.
+The job says the mode: the reset mode when Reopen on the spec's page
+asked for a reset, the keep mode otherwise.
 
 ### Step 2 of 6: Remove the branch the earlier round left behind
 
@@ -114,7 +103,7 @@ refusal, report the script's `error` and stop.
 First write `--- Step 4 of 6: Commit spec files — started`, and when this step ends, `--- Step 4 of 6: Commit spec files — done`.
 
 
-ASK whether to commit, and suggest this message:
+The runner commits the move with this subject:
 
 ```text
 Run /aide-reopen for <spec-folder>
@@ -132,16 +121,16 @@ Reopened: 17-clean-up-console-log
 - Reset: 2-analysis.md, 3-solution.md, 4-status.md   (reset mode; keep mode: none)
 - Kept: 1-description.md, 0-README.md   (keep mode: every file)
 
-Next: /aide-analyze 17
+Next: Analyze
 ```
 
 ### Step 6 of 6: Merge spec files into main
 
-Aide writes `--- Step 6 of 6: Merge spec files into main — started` itself, after a reopen on the board, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 6 of 6: Merge spec files into main — started` itself, after the reopen, and ends it `— done` or `— stopped: <why>`.
 
-Not this session's step, and it writes no mark for it. Typed at a
-keyboard there is no such step: the commit in Step 4 is what reaches
-the specs repository.
+Aide merges the spec files committed on the spec's branch into the specs
+repository's default branch, and the reopen is finished when that merge
+is, not before.
 
 Rules:
 - Never delete a commit, and never rewrite the default branch's history.

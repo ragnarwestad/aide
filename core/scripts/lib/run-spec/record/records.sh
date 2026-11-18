@@ -3,9 +3,8 @@
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
-# of the run, are exactly what they were. Also sourced by aide-record-step,
-# which records a session's step with these same functions: the file stays
-# function definitions only, and a function that reads a global names it.
+# of the run, are exactly what they were. The file stays function
+# definitions only, and a function that reads a global names it.
 # --- the record of what has run -----------------------------------
 # The dashboard reads this spec's own commits to decide which steps it
 # has had. Everything that is not the dashboard — a person opening the

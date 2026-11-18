@@ -21,7 +21,7 @@ export const AIDE_PARTS = { before: "preparing", after: "tests and commit" } as 
  *  the skill's own steps are never marked for them, only Aide's parts and the merge. */
 export const NO_MODEL_TURN: ReadonlySet<string> = new Set(["reopen"]);
 
-const SKILLS_DIR = join(import.meta.dir, "../../../../core/skills");
+const STEPS_DIR = join(import.meta.dir, "../../../../core/scripts/lib/steps");
 
 const HEADING = /^#{2,} Step (\d+ of \d+): (.+)$/gm;
 
@@ -36,7 +36,7 @@ const kept = new Map<string, { mtimeMs: number; plan: PlannedStep[] }>();
 
 /** Every step `step`'s log marks, in the order it marks them, each a line the Running page draws waiting.
  *  A skill that is missing, unreadable or without a `Step N of X:` heading gives `[]`. */
-export function stepPlan(step: string, skills = SKILLS_DIR): PlannedStep[] {
+export function stepPlan(step: string, skills = STEPS_DIR): PlannedStep[] {
   const file = join(skills, `aide-${step}`, "SKILL.md");
   let mtimeMs: number;
   try {

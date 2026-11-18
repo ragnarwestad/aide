@@ -349,11 +349,12 @@ the machine's Claude Code login.
 | `~/.claude/skills/` | Scanned the same way, shared with Claude Code            |
 
 A skill is reached through a `skill` tool, by its ID, not as a slash
-command — which is why a headless step names its skill in words.
+command. A board step is not a skill: every tool is told to read the step's
+instructions file beside the runner, by its path.
 
 In OpenCode 2 a skill's ID comes from its path under the scanned directory:
-Aide's skills sit one folder deep, so `~/.agents/skills/aide-analyze/SKILL.md`
-is `aide-analyze`, the ID a step names. The frontmatter `name` is only the
+Aide's skills sit one folder deep, so `~/.agents/skills/aide-explore/SKILL.md`
+is `aide-explore`. The frontmatter `name` is only the
 label OpenCode shows, and a skill with no `description` is not offered to the
 model at all. Aide's skills keep `name` equal to the folder and all carry a
 description, which `core/tests/specs/unit/core/validation/rules/test_core_skills.py`

@@ -27,9 +27,10 @@ effort: medium
 Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
 Each skill's own description says what it does and when to use it; the
-`aide-*` skills are the workflow's steps (`/aide-explore`, `/aide-create`,
-`/aide-analyze`, `/aide-implement`, `/aide-archive`, `/aide-close`,
-`/aide-reopen`) and its helpers `/aide-to-pdf` and `/aide-untangle`.
+`aide-*` skills are `/aide-explore` and the helpers `/aide-to-pdf` and
+`/aide-untangle`. A spec's steps (create, analyze, implement, archive,
+close, reopen) are not skills: they run only on the board, queued with
+`aide <step>` or from the dashboard.
 
 ---
 

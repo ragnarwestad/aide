@@ -185,15 +185,16 @@ and no `## Plan review` section.
 
 ## Templates
 
-The `/aide-create` command creates the four files from their templates;
-`/aide-analyze` fills in the analysis, the solution and the status.
+The create step makes the four files from their templates; the analyze
+step fills in the analysis, the solution and the status. Both run on the
+board, queued with `aide create` and `aide analyze` or from the
+dashboard.
 
-**Spec files are always produced by invoking the actual `/aide-*` skill
-for that step — never by hand-writing or reimplementing the pattern
-directly with Read/Write/Bash, even when the exact structure is already
-known from a previous invocation in the same session.** A spec created
-this way carries none of the commits, review or convention the skill
-provides, and looks identical to one that did.
+**Spec files are always produced by a step on the board — never by
+hand-writing or reimplementing the pattern directly with
+Read/Write/Bash, even when the exact structure is already known.** A
+spec created that way carries none of the commits, review or convention
+the step provides, and looks identical to one that did.
 
 Where `aide-install-spec-hook` has been run, a commit touching a spec's
 files is rejected unless its message follows the

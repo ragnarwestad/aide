@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from .test_core_skills import CORE_SKILLS_DIR
+from .test_core_skills import CORE_SKILLS_DIR, CORE_STEPS_DIR
 
 REPO_ROOT = CORE_SKILLS_DIR.parent.parent
 BASH_BLOCK = re.compile(r"```(?:bash|sh)\n(.*?)```", re.S)
@@ -17,7 +17,7 @@ EARS_PATTERN = re.compile(r"`([^`]*SHALL <response>)`")
 
 @pytest.mark.validation
 def test_every_aide_script_a_skill_runs_exists():
-    sources = list(CORE_SKILLS_DIR.rglob("*.md"))
+    sources = list(CORE_SKILLS_DIR.rglob("*.md")) + list(CORE_STEPS_DIR.rglob("*.md"))
     called = {}
     for path in sources:
         for block in BASH_BLOCK.findall(path.read_text(encoding="utf-8")):
@@ -31,58 +31,11 @@ def test_every_aide_script_a_skill_runs_exists():
     assert not missing, f"skills run scripts core/scripts does not have: {missing}"
 
 
-def runs_hand_off(skill, step):
-    blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8"))
-    return any(re.search(rf"^\s*aide-hand-off\s+{step}\b", block, re.M) for block in blocks)
-
-
-@pytest.mark.validation
-@pytest.mark.parametrize("step", ["analyze", "implement", "archive", "close", "reopen"])
-def test_a_step_skill_hands_its_own_step_to_aide_hand_off_AC_1(step):
-    assert runs_hand_off(f"aide-{step}", step), (
-        f"aide-{step} has no bash block that runs aide-hand-off {step}"
-    )
-
-
-@pytest.mark.validation
-def test_the_create_skill_hands_the_title_and_description_to_aide_hand_off_AC_2():
-    assert runs_hand_off("aide-create", "create"), (
-        "aide-create has no bash block that runs aide-hand-off create"
-    )
-
-
-PUSHING_SKILLS = ("aide-create", "aide-analyze", "aide-implement", "aide-archive", "aide-close")
-
-
-@pytest.mark.validation
-def test_the_skills_that_push_the_specs_run_the_one_command_and_never_a_bare_git_push_AC_3():
-    wrong = []
-    for name in PUSHING_SKILLS:
-        blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8"))
-        if not any("aide-push-specs" in block for block in blocks):
-            wrong.append(f"{name} has no bash block that runs aide-push-specs")
-        if any(re.search(r"\bgit\s+push\b", block) for block in blocks):
-            wrong.append(f"{name} has a bash block that runs a bare git push")
-    assert not wrong, "\n".join(wrong)
-
-
-@pytest.mark.validation
-@pytest.mark.parametrize("skill,step", [("aide-analyze", "analyze"), ("aide-implement", "implement")])
-def test_the_skill_records_its_own_step_with_the_start_epoch_it_took_AC_1(skill, step):
-    """`aide-record-step` reads the step and the epoch from these flags."""
-    blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8"))
-    calls = [block for block in blocks if "aide-record-step" in block]
-    assert calls, f"{skill} has no bash block that runs aide-record-step"
-    assert any(re.search(rf"--step\s+{step}\b", call) and "--start-epoch" in call for call in calls), (
-        f"{skill} does not run aide-record-step with --step {step} and --start-epoch"
-    )
-
-
 @pytest.mark.validation
 def test_analyze_plan_and_review_share_the_parts_lines():
     """The plan step writes the Parts lines the plan review checks
     ."""
-    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    analyze = CORE_STEPS_DIR / "aide-analyze"
     skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
     review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
     for form in ("Reused:", "New, because", "None —"):
@@ -102,8 +55,8 @@ def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns():
     assert rule, "core/rules/spec-structure.md gives no EARS pattern"
     wrong = []
     for path in (
-        CORE_SKILLS_DIR / "aide-create" / "SKILL.md",
-        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
+        CORE_STEPS_DIR / "aide-create" / "SKILL.md",
+        CORE_STEPS_DIR / "aide-analyze" / "references" / "plan-review.md",
     ):
         copy = ears_patterns(path)
         where = path.relative_to(REPO_ROOT)
@@ -116,7 +69,7 @@ def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns():
 def test_the_create_skill_hands_the_given_description_to_aide_create_spec():
     """The check that keeps a description's own criteria word for word
     runs only when the skill passes the description as it came in."""
-    skill = (CORE_SKILLS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (CORE_STEPS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
     calls = [block for block in BASH_BLOCK.findall(skill)
              if "aide-create-spec" in block and "--description" in block]
     assert calls, "the create skill has no aide-create-spec call passing --description"
@@ -129,7 +82,7 @@ def test_the_create_skills_call_carries_an_apostrophe_under_the_systems_bash():
     """macOS ships bash 3.2, which cannot read a here-document holding an
     apostrophe inside `$( )`: the call as the skill writes it has to
     hand such a description over whole."""
-    skill = (CORE_SKILLS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (CORE_STEPS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
     call = next(block for block in BASH_BLOCK.findall(skill)
                 if "aide-create-spec" in block and "--description" in block)
     call = call.replace("<the description text, verbatim>", "the reader's row")
@@ -147,8 +100,8 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
     rule = (REPO_ROOT / "core" / "rules" / "spec-structure.md").read_text(encoding="utf-8")
     assert f"\n{heading}\n" in rule, "the rule's skeleton does not give the heading"
     for path in (
-        CORE_SKILLS_DIR / "aide-create" / "SKILL.md",
-        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
+        CORE_STEPS_DIR / "aide-create" / "SKILL.md",
+        CORE_STEPS_DIR / "aide-analyze" / "references" / "plan-review.md",
     ):
         assert heading in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
     lib = REPO_ROOT / "core" / "scripts" / "_aide-spec-lib.sh"
@@ -169,9 +122,9 @@ def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test
     template = (REPO_ROOT / "core" / "templates" / "todo" / "3-solution.md.template").read_text(encoding="utf-8")
     assert f"\n{heading}\n" in template, "the solution template does not give the heading"
     for path in (
-        CORE_SKILLS_DIR / "aide-analyze" / "references" / "implementation-plan.md",
-        CORE_SKILLS_DIR / "aide-analyze" / "references" / "plan-review.md",
-        CORE_SKILLS_DIR / "aide-implement" / "SKILL.md",
+        CORE_STEPS_DIR / "aide-analyze" / "references" / "implementation-plan.md",
+        CORE_STEPS_DIR / "aide-analyze" / "references" / "plan-review.md",
+        CORE_STEPS_DIR / "aide-implement" / "SKILL.md",
     ):
         assert heading in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
 
@@ -180,7 +133,7 @@ def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test
 def test_the_short_analysis_gives_the_test_places_and_the_criteria_table():
     """A short analysis has no plan, so the places and the status table are
     what the runner's record of a criterion with no test is built on."""
-    text = (CORE_SKILLS_DIR / "aide-analyze" / "references" / "spec-files.md").read_text(encoding="utf-8")
+    text = (CORE_STEPS_DIR / "aide-analyze" / "references" / "spec-files.md").read_text(encoding="utf-8")
     section = re.search(r"^## A short analysis$(.*?)(?=^## )", text, re.M | re.S)
     assert section, "spec-files.md has no section 'A short analysis'"
     for heading in ("### Where the tests sit", "## Acceptance criteria"):
@@ -190,12 +143,12 @@ def test_the_short_analysis_gives_the_test_places_and_the_criteria_table():
 STEP_TITLE = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
 # A table row whose last three cells, stripped of padding, are the three grades.
 GRADE_ROW = re.compile(r"^\s*\|[^|\n]*\|\s*LOW\s*\|\s*MEDIUM\s*\|\s*HIGH\s*\|\s*$", re.M)
-GRADING_REFERENCE = "core/skills/aide-analyze/references/complexity-and-analysis.md"
+GRADING_REFERENCE = "core/scripts/lib/steps/aide-analyze/references/complexity-and-analysis.md"
 
 
 @pytest.mark.validation
 def test_analyze_grades_the_complexity_after_it_searches_the_code():
-    skill = (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (CORE_STEPS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
     titles = STEP_TITLE.findall(skill)
     assert "Analyze the codebase" in titles, "the analyze skill has no search step"
     assert "Grade the complexity" in titles, "the analyze skill has no grading step"
@@ -211,9 +164,10 @@ def test_the_grading_criteria_are_written_in_one_place():
         if GRADE_ROW.search(path.read_text(encoding="utf-8"))
     }
     assert holders == {GRADING_REFERENCE}, f"the LOW/MEDIUM/HIGH table is in {sorted(holders)}"
+    pointers = (CORE_STEPS_DIR / "aide-analyze", CORE_SKILLS_DIR / "workflows", CORE_SKILLS_DIR / "task-workflow-assistant")
     unpointed = [
-        name for name in ("aide-analyze", "workflows", "task-workflow-assistant")
-        if "complexity-and-analysis.md" not in (CORE_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+        folder.name for folder in pointers
+        if "complexity-and-analysis.md" not in (folder / "SKILL.md").read_text(encoding="utf-8")
     ]
     assert not unpointed, f"these skills do not name the grading reference: {unpointed}"
 
@@ -223,7 +177,7 @@ STEP_HEADING = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
 
 def _analyze_steps():
     """The analyze skill's steps as (title, body), in the order written."""
-    skill = (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (CORE_STEPS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
     marks = list(STEP_HEADING.finditer(skill))
     return [
         (mark.group(1), skill[mark.end():marks[i + 1].start() if i + 1 < len(marks) else len(skill)])
@@ -246,7 +200,7 @@ def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_
 def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads():
     """The runner's prompt line offers the short analysis and its check reads
     three Tracking-info bullets; the skill names the same strings."""
-    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    analyze = CORE_STEPS_DIR / "aide-analyze"
     text = "\n".join(path.read_text(encoding="utf-8") for path in (analyze / "SKILL.md", *(analyze / "references").glob("*.md")))
     for name in ("A short analysis is allowed for this spec", "- **Analysis:**", "- **Grade:**", "- **Acceptance criteria:**"):
         assert name in text, f"the analyze skill does not name {name!r}"
@@ -256,7 +210,7 @@ def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads():
 def test_analyze_names_the_plan_review_handover_the_runner_writes_and_reads_ac_3():
     """With a Review under Analyze chosen, the runner's prompt line opens with
     the first string and it waits for the second at the end of the reply."""
-    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    analyze = CORE_STEPS_DIR / "aide-analyze"
     text = "\n".join(path.read_text(encoding="utf-8") for path in (analyze / "SKILL.md", *(analyze / "references").glob("*.md")))
     for name in ("The plan review runs in a session of its own on", "plan review: handed over"):
         assert name in text, f"the analyze skill does not name {name!r}"
@@ -264,7 +218,7 @@ def test_analyze_names_the_plan_review_handover_the_runner_writes_and_reads_ac_3
 
 @pytest.mark.validation
 def test_implement_names_the_mark_of_a_short_analysis_it_builds_from():
-    text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    text = (CORE_STEPS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     assert "- **Analysis:** short" in text
 
 
@@ -272,14 +226,14 @@ def test_implement_names_the_mark_of_a_short_analysis_it_builds_from():
 def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix():
     """The prefix is worked out by the command, not by the session's own
     reading of the manifest, so the skill has to run it."""
-    skill = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
+    skill = (CORE_STEPS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     runs = [block for block in BASH_BLOCK.findall(skill) if re.search(r"^\s*aide-ac-prefix\b", block, re.M)]
     assert runs, "no bash block of the implement skill runs aide-ac-prefix"
 
 
 @pytest.mark.validation
 def test_analyze_names_every_reference_and_each_exists():
-    analyze = CORE_SKILLS_DIR / "aide-analyze"
+    analyze = CORE_STEPS_DIR / "aide-analyze"
     skill = (analyze / "SKILL.md").read_text(encoding="utf-8")
     named = set(re.findall(r"references/[a-z0-9-]+\.md", skill))
     actual = {str(path.relative_to(analyze)) for path in (analyze / "references").glob("*.md")}

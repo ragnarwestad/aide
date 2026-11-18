@@ -27,7 +27,7 @@ def test_refuses_implement_before_analyze_has_run(runner, workspace, fake_claude
     assert out["terminalReason"] == "refused"
     assert out["errorReason"] == "not-analyzed-yet"
     assert workspace["folder"] in out["error"]
-    assert "/aide-analyze" in out["error"]
+    assert "run Analyze first" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
     assert not workspace["wtbase"].exists(), "and leave no worktree behind"
 
@@ -427,7 +427,7 @@ def test_a_refusal_is_an_error_line_in_the_log(runner, workspace, fake_claude):
     with_status(workspace, claims=["create"])
     rc, out, _, err = run(runner, workspace, fake_claude("exit 1"), command="implement", return_stderr=True)
     assert out["terminalReason"] == "refused", out
-    assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s error: .*/aide-analyze", err, re.M), err
+    assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s error: .*run Analyze first", err, re.M), err
 
 
 def test_every_part_the_runner_sources_is_checked_before_the_first_phase(runner):

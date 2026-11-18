@@ -313,3 +313,16 @@ def claude_api_error(text: str, name: str, status: int | None) -> tuple[list[dic
     result = {**RESULT_OK, "is_error": True, "terminal_reason": "api_error", "total_cost_usd": 0,
               "stop_reason": "stop_sequence", "api_error_status": status, "result": text}
     return [assistant], result
+
+
+def asks_for_step(prompt, step, argument=None):
+    """Whether a prompt opens by naming <step>'s instructions file, beside
+    the runner, with <argument> when one is given."""
+    first = prompt.splitlines()[0] if prompt else ""
+    head = "Read /"
+    tail = f"/lib/steps/aide-{step}/SKILL.md and follow it"
+    if not first.startswith(head) or tail not in first:
+        return False
+    if argument is None:
+        return "with this argument" not in first
+    return f"with this argument: {argument}." in first
