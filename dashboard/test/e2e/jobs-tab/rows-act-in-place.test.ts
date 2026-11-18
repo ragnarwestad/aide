@@ -3,7 +3,7 @@
 // Stop end their job in place, as they do on the Specs list.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
@@ -312,27 +312,27 @@ test("a description changed since the analysis is in the analysis log, opened wi
   }
 });
 
-test("Types can select Land separately and its card names the source branch", async () => {
+test("Types can select Merge separately and its card names the source branch (AC-2)", async () => {
   const baseJob = { project: "aide", stepIndex: 0, state: "queued", timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-16T12:00:00Z" };
   const { base } = harness.start({ queueMirror: JSON.stringify([
     { ...baseJob, id: "land-filter", specFolder: "land", steps: ["land"], branch: "fix/example" },
     { ...baseJob, id: "deploy-filter", specFolder: "deploy", steps: ["deploy"] },
-  ]) });
+  ]), extra: { gitRun: fakeGit(CLEAN_MASTER).run } });
   const page = await browser.newPage();
   try {
     await page.goto(`${base}/?live=0`);
     const menu = page.locator('details.menu[data-filter="kind"]');
     await menu.locator("summary").click();
-    await menu.getByRole("checkbox", { name: "Land (1)", exact: true }).click();
+    await menu.getByRole("checkbox", { name: "Merge (1)", exact: true }).click();
     await page.waitForURL((url) => url.searchParams.get("kind") === "land");
-    await page.getByText("Land: fix/example", { exact: true }).waitFor();
+    await page.getByText(/Merge to .* · fix\/example/, { exact: true }).waitFor();
     expect(new URL(page.url()).searchParams.get("kind")).toBe("land");
     await page.getByText("Deploy aide", { exact: true }).waitFor({ state: "hidden" });
   } finally { await page.close(); }
 });
 
 
-test("Run on a cancelled Land opens the queued new attempt without changing its history", async () => {
+test("Merge retries the source branch without changing its history (AC-1, AC-7)", async () => {
   const old = { id: "cancelled-land", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
     state: "cancelled", branch: "fix/topic", timeoutSec: {}, permissionMode: {}, model: {}, results: [],
     createdAt: "2026-11-17T12:00:00Z", startedAt: "2026-11-17T12:00:00Z", finishedAt: "2026-11-17T12:01:00Z" };
@@ -341,10 +341,10 @@ test("Run on a cancelled Land opens the queued new attempt without changing its 
   const page = await browser.newPage();
   try {
     await page.goto(`${base}/?state=all&open=aide/land:land&live=0`);
-    await page.getByRole("button", { name: "Run", exact: true }).waitFor({ timeout: 3000 });
+    await page.getByRole("button", { name: "Merge", exact: true }).waitFor({ timeout: 3000 });
     const loads = countLoads(page);
     const response = page.waitForResponse((res) => res.url().endsWith("/api/queue/projects/aide/land") && res.request().method() === "POST");
-    await page.getByRole("button", { name: "Run", exact: true }).click();
+    await page.getByRole("button", { name: "Merge", exact: true }).click();
     const res = await response;
     expect(res.ok()).toBe(true);
     const fresh = (await res.json()).job;
@@ -355,9 +355,35 @@ test("Run on a cancelled Land opens the queued new attempt without changing its 
     expect(loads.n).toBe(0);
     await page.goto(`${base}/?state=cancelled&kind=land&open=aide/land:land@${old.id}&live=0`);
     await page.getByRole("link", { name: "View run", exact: true }).waitFor();
-    expect(await page.getByRole("button", { name: "Run", exact: true }).count()).toBe(0);
+    expect(await page.getByRole("button", { name: "Merge", exact: true }).count()).toBe(0);
     await page.screenshot({ path: "/tmp/aide-land-feedback-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: "/tmp/aide-land-feedback-mobile.png" });
   } finally { await page.close(); }
+});
+
+test("live merge activity changes without folding the open row (AC-5, AC-6, AC-7)", async () => {
+  const own = mkdtempSync(join(tmpdir(), "merge-live-"));
+  const file = join(own, "live.land.stream.jsonl");
+  const log = file.replace(".stream.jsonl", ".run.log");
+  writeFileSync(file, "");
+  const mark = (task: number) => appendFileSync(log, `aide-run-spec 12:00:00 +0s --- Step ${task} of 4: Task — started\n`);
+  mark(1);
+  const { base } = harness.start({ queueMirror: JSON.stringify([{
+    id: "live-merge", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
+    state: "running", pid: process.pid, branch: "feature/live", streamFile: file, results: [],
+    timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-18T12:00:00Z",
+  }]), extra: { gitRun: fakeGit(CLEAN_MASTER).run, queueRunnerBin: "/bin/true", queueResultDir: own } });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?open=aide/land:land`);
+    await page.getByText("Merging", { exact: true }).waitFor();
+    const loads = countLoads(page);
+    mark(2);
+    await page.getByText("Testing", { exact: true }).waitFor();
+    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/land:land");
+    mark(3);
+    await page.getByText("Running", { exact: true }).waitFor();
+    expect(loads.n).toBe(0);
+  } finally { await page.close(); rmSync(own, { recursive: true, force: true }); }
 });

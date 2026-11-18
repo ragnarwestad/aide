@@ -13,7 +13,6 @@ import { startOriginCheck } from "../deploy/origin-check";
 import { bindOneLineFields, settingsAnswer, submitCreate, submitProjectChange, submitProjectSettings, syncDependsOn } from "../forms";
 import { drawLimits } from "../limits";
 import { connect, disconnect } from "../live";
-import { bindNewSpecTabs } from "../new-spec-tabs";
 import { postForm } from "../press";
 import { bindProviderAdd } from "../provider-add";
 import { bindPushPanel } from "../push";
@@ -84,7 +83,6 @@ export function mountPage(doc: Document, options: { referrer: string; background
   newSpec?.addEventListener("change", onAiChange);
   // Spec and Options, switched in place, and Spec brought forward when the
   // browser finds one of its required fields empty.
-  bindNewSpecTabs(doc);
   syncDependsOn();
   newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
   // The /schedule page's own controls: none of these sit inside `#jobrows`,

@@ -71,7 +71,6 @@ export async function specsPages(
       ...providerPickerOptions(ctx.queue),
       // "Try again" on a failed create's message: what was typed.
       prefill: prefillFor(ctx, url.searchParams.get("retry")),
-      tab: url.searchParams.get("tab") ?? undefined,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
     });

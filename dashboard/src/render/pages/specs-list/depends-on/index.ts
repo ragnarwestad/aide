@@ -7,7 +7,7 @@
 import { saveCancelActions } from "../../../ui/components";
 import { createChoicesIn, type CriteriaChecks } from "../../../../project/discover";
 import { cardStep, type CardValues, type CardView } from "../../../../project/spec-card.ts";
-import { optionsGroup } from "../../new-spec-page/options-tab.ts";
+import { optionsGroup } from "../../new-spec-page/options.ts";
 import { esc } from "../../../ui/html.ts";
 import { dependsOnField } from "../../new-spec-page";
 import type { SpecsPageOptions } from "..";
@@ -41,8 +41,7 @@ function cardValuesOf(g: SpecGroup): CardValues {
   return { dependsOn: g.dependsOn, group: g.group ?? null, ...(g.createChoices ?? createChoicesIn("")) };
 }
 
-/** The four settings the spec was created with, as New spec's Options tab
- *  draws them, each open or locked as the card's view says. */
+/** The spec's settings, each open or locked as the card's view says. */
 function settingsGroup(id: string, view: CardView, lang: SpecsPageOptions["lang"] = "en"): string {
   return optionsGroup({
     form: id,

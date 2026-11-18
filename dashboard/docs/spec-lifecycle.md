@@ -34,11 +34,8 @@ They simply do not move a spec along the arc.
 
 ## Writing a spec
 
-A spec starts on the New spec page, which has two tabs. Create sits above them and can be pressed from either; if a
-required field on the Spec tab is empty, the page switches to that tab and shows the field's error there.
-
-**The Spec tab** holds what every spec needs: the project, a title, the description, and Depends on, the specs this
-one builds on. A spec that depends on another waits for it to land before its analyze starts.
+A spec starts on the New spec page. Choose the project and title, then review the three spec settings below them.
+The description and Depends on follow. A spec that depends on another waits for it to land before its analyze starts.
 
 **The description holds at most 10,000 characters**, when the spec is created and when its description is edited on the
 spec page's Description tab. Past that the text is refused, never cut: on the New spec page the field keeps everything
@@ -71,9 +68,9 @@ it:
   not do or touch. Create keeps it word for word and never writes one itself. Analyze's plan review treats any part of
   the plan under an item as a must-fix, and the review after implement treats any change under an item as a defect,
   whatever the acceptance criteria checks level.
-- **Depends on**, set on the Spec tab rather than written into the text.
+- **Depends on**, set in the New spec form rather than written into the text.
 
-**The Options tab** holds how the spec is run, and most specs leave it as it opens:
+The three settings control how the spec is run:
 
 | Option                               | When the form opens | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |--------------------------------------|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -85,7 +82,7 @@ it:
 
 A spec for a change to the dashboard, run on the board, with nothing going wrong:
 
-1. **New spec.** You fill in the Spec tab and press Create. The dashboard writes, commits and pushes the numbered folder
+1. **New spec.** You fill in the form and press Create. The dashboard writes, commits and pushes the numbered folder
    — `512-a-project-keeps-nothing` — without starting a job. Its state is `created`.
 2. **Run.** The new row offers Analyze, Implement and Archive with the board's default AI and model. Press Run to start.
 3. **Analyze runs**, writes `2-analysis.md` and `3-solution.md` with the acceptance criteria, and lands them in the

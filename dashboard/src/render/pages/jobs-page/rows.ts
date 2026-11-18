@@ -1,3 +1,4 @@
+import { t } from "../../../i18n";
 import { canRetryLand } from "../../../queue/queue.ts";
 import { canCancelDeploy } from "../../../queue/job-rules/activity.ts";
 import { scheduleRunPath, scheduleSettingsPath } from "../schedule-page/tabs.ts";
@@ -35,7 +36,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch" | "landSuccessor">> & { steps: readonly string[] };
-type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string };
+type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string; mergeTarget?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec.
  *  Before the board's first specs sweep has read the specs, nothing says a spec has none. */
@@ -175,7 +176,10 @@ export function jobTitle(row: TitleRow, lang: Language = "en"): string {
     const named = `${stepLabel("deploy", lang)} ${row.project}`.trim();
     return row.deployCommit ? `${named} · ${row.deployCommit.slice(0, 7)}` : named;
   }
-  if (kind === "land") return row.branch ? `${stepLabel("land", lang)}: ${row.branch}` : stepLabel("land", lang);
+  if (kind === "land") {
+    const title = t(lang, "jobs.mergeTo", { branch: row.mergeTarget ?? t(lang, "jobs.unknownDefaultBranch") });
+    return row.branch ? `${title} · ${row.branch}` : title;
+  }
   if (kind === "cleanup") return stepLabel("cleanup", lang);
   const step = kind === "close" || kind === "reopen" ? kind : undefined;
   return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);

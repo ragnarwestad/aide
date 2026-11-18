@@ -65,23 +65,8 @@ describe("specStateChip() on a stopped row", () => {
   });
 });
 
-// A deploy's fetch or its restart waits for a landing with the job still
-// running: it reads like every other held-back job, not "Deploying".
-describe("specStateChip() on a running row with a hold", () => {
-  const held = { errorReason: "held-back" as const, error: { key: "runner.landingPause" as const } };
-
-  test("a running job whose reason is a hold reads 'Held back', in the colour a held queued job gets", () => {
-    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0, ...held }), "en");
-    expect(html).toContain(">Held back<");
-    expect(html).toContain("b-idle");
-    expect(html).not.toContain("Deploying");
-  });
-
-  test("once the hold is gone it reads as running again", () => {
-    const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
-    expect(html).toContain("Deploying");
-    expect(html).not.toContain("Held back");
-  });
+test("a deploy's automatic hold uses the shared Queued label (AC-3, AC-7)", () => {
+  expect(specStateChip(row({ steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } }), "en")).toContain(t("en", "list.state.queued"));
 });
 
 // An ended job's chip on the Jobs tab and the specs list reads the state's
@@ -115,4 +100,14 @@ describe("specStateChip() on an ended job, in every language", () => {
     const words = ENDED.map((state) => wordOf(specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en")));
     expect(words).toEqual(["Failed", "Cancelled", "Stopped", "Interrupted"]);
   });
+});
+
+test("once the hold is gone it reads as running again", () => {
+  const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
+  expect(html).toContain("Deploying");
+});
+
+test("a card names the merging phase while the next phase waits (AC-7)", () => {
+  expect(specStateChip(row({ state: "queued", steps: ["analyze", "implement"], stepIndex: 1, landing: true,
+    queuePosition: { id: "job:next", n: 1, total: 1, operation: "implement" } }), "en")).toContain("Analyzing");
 });

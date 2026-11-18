@@ -22,11 +22,9 @@ import { DESCRIPTION_MAX, TITLE_MAX } from "../../../queue/parse-request.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { pickTab, tabBar } from "../../ui/tabs.ts";
-import { NEW_SPEC_ROUTE } from "../projects-page";
 import type { SpecsPageOptions, SpecTarget } from "../specs-list";
 import { cardStep } from "../../../project/spec-card.ts";
-import { NEW_SPEC_VALUES, optionsTab } from "./options-tab.ts";
+import { NEW_SPEC_VALUES, newSpecOptions } from "./options.ts";
 
 export interface NewSpecPageOptions {
   /** What a failed create had typed: the form opens with it
@@ -66,9 +64,6 @@ export interface NewSpecPageOptions {
   /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
-  /** Which tab the page opens on, off the address's `?tab=`; anything
-   *  but a tab's own key opens Spec. */
-  tab?: string;
 }
 
 // What a spec builds on. One chip per active spec, newest
@@ -211,29 +206,13 @@ export function dependsOnField(
   );
 }
 
-// The New spec page's two tabs, in the order the strip shows them, each
-// key also its `?tab=` value.
-export const NEW_SPEC_TABS = ["spec", "options"] as const;
-export type NewSpecTab = (typeof NEW_SPEC_TABS)[number];
-
-/** The form's id: the fields inside it, and Create and the phase table's
- *  controls outside or beside it, are tied to it by name. */
+/** The form's id, used by the Create button and the shared options fields. */
 const FORM_ID = "new-spec-form";
 
-// Both tabs are in the one form, so a press posts what either holds; the
-// closed one is `hidden`, and the page script switches them in place
-// (`specs-client/new-spec-tabs/`).
-const panel = (key: NewSpecTab, open: NewSpecTab, body: string): string =>
-  `<div data-tab-panel="${key}"${key === open ? "" : " hidden"}>${body}</div>`;
-
-// The fields needed to make the spec: which project, its title, its
-// description and what it builds on, on the Spec tab; the settings and
-// the phase table on Options.
-//
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
-function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpecTab): string {
+function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
   const lang = opts.lang ?? "en";
   const chosen = projects.find((p) => p === opts.prefill?.project);
   // What can be changed on this page is the card's to say (`project/spec-card.ts`).
@@ -244,7 +223,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
   });
   // Each `.frow` is a full-width row inside the same wrapping flex the
   // Add form shares, so the shared `.pageform` look is untouched.
-  const spec =
+  const fields =
+    `<span class="frow">` +
     field(
       t(lang, "newSpec.project"),
       // Nothing is chosen for the reader: the first project in the list was
@@ -255,7 +235,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
         `<option value=""${chosen ? "" : " selected"}>${esc(t(lang, "newSpec.chooseProject"))}</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
-      { wide: true, for: "new-spec-project" },
+      { for: "new-spec-project" },
     ) +
     field(
       t(lang, "newSpec.title"),
@@ -264,6 +244,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
         `placeholder="${esc(t(lang, "newSpec.titlePlaceholder"))}">`,
       { wide: true },
     ) +
+    `</span>` +
+    newSpecOptions(opts, FORM_ID, view) +
     `<span class="frow">` +
     field(
       t(lang, "newSpec.description"),
@@ -285,10 +267,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
     `</span>`;
   return (
     `<form method="post" action="/api/queue/create" class="pageform newspecform" id="${FORM_ID}">` +
-    panel("spec", open, spec) +
-    panel("options", open, optionsTab(opts, FORM_ID, view)) +
-    // The slot a refusal is written into, after both tabs so it is seen
-    // from either. A rejected create names a spec that was never made, so
+    fields +
+    // A rejected create names a spec that was never made, so
     // there is no row for the reason to land on the way there is for
     // every other action. Empty until something fills it (`.refused:empty`
     // draws nothing).
@@ -304,19 +284,13 @@ export function renderNewSpecPage(
 ): string {
   const projects = opts.createProjects ?? [];
   const lang = opts.lang ?? "en";
-  const open = pickTab(NEW_SPEC_TABS, opts.tab, "spec");
-  // Above the tabs, so it is pressed from either. It reaches the form by
+  // Above the fields, it reaches the form by
   // `form=`, and the form holds no button of its own: `postForm()` gives
   // the busy word to the form's first button, and only without one to a
   // button naming it (`specs-client/press.ts`).
   const create = btn({ label: t(lang, "form.create"), variant: "primary", pending: t(lang, "form.creating"), form: FORM_ID });
-  const tabs = tabBar(NEW_SPEC_TABS, NEW_SPEC_ROUTE, open, {}, "", {
-    lang,
-    label: (key) => t(lang, key === "spec" ? "newSpec.tabSpec" : "newSpec.tabOptions"),
-    data: { "new-spec-tabs": "" },
-  });
   const body = projects.length
-    ? backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), create, { lang }) + tabs + newSpecForm(opts, projects, open)
+    ? backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), create, { lang }) + newSpecForm(opts, projects)
     : backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), "", { lang }) +
       // The link on `/` is simply not offered when there is nothing to
       // create in, but this page has an address of its own and can be

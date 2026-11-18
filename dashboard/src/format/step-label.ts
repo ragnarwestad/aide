@@ -14,12 +14,12 @@ import type { Language } from "../i18n";
 export const STEP_LABELS: Record<string, string> = {
   create: "Create", analyze: "Analyze", implement: "Implement", archive: "Archive",
   explore: "Explore", reopen: "Reopen", reset: "Reset",
-  schedule: "Schedule", close: "Close", deploy: "Deploy", land: "Land", cleanup: "Cleanup",
+  schedule: "Schedule", close: "Close", deploy: "Deploy", land: "Merge", cleanup: "Cleanup",
 };
 export const STEP_LABELS_NB: Record<string, string> = {
   create: "Opprett", analyze: "Analyser", implement: "Implementer", archive: "Arkiver",
   explore: "Utforsk", reopen: "Gjenåpne", reset: "Tilbakestill",
-  schedule: "Kjøring", close: "Lukk", deploy: "Deploy", land: "Land", cleanup: "Opprydding",
+  schedule: "Kjøring", close: "Lukk", deploy: "Deploy", land: "Merge", cleanup: "Opprydding",
 };
 export const STEP_LABELS_ES: Record<string, string> = {
   create: "Crear", analyze: "Analizar", implement: "Implementar", archive: "Archivar",

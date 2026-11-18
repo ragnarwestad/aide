@@ -141,7 +141,8 @@ export async function specsListParts(
   const every = listedSpecJobs(ctx, jobs);
   let selected = keys;
   if (!only) {
-    const summaries = groupBySpec(every.map(summaryJob), base.targets, base.archived, ctx.archivedSpecSummaries?.() ?? [], Date.now(), undefined, base.executionGroups, true);
+    const waiting = ctx.queue.waiting.snapshot().entries;
+    const summaries = groupBySpec(every.map(job => summaryJob(job, waiting)), base.targets, base.archived, ctx.archivedSpecSummaries?.() ?? [], Date.now(), undefined, base.executionGroups, true);
     const f = view.filter ?? {};
     const normalized = view.openSpec && (f.sort === "started" || f.sort === "cost") ? { ...f, sort: "created", dir: undefined } : f;
     summaries.sort((a, b) => groupKey(a.project, a.specFolder).localeCompare(groupKey(b.project, b.specFolder)));
