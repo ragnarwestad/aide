@@ -147,7 +147,7 @@ export function executionGroupCard(
     data: { "group-default-action": controls.action, "group-label-start": t(lang as Language, "list.groupStart"), "group-label-archive": stepLabel("archive", lang as Language) },
     // Primary, as a spec's own action is.
     button: {
-      label: controls.action === "archive" ? stepLabel("archive", lang as never) : controls.action === "stop" ? t(lang as Language, "jobs.stop") : t(lang as Language, "list.groupStart"),
+      label: controls.action === "archive" ? stepLabel("archive", lang as never) : controls.action === "stop" ? t(lang as Language, "list.cancel") : t(lang as Language, "list.groupStart"),
       variant: "primary",
     },
   }) : "";

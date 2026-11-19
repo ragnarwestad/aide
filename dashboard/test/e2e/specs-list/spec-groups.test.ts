@@ -99,10 +99,10 @@ test("group Start queues only the first member (AC-6, AC-9, AC-15)", async () =>
   expect(ordinaryLater.status).toBe(409);
   await page.goto(`${base}/?live=0`);
   await page.getByRole("button", { name: "Release", exact: true }).click();
-  expect(await page.getByRole("button", { name: "Stop", exact: true }).count()).toBe(1);
+  expect(await page.getByRole("button", { name: "Cancel", exact: true }).count()).toBe(1);
 });
 
-test("Stop opens an automatic group's phase choices and Start uses the new selection", async () => {
+test("Cancel opens an automatic group's phase choices and Start uses the new selection", async () => {
   const waitingHarness = queueHarness("aide-e2e-group-wait-");
   const folder = "81-queue-and-runner";
   const job = { id: "waiting", project: "aide", specFolder: folder, executionGroupId: "waiting-group",
@@ -128,7 +128,7 @@ test("Stop opens an automatic group's phase choices and Start uses the new selec
     expect(await analyze.isDisabled()).toBe(true);
     expect(await p.locator('select[name="model.analyze"]').isEnabled()).toBe(true);
     const stopped = p.waitForResponse((r) => r.url().endsWith("/action") && r.request().method() === "POST");
-    await p.getByRole("button", { name: "Stop", exact: true }).click();
+    await p.locator("form[data-group-default-action]").getByRole("button", { name: "Cancel", exact: true }).click();
     expect((await stopped).status()).toBe(200);
     await analyze.waitFor();
     await analyze.uncheck();

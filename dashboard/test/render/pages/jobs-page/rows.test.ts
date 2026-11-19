@@ -329,7 +329,7 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     expect(jobTitle(row)).toBe("Reopen aide:534");
   });
 
-  test("offers neither Stop nor Cancel: a half-done move would leave the spec between two places", () => {
+  test("offers no Cancel: a half-done move would leave the spec between two places", () => {
     for (const state of ["queued", "running"] as const) expect(jobControl(at("reopen", { state }))).toBeUndefined();
     expect(jobControl(at("close", { state: "done", landing: true }))).toBeUndefined();
   });
@@ -372,10 +372,10 @@ describe("what a job row offers to stop it", () => {
     expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
   });
 
-  test("a running or a landing job offers Stop", () => {
-    expect(jobControl(sched({ state: "running" }))).toBe("stop");
-    expect(jobControl(sched({ state: "done", landing: true }))).toBe("stop");
-    expect(jobControl(sched({ state: "queued", landing: true }))).toBe("stop");
+  test("a running or a landing job offers Cancel", () => {
+    expect(jobControl(sched({ state: "running" }))).toBe("cancel");
+    expect(jobControl(sched({ state: "done", landing: true }))).toBe("cancel");
+    expect(jobControl(sched({ state: "queued", landing: true }))).toBe("cancel");
   });
 
   test("a finished job offers nothing", () => {
@@ -492,16 +492,16 @@ test("Jobs dates drive both the spec row and its position relative to Deploy, wh
 });
 
 
-test("Land offers Stop only before its push boundary", () => {
+test("Land offers Cancel only before its push boundary", () => {
   const row = { state: "running" as const, steps: ["land"], stepIndex: 0 };
-  expect(jobControl(row)).toBe("stop");
+  expect(jobControl(row)).toBe("cancel");
   expect(jobControl({ ...row, landPushStarted: true })).toBeUndefined();
 });
 
 
 test("a cancelled Land can run again after its landing has settled", () => {
   const row = { state: "cancelled" as const, steps: ["land"], stepIndex: 0, branch: "fix/topic" };
-  expect(jobControl(row)).toBe("run");
+  expect(jobControl(row)).toBe("start");
   expect(jobControl({ ...row, landing: true })).toBeUndefined();
   expect(jobControl({ ...row, branch: undefined })).toBeUndefined();
   expect(jobControl({ ...row, state: "done" })).toBeUndefined();
@@ -511,9 +511,9 @@ test("a cancelled Land can run again after its landing has settled", () => {
   const waiting = { ...sched({ state: "stopped" }), stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z" } };
   expect(jobControl(waiting)).toBe("cancel");
   expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
-  expect(jobControl(sched({ state: "running" }))).toBe("stop");
-  for (const state of ["cancelled", "stopped", "failed"] as const) expect(jobControl(sched({ state }))).toBe("run");
-  expect(jobControl({ ...waiting, landing: true })).toBe("stop");
+  expect(jobControl(sched({ state: "running" }))).toBe("cancel");
+  for (const state of ["cancelled", "stopped", "failed"] as const) expect(jobControl(sched({ state }))).toBe("start");
+  expect(jobControl({ ...waiting, landing: true })).toBe("cancel");
  });
 test("merge titles use the resolved target and visible source without guessing main (AC-2)", () => {
   const base = { project: "p", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "feature/topic" };

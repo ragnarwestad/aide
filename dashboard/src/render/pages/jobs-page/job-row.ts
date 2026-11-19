@@ -93,40 +93,39 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Run retries a schedule with its own choices; Merge queues the same source branch again.
- *  Stop or Cancel asks first; the dialog posts the
+/** Start retries a schedule with its own choices, or queues a Merge's source branch again.
+ *  Cancel asks first; the dialog posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(row: QueueRowView, kind: "stop" | "cancel" | "run", lang: Language, o: JobRowOptions): string {
-  if (kind === "run" && currentStep(row) === "schedule") {
+function control(row: QueueRowView, kind: "cancel" | "start", lang: Language, o: JobRowOptions): string {
+  if (kind === "start" && currentStep(row) === "schedule") {
     const name = scheduleNameOf(row.specFolder);
     const opts = o.scheduleOptions?.(row.project, name);
     if (!opts) return "";
     const id = `jobrun-${row.id}`;
-    return askButton({ label: t(lang, "jobs.runAgain"), dialogId: id, variant: "primary" }) + confirmDialog(lang, {
-      id, title: t(lang, "jobs.runAgain"),
+    return askButton({ label: t(lang, "jobs.start"), dialogId: id, variant: "primary" }) + confirmDialog(lang, {
+      id, title: t(lang, "jobs.start"),
       control: (formId) => modelFields(opts, lang, formId),
       ok: { variant: "primary", pending: t(lang, "list.starting") },
       post: { action: `/api/queue/schedule/${encodeURIComponent(row.project)}/${encodeURIComponent(name)}/run`,
         hook: "actionform", hidden: { sourceJobId: row.id } },
     });
   }
-  if (kind === "run") return buttonForm({
+  if (kind === "start") return buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
     hook: "actionform",
     data: { "land-retry": o.key ?? jobKey(row) },
     hidden: { branch: row.branch! },
-    button: { label: stepLabel("land", lang), variant: "primary", pending: t(lang, "list.starting") },
+    button: { label: t(lang, "jobs.start"), variant: "primary", pending: t(lang, "list.starting") },
   });
   const id = `jobask-${row.id}`;
   const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
-  const stop = kind === "stop";
   return (
-    askButton({ label: t(lang, stop ? "jobs.stop" : "list.cancel"), dialogId: id, variant: "primary" }) +
+    askButton({ label: t(lang, "list.cancel"), dialogId: id, variant: "primary" }) +
     confirmDialog(lang, {
       id,
-      title: t(lang, stop ? "jobs.stopConfirmTitle" : "list.cancelConfirmTitle", { step }),
+      title: t(lang, "list.cancelConfirmTitle", { step }),
       sentence: t(lang, "jobs.confirmBody"),
-      ok: { variant: "primary", pending: t(lang, stop ? "jobs.stopping" : "list.cancelling") },
+      ok: { variant: "primary", pending: t(lang, "list.cancelling") },
       post: { action: `/api/queue/${row.id}/cancel`, hook: "actionform" },
     })
   );

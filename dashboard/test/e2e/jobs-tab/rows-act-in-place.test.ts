@@ -231,7 +231,7 @@ test("the first job arrives and remains as finished history without a reload, th
     expect(res.ok).toBe(true);
     const id = ((await res.json()) as { job: { id: string } }).job.id;
     await page.locator('a[data-fold="open"][data-key="aide/schedule-nightly"]').click();
-    await page.getByRole("button", { name: "Stop", exact: true }).click();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async (jobId) => {
       const r = await fetch(`/api/queue/${jobId}`);
@@ -347,10 +347,10 @@ test("Merge retries the source branch without changing its history (AC-1, AC-7)"
   const page = await browser.newPage();
   try {
     await page.goto(`${base}/?state=cancelled&open=aide/land:land&live=0`);
-    await page.getByRole("button", { name: "Merge", exact: true }).waitFor({ timeout: 3000 });
+    await page.getByRole("button", { name: "Start", exact: true }).waitFor({ timeout: 3000 });
     const loads = countLoads(page);
     const response = page.waitForResponse((res) => res.url().endsWith("/api/queue/projects/aide/land") && res.request().method() === "POST");
-    await page.getByRole("button", { name: "Merge", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     const res = await response;
     expect(res.ok()).toBe(true);
     const fresh = (await res.json()).job;

@@ -34,7 +34,7 @@ test("quota Cancel and Run use shared confirmation and isolated current schedule
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async () => (await (await fetch("/api/queue/old-report")).json()).job.state === "cancelled");
-    await page.getByRole("button", { name: "Run", exact: true }).first().waitFor();
+    await page.getByRole("button", { name: "Start", exact: true }).first().waitFor();
     await page.locator('button[data-ask="jobrun-old-report"]').click();
     const dialog = page.getByRole("dialog");
     expect(await dialog.getByRole("combobox", { name: "Claude", exact: true }).inputValue()).toBe("Claude");

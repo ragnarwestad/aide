@@ -222,24 +222,24 @@ export function scheduleStreamKey(key: string): string | undefined {
   return phaseKey(key.slice(0, slash), folder, "schedule");
 }
 
-/** What a row offers to end its job: Cancel for a queued one, Stop for a
- *  running or landing one. Settled schedules offer Run; quota waits offer Cancel.
- *  A cancelled Land offers Run once its cleanup has settled. A Close or
+/** What a row offers: Cancel for a job that is queued, running or landing.
+ *  Settled schedules offer Start; quota waits offer Cancel.
+ *  A cancelled Land offers Start once its cleanup has settled. A Close or
  *  Reopen offers nothing: stopped part-way, it would leave the spec between
  *  its two places. A deploy offers Cancel while queued or held back before its restart;
  *  a restart already fired cannot be stopped. */
-export function jobControl(row: StateRow): "cancel" | "stop" | "run" | undefined {
-  if (canRetryLand(row)) return "run";
+export function jobControl(row: StateRow): "cancel" | "start" | undefined {
+  if (canRetryLand(row)) return "start";
   const step = row.steps[row.stepIndex];
   if (step === "schedule" && !row.landing) {
     if (automaticProviderWait(row)) return "cancel";
-    if (["cancelled", "stopped", "failed"].includes(row.state)) return "run";
+    if (["cancelled", "stopped", "failed"].includes(row.state)) return "start";
   }
   const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
   if (step === "land" && (row.landPushStarted || row.state === "cancelled")) return undefined;
   if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
   if (kind === "deploy") return canCancelDeploy(row) ? "cancel" : undefined;
-  return row.state === "queued" && !row.landing ? "cancel" : "stop";
+  return "cancel";
 }
 
 /** A schedule's configuration and, after it ends, that run's report page. */
