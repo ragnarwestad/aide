@@ -127,6 +127,8 @@ claude_error_name=""
 # below used to ask that one — but a Codex step never measures a cost
 # and still finishes, so the two questions had to come apart.
 have_result="false"
+# OpenCode reports its outcome in step and error events, without a result object.
+local result_json='{}'
 # Is there a dollar figure to report? Claude sets one on every path,
 # including the over-charge a killed run is billed. Codex publishes no
 # dollar figure anywhere in its output and there is nothing to

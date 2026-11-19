@@ -32,8 +32,9 @@ def test_an_opencode_run_sums_tokens_and_cost_over_every_step(runner, workspace,
     """opencode reports per STEP, not per turn. Reading the last event
     alone would report the final step's numbers as the whole run's."""
     oc = fake_opencode(emits(OPENCODE_STREAM_OK))
-    rc, out, _ = run(runner, workspace, tool="opencode", opencode=oc)
+    rc, out, _, stderr = run(runner, workspace, tool="opencode", opencode=oc, return_stderr=True)
     assert rc == 0, out
+    assert "unbound variable" not in stderr
     assert out["tool"] == "opencode"
     assert out["ok"] is True
     assert out["terminalReason"] == "completed"
