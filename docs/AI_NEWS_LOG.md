@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-19](#2026-11-19)
   - [2026-11-18](#2026-11-18)
   - [2026-11-17](#2026-11-17)
   - [2026-11-14](#2026-11-14)
@@ -155,6 +156,71 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-19
+
+Review period: 2026-11-18 to 2026-11-19. All 14 source addresses, 28 watched pages and all 14 YouTube channels fetched.
+Fresh X: 689 posts collected, 13 retained; exact interval 2026-11-18 04:30:52 UTC to 2026-11-19 04:30:52 UTC.
+Eleven videos listed; five selected and all five caption files read. No fixed source or channel failed.
+agents.md changed repository counters only. Two supplementary OpenAI articles required the web tool after HTTP 403;
+an attempted PromptArmor research address returned HTTP 404. X full articles and numerical chart data remain unavailable.
+
+**Claude Code (review period):**
+
+| Date   | Version  | News                                                                                                                                                                                                      | Source                                                                    |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Nov 19 | v2.1.328 | MCP hooks gain onFailure blocking; Code Mode changes output hooks; deferred resume and subagent waits gain host controls. Managed-plugin startup may take longer. Built-in code review narrows its remit. | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.328) |
+| Nov 19 | v2.1.328 | Fixes automatic-compaction prompt refresh, hooks exceeding their timeout, zsh commands beginning with =, and resumed sessions losing skill/hook context.                                                  | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.328) |
+
+**GitHub Copilot CLI (review period):**
+
+| Date   | Version       | News                                                                                                                                         | Source                                                                                               |
+|--------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| Nov 18 | v1.0.114      | Stable release has only generic Fixes and changes notes; no detailed behavior inferred.                                                      | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.114)                                |
+| Nov 18 | —             | Team plugin defaults are generally available to Business/Enterprise direct team members, including CLI; policy wins and members may opt out. | [Source](https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team)            |
+| Nov 18 | —             | Eight additional verified MCP connectors in preview; CLI connects through /mcp and its Connectors tab. Admin policies still apply.           | [Source](https://github.blog/changelog/2026-11-18-connect-supabase-box-calendly-and-more-to-copilot) |
+| Nov 18 | Gemini 4 Neon | Gradual rollout includes Copilot CLI on eligible plans. No change to installed-tool support or default model follows from the announcement.  | [Source](https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot)                   |
+
+**OpenAI Codex CLI (review period):**
+
+| Date   | Version  | News                                                                                                                                                                                                  | Source                                                                    |
+|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Nov 18 | v0.170.0 | Stable version already reviewed yesterday: MCP OAuth, sandbox and reconnect fixes; experimental same-name MCP environments and refreshed OTLP headers. New 0.172.0-alpha.1     has no release detail. | [Source](https://github.com/openai/codex/releases/tag/rust-v0.170.0)      |
+| Nov 18 | —        | Research acceleration report finds uneven task success and continuing human oversight. Read through web fallback after HTTP 403.                                                                      | [Source](https://openai.com/index/research-acceleration-jagged-frontier/) |
+| Nov 18 | —        | Training-to-deployment safety article describes isolation, action review, monitoring and tested stop controls. Read through web fallback after HTTP 403.                                              | [Source](https://openai.com/index/managing-frontier-ai-risk/)             |
+
+**OpenCode (review period):**
+
+| Date   | Version | News                                                                                                                                                                                    | Source                                                              |
+|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Nov 18 | v2.3.1  | Already reviewed: CLAUDE.md fallback restored; timed-out commands continue in background; timeout: 0 uses 120 seconds; background compaction defaults on; schedules become automations. | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.1) |
+| Nov 18 | v2.3.2  | Already reviewed: leading developer-message prefix fixes repeated uncached GPT-6.2 input billing. No installer change required.                                                         | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.2) |
+
+**Across tools (review period):**
+
+| Date             | Version      | News                                                                                                                                                                                                      | Source                                                       |
+|------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 19           | watched page | agents.md changed repository counters only; all other 27 watched pages unchanged.                                                                                                                         | [Source](https://agents.md)                                  |
+| Nov 18–19        | —            | Fresh X surfaced model-review anecdotes, verification tools and research. Full X articles remain unassessed because content blocks are empty.                                                             | [Source](https://x.com/i/lists/1992629307080929379)          |
+| Nov 18           | —            | Five videos assessed from captions; isolated test environments, independent grading and real interaction checks are useful evaluation inputs.                                                             | [Source](https://www.youtube.com/watch?v=U92J5mCDLMc)        |
+| Nov 19 (checked) | —            | No new in-period article on Claude blog/resources, OpenAI developer blog, GitHub Copilot blog or Martin Fowler tag. Artificial Analysis harness comparison remains Coming soon; chart values unavailable. | [Source](https://artificialanalysis.ai/agents/coding-agents) |
+
+**Relevance for aide:**
+
+- ⭐ Claude Code 2.1.328 adds MCP-hook failure blocking and changes which hooks see Code Mode output or refused calls. The hook reference lacks these distinctions; document them and check any dependent output filters. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.328)
+- ⚠️ Claude Code adds a switch to suppress deferred tools on resume, changes subagent waiting under CLAUDE_CODE_FORK_SUBAGENT=0, and may delay short headless exits while managed plugins load. Verify runner completion and cancellation before changing its settings. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.328)
+- ⭐ Copilot team-default plugins and CLI connectors add configuration paths and precedence missing from the reference. Document availability, policy precedence and opt-out; do not install them automatically. [Source](https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team)
+- ⚠️ OpenCode timeout and compaction changes remain an unresolved compatibility check from yesterday. Confirm that unattended runs wait for actual command results and document the new settings. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.3.1)
+- ✅ Codex 0.170.0 and OpenCode 2.3.2 are useful vendor fixes already covered yesterday. Copilot Neon availability does not justify changing defaults. [Source](https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot)
+- ✅ OpenAI research acceleration and lifecycle-safety articles support task-specific evaluation, human oversight and externally enforced controls. These agree with existing review and replay practice; neither establishes a new CLI configuration requirement. [Source](https://openai.com/index/research-acceleration-jagged-frontier/)
+- ✅ Video: 40x More Merged PRs With 2.7x the Engineers. Cognition describes locally runnable services, mocked dependencies, fresh VMs and evidence returned with fixes. Useful input for isolated runner/test environments; throughput is the speaker’s own claim. [Source](https://www.youtube.com/watch?v=U92J5mCDLMc)
+- ✅ Video: Post-Training Gemini 4 for Real Engineering Work. Independent graders, hidden checks, quality/scope rubrics and checking claimed results against executed actions bear on replay evaluation. Training results are not measurements of Aide. [Source](https://www.youtube.com/watch?v=fTHByDwTxGM)
+- ✅ Video: The UPGRADE To Reverse Engineer Anything Is Here (and Free). Compare-render-refine loops are useful evaluation ideas. The project README confirms comparison tooling but calls the project early alpha and some behavior checks partial; it is not evidence to install a plugin. [Source](https://www.youtube.com/watch?v=Eiy1ojXzhxQ)
+- ✅ Video: I Tested Astra 6.2 vs Fable 5.2 (The Astra Hate Is Real). Re-read captions confirm yesterday’s finding: references improved one creative task. Compare explicit completion criteria with open requests in replay; do not rank models from five subjective tasks. [Source](https://www.youtube.com/watch?v=9hrWmqvg_tA)
+- ✅ Video: Live stream: AI Builders Night with Convex, Daytona, Photon & CopilotKit. Captions are now available. Daytona demonstrates an environment where an agent can build and exercise the real app; useful for behavioral browser verification and recorded evidence. CopilotKit is a separate product from GitHub Copilot. [Source](https://www.youtube.com/watch?v=ptF6eBv33BA)
+- ℹ Fresh X: Gemini Neon launch corroborated by Copilot’s announcement. Conflicting personal model rankings, Bug Hunt scores not exposed in fetched HTML, and articles with empty full-text payloads do not warrant changes. PromptArmor’s quoted announcement exists, but the attempted research URL returned HTTP 404; no attack-success percentages adopted. [Source](https://x.com/omarsar0/status/2123124976979210464)
+- ℹ Fresh X: the modular self-improvement paper is dated Nov 17; SIM Nov 13 and the prompting guide were already surfaced earlier. They are background rediscoveries, not new publications in this review period. [Source](https://arxiv.org/abs/2611.22299)
+- ℹ All 14 fixed source addresses and all 14 channels fetched successfully. All 28 watched pages fetched; agents.md changed counters only. Artificial Analysis charts and Bug Hunt score rows were unavailable in fetched text. [Source](https://agents.md)
 
 ### 2026-11-18
 
