@@ -249,6 +249,12 @@ def test_workflow_steps_json_holds_complete_records(workspace_root):
     assert [step["name"] for step in sorted(data["steps"], key=lambda step: step["phaseOrder"] or 999) if step["phaseOrder"] is not None] == ["create", "analyze", "implement", "archive"]
     assert data["workflowArcRetired"] == ["review-plan"]
 
+def test_reopen_is_the_one_runner_step_without_a_model_turn_ac_1_ac_4(workspace_root):
+    """Reopen is listed without a model turn; every other runner step keeps one."""
+    data = json.loads((workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json").read_text())
+    runner = [step for step in data["steps"] if step["runBy"] == "runner"]
+    assert [step["name"] for step in runner if not step["runsModel"]] == ["reopen"]
+
 def test_bash_reader_accepts_a_new_complete_record_and_rejects_bad_records(workspace_root, tmp_path):
     """The reusable Bash reader needs no copied name list."""
     reader = workspace_root / "core" / "scripts" / "lib" / "workflow" / "steps.sh"

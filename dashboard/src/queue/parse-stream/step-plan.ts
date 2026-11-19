@@ -9,6 +9,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
+import { workflowStep } from "../../workflow-steps.ts";
 import type { LogPart } from "./step-log.ts";
 import { stepKey, stepDeclarations } from "./step-marks.ts";
 
@@ -16,10 +17,6 @@ import { stepKey, stepDeclarations } from "./step-marks.ts";
  *  its publication part once the session is over (run-spec/turn/spec-paths.sh).
  *  The after key is kept stable across the phase-specific titles. */
 export const AIDE_PARTS = { before: "preparing", after: "tests and commit" } as const;
-
-/** The steps aide-run-spec runs with no model turn, whatever the job asks (spec-paths.sh's reopen branch):
- *  the skill's own steps are never marked for them, only Aide's parts and the merge. */
-export const NO_MODEL_TURN: ReadonlySet<string> = new Set(["reopen"]);
 
 const STEPS_DIR = join(import.meta.dir, "../../../../core/scripts/lib/steps");
 
@@ -52,7 +49,8 @@ export function stepPlan(step: string, skills = STEPS_DIR): PlannedStep[] {
   } catch {
     return [];
   }
-  const plan = planFrom(text, !NO_MODEL_TURN.has(step), step);
+  // A step whose entry runs no model marks only Aide's parts and the merge, never the skill's own steps.
+  const plan = planFrom(text, workflowStep(step)?.runsModel !== false, step);
   kept.set(file, { mtimeMs, plan });
   return plan;
 }

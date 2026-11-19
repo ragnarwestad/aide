@@ -313,16 +313,10 @@ create_no_ai=""
 if [ "$command_name" = "create" ] && [ "$no_ai_formulate" = "yes" ]; then
   create_no_ai="yes"
 fi
-# A reopen is mechanical either way, so no model runs for it: both modes
-# are aide-reopen-spec, with --reset-files passed on for the reset. A model
-# turn also cost a run and could be refused its own commands under a
-# permission mode with nobody to ask.
-reopen_no_ai=""
-if [ "$command_name" = "reopen" ]; then reopen_no_ai="yes"; fi
 property_no_ai=""
 if [ "$STEP_RUNS_MODEL" = "false" ]; then property_no_ai="yes"; fi
 
-if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ] || [ -n "$property_no_ai" ]; then
+if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$property_no_ai" ]; then
   # No child spawned: every variable the commit loop, the phase-outcome
   # writer and the final JSON result read from a completed run is given
   # the same zero/absent shape already_landed() already uses above for
@@ -357,7 +351,9 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_no_ai" ] || [ -n
       tool="none"; model=""; effort=""
       stop_step refused "$(jq -r '.error // "aide-create-spec refused"' <<<"$create_result" 2>/dev/null)" ""
     fi
-  elif [ -n "$reopen_no_ai" ]; then
+  elif [ -n "$property_no_ai" ] && [ "$command_name" = "reopen" ]; then
+    # A reopen is aide-reopen-spec in both modes, with --reset-files passed
+    # on for the reset.
     reopen_args=(--specs-root "$specs_root_wt" --spec "$spec_folder")
     [ -n "$reopen_boundary_sha" ] && reopen_args+=(--boundary "$reopen_boundary_sha")
     [ "$reset_files" = "yes" ] && reopen_args+=(--reset-files)

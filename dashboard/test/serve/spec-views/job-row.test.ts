@@ -7,7 +7,7 @@ import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 
 const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["a", "b", "c", "d"] } : null;
+  project === "aide" ? { specFolders: ["a", "b", "c", "d"], archivedFolders: ["e"] } : null;
 
 function makeStore(providers?: Record<string, { name: string; tool: "claude" | "codex" | "opencode" }>): QueueStore {
   return new QueueStore({
@@ -123,6 +123,18 @@ describe("jobRow()'s provider", () => {
     if (!made.ok) throw new Error("enqueue failed");
     const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(made.job.id)!);
     expect(row.provider).toBeUndefined();
+  });
+
+  test("a reopen runs no model and names no provider, while an implement in the same store names one (AC-1)", async () => {
+    const store = makeStore({ capra: { name: "Claude-Capra", tool: "claude" } });
+    const reopen = store.enqueue({ project: "aide", specFolder: "e", steps: ["reopen"] });
+    const implement = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
+    if (!reopen.ok || !implement.ok) throw new Error("enqueue failed");
+    store.update(reopen.job.id, { provider: { reopen: "capra" } });
+    store.update(implement.job.id, { provider: { implement: "capra" } });
+    const ctx = { queue: store, store: new AideRunStore() };
+    expect((await jobRow(ctx, store.get(reopen.job.id)!)).provider).toBeUndefined();
+    expect((await jobRow(ctx, store.get(implement.job.id)!)).provider).toBe("Claude-Capra");
   });
 });
 

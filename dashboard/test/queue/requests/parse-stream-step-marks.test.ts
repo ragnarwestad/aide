@@ -9,7 +9,6 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import {
   AIDE_PARTS,
-  NO_MODEL_TURN,
   linesWithFinalMessage,
   stepLog,
   stepMarks,
@@ -18,6 +17,7 @@ import {
   summarizeStream,
   type StepMark,
 } from "../../../src/queue/parse-stream";
+import { WORKFLOW_STEP_RECORDS } from "../../../src/workflow-steps.ts";
 
 const line = (o: unknown) => JSON.stringify(o);
 const say = (text: string) => line({ type: "assistant", message: { content: [{ type: "text", text }] } });
@@ -266,7 +266,7 @@ describe("stepPlan", () => {
     return dir;
   };
 
-  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes", () => {
+  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes (AC-4)", () => {
     const dir = skillsWith("close", skillText(["move the spec", "commit", "confirm", "merge into main"]));
     const plan = stepPlan("close", dir);
     expect(plan.map((s) => s.key)).toEqual([
@@ -280,10 +280,17 @@ describe("stepPlan", () => {
     expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit spec files", "Merge into main"]);
   });
 
-  test("a step that runs no model turn lists Aide's two parts and the heading Aide writes, none of the session's", () => {
-    const [step] = [...NO_MODEL_TURN];
-    const dir = skillsWith(step!, skillText(["find the spec", "move it back", "merge into main"]));
-    expect(stepPlan(step!, dir).map((s) => s.key)).toEqual(["Step Aide: preparing", "Step Aide: tests and commit", "Step 3 of 3"]);
+  test("a reopen, listed without a model turn, gives Aide's two parts and the heading Aide writes, none of the session's (AC-3)", () => {
+    const dir = skillsWith("reopen", skillText(["find the spec", "move it back", "merge into main"]));
+    expect(stepPlan("reopen", dir).map((s) => s.key)).toEqual(["Step Aide: preparing", "Step Aide: tests and commit", "Step 3 of 3"]);
+  });
+
+  test("every runner step's plan lists the skill's own steps exactly when its entry runs a model (AC-3, AC-4)", () => {
+    for (const entry of WORKFLOW_STEP_RECORDS.filter((s) => s.runBy === "runner")) {
+      const dir = skillsWith(entry.name, skillText(["one", "two", "merge into main"]));
+      const keys = stepPlan(entry.name, dir).map((s) => s.key);
+      expect({ step: entry.name, session: keys.includes("Step 1 of 3") && keys.includes("Step 2 of 3") }).toEqual({ step: entry.name, session: entry.runsModel });
+    }
   });
 
   test("the checkout's own skills are found: Close's and Reopen's plans start with preparing and end on a numbered step", () => {
@@ -315,7 +322,7 @@ describe("stepPlan", () => {
     expect(stepPlan("close", dir)).toEqual(first);
   });
 
-  test("the pair the runner decides in bash is the pair stepPlan holds", () => {
+  test("the parts the runner opens in bash are the parts stepPlan holds", () => {
     const scripts = join(import.meta.dir, "../../../../core/scripts");
     const files = (dir: string): string[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
@@ -325,11 +332,6 @@ describe("stepPlan", () => {
     // The literals `aide_part_open "<name>"` is called with; `"$variable"` names a variable and does not count.
     const names = sources.flatMap((text) => [...text.replace(/^\s*#.*$/gm, "").matchAll(/\baide_part_open "([^"$]+)"/g)].map((m) => m[1]!));
     expect(names.sort()).toEqual([AIDE_PARTS.before, commitPartTitle("analyze"), commitPartTitle("implement"), commitPartTitle("schedule")].sort());
-
-    const paths = readFileSync(join(scripts, "lib/run-spec/turn/spec-paths.sh"), "utf-8");
-    const stretch = paths.slice(paths.indexOf('create_no_ai=""'), paths.indexOf('if [ -n "$skip_ai" ]'));
-    const noModel = [...stretch.matchAll(/\[ "\$command_name" = "(\w+)" \]\s*;\s*then/g)].map((m) => m[1]!);
-    expect(new Set(noModel)).toEqual(new Set(NO_MODEL_TURN));
   });
 
   test("a skills folder with no file for the step, or a file with no Step N of X heading, gives no plan", () => {
