@@ -262,6 +262,42 @@ and agents at every directory level from cwd up to the git root. This
 means projects can have project-specific skills in
 `.github/skills/` that supplement the global ones in `~/.claude/skills/`.
 
+### Plugins, team defaults and policy
+
+Copilot plugins are named `PLUGIN-NAME@MARKETPLACE-NAME`; awesome-copilot
+is the built-in marketplace. Plugins can be switched on from several
+places, and they do not carry the same weight:
+
+- **Enterprise managed settings** — `copilot/managed-settings.json` in the
+  enterprise's `.github-private` repository. They can require or block a
+  plugin or a marketplace, but cannot turn an optional plugin on by
+  default. A user cannot override them.
+- **Enterprise team settings** — files in `copilot/teams/` mapped by
+  `copilot/team-mappings.json`, with `enabledPlugins` added on top of the
+  enterprise's. They count as managed policy, so a user cannot override
+  them either.
+- **Team defaults** (Copilot Business and Enterprise) — set by a team
+  maintainer or organization owner on the team's "Customize Copilot" tab
+  on github.com. The plugins are on by default for the team's direct
+  members in Copilot CLI, VS Code and the Copilot app; members of child
+  teams do not get them. Enterprise and organization policy wins over
+  them, and a member can turn one off in their client where policy
+  allows it. GitHub does not say how the CLI does that.
+- **Repository defaults** — `enabledPlugins` and `extraKnownMarketplaces`
+  in `.github/copilot/settings.json`. They cannot make a plugin
+  mandatory or switch on one that policy blocks, and a user can turn one
+  off locally.
+
+Aide installs no Copilot plugins and sets none of these. A Copilot
+session may still carry plugins the team or enterprise switched on.
+
+Connectors (verified MCP servers such as Supabase or Box) are reached in
+the CLI through `/mcp`, on the Connectors tab. They are in public preview;
+on Business and Enterprise an admin must enable the `Editor preview
+features` policy. The enterprise MCP allowlist (`allowedMcpServers`,
+`deniedMcpServers`) also covers connectors on clients that support MCP
+managed settings.
+
 ### What Copilot does NOT read
 
 - `~/.claude/skills/` — Claude Code only (CLI dropped it; verified 1.0.79)
@@ -396,6 +432,11 @@ structured inter-agent messaging.
 - Custom agents: <https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents>
 - CLI config: <https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli>
 - Coding Agent env: <https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment>
+- Plugins and their precedence: <https://docs.github.com/copilot/concepts/customizations/plugins>
+- Team defaults: <https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team>
+- Enterprise team settings: <https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/use-managed-settings/override-settings-for-teams>
+- Connectors: <https://github.blog/changelog/2026-11-18-connect-supabase-box-calendly-and-more-to-copilot>
+- MCP allowlist: <https://docs.github.com/enterprise-cloud@latest/copilot/how-tos/administer-copilot/manage-mcp-usage/configure-enterprise-allowlist>
 
 ### OpenAI Codex
 
