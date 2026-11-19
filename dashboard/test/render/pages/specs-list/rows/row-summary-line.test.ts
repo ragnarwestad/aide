@@ -65,7 +65,7 @@ describe("one line per row for what is going on and what is next", () => {
   // button reading "Implement". The four states keep their badge; the
   // sentence goes.
   test("a job that stopped short is not told how to try again", () => {
-    for (const state of ["failed", "stopped", "cancelled"] as const) {
+    for (const state of ["failed", "waiting", "cancelled"] as const) {
       const cell = stateCell(
         rows([row({ specFolder: "101-a", steps: ["implement"], state })], [target("101-a")]),
       );
@@ -80,7 +80,7 @@ describe("one line per row for what is going on and what is next", () => {
   // for a branch left open that is the archive step which lands it.
   test("a finished spec with a branch still out says which phase is next", () => {
     const html = rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]);
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Created");
     expect(html).toContain(">Analyze</button>");
     expect(hint(html)).toBe("");
   });
@@ -100,7 +100,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Implemented");
     expect(chip(html).toLowerCase()).not.toContain("merge");
     expect(hint(html)).toBe("");
   });
@@ -116,7 +116,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toBe("done");
     expect(hint(html)).toBe("");
@@ -127,7 +127,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Implemented");
     expect(html).toContain(">Archive</button>");
   });
 
@@ -139,7 +139,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(hint(html)).toBe("");
   });
@@ -153,7 +153,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Implemented");
     expect(html).toContain(">Archive</button>");
     expect(hint(html)).toBe("");
   });
@@ -166,7 +166,7 @@ describe("one line per row for what is going on and what is next", () => {
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Analyzed");
     expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toContain("nothing waiting on you");
   });
@@ -201,7 +201,7 @@ describe("one line per row for what is going on and what is next", () => {
     );
     // The badge keeps the WORD — it is `nowrap`, and the
     // reason is a sentence — and the row's panel says the reason.
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Held back");
     expect(chip(html)).not.toContain("nothing waiting on you");
     // Once, not twice: the badge says it, so the line below has nothing
     // left to add.
@@ -232,7 +232,7 @@ describe("one line per row for what is going on and what is next", () => {
         }),
       ],
     );
-    expect(chip(html)).toBe("Done");
+    expect(chip(html)).toBe("Held back");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
       "Click the link to start a test server running this branch",
     );
@@ -243,7 +243,7 @@ describe("one line per row for what is going on and what is next", () => {
   // in the one place on the row that has the width for it. The line
   // below says what to press.
   test("a run that stopped short says the held-back reason in the row's panel", () => {
-    for (const state of ["failed", "stopped", "cancelled"] as const) {
+    for (const state of ["failed", "waiting", "cancelled"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["archive"], state })],
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],

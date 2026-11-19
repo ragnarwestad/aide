@@ -113,8 +113,8 @@ which:
   dependency to land or another job on the same spec to finish; nothing
   failed. (2) an **archive** held back: the spec's acceptance criteria are
   not all ticked, so archive declines until they are.
-- **Stopped** — (1) a **job** in the state `stopped`. (2) a **step** that
-  ended without finishing, for a reason it names: `timeout`, `tests-red`,
-  `no-progress`, `scope-violation`, and others.
+- **Stopped** — a **step** that ended without finishing, for a reason it
+  names: `timeout`, `tests-red`, `no-progress`, `scope-violation`, and
+  others. Its job is `failed`, or `waiting` on a usage limit.
 - **Conflict** — the spec's branch does not merge cleanly with the
   default branch; archive resolves it.

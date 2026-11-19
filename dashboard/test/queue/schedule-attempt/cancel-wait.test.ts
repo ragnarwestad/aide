@@ -14,7 +14,7 @@ test("cancelling a schedule wait clears restart metadata and persists its histor
   const store = new QueueStore(opts);
   const made = store.enqueue({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] });
   if (!made.ok) throw new Error(made.error);
-  store.update(made.job.id, { state: "stopped", stopReason: "provider-limit", spentUsd: 3, spentTokens: 17,
+  store.update(made.job.id, { state: "waiting", stopReason: "provider-limit", spentUsd: 3, spentTokens: 17,
     usageLimitWait: { until: "2026-11-18T00:00:00Z", resetKnown: true },
     usageLimitProbe: { results: 0, at: "2026-11-17T00:00:00Z", since: "2026-11-17T00:00:00Z" },
     retry: { action: "schedule", attempts: 1, dueAt: "2026-11-18T00:00:00Z" } });
@@ -35,7 +35,7 @@ test("ordinary stops, non-schedules and landing work cannot use wait cancellatio
   for (const specFolder of ["81-work", "schedule-nightly"]) {
     const made = store.enqueue({ project: "aide", specFolder, steps: [specFolder === "81-work" ? "analyze" : "schedule"] });
     if (!made.ok) throw new Error(made.error);
-    store.update(made.job.id, { state: "stopped", stopReason: "timeout" });
+    store.update(made.job.id, { state: "waiting", stopReason: "timeout" });
     expect(cancelScheduleWait(store, store.get(made.job.id)!).ok).toBe(false);
     store.update(made.job.id, { stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true }, landing: true });
     expect(cancelScheduleWait(store, store.get(made.job.id)!).ok).toBe(false);

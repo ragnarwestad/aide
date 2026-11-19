@@ -134,10 +134,10 @@ describe("what uses a provider", () => {
     expect(uses.join(" | ")).toContain("aide:703");
   });
 
-  test("a job stopped waiting for a usage-limit reset counts; a finished one does not (AC-6)", () => {
-    const waiting = job({ state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "x", resetKnown: true }, provider: { implement: "Codex" } });
+  test("a job waiting for a usage-limit reset counts; a finished one does not (AC-6)", () => {
+    const waiting = job({ state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "x", resetKnown: true }, provider: { implement: "Codex" } });
     const done = job({ state: "done", provider: { implement: "Codex" } });
-    const stoppedForGood = job({ state: "stopped", stopReason: "cap", provider: { implement: "Codex" } });
+    const stoppedForGood = job({ state: "failed", stopReason: "timeout", provider: { implement: "Codex" } });
     const d = defaults({ provider: {} });
     expect(providerUses("Codex", d, {}, [waiting])).toHaveLength(1);
     expect(providerUses("Codex", d, {}, [done, stoppedForGood])).toEqual([]);

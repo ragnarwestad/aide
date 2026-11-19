@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { phasePips, phasesFor, renderSpecsRows, type QueueRowView, type StepResultView } from "../../../../../src/render";
+import { phasePips, phasesFor, renderSpecsRows, type QueueRowView, type SpecTarget, type StepResultView } from "../../../../../src/render";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
@@ -26,10 +27,10 @@ describe("the queue list groups by spec", () => {
   // Every spec open: this block is about what an expanded row holds —
   // its phase lines, its action cell — which is what every row held
   // before collapsed became the default.
-  const rows = (list: QueueRowView[]) =>
+  const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets: [], filter: { open: openKeys(list) } },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list) } },
       Date.parse("2026-08-17T12:00:00Z"),
     );
 
@@ -96,14 +97,17 @@ describe("the queue list groups by spec", () => {
     expect(head).not.toContain('class="badge b-done"');
   });
 
-  test("with nothing in flight the header shows the latest job's outcome", () => {
+  test("Jobs shows the Archive hold even when the last job ended at Implement", () => {
     const html = rows([
-      job("j1", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
-    ]);
+    ], [{
+      project: "aide", specFolder: "86-grouped",
+      done: ["create", "analyze"],
+      historyDone: ["create", "analyze", "implement"],
+      archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+    }]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain(">Done<");
-    expect(head).not.toContain('class="badge b-refused"');
+    expect(head).toContain(">Held back<");
   });
 
   test("the header's cost is the whole spec's, not one job's", () => {

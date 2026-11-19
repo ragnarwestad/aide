@@ -29,9 +29,9 @@ describe("a failed newest run speaks for the phase", () => {
     expect(said(w)).toContain("declined");
   });
 
-  test("a stop at the time limit from history stays amber Stopped", () => {
+  test("a stop at the time limit from history reads Failed", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "timeout", step: "analyze" });
-    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
   });
 
   test("a done attempt over an older failed one reads Done", () => {
@@ -46,9 +46,9 @@ describe("a failed newest run speaks for the phase", () => {
 });
 
 describe("an analyze stopped on its acceptance criteria", () => {
-  test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
+  test("reads Failed from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "acceptance-criteria", step: "analyze" });
-    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(said(w)).toBeDefined();
     expect(said(w)).not.toContain("acceptance-criteria");
   });
@@ -64,27 +64,27 @@ describe("an analyze whose short analysis was over a limit", () => {
 });
 
 describe("an analyze stopped because the model was at capacity", () => {
-  test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
+  test("reads Failed from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "model-at-capacity", step: "analyze" });
-    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(said(w)).toContain("at capacity");
     expect(said(w)).not.toContain("model-at-capacity");
   });
 });
 
 describe("an analyze stopped on files another open spec changes", () => {
-  test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
+  test("reads Failed from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "shared-files", step: "analyze" });
-    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(said(w)).toBeDefined();
     expect(said(w)).not.toContain("shared-files");
   });
 });
 
 describe("an implement sent back to a full analysis", () => {
-  test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
+  test("reads Failed from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" });
-    expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
+    expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(said(w)).toBeDefined();
     expect(said(w)).not.toContain("sent-back");
   });

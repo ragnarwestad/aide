@@ -85,6 +85,11 @@ generative AI tag on martinfowler.com lists articles out of date order, each wit
 | OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                                                                         |
 | OpenCode           | <https://github.com/anomalyco/opencode/releases><br><https://opencode.ai/changelog>                | —                                                                                                            |
 | All four           | —                                                                                                  | <https://artificialanalysis.ai/agents/coding-agents><br><https://martinfowler.com/tags/generative%20AI.html> |
+| Claude Cookbooks   | <https://github.com/anthropics/claude-cookbooks/commits/main/>                                     | <https://github.com/anthropics/claude-cookbooks>                                                             |
+
+For Claude Cookbooks, review new and substantially changed recipes about evaluations, agents, tool use, cost and
+latency. Open the relevant commits and recipes to assess what Aide could use. Report meaningful changes since the
+last review, not every commit, repository statistics or formatting-only edits.
 
 ### Watched pages
 

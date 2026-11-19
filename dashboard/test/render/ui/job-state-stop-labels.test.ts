@@ -9,8 +9,9 @@ import { STEP_ENDINGS } from "../../../src/step-endings.ts";
 import { LANGUAGES } from "../../../src/i18n";
 import type { QueueRowView } from "../../../src/render";
 
+// A run stopped early: a usage limit leaves it waiting, any other stop fails it.
 const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
-  ({ state: "stopped", stopReason, timeoutSec }) as unknown as QueueRowView;
+  ({ state: stopReason === "provider-limit" ? "waiting" : "failed", stopReason, timeoutSec }) as unknown as QueueRowView;
 
 describe("a state is one word, in the reader's own language", () => {
   // A word said differently per language, not the queue's own
@@ -21,40 +22,45 @@ describe("a state is one word, in the reader's own language", () => {
     expect(stateWord({ state: "done" } as QueueRowView, "nb")).toBe("ferdig");
     expect(stateWord({ state: "failed" } as QueueRowView, "nb")).toBe("feilet");
     expect(stateWord({ state: "cancelled" } as QueueRowView, "nb")).toBe("avbrutt");
-    expect(stateWord(stopped("timeout"), "nb")).toBe("stoppet");
+    expect(stateWord(stopped("timeout"), "nb")).toBe("feilet");
+    expect(stateWord({ state: "waiting" } as QueueRowView, "nb")).toBe("venter");
 
     expect(stateWord({ state: "queued" } as QueueRowView, "en")).toBe("queued");
     expect(stateWord({ state: "running" } as QueueRowView, "en")).toBe("running");
     expect(stateWord({ state: "done" } as QueueRowView, "en")).toBe("done");
     expect(stateWord({ state: "failed" } as QueueRowView, "en")).toBe("failed");
     expect(stateWord({ state: "cancelled" } as QueueRowView, "en")).toBe("cancelled");
+    expect(stateWord({ state: "waiting" } as QueueRowView, "en")).toBe("waiting");
   });
 
   // The three stops that used to word themselves — "stopped — 45 min",
   // "stopped — provider limit", "stopped — tests red" — read the same
   // now, whichever reason they carry.
   test("no stop kind writes its reason after the word", () => {
-    for (const reason of ["timeout", "provider-limit", "tests-red"]) {
-      expect(stateWord(stopped(reason), "en")).toBe("stopped");
-      expect(stateWord(stopped(reason), "nb")).toBe("stoppet");
+    for (const reason of ["timeout", "tests-red"]) {
+      expect(stateWord(stopped(reason), "en")).toBe("failed");
+      expect(stateWord(stopped(reason), "nb")).toBe("feilet");
     }
+    expect(stateWord(stopped("provider-limit"), "en")).toBe("waiting");
+    expect(stateWord(stopped("provider-limit"), "nb")).toBe("venter");
     // A ten-second limit, the round's own boards: it said "0 min".
-    expect(stateWord(stopped("timeout", 10), "en")).toBe("stopped");
+    expect(stateWord(stopped("timeout", 10), "en")).toBe("failed");
   });
 });
 
 describe("nothing on the page writes the state as more than that word", () => {
   test("a phase line's badge is the word", () => {
-    for (const reason of ["timeout", "provider-limit", "tests-red"]) {
-      const attempt = { state: "stopped", stopReason: reason, errorReason: reason } as unknown as QueueRowView;
-      expect(wordPhase(false, undefined, attempt, {}, "en").badge?.label).toBe("Stopped");
+    for (const reason of ["timeout", "tests-red"]) {
+      const attempt = { ...stopped(reason), errorReason: reason } as unknown as QueueRowView;
+      expect(wordPhase(false, undefined, attempt, {}, "en").badge?.label).toBe("Failed");
     }
+    expect(wordPhase(false, undefined, stopped("provider-limit"), {}, "en").badge?.label).toBe("Waiting");
     // Archive's commit is on its branch, so the history
     // says the phase ran — but the merge was refused on red tests. The
     // line reads the attempt's own state, not Done.
-    const red = { state: "stopped", stopReason: "tests-red", errorReason: "tests-red" } as unknown as QueueRowView;
+    const red = { state: "failed", stopReason: "tests-red", errorReason: "tests-red" } as unknown as QueueRowView;
     const w = wordPhase(true, undefined, red, {}, "en");
-    expect(w.badge?.label).toBe("Stopped");
+    expect(w.badge?.label).toBe("Failed");
     expect(w.pip).not.toBe("past");
   });
 
@@ -64,8 +70,7 @@ describe("nothing on the page writes the state as more than that word", () => {
   });
 
   test("the qualifier beside it names the state, not the reason", () => {
-    const attempt = { state: "stopped", stopReason: "provider-limit" } as unknown as QueueRowView;
-    expect(wordPhase(true, undefined, attempt, {}, "en").qualifier).toBe("last re-run stopped");
+    expect(wordPhase(true, undefined, stopped("timeout"), {}, "en").qualifier).toBe("last re-run failed");
     expect(wordPhase(true, undefined, { state: "cancelled" } as unknown as QueueRowView, {}, "nb").qualifier).toBe(
       "siste ny kjøring avbrutt",
     );
@@ -93,7 +98,7 @@ describe("endingWord()", () => {
 test("a scheduled provider retry is Queued until its automatic retry is cancelled", () => {
   const job = { ...stopped("provider-limit"), usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } };
   expect(stateWord(job, "en")).toBe("queued");
-  expect(stateWord({ ...job, usageLimitWait: undefined }, "en")).toBe("stopped");
+  expect(stateWord({ ...job, usageLimitWait: undefined }, "en")).toBe("waiting");
 });
 
 test("a phase waiting to retry takes precedence over an older completion", () => {

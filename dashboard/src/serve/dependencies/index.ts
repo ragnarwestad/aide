@@ -59,7 +59,7 @@ async function descriptionsIn(ctx: RoutesContext, root: string): Promise<Map<str
  *  both ask this; each adds only what sets it off. */
 export function stoppedAnalyzeGoesOn(queue: Pick<QueueStore, "list" | "get">, job: Pick<Job, "id">): boolean {
   const current = queue.get(job.id);
-  if (!current || current.state !== "stopped" || current.stopReason !== "shared-files") return false;
+  if (!current || current.state !== "failed" || current.stopReason !== "shared-files") return false;
   if (current.dependencyNotice || current.landing || landingErrorOfStep(current, "analyze")) return false;
   return !queue.list().some((other) => other.id !== current.id && other.project === current.project &&
     other.specFolder === current.specFolder && inFlight(other));

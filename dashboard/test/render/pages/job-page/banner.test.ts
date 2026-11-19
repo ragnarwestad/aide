@@ -31,7 +31,7 @@ describe("the job page's banner", () => {
   test("omits an event owned by the landing step while retaining a distinct event (AC-2)", () => {
     const event = { key: "landing.testsRedOnMerge", values: { count: 1, branch: "aide/81-x", button: "Archive" }, lists: { tests: ["one"] } } as const;
     const same = renderJobFollowParts(
-      { ...row({ steps: ["archive"], state: "failed", error: event as never, landingError: { key: "landing.stepStopped", values: { step: "archive" }, inner: event } as never }), results: [] } as never,
+      { ...row({ steps: ["archive"], state: "failed", error: event as never, landingError: { key: "landing.stepFailed", values: { step: "archive" }, inner: event } as never }), results: [] } as never,
       { now: 0, lang: "en" },
     );
     expect(same).not.toContain("1 of the project's tests");

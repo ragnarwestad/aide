@@ -13,7 +13,7 @@ export interface JobPresentation {
   variant: "idle" | "running" | "done" | "waiting" | "refused";
   waiting?: QueueRowView["queuePosition"];
 }
-const variants = { queued: "idle", running: "running", done: "done", stopped: "waiting", failed: "refused", cancelled: "waiting", "needs-action": "waiting", testing: "running", merging: "running" } as const;
+const variants = { queued: "idle", running: "running", done: "done", waiting: "waiting", failed: "refused", cancelled: "waiting", "needs-action": "waiting", testing: "running", merging: "running" } as const;
 
 /** Presentation only: a place in the queue does not imply automatic progress. */
 export function jobPresentation(row: Facts, step?: string, position?: QueueRowView["queuePosition"]): JobPresentation {
@@ -26,9 +26,9 @@ export function jobPresentation(row: Facts, step?: string, position?: QueueRowVi
   const active = inFlight(row) || retry;
   const terminal = row.results?.at(-1)?.terminalReason;
   let state: State = row.landing ? "running" : row.state;
-  if (relevant && (active || row.state === "done" || row.state === "stopped")) {
+  if (relevant && (active || row.state === "done" || row.state === "failed")) {
     if ((row.errorReason === "held-back" && !heldBackResolvesOnItsOwn(row)) ||
-        (!row.landing && (row.state === "done" || row.state === "stopped") && ["acceptance-criteria-unticked", "approach-choice"].includes(terminal ?? ""))) {
+        (!row.landing && (row.state === "done" || row.state === "failed") && ["acceptance-criteria-unticked", "approach-choice"].includes(terminal ?? ""))) {
       state = "needs-action";
     } else if ((active || row.state === "done") && (retry || waiting || heldBackResolvesOnItsOwn(row) || (row.state === "queued" && !row.landing))) {
       state = "queued";

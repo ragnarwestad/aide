@@ -14,9 +14,9 @@ describe("the pip follows the badge", () => {
     expect([w.pip, w.badge?.variant]).toEqual(["waiting", "waiting"]);
   });
 
-  test("stopped, from the file: amber on both", () => {
+  test("stopped, from the file: red on both", () => {
     const w = wordPhase(false, undefined, noJob, { fileResult: "stopped" });
-    expect([w.pip, w.badge?.variant]).toEqual(["waiting", "waiting"]);
+    expect([w.pip, w.badge?.variant]).toEqual(["refused", "refused"]);
   });
 
   test("failed: red on both", () => {

@@ -28,7 +28,6 @@ const BY_WORD: [RegExp, string][] = [
   [/^(ready|klar)\b/, "play"],
   [stateWords("state.queued"), "clock"],
   [stateWords("state.failed"), "failed"],
-  [stateWords("state.stopped"), "stopped"],
   [stateWords("state.heldBack"), "pause"],
   [/^(closed|lukket)\b/, "closed"],
   [stateWords("state.cancelled"), "ban"],
@@ -36,7 +35,7 @@ const BY_WORD: [RegExp, string][] = [
   [/^(not started|ikke startet)/, "dashed"],
   // Standing still until another spec is done: no icon, though the word
   // would otherwise fall to the "-ing" catch below.
-  [stateWords("list.state.waiting"), ""],
+  [stateWords("list.state.waiting", "state.waiting"), ""],
   [stateWords("state.running", "state.testing", "state.merging"), "loader"],
   [/^\w+ing\b|^\w+er\b/, "loader"],
 ];

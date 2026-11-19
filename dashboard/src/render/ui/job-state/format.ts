@@ -16,8 +16,9 @@ import type { QueueRowView } from "./types.ts";
 // Every state is a single catalogue key — added here rather than left
 // as `r.state`, which was the raw English enum value in
 // every language.
-const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, TranslationKey> = {
+const STATE_LABEL_KEYS: Record<QueueRowView["state"], TranslationKey> = {
   queued: "state.queued",
+  waiting: "state.waiting",
   running: "state.running",
   done: "state.done",
   failed: "state.failed",
@@ -33,7 +34,7 @@ export function stateWord(r: Parameters<typeof jobPresentation>[0], lang: Langua
   const state = jobPresentation(r).state;
   if (state === "needs-action") return t(lang, "state.heldBack");
   if (state === "testing" || state === "merging") return t(lang, `state.${state}`);
-  return state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[state]);
+  return t(lang, STATE_LABEL_KEYS[state]);
 }
 
 /** How a step ended, in one word for a table cell. A reason that is not a
@@ -61,7 +62,7 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   queued: "idle",
   running: "running",
   done: "done",
-  stopped: "waiting",
+  waiting: "waiting",
   failed: "refused",
   cancelled: "waiting",
 };
@@ -72,7 +73,7 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   const b = badge(jobPresentation(r).variant, capitalizeFirst(stateWord(r, lang)));
   // Why it stopped is the popover's, not the badge's — and a stop with
   // no sentence of its own gets no popover at all.
-  const detail = r.state === "stopped" ? formatSentence(lang, r.error) : undefined;
+  const detail = r.state === "waiting" || (r.state === "failed" && r.stopReason) ? formatSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover(t(lang, "help.whyStopped"), esc(detail)) : b;
 }
 

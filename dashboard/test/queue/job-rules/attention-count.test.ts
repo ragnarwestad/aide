@@ -14,11 +14,11 @@ test("counts manual holds and failed jobs, but not automatic waits or cancellati
   expect(counts([
     job("1-choice", { state: "queued", errorReason: "held-back", error: { key: "runner.approachChoice" } }),
     job("2-dependency", { state: "queued", errorReason: "held-back", error: { key: "runner.dependencyNotArchived", values: { spec: "1-choice" } } }),
-    job("3-usage", { state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "2026-11-19T00:00:00Z", resetKnown: true } }),
+    job("3-usage", { state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2026-11-19T00:00:00Z", resetKnown: true } }),
     job("4-cancelled", { state: "cancelled" }),
     job("5-running", { state: "running" }),
     job("6-queued", { state: "queued" }),
-    job("7-tests", { state: "stopped", stopReason: "tests-red" }),
+    job("7-tests", { state: "failed", stopReason: "tests-red" }),
     job("8-foreign", { project: "other" }),
     job("9-acceptance", { state: "done", results: [{ terminalReason: "acceptance-criteria-unticked" }] as Job["results"] }),
   ])).toBe(3);

@@ -26,7 +26,7 @@ const setup = (dependencies: Record<string, string[]> = { "1-a": [], "2-b": [] }
     writeFileSync(join(specs, folder, "1-description.md"), description(deps));
   }
   git(code, "add", "aide"); git(code, "commit", "-m", "Seed specs"); git(code, "push", "origin", "main");
-  const job = { id: "old", project: "aide", specFolder: "1-a", state: "stopped", stopReason: "shared-files",
+  const job = { id: "old", project: "aide", specFolder: "1-a", state: "failed", stopReason: "shared-files",
     steps: ["analyze", "implement", "archive"], stepIndex: 0, model: { analyze: "opus" }, results: [],
   } as unknown as Job;
   const jobs = new Map([[job.id, job]]);
@@ -45,7 +45,7 @@ const setup = (dependencies: Record<string, string[]> = { "1-a": [], "2-b": [] }
       update: (id: string, patch: Partial<Job>) => Object.assign(jobs.get(id)!, patch),
       transition: (id: string, event: string, patch: Partial<Job>) => {
         const found = jobs.get(id)!;
-        if (event !== "retry-late" || found.state !== "stopped") return { ok: false, state: found.state, event };
+        if (event !== "retry-late" || found.state !== "failed") return { ok: false, state: found.state, event };
         Object.assign(found, patch, { state: "queued" });
         return { ok: true, job: found };
       },
@@ -102,7 +102,7 @@ test("a repeated missing overlap assessment says Analyze ran twice and does not 
     key: "runner.afterTwoAttempts",
     inner: { key: "runner.overlapDecisionMissing" },
   });
-  expect(h.job.state).toBe("stopped");
+  expect(h.job.state).toBe("failed");
 });
 
 test("the explanation includes the target and reason, and a repeated callback creates no second job", async () => {
@@ -250,7 +250,7 @@ test("a refused save clears the landing mark and queues nothing (AC-6)", async (
 // Whether an analyze stopped on shared files may go on is decided once,
 // for the automatic path and the Depends on save alike.
 test("a stopped analyze goes on only when it stopped on shared files and nothing about it is unsettled (AC-6)", () => {
-  const stopped = { id: "old", project: "aide", specFolder: "1-a", state: "stopped", stopReason: "shared-files", steps: ["analyze"], stepIndex: 0, results: [] };
+  const stopped = { id: "old", project: "aide", specFolder: "1-a", state: "failed", stopReason: "shared-files", steps: ["analyze"], stepIndex: 0, results: [] };
   const goesOn = (patch: Record<string, unknown>, others: Record<string, unknown>[] = []) => {
     const job = { ...stopped, ...patch } as unknown as Job;
     const jobs = [job, ...others.map((o, i) => ({ ...stopped, id: `other-${i}`, ...o }) as unknown as Job)];

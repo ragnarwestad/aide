@@ -10,7 +10,7 @@ import { previousGroupMember } from "../../project/discover/group.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
+import { inFlight, jobDismissible, jobKind, type Job } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { getErrorMessage } from "../../messages/shared/written.ts";
@@ -114,7 +114,7 @@ export async function handleJobActionRoutes(
       ctx.queue.executionGroups.stop(execution.id, true);
       for (const job of historical) {
         if (inFlight(job)) cancelJob(ctx, job);
-        else if (job.usageLimitWait) ctx.queue.update(job.id, { usageLimitWait: undefined, usageLimitProbe: undefined });
+        else if (job.state === "waiting") ctx.queue.transition(job.id, "cancel-schedule-wait", { usageLimitWait: undefined, usageLimitProbe: undefined, finishedAt: new Date().toISOString() });
       }
       return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
     }
@@ -404,6 +404,17 @@ export async function handleJobActionRoutes(
       return json({ error: reason, spec }, 409);
     }
     return json({ ok: true, job: result.job });
+  }
+
+  const dismiss = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/dismiss$/);
+  if (dismiss) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const sent = await readBounded(req), job = ctx.queue.get(dismiss[1]!);
+    if ("refusal" in sent) return sent.refusal;
+    if (!job) return json({ error: "no such job" }, 404);
+    if (jobDismissible(job)) return json({ ok: true, job: ctx.queue.update(job.id, { dismissedAt: new Date().toISOString() }) });
+    const spec = `${job.project}/${job.specFolder}`, reason = "only a failed job with no Start of its own can be dismissed";
+    logRefusal("dismiss", spec, reason); return json({ error: reason, spec }, 409);
   }
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);

@@ -65,7 +65,7 @@ const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
 };
 
 /** A member's pip, in the colour its own badge has: done, running, failed,
- *  stopped or held back, or not started. */
+ *  waiting or held back, or not started. */
 export function memberPipKind(member: SpecGroup | undefined, completed: boolean, job?: QueueRowView): PipKind {
   if (job && inFlight(job)) return job.state === "queued" && !job.landing ? "queued" : "now";
   if (completed || (member && isArchivedRow(member))) return "past";
@@ -73,7 +73,7 @@ export function memberPipKind(member: SpecGroup | undefined, completed: boolean,
   if (specBusy(member)) return member.lead?.state === "queued" && !member.lead.landing ? "queued" : "now";
   if (["failed", "cancelled", "archived-unlanded"].includes(member.state)) return "refused";
   const heldBack = !!member.phases.find((p) => p.step === "archive")?.heldBack;
-  return member.state === "stopped" || heldBack ? "waiting" : "todo";
+  return member.state === "waiting" || heldBack ? "waiting" : "todo";
 }
 
 export function executionGroupMemberJob(group: Pick<ExecutionGroup, "state" | "currentMember">, folder: string, memberJob?: QueueRowView, archiveJob?: QueueRowView): QueueRowView | undefined {

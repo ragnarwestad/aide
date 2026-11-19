@@ -5,13 +5,13 @@ import type { Job, QueueStore } from "../../queue/queue.ts";
 import type { Sentence } from "../../messages/types.ts";
 import { stepButton } from "../../format/step-label.ts";
 
-/** A step that STOPPED — at its own time limit, or on a provider's
- *  usage limit — lands what it did, and its error is the reason it
+/** A step stopped at its own time limit, or waiting on a provider's
+ *  usage limit, lands what it did, and its error is the reason it
  *  stopped: the row's full account of it, not a fault the landing
  *  resolved. Asked of the job as it stands when the landing settles,
  *  since the stop is written before then. */
 export function keepsItsStopReason(job: Job | undefined): boolean {
-  return job?.state === "stopped" && (job.stopReason === "timeout" || job.stopReason === "provider-limit");
+  return (job?.state === "failed" && job.stopReason === "timeout") || job?.state === "waiting";
 }
 
 // What a job remembers of a landing that failed, and who may forget it.
@@ -31,10 +31,7 @@ export function keepsItsStopReason(job: Job | undefined): boolean {
  *  followed minutes later by an `archive` "cannot fast-forward main"
  *  that was really the same unpushed commit).
  *
- *  "stopped", never "failed", when the project's own suite is what
- *  refused the merge: the row says stopped and draws it amber, and a
- *  sentence that says failed beside it is the row disagreeing with
- *  itself. The step-name prefix this used to compose is redundant with
+ *  The step-name prefix this used to compose is redundant with
  *  the badge label the one display site (`row-marks.ts`'s `liveMarks()`)
  *  shows beside it — and a landing runs with nobody's browser attached,
  *  so there is no language here to render `msg` with. */
@@ -42,9 +39,8 @@ export function firstLandingError(
   existing: Sentence | Sentence[] | undefined,
   msg: Sentence | Sentence[],
   step: string,
-  held: boolean,
 ): Sentence | Sentence[] {
-  return existing ?? { key: held ? ("landing.stepStopped" as const) : ("landing.stepFailed" as const), values: { step, button: stepButton(step) }, inner: msg };
+  return existing ?? { key: "landing.stepFailed", values: { step, button: stepButton(step) }, inner: msg };
 }
 
 /** Whether the landing failure a job carries belongs to `step`. */

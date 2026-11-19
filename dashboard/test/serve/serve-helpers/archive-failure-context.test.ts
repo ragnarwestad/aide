@@ -12,7 +12,7 @@ afterEach(() => killSpy.mockRestore());
 
 const current = { id: "new", project: "aide", specFolder: "81-example" } as Job;
 const failed = {
-  ...current, id: "old", state: "stopped", errorReason: "tests-red",
+  ...current, id: "old", state: "failed", errorReason: "tests-red",
   branchUrls: [{ root: "/code", url: "https://example.test/compare/main...aide/81-example" }], finishedAt: "2026-11-07T10:00:00Z",
   landingError: "named-test failed",
   landingErrorDetail: "TypeError: root.querySelector is not a function",

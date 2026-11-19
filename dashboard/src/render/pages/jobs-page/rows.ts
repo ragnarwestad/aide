@@ -1,5 +1,4 @@
 import { t } from "../../../i18n";
-import { canRetryLand } from "../../../queue/queue.ts";
 import { automaticProviderWait, canCancelDeploy } from "../../../queue/job-rules/activity.ts";
 import { scheduleRunPath, scheduleSettingsPath } from "../schedule-page/tabs.ts";
 // The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
@@ -36,7 +35,7 @@ export interface JobLike {
   results?: readonly { terminalReason?: string }[];
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & { stopReason?: string; usageLimitWait?: { until: string } } & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch" | "landSuccessor">> & { steps: readonly string[] };
+type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & { stopReason?: string; usageLimitWait?: { until: string } } & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch">> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string; mergeTarget?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec.
@@ -56,8 +55,6 @@ export function jobRowKind(row: Pick<JobLike, "steps" | "stepIndex" | "specFolde
   return kind === "close" || kind === "reopen" ? "spec" : kind;
 }
 
-/** Whether a job's row offers Dismiss, and the dismiss route takes it: a
- *  scheduled job that failed, stopped or was interrupted. */
 const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
 
 /** 0 running or landing, 1 queued, 2 waiting for the user. */
@@ -224,16 +221,15 @@ export function scheduleStreamKey(key: string): string | undefined {
 
 /** What a row offers: Cancel for a job that is queued, running or landing.
  *  Settled schedules offer Start; quota waits offer Cancel.
- *  A cancelled Land offers Start once its cleanup has settled. A Close or
+ *  A Merge offers no Start: another try is a new Merge. A Close or
  *  Reopen offers nothing: stopped part-way, it would leave the spec between
  *  its two places. A deploy offers Cancel while queued or held back before its restart;
  *  a restart already fired cannot be stopped. */
 export function jobControl(row: StateRow): "cancel" | "start" | undefined {
-  if (canRetryLand(row)) return "start";
   const step = row.steps[row.stepIndex];
   if (step === "schedule" && !row.landing) {
     if (automaticProviderWait(row)) return "cancel";
-    if (["cancelled", "stopped", "failed"].includes(row.state)) return "start";
+    if (row.state === "cancelled" || row.state === "failed") return "start";
   }
   const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
   if (step === "land" && (row.landPushStarted || row.state === "cancelled")) return undefined;

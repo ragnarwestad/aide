@@ -72,7 +72,7 @@ A landing holds back two things and nothing else: the job being landed and anoth
 project whose specs the server cannot read this time keeps the rows it already had.
 
 A job survives a restart: the result file is the contract, and a job left `running` is reconciled from the pid and the
-file. A step that hits its own time limit is `stopped`, not `failed` ([A job's states](job-states.md)).
+file. A step that hits its own time limit is `failed`; one a usage limit ended is `waiting` ([A job's states](job-states.md)).
 
 A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
@@ -149,7 +149,7 @@ the one group Archive landed successfully and, under pull-request landing, the s
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
 start date. Reading them never substitutes the current scan time.
 
-An implement on a short analysis that finds its spec is not small ends `stopped` with the reason `sent-back`. The board
+An implement on a short analysis that finds its spec is not small ends `failed` with the reason `sent-back`. The board
 lands the step's specs branch when it pushed no code (where the specs live inside the code repository, the spec's own
 folder alone), then queues one job for the same spec with the steps Analyze and Implement, on the models and effort the
 stopped job ran with. The steps the stopped job still had after Implement are not carried over. The description keeps
@@ -791,24 +791,25 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
-- a step **failed**, ran out of **time**, hit the AI's **usage limit**, found its model **at capacity**, or was **cut off** (its process vanished, or the
-  server restarted under it) — the job entered `failed` or `stopped`; a tap opens the Running tab with
+- a step **failed**, ran out of **time**, found its model **at capacity**, or was **cut off** (its process vanished, or the
+  server restarted under it) — the job entered `failed`; a tap opens the Running tab with
   that spec's row unfolded and scrolled to, where its state and the buttons that act on it are. A stop on shared files names, by
   number, the specs it added to the analysis's record;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge — a tap opens the
   Running tab with that spec's row unfolded and scrolled to;
 - an **archive is held back** on unticked acceptance criteria — a tap opens the Running tab with that spec's criteria
   unfolded and scrolled to, where they are ticked;
-- a **create ends without a spec**: it failed, stopped, or its own merge failed.
+- a **create ends without a spec**: it failed, or its own merge failed.
 
-Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A create that is
+Nothing is sent for a step that finishes normally, an archive that merges, a job someone cancels, or a step waiting
+on a usage limit. A create that is
 still under way, including one whose merge is running, sends nothing until it is over.
 
 A **scheduled job** notifies by its own choice, not by the rules above: when a run ends, the entry's `notify` says
 whether to send:
 
 - `never` — sends nothing.
-- `failure` — sends when the run ended `failed` or `stopped`. An entry that names none is read as
+- `failure` — sends when the run ended `failed`. An entry that names none is read as
   `failure`, so a job that already exists notifies when a run does not succeed.
 - `always` — sends for every run, including one that succeeded.
 
@@ -866,8 +867,8 @@ The first view draws 50 cards. **Show more** adds the next 50 without reloading 
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. A cancelled Land that had started offers Start once its cleanup finishes. Start queues a new
-job for the same branch through the normal branch checks; the old job stays Cancelled in history. Cancel removes a queued Land, or interrupts merge or testing and keeps the source branch;
+such as `Land: fix/example`. A Land runs once: cancelled or failed, it offers no Start, and
+another try is a new Land for the same branch. Cancel removes a queued Land, or interrupts merge or testing and keeps the source branch;
 after push begins Cancel is unavailable.
 
 Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
@@ -927,11 +928,14 @@ whole history. The Logs tab keeps every attempt in the current work round, inclu
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.
 
-A scheduled job keeps its own row after it finishes. A failed or stopped run counts as waiting for the
-user until a newer job for the same schedule entry exists or the entry is deleted. The row then becomes finished but
-stays in the history. Push notifications keep their existing waiting rules.
+A scheduled job keeps its own row after it finishes. A failed run counts as waiting for the user until it is
+dismissed, a newer job for the same schedule entry exists or the entry is deleted. The row then becomes finished but
+stays in the history.
 
-Scheduled-job rows have no Dismiss action. A failed create is a separate message and still has Dismiss. The queue keeps
+A failed job with no Start of its own — a scheduled run, Close, Reopen, Deploy or Merge — has Dismiss at the end of
+its message line. Dismiss keeps the row and takes the job out of what waits for you. A failed spec step has no
+Dismiss: its spec row offers the step again. A Merge has no Start; another try is a new Merge. A failed create is a
+separate message and has its own Dismiss. The queue keeps
 the newest 1000 jobs.
 
 The board's own deploy is a job under the tracking key `deploy`, a step the server runs itself, so it takes no slot
@@ -967,7 +971,7 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
-Queued, Done, Stopped, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Land, Deploys,
+Queued, Done, Waiting, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Land, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in

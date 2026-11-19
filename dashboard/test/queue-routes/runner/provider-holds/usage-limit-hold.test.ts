@@ -30,7 +30,7 @@ describe("tickRunner with a used-up usage limit", () => {
   function limitStop() {
     const stopped = enqueue({ steps: ["implement"] });
     store.update(stopped.id, {
-      state: "stopped",
+      state: "waiting",
       stopReason: "provider-limit",
       createdAt: "2026-08-16T08:00:00.000Z",
       finishedAt: "2026-08-16T10:00:00.000Z",
@@ -94,7 +94,7 @@ describe("a person's press during the hold", () => {
       specFolder: "81-queue-and-runner",
       steps: ["implement"],
       stepIndex: 0,
-      state: "stopped",
+      state: "waiting",
       stopReason: "provider-limit",
       timeoutSec: {},
       permissionMode: {},

@@ -34,14 +34,13 @@ describe("getSpecMessage's held-back branch reads errorReason, not a text prefix
     expect(notice?.variant).toBe("failed");
   });
 
-  // A suite that went red on the merge is the same shape as a hold-back:
-  // nothing in the machinery broke, the work is not green yet, and the
-  // answer is to run implement again. Amber, not red.
-  test("errorReason 'tests-red' renders waiting", () => {
+  // A suite that went red on the merge failed the job: red, unlike a
+  // hold-back.
+  test("errorReason 'tests-red' renders failed", () => {
     const notice = getSpecMessage(
       lead({ error: "the project's tests are red on the merge — nothing was pushed.", errorReason: "tests-red" }),
     );
-    expect(notice?.variant).toBe("waiting");
+    expect(notice?.variant).toBe("failed");
   });
 });
 
@@ -78,14 +77,14 @@ describe("getSpecMessage's readyToArchive case", () => {
   });
 });
 
-// An analyze stopped on its acceptance criteria waits on the person who
-// puts the description right: amber, with the faults the runner named.
+// An analyze stopped on its acceptance criteria failed: red, with the
+// faults the runner named.
 describe("getSpecMessage for an analyze stopped on its acceptance criteria", () => {
-  test("renders the job's sentence as a waiting message", () => {
+  test("renders the job's sentence as a failed message", () => {
     const notice = getSpecMessage(
       lead({
         steps: ["analyze"],
-        state: "stopped",
+        state: "failed",
         stopReason: "acceptance-criteria",
         error: {
           key: "runner.criteriaStopped",
@@ -94,35 +93,33 @@ describe("getSpecMessage for an analyze stopped on its acceptance criteria", () 
         },
       }),
     );
-    expect(notice?.variant).toBe("waiting");
+    expect(notice?.variant).toBe("failed");
     expect(notice?.text).toContain("AC-2, AC-4");
   });
 });
 
-// An analyze stopped on files another open spec changes waits on the person
-// who adds those specs to Depends on, or presses Analyze again: amber, with
+// An analyze stopped on files another open spec changes failed: red, with
 // the sentence the runner worded.
 describe("getSpecMessage for an analyze stopped on files another open spec changes", () => {
-  test("renders the job's sentence as a waiting message", () => {
+  test("renders the job's sentence as a failed message", () => {
     const sentence = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
     const notice = getSpecMessage(
-      lead({ steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: sentence }),
+      lead({ steps: ["analyze"], state: "failed", stopReason: "shared-files", error: sentence }),
     );
-    expect(notice?.variant).toBe("waiting");
+    expect(notice?.variant).toBe("failed");
     expect(notice?.text).toContain("603-b");
     expect(notice?.text).toContain("z.ts");
   });
 });
 
-// A model the provider had no room for waits on the person who presses the
-// step again or picks another model: amber, like the badge.
+// A model the provider had no room for failed the step: red, like the badge.
 describe("getSpecMessage for a step stopped because the model is at capacity", () => {
-  test("renders the job's sentence as a waiting message, not failed", () => {
+  test("renders the job's sentence as a failed message", () => {
     const sentence = "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
     const notice = getSpecMessage(
-      lead({ steps: ["analyze"], state: "stopped", stopReason: "model-at-capacity", error: sentence }),
+      lead({ steps: ["analyze"], state: "failed", stopReason: "model-at-capacity", error: sentence }),
     );
-    expect(notice?.variant).toBe("waiting");
+    expect(notice?.variant).toBe("failed");
     expect(notice?.text).toContain("sonnet");
   });
 });
@@ -149,7 +146,7 @@ test("automatic dependency changes remain informational beside the dependency ho
 
 test("a cycle explanation is not hidden by the older shared-file notice", async () => {
   const { getSharedFilesMessage } = await import("../../../src/messages/specs/get.ts");
-  const text = getSharedFilesMessage(lead({ state: "stopped", stopReason: "shared-files",
+  const text = getSharedFilesMessage(lead({ state: "failed", stopReason: "shared-files",
     error: { key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:1" } },
   }), "shared-files", () => [{ folder: "2-b", label: "2 B", files: ["x.ts"] }]);
   expect(text).toContain("aide:1 → aide:2 → aide:1");

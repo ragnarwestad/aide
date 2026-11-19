@@ -8,7 +8,7 @@
   "expected": "not-archived",
   "after": "05",
   "expect": {
-    "state": "stopped",
+    "state": "failed",
     "stopReason": "shared-files"
   }
 }

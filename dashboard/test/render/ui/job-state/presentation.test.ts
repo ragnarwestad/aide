@@ -15,7 +15,7 @@ test("automatic holds queue Archive, Merge and Deploy with or without positions 
     expect(got.state).toBe("queued");
     expect(got.waiting).toEqual(queuePosition);
   }
-  expect(jobPresentation(row({ state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } })).state).toBe("queued");
+  expect(jobPresentation(row({ state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } })).state).toBe("queued");
 });
 test("person-dependent holds and declined steps override numbered membership (AC-4)", () => {
   expect(jobPresentation(row({ state: "queued", queuePosition: position, errorReason: "held-back", error: "Choose an approach" })).state).toBe("needs-action");

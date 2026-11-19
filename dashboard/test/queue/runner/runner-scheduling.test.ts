@@ -438,7 +438,7 @@ describe("steps and cost", () => {
     runner.poll();
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.stopReason).toBe("timeout");
   });
 
@@ -453,7 +453,7 @@ describe("steps and cost", () => {
     runner.tick();
     runner.poll();
     const after = store.get(job.id)!;
-    expect(after.state).toBe("stopped");
+    expect(after.state).toBe("waiting");
     expect(after.stopReason as string).toBe("provider-limit");
     expect(after.stepIndex).toBe(0);
     expect(sentence(after.error)).toContain("resets 2026-08-24");

@@ -33,19 +33,30 @@ test("one function decides job activity and both questions read it (AC-2)", () =
 });
 
 describe("dismissible jobs use the queue rule", () => {
-  test("a scheduled job restarting after a usage limit cannot be dismissed", () => {
-    const stopped = job({ steps: ["schedule"], specFolder: "schedule-nightly", state: "stopped", stopReason: "provider-limit" });
-    expect(jobDismissible({ ...stopped, usageLimitWait: { until: "2026-11-10T11:10:00Z", resetKnown: true } })).toBe(false);
-    expect(jobDismissible(stopped)).toBe(true);
+  const KINDS = [
+    { steps: ["schedule"], specFolder: "schedule-nightly" },
+    { steps: ["close"], specFolder: "81-example" },
+    { steps: ["reopen"], specFolder: "81-example" },
+    { steps: ["deploy"], specFolder: "deploy" },
+    { steps: ["land"], specFolder: "land", branch: "topic" },
+  ];
+
+  test("a failed job of every kind without a Start of its own is dismissible, once", () => {
+    for (const kind of KINDS) {
+      expect(jobDismissible(job({ ...kind, state: "failed" })), kind.steps[0]).toBe(true);
+      expect(jobDismissible(job({ ...kind, state: "failed", dismissedAt: "2026-11-19T20:00:00Z" })), kind.steps[0]).toBe(false);
+    }
   });
 
-  test("only a scheduled job waiting for a person is dismissible", () => {
-    for (const state of ["failed", "stopped"]) {
-      expect(jobDismissible(job({ steps: ["schedule"], specFolder: "schedule-nightly", state }))).toBe(true);
+  test("a job that has not failed is not dismissible, a usage-limit wait included", () => {
+    for (const kind of KINDS) {
+      for (const state of ["queued", "running", "done", "cancelled", "waiting"] as const) {
+        expect(jobDismissible(job({ ...kind, state })), `${kind.steps[0]} ${state}`).toBe(false);
+      }
     }
-    for (const state of ["queued", "running", "done", "cancelled"]) {
-      expect(jobDismissible(job({ steps: ["schedule"], specFolder: "schedule-nightly", state }))).toBe(false);
-    }
+  });
+
+  test("a failed spec step is not dismissible: its spec row offers the step again", () => {
     expect(jobDismissible(job({ state: "failed" }))).toBe(false);
   });
 });

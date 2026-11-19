@@ -422,7 +422,7 @@ describe("GET /api/queue/schedule/cron-next", () => {
 
 const retryDefaults = { ...DEFAULTS, providers: { Claude: { name: "Claude", tool: "claude" as const }, Codex: { name: "Codex", tool: "codex" as const } } };
 const oldAttempt = { id: "old-report", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], stepIndex: 0,
-  state: "stopped", stopReason: "timeout", createdAt: "2026-11-01T00:00:00Z", timeoutSec: {}, permissionMode: {}, model: {}, results: [] };
+  state: "failed", stopReason: "timeout", createdAt: "2026-11-01T00:00:00Z", timeoutSec: {}, permissionMode: {}, model: {}, results: [] };
 
 test("retry stores transient choices once and keeps schedule settings and history (AC-4, AC-5, AC-6)", async () => {
   const t = start();
@@ -443,7 +443,7 @@ test("retry stores transient choices once and keeps schedule settings and histor
   expect((await fetch(url, jsonPost(picked))).status).toBe(400);
   expect(readFileSync(r.file, "utf8")).toBe(before);
   const listed = (await (await fetch(`${r.base}/api/queue`)).json()).jobs;
-  expect(listed.find((j: { id: string }) => j.id === oldAttempt.id).state).toBe("stopped");
+  expect(listed.find((j: { id: string }) => j.id === oldAttempt.id).state).toBe("failed");
   expect(listed).toHaveLength(2);
   expect((await fetch(`${r.base}/api/queue/${fresh.id}/cancel`, jsonPost({}))).status).toBe(200);
   expect(readFileSync(r.file, "utf8")).toBe(before);
@@ -463,7 +463,7 @@ test("retry refuses unknown sources, missing entries and invalid choices (AC-4, 
 test("retry checks the source identity and settled state before insertion (AC-5)", async () => {
   for (const over of [{ state: "queued" }, { state: "running" }, { state: "done" },
     { project: "other" }, { specFolder: "schedule-other" }, { steps: ["analyze"] },
-    { stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } }]) {
+    { state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } }]) {
     const t = start();
     const mirror = join(t.dir, "seed.json");
     writeFileSync(mirror, JSON.stringify([{ ...oldAttempt, ...over }]));

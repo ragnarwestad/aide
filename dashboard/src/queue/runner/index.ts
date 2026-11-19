@@ -333,16 +333,16 @@ export class Runner {
       return;
     }
 
-    // The clock, a usage limit or the criteria checks ending a run is
-    // `stopped` — never `failed`: a common, healthy outcome, and a reader
-    // who cannot tell it from a broken agent will ignore both.
+    // The clock or the criteria checks ending a run fail it; a usage
+    // limit leaves it waiting for the reset.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
       const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
       const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
         ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
         : stopMessage;
-      const result = endStep(this.o.store, job.id, "run-stopped", {
+      const event = outcome.terminalReason === "provider-limit" ? "limit-reached" : "run-stopped";
+      const result = endStep(this.o.store, job.id, event, {
         ...base,
         stopReason: outcome.terminalReason,
         ...usageLimitWait(outcome, stoppedAt),

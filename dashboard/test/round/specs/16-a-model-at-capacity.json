@@ -7,7 +7,7 @@
   ],
   "expected": "not-archived",
   "expect": {
-    "state": "stopped",
+    "state": "failed",
     "stopReason": "model-at-capacity",
     "message": "runner.modelAtCapacity"
   }

@@ -224,7 +224,7 @@ the same state as the list row.
 A spec title links to the Jobs tab, filtered to that spec, when the spec has jobs. A spec with no jobs has a plain
 text title. The header row has no separate Jobs button.
 
-An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
+An analyze stopped on its acceptance criteria reads Failed, and its notice line names each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
 
 Analyze reviews shared file paths against the actual changes and completes its plan. Unrelated changes to the
@@ -446,7 +446,7 @@ create job because no job was queued.
 
 ## Historical failed creates
 
-A create that ended without a spec (`failed`, `stopped`, or its own merge failed, still under its
+A create that ended without a spec (`failed`, or its own merge failed, still under its
 provisional key, with no merge under way) is not a row in any project: it has no number and nothing to open. The top of
 the list shows one message for it instead: the project, the title and the reason in the reader's language, with **Try
 again** and **Dismiss**. A reason with no advice of its own is followed by what to press: **Try again**, then the

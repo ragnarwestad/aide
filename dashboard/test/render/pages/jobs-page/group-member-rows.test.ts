@@ -31,8 +31,8 @@ test("a member's rows are answered while its group's card is on the list", () =>
   expect(rowsOf(view([release]), "aide/99-missing")).toBe("");
 });
 
-test("a prepared group whose members have not started has no row under Stopped (AC-3)", () => {
-  expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"], state: "stopped" }))).toBe(false);
+test("a prepared group whose members have not started has no row under Waiting (AC-3)", () => {
+  expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"], state: "waiting" }))).toBe(false);
   expect(jobsTabHasRows(view([release], { folders: ["82-first", "83-second"] }))).toBe(true);
 });
 

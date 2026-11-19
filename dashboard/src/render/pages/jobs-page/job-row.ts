@@ -110,13 +110,6 @@ function control(row: QueueRowView, kind: "cancel" | "start", lang: Language, o:
         hook: "actionform", hidden: { sourceJobId: row.id } },
     });
   }
-  if (kind === "start") return buttonForm({
-    action: `/api/queue/projects/${encodeURIComponent(row.project)}/land`,
-    hook: "actionform",
-    data: { "land-retry": o.key ?? jobKey(row) },
-    hidden: { branch: row.branch! },
-    button: { label: t(lang, "jobs.start"), variant: "primary", pending: t(lang, "list.starting") },
-  });
   const id = `jobask-${row.id}`;
   const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
   return (

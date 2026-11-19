@@ -106,7 +106,7 @@ test("Cancel opens an automatic group's phase choices and Start uses the new sel
   const waitingHarness = queueHarness("aide-e2e-group-wait-");
   const folder = "81-queue-and-runner";
   const job = { id: "waiting", project: "aide", specFolder: folder, executionGroupId: "waiting-group",
-    steps: ["analyze", "implement"], stepIndex: 0, state: "stopped", stopReason: "provider-limit",
+    steps: ["analyze", "implement"], stepIndex: 0, state: "waiting", stopReason: "provider-limit",
     usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true },
     model: {}, timeoutSec: {}, permissionMode: {}, results: [], createdAt: "2026-11-16T10:00:00Z" };
   const waiting = waitingHarness.start({ description: description(folder, 1), alsoSpecs: ["82-next"],

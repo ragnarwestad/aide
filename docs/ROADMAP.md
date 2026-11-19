@@ -582,6 +582,14 @@ that is meant to change how steps run is replayed on archived specs with and wit
 difference is revised or taken out. When a step moves to a newer model, the rules already in place get the same
 test: one is taken out on a branch, the archived specs are replayed, and it is deleted if nothing gets worse.
 
+Anthropic's [Claude Cookbooks](https://github.com/anthropics/claude-cookbooks) provides reference examples for
+[automated evaluation](https://github.com/anthropics/claude-cookbooks/blob/main/misc/building_evals.ipynb),
+[cost optimization](https://github.com/anthropics/claude-cookbooks/tree/main/cost_optimization) and
+[latency optimization](https://github.com/anthropics/claude-cookbooks/tree/main/latency_optimization).
+Use these as references for evaluating rules and skills, and for comparing model, effort and workflow choices by
+quality, cost and elapsed time together. The methods can inform Aide's existing replay; they do not require adopting
+the examples' direct API integration.
+
 Open questions:
 
 - Which changes are worth a round. A round costs money and hours, and most rule changes are small.

@@ -133,7 +133,7 @@ export function specNoticeRow(
   // A stop on shared files is said from the spec's own record, not from the
   // job's sentence, so the row reads the same once the job has gone.
   const lead =
-    sharedFiles && g.lead?.state === "stopped" && g.lead.stopReason === "shared-files"
+    sharedFiles && g.lead?.state === "failed" && g.lead.stopReason === "shared-files"
       ? { ...g.lead, error: sharedFiles }
       : g.lead;
   const notice = getSpecMessage(

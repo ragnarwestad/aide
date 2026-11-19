@@ -122,7 +122,7 @@ describe("the page resolves a step its job's tables never named", () => {
     // Ticked on afterwards: `job.steps` grows, the settings tables do not.
     job.steps = ["analyze", "implement"];
     job.stepIndex = 1;
-    job.state = "stopped";
+    job.state = "failed";
     job.stopReason = "timeout";
     writeFileSync(mirror, JSON.stringify(jobs));
 
@@ -134,7 +134,7 @@ describe("the page resolves a step its job's tables never named", () => {
     // is no longer written after it. That the limit resolves to the
     // step's own figure is pinned by
     // `test/queue-routes/runner/runner-concurrency-and-timeout.test.ts`.
-    expect(html).toContain(">Stopped<");
+    expect(html).toContain(">Failed<");
     expect(html).not.toContain("90 min");
   });
 });

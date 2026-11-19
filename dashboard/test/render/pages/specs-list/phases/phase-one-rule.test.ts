@@ -226,11 +226,11 @@ describe("one rule per phase", () => {
       [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
     );
     const archive = subRow(html, "archive");
-    expect(archive).toContain("Stopped");
+    expect(archive).toContain("Held back");
     expect(archive).not.toContain("acceptance-criteria-unticked");
     // The reason is a sentence with a move in it, not the script's own
     // token: a reader should not have to know what the token means.
-    expect(panel(html)).toContain("Archive stopped: the Acceptance criteria are not all ticked\nSolution: Tick the ACs in the panel below");
+    expect(panel(html)).toContain("the Acceptance criteria are not all ticked");
     expect(panel(html)).not.toContain("acceptance-criteria-unticked");
     expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
   });
@@ -240,7 +240,7 @@ describe("one rule per phase", () => {
       [row({ id: "odd", specFolder: "299-odd", steps: ["archive"], state: "done" })],
       [target("299-odd", { done: ["analyze"], stopped: { archive: "something-new" } })],
     );
-    expect(panel(html)).toContain("stopped: something-new");
+    expect(panel(html)).toContain("failed: something-new");
   });
 });
 // --- A spec with an unmerged dependency says so on the row ---------

@@ -63,7 +63,7 @@ export function createEnd(
     if (meantToFail) throw new Error(`${spec.slug} was meant to fail its create, and made ${folder}`);
     return { folder };
   }
-  if (job.state === "failed" || job.state === "cancelled" || job.state === "stopped") {
+  if (job.state === "failed" || job.state === "cancelled" || job.state === "waiting") {
     if (meantToFail && job.state === "failed") return { failed: true };
     throw new Error(`create ${job.state} for ${spec.slug}`);
   }

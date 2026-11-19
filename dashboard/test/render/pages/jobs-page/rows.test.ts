@@ -23,7 +23,6 @@ import {
   specRounds,
   specJobCreatedAt,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
-import { jobDismissible } from "../../../../src/queue/queue.ts";
 
 type J = Parameters<typeof jobsShown>[0][number];
 type Lead = Parameters<typeof jobPlace>[0];
@@ -193,8 +192,8 @@ describe("a finished scheduled job that waits for the user keeps its row", () =>
   const waiting: [string, Partial<J>][] = [
     ["failed", { state: "failed" }],
     ["failed with a conflict", { state: "failed", errorReason: "conflict" } as Partial<J>],
-    ["stopped by its time limit", { state: "stopped", stopReason: "timeout" } as Partial<J>],
-    ["stopped on red tests", { state: "stopped", stopReason: "tests-red" } as Partial<J>],
+    ["stopped by its time limit", { state: "failed", stopReason: "timeout" } as Partial<J>],
+    ["stopped on red tests", { state: "failed", stopReason: "tests-red" } as Partial<J>],
   ];
   for (const [what, o] of waiting) {
     test(`${what}`, () => {
@@ -265,21 +264,6 @@ describe("a waiting scheduled job whose entry was deleted", () => {
     const subject = { ...waiting, createdAt: T(1) };
     const newer = sched({ id: "new", state: "cancelled", createdAt: T(2) });
     expect(jobPlace(subject, [subject, newer], () => true).band).toBe(3);
-  });
-});
-
-describe("which jobs may be dismissed from the tab", () => {
-  test("a scheduled job that failed or stopped (AC-1)", () => {
-    for (const state of ["failed", "stopped"] as const) expect(jobDismissible(sched({ state }))).toBe(true);
-  });
-
-  test("a scheduled job in flight, done or cancelled, and no other kind of job (AC-4)", () => {
-    for (const state of ["queued", "running", "done", "cancelled"] as const) expect(jobDismissible(sched({ state }))).toBe(false);
-    expect(jobDismissible(sched({ state: "done", landing: true }))).toBe(false);
-    for (const step of ["close", "reopen", "deploy"]) {
-      expect(jobDismissible(job({ steps: [step], state: "failed" }))).toBe(false);
-    }
-    expect(jobDismissible(job({ state: "failed" }))).toBe(false);
   });
 });
 
@@ -496,20 +480,18 @@ test("Land offers Cancel only before its push boundary", () => {
 });
 
 
-test("a cancelled Land can run again after its landing has settled", () => {
-  const row = { state: "cancelled" as const, steps: ["land"], stepIndex: 0, branch: "fix/topic" };
-  expect(jobControl(row)).toBe("start");
-  expect(jobControl({ ...row, landing: true })).toBeUndefined();
-  expect(jobControl({ ...row, branch: undefined })).toBeUndefined();
-  expect(jobControl({ ...row, state: "done" })).toBeUndefined();
+test("a Merge that ended offers no Start: another try is a new Merge", () => {
+  for (const state of ["cancelled", "failed", "done"] as const) {
+    expect(jobControl({ state, steps: ["land"], stepIndex: 0, branch: "fix/topic" })).toBeUndefined();
+  }
 });
 
  test("schedule controls distinguish quota waits and terminal retries (AC-1, AC-3, AC-4)", () => {
-  const waiting = { ...sched({ state: "stopped" }), stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z" } };
+  const waiting = { ...sched({ state: "waiting" }), stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z" } };
   expect(jobControl(waiting)).toBe("cancel");
   expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
   expect(jobControl(sched({ state: "running" }))).toBe("cancel");
-  for (const state of ["cancelled", "stopped", "failed"] as const) expect(jobControl(sched({ state }))).toBe("start");
+  for (const state of ["cancelled", "failed"] as const) expect(jobControl(sched({ state }))).toBe("start");
   expect(jobControl({ ...waiting, landing: true })).toBe("cancel");
  });
 test("merge titles use the resolved target and visible source without guessing main (AC-2)", () => {

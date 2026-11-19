@@ -81,11 +81,11 @@ test("cancel removes a job that had not started", async () => {
 });
 
 // Only a job that still owns its work can be cancelled. A finished
-// job's state is history — done, failed, stopped — and Cancel must not
+// job's state is history — done, failed, waiting — and Cancel must not
 // rewrite it to "cancelled" as though someone had ended the run.
 test("cancel refuses a job that has already finished, and leaves its state alone", async () => {
   const headers = { "content-type": "application/json", accept: "application/json" };
-  for (const state of ["done", "failed", "stopped", "cancelled"]) {
+  for (const state of ["done", "failed", "waiting", "cancelled"]) {
     const site = mkdtempSync(join(tmpdir(), "aide-cancel-finished-"));
     ownDirs.push(site);
     const id = `fin-${state}`;
@@ -104,6 +104,28 @@ test("cancel refuses a job that has already finished, and leaves its state alone
     expect(after.jobs.find((j) => j.id === id)?.state).toBe(state);
     harness.cleanup();
   }
+});
+
+// Dismiss takes a failed job with no Start of its own out of what waits for
+// a person and keeps it; a failed spec step is refused, since its spec row
+// offers the step again.
+test("dismiss stamps a failed Close and refuses a failed spec step", async () => {
+  const headers = { "content-type": "application/json", accept: "application/json" };
+  const site = mkdtempSync(join(tmpdir(), "aide-dismiss-"));
+  ownDirs.push(site);
+  const job = (id: string, steps: string[]) => ({
+    id, project: "aide", specFolder: "81-queue-and-runner", steps, stepIndex: 0, state: "failed",
+    timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
+    createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
+  });
+  writeFileSync(join(site, "queue.json"), JSON.stringify([job("close-1", ["close"]), job("spec-1", ["analyze"])]));
+  const { base } = start({ queueMirrorPath: join(site, "queue.json") });
+  const closed = await fetch(`${base}/api/queue/close-1/dismiss`, { method: "POST", headers });
+  expect(closed.status).toBe(200);
+  expect(((await closed.json()) as { job: { state: string; dismissedAt?: string } }).job).toMatchObject({ state: "failed", dismissedAt: expect.any(String) });
+  expect((await fetch(`${base}/api/queue/close-1/dismiss`, { method: "POST", headers })).status).toBe(409);
+  expect((await fetch(`${base}/api/queue/spec-1/dismiss`, { method: "POST", headers })).status).toBe(409);
+  harness.cleanup();
 });
 
 // A deploy runs inside the board's own process, so there is nothing to
@@ -176,7 +198,7 @@ test("cancel settles a quota waiting schedule without signalling its old group (
   const site = mkdtempSync(join(tmpdir(), "aide-cancel-wait-")); ownDirs.push(site);
   const mirror = join(site, "queue.json");
   writeFileSync(mirror, JSON.stringify([{ id: "waiting-report", project: "aide", specFolder: "schedule-nightly", steps: ["schedule"],
-    stepIndex: 0, state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
+    stepIndex: 0, state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
     usageLimitProbe: { results: 0, at: "2026-11-01T00:00:00Z", since: "2026-11-01T00:00:00Z" },
     timeoutSec: {}, permissionMode: {}, model: {}, results: [], createdAt: "2026-11-01T00:00:00Z", pgid: 424242 }]));
   const { base } = start({ queueMirrorPath: mirror });

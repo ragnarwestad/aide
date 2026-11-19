@@ -39,7 +39,9 @@ type Draws = (key: string) => boolean;
 export function executionGroupRowState(group: ExecutionGroup, failed: boolean): RowFacts["state"] {
   if (group.state === "completed") return "done";
   const activity = executionGroupActivity(group.state);
-  return failed ? "failed" : activity === "idle" ? "stopped" : activity;
+  if (failed) return "failed";
+  if (activity !== "idle") return activity;
+  return group.stoppedByUser ? "cancelled" : "waiting";
 }
 
 /** What the page draws: the scheduled jobs it shows, and the Specs

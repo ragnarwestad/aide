@@ -55,7 +55,7 @@ const jobEntry = (name: string, row: Partial<QueueRowView>): Entry => {
 };
 
 const running = spec("run81", { specFolder: "81-queue-and-runner", state: "running", createdAt: T(8) });
-const stopped = spec("idle83", { specFolder: "83-idle", state: "stopped", createdAt: T(5) });
+const waiting = spec("idle83", { specFolder: "83-idle", state: "waiting", createdAt: T(5) });
 const failedReport = jobEntry("report-other", {
   project: "other", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: T(6),
   startedAt: T(6), finishedAt: T(6, 11), spentUsd: 0.4,
@@ -63,7 +63,7 @@ const failedReport = jobEntry("report-other", {
 const nightly = jobEntry("nightly", {
   project: "aide", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", createdAt: T(7),
 });
-const tab = [running, stopped, failedReport, nightly];
+const tab = [running, waiting, failedReport, nightly];
 
 const names = (rows: Entry[]): string[] => rows.map((r) => r.name);
 const view = (rows: Entry[], f: JobsFilter): string[] => names(jobsViewRows(rows, f));
@@ -71,10 +71,10 @@ const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 
 describe("the state and the search narrow the rows as the Specs list's do", () => {
   test("several states keep every matching row (AC-2)", () => {
-    expect(view(tab, { state: "stopped,failed" })).toEqual(["report-other", "idle83"]);
+    expect(view(tab, { state: "waiting,failed" })).toEqual(["report-other", "idle83"]);
   });
   test("a state entry and a search each leave only the rows they match", () => {
-    expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
+    expect(view(tab, { state: "waiting" })).toEqual(["idle83"]);
     expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
     expect(view(tab, { state: "queued", q: "night" })).toEqual(["nightly"]);
@@ -146,8 +146,8 @@ describe("kind choices narrow rows independently of state", () => {
 });
 
 describe("the state filter offers the states a row on the tab can be in", () => {
-  test("its entries are All, Running, Queued, Done, Stopped, Failed and Cancelled, All selected by default (AC-5)", () => {
-    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "queued", "done", "stopped", "failed", "cancelled"]);
+  test("its entries are All, Running, Queued, Done, Waiting, Failed and Cancelled, All selected by default (AC-5)", () => {
+    expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "queued", "done", "waiting", "failed", "cancelled"]);
     expect(jobsStateFilters(undefined).map((entry) => entry.key)).toEqual(["all"]);
   });
 
@@ -195,7 +195,7 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 
   test("a key the tab does not offer is All, and filters as All does", () => {
-    for (const key of [undefined, "", "archived", "closed", "not-archived", "waiting", "no-such-entry"]) {
+    for (const key of [undefined, "", "archived", "closed", "not-archived", "stopped", "no-such-entry"]) {
       expect(jobsStateFilters(key).map((entry) => entry.key)).toEqual(["all"]);
     }
     expect(jobsStateFilters("failed").map((entry) => entry.key)).toEqual(["failed"]);
@@ -206,17 +206,17 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
-      ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["stopped", 0], ["failed", 1], ["cancelled", 0],
+      ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["waiting", 0], ["failed", 1], ["cancelled", 0],
     ]);
     expect(options.every((o) => o.on)).toBe(true);
     expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
-    expect(jobsStateOptions(factsOf(tab), { state: "stopped" }).find((o) => o.on)?.key).toBe("stopped");
+    expect(jobsStateOptions(factsOf(tab), { state: "waiting" }).find((o) => o.on)?.key).toBe("waiting");
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");
   });
 
   test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
-    expect(counts).toEqual([["all", 3], ["active:all", 1], ["queued", 1], ["done", 0], ["stopped", 1], ["failed", 0], ["cancelled", 0]]);
+    expect(counts).toEqual([["all", 3], ["active:all", 1], ["queued", 1], ["done", 0], ["waiting", 1], ["failed", 0], ["cancelled", 0]]);
   });
 
   test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
@@ -265,11 +265,11 @@ describe("a group stands for its member specs, each by its own state", () => {
   });
 
   test("a member reference, title or description finds its group while existing searches still work (AC-1, AC-2, AC-3)", () => {
-    const grouped = group("specs-jobs-improvements", "stopped", [
-      member("805-member-reference", "stopped", { title: "Grouped title" }),
+    const grouped = group("specs-jobs-improvements", "failed", [
+      member("805-member-reference", "failed", { title: "Grouped title" }),
       member("806-member-title", "queued", { title: "Distinct member title", description: "Distinct member description" }),
     ]);
-    const ungrouped = spec("aide:804", { specFolder: "804-ungrouped", state: "stopped", title: "Outside the group" });
+    const ungrouped = spec("aide:804", { specFolder: "804-ungrouped", state: "failed", title: "Outside the group" });
 
     for (const q of ["aide:805", "distinct member title", "distinct member description", "specs-jobs-improvements"]) {
       expect(view([ungrouped, grouped], { q })).toEqual(["specs-jobs-improvements"]);
@@ -278,7 +278,7 @@ describe("a group stands for its member specs, each by its own state", () => {
   });
 
   test("member searches feed displayed rows and state and type counts before selected filters (AC-4)", () => {
-    const grouped = group("specs-jobs-improvements", "stopped", [
+    const grouped = group("specs-jobs-improvements", "failed", [
       member("805-waiting", "queued"), member("806-failed", "failed"),
     ]);
     const filter = { q: "aide:805", state: "queued", kind: "group" };
@@ -291,9 +291,9 @@ describe("a group stands for its member specs, each by its own state", () => {
   });
 
   test("a prepared group counts its members under their own states, never its own (AC-1)", () => {
-    const prepared = group("prepared", "stopped", [member("82-queued", "queued"), member("83-new", "not-started")]);
+    const prepared = group("prepared", "failed", [member("82-queued", "queued"), member("83-new", "not-started")]);
     const c = counts([prepared]);
-    expect([c.queued, c.stopped, c.all]).toEqual([1, 0, 2]);
+    expect([c.queued, c.waiting, c.all]).toEqual([1, 0, 2]);
   });
 
   test("a failed member counts under Failed and a queued one under Queued (AC-1)", () => {
@@ -321,17 +321,17 @@ describe("a group stands for its member specs, each by its own state", () => {
   });
 
   test("a chosen state shows a group when at least one member has it (AC-3)", () => {
-    const mixed = group("mixed", "stopped", [member("82-q", "queued"), member("83-s", "stopped")]);
+    const mixed = group("mixed", "waiting", [member("82-q", "queued"), member("83-s", "waiting")]);
     expect(view([mixed], { state: "queued" })).toEqual(["mixed"]);
     expect(view([mixed], { state: "failed" })).toEqual([]);
     expect(view([mixed], { state: "queued,failed" })).toEqual(["mixed"]);
   });
 
   test("All shows every group, one with no member row found among them too (AC-3)", () => {
-    const empty = group("empty", "stopped", []);
+    const empty = group("empty", "waiting", []);
     const full = group("full", "running", [member("82-run", "running")]);
     expect(view([empty, full], {}).sort()).toEqual(["empty", "full"]);
-    expect(view([empty], { state: "stopped" })).toEqual([]);
+    expect(view([empty], { state: "waiting" })).toEqual([]);
   });
 });
 
@@ -356,7 +356,7 @@ describe("a scheduled job is matched on its title and its project", () => {
 describe("the columns sort as the Specs list's do, newest created first by default", () => {
   test("missing or invalid sort uses creation time across states and row kinds", () => {
     const newest = jobEntry("newest", { state: "done", createdAt: T(9) });
-    const shuffled = [stopped, newest, nightly, failedReport, running];
+    const shuffled = [waiting, newest, nightly, failedReport, running];
     const expected = ["newest", "run81", "nightly", "report-other", "idle83"];
     expect(view(shuffled, {})).toEqual(expected);
     expect(view(shuffled, { sort: "no-such-column" })).toEqual(expected);
@@ -364,8 +364,8 @@ describe("the columns sort as the Specs list's do, newest created first by defau
 
   test("a column the view names orders rows of both kinds, in the column's direction", () => {
     const priced = [
-      spec("cheap", { specFolder: "90-cheap", state: "stopped", spentUsd: 0.1 }),
-      spec("dear", { specFolder: "91-dear", state: "stopped", spentUsd: 9 }),
+      spec("cheap", { specFolder: "90-cheap", state: "failed", spentUsd: 0.1 }),
+      spec("dear", { specFolder: "91-dear", state: "failed", spentUsd: 9 }),
       jobEntry("job", { state: "failed", spentUsd: 3 }),
     ];
     expect(view(priced, { sort: "cost" })).toEqual(["dear", "job", "cheap"]);
@@ -374,9 +374,9 @@ describe("the columns sort as the Specs list's do, newest created first by defau
 
   test("the time column orders by the figure each row's Time cell shows, longest first", () => {
     const rows = [
-      spec("short-spec", { specFolder: "90-a", state: "stopped", totalDurationMs: 1000 }),
+      spec("short-spec", { specFolder: "90-a", state: "failed", totalDurationMs: 1000 }),
       jobEntry("long-job", { state: "failed", startedAt: T(2), finishedAt: T(2, 12) }),
-      spec("mid-spec", { specFolder: "91-b", state: "stopped", totalDurationMs: 60_000 }),
+      spec("mid-spec", { specFolder: "91-b", state: "failed", totalDurationMs: 60_000 }),
     ];
     expect(view(rows, { sort: "started" })).toEqual(["long-job", "mid-spec", "short-spec"]);
   });
@@ -400,10 +400,10 @@ describe("the columns sort as the Specs list's do, newest created first by defau
   });
 
   test("a state link and the search value carry every ticked entry (AC-5)", () => {
-    expect(jobsStateValue("failed,stopped")).toBe("stopped,failed");
-    const failed = jobsStateOptions(factsOf(tab), { state: "stopped" }).find((option) => option.key === "failed")!;
-    const link = new URL(`http://x${jobsViewPath({ state: "stopped", q: "night" }, { state: failed.state })}`);
-    expect(link.searchParams.get("state")).toBe("stopped,failed");
+    expect(jobsStateValue("failed,waiting")).toBe("waiting,failed");
+    const failed = jobsStateOptions(factsOf(tab), { state: "waiting" }).find((option) => option.key === "failed")!;
+    const link = new URL(`http://x${jobsViewPath({ state: "waiting", q: "night" }, { state: failed.state })}`);
+    expect(link.searchParams.get("state")).toBe("waiting,failed");
     expect(link.searchParams.get("q")).toBe("night");
   });
 });

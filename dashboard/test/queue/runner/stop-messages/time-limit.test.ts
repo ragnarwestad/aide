@@ -37,7 +37,7 @@ describe("a step stopped at its time limit", () => {
     expect(store.get(job.id)?.state).toBe("queued");
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.error).toMatchObject({ key: "runner.afterTwoTimeouts", inner: { key: "runner.timeLimitSession" } });
   });
 });

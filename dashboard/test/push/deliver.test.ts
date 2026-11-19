@@ -230,9 +230,9 @@ describe("what a scheduled run's notification says", () => {
   const ENDINGS = {
     done: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-succeeded-last", { results: [result("schedule")] }),
     failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("schedule", "error", false)] }),
-    stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] }),
+    "timed out": (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] }),
   };
-  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped" } as const;
+  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", "timed out": "push.scheduleFailed" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
     test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report`, async () => {
@@ -252,8 +252,8 @@ describe("what a scheduled run's notification says", () => {
     });
   }
 
-  test("the three outcomes each have a sentence of their own", () => {
+  test("done and failed each have a sentence of their own", () => {
     const bodies = Object.values(KEYS).map((key) => formatMessage("en", { key }));
-    expect(new Set(bodies).size).toBe(3);
+    expect(new Set(bodies).size).toBe(2);
   });
 });

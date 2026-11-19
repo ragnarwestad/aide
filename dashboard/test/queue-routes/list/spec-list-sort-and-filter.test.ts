@@ -87,7 +87,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("an old stopped filter falls back to All because job outcomes are not spec states", () => {
-    const html = page([row("a", { state: "stopped" }), row("b")], { state: "stopped" });
+    const html = page([row("a", { state: "failed" }), row("b")], { state: "failed" });
     expect(html).toContain("a-spec");
     expect(html).toContain("b-spec");
   });

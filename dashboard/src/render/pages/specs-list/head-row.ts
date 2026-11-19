@@ -25,6 +25,7 @@ import { rowAnchorId, specLocked } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
 import { specState, specStateLabel, waitingForGroup } from "./data-model/spec-state.ts";
 import { jobState } from "./data-model/job-state.ts";
+import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { firstSpecActionLabel, PDF_UNAVAILABLE, pdfControl, specActions, type SpecActionView } from "../spec-page/overview.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
@@ -287,14 +288,19 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
   return firstSpecActionLabel(view, runAvailable, opts.lang ?? "en");
 }
 
-/** Specs shows the spec's own state; Jobs and its open caption show the job's outcome. */
+/** Jobs shows the active job or the progress of a settled spec. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
   if (g.lead?.queuePosition?.id) return specStateChip(g.lead, lang);
   if (!onSpecs && waitingForGroup(g)) return badge("waiting", t(lang, "list.state.waiting"));
-  if (!onSpecs && (g.lead || isArchivedRow(g))) {
+  if (!onSpecs) {
     const state = jobState(g);
+    if (state === "held-back") return badge("waiting", capitalizeFirst(t(lang, "state.heldBack")));
+    if (state === "created" || state === "analyzed" || state === "implemented") {
+      return badge("ready", t(lang, `list.state.${state}`));
+    }
+    if (state === "done" && isArchivedRow(g) && !(g.lead && inFlight(g.lead))) return badge("done", t(lang, "list.done"));
     if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang);
-    return state === "failed" ? badge("refused", t(lang, "list.state.failed")) : badge("done", t(lang, "list.done"));
+    if (state === "failed") return badge("refused", t(lang, "list.state.failed"));
   }
   const state = specState(onSpecs ? g : { ...g, executionGroupActive: false });
   const label = specStateLabel(state, lang, onSpecs);

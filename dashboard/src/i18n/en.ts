@@ -110,7 +110,6 @@ export const en = {
   "list.state.queued": "Queued",
   "list.state.waiting": "Waiting",
   "list.state.cancelled": "Cancelled",
-  "list.state.stopped": "Stopped",
   "list.state.failed": "Failed",
   "list.state.archived": "Archived",
   "list.state.closed": "Closed",
@@ -178,7 +177,7 @@ export const en = {
   "jobs.stopping": "stopping…",
   "jobs.confirmBody": "This stops it right away.",
   "jobs.endedFailed": "The job failed — its log says why.",
-  "jobs.endedStopped": "The job stopped before it finished — its log says where.",
+  "jobs.endedWaiting": "The job is waiting and goes on by itself.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
@@ -248,17 +247,14 @@ export const en = {
   // already on the line, and the reason is the half a reader acts on.
   "list.lastRerun": "last re-run {state}",
   "state.queued": "queued",
+  "state.waiting": "waiting",
   "state.running": "running",
   "state.done": "done",
   "state.failed": "failed",
   "state.cancelled": "cancelled",
   // A hold is not a stop: the row's own badge for a queued
-  // job the runner is holding back, never merged with "stopped" below.
+  // job the runner is holding back.
   "state.heldBack": "held back",
-  "state.stopped": "stopped",
-  // A stopped job is not a failed one, and the reason is the half that
-  // says which. These read on the row itself, so they are as short as
-  // the badge is wide.
 
   "project.deployRestartWaiting":
     "This checkout matches origin, but the service is still running commit {sha} — " +
@@ -685,7 +681,6 @@ export const en = {
   "job.colSession": "Session",
   "job.outcomeOk": "ok",
   "job.createdNoAi": "created (no AI)",
-  "job.mergeStopped": "merge stopped",
   "job.mergeFailed": "merge failed",
   "job.noStepFinished": "No step has finished yet.",
   "job.nothingCaptured": "Nothing has been captured from this step.",

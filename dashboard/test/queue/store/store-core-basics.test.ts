@@ -362,7 +362,7 @@ describe("the same work is not queued twice", () => {
     expect(store.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] }).ok).toBe(true);
   });
 
-  for (const state of ["done", "cancelled", "failed", "stopped"] as const) {
+  for (const state of ["done", "cancelled", "failed", "waiting"] as const) {
     test(`a ${state} job does not block the next one`, () => {
       const { store, first } = queued();
       store.update(first.id, { state });

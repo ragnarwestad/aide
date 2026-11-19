@@ -81,7 +81,7 @@ const others = (job: Job) => store.list().filter((j) => j.id !== job.id);
 describe("an implement sent back to a full analysis", () => {
   test("is stopped, its specs branch is landed, and Analyze then Implement is queued on its models", async () => {
     const job = await endImplement({ terminalReason: "sent-back", error: WHY, branchUrls: SPECS_ONLY });
-    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.stopReason).toBe("sent-back");
     expect(landed).toEqual([`${job.id}:implement`]);
     const [round, ...rest] = others(job);

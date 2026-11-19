@@ -65,6 +65,27 @@ describe("a job mirrored with the retired interrupted state", () => {
   });
 });
 
+describe("a job mirrored with the retired stopped state", () => {
+  const reload = (patch: Record<string, unknown>) => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    for (const job of raw) Object.assign(job, { state: "stopped", ...patch });
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    return new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id);
+  };
+
+  test("loads as waiting when a usage limit stopped it with a wait", () => {
+    const wait = { until: "2026-11-20T10:00:00.000Z", resetKnown: true };
+    expect(reload({ stopReason: "provider-limit", usageLimitWait: wait })).toMatchObject({ state: "waiting", usageLimitWait: wait });
+  });
+
+  test("loads as failed for every other stop, keeping its reason", () => {
+    expect(reload({ stopReason: "timeout" })).toMatchObject({ state: "failed", stopReason: "timeout" });
+  });
+});
+
 describe("QueueStore.enqueueCreate", () => {
   const allow = (project: string) => project === "brandnew";
   const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };

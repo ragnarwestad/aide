@@ -41,9 +41,9 @@ test("state and type keep independent multiple selections and their menus stay o
   await page.locator("#spec-aide\\/81-queue-and-runner").waitFor({ state: "detached" });
   expect(await page.locator('details.menu[data-filter="state"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
 
-  await page.locator('details.menu[data-filter="state"] .menupanel a[href*="stopped"]').click();
+  await page.locator('details.menu[data-filter="state"] .menupanel a[href*="waiting"]').click();
   await page.waitForFunction(() => new URLSearchParams(location.search).get("state")?.split(",").length === 2);
-  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["stopped", "failed"]));
+  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["waiting", "failed"]));
 
   await page.keyboard.press("Escape");
   expect(await page.locator('details.menu[data-filter="state"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(false);
@@ -54,7 +54,7 @@ test("state and type keep independent multiple selections and their menus stay o
   await typeMenu.getByRole("checkbox", { name: "None", checked: true, exact: true }).waitFor();
   await typeMenu.getByRole("checkbox", { name: /^Schedule/ }).click();
   await page.waitForFunction(() => new URLSearchParams(location.search).get("kind") === "schedule");
-  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["stopped", "failed"]));
+  expect(new Set(new URL(page.url()).searchParams.get("state")?.split(","))).toEqual(new Set(["waiting", "failed"]));
   expect(await page.locator('details.menu[data-filter="kind"]').evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
 
   await page.locator('details.menu[data-filter="kind"] .menupanel a[href*="spec"]').click();

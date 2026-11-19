@@ -279,7 +279,7 @@ describe("the Depends on field", () => {
     const STOPPED = (stopReason = "shared-files") => ({
       id: "stopped-1", project: "aide", specFolder: SPEC,
       steps: ["analyze", "implement", "archive"], stepIndex: 0,
-      state: "stopped", stopReason,
+      state: "failed", stopReason,
       model: { analyze: "opus", implement: "opus", archive: "sonnet" },
       effort: { analyze: "high", implement: "medium" },
       timeoutSec: {}, permissionMode: {},
@@ -305,8 +305,8 @@ describe("the Depends on field", () => {
       }).jobs;
     const jobsOfSpec = async (base: string) => {
       const jobs = await allJobs(base);
-      // The stopped job the fixture started with is still on the board.
-      expect(jobs.find((j) => j.id === "stopped-1")?.state).toBe("stopped");
+      // The failed job the fixture started with is still on the board.
+      expect(jobs.find((j) => j.id === "stopped-1")?.state).toBe("failed");
       return jobs.filter((j) => j.specFolder === SPEC && j.id !== "stopped-1");
     };
 

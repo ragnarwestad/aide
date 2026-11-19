@@ -487,7 +487,7 @@ describe("a row shows an unresolved landing failure", () => {
       "Archive landing stopped: the project's tests are red on this merge, so nothing was pushed. " +
       "The gate log names the failing test; archive lands the work once it passes.";
     const html = renderSpecsRows(
-      [row({ state: "stopped", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
+      [row({ state: "failed", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
       { runnerAvailable: true, targets: [] },
     );
     const notice = noticeCellHtml(html, FOLDER);
@@ -521,7 +521,7 @@ describe("a row shows an unresolved landing failure", () => {
   test("wrapped landing events are matched by identity and show their list once (AC-1, AC-2, AC-3, AC-5)", () => {
     const event = { key: "landing.testsRedOnMerge", values: { count: 2, branch: "aide/81-x", button: "Archive" }, lists: { tests: ["first", "second"] } } as const;
     const html = renderSpecsRows(
-      [row({ state: "stopped", error: event as never, errorReason: "tests-red", landingError: { key: "landing.stepStopped", values: { step: "archive" }, inner: event } as never })],
+      [row({ state: "failed", error: event as never, errorReason: "tests-red", landingError: { key: "landing.stepFailed", values: { step: "archive" }, inner: event } as never })],
       { runnerAvailable: true, targets: [] },
     );
     const notice = noticeCellHtml(html, FOLDER);

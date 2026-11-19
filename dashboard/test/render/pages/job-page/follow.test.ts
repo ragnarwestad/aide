@@ -18,7 +18,7 @@ const job = (extra: Parameters<typeof row>[0] = {}) =>
 
 describe("followMarker: whether a page follows", () => {
   test("a job that has ended in any way draws no marker", () => {
-    for (const state of ["done", "failed", "stopped", "cancelled"] as const) {
+    for (const state of ["done", "failed", "waiting", "cancelled"] as const) {
       expect(followMarker(job({ state }), { tab: "steps" }), state).toBe("");
     }
   });

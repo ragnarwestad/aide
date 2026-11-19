@@ -36,7 +36,7 @@ const stopped = (sharedFiles?: unknown) => {
 describe("an analyze stopped on files another open spec changes", () => {
   test("is stopped, not failed, with the shared-files reason", () => {
     const after = stopped(SHARED);
-    expect(after?.state).toBe("stopped");
+    expect(after?.state).toBe("failed");
     expect(after?.stopReason).toBe("shared-files");
   });
 
@@ -54,7 +54,7 @@ describe("an analyze stopped on files another open spec changes", () => {
 
   test("keeps the runner's own sentence when the result lists no specs", () => {
     const after = stopped();
-    expect(after?.state).toBe("stopped");
+    expect(after?.state).toBe("failed");
     expect(after?.error).toBe(SCRIPT_SENTENCE);
     expect(after?.results.at(-1)?.sharedFiles).toBeUndefined();
   });

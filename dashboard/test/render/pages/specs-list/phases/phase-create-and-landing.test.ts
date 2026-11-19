@@ -252,7 +252,7 @@ describe("create is the first phase line", () => {
       head(html)
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
-    expect(said(withCreate)).toBe("Done");
+    expect(said(withCreate)).toBe("Analyzed");
     // The button is named for the phase a press would run,
     // and `create` is not one of them whether it is done or not.
     expect(runLine(withCreate)).toContain(">Implement</button>");
@@ -371,16 +371,13 @@ describe("a step still landing reads busy, not ready", () => {
     expect(line).not.toContain("Implementing");
   });
 
-  // The regression guard: once `landing` has cleared (the
-  // ordinary, already-correct case today), the row is exactly what it
-  // is today — no visible change for the settled state.
-  test("a job done and no longer landing reads done", () => {
+  test("a finished Create shows Created when its merge settles", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "254-landed", steps: ["create"], stepIndex: 0, state: "done", landing: false })],
       [target("254-landed")],
     );
     const line = head(html, "254-landed");
-    expect(line).toContain(">Done<");
+    expect(line).toContain(">Created<");
     expect(line).not.toContain('class="badge b-running"');
     const cell = actionCell(controlsLine(html, "254-landed"));
     expect(cell).toContain(">Analyze</button>");

@@ -36,11 +36,11 @@ describe("a landing that fell is the landed step's own failure", () => {
     expect([implement.pip, implement.badge?.variant]).toEqual(["past", "done"]);
   });
 
-  test("red tests: the archive line reads stopped, amber on both — the job's own choice, not a failure", () => {
-    const per = attemptsPerStep([job("stopped", "tests-red")]);
-    expect(per.archive![0]!.state).toBe("stopped");
+  test("red tests: the archive line reads failed, red on both", () => {
+    const per = attemptsPerStep([job("failed", "tests-red")]);
+    expect(per.archive![0]!.state).toBe("failed");
     const archive = wordPhase(false, undefined, per.archive![0], {});
-    expect([archive.pip, archive.badge?.variant]).toEqual(["waiting", "waiting"]);
+    expect([archive.pip, archive.badge?.variant, archive.badge?.label]).toEqual(["refused", "refused", "Failed"]);
   });
 
   test("a job that landed reads done on every line", () => {

@@ -47,14 +47,12 @@ describe("TRANSITIONS", () => {
   });
 });
 
-// A landing the project's own suite refused is not a broken job: the step
-// ran, the merge was built, and the tests on the merged result went red.
-// The work waits for a green suite, so the job STOPS rather than fails —
-// the same distinction `run-stopped` already draws for a cap. Only from
-// `done`, exactly like `landing-failed` beside it.
-describe("a red suite stops the landing's job rather than failing it", () => {
-  test("done -> landing-held -> stopped, and no other state accepts the event", () => {
-    expect(TRANSITIONS.done?.["landing-held"]).toBe("stopped");
+// A landing the project's own suite refused fails the job: nothing was
+// pushed and nobody stopped it. Only from `done`, exactly like
+// `landing-failed` beside it.
+describe("a red suite fails the landing's job", () => {
+  test("done -> landing-held -> failed, and no other state accepts the event", () => {
+    expect(TRANSITIONS.done?.["landing-held"]).toBe("failed");
     for (const state of JOB_STATES.filter((s) => s !== "done")) {
       expect(TRANSITIONS[state]?.["landing-held"]).toBeUndefined();
     }
@@ -95,7 +93,7 @@ describe("QueueStore.transition", () => {
     });
     expect(result.ok).toBe(true);
     const job = store.get(r.job.id)!;
-    expect(job.state).toBe("stopped");
+    expect(job.state).toBe("failed");
     expect(job.stopReason).toBe("timeout");
     expect(job.error).toBe("the step ran out of time");
   });
@@ -107,22 +105,26 @@ describe("QueueStore.transition", () => {
   });
 });
 
-// A step a usage limit stopped is started again by the board once the
-// limit has reset. Only from `stopped`.
-describe("a usage-limit stop can be queued again", () => {
-  test("stopped -> limit-reset -> queued, and no other state accepts the event (AC-2)", () => {
-    expect(TRANSITIONS.stopped?.["limit-reset"]).toBe("queued");
-    for (const state of JOB_STATES.filter((s) => s !== "stopped")) {
+// A step a usage limit ended waits, and is started again by the board
+// once the limit has reset. Only from `waiting`.
+describe("a usage-limit wait can be queued again", () => {
+  test("running -> limit-reached -> waiting, and every other early stop fails the job", () => {
+    expect(TRANSITIONS.running?.["limit-reached"]).toBe("waiting");
+    expect(TRANSITIONS.running?.["run-stopped"]).toBe("failed");
+  });
+
+  test("waiting -> limit-reset -> queued, and no other state accepts the event (AC-2)", () => {
+    expect(TRANSITIONS.waiting?.["limit-reset"]).toBe("queued");
+    for (const state of JOB_STATES.filter((s) => s !== "waiting")) {
       expect(TRANSITIONS[state]?.["limit-reset"]).toBeUndefined();
     }
   });
 });
 
 describe("late AI-work checks can spend the same retry allowance", () => {
-  test("stopped and done each have one checked route back to queued (AC-4, AC-5, AC-9)", () => {
-    expect(TRANSITIONS.stopped?.["retry-late"]).toBe("queued");
-    expect(TRANSITIONS.done?.["retry-late"]).toBe("queued");
-    for (const state of JOB_STATES.filter((state) => state !== "stopped" && state !== "done")) {
+  test("failed, waiting and done each have one checked route back to queued (AC-4, AC-5, AC-9)", () => {
+    for (const state of ["failed", "waiting", "done"] as const) expect(TRANSITIONS[state]?.["retry-late"]).toBe("queued");
+    for (const state of JOB_STATES.filter((state) => !["failed", "waiting", "done"].includes(state))) {
       expect(TRANSITIONS[state]?.["retry-late"]).toBeUndefined();
     }
   });
@@ -239,11 +241,11 @@ describe("the documented reasons and the unions agree", () => {
   });
 });
 
-test("only the distinct schedule wait event cancels a stopped job (AC-2)", () => {
+test("only the distinct schedule wait event cancels a waiting job (AC-2)", () => {
   const store = makeStore();
   const made = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
   if (!made.ok) throw new Error(made.error);
-  store.update(made.job.id, { state: "stopped" });
+  store.update(made.job.id, { state: "waiting" });
   expect(store.transition(made.job.id, "cancel").ok).toBe(false);
   expect(store.transition(made.job.id, "cancel-schedule-wait" as TransitionEvent).ok).toBe(true);
   expect(store.get(made.job.id)?.state).toBe("cancelled");

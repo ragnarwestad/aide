@@ -8,7 +8,7 @@
   "expected": "not-archived",
   "timeoutSec": 10,
   "expect": {
-    "state": "stopped",
+    "state": "failed",
     "stopReason": "timeout",
     "message": "time limit"
   }

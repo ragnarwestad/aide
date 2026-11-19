@@ -20,9 +20,9 @@ describe("what a phase's own file says, where nothing else knows", () => {
   // One word, like every other stop the system made: the reason the
   // file records after it is a sentence, and a sentence belongs on the
   // row's own notice line.
-  test("a file saying stopped reads stopped", () => {
+  test("a file saying stopped reads Failed", () => {
     const w = wordPhase(false, undefined, noJob, { fileResult: "stopped" });
-    expect([w.badge?.variant, w.badge?.label]).toEqual(["waiting", "Stopped"]);
+    expect([w.badge?.variant, w.badge?.label]).toEqual(["refused", "Failed"]);
   });
 
   test("a file with no Result at all still reads as nothing", () => {

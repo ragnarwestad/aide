@@ -107,7 +107,7 @@ test("several states are checkbox links that toggle their key (AC-5)", () => {
 test("the count beside the dropdown is the number of specs the table shows, after the states and the search", () => {
   const jobs: QueueRowView[] = [
     row({ id: "a", specFolder: "1-needle-a", state: "failed", steps: ["analyze"], stepIndex: 0 }),
-    row({ id: "b", specFolder: "2-needle-b", state: "stopped", steps: ["analyze"], stepIndex: 0 }),
+    row({ id: "b", specFolder: "2-needle-b", state: "failed", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "c", specFolder: "3-hay-c", state: "failed", steps: ["analyze"], stepIndex: 0 }),
     row({ id: "d", specFolder: "4-needle-d", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];

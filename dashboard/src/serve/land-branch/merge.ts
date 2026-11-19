@@ -81,8 +81,8 @@ export async function landBranch(
   what: Landing,
 ): Promise<void> {
   if (ctx.beforeLanding && !(await ctx.beforeLanding(job))) return;
-  const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>
-    firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step, held);
+  const firstLandingError = (msg: Sentence | Sentence[]): Sentence | Sentence[] =>
+    firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step);
   try {
     const branch = outcome.branch;
     // What this step's landing does is its policy's (`policy/index.ts`):
@@ -377,7 +377,7 @@ export async function landBranch(
         error: first,
         errorDetail: detail.length ? detail.join("\n") : undefined,
         errorReason: reason,
-        landingError: firstLandingError(first, held),
+        landingError: firstLandingError(first),
         landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
         landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: landingTerminalReason } : {}),

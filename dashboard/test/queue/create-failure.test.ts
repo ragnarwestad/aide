@@ -8,16 +8,16 @@ const KEY = "new-abc123de";
 const create = (over: Record<string, unknown> = {}) => ({ specFolder: KEY, state: "failed", ...over });
 
 describe("a create that ended without a spec", () => {
-  test.each(["failed", "stopped"])("%s is over", (state) => {
+  test.each(["failed"])("%s is over", (state) => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(true);
   });
 
-  test.each(["queued", "running", "cancelled", "done"])("%s is not a failure", (state) => {
+  test.each(["queued", "running", "cancelled", "done", "waiting"])("%s is not a failure", (state) => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(false);
   });
 
   test("a merge still under way is not over, whatever the state says", () => {
-    expect(createEndedWithoutSpec(create({ state: "stopped", landing: true }))).toBe(false);
+    expect(createEndedWithoutSpec(create({ state: "failed", landing: true }))).toBe(false);
   });
 
   test("its own merge failing while the job went on is a failure", () => {

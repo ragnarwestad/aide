@@ -24,7 +24,7 @@ const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
 describe("getSharedFilesMessage", () => {
   const SENTENCE = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts.";
   const stoppedOn = (stopReason: NonNullable<QueueRowView["stopReason"]>, over: Partial<QueueRowView> = {}) =>
-    lead({ steps: ["analyze"], state: "stopped", stopReason, error: SENTENCE, ...over });
+    lead({ steps: ["analyze"], state: "failed", stopReason, error: SENTENCE, ...over });
   const OPEN: OpenOverlap[] = [
     { folder: "82-other", label: "82 The other thing", files: ["a.ts", "b.ts"] },
     { folder: "84-third", label: "84 Third", files: ["c.ts"] },
@@ -70,7 +70,7 @@ describe("getSharedFilesMessage", () => {
 
   test("a lead that is not stopped, and no lead and no history, give nothing", () => {
     const r = reading(OPEN);
-    expect(jobState.getSharedFilesMessage(stoppedOn("shared-files", { state: "failed" }), undefined, r.read)).toBeUndefined();
+    expect(jobState.getSharedFilesMessage(stoppedOn("shared-files", { state: "cancelled" }), undefined, r.read)).toBeUndefined();
     expect(jobState.getSharedFilesMessage(undefined, undefined, r.read)).toBeUndefined();
     expect(jobState.getSharedFilesMessage(undefined, "timeout", r.read)).toBeUndefined();
     expect(r.asked.n).toBe(0);

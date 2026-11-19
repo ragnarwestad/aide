@@ -16,7 +16,7 @@ const TZ = "UTC";
 const stoppedView = (over: Partial<QueueRowView> = {}): QueueRowView =>
   row({
     steps: ["implement"],
-    state: "stopped",
+    state: "waiting",
     stopReason: "provider-limit",
     model: "opus",
     error: "the run's own error text",

@@ -109,7 +109,6 @@ export const nb: Record<TranslationKey, string> = {
   "list.state.queued": "I kø",
   "list.state.waiting": "Venter",
   "list.state.cancelled": "Avbrutt",
-  "list.state.stopped": "Stoppet",
   "list.state.failed": "Feilet",
   "list.state.archived": "Arkivert",
   "list.state.closed": "Lukket",
@@ -177,7 +176,7 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.stopping": "stopper…",
   "jobs.confirmBody": "Dette stopper jobben med en gang.",
   "jobs.endedFailed": "Jobben feilet — loggen viser hvorfor.",
-  "jobs.endedStopped": "Jobben stoppet før den var ferdig — loggen viser hvor.",
+  "jobs.endedWaiting": "Jobben venter og fortsetter av seg selv.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Typer",
@@ -245,12 +244,12 @@ export const nb: Record<TranslationKey, string> = {
   "list.stateQueuedPosition": "I kø {n}/{total}",
   "list.lastRerun": "siste ny kjøring {state}",
   "state.queued": "i kø",
+  "state.waiting": "venter",
   "state.running": "kjører",
   "state.done": "ferdig",
   "state.failed": "feilet",
   "state.cancelled": "avbrutt",
   "state.heldBack": "holdt tilbake",
-  "state.stopped": "stoppet",
 
   "project.deployRestartWaiting":
     "Det lokale repoet er oppdatert mot origin, men tjenesten kjører fortsatt commit {sha} — " +
@@ -677,7 +676,6 @@ export const nb: Record<TranslationKey, string> = {
   "job.colSession": "Økt",
   "job.outcomeOk": "ok",
   "job.createdNoAi": "opprettet (uten AI)",
-  "job.mergeStopped": "merge stoppet",
   "job.mergeFailed": "merge feilet",
   "job.noStepFinished": "Ingen steg er ferdige ennå.",
   "job.nothingCaptured": "Ingenting er fanget opp fra dette steget.",

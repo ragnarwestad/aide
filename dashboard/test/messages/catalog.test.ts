@@ -56,7 +56,7 @@ const LANGS = ["en", "nb", "es", "de", "fr"] as const;
 describe("the sentences about a used-up usage limit ask for no press", () => {
   const KEYS: (keyof typeof MESSAGES)[] = [
     "runner.usageLimitHeld", "runner.usageLimitHeldNoReset", "runner.usageLimitHeldProbe",
-    "wordPhase.stopProviderLimit", "push.stoppedProviderLimit",
+    "wordPhase.stopProviderLimit",
   ];
 
   test.each(KEYS)("%s is a statement and says why", (key) => {
@@ -123,7 +123,7 @@ describe("registered error sentences hold a fix apart from the problem", () => {
   test("a message around a message that knows the fix carries none (AC-3)", () => {
     for (const key of [
       "runner.notPushedCode", "runner.notPushedSpecs", "runner.notFetchedCode", "runner.notFetchedSpecs",
-      "landing.pushFailedTo", "landing.stepFailed", "landing.stepStopped",
+      "landing.pushFailedTo", "landing.stepFailed",
     ] as const) {
       expect((MESSAGES[key] as MessageEntry).solution, key).toBeNull();
     }

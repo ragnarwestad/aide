@@ -367,7 +367,7 @@ export function stepDoneHandler(
     const continueGroup = () => {
       const settled = ctx.store.get(job.id);
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
-      if (settled && (settled.error || settled.landingError || ["failed", "stopped", "cancelled"].includes(settled.state))) return;
+      if (settled && (settled.error || settled.landingError || ["failed", "waiting", "cancelled"].includes(settled.state))) return;
       if (group?.stoppedByUser || group?.state === "stopped") return;
       moveGroupOn({ store: ctx.store, job, step: step!, specsRoot: ctx.machinerySpecsRoot?.(job.project),
         whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal });

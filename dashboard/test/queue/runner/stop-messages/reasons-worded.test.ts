@@ -137,7 +137,7 @@ describe("a stop in the runner's own words", () => {
     runner.tick();
     runner.poll();
     const stored = store.get(job.id);
-    expect(stored?.state).toBe("stopped");
+    expect(stored?.state).toBe("failed");
     expect(stored?.error).toMatchObject({ key: "message.written", values: { problem: "ran out of time", solution: "press Implement again" } });
   });
 

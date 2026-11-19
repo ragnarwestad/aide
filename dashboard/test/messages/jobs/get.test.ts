@@ -22,31 +22,30 @@ describe("the line under a job row's state", () => {
   const sentenceOf = formatSentence("en", said) as string;
   const message = (row: J) => getJobMessage(row as never, "en");
 
-  test("a failed schedule's message has no dismiss action", () => {
-    const m = message(schedule({ id: "failed-schedule", specFolder: "schedule-nightly", state: "failed" }));
-    expect((m as { dismiss?: string })?.dismiss).toBeUndefined();
-  });
-
-  test("a failed job of any kind says why, in its own sentence, red", () => {
+  test("a failed job of any kind without a Start says why, in its own sentence, red, and offers Dismiss", () => {
     for (const [, make] of kinds) {
       const row = make({ id: "f1", state: "failed", error: said });
-      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf });
+      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, dismiss: "/api/queue/f1/dismiss" });
     }
   });
 
-  test("a stopped job says why in amber, a failed one in red", () => {
-    expect(message(schedule({ id: "s1", state: "stopped", error: said }))).toEqual({
-      variant: "waiting", text: sentenceOf,
-    });
-    expect(message(schedule({ id: "i1", state: "failed", error: said }))).toEqual({
-      variant: "failed", text: sentenceOf,
-    });
+  test("a dismissed failed job no longer offers Dismiss", () => {
+    const m = message(schedule({ id: "f1", state: "failed", error: said, dismissedAt: "2026-11-19T20:00:00Z" }));
+    expect(m).toEqual({ variant: "failed", text: sentenceOf });
   });
 
-  test("with no sentence of its own, a failed or stopped job says how it ended", () => {
+  test("a failed spec step has no Dismiss: its spec row offers the step again", () => {
+    expect(message(job({ id: "f1", state: "failed", error: said }))).toEqual({ variant: "failed", text: sentenceOf });
+  });
+
+  test("a waiting job says why in amber", () => {
+    expect(message(schedule({ id: "w1", state: "waiting", error: said }))).toEqual({ variant: "waiting", text: sentenceOf });
+  });
+
+  test("with no sentence of its own, a failed or waiting job says how it ended", () => {
     const ended = [
       ["failed", "jobs.endedFailed"],
-      ["stopped", "jobs.endedStopped"],
+      ["waiting", "jobs.endedWaiting"],
     ] as const;
     for (const [state, key] of ended) {
       for (const [, make] of kinds) {
@@ -54,7 +53,7 @@ describe("the line under a job row's state", () => {
         expect(m?.text).toBe(t("en", key));
       }
     }
-    expect(message(schedule({ state: "failed" }))?.text).not.toBe(message(schedule({ state: "stopped" }))?.text);
+    expect(message(schedule({ state: "failed" }))?.text).not.toBe(message(schedule({ state: "waiting" }))?.text);
   });
 
   test("the sentence it falls back on is the reader's language", () => {
@@ -116,7 +115,7 @@ describe("the line under a job row's state", () => {
     test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the provider once (AC-10)", () => {
       const until = new Date(Date.now() + 3_600_000).toISOString();
       const row = job({
-        id: "u1", state: "stopped", steps: ["implement"], stopReason: "provider-limit", provider: "Work",
+        id: "u1", state: "waiting", steps: ["implement"], stopReason: "provider-limit", provider: "Work",
         usageLimitWait: { until, resetKnown: true },
         results: [{ step: "implement", ok: false, provider: { key: "Work", name: "Work" }, providerLimit: { tool: "claude", window: "five-hour" } }],
       } as never);

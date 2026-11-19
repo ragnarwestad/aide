@@ -200,19 +200,6 @@ test("an admitted group Archive projects its stable identity to the job row (AC-
   expect(row.queuePosition).toMatchObject({ id: `group:${group.id}:archive`, operation: "archive", n: 1, total: 1 });
 });
 
-test("a cancelled Land row points at its later successful attempt", async () => {
-  const queue = makeStore();
-  const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
-  if (!old.ok) throw new Error(old.error);
-  queue.update(old.job.id, { state: "cancelled" });
-  const next = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
-  if (!next.ok) throw new Error(next.error);
-  queue.update(next.job.id, { state: "done" });
-  const row = await jobRow({ queue, store: new AideRunStore() }, queue.get(old.job.id)!);
-  expect(row.landSuccessor).toEqual({ id: next.job.id, landed: true });
-  expect(row.state).toBe("cancelled");
-});
-
 test("merge rows resolve the destination and forward current numeric activity (AC-2, AC-5, AC-6)", async () => {
   const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");

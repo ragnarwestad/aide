@@ -70,10 +70,7 @@ export function landingRefusal(
   const sentence = formatSentence(lang, e as never) ?? "";
   return {
     step,
-    // "stopped" is the landing's own word for a merge the project's
-    // tests refused: the step ran and the merge was built, and what is
-    // missing is a green suite. Everything else is a failure.
-    word: t(lang, job.errorReason === "tests-red" ? "job.mergeStopped" : "job.mergeFailed"),
+    word: t(lang, "job.mergeFailed"),
     sentence,
     detail: [messageDetail(e as never), job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
   };

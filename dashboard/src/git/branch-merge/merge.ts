@@ -308,13 +308,14 @@ export async function mergeBranchIntoDefault(
       const failed = await mergeAndGate();
       if (failed) return failed;
       if (repaired) { repaired = false; attempt--; continue; }
-      const pushResult = await pushWithRetry(
-        run,
-        work,
-        base,
-        wait,
-        attempt === 0,
-      );
+      // Create holds this lock from its pull to its push. Keep testing
+      // outside it, and rebuild if Create moved the base in the meantime.
+      const published = await withCheckoutLock(root, () =>
+        pushWithRetry(run, work, base, wait, attempt === 0), { wait });
+      if (!published.locked) {
+        return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: published.lock } });
+      }
+      const pushResult = published.value;
       if (pushResult.ok) break;
       if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
       await run(work, ["fetch", "--quiet", "origin", base]);

@@ -180,13 +180,4 @@ export const NOTIFICATIONS_CATALOG = {
     solution: null,
     exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
   },
-  "push.scheduleStopped": {
-    en: "The run was stopped before it finished — open the job to see where.",
-    nb: "Kjøringen ble stoppet før den var ferdig — åpne jobben for å se hvor.",
-    es: "La ejecución se detuvo antes de terminar — abre el trabajo para ver dónde.",
-    de: "Der Lauf wurde gestoppt, bevor er fertig war — öffne den Job, um zu sehen, wo.",
-    fr: "L'exécution s'est arrêtée avant d'être terminée — ouvrez la tâche pour voir où.",
-    solution: null,
-    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
-  },
 } as const satisfies Record<string, MessageEntry>;

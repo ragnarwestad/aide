@@ -12,7 +12,7 @@ afterEach(cleanupHarness);
 
 const stopOnLimit = (id: string): void => {
   store.update(id, {
-    state: "stopped", stopReason: "provider-limit", finishedAt: "2026-08-16T10:00:00.000Z",
+    state: "waiting", stopReason: "provider-limit", finishedAt: "2026-08-16T10:00:00.000Z",
     usageLimitWait: { until: "2026-08-19T04:00:00.000Z", resetKnown: true },
   });
 };

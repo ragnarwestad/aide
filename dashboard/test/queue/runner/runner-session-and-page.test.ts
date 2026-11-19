@@ -257,7 +257,7 @@ describe("each step keeps its own transcript", () => {
     runner.tick();
     runner.poll();
     const first = store.get(job.id)!;
-    expect(first.state).toBe("stopped");
+    expect(first.state).toBe("waiting");
     store.transition(job.id, "limit-reset", { stopReason: undefined, finishedAt: undefined });
     runner.tick();
     expect(spawns).toHaveLength(2);

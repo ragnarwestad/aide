@@ -144,13 +144,12 @@ export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): stri
   );
 }
 
-// Why a run ended early. `stopped` is deliberately not `failed`: with
-// tight caps a cap-stop is a common, healthy outcome, and a reader who
-// cannot tell it from a broken agent will start ignoring both.
-// `tests-red` is here for the same reason: the landing ran the project's
-// own suite on the merged result and it went red, so nothing was pushed.
-// The step did its work and the machinery did its job — the code is not
-// green yet, and the answer is to run implement again.
+// Why a run ended early. A job that did not finish, and that nobody
+// stopped, is `failed`; the stop reason says why. The one exception is a
+// usage limit: the board starts the step again when the limit resets, so
+// that job is `waiting`.
+// `tests-red`: the landing ran the project's own suite on the merged
+// result and it went red, so nothing was pushed.
 // `acceptance-criteria` is an analyze the runner stopped at the spec's
 // `criteriaChecks: stop`: the description needs putting right first.
 // `shared-files` is an analyze the runner stopped because another open
@@ -160,13 +159,11 @@ export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): stri
 // `sent-back` is an implement that found its spec, analysed short, not small
 // after all: the board queues a full analysis and implement again.
 /** The states in which a job waits for a person. `cancelled` is not one:
- *  a person ended it themselves. */
-export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped"]);
+ *  a person ended it themselves, and `waiting` goes on by itself. */
+export const WAITS_FOR_PERSON = new Set<JobState>(["failed"]);
 
-/** How the result of an archive held back on unticked acceptance criteria ends. */
-/** Whether a finished job waits for a person: it failed, stopped or was
- *  interrupted (a conflict is a failure), or it is an archive held back on
- *  unticked acceptance criteria. */
+/** Whether a finished job waits for a person: it failed (a conflict is a
+ *  failure), or it is an archive held back on unticked acceptance criteria. */
 export const waitsForPerson = (
   job: { state: string; results?: readonly { terminalReason?: string }[] },
 ): boolean =>
@@ -192,15 +189,16 @@ export type TransitionEvent =
   | "step-succeeded" // running -> queued: step ok, more steps left
   | "step-succeeded-last" // running -> done: step ok, last step
   | "step-failed" // running -> failed: the step reported failure
-  | "run-stopped" // running -> stopped: timeout or provider limit
+  | "run-stopped" // running -> failed: the run was stopped early (timeout, criteria checks, ...)
+  | "limit-reached" // running -> waiting: a provider's usage limit; started again at its reset
   | "process-gone" // running -> failed: the process died with no result
   | "retry" // running -> queued: one eligible automatic second attempt
-  | "retry-late" // stopped|done -> queued: a post-run check spends the same allowance
+  | "retry-late" // failed|waiting|done -> queued: a post-run check spends the same allowance
   | "landing-failed" // done -> failed: a landing did not finish
-  | "landing-held" // done -> stopped: the landing's suite went red
+  | "landing-held" // done -> failed: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
-  | "cancel-schedule-wait" // stopped -> cancelled: a scheduled quota wait ended
-  | "limit-reset"; // stopped -> queued: its provider's usage limit has reset
+  | "cancel-schedule-wait" // waiting -> cancelled: a scheduled quota wait ended
+  | "limit-reset"; // waiting -> queued: its provider's usage limit has reset
 
 /** The one table every state change is checked against. Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -216,7 +214,8 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     "step-succeeded": "queued",
     "step-succeeded-last": "done",
     "step-failed": "failed",
-    "run-stopped": "stopped",
+    "run-stopped": "failed",
+    "limit-reached": "waiting",
     "process-gone": "failed",
     retry: "queued",
     cancel: "cancelled",
@@ -231,18 +230,20 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     // instead, exactly as any other transition the table lacks an
     // entry for.
     "landing-failed": "failed",
-    // The one landing failure that is not a fault: the project's own
-    // suite went red on the merged result, so nothing was pushed. Same
-    // state a cap-stop takes, and for the same reason — a reader who
-    // cannot tell "not green yet" from a broken agent ignores both.
-    "landing-held": "stopped",
+    // The project's own suite went red on the merged result, so nothing
+    // was pushed.
+    "landing-held": "failed",
     // Cancel pressed while the finished step's work was being merged and
     // tested: nothing was pushed, and the job says a person ended it.
     "landing-cancelled": "cancelled",
   },
+  // A stop a post-run check may still send on: an analyze stopped on
+  // shared files once its dependencies are in, a landing retried.
+  failed: {
+    "retry-late": "queued",
+  },
   // A provider wait can restart after reset or end as cancelled.
-  // Other stops wait for a person, apart from a late check retry.
-  stopped: {
+  waiting: {
     "cancel-schedule-wait": "cancelled",
     "retry-late": "queued",
     "limit-reset": "queued",
@@ -303,16 +304,14 @@ export function deployUnderWay(jobs: readonly Job[], project: string): "queued" 
   return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
 }
 
-export function canRetryLand(job: { landSuccessor?: { id: string }; state: string; landing?: boolean; branch?: string; steps: readonly string[]; stepIndex: number }): boolean {
-  return !job.landSuccessor && job.steps[job.stepIndex] === "land" && job.state === "cancelled" && !inFlight(job) && !!job.branch;
-}
-
+/** Whether a failed job may be dismissed: taken out of what waits for a
+ *  person, its row kept. A spec step is not, since its spec row offers the
+ *  step again; every other kind is, since nothing else on the board ends
+ *  its wait. */
 export const jobDismissible = (job: {
   steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
-  results?: readonly { terminalReason?: string }[];
-  stopReason?: string; usageLimitWait?: { until: string; resetKnown: boolean };
-}): boolean => jobKind(job) === "schedule" && !inFlight(job) && waitsForPerson(job)
-  && !(job.state === "stopped" && job.stopReason === "provider-limit" && job.usageLimitWait);
+  dismissedAt?: string;
+}): boolean => jobKind(job) !== "spec" && !inFlight(job) && job.state === "failed" && !job.dismissedAt;
 
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a

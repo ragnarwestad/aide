@@ -14,9 +14,9 @@ export const writing = (job: { state: string; landing?: boolean }): boolean => {
   return activity === "running" || activity === "landing";
 };
 
-/** A stopped step with a scheduled automatic retry. */
+/** A step waiting on a usage limit, with a scheduled automatic retry. */
 export function automaticProviderWait(job: { state: string; stopReason?: string; usageLimitWait?: { until: string } }): boolean {
-  return job.state === "stopped" && job.stopReason === "provider-limit" &&
+  return job.state === "waiting" &&
     Number.isFinite(Date.parse(job.usageLimitWait?.until ?? ""));
 }
 

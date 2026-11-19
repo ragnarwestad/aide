@@ -31,7 +31,7 @@ const stopped = (criteriaFaults?: unknown) => {
 describe("an analyze stopped on its acceptance criteria", () => {
   test("is stopped with the acceptance-criteria reason, and its sentence names each fault", () => {
     const after = stopped({ missing: true, notEars: ["AC-2", "AC-4"], noScenario: ["AC-5"] });
-    expect(after?.state).toBe("stopped");
+    expect(after?.state).toBe("failed");
     expect(after?.stopReason).toBe("acceptance-criteria");
     const en = formatSentence("en", after?.error as Sentence) ?? "";
     const nb = formatSentence("nb", after?.error as Sentence) ?? "";
@@ -65,7 +65,7 @@ describe("an analyze stopped on its acceptance criteria", () => {
 
   test("keeps the runner's own sentence when the result lists no faults", () => {
     const after = stopped();
-    expect(after?.state).toBe("stopped");
+    expect(after?.state).toBe("failed");
     expect(after?.error).toBe(SCRIPT_SENTENCE);
   });
 });

@@ -37,17 +37,7 @@ export async function submitAction(event: Event): Promise<void> {
   }
   await postForm(
     form,
-    async (body) => {
-      const mergeRowKey = form.hasAttribute("data-land-retry") ? form.dataset.landRetry : undefined;
-      if (mergeRowKey && body?.job?.id) {
-        const url = new URL(location.href);
-        const open = (url.searchParams.get("open") ?? "").split(",").filter(Boolean);
-        const key = mergeRowKey.split("@")[0]!;
-        url.searchParams.set("open", [...new Set([...open.filter(value => value !== mergeRowKey), key])].join(","));
-        url.searchParams.set("state", "all");
-        for (const name of ["limit", "boundary", "windowQuery", "windowLoaded", "grow"]) url.searchParams.delete(name);
-        history.replaceState(null, "", url);
-      }
+    async () => {
       // The press has gone through - the row's own hand-made ticks
       // have done their job and must not go on deciding a later run
       clearChosenSteps(form.id);

@@ -109,7 +109,6 @@ export const es: Record<TranslationKey, string> = {
   "list.state.queued": "En cola",
   "list.state.waiting": "Esperando",
   "list.state.cancelled": "Canceladas",
-  "list.state.stopped": "Detenidas",
   "list.state.failed": "Fallidas",
   "list.state.archived": "Archivadas",
   "list.state.closed": "Cerradas",
@@ -177,7 +176,7 @@ export const es: Record<TranslationKey, string> = {
   "jobs.stopping": "deteniendo…",
   "jobs.confirmBody": "Esto lo detiene de inmediato.",
   "jobs.endedFailed": "El trabajo falló — su registro dice por qué.",
-  "jobs.endedStopped": "El trabajo se detuvo antes de terminar — su registro dice dónde.",
+  "jobs.endedWaiting": "El trabajo está en espera y seguirá por sí solo.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Tipo",
   "jobs.typesLabel": "Tipos",
@@ -243,12 +242,12 @@ export const es: Record<TranslationKey, string> = {
   "list.stateQueuedPosition": "En cola {n}/{total}",
   "list.lastRerun": "última nueva ejecución {state}",
   "state.queued": "en cola",
+  "state.waiting": "esperando",
   "state.running": "en curso",
   "state.done": "hecho",
   "state.failed": "fallido",
   "state.cancelled": "cancelado",
   "state.heldBack": "retenido",
-  "state.stopped": "detenido",
 
   "project.deployRestartWaiting":
     "Este checkout coincide con origin, pero el servicio todavía está ejecutando el commit {sha} — " +
@@ -674,7 +673,6 @@ export const es: Record<TranslationKey, string> = {
   "job.colSession": "Sesión",
   "job.outcomeOk": "ok",
   "job.createdNoAi": "creado (sin IA)",
-  "job.mergeStopped": "merge detenido",
   "job.mergeFailed": "merge fallido",
   "job.noStepFinished": "Ningún paso ha terminado todavía.",
   "job.nothingCaptured": "No se ha capturado nada de este paso.",

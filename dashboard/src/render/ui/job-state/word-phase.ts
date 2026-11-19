@@ -9,7 +9,7 @@ import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
-import { isFailedStop } from "../../../format/stop-reason.ts";
+import { isGuardEnding } from "../../../step-endings.ts";
 import { BADGE_VARIANT, inFlight, stateWord } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -266,14 +266,12 @@ function decidePhase(
   // "last run reported done, but the files disagree" — alarming, and
   // wrong, about a run that said exactly what happened.
   if (history.stopped) {
-    // A failure reads red and Failed, as the job's own state does; the
-    // queue's two limits and a cancel stay amber and Stopped.
-    const failed = isFailedStop(history.stopped);
-    const word = t(lang, failed ? "state.failed" : "state.stopped");
+    // A cancel reads Cancelled and a step that declined to run (unticked
+    // criteria, nothing implemented yet) Held back; every other stop
+    // failed the step and reads Failed, as the job's own state does.
+    const failed = history.stopped !== "cancelled" && !isGuardEnding(history.stopped);
+    const word = t(lang, failed ? "state.failed" : history.stopped === "cancelled" ? "state.cancelled" : "state.heldBack");
     return {
-      // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
-      // notice, not alarm: the work is committed and the step can be
-      // run again.
       pip: running ? "now" : "todo",
       // The word alone in the badge; the reason is the row's error line
       // (the State column says where a spec stands, errors go
@@ -296,7 +294,7 @@ function decidePhase(
     if (history.fileResult === "stopped") {
       return {
         pip: "todo",
-        badge: { variant: "waiting", label: capitalizeFirst(t(lang, "state.stopped")) },
+        badge: { variant: BADGE_VARIANT.failed, label: capitalizeFirst(t(lang, "state.failed")) },
         qualifier: filesDisagree,
       };
     }

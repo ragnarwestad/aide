@@ -47,7 +47,7 @@ const detail = (step: string, folder: string, state: JobDetailView["state"]): Jo
     ...(ended ? { finishedAt: NOW } : {}),
     results: ended
       ? [{ step, ok: state === "done", costUsd: 0.5, costMeasured: false, at: AT, aiModel: "kvikk",
-        terminalReason: state === "done" ? "completed" : state === "stopped" ? "timeout" : state === "cancelled" ? "cancelled" : "cli-error" }]
+        terminalReason: state === "done" ? "completed" : state === "failed" ? "timeout" : state === "cancelled" ? "cancelled" : "cli-error" }]
       : [],
     ...(state === "running" ? { runningStep: { step, logs: [] } } : {}),
     phase: { label: "3-solution.md", text: "Fangsten er god.", sha: "a3f9c21deadbeef", at: AT },

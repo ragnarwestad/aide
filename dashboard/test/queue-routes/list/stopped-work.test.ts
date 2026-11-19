@@ -144,7 +144,7 @@ describe("landing a stopped step's specs-only work", () => {
     const job = await runStep(base, "analyze");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(STOPPED_RESULT));
     await finishSecondAttempt(base, results, job.id, STOPPED_RESULT);
-    const landed = await settle(base, job.id, (j) => j.state === "stopped" && !j.landing);
+    const landed = await settle(base, job.id, (j) => j.state === "failed" && !j.landing);
 
     expect(landed.error).toBeFalsy();
     expect(mergesOf(git.calls).length).toBeGreaterThan(0);
@@ -170,7 +170,7 @@ describe("landing a stopped step's specs-only work", () => {
     const stoppedResult = { ...STOPPED_RESULT, branchUrls: pushed };
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(stoppedResult));
     await finishSecondAttempt(base, results, job.id, stoppedResult);
-    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    const stopped = await settle(base, job.id, (j) => j.state === "failed");
 
     expect(stopped.landing).toBeFalsy();
     // Not "the code repo was skipped" — no repo in this outcome is merged,
@@ -188,7 +188,7 @@ describe("landing a stopped step's specs-only work", () => {
     const stoppedResult = { ...STOPPED_RESULT, branchUrls: pushed };
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(stoppedResult));
     await finishSecondAttempt(base, results, job.id, stoppedResult);
-    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    const stopped = await settle(base, job.id, (j) => j.state === "failed");
 
     expect(stopped.landing).toBeFalsy();
     expect(mergesOf(git.calls)).toEqual([]);
@@ -207,7 +207,7 @@ describe("landing a stopped step's specs-only work", () => {
       JSON.stringify(stoppedResult),
     );
     await finishSecondAttempt(base, results, job.id, stoppedResult);
-    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    const stopped = await settle(base, job.id, (j) => j.state === "failed");
 
     expect(stopped.error).toBeFalsy();
     expect(stopped.landing).toBeFalsy();
@@ -228,7 +228,7 @@ describe("landing a stopped step's specs-only work", () => {
         join(results, `${job.id}.json`),
         JSON.stringify({ ...STOPPED_RESULT, terminalReason: reason }),
       );
-      const ended = await settle(base, job.id, (j) => j.state === "stopped" || j.state === "failed");
+      const ended = await settle(base, job.id, (j) => j.state === "failed");
 
       expect(`${reason}: ${mergesOf(git.calls).length}`).toBe(`${reason}: 0`);
       expect(`${reason}: ${!!ended.landing}`).toBe(`${reason}: false`);
@@ -246,7 +246,7 @@ describe("landing a stopped step's specs-only work", () => {
       join(results, `${job.id}.json`),
       JSON.stringify({ ...STOPPED_RESULT, terminalReason: "provider-limit" }),
     );
-    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    const stopped = await settle(base, job.id, (j) => j.state === "waiting");
     await settle(base, job.id, (j) => !j.landing);
     expect(stopped.stopReason as string).toBe("provider-limit");
     expect(mergesOf(git.calls)).not.toEqual([]);
@@ -262,9 +262,9 @@ describe("landing a stopped step's specs-only work", () => {
       join(results, `${job.id}.json`),
       JSON.stringify({ ...STOPPED_RESULT, terminalReason: "shared-files" }),
     );
-    const ended = await settle(base, job.id, (j) => j.state === "stopped" || j.state === "failed");
+    const ended = await settle(base, job.id, (j) => j.state === "failed");
     await settle(base, job.id, (j) => !j.landing);
-    expect(ended.state).toBe("stopped");
+    expect(ended.state).toBe("failed");
     expect(ended.stopReason as string).toBe("shared-files");
     expect(mergesOf(git.calls).length).toBeGreaterThan(0);
     expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
@@ -282,7 +282,7 @@ describe("landing a stopped step's specs-only work", () => {
         branchUrls: [{ root: CODE_REPO, url: "https://example.test/aide" }],
       }),
     );
-    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    const stopped = await settle(base, job.id, (j) => j.state === "waiting");
     expect(stopped.landing).toBeFalsy();
     expect(mergesOf(git.calls)).toEqual([]);
   });

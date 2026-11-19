@@ -173,7 +173,7 @@ describe("a busy row offers only what its state allows", () => {
 
   // --- A settled spec is the ordinary row it always was ---------
 
-  for (const state of ["done", "failed", "stopped", "cancelled"] as const) {
+  for (const state of ["done", "failed", "waiting", "cancelled"] as const) {
     test(`a ${state} spec's row is fully interactive again`, () => {
       const html = rows([spec(state)], [target("105-busy")]);
       const line = controlsLine(html, "105-busy");

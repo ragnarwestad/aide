@@ -52,7 +52,7 @@ describe("groupBySpec given the keys to build for", () => {
 });
 
 test("automatic waiting fixes the phase choices for every group member until Stop", () => {
-  const waiting = job({ state: "stopped", stopReason: "provider-limit",
+  const waiting = job({ state: "waiting", stopReason: "provider-limit",
     usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } });
   const group = { id: "g", project: "aide", name: "Release", members: ["01-one", "02-two"],
     branch: "group/release", state: "stopped" as const, currentMember: "01-one", completedMembers: [], jobs: [] };

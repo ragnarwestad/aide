@@ -69,7 +69,7 @@ test("the card keeps saved member order and sorts by activity", () => {
   expect(html.indexOf("second")).toBeLessThan(html.indexOf("first"));
   const stoppedAtNoon = member("1-first", "<tr>first</tr>");
   stoppedAtNoon.group.lead = {
-    state: "stopped", createdAt: "2026-11-11T09:00:00.000Z", startedAt: "2026-11-11T10:00:00.000Z",
+    state: "failed", createdAt: "2026-11-11T09:00:00.000Z", startedAt: "2026-11-11T10:00:00.000Z",
     finishedAt: "2026-11-11T12:00:00.000Z",
   } as never;
   expect(executionGroupPlace({ ...group("stopped"), startedAt: "2026-11-11T10:00:00.000Z" }, [stoppedAtNoon])).toEqual({ band: 2, changedAt: Date.parse("2026-11-11T12:00:00.000Z") });
@@ -232,7 +232,7 @@ test("a member's pip takes the colour of its own state", () => {
   expect(memberPipKind(spec({ lead: { state: "queued" } as never }), false)).toBe("queued");
   expect(memberPipKind(spec({ lead: { state: "queued", landing: true } as never }), false)).toBe("now");
   expect(memberPipKind(spec({ state: "failed" }), false)).toBe("refused");
-  expect(memberPipKind(spec({ state: "stopped" }), false)).toBe("waiting");
+  expect(memberPipKind(spec({ state: "waiting" }), false)).toBe("waiting");
   expect(memberPipKind(spec({ phases: [{ step: "archive", heldBack: { reason: "x" } }] as never }), false)).toBe("waiting");
   expect(memberPipKind(spec({}), false)).toBe("todo");
   expect(memberPipKind(undefined, false)).toBe("todo");
@@ -294,7 +294,7 @@ test("a queued member shows the phase it is waiting to start", () => {
 
 test("a group paused for a provider retry shows Waiting while a manual stop stays Stopped", () => {
   const execution = { ...group("stopped"), currentMember: "1-first" };
-  const first = member("1-first", "", { lead: { state: "stopped", stopReason: "provider-limit",
+  const first = member("1-first", "", { lead: { state: "waiting", stopReason: "provider-limit",
     usageLimitWait: { until: "2026-11-17T14:30:00Z", resetKnown: true } } as SpecGroup["lead"] });
   expect(executionGroupStateLabel(execution, [first], "en")).toBe(t("en", "list.state.waiting"));
   expect(executionGroupStateLabel({ ...execution, stoppedByUser: true }, [first], "en")).toBe(t("en", "list.groupState.stopped"));
@@ -341,7 +341,7 @@ test("all member pips follow the shared Archive, including completed Implement m
 });
 
 test("a provider wait keeps the current phase letter without marking the untouched members", () => {
-  const wait = { state: "stopped", stopReason: "provider-limit", steps: ["analyze", "implement"], stepIndex: 0,
+  const wait = { state: "waiting", stopReason: "provider-limit", steps: ["analyze", "implement"], stepIndex: 0,
     usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } } as QueueRowView;
   expect(memberPipLabel("825-first", wait)).toBe("825 A");
   expect(memberPipLabel("823-next")).toBe("823");

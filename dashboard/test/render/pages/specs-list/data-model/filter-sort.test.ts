@@ -45,8 +45,8 @@ describe("a state value names every ticked entry", () => {
   });
 
   test("keeps the Jobs state labels while Specs uses progress states", () => {
-    expect(["active:all", "waiting", "done", "stopped", "failed"].map((key) => stateFilterLabel(key, "en")))
-      .toEqual(["Running", "Waiting", "Done", "Stopped", "Failed"]);
+    expect(["active:all", "waiting", "done", "failed"].map((key) => stateFilterLabel(key, "en")))
+      .toEqual(["Running", "Waiting", "Done", "Failed"]);
   });
 
   test("sorts State by the state shown for the spec", () => {

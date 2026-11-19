@@ -12,7 +12,7 @@ function setup() {
     description: description(1), alsoSpecs: [folders[1]!], alsoDescriptions: { [folders[1]!]: description(2) },
     queueMirror: JSON.stringify([{
       id: "waiting", project: "aide", specFolder: folders[0], executionGroupId: "group-1",
-      steps: ["analyze", "implement"], stepIndex: 0, state: "stopped", stopReason: "provider-limit",
+      steps: ["analyze", "implement"], stepIndex: 0, state: "waiting", stopReason: "provider-limit",
       usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true },
       model: { analyze: "sonnet" }, provider: { analyze: "Claude" }, timeoutSec: {}, permissionMode: {}, results: [],
       createdAt: "2026-11-16T10:00:00Z", finishedAt: "2026-11-16T11:00:00Z",
@@ -28,12 +28,12 @@ const post = (base: string, suffix: string, body: unknown) => fetch(`${base}/api
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
 });
 
-test("Stop cancels a group's automatic retry without rewriting the stopped outcome", async () => {
+test("Stop cancels a group's automatic retry: the waiting job is cancelled", async () => {
   const { base, dir } = setup();
   const response = await post(base, "groups/group-1/action", { action: "stop" });
   expect(response.status).toBe(200);
   const jobs = (await (await fetch(`${base}/api/queue`)).json() as { jobs: any[] }).jobs;
-  expect(jobs[0].state).toBe("stopped");
+  expect(jobs[0].state).toBe("cancelled");
   expect(jobs[0].usageLimitWait).toBeUndefined();
   expect(JSON.parse(readFileSync(join(dir, "execution-groups.json"), "utf8"))[0].stoppedByUser).toBe(true);
 });
@@ -58,5 +58,5 @@ test("changing a model on the same provider keeps its reset time", async () => {
   const { base } = setup();
   expect((await post(base, `specs/aide/${folders[0]}/model`, { step: "analyze", model: "sonnet", provider: "Claude" })).status).toBe(200);
   const jobs = (await (await fetch(`${base}/api/queue`)).json() as { jobs: any[] }).jobs;
-  expect(jobs[0]).toMatchObject({ state: "stopped", usageLimitWait: { until: "2099-01-01T12:00:00Z" } });
+  expect(jobs[0]).toMatchObject({ state: "waiting", usageLimitWait: { until: "2099-01-01T12:00:00Z" } });
 });

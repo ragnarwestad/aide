@@ -86,7 +86,7 @@ export async function handleScheduleAdminRoutes(
       const source = typeof body.sourceJobId === "string" ? ctx.queue.get(body.sourceJobId) : undefined;
       if (!source || source.project !== project || source.specFolder !== scheduleTrackingKey(name) ||
           jobKind(source) !== "schedule" || source.landing || automaticProviderWait(source) ||
-          !["cancelled", "stopped", "failed"].includes(source.state)) {
+          !["cancelled", "failed"].includes(source.state)) {
         return json({ error: "this attempt cannot be run again" }, 400);
       }
     }

@@ -12,7 +12,7 @@ beforeAll(async () => { browser = await chromium.launch(); });
 afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const attempt = (id: string, name: string) => ({ id, project: "aide", specFolder: `schedule-${name}`, steps: ["schedule"], stepIndex: 0,
-  state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
+  state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
   timeoutSec: {}, permissionMode: {}, model: { schedule: "codex-fast" }, results: [], createdAt: "2026-11-01T00:00:00Z" });
 
 test("quota Cancel and Run use shared confirmation and isolated current schedule picks (AC-1, AC-4, AC-5, AC-8)", async () => {

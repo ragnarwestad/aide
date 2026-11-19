@@ -88,7 +88,7 @@ export function getSharedFilesMessage(
   overlaps: () => OpenOverlap[] | undefined,
   lang: Language = "en",
 ): string | undefined {
-  const leadStopped = lead?.state === "stopped" && lead.stopReason === "shared-files";
+  const leadStopped = lead?.state === "failed" && lead.stopReason === "shared-files";
   const historyStopped = analyzeStopped === "shared-files" && !(lead && (inFlight(lead) || lead.error));
   if (!leadStopped && !historyStopped) return undefined;
   if (leadStopped && lead?.error && typeof lead.error === "object" && !Array.isArray(lead.error) &&
@@ -214,7 +214,7 @@ export function getSpecMessage(
     // AI, which window, when it starts over — from the tool's own
     // record, in place of the runner's one-line summary of the same.
     const limited =
-      lead.state === "stopped" && lead.stopReason === "provider-limit"
+      lead.state === "waiting"
         ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit)
         : undefined;
     // A usage-limit stop the board starts again by itself, and a job held
@@ -247,15 +247,8 @@ export function getSpecMessage(
       // project's own suite on the merged result, it went red, and
       // nothing was pushed. The step and the merge both did what they
       // should; the code is not green yet. An analyze stopped on its
-      // acceptance criteria waits the same way, on the description, and
-      // one stopped on files another open spec shares, on Depends on, and
-      // a model the provider had no room for, on pressing it again or
-      // choosing another model.
-      const waiting =
-        lead.errorReason === "held-back" || lead.errorReason === "tests-red" || usageText !== undefined ||
-        (lead.state === "stopped" &&
-          (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files" ||
-            lead.stopReason === "model-at-capacity"));
+      // Every other stop failed the job, and says so in red.
+      const waiting = lead.errorReason === "held-back" || usageText !== undefined;
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const structured = messageDetail(lead.error);
       // An archive's own red run lists its failing lines on the row when

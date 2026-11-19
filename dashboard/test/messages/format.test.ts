@@ -42,7 +42,7 @@ describe("formatMessage", () => {
 describe("formatSentence", () => {
   test("presentation wrappers keep the underlying event identity (AC-2)", () => {
     const event = { key: "landing.testsRedOnMerge", values: { tests: 2 } } as const;
-    expect(messageIdentity(event)).toBe(messageIdentity({ key: "landing.stepStopped", values: { step: "archive" }, inner: event }));
+    expect(messageIdentity(event)).toBe(messageIdentity({ key: "landing.stepFailed", values: { step: "archive" }, inner: event }));
     expect(messageIdentity({ ...event, values: { tests: 1 } })).not.toBe(messageIdentity(event));
   });
 

@@ -54,14 +54,14 @@ const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
 });
 
 describe("specStateChip() on a stopped row", () => {
-  // A job that actually stopped still reads "Stopped" — the fix is
-  // scoped to a queued job's own hold, never to a real stop.
-  test("a job that actually stopped still reads 'Stopped'", () => {
+  // A job its time limit stopped failed — the queued wording is scoped
+  // to a queued job's own hold, never to a real stop.
+  test("a job its time limit stopped reads 'Failed'", () => {
     const html = specStateChip(
-      row({ state: "stopped", steps: ["implement"], stepIndex: 0, stopReason: "timeout" }),
+      row({ state: "failed", steps: ["implement"], stepIndex: 0, stopReason: "timeout" }),
       "en",
     );
-    expect(html).toContain(">Stopped<");
+    expect(html).toContain(">Failed<");
   });
 });
 
@@ -72,7 +72,7 @@ test("a deploy's automatic hold uses the shared Queued label (AC-3, AC-7)", () =
 // An ended job's chip on the Jobs tab and the specs list reads the state's
 // word from the reader's catalogue, and keeps the icon the English word has.
 describe("specStateChip() on an ended job, in every language", () => {
-  const ENDED = ["failed", "cancelled", "stopped"] as const;
+  const ENDED = ["failed", "cancelled", "waiting"] as const;
   const iconOf = (html: string) => html.match(/data-icon="([^"]*)"/)?.[1];
   const wordOf = (html: string) => html.match(/>([^<]*)<\/span>$/)?.[1];
 
@@ -98,7 +98,7 @@ describe("specStateChip() on an ended job, in every language", () => {
 
   test("in English the chip reads as before (AC-1)", () => {
     const words = ENDED.map((state) => wordOf(specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en")));
-    expect(words).toEqual(["Failed", "Cancelled", "Stopped"]);
+    expect(words).toEqual(["Failed", "Cancelled", "Waiting"]);
   });
 });
 

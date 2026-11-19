@@ -49,12 +49,4 @@ export const USAGE_LIMIT_CATALOG = {
     fr: "la limite d'utilisation de l'IA a été atteinte — l'étape redémarre d'elle-même une fois la limite réinitialisée",
     statement: "starts again by itself when the limit resets — nothing to press",
   },
-  "push.stoppedProviderLimit": {
-    en: "{step} stopped on the AI's usage limit — it starts again by itself once the limit resets.",
-    nb: "{step} stoppet på AI-ens bruksgrense — den starter av seg selv igjen når grensen er nullstilt.",
-    es: "{step} se detuvo por el límite de uso de la IA — se reinicia solo cuando el límite se restablezca.",
-    de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es startet von selbst neu, sobald das Limit zurückgesetzt ist.",
-    fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il redémarre de lui-même une fois la limite réinitialisée.",
-    statement: "starts again by itself when the limit resets — nothing to press",
-  },
 } as const satisfies Record<string, MessageEntry>;

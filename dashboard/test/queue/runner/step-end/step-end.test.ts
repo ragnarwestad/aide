@@ -21,7 +21,7 @@ type Ending = {
 
 const ENDINGS: Ending[] = [
   { name: "complete's retry", result: { ...okResult(0), ok: false, terminalReason: "no-progress" }, state: "queued" },
-  { name: "run-stopped", lastAttempt: true, result: { ...okResult(0), ok: false, terminalReason: "timeout" }, state: "stopped" },
+  { name: "run-stopped", lastAttempt: true, result: { ...okResult(0), ok: false, terminalReason: "timeout" }, state: "failed" },
   { name: "step-failed", result: { ...okResult(0), ok: false, terminalReason: "cli-error" }, state: "failed" },
   { name: "step-succeeded-last", result: okResult(0), state: "done" },
   { name: "step-succeeded", steps: ["analyze", "implement"], result: okResult(0), state: "queued" },

@@ -38,7 +38,7 @@ function stopped(
   createdAt?: string,
 ): Job {
   return store.update(made.id, {
-    state: "stopped",
+    state: "waiting",
     stopReason: "provider-limit",
     finishedAt: iso(stoppedAt),
     ...(createdAt ? { createdAt: iso(createdAt) } : {}),
@@ -143,13 +143,13 @@ describe("queuing a stopped step again", () => {
   test("a minute before the reset time nothing moves (AC-2)", () => {
     const made = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     restartAfterUsageLimit(store, toolOf, at("13:59"));
-    expect(store.get(made.id)?.state).toBe("stopped");
+    expect(store.get(made.id)?.state).toBe("waiting");
   });
 
   test("a stop recorded without a wait is never queued again (AC-2)", () => {
     const made = stopped(job({ steps: ["implement"] }), "10:00", undefined);
     restartAfterUsageLimit(store, toolOf, at("23:00"));
-    expect(store.get(made.id)?.state).toBe("stopped");
+    expect(store.get(made.id)?.state).toBe("waiting");
   });
 
   test("once the stopped step is queued again the steps behind it are not held (AC-3)", () => {
@@ -166,14 +166,14 @@ describe("queuing a stopped step again", () => {
     const made = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     store.update(made.id, { landing: true });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
-    expect(store.get(made.id)?.state).toBe("stopped");
+    expect(store.get(made.id)?.state).toBe("waiting");
   });
 
   test("another AI's stop is not queued again by this AI's time", () => {
     const codex = stopped(job({ steps: ["implement"] }, "codex"), "10:00", { until: "16:00", resetKnown: true });
     stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
-    expect(store.get(codex.id)?.state).toBe("stopped");
+    expect(store.get(codex.id)?.state).toBe("waiting");
   });
 });
 
@@ -184,13 +184,13 @@ describe("a stop with no reset time sends one step ahead", () => {
     const c = job({ steps: ["analyze"] });
 
     restartAfterUsageLimit(store, toolOf, at("11:01"));
-    expect(store.get(a.id)?.state).toBe("stopped");
-    expect(store.get(b.id)?.state).toBe("stopped");
+    expect(store.get(a.id)?.state).toBe("waiting");
+    expect(store.get(b.id)?.state).toBe("waiting");
 
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     expect(store.get(a.id)?.state).toBe("queued");
     expect(store.get(a.id)?.usageLimitProbe).toEqual({ results: 1, at: iso("11:02"), since: iso("10:00") });
-    expect(store.get(b.id)?.state).toBe("stopped");
+    expect(store.get(b.id)?.state).toBe("waiting");
     expect(store.get(b.id)?.usageLimitWait).toEqual({ until: iso("12:02"), resetKnown: false });
     expect(usageLimitHolds(store.list(), toolOf).get(c.id)).toEqual({
       key: "runner.usageLimitHeldProbe", values: { provider: "claude", at: iso("11:02") },
@@ -204,7 +204,7 @@ describe("a stop with no reset time sends one step ahead", () => {
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     expect(store.get(a.id)?.state).toBe("queued");
     restartAfterUsageLimit(store, toolOf, at("23:00"));
-    expect(store.get(b.id)?.state).toBe("stopped");
+    expect(store.get(b.id)?.state).toBe("waiting");
   });
 
   test("a probe that ends without a usage-limit stop queues the rest at once and releases the queue (AC-5)", () => {
@@ -230,14 +230,14 @@ describe("a stop with no reset time sends one step ahead", () => {
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     const probe = store.get(a.id)!;
     store.update(a.id, {
-      state: "stopped",
+      state: "waiting",
       stopReason: "provider-limit",
       finishedAt: iso("11:10"),
       results: [...probe.results, { step: "implement", ok: false, terminalReason: "provider-limit" } as never],
       usageLimitWait: { until: iso("15:00"), resetKnown: true },
     });
     restartAfterUsageLimit(store, toolOf, at("11:20"));
-    expect(store.get(b.id)?.state).toBe("stopped");
+    expect(store.get(b.id)?.state).toBe("waiting");
     expect(usageLimitHolds(store.list(), toolOf).get(c.id)).toEqual({
       key: "runner.usageLimitHeld", values: { provider: "claude", at: iso("15:00") },
     });
@@ -252,7 +252,7 @@ describe("a probe that stops again with a reset time", () => {
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     const probe = store.get(a.id)!;
     store.update(a.id, {
-      state: "stopped", stopReason: "provider-limit", finishedAt: iso("11:10"),
+      state: "waiting", stopReason: "provider-limit", finishedAt: iso("11:10"),
       results: [...probe.results, { step: "implement", ok: false, terminalReason: "provider-limit" } as never],
       usageLimitWait: { until: iso("11:30"), resetKnown: true },
     });
@@ -270,7 +270,7 @@ describe("a restarted step that hits the limit again is held again", () => {
     restartAfterUsageLimit(store, toolOf, at("14:00"));
     const restarted = store.get(made.id)!;
     store.update(made.id, {
-      state: "stopped",
+      state: "waiting",
       stopReason: "provider-limit",
       finishedAt: iso("14:05"),
       results: [...restarted.results, { step: "implement", ok: false, terminalReason: "provider-limit" } as never],
@@ -280,7 +280,7 @@ describe("a restarted step that hits the limit again is held again", () => {
       key: "runner.usageLimitHeld", values: { provider: "claude", at: iso("19:00") },
     });
     restartAfterUsageLimit(store, toolOf, at("18:59"));
-    expect(store.get(made.id)?.state).toBe("stopped");
+    expect(store.get(made.id)?.state).toBe("waiting");
     restartAfterUsageLimit(store, toolOf, at("19:00"));
     expect(store.get(made.id)?.state).toBe("queued");
   });
@@ -307,7 +307,7 @@ describe("a person's press", () => {
     tools.set(again.id, "claude");
     store.update(again.id, { pressed: true, createdAt: iso("10:30") });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
-    expect(store.get(made.id)?.state).toBe("stopped");
+    expect(store.get(made.id)?.state).toBe("waiting");
     expect(store.get(made.id)?.usageLimitWait).toBeUndefined();
   });
 });
@@ -335,7 +335,7 @@ describe("a restart of the board", () => {
     expect(reread.get(made.id)?.usageLimitWait).toEqual({ until: iso("14:00"), resetKnown: true });
     expect(usageLimitHolds(reread.list(), toolOf).get(queued.id)?.values).toEqual({ provider: "claude", at: iso("14:00") });
     restartAfterUsageLimit(reread, toolOf, at("03:00"));
-    expect(reread.get(made.id)?.state).toBe("stopped");
+    expect(reread.get(made.id)?.state).toBe("waiting");
     restartAfterUsageLimit(reread, toolOf, at("14:00"));
     expect(reread.get(made.id)?.state).toBe("queued");
   });
@@ -359,7 +359,7 @@ describe("two providers of Claude side by side", () => {
     const onClaude = stopped(job({ steps: ["implement"] }, "claude"), "10:00", { until: "12:00", resetKnown: true });
     restartAfterUsageLimit(store, toolOf, at("12:00"));
     expect(store.get(onClaude.id)?.state).toBe("queued");
-    expect(store.get(onCapra.id)?.state).toBe("stopped");
+    expect(store.get(onCapra.id)?.state).toBe("waiting");
     restartAfterUsageLimit(store, toolOf, at("15:00"));
     expect(store.get(onCapra.id)?.state).toBe("queued");
     expect(store.get(onCapra.id)?.provider).toEqual({ implement: "capra" });
@@ -383,7 +383,7 @@ describe("which stop decides an AI's time", () => {
     restartAfterUsageLimit(store, toolOf, at("14:00"));
     expect(store.get(a.id)?.state).toBe("queued");
     expect(store.get(b.id)?.state).toBe("queued");
-    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.state).toBe("waiting");
     expect(store.get(old.id)?.usageLimitWait).toBeUndefined();
   });
 
@@ -428,21 +428,21 @@ describe("a step that ran on the AI since the stop", () => {
     const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
     ran("implement", "11:00", "provider-limit");
     restartAfterUsageLimit(store, toolOf, at("12:00"));
-    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.state).toBe("waiting");
   });
 
   test("a step that started before the stop ends nothing", () => {
     const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
     ran("implement", "09:00", "completed");
     restartAfterUsageLimit(store, toolOf, at("12:00"));
-    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.state).toBe("waiting");
   });
 
   test("a deploy, which uses no AI, ends nothing", () => {
     const old = stopped(job({ steps: ["analyze"] }), "10:00", { until: "23:00", resetKnown: true });
     ran("deploy", "11:00", "completed");
     restartAfterUsageLimit(store, toolOf, at("12:00"));
-    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.state).toBe("waiting");
   });
 
   test("a step that ran on another AI ends nothing", () => {
@@ -450,6 +450,6 @@ describe("a step that ran on the AI since the stop", () => {
     const other = ran("implement", "11:00", "completed");
     tools.set(other.id, "codex");
     restartAfterUsageLimit(store, toolOf, at("12:00"));
-    expect(store.get(old.id)?.state).toBe("stopped");
+    expect(store.get(old.id)?.state).toBe("waiting");
   });
 });

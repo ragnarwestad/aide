@@ -29,6 +29,9 @@ export function parseStoredJob(raw: unknown): Job | null {
   // A job whose process died used to end `interrupted`; it is `failed` now,
   // with the same error saying why.
   if (r.state === "interrupted") r.state = "failed";
+  // `stopped` is retired the same way: a usage-limit stop the board starts
+  // again is `waiting`, and every other stop is `failed`.
+  if (r.state === "stopped") r.state = r.stopReason === "provider-limit" && r.usageLimitWait ? "waiting" : "failed";
   if (!isJobState(r.state)) return null;
   // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten

@@ -15,6 +15,7 @@ import { createGitRunner } from "../../../src/git/process/index.ts";
 import { mergeBranchIntoDefault, mergeWorktreePath } from "../../../src/git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../../src/git/spec-folder-landing.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
+import { withCheckoutLock } from "../../../src/git/checkout-lock/index.ts";
 
 const FOLDER = "03-a-spec";
 const BRANCH = `aide/${FOLDER}`;
@@ -125,6 +126,54 @@ describe("landing a spec's own folder", () => {
 });
 
 for (const kind of ["branch", "folder"] as const) {
+  test(`${kind} landing waits for a concurrent spec creation before pushing`, async () => {
+    const { root, origin, work } = repo();
+    const real = createGitRunner();
+    let finishCreate!: () => void;
+    const readyToCommit = new Promise<void>((resolve) => { finishCreate = resolve; });
+    let creation: ReturnType<typeof withCheckoutLock> | undefined;
+    let overtookCreate = false;
+    let creating = false;
+    const newDescription = "specs/04-new/1-description.md";
+    const run: typeof real = async (dir, args, timeout, env) => {
+      const result = await real(dir, args, timeout, env);
+      if (!creation && result.code === 0 && dir !== root &&
+          (kind === "branch" ? args[0] === "merge" : args[0] === "commit")) {
+        creation = withCheckoutLock(root, async () => {
+          creating = true;
+          await readyToCommit;
+          write(work, newDescription, "created\n");
+          git(work, "add", newDescription);
+          git(work, "commit", "-qm", "Create the next spec");
+          git(work, "push", "-q", "origin", "main");
+          creating = false;
+        });
+      }
+      return result;
+    };
+    const checked: typeof real = async (dir, args, timeout, env) => {
+      if (args[0] === "push" && args.includes("HEAD:refs/heads/main") && creating) {
+        overtookCreate = true;
+        finishCreate();
+        await creation;
+      }
+      return run(dir, args, timeout, env);
+    };
+    try {
+      const merged = await landAs(kind, checked, root, async () => {
+        finishCreate();
+        await creation;
+      });
+      expect(merged.ok).toBe(true);
+      expect(overtookCreate).toBe(false);
+      expect(onMain(origin, newDescription)).toBe("created\n");
+      expect(onMain(origin, `specs/${FOLDER}/2-analysis.md`)).toBe("analysed\n");
+    } finally {
+      finishCreate();
+      await creation;
+    }
+  });
+
   test(`${kind} landing preserves an incomplete worktree and retries in a fresh directory`, async () => {
     const { root, origin } = repo();
     const work = mergeWorktreePath(root, BRANCH);

@@ -60,7 +60,7 @@ One line in the Tracking info of `4-status.md` is the whole record:
 - `archive` — a folder actually under `archive/`.
 - `analyze` — nothing outside its own spec folder.
 
-A step that ended `stopped` or `failed` is not counted. A spec made by
+A step that ended `failed` or `waiting` is not counted. A spec made by
 hand, with no runner commit behind it, has no line and reads as having had nothing.
 
 **A completed analysis cancels the `implement` and `archive` before it.** The plan they were made from has been
@@ -243,7 +243,7 @@ An archived or closed row has one control only, **Reopen**, since the server ref
 A row's state is one of these:
 
 - `not-started` — the spec has no job at all.
-- The state of its most recent or in-flight job: `queued`, `running`, `done`, `stopped`, `failed` or
+- The state of its most recent or in-flight job: `queued`, `running`, `done`, `waiting`, `failed` or
   `cancelled`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
   merging sits with the ones still going.
 - `archived`.
@@ -256,15 +256,14 @@ The State filter groups them:
 - **All** — every row; the default.
 - **Active** — everything not archived and not closed.
 - **Running** — `running`, a landing included, `queued` not.
-- **Waiting** — `queued` or `done`, with no landing in progress.
-- **Stopped** — `stopped`.
+- **Waiting** — `waiting`.
 - **Failed** — `failed`, `cancelled` and `archived-unlanded`.
 - **Archived** — `archived` and `archived-unlanded`.
 - **Closed** — `closed`.
 - **Not verified** — specs with an acceptance row marked Not verified, archived ones included.
 
 **That list is a job's state, not the spec's.** `archived` and `closed` appear in both vocabularies and mean the
-same thing; the rest — `queued`, `running`, `done`, `stopped`, `failed`, `cancelled` — belong to the
+same thing; the rest — `queued`, `running`, `done`, `waiting`, `failed`, `cancelled` — belong to the
 job, and say nothing about how far the spec has got. Which PHASE a spec has reached is read off the completed line
 and drawn as the four marks beside its name — see
 [The specs list and the spec page](the-specs-list.md).

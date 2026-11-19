@@ -19,7 +19,7 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   ...extra,
 });
 const stoppedJob = (): QueueRowView =>
-  row({ specFolder: FOLDER, steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: JOBS_SENTENCE });
+  row({ specFolder: FOLDER, steps: ["analyze"], state: "failed", stopReason: "shared-files", error: JOBS_SENTENCE });
 const notice = (
   rows: QueueRowView[],
   t: SpecTarget,

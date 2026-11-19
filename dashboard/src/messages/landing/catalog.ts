@@ -324,15 +324,6 @@ export const LANDING_CATALOG = {
     solution: null,
     exempt: "the resolution is the message it carries",
   },
-  "landing.stepStopped": {
-    en: "{step} merge stopped: {message}",
-    nb: "mergen av {step} ble stoppet: {message}",
-    es: "el merge de {step} se detuvo: {message}",
-    de: "Merge von {step} gestoppt: {message}",
-    fr: "le merge de {step} s'est arrêté : {message}",
-    solution: null,
-    exempt: "the resolution is the message it carries",
-  },
   "landing.branchDeleteFailed": {
     en: "{root}: merged, but deleting {branch} on origin failed",
     nb: "{root}: merget, men sletting av {branch} på origin feilet",

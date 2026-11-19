@@ -45,7 +45,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
     // is this one step's — the one whose branch was being merged
     // (2026-09-11). Read as done, the line said "done" over a job that
     // said "failed", and the pip beside it took the wrong colour.
-    const landingFell = res.ok && currentStep(r) === step && (r.state === "failed" || r.state === "stopped");
+    const landingFell = res.ok && currentStep(r) === step && r.state === "failed";
     return {
       ...r,
       state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,

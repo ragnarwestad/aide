@@ -30,7 +30,7 @@ export const seenOf = (job: Job): Seen => ({
 });
 
 export interface Attention {
-  kind: "failed" | "stopped" | "archive-held-back" | "create-failed" | "schedule-run";
+  kind: "failed" | "archive-held-back" | "create-failed" | "schedule-run";
   step: string;
   reason?: StopReason;
   /** How a scheduled run ended, for `schedule-run`. */
@@ -40,13 +40,13 @@ export interface Attention {
   attempts?: number;
 }
 
-export type ScheduleOutcome = "done" | "failed" | "stopped";
+export type ScheduleOutcome = "done" | "failed";
 
 /** The entry's choice for a scheduled job, read only when asked; null
  *  when the entry is gone. */
 export type ScheduleChoice = () => ScheduleNotify | null;
 
-const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed", "stopped"]);
+const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed"]);
 
 /** One notification when a scheduled run ENDS (the edge into a final
  *  state), by the entry's own choice. `cancelled` is a person's own act
@@ -76,11 +76,11 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
     // that was in flight is the one at `stepIndex`; the others ended with one.
     const step = diedWithoutResult(job) ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
     const specs =
-      job.state === "stopped" && job.stopReason === "shared-files"
+      job.stopReason === "shared-files"
         ? (last?.sharedFiles ?? []).map((s) => specNumber(s.spec))
         : undefined;
     return {
-      kind: job.state as "failed" | "stopped",
+      kind: "failed",
       step: step ?? "implement",
       reason: job.stopReason,
       attempts: job.retry?.action === step && job.retry.previousAttempt ? job.retry.attempts : undefined,
@@ -113,26 +113,25 @@ export function waitingCount(jobs: readonly Job[], serves: (project: string) => 
     if (!seen || job.createdAt > seen.createdAt) latest.set(key, job);
   }
   let n = 0;
-  for (const job of latest.values()) if (waitsForPerson(job)) n += 1;
+  for (const job of latest.values()) if (waitsForPerson(job) && !job.dismissedAt) n += 1;
   return n;
 }
 
 const SCHEDULE_KEYS: Record<ScheduleOutcome, MessageKey> = {
   done: "push.scheduleDone",
   failed: "push.scheduleFailed",
-  stopped: "push.scheduleStopped",
 };
 
 export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "schedule-run") return SCHEDULE_KEYS[a.outcome ?? "failed"];
   if (a.kind === "archive-held-back") return "push.archiveHeldBack";
   if (a.kind === "create-failed") return "push.createFailed";
-  if (a.kind === "failed") return a.attempts === MAX_ATTEMPTS ? "push.failedAfterTwoAttempts" : "push.failed";
-  if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
+  // A run stopped early says why; any other failure says only that it failed.
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
   if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
   if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
   if (a.reason === "sent-back") return "push.stoppedSentBack";
-  return a.attempts === MAX_ATTEMPTS ? "push.stoppedTimeoutAfterTwoAttempts" : "push.stoppedTimeout";
+  if (a.reason === "timeout") return a.attempts === MAX_ATTEMPTS ? "push.stoppedTimeoutAfterTwoAttempts" : "push.stoppedTimeout";
+  return a.attempts === MAX_ATTEMPTS ? "push.failedAfterTwoAttempts" : "push.failed";
 }

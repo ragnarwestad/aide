@@ -50,7 +50,7 @@ async function landWhile(current: Record<string, unknown>) {
 describe("a landing of a step that stopped", () => {
   for (const stopReason of ["provider-limit", "timeout"] as const) {
     test(`keeps the reason a ${stopReason} stop gave`, async () => {
-      const patch = await landWhile({ state: "stopped", stopReason, error: "five hour provider limit reached" });
+      const patch = await landWhile({ state: stopReason === "provider-limit" ? "waiting" : "failed", stopReason, error: "five hour provider limit reached" });
       expect(patch).toBeDefined();
       expect("error" in patch).toBe(false);
       expect("errorReason" in patch).toBe(false);
@@ -146,7 +146,7 @@ describe("the tests a spec's last landing failed", () => {
 describe("a landing whose push failed", () => {
   test("names the step's button in the fix of the git sentence inside it", () => {
     const refused = pushRefusal("/x/code", BRANCH, "main", { cause: { kind: "none" } });
-    const text = formatSentence("en", firstLandingError(undefined, refused.error!, "archive", false)) ?? "";
+    const text = formatSentence("en", firstLandingError(undefined, refused.error!, "archive")) ?? "";
     expect(text).toContain("Press Archive again");
     expect(text).not.toContain("{");
   });

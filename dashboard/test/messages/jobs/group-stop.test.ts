@@ -53,7 +53,7 @@ test("an archive landing failure names its spec even while the group remains arc
   expect(result?.notice.text).toBe(formatMessage("en", { key: "group.memberStopped", values: { spec: "aide:805" } }));
 });
 
-test.each(["stopped", "cancelled"] as const)("a %s member is identified on the group", (state) => {
+test.each(["waiting", "failed", "cancelled"] as const)("a %s member is identified on the group", (state) => {
   expect(getGroupStopMessage(group, [{ specFolder: "805-first", lead: { ...failed, state } }], "en")?.specFolder).toBe("805-first");
 });
 
@@ -92,7 +92,7 @@ test("a user stop is reported as the cause even when cancelling the member ended
 
 
 test("a provider-limit pause reports the automatic retry instead of a stopped member", () => {
-  const lead = { ...failed, state: "stopped" as const, stopReason: "provider-limit", usageLimitWait: {
+  const lead = { ...failed, state: "waiting" as const, stopReason: "provider-limit", usageLimitWait: {
     until: "2026-11-17T14:30:00Z", resetKnown: true,
   } };
   const notice = getGroupStopMessage(group, [{ specFolder: "805-first", lead }], "en")?.notice;
@@ -102,7 +102,7 @@ test("a provider-limit pause reports the automatic retry instead of a stopped me
 
 
 test("only a current automatic provider retry makes a group wait", () => {
-  const lead = { ...failed, state: "stopped" as const, stopReason: "provider-limit", usageLimitWait: {
+  const lead = { ...failed, state: "waiting" as const, stopReason: "provider-limit", usageLimitWait: {
     until: "2026-11-17T14:30:00Z", resetKnown: false,
   } };
   const members = [{ specFolder: "805-first", lead }];
@@ -112,7 +112,7 @@ test("only a current automatic provider retry makes a group wait", () => {
   expect(groupProviderLimitWait({ ...group, currentMember: "806-second" }, members)).toBeUndefined();
   for (const state of ["running", "queued", "completed"] as const)
     expect(groupProviderLimitWait({ ...group, state }, members)).toBeUndefined();
-  for (const patch of [{ state: "done" as const }, { stopReason: "timeout" }, { usageLimitWait: undefined },
+  for (const patch of [{ state: "done" as const }, { state: "failed" as const, stopReason: "timeout" }, { usageLimitWait: undefined },
     { usageLimitWait: { until: "invalid", resetKnown: true } }])
     expect(groupProviderLimitWait(group, [{ specFolder: "805-first", lead: { ...lead, ...patch } }])).toBeUndefined();
 });

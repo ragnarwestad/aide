@@ -45,8 +45,8 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
       for (const id of archives) if (!checked.has(id)) unresolved.add(id);
       const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j =>
         (j.state === "queued" && !j.landing && !j.landingCut && !unresolved.has(waitingKey(j))) ||
-        (j.state === "stopped" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) ||
-        ((j.state === "done" || j.state === "stopped") && j.results.at(-1)?.terminalReason === "approach-choice" &&
+        (j.state === "waiting" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) ||
+        ((j.state === "done" || j.state === "failed") && j.results.at(-1)?.terminalReason === "approach-choice" &&
           !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
       return pending.map(jobEntry);
     },

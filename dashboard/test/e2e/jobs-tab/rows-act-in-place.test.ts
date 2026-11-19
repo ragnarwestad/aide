@@ -334,38 +334,6 @@ test("Types can select Merge separately and its card names the source branch (AC
 });
 
 
-test("Merge retries the source branch without changing its history (AC-1, AC-7)", async () => {
-  const own = mkdtempSync(join(tmpdir(), "merge-retry-"));
-  const streamFile = join(own, "old.land.stream.jsonl");
-  writeFileSync(streamFile, "");
-  writeFileSync(join(own, "old.land.run.log"), "aide-run-spec 12:00:00 +1s original merge attempt was cancelled\n");
-  const old = { id: "cancelled-land", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
-    state: "cancelled", streamFile, branch: "fix/topic", timeoutSec: {}, permissionMode: {}, model: {}, results: [],
-    createdAt: "2026-11-17T12:00:00Z", startedAt: "2026-11-17T12:00:00Z", finishedAt: "2026-11-17T12:01:00Z" };
-  const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 0, stdout: "abc\trefs/heads/fix/topic\n" } });
-  const { base } = harness.start({ queueMirror: JSON.stringify([old]), extra: { gitRun: git.run } });
-  const page = await browser.newPage();
-  try {
-    await page.goto(`${base}/?state=cancelled&open=aide/land:land&live=0`);
-    await page.getByRole("button", { name: "Start", exact: true }).waitFor({ timeout: 3000 });
-    const loads = countLoads(page);
-    const response = page.waitForResponse((res) => res.url().endsWith("/api/queue/projects/aide/land") && res.request().method() === "POST");
-    await page.getByRole("button", { name: "Start", exact: true }).click();
-    const res = await response;
-    expect(res.ok()).toBe(true);
-    const fresh = (await res.json()).job;
-    expect(fresh).toMatchObject({ branch: "fix/topic", steps: ["land"] });
-    await page.getByText("Merge branch", { exact: true }).waitFor({ timeout: 3000 });
-    expect(new URL(page.url()).pathname).toBe("/");
-    expect(await page.getByText(/Merge to .* · fix\/topic/, { exact: true }).count()).toBe(1);
-    await page.getByRole("link", { name: /Previous attempt/ }).click({ timeout: 3000 });
-    await page.getByText("original merge attempt was cancelled", { exact: false }).waitFor({ timeout: 3000 });
-    expect(await stateOf(base, fresh.id)).toBe("queued");
-    expect(await stateOf(base, old.id)).toBe("cancelled");
-    expect(loads.n).toBe(0);
-  } finally { await page.close(); rmSync(own, { recursive: true, force: true }); }
-});
-
 test("live merge activity changes without folding the open row (AC-5, AC-6, AC-7)", async () => {
   const own = mkdtempSync(join(tmpdir(), "merge-live-"));
   const file = join(own, "live.land.stream.jsonl");

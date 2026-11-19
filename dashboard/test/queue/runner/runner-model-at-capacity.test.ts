@@ -26,7 +26,7 @@ describe("a step stopped because the model is at capacity", () => {
 
   test("ends stopped with the reason after the automatic second attempt (AC-2)", () => {
     const after = atCapacity();
-    expect(after?.state).toBe("stopped");
+    expect(after?.state).toBe("failed");
     expect(after?.stopReason).toBe("model-at-capacity");
   });
 

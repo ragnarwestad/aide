@@ -243,7 +243,7 @@ describe("a usage-limit stop records when the step starts again", () => {
     const runner = makeRunner({ readResult: () => limited("2026-08-16T14:00:00Z") });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.state).toBe("waiting");
     expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T14:00:00.000Z", resetKnown: true });
   });
 
@@ -264,7 +264,7 @@ describe("a usage-limit stop records when the step starts again", () => {
     const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "timeout" }) });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.usageLimitWait).toBeUndefined();
   });
 });

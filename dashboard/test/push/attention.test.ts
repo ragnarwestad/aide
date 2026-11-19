@@ -132,11 +132,11 @@ describe("what a spec is waiting for picks the sentence", () => {
 
   test("each waiting state and stop reason has its own key", () => {
     expect(key(job({ state: "failed" }))).toBe("push.failed");
-    expect(key(job({ state: "stopped", stopReason: "timeout" }))).toBe("push.stoppedTimeout");
-    expect(key(job({ state: "stopped", stopReason: "provider-limit" }))).toBe("push.stoppedProviderLimit");
-    expect(key(job({ state: "stopped", stopReason: "model-at-capacity" }))).toBe("push.stoppedModelAtCapacity");
-    expect(key(job({ state: "stopped", stopReason: "tests-red" }))).toBe("push.stoppedTestsRed");
-    expect(key(job({ state: "stopped", stopReason: "acceptance-criteria" }))).toBe("push.stoppedAcceptanceCriteria");
+    expect(key(job({ state: "failed", stopReason: "timeout" }))).toBe("push.stoppedTimeout");
+    expect(key(job({ state: "waiting", stopReason: "provider-limit" }))).toBeFalsy();
+    expect(key(job({ state: "failed", stopReason: "model-at-capacity" }))).toBe("push.stoppedModelAtCapacity");
+    expect(key(job({ state: "failed", stopReason: "tests-red" }))).toBe("push.stoppedTestsRed");
+    expect(key(job({ state: "failed", stopReason: "acceptance-criteria" }))).toBe("push.stoppedAcceptanceCriteria");
     expect(key(job({ state: "done", results: [result("archive", "acceptance-criteria-unticked")] }))).toBe(
       "push.archiveHeldBack",
     );
@@ -147,7 +147,7 @@ describe("what a spec is waiting for picks the sentence", () => {
       action: "implement", attempts: 2, previousAttempt: { terminalReason: "no-progress" },
     } })))
       .toBe("push.failedAfterTwoAttempts");
-    expect(key(job({ state: "stopped", stopReason: "timeout", retry: {
+    expect(key(job({ state: "failed", stopReason: "timeout", retry: {
       action: "implement", attempts: 2, previousAttempt: { terminalReason: "timeout" },
     } })))
       .toBe("push.stoppedTimeoutAfterTwoAttempts");
@@ -158,17 +158,17 @@ describe("what a spec is waiting for picks the sentence", () => {
   });
 
   test("a stop on files another open spec changes pushes its own sentence, not the time limit's", () => {
-    expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
+    expect(key(job({ state: "failed", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
   });
 
   test("an implement sent back to a full analysis pushes its own sentence, not the time limit's", () => {
-    expect(key(job({ state: "stopped", stopReason: "sent-back" }))).toBe("push.stoppedSentBack");
+    expect(key(job({ state: "failed", stopReason: "sent-back" }))).toBe("push.stoppedSentBack");
   });
 
   test("a shared-files stop names by number the specs its result holds, and keeps the plain sentence when it names none", () => {
     const stop = (sharedFiles: { spec: string; files: string[] }[]) =>
       job({
-        state: "stopped",
+        state: "failed",
         stopReason: "shared-files",
         steps: ["analyze"],
         results: [{ ...result("analyze", "shared-files", false), sharedFiles }],
@@ -218,13 +218,13 @@ describe("a scheduled run notifies by its entry's own choice", () => {
   const ENDINGS = [
     ["done", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "step-succeeded-last", { results: [result("schedule")] })],
     ["failed", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "step-failed", { results: [result("schedule", "error", false)] })],
-    ["stopped", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] })],
+    ["timed out", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] })],
   ] as const;
   // How many of the four endings each choice sends for.
   const WANT: Record<ScheduleNotify, Record<string, number>> = {
-    always: { done: 1, failed: 1, stopped: 1 },
-    failure: { done: 0, failed: 1, stopped: 1 },
-    never: { done: 0, failed: 0, stopped: 0 },
+    always: { done: 1, failed: 1, "timed out": 1 },
+    failure: { done: 0, failed: 1, "timed out": 1 },
+    never: { done: 0, failed: 0, "timed out": 0 },
   };
   for (const choice of ["always", "failure", "never"] as const) {
     for (const [ending, end] of ENDINGS) {
@@ -296,7 +296,7 @@ describe("how many specs wait for a person", () => {
     job("aide", "82-b", "done", "2026-10-22T10:00:00Z", unticked),
     job("aide", "83-c", "running", "2026-10-22T10:05:00Z"),
     job("aide", "83-c", "failed", "2026-10-22T10:00:00Z"),
-    job("other", "84-d", "stopped", "2026-10-22T10:00:00Z"),
+    job("other", "84-d", "failed", "2026-10-22T10:00:00Z"),
     job("aide", "schedule-nightly", "failed", "2026-10-22T10:00:00Z"),
     job("aide", "85-e", "cancelled", "2026-10-22T10:05:00Z"),
     job("aide", "85-e", "failed", "2026-10-22T10:00:00Z"),

@@ -142,10 +142,10 @@ export function resolveStepProvider(
 
 const capitalised = (step: string): string => step.charAt(0).toUpperCase() + step.slice(1);
 
-/** Whether a job will still run: queued, running, or stopped waiting for a
+/** Whether a job will still run: queued, running, or waiting for a
  *  usage-limit reset. */
 export const willRun = (job: Job): boolean =>
-  job.state === "queued" || job.state === "running" || (job.state === "stopped" && job.usageLimitWait !== undefined);
+  job.state === "queued" || job.state === "running" || (job.state === "waiting" && job.usageLimitWait !== undefined);
 
 /** What uses the provider, one phrase each: the phase defaults that name it,
  *  the schedule entries that name it and the jobs that will still run on it.
@@ -166,7 +166,7 @@ export function providerUses(
   for (const job of jobs) {
     if (!willRun(job)) continue;
     const step = Object.entries(job.provider ?? {}).find(([, chosen]) => chosen === key)?.[0];
-    if (step) uses.push(`the ${job.state === "stopped" ? "waiting" : job.state} ${capitalised(step)} of ${specReference(job.project, job.specFolder)}`);
+    if (step) uses.push(`the ${job.state} ${capitalised(step)} of ${specReference(job.project, job.specFolder)}`);
   }
   return uses;
 }

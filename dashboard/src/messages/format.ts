@@ -12,7 +12,7 @@ import { MESSAGES, type MessageEntry, type MessageKey } from "./catalog.ts";
 import type { BoardMessage, Sentence } from "./types.ts";
 export type { BoardMessage, Sentence } from "./types.ts";
 
-const PRESENTATION_WRAPPERS = new Set<MessageKey>(["message.lead", "landing.stepStopped", "landing.stepFailed", "runner.stepFailed"]);
+const PRESENTATION_WRAPPERS = new Set<MessageKey>(["message.lead", "landing.stepFailed", "runner.stepFailed"]);
 
 /** A failed step's message without the "{step} failed:" in front of it:
  *  what a reader that asks which failure it was looks at. */

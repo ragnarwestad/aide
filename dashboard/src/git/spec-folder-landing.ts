@@ -76,7 +76,11 @@ export async function landSpecFolderOnly(
       const staged = await run(work, ["diff", "--cached", "--quiet"]);
       if (staged.code === 0) break;
       await run(work, ["commit", "-q", "-m", spec.message]);
-      const pushed = await pushWithRetry(run, work, base, wait);
+      const published = await withCheckoutLock(root, () => pushWithRetry(run, work, base, wait), { wait });
+      if (!published.locked) {
+        return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: published.lock } });
+      }
+      const pushed = published.value;
       if (pushed.ok) break;
       if (!pushed.moved) {
         return pushRefusal(root, branch, base, pushed);

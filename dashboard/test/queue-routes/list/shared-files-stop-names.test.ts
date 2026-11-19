@@ -26,7 +26,7 @@ const ANALYSIS = [
 
 const stoppedJob = {
   id: "stopped-1", project: "aide", specFolder: SPEC, steps: ["analyze"], stepIndex: 0,
-  state: "stopped", stopReason: "shared-files", error: JOBS_SENTENCE,
+  state: "failed", stopReason: "shared-files", error: JOBS_SENTENCE,
   model: {}, timeoutSec: {}, permissionMode: {}, effort: {},
   createdAt: "2026-10-05T08:00:00.000Z", spentUsd: 0, results: [],
 };

@@ -115,6 +115,8 @@ its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/g
   push wait for the checkout's lock ([the per-root lock](the-runner.md)), so a run is never in its own section at the
   same moment, and each is run once. A wait that runs out refuses the landing, naming the lock; for the catch-up it is
   logged, and the landing stays landed.
+- **Publishing uses the same checkout lock as Create.** Create holds it from pulling to pushing its new spec.
+  A Merge holds it while pushing to the default branch and rebuilds on the newer base if Create got there first.
 - **A lost lock is not a conflict.** When the merge in the landing's own worktree fails and git's stderr names a lock
   (`index.lock`, `packed-refs.lock`, a ref lock), it is retried up to five times, 400 ms apart.
 - **A refused merge is repeated by what it was.** A spec's folder landed alone is tried again twice, 700 ms and then

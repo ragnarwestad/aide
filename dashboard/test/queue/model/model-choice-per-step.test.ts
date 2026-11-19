@@ -268,7 +268,7 @@ describe("editing a running job's model for a step still ahead", () => {
   });
 
   test("a job that is not running is closed altogether", () => {
-    for (const state of ["queued", "done", "failed", "cancelled", "stopped"] as const) {
+    for (const state of ["queued", "done", "failed", "cancelled", "waiting"] as const) {
       const job = running(["analyze", "implement"]);
       job.store.update(job.id, { state });
       const answer = job.store.editTailModel(job.id, "implement", "fable");
