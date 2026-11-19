@@ -304,14 +304,14 @@ describe("reconciliation after a restart", () => {
     expect(after.spentUsd).toBeCloseTo(2);
   });
 
-  test("pid gone with no result file → interrupted, the one honest 'we do not know'", () => {
+  test("pid gone with no result file → failed, with the error saying the run vanished", () => {
     const job = runningJob();
     store.update(job.id, {
       retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
     });
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.reconcile();
-    expect(store.get(job.id)?.state).toBe("interrupted");
+    expect(store.get(job.id)?.state).toBe("failed");
     // The STATE transition above is only half of what
     // the job's own row needs — the rendered "the server restarted while
     // this step was running..." sentence is drawn from this `error`

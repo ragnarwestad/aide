@@ -74,7 +74,7 @@ describe("the session id is known before the step starts", () => {
     expect(store.get(job.id)!.results[0]!.sessionId).toBe("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
   });
 
-  test("an interrupted step clears the live id too", () => {
+  test("a step whose process died clears the live id too", () => {
     const job = enqueue();
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.tick();
@@ -82,7 +82,7 @@ describe("the session id is known before the step starts", () => {
       retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
     });
     runner.poll();
-    expect(store.get(job.id)!.state).toBe("interrupted");
+    expect(store.get(job.id)!.state).toBe("failed");
     expect(store.get(job.id)!.sessionId).toBeUndefined();
   });
 });

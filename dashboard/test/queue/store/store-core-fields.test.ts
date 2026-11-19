@@ -51,6 +51,20 @@ describe("a job mirrored with the retired extraProjects field", () => {
   });
 });
 
+describe("a job mirrored with the retired interrupted state", () => {
+  test("loads as failed, keeping the error that says why", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const error = { key: "runner.serverRestarted", values: { button: "Analyze" } };
+    for (const job of raw) Object.assign(job, { state: "interrupted", error });
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get(r.job.id)).toMatchObject({ state: "failed", error });
+  });
+});
+
 describe("QueueStore.enqueueCreate", () => {
   const allow = (project: string) => project === "brandnew";
   const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };

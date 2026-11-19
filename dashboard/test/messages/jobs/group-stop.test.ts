@@ -53,7 +53,7 @@ test("an archive landing failure names its spec even while the group remains arc
   expect(result?.notice.text).toBe(formatMessage("en", { key: "group.memberStopped", values: { spec: "aide:805" } }));
 });
 
-test.each(["stopped", "interrupted", "cancelled"] as const)("a %s member is identified on the group", (state) => {
+test.each(["stopped", "cancelled"] as const)("a %s member is identified on the group", (state) => {
   expect(getGroupStopMessage(group, [{ specFolder: "805-first", lead: { ...failed, state } }], "en")?.specFolder).toBe("805-first");
 });
 

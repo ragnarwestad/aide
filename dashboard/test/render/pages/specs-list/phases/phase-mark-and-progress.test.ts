@@ -207,7 +207,7 @@ describe("a running implement says which third it is in", () => {
   // once used must not fill a pip for a run that has stopped, nor
   // qualify a word that is no longer "running".
   test("an implement that is NOT running ignores a leftover phase", () => {
-    for (const state of ["queued", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of ["queued", "done", "failed", "stopped", "cancelled"] as const) {
       const html = rows(
         [row({ id: "impl", specFolder: "210-over", steps: ["implement"], state, tddPhase: "verify" })],
         [target("210-over")],

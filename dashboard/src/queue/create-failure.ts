@@ -7,7 +7,7 @@ import type { BoardMessage, Sentence } from "../messages/types.ts";
 import { isProvisionalKey } from "../project/spec-names.ts";
 import type { Job } from "./queue.ts";
 
-const ENDED = new Set(["failed", "stopped", "interrupted"]);
+const ENDED = new Set(["failed", "stopped"]);
 
 /** A create that is over and left no spec folder: no merge under way, and either it ended badly or its own merge
  *  failed while the job went on. Cancelled is a person's own choice, not a failure. */

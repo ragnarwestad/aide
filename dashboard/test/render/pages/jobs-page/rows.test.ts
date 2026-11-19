@@ -193,7 +193,6 @@ describe("a finished scheduled job that waits for the user keeps its row", () =>
   const waiting: [string, Partial<J>][] = [
     ["failed", { state: "failed" }],
     ["failed with a conflict", { state: "failed", errorReason: "conflict" } as Partial<J>],
-    ["interrupted", { state: "interrupted" }],
     ["stopped by its time limit", { state: "stopped", stopReason: "timeout" } as Partial<J>],
     ["stopped on red tests", { state: "stopped", stopReason: "tests-red" } as Partial<J>],
   ];
@@ -270,8 +269,8 @@ describe("a waiting scheduled job whose entry was deleted", () => {
 });
 
 describe("which jobs may be dismissed from the tab", () => {
-  test("a scheduled job that failed, stopped or was interrupted (AC-1)", () => {
-    for (const state of ["failed", "stopped", "interrupted"] as const) expect(jobDismissible(sched({ state }))).toBe(true);
+  test("a scheduled job that failed or stopped (AC-1)", () => {
+    for (const state of ["failed", "stopped"] as const) expect(jobDismissible(sched({ state }))).toBe(true);
   });
 
   test("a scheduled job in flight, done or cancelled, and no other kind of job (AC-4)", () => {
@@ -379,9 +378,7 @@ describe("what a job row offers to stop it", () => {
   });
 
   test("a finished job offers nothing", () => {
-    for (const state of ["done", "interrupted"] as const) {
-      expect(jobControl(sched({ state }))).toBeUndefined();
-    }
+    expect(jobControl(sched({ state: "done" }))).toBeUndefined();
   });
 });
 
@@ -397,8 +394,8 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
     expect(ids(jobs)).toEqual(["q", "h", "r"]);
   });
 
-  test("failed and interrupted deploys stay beside newer deploys (AC-3)", () => {
-    for (const state of ["failed", "interrupted"] as const) {
+  test("failed deploys stay beside newer deploys (AC-3)", () => {
+    for (const state of ["failed"] as const) {
       expect(ids([deploy({ id: "f", state, createdAt: T(1) })])).toEqual(["f"]);
       expect(ids([deploy({ id: "f", state, createdAt: T(1) }), deploy({ id: "n", state: "queued", createdAt: T(2) })])).toEqual(["f", "n"]);
     }

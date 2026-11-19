@@ -102,7 +102,6 @@ describe("what a notification says", () => {
   const SPEC_ENDINGS = {
     failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("implement", "error", false)] }),
     stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("implement", "timeout", false)] }),
-    interrupted: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "process-gone", { finishedAt: new Date().toISOString() }),
   };
 
   for (const ending of Object.keys(SPEC_ENDINGS) as (keyof typeof SPEC_ENDINGS)[]) {
@@ -232,9 +231,8 @@ describe("what a scheduled run's notification says", () => {
     done: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-succeeded-last", { results: [result("schedule")] }),
     failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("schedule", "error", false)] }),
     stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] }),
-    interrupted: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "process-gone", { finishedAt: new Date().toISOString() }),
   };
-  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
+  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
     test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report`, async () => {
@@ -254,8 +252,8 @@ describe("what a scheduled run's notification says", () => {
     });
   }
 
-  test("the four outcomes each have a sentence of their own", () => {
+  test("the three outcomes each have a sentence of their own", () => {
     const bodies = Object.values(KEYS).map((key) => formatMessage("en", { key }));
-    expect(new Set(bodies).size).toBe(4);
+    expect(new Set(bodies).size).toBe(3);
   });
 });

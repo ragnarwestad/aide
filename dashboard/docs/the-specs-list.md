@@ -446,7 +446,7 @@ create job because no job was queued.
 
 ## Historical failed creates
 
-A create that ended without a spec (`failed`, `stopped`, `interrupted`, or its own merge failed, still under its
+A create that ended without a spec (`failed`, `stopped`, or its own merge failed, still under its
 provisional key, with no merge under way) is not a row in any project: it has no number and nothing to open. The top of
 the list shows one message for it instead: the project, the title and the reason in the reader's language, with **Try
 again** and **Dismiss**. A reason with no advice of its own is followed by what to press: **Try again**, then the
@@ -729,7 +729,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   step is `deploy` (`deployStep`, `queue/steps.ts`) has a row named "Deploy <project>", with the key
   `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It
   offers Cancel while queued and nothing once it runs. The open row has a line per step (`deploySteps`,
-  `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed or was interrupted, as one message
+  `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed, as one message
   line under its state, open or shut. A running deploy that waits for a merge reads "Queued".
 - **A standalone Merge names its destination and source**, for example "Merge to trunk · feature/topic".
   The destination is the project's current default branch; an unreadable destination is shown as unknown.

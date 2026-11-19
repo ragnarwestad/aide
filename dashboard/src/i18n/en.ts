@@ -179,7 +179,6 @@ export const en = {
   "jobs.confirmBody": "This stops it right away.",
   "jobs.endedFailed": "The job failed — its log says why.",
   "jobs.endedStopped": "The job stopped before it finished — its log says where.",
-  "jobs.endedInterrupted": "The job was cut off before it finished — its log says how far it got.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
@@ -253,7 +252,6 @@ export const en = {
   "state.done": "done",
   "state.failed": "failed",
   "state.cancelled": "cancelled",
-  "state.interrupted": "interrupted",
   // A hold is not a stop: the row's own badge for a queued
   // job the runner is holding back, never merged with "stopped" below.
   "state.heldBack": "held back",

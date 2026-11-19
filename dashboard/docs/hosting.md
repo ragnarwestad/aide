@@ -145,7 +145,7 @@ reduced motion. A browser without view transitions changes pages as it always di
 not a page load and is unchanged.
 
 The number on the app's icon is how many specs wait for a person: a spec counts when its latest job failed, stopped or
-was interrupted, or is an archive held back on unticked acceptance criteria, in a project the board serves. With none,
+or is an archive held back on unticked acceptance criteria, in a project the board serves. With none,
 the icon carries no number. A page sets the number when it loads and on every live update that changes it, and every
 push sets it when it arrives, so the icon is current while the app is closed. Where the device has no badge support, no
 number shows and nothing else changes. On an iPhone the number shows only on the Home Screen app, and only with

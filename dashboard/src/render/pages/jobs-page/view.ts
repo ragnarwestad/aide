@@ -50,7 +50,7 @@ const jobStateEntries: StateEntry[] = [
   { key: "active:all", label: "Running", states: ["running"] },
   { key: "queued", label: "Queued", where: (g) => g.lead ? jobPresentation(g.lead).queued : g.state === "queued" || !!(g as RowFacts).inQueue },
   { key: "stopped", label: "Stopped", states: ["stopped"] },
-  { key: "failed", label: "Failed", states: ["failed", "interrupted", "archived-unlanded"] },
+  { key: "failed", label: "Failed", states: ["failed", "archived-unlanded"] },
   { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
 ];
 export const JOBS_STATE_FILTERS = [...jobStateEntries.slice(0, 3), doneState, ...jobStateEntries.slice(3)];

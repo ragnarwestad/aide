@@ -178,7 +178,6 @@ export const es: Record<TranslationKey, string> = {
   "jobs.confirmBody": "Esto lo detiene de inmediato.",
   "jobs.endedFailed": "El trabajo falló — su registro dice por qué.",
   "jobs.endedStopped": "El trabajo se detuvo antes de terminar — su registro dice dónde.",
-  "jobs.endedInterrupted": "El trabajo se cortó antes de terminar — su registro dice hasta dónde llegó.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Tipo",
   "jobs.typesLabel": "Tipos",
@@ -248,7 +247,6 @@ export const es: Record<TranslationKey, string> = {
   "state.done": "hecho",
   "state.failed": "fallido",
   "state.cancelled": "cancelado",
-  "state.interrupted": "interrumpido",
   "state.heldBack": "retenido",
   "state.stopped": "detenido",
 

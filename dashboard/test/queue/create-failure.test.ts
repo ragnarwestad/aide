@@ -8,7 +8,7 @@ const KEY = "new-abc123de";
 const create = (over: Record<string, unknown> = {}) => ({ specFolder: KEY, state: "failed", ...over });
 
 describe("a create that ended without a spec", () => {
-  test.each(["failed", "stopped", "interrupted"])("%s is over", (state) => {
+  test.each(["failed", "stopped"])("%s is over", (state) => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(true);
   });
 

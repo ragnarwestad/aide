@@ -1,5 +1,5 @@
-// The settings table's textareas: they fit their content, save on Enter
-// and never hold a line break.
+// The settings table's textareas: they save on Enter and never hold a
+// line break.
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { bindOneLineFields, foldLineBreaks } from "../../src/specs-client/forms.ts";
@@ -21,8 +21,6 @@ function load(saveDisabled = false) {
   (globalThis as { window?: unknown }).window = win;
   const form = win.document.querySelector("form") as unknown as HTMLFormElement;
   const field = form.querySelector("textarea") as HTMLTextAreaElement;
-  let scroll = 20;
-  Object.defineProperty(field, "scrollHeight", { get: () => scroll });
   const submits: number[] = [];
   (form as { requestSubmit: () => void }).requestSubmit = () => void submits.push(1);
   bindOneLineFields(form);
@@ -32,7 +30,7 @@ function load(saveDisabled = false) {
     field.dispatchEvent(e as unknown as Event);
     return e as unknown as Event;
   };
-  return { win, form, field, submits, key, setScroll: (n: number) => (scroll = n) };
+  return { win, form, field, submits, key };
 }
 
 describe("Enter", () => {

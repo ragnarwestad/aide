@@ -142,7 +142,8 @@ def test_every_push_in_a_command_must_spare_main(tmp_path):
                     "git push origin topic; /usr/bin/git push origin main",
                     "git push origin topic && git -c push.default=current push",
                     "/usr/bin/git push origin main", "git --git-dir=.git push origin main",
-                    "git -c push.default=matching push origin topic"):
+                    "git -c push.default=matching push origin topic",
+                    "bash -c 'git push origin main'", "G=git; $G push origin main", "\"git\" push origin main"):
         assert guard(tmp_path, command, queue=[ARCHIVE_LANDING], checkouts=CHECKOUTS, cwd=aide).returncode == 2, command
 
 

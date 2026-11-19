@@ -792,14 +792,14 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
 - a step **failed**, ran out of **time**, hit the AI's **usage limit**, found its model **at capacity**, or was **cut off** (its process vanished, or the
-  server restarted under it) — the job entered `failed`, `stopped` or `interrupted`; a tap opens the Running tab with
+  server restarted under it) — the job entered `failed` or `stopped`; a tap opens the Running tab with
   that spec's row unfolded and scrolled to, where its state and the buttons that act on it are. A stop on shared files names, by
   number, the specs it added to the analysis's record;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge — a tap opens the
   Running tab with that spec's row unfolded and scrolled to;
 - an **archive is held back** on unticked acceptance criteria — a tap opens the Running tab with that spec's criteria
   unfolded and scrolled to, where they are ticked;
-- a **create ends without a spec**: it failed, stopped, was interrupted, or its own merge failed.
+- a **create ends without a spec**: it failed, stopped, or its own merge failed.
 
 Nothing is sent for a step that finishes normally, an archive that merges, or a job someone cancels. A create that is
 still under way, including one whose merge is running, sends nothing until it is over.
@@ -808,7 +808,7 @@ A **scheduled job** notifies by its own choice, not by the rules above: when a r
 whether to send:
 
 - `never` — sends nothing.
-- `failure` — sends when the run ended `failed`, `stopped` or `interrupted`. An entry that names none is read as
+- `failure` — sends when the run ended `failed` or `stopped`. An entry that names none is read as
   `failure`, so a job that already exists notifies when a run does not succeed.
 - `always` — sends for every run, including one that succeeded.
 
@@ -903,7 +903,7 @@ remain available. Choosing another provider resumes the same job and phases; cho
 keeps that provider's reset time. Stop cancels automatic restart and unlocks the phase choices. The next Start follows
 the choices for each member, including explicitly chosen reruns of completed work. Untouched members do not repeat
 completed phases.
-The same notice covers failed, interrupted and cancelled member jobs, and a failed Archive landing even when the
+The same notice covers failed and cancelled member jobs, and a failed Archive landing even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.
 Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
@@ -927,7 +927,7 @@ whole history. The Logs tab keeps every attempt in the current work round, inclu
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.
 
-A scheduled job keeps its own row after it finishes. A failed, stopped or interrupted run counts as waiting for the
+A scheduled job keeps its own row after it finishes. A failed or stopped run counts as waiting for the
 user until a newer job for the same schedule entry exists or the entry is deleted. The row then becomes finished but
 stays in the history. Push notifications keep their existing waiting rules.
 
@@ -938,7 +938,7 @@ The board's own deploy is a job under the tracking key `deploy`, a step the serv
 (`takesSlot`, `queue/steps.ts`). The Deploy button on the board's own project queues it
 (`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
 reached once it has one, and it has a row while it is queued,
-held back or running, and once it has failed or been interrupted until a newer deploy of the project is queued. A second
+held back or running, and once it has failed until a newer deploy of the project is queued. A second
 deploy is refused while one is queued or running. During that time, the header Deploy mark and the Deploy tab’s
 start button are disabled; they become available again when the job ends if deployment is still needed. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
 the Deploy and its planned restart; Archive and Land continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
@@ -958,7 +958,7 @@ A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same col
 with the project: "<project>:<name>". Every job row's second line holds when the job was made and one pip per step, the
 step's first letter above it, coloured done, running, failed or not started; a phone shows the pips alone. It is shut by default, and its › opens it to show Stop or Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit of spec files or code and spec files), each with its state, its
-time and a › that unfolds the step's part of the log. A job that failed, stopped or was interrupted says why in a line
+time and a › that unfolds the step's part of the log. A job that failed or stopped says why in a line
 under its state, ending with a Log link. A queued job offers Cancel and a running or landing one Stop, each asking first;
 a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.

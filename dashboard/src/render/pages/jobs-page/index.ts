@@ -91,7 +91,7 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
   const openFor = jobsStateOpensGroups(v.list.filter?.state);
   const groups = activeGroups.map((group) => {
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
-    const failed = members.find((row) => ["failed", "interrupted", "cancelled", "archived-unlanded"].includes(row.group.state));
+    const failed = members.find((row) => ["failed", "cancelled", "archived-unlanded"].includes(row.group.state));
     const key = `execution-group:${group.id}`;
     const createdAt = specJobCreatedAt(members.flatMap((member) => member.jobs)) ?? group.createdAt;
     // Each member's current row, by its key: an earlier round of a reopened

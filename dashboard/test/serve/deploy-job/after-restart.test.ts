@@ -154,10 +154,10 @@ describe("the new process fails a deploy that did not take", () => {
 });
 
 describe("what the new process leaves alone", () => {
-  test("a deploy cut before its own restart is interrupted by the boot's reconcile, not finished", () => {
+  test("a deploy cut before its own restart fails in the boot's reconcile, not finished", () => {
     const id = restartedDeploy(10_000, { restartedAt: undefined });
     const { board } = boot(FETCHED);
-    expect(board.get(id)?.state).toBe("interrupted");
+    expect(board.get(id)?.state).toBe("failed");
     expect(board.get(id)?.error).toMatchObject({ key: "runner.serverRestarted" });
   });
 

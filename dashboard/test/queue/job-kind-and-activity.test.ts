@@ -40,7 +40,7 @@ describe("dismissible jobs use the queue rule", () => {
   });
 
   test("only a scheduled job waiting for a person is dismissible", () => {
-    for (const state of ["failed", "stopped", "interrupted"]) {
+    for (const state of ["failed", "stopped"]) {
       expect(jobDismissible(job({ steps: ["schedule"], specFolder: "schedule-nightly", state }))).toBe(true);
     }
     for (const state of ["queued", "running", "done", "cancelled"]) {

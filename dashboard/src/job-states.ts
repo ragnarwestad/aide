@@ -4,7 +4,7 @@
 
 export const JOB_STATES = [
   "queued", "running", "done",
-  "stopped", "failed", "cancelled", "interrupted",
+  "stopped", "failed", "cancelled",
 ] as const;
 export type JobState = (typeof JOB_STATES)[number];
 export const isJobState = (value: unknown): value is JobState =>

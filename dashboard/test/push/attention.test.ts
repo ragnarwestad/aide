@@ -132,7 +132,6 @@ describe("what a spec is waiting for picks the sentence", () => {
 
   test("each waiting state and stop reason has its own key", () => {
     expect(key(job({ state: "failed" }))).toBe("push.failed");
-    expect(key(job({ state: "interrupted" }))).toBe("push.interrupted");
     expect(key(job({ state: "stopped", stopReason: "timeout" }))).toBe("push.stoppedTimeout");
     expect(key(job({ state: "stopped", stopReason: "provider-limit" }))).toBe("push.stoppedProviderLimit");
     expect(key(job({ state: "stopped", stopReason: "model-at-capacity" }))).toBe("push.stoppedModelAtCapacity");
@@ -186,8 +185,11 @@ describe("what a spec is waiting for picks the sentence", () => {
   test("the step named is the one that ran", () => {
     const a = attentionFor({ state: "running", results: 0 }, job({ state: "failed", results: [result("analyze", "error", false)] }));
     expect(a?.step).toBe("analyze");
-    const b = attentionFor({ state: "running", results: 0 }, job({ state: "interrupted", steps: ["analyze", "implement"], stepIndex: 1 }));
+    const b = attentionFor({ state: "running", results: 0 }, job({ state: "failed", steps: ["analyze", "implement"], stepIndex: 1 }));
     expect(b?.step).toBe("implement");
+    const died = attentionFor({ state: "running", results: 1 }, job({ state: "failed", steps: ["analyze", "implement"], stepIndex: 1,
+      results: [result("analyze")], error: { key: "runner.runVanished", values: { button: "Implement" } } }));
+    expect(died?.step).toBe("implement");
   });
 });
 
@@ -217,13 +219,12 @@ describe("a scheduled run notifies by its entry's own choice", () => {
     ["done", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "step-succeeded-last", { results: [result("schedule")] })],
     ["failed", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "step-failed", { results: [result("schedule", "error", false)] })],
     ["stopped", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] })],
-    ["interrupted", (b: Awaited<ReturnType<typeof scheduled>>, id: string) => b.store.transition(id, "process-gone", { finishedAt: now() })],
   ] as const;
   // How many of the four endings each choice sends for.
   const WANT: Record<ScheduleNotify, Record<string, number>> = {
-    always: { done: 1, failed: 1, stopped: 1, interrupted: 1 },
-    failure: { done: 0, failed: 1, stopped: 1, interrupted: 1 },
-    never: { done: 0, failed: 0, stopped: 0, interrupted: 0 },
+    always: { done: 1, failed: 1, stopped: 1 },
+    failure: { done: 0, failed: 1, stopped: 1 },
+    never: { done: 0, failed: 0, stopped: 0 },
   };
   for (const choice of ["always", "failure", "never"] as const) {
     for (const [ending, end] of ENDINGS) {

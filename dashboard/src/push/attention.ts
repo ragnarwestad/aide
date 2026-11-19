@@ -30,7 +30,7 @@ export const seenOf = (job: Job): Seen => ({
 });
 
 export interface Attention {
-  kind: "failed" | "stopped" | "interrupted" | "archive-held-back" | "create-failed" | "schedule-run";
+  kind: "failed" | "stopped" | "archive-held-back" | "create-failed" | "schedule-run";
   step: string;
   reason?: StopReason;
   /** How a scheduled run ended, for `schedule-run`. */
@@ -40,13 +40,13 @@ export interface Attention {
   attempts?: number;
 }
 
-export type ScheduleOutcome = "done" | "failed" | "stopped" | "interrupted";
+export type ScheduleOutcome = "done" | "failed" | "stopped";
 
 /** The entry's choice for a scheduled job, read only when asked; null
  *  when the entry is gone. */
 export type ScheduleChoice = () => ScheduleNotify | null;
 
-const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed", "stopped", "interrupted"]);
+const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed", "stopped"]);
 
 /** One notification when a scheduled run ENDS (the edge into a final
  *  state), by the entry's own choice. `cancelled` is a person's own act
@@ -59,6 +59,10 @@ function scheduleRunAttention(prev: Seen | undefined, job: Job, choice?: Schedul
   return { kind: "schedule-run", step: "schedule", outcome: job.state as ScheduleOutcome };
 }
 
+const DIED_WITHOUT_RESULT = new Set(["runner.runVanished", "runner.serverRestarted"]);
+const diedWithoutResult = (job: Job): boolean =>
+  [job.error ?? []].flat().some((e) => typeof e !== "string" && DIED_WITHOUT_RESULT.has(e.key));
+
 export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: ScheduleChoice): Attention | null {
   // A create that ended without a spec names its project and title and
   // opens New spec, once: the edge of the rule, not the state, is the trigger.
@@ -68,15 +72,15 @@ export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: 
   if (!isSpecFolder(job.specFolder)) return null;
   const last = job.results.at(-1);
   if (job.state !== prev?.state && WAITS_FOR_PERSON.has(job.state)) {
-    // An interrupted step left no result of its own, so the step that
-    // was in flight is the one at `stepIndex`; the others ended with one.
-    const step = job.state === "interrupted" ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
+    // A step whose process died left no result of its own, so the step
+    // that was in flight is the one at `stepIndex`; the others ended with one.
+    const step = diedWithoutResult(job) ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
     const specs =
       job.state === "stopped" && job.stopReason === "shared-files"
         ? (last?.sharedFiles ?? []).map((s) => specNumber(s.spec))
         : undefined;
     return {
-      kind: job.state as "failed" | "stopped" | "interrupted",
+      kind: job.state as "failed" | "stopped",
       step: step ?? "implement",
       reason: job.stopReason,
       attempts: job.retry?.action === step && job.retry.previousAttempt ? job.retry.attempts : undefined,
@@ -117,14 +121,12 @@ const SCHEDULE_KEYS: Record<ScheduleOutcome, MessageKey> = {
   done: "push.scheduleDone",
   failed: "push.scheduleFailed",
   stopped: "push.scheduleStopped",
-  interrupted: "push.scheduleInterrupted",
 };
 
 export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "schedule-run") return SCHEDULE_KEYS[a.outcome ?? "failed"];
   if (a.kind === "archive-held-back") return "push.archiveHeldBack";
   if (a.kind === "create-failed") return "push.createFailed";
-  if (a.kind === "interrupted") return "push.interrupted";
   if (a.kind === "failed") return a.attempts === MAX_ATTEMPTS ? "push.failedAfterTwoAttempts" : "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";

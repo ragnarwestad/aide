@@ -470,7 +470,7 @@ export class QueueStore {
     const othersInFlight = [...this.jobs.values()].some((other) =>
       other.id !== job.id && other.executionGroupId === group.id && (other.state === "queued" || other.state === "running"));
     const archive = job.steps[job.stepIndex] === "archive";
-    const state = job.state === "stopped" || job.state === "failed" || job.state === "interrupted" ? "stopped"
+    const state = job.state === "stopped" || job.state === "failed" ? "stopped"
       : archive && (job.state === "queued" || job.state === "running") ? "archiving"
         : job.state === "running" ? "running"
           : job.state === "queued" ? "queued"

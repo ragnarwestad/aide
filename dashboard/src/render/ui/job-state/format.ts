@@ -22,7 +22,6 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
   done: "state.done",
   failed: "state.failed",
   cancelled: "state.cancelled",
-  interrupted: "state.interrupted",
 };
 
 /** The state, in one word. That word is the whole of what the page says
@@ -54,7 +53,6 @@ export function endingWord(lang: Language, reason: string): string {
 //                 `stateLabel` above), so it takes the same amber as
 //                 waiting: notice, not alarm.
 //   failed      — a real failure, so danger.
-//   interrupted — grouped with failed, as it always was.
 //   cancelled   — a stop somebody chose, not a failure: the same amber
 //                 as stopped, because the step was started and did not
 //                 finish, and pressing again is what comes next. Grey
@@ -66,7 +64,6 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   stopped: "waiting",
   failed: "refused",
   cancelled: "waiting",
-  interrupted: "refused",
 };
 
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {

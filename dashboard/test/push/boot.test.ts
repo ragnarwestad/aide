@@ -62,7 +62,7 @@ async function boot(jobs: object[]) {
 }
 
 describe("a restart sends one push for the job it cut off, and none for the finished ones", () => {
-  test("finished jobs stay quiet; a job left running with no process is interrupted and announced once", async () => {
+  test("finished jobs stay quiet; a job left running with no process fails and is announced once", async () => {
     const sent = await boot([
       job("f1", "failed"), job("s1", "stopped", { stopReason: "timeout" }), job("d1", "done"),
       job("r1", "running", {

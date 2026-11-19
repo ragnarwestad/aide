@@ -31,7 +31,7 @@ const BY_WORD: [RegExp, string][] = [
   [stateWords("state.stopped"), "stopped"],
   [stateWords("state.heldBack"), "pause"],
   [/^(closed|lukket)\b/, "closed"],
-  [stateWords("state.cancelled", "state.interrupted"), "ban"],
+  [stateWords("state.cancelled"), "ban"],
   [/^(not verified|ikke verifisert)/, "help"],
   [/^(not started|ikke startet)/, "dashed"],
   // Standing still until another spec is done: no icon, though the word

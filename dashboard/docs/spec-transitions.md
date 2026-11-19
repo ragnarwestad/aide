@@ -243,8 +243,8 @@ An archived or closed row has one control only, **Reopen**, since the server ref
 A row's state is one of these:
 
 - `not-started` — the spec has no job at all.
-- The state of its most recent or in-flight job: `queued`, `running`, `done`, `stopped`, `failed`, `cancelled` or
-  `interrupted`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
+- The state of its most recent or in-flight job: `queued`, `running`, `done`, `stopped`, `failed` or
+  `cancelled`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
   merging sits with the ones still going.
 - `archived`.
 - `archived-unlanded` — archived, with its branch still on origin and not merged. A branch that merged leaves the
@@ -258,13 +258,13 @@ The State filter groups them:
 - **Running** — `running`, a landing included, `queued` not.
 - **Waiting** — `queued` or `done`, with no landing in progress.
 - **Stopped** — `stopped`.
-- **Failed** — `failed`, `cancelled`, `interrupted` and `archived-unlanded`.
+- **Failed** — `failed`, `cancelled` and `archived-unlanded`.
 - **Archived** — `archived` and `archived-unlanded`.
 - **Closed** — `closed`.
 - **Not verified** — specs with an acceptance row marked Not verified, archived ones included.
 
 **That list is a job's state, not the spec's.** `archived` and `closed` appear in both vocabularies and mean the
-same thing; the rest — `queued`, `running`, `done`, `stopped`, `failed`, `cancelled`, `interrupted` — belong to the
+same thing; the rest — `queued`, `running`, `done`, `stopped`, `failed`, `cancelled` — belong to the
 job, and say nothing about how far the spec has got. Which PHASE a spec has reached is read off the completed line
 and drawn as the four marks beside its name — see
 [The specs list and the spec page](the-specs-list.md).

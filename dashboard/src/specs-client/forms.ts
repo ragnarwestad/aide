@@ -235,20 +235,14 @@ export function foldLineBreaks(text: string): string {
 }
 
 /** The settings table's text fields are textareas, so a long value wraps
- *  instead of scrolling. A textarea does not grow, does not save on
- *  Enter and takes a line break, all of which an `<input>` did; each is
- *  put back here, per field (never the form: a form with no such field
- *  binds nothing, and `window` is touched only when one was found). */
+ *  instead of scrolling; CSS `field-sizing` makes it grow with its text.
+ *  A textarea does not save on Enter and takes a line break, both of
+ *  which an `<input>` did; each is put back here, per field (never the
+ *  form: a form with no such field binds nothing). */
 export function bindOneLineFields(form: HTMLFormElement): () => void {
   const fields = Array.from(form.querySelectorAll("textarea[data-oneline]")) as HTMLTextAreaElement[];
   if (!fields.length) return () => {};
-  const fits: (() => void)[] = [];
   for (const field of fields) {
-    // From one row every time, which is what lets a field shrink again.
-    const fit = () => {
-      field.style.height = "auto";
-      field.style.height = `${field.scrollHeight + ((field.offsetHeight - field.clientHeight) || 0)}px`;
-    };
     field.addEventListener("keydown", ((event: KeyboardEvent) => {
       if (event.key !== "Enter") return;
       // keyCode 229 is the only sign of an IME keydown Safari sends with isComposing false.
@@ -269,12 +263,7 @@ export function bindOneLineFields(form: HTMLFormElement): () => void {
         const caret = Math.max(0, field.value.length - fromEnd);
         field.setSelectionRange?.(caret, caret);
       }
-      fit();
     });
-    fits.push(fit);
-    fit();
   }
-  const resize = () => fits.forEach((fit) => fit());
-  window.addEventListener("resize", resize);
-  return () => window.removeEventListener("resize", resize);
+  return () => {};
 }

@@ -25,8 +25,8 @@ const ENDINGS: Ending[] = [
   { name: "step-failed", result: { ...okResult(0), ok: false, terminalReason: "cli-error" }, state: "failed" },
   { name: "step-succeeded-last", result: okResult(0), state: "done" },
   { name: "step-succeeded", steps: ["analyze", "implement"], result: okResult(0), state: "queued" },
-  { name: "process-gone from poll", lastAttempt: true, alive: false, result: null, via: "poll", state: "interrupted" },
-  { name: "process-gone from reconcile", lastAttempt: true, alive: false, result: null, via: "reconcile", state: "interrupted" },
+  { name: "process-gone from poll", lastAttempt: true, alive: false, result: null, via: "poll", state: "failed" },
+  { name: "process-gone from reconcile", lastAttempt: true, alive: false, result: null, via: "reconcile", state: "failed" },
   { name: "the vanished-run retry", alive: false, result: null, state: "queued" },
 ];
 

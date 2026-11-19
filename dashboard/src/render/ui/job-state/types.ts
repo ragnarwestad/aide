@@ -48,8 +48,8 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
-  /** When the job ended, as the queue recorded it: an interrupted job has
-   *  this though it left no result to take an end from. */
+  /** When the job ended, as the queue recorded it: a job whose process died
+   *  has this though it left no result to take an end from. */
   finishedAt?: string;
   /** The commit a deploy's fetch reached. */
   deployCommit?: string;

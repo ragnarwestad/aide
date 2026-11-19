@@ -13,7 +13,7 @@ export interface JobPresentation {
   variant: "idle" | "running" | "done" | "waiting" | "refused";
   waiting?: QueueRowView["queuePosition"];
 }
-const variants = { queued: "idle", running: "running", done: "done", stopped: "waiting", failed: "refused", cancelled: "waiting", interrupted: "refused", "needs-action": "waiting", testing: "running", merging: "running" } as const;
+const variants = { queued: "idle", running: "running", done: "done", stopped: "waiting", failed: "refused", cancelled: "waiting", "needs-action": "waiting", testing: "running", merging: "running" } as const;
 
 /** Presentation only: a place in the queue does not imply automatic progress. */
 export function jobPresentation(row: Facts, step?: string, position?: QueueRowView["queuePosition"]): JobPresentation {

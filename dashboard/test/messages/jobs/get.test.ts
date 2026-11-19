@@ -34,20 +34,19 @@ describe("the line under a job row's state", () => {
     }
   });
 
-  test("a stopped job says why in amber, an interrupted one in red", () => {
+  test("a stopped job says why in amber, a failed one in red", () => {
     expect(message(schedule({ id: "s1", state: "stopped", error: said }))).toEqual({
       variant: "waiting", text: sentenceOf,
     });
-    expect(message(schedule({ id: "i1", state: "interrupted", error: said }))).toEqual({
+    expect(message(schedule({ id: "i1", state: "failed", error: said }))).toEqual({
       variant: "failed", text: sentenceOf,
     });
   });
 
-  test("with no sentence of its own, a failed, stopped or interrupted job says how it ended", () => {
+  test("with no sentence of its own, a failed or stopped job says how it ended", () => {
     const ended = [
       ["failed", "jobs.endedFailed"],
       ["stopped", "jobs.endedStopped"],
-      ["interrupted", "jobs.endedInterrupted"],
     ] as const;
     for (const [state, key] of ended) {
       for (const [, make] of kinds) {

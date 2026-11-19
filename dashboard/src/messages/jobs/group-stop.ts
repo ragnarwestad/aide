@@ -15,7 +15,7 @@ export interface GroupStopMember {
 }
 
 const endedBadly = (lead: QueueRowView | undefined): boolean =>
-  !!lead && ["stopped", "failed", "interrupted", "cancelled"].includes(lead.state);
+  !!lead && ["stopped", "failed", "cancelled"].includes(lead.state);
 
 type GroupStop = Pick<ExecutionGroup, "project" | "state" | "currentMember" | "error"> & Partial<Pick<ExecutionGroup, "jobs" | "stoppedByUser">>;
 

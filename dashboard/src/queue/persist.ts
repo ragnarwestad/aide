@@ -26,6 +26,9 @@ export function parseStoredJob(raw: unknown): Job | null {
   if (!Array.isArray(r.steps) || r.steps.some((s) => !(WORKFLOW_STEPS as readonly string[]).includes(s as string))) {
     return null;
   }
+  // A job whose process died used to end `interrupted`; it is `failed` now,
+  // with the same error saying why.
+  if (r.state === "interrupted") r.state = "failed";
   if (!isJobState(r.state)) return null;
   // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten

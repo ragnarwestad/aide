@@ -72,8 +72,8 @@ Each entry says what the word is and links the page that has the rest.
 - **Board** — the dashboard: the web pages that queue, run and show the
   steps. [The dashboard](../dashboard/README.md).
 - **Job** — one run of one or more steps for one spec or scheduled
-  task, with its own state: queued, running, done, stopped, failed,
-  cancelled or interrupted.
+  task, with its own state: queued, running, done, stopped, failed
+  or cancelled.
   [A job's states](../dashboard/docs/job-states.md).
 - **Step** — anything the queue runs: the four phases, and explore,
   schedule, reopen and close.

@@ -20,7 +20,7 @@ const project = (...jobs: (typeof planned)[]) => members.map((member) => withGro
 }));
 
 test("Archive has no attempt or coloured pip while an earlier member phase runs or is interrupted", () => {
-  for (const job of [planned, { ...planned, stepIndex: 1, state: "interrupted" as const }]) {
+  for (const job of [planned, { ...planned, stepIndex: 1, state: "failed" as const }]) {
     for (const member of project(job)) {
       const archive = member.phases.find((phase) => phase.step === "archive")!;
       expect(archive.attempts).toEqual([]);
@@ -39,14 +39,14 @@ test("an actual Archive attempt shares only Archive's state and cost with the me
     expect(archive.attempts[0]).toMatchObject({ state: "running", spentUsd: 2, spentTokens: 200 });
     expect(phasePipKind(archive, member.done)).toBe("now");
   }
-  for (const member of project({ ...job, state: "interrupted" })) {
+  for (const member of project({ ...job, state: "failed" })) {
     const archive = member.phases.find((phase) => phase.step === "archive")!;
     expect(phasePipKind(archive, member.done)).toBe("refused");
   }
 });
 
 test("a newer planned Archive cannot replace an earlier actual Archive attempt", () => {
-  const actual = { ...planned, id: "actual", steps: ["archive"], state: "interrupted" as const, createdAt: "2026-11-15T10:00:00Z" };
+  const actual = { ...planned, id: "actual", steps: ["archive"], state: "failed" as const, createdAt: "2026-11-15T10:00:00Z" };
   const newer = { ...planned, id: "planned", createdAt: "2026-11-15T11:00:00Z" };
   const unrelated = { ...actual, id: "other-group", executionGroupId: "other", createdAt: "2026-11-15T12:00:00Z" };
   for (const member of project(actual, newer, unrelated)) {

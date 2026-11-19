@@ -178,7 +178,6 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.confirmBody": "Dette stopper jobben med en gang.",
   "jobs.endedFailed": "Jobben feilet — loggen viser hvorfor.",
   "jobs.endedStopped": "Jobben stoppet før den var ferdig — loggen viser hvor.",
-  "jobs.endedInterrupted": "Jobben ble avbrutt før den var ferdig — loggen viser hvor langt den kom.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Typer",
@@ -250,7 +249,6 @@ export const nb: Record<TranslationKey, string> = {
   "state.done": "ferdig",
   "state.failed": "feilet",
   "state.cancelled": "avbrutt",
-  "state.interrupted": "avbrutt",
   "state.heldBack": "holdt tilbake",
   "state.stopped": "stoppet",
 

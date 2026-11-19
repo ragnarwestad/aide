@@ -169,7 +169,7 @@ describe("a busy job holds every step on the row", () => {
   });
 
   test("a job that failed, stopped or was cancelled holds nothing either", () => {
-    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of ["failed", "stopped", "cancelled"] as const) {
       const l = line(pair(state, 1));
       expect(box(l, "analyze")).not.toContain("disabled");
       expect(box(l, "implement")).not.toContain("disabled");

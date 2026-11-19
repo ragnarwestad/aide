@@ -15,7 +15,6 @@ type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | 
 const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
   failed: "jobs.endedFailed",
   stopped: "jobs.endedStopped",
-  interrupted: "jobs.endedInterrupted",
 };
 
 export function getJobMessage(row: MessageRow, lang: Language): Message | undefined {

@@ -65,7 +65,7 @@ describe("one line per row for what is going on and what is next", () => {
   // button reading "Implement". The four states keep their badge; the
   // sentence goes.
   test("a job that stopped short is not told how to try again", () => {
-    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of ["failed", "stopped", "cancelled"] as const) {
       const cell = stateCell(
         rows([row({ specFolder: "101-a", steps: ["implement"], state })], [target("101-a")]),
       );
@@ -243,7 +243,7 @@ describe("one line per row for what is going on and what is next", () => {
   // in the one place on the row that has the width for it. The line
   // below says what to press.
   test("a run that stopped short says the held-back reason in the row's panel", () => {
-    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+    for (const state of ["failed", "stopped", "cancelled"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["archive"], state })],
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],

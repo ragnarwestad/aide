@@ -178,7 +178,6 @@ export const fr: Record<TranslationKey, string> = {
   "jobs.confirmBody": "Cela l'arrête tout de suite.",
   "jobs.endedFailed": "La tâche a échoué — son journal dit pourquoi.",
   "jobs.endedStopped": "La tâche s'est arrêtée avant la fin — son journal dit où.",
-  "jobs.endedInterrupted": "La tâche a été coupée avant la fin — son journal dit jusqu'où elle est allée.",
   "jobs.linkSpec": "Spec",
   "jobs.kindHeading": "Type",
   "jobs.typesLabel": "Types",
@@ -248,7 +247,6 @@ export const fr: Record<TranslationKey, string> = {
   "state.done": "terminé",
   "state.failed": "échoué",
   "state.cancelled": "annulé",
-  "state.interrupted": "interrompu",
   "state.heldBack": "retenu",
   "state.stopped": "arrêté",
 

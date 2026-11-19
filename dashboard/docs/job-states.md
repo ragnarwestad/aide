@@ -32,9 +32,8 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `running`     | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                            |
 | `done`        | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all. |
 | `stopped`     | A step reached its own time limit, a provider limit ended it, an analyze stopped on its acceptance criteria, or a landing's test run went red. `stopReason` says which.                                     |
-| `failed`      | A step reported failure, or a landing after a successful step did not finish.                                                                                                                               |
+| `failed`      | A step reported failure, its process died without leaving a result, or a landing after a successful step did not finish.                                                                                    |
 | `cancelled`   | Cancelled by a user, or an expired scheduled quota wait.                                                                                                                                                    |
-| `interrupted` | The step's process died without leaving a result.                                                                                                                                                           |
 
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
 second guard refuses a NEW job of any step for a spec whose own job reads `done` with a landing still in flight; once
@@ -52,7 +51,7 @@ stateDiagram-v2
     running --> done: step ok, last step
     running --> stopped: timeout, provider limit, acceptance criteria
     running --> failed: step failed
-    running --> interrupted: process gone, no result
+    running --> failed: process gone, no result
     done --> failed: landing did not finish
     done --> stopped: the landing's suite went red
     done --> queued: archive landing gets its automatic second attempt
@@ -130,8 +129,8 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
   There is no stop between steps: every step lands its own work.
 
-**Interrupted** is written for a `running` job whose process is gone and whose result file is empty, while the server
-runs ("the run vanished without leaving a result") and on boot ("the server restarted while this step was running").
+**A job whose process died** is written `failed` when it was `running`, its process is gone and its result file is
+empty, while the server runs ("the run vanished without leaving a result") and on boot ("the server restarted while this step was running").
 A job whose process is gone but whose result is on disk is completed from that file.
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
@@ -208,8 +207,8 @@ the last of them.
   are resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
   `held-back` clears itself on a later tick. A landing held for a red suite sets it beside `stopReason: tests-red`.
   The values are defined once in `src/job-states.ts`. When the queue reads a stored job, it removes an
-  `errorReason` outside this list and keeps the job.
-  `error` is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that is held
+  `errorReason` outside this list and keeps the job, and reads the retired state `interrupted` as `failed`.
+  `error` is what a reader is told: always written on `failed`, on a `queued` job that is held
   back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own error
   through. It is a `Sentence`, or several, translated where it is drawn.
 
@@ -241,7 +240,7 @@ cancel while it fetches, installs or has committed its restart is refused (409).
 the restart can be cancelled; its wait then ends without firing the restart. It writes `deploy.restartedAt`, restarts the server and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
 boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise or after three minutes. A
-deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is
+deploy found `running` without `deploy.restartedAt` was cut before its restart and fails. While a landing is
 in flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of
 `running` with an `errorReason`) until the wait ends.
 
@@ -250,9 +249,9 @@ in flight a queued deploy is held back, and a running one carries the same `held
 The row's badge is short by design, and what it does not say is on the notice line under it. A running job reads
 **Running**; a queued one **Queued 3/11** — its place among every job waiting its turn — or "<phase> queued" when it
 has no position. Blocked waiting work keeps its queue position and shows its reason on the notice line. Once nothing is running the badge is one word: **Ready**, **Done** or
-**Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
+**Stopped**, and `failed` and `cancelled` are the bare word too.
 
 The badge is that one word everywhere it appears: the row, the phase lines, the job page's chip and the schedule
 report. Why a job stopped is on the row's message line and in the popover beside the job page's chip. `cancelled` is
-drawn amber like `stopped`, since somebody stopped it by hand; `interrupted` is grouped with `failed`. The words live
+drawn amber like `stopped`, since somebody stopped it by hand. The words live
 in `src/render/ui/job-state/` and are described on [The specs list and the spec page](the-specs-list.md#the-state-column).

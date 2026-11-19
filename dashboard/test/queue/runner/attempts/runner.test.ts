@@ -24,7 +24,7 @@ describe("automatic step retries", () => {
     runner.tick();
     runner.poll();
     expect(spawns).toHaveLength(2);
-    expect(store.get(job.id)?.state).toBe("interrupted");
+    expect(store.get(job.id)?.state).toBe("failed");
   });
 
   test("does not occupy a slot while a capacity retry waits (AC-2, AC-3)", () => {

@@ -260,7 +260,7 @@ describe("editing a running job's tail", () => {
   });
 
   test("a job that is not running is closed altogether", () => {
-    for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
+    for (const state of ["queued", "done", "failed", "cancelled", "stopped"] as const) {
       const job = running(["analyze"]);
       job.store.update(job.id, { state });
       const answer = job.store.editTailStep(job.id, "implement", true);

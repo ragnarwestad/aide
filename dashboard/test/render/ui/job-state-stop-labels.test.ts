@@ -21,7 +21,6 @@ describe("a state is one word, in the reader's own language", () => {
     expect(stateWord({ state: "done" } as QueueRowView, "nb")).toBe("ferdig");
     expect(stateWord({ state: "failed" } as QueueRowView, "nb")).toBe("feilet");
     expect(stateWord({ state: "cancelled" } as QueueRowView, "nb")).toBe("avbrutt");
-    expect(stateWord({ state: "interrupted" } as QueueRowView, "nb")).toBe("avbrutt");
     expect(stateWord(stopped("timeout"), "nb")).toBe("stoppet");
 
     expect(stateWord({ state: "queued" } as QueueRowView, "en")).toBe("queued");
@@ -29,7 +28,6 @@ describe("a state is one word, in the reader's own language", () => {
     expect(stateWord({ state: "done" } as QueueRowView, "en")).toBe("done");
     expect(stateWord({ state: "failed" } as QueueRowView, "en")).toBe("failed");
     expect(stateWord({ state: "cancelled" } as QueueRowView, "en")).toBe("cancelled");
-    expect(stateWord({ state: "interrupted" } as QueueRowView, "en")).toBe("interrupted");
   });
 
   // The three stops that used to word themselves — "stopped — 45 min",

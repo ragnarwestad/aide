@@ -85,7 +85,7 @@ test("cancel removes a job that had not started", async () => {
 // rewrite it to "cancelled" as though someone had ended the run.
 test("cancel refuses a job that has already finished, and leaves its state alone", async () => {
   const headers = { "content-type": "application/json", accept: "application/json" };
-  for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"]) {
+  for (const state of ["done", "failed", "stopped", "cancelled"]) {
     const site = mkdtempSync(join(tmpdir(), "aide-cancel-finished-"));
     ownDirs.push(site);
     const id = `fin-${state}`;

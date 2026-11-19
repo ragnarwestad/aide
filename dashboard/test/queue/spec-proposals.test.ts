@@ -93,8 +93,8 @@ describe("checkProposal", () => {
     }
   });
 
-  test("a Create job that failed, was cancelled, stopped or was interrupted blocks nothing", () => {
-    for (const state of ["failed", "cancelled", "stopped", "interrupted"]) {
+  test("a Create job that failed, was cancelled or stopped blocks nothing", () => {
+    for (const state of ["failed", "cancelled", "stopped"]) {
       const got = check({ title: "Wanted", description: "d" }, [{ id: "j1", state, createTitle: "Wanted" }]);
       expect(got.ok).toBe(true);
     }

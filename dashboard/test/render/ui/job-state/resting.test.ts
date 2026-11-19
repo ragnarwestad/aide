@@ -72,7 +72,7 @@ test("a deploy's automatic hold uses the shared Queued label (AC-3, AC-7)", () =
 // An ended job's chip on the Jobs tab and the specs list reads the state's
 // word from the reader's catalogue, and keeps the icon the English word has.
 describe("specStateChip() on an ended job, in every language", () => {
-  const ENDED = ["failed", "cancelled", "stopped", "interrupted"] as const;
+  const ENDED = ["failed", "cancelled", "stopped"] as const;
   const iconOf = (html: string) => html.match(/data-icon="([^"]*)"/)?.[1];
   const wordOf = (html: string) => html.match(/>([^<]*)<\/span>$/)?.[1];
 
@@ -98,7 +98,7 @@ describe("specStateChip() on an ended job, in every language", () => {
 
   test("in English the chip reads as before (AC-1)", () => {
     const words = ENDED.map((state) => wordOf(specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en")));
-    expect(words).toEqual(["Failed", "Cancelled", "Stopped", "Interrupted"]);
+    expect(words).toEqual(["Failed", "Cancelled", "Stopped"]);
   });
 });
 

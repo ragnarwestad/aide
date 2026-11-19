@@ -367,7 +367,7 @@ export function stepDoneHandler(
     const continueGroup = () => {
       const settled = ctx.store.get(job.id);
       const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
-      if (settled && (settled.error || settled.landingError || ["failed", "stopped", "cancelled", "interrupted"].includes(settled.state))) return;
+      if (settled && (settled.error || settled.landingError || ["failed", "stopped", "cancelled"].includes(settled.state))) return;
       if (group?.stoppedByUser || group?.state === "stopped") return;
       moveGroupOn({ store: ctx.store, job, step: step!, specsRoot: ctx.machinerySpecsRoot?.(job.project),
         whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal });
@@ -378,7 +378,7 @@ export function stepDoneHandler(
     }
     if (step === "archive" && job.executionGroupId) void Promise.resolve(landing).then(() => {
         const settled = ctx.store.get(job.id);
-        if (settled && (settled.state === "cancelled" || settled.state === "interrupted"))
+        if (settled && settled.state === "cancelled")
           ctx.store.executionGroups.stop(job.executionGroupId!);
         else ctx.store.executionGroups.archiveSettled(job.executionGroupId!, !landing ? "held-back" : settled && !settled.error && !settled.landingError ? { prUrl: settled.prUrl } : "failed");
       });

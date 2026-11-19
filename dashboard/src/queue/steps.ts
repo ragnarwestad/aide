@@ -161,7 +161,7 @@ export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): stri
 // after all: the board queues a full analysis and implement again.
 /** The states in which a job waits for a person. `cancelled` is not one:
  *  a person ended it themselves. */
-export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped", "interrupted"]);
+export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped"]);
 
 /** How the result of an archive held back on unticked acceptance criteria ends. */
 /** Whether a finished job waits for a person: it failed, stopped or was
@@ -193,7 +193,7 @@ export type TransitionEvent =
   | "step-succeeded-last" // running -> done: step ok, last step
   | "step-failed" // running -> failed: the step reported failure
   | "run-stopped" // running -> stopped: timeout or provider limit
-  | "process-gone" // running -> interrupted: the process died with no result
+  | "process-gone" // running -> failed: the process died with no result
   | "retry" // running -> queued: one eligible automatic second attempt
   | "retry-late" // stopped|done -> queued: a post-run check spends the same allowance
   | "landing-failed" // done -> failed: a landing did not finish
@@ -217,7 +217,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     "step-succeeded-last": "done",
     "step-failed": "failed",
     "run-stopped": "stopped",
-    "process-gone": "interrupted",
+    "process-gone": "failed",
     retry: "queued",
     cancel: "cancelled",
   },

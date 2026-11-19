@@ -24,9 +24,15 @@ import shlex
 from pathlib import Path
 
 PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
-# Any git, by name or path and with any options, followed by `push` before the shell operator that ends it: what
+# Every `push` word after the first `git` anywhere in the command — by path, quoted, inside `bash -c` or `eval`: what
 # might be a push, read or not. A command holding one is never let through unasked.
-ANY_PUSH = re.compile(r"(?:^|[;&|(\s])(?:\S*/)?git(?:\s[^;&|\n]*?)?\spush(?:\s|$)")
+GIT_WORD = re.compile(r"(?<![\w-])git(?![\w-])")
+PUSH_WORD = re.compile(r"(?<![\w-])push(?![\w-])")
+
+
+def push_words_after_git(command):
+    first = GIT_WORD.search(command)
+    return len(PUSH_WORD.findall(command, first.end())) if first else 0
 CD = re.compile(r"(?:^|[;&|(\s])cd\s+(\S+)")
 MIRROR = ".aide/dashboard/aide-queue.json"
 CHECKOUTS = ".aide/dashboard/checkouts"
@@ -131,7 +137,7 @@ def pushes_only_non_default(command, cwd):
     nothing else. A push the parser does not read as one of its own (a git started by its path, or with options other
     than `-C`) is not known to spare main, so it fails closed."""
     pushes = list(PUSH.finditer(command))
-    if len(ANY_PUSH.findall(command)) > len(pushes):
+    if push_words_after_git(command) > len(pushes):
         return False
     for match in pushes:
         start = match.start() + len(match.group(1))
@@ -202,7 +208,7 @@ def main():
     except ValueError:
         return 0
     command = (payload.get("tool_input") or {}).get("command") or ""
-    if not ANY_PUSH.search(command):
+    if not push_words_after_git(command):
         return 0
     jobs, why = read_queue()
     if jobs is None:
