@@ -281,7 +281,7 @@ branch_already_landed() {
   if [ "$landed" -ne 0 ] && [ -n "$tip" ]; then
     local merged_tree="" base_tree=""
     merged_tree="$(git -C "$root" merge-tree --write-tree refs/aide-branch/landed-base "$tip" 2>/dev/null | head -1)" || merged_tree=""
-    base_tree="$(git -C "$root" rev-parse refs/aide-branch/landed-base^{tree} 2>/dev/null || true)"
+    base_tree="$(git -C "$root" rev-parse "refs/aide-branch/landed-base^{tree}" 2>/dev/null || true)"
     [ -n "$merged_tree" ] && [ "$merged_tree" = "$base_tree" ] && landed=0
   fi
   # The verdict is captured above and returned below: the cleanup runs in
