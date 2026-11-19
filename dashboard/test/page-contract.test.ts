@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   ACTION_FORM_SELECTOR,
   FORM_ACTION_PREFIXES,
+  LIST_REFUSED_ID,
   PAGE_DRAWN,
   PAGE_FETCHING,
   PAGE_LEAVE,
@@ -24,6 +25,7 @@ describe("the page contract", () => {
     expect(readFileSync(contractFile, "utf-8")).not.toMatch(/^\s*import\s/m);
     expect({
       ACTION_FORM_SELECTOR,
+      LIST_REFUSED_ID,
       PAGE_DRAWN,
       PAGE_FETCHING,
       PAGE_LEAVE,
@@ -36,6 +38,7 @@ describe("the page contract", () => {
       TRACKED_FORM_SELECTOR,
     }).toEqual({
       ACTION_FORM_SELECTOR: "form.rowrun, form.actionform",
+      LIST_REFUSED_ID: "list-refused",
       PAGE_DRAWN: "aide-page-drawn",
       PAGE_FETCHING: "aide-page-fetching",
       PAGE_LEAVE: "aide-page-leave",

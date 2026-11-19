@@ -1,7 +1,11 @@
 // The machine's own Tailscale name: parsed from `tailscale status --json`,
 // looked up lazily, one lookup at a time, retried after a failure.
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createHostAllowlist, parseSelfDnsName } from "../../../src/serve/serve-helpers";
+import { DEFAULT_TAILSCALE_BIN, tailscaleBin } from "../../../src/serve/serve-helpers/tailscale-name.ts";
 
 describe("parseSelfDnsName", () => {
   test("drops the trailing dot and lower-cases", () => {
@@ -84,5 +88,22 @@ describe("createHostAllowlist", () => {
   test("a lookup that throws counts as a failure", async () => {
     const hosts = createHostAllowlist({ extra: [], lookup: async () => { throw new Error("no tailscale"); } });
     expect(await hosts.has(NAME)).toBe(false);
+  });
+});
+
+describe("tailscaleBin", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aide-tailscale-bin-"));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test("the tailscale on PATH wins", () => {
+    const bin = join(dir, "tailscale");
+    writeFileSync(bin, "#!/bin/sh\n");
+    chmodSync(bin, 0o755);
+    expect(tailscaleBin(dir)).toBe(bin);
+  });
+
+  test("without tailscale on PATH, the macOS app's CLI is used", () => {
+    expect(tailscaleBin(join(dir, "empty"))).toBe(DEFAULT_TAILSCALE_BIN);
+    expect(DEFAULT_TAILSCALE_BIN).toBe("/usr/local/bin/tailscale");
   });
 });

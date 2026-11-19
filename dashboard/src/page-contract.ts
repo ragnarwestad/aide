@@ -1,5 +1,6 @@
 export const SPEC_HEAD_CLASS = "spechead";
 export const REFUSAL_ROW_TEMPLATE_ID = "refusal-row";
+export const LIST_REFUSED_ID = "list-refused";
 export const SPEC_LOADING_ROW_ID = "spec-loading-row";
 export const SERVED_BY_META = "aide-served-by";
 export const ROW_MESSAGE_CLASS = "rowmsg";

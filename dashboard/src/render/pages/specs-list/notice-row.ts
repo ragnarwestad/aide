@@ -26,9 +26,7 @@ import { archivingAgain, nextPhase, specLocked } from "./row-state.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
 import { deleteBranchForm } from "./row-controls.ts";
 import { approachPanel } from "./approach-choice";
-import { REFUSAL_ROW_TEMPLATE_ID, SPEC_LOADING_ROW_ID } from "../../../page-contract.ts";
-
-const LIST_REFUSED_ID = "list-refused";
+import { LIST_REFUSED_ID, REFUSAL_ROW_TEMPLATE_ID, SPEC_LOADING_ROW_ID } from "../../../page-contract.ts";
 
 /** The message row a refused press is written into, held in a
  *  `<template>` for the script to copy — in a table of its own there,

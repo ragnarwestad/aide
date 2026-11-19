@@ -8,11 +8,8 @@
 // so an unexposed port is refused instead of silently serving a board
 // nobody off this host can ever reach.
 
+import { tailscaleBin } from "../serve-helpers/tailscale-name.ts";
 import { TEST_SERVER_PORTS } from "./lifecycle.ts";
-
-// Where the macOS app puts its CLI, for a server whose PATH has no
-// `tailscale` on it (launchd's does not).
-const DEFAULT_TAILSCALE_BIN = "/usr/local/bin/tailscale";
 
 function output(cmd: string[]): { ok: boolean; stdout: string } {
   try {
@@ -56,7 +53,7 @@ function exposedPorts(bin: string): Set<number> | undefined {
  *  `startTestServer` reads that as "start as before". */
 export async function portExposed(
   port: number,
-  bin: string = Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN,
+  bin: string = tailscaleBin(),
 ): Promise<boolean | undefined> {
   return exposureOf(port, exposedPorts(bin));
 }

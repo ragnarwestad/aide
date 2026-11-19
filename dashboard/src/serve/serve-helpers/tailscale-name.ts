@@ -2,9 +2,16 @@
 // answers to. The name is asked for lazily: launchd may start the dashboard
 // before `tailscaled` is up, so a lookup at boot could find nothing.
 
-// Matches the Makefile's own `TAILSCALE ?= /usr/local/bin/tailscale` (the same
-// hand-paired default `test-servers/tailscale-exposure.ts` keeps).
-const DEFAULT_TAILSCALE_BIN = "/usr/local/bin/tailscale";
+// Where the tailscale CLI is: the one on PATH, or else where the macOS app
+// puts it, for a server whose PATH has no `tailscale` on it (launchd's
+// does not). Matches the Makefile's own `TAILSCALE ?= /usr/local/bin/tailscale`.
+// The test-server port check reads it from here too.
+export const DEFAULT_TAILSCALE_BIN = "/usr/local/bin/tailscale";
+
+export function tailscaleBin(path: string | undefined = process.env.PATH): string {
+  return Bun.which("tailscale", { PATH: path ?? "" }) ?? DEFAULT_TAILSCALE_BIN;
+}
+
 const LOOKUP_TIMEOUT_MS = 3_000;
 const LOOPBACK_NAMES = ["localhost", "127.0.0.1", "[::1]"];
 
@@ -20,7 +27,7 @@ export function parseSelfDnsName(json: unknown): string | undefined {
 /** Asks the tailscale CLI for this machine's name; `undefined` on any failure. */
 export async function lookupTailscaleName(): Promise<string | undefined> {
   try {
-    const proc = Bun.spawn([Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN, "status", "--json"], {
+    const proc = Bun.spawn([tailscaleBin(), "status", "--json"], {
       stdout: "pipe",
       stderr: "ignore",
       timeout: LOOKUP_TIMEOUT_MS,

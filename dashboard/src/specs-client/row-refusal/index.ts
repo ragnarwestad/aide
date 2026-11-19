@@ -6,9 +6,8 @@
 // into the list's own line above the rows, which no redraw replaces.
 
 import { writeLine } from "../press.ts";
-import { REFUSAL_ROW_TEMPLATE_ID, SPEC_HEAD_CLASS } from "../../page-contract.ts";
+import { LIST_REFUSED_ID, REFUSAL_ROW_TEMPLATE_ID, SPEC_HEAD_CLASS } from "../../page-contract.ts";
 
-const LIST_LINE_ID = "list-refused";
 const SPEC_GAP = "specgap";
 
 let held: { why: string; spec?: string } | null = null;
@@ -30,7 +29,7 @@ export function groupEnd(head: Element): { before: Element } | { after: Element 
  *  and one that replaced it end the same way. */
 export function applyRefusal(): void {
   for (const old of Array.from(document.querySelectorAll("tr[data-refusal]"))) old.remove();
-  const listLine = document.getElementById(LIST_LINE_ID);
+  const listLine = document.getElementById(LIST_REFUSED_ID);
   writeLine(listLine, held && !held.spec ? held.why : "");
   if (!held?.spec) return;
   const head = document.getElementById(`spec-${held.spec}`);
