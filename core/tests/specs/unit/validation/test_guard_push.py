@@ -208,5 +208,8 @@ def test_the_hook_is_wired_to_bash_calls_for_a_session_started_at_the_root_or_in
                            (WORKSPACE / "dashboard", "$CLAUDE_PROJECT_DIR/../scripts/guard-push")):
         settings = json.loads((folder / ".claude" / "settings.json").read_text())
         hooks = [h for entry in settings["hooks"]["PreToolUse"] if entry["matcher"] == "Bash" for h in entry["hooks"]]
-        assert any(script in h["command"] for h in hooks), folder
+        guards = [h for h in hooks if script in h["command"]]
+        assert guards, folder
+        # A guard that crashes or times out must stop the push, not let it through.
+        assert all(h.get("onFailure") == "block" for h in guards), folder
         assert (folder / script.replace("$CLAUDE_PROJECT_DIR/", "")).resolve() == SCRIPT

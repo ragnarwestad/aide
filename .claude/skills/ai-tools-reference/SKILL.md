@@ -137,8 +137,35 @@ Markdown with YAML frontmatter. Key fields: `name`, `description`,
 Configured in settings.json. Events: `PreToolUse`, `PostToolUse`,
 `UserPromptSubmit`, `Stop`, `SessionStart`, `SubagentStart`,
 `CwdChanged`, `FileChanged`, `TaskCreated`, `StopFailure` and more.
-Hook types: `command`, `http`, `prompt`, `agent`.
+Hook types: `command`, `http`, `mcp_tool`, `prompt`, `agent`. An
+`mcp_tool` hook calls a tool on a configured MCP server and treats its
+text output like a command hook's stdout.
 Hooks support an `if` field with permission rule syntax for conditional execution.
+
+What happens when a hook fails or times out:
+
+- `timeout` is in seconds. The default is 600 for `command`, `http` and
+  `mcp_tool`, 30 for `prompt` and 60 for `agent`.
+- A failed or timed-out hook does not stop the action unless the hook
+  sets `"onFailure": "block"`; then the failure counts as exit code 2.
+  `onFailure` works on `command` and `http` hooks from v2.1.295, and on
+  `mcp_tool` hooks from v2.1.328. It has no effect on `Stop`,
+  `SubagentStop`, `TaskCompleted`, `TeammateIdle` or background hooks.
+  This repo's push guard (`scripts/guard-push`) sets it, so a guard that
+  crashes or times out stops the push. The hooks Aide installs into
+  other projects do not, so a crash there lets the command through.
+
+Code Mode and refused calls (v2.1.328):
+
+- Code Mode no longer runs `UserPromptSubmit` hooks on a script's
+  output. Output that must be redacted is handled in a `PostToolUse`
+  hook that returns `updatedToolOutput`.
+- Managed `PostToolUse` hooks no longer fire for a call that was refused
+  before it ran; `PostToolBatch` receives most of those calls, without
+  marking them as refused.
+- Aide installs no `UserPromptSubmit`, `mcp_tool` or managed hooks, so
+  neither change touches it.
+
 Matchers match the whole identifier, never a substring (v2.1.195): a
 hyphenated name such as `mcp__brave-search` needs `mcp__brave-search__.*`
 to cover every tool of that server. Aide's own matchers (`Edit|Write`,
