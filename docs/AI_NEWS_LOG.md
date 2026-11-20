@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-20](#2026-11-20)
   - [2026-11-19](#2026-11-19)
   - [2026-11-18](#2026-11-18)
   - [2026-11-17](#2026-11-17)
@@ -161,6 +162,69 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-20
+
+Review period: 2026-11-19 to 2026-11-20. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh X failed: HTTP Error 404: Not Found; complete=false, zero posts collected or retained.
+Seventeen videos listed; five selected, all five caption files read; no channel or selected-caption fetch failed.
+Two watched pages changed: Claude best practices adds mcp_tool enforcement; agents.md changes counters only.
+
+**Claude Code (review period):**
+
+| Date             | Version      | News                                                                                                                                                                                             | Source                                                                    |
+|------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Nov 19           | v2.1.329     | Code Mode hook errors no longer refuse calls by default; use onFailure: block for required checks. Stop/SubagentStop background_tasks identify Monitor scripts as monitor.                       | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.329) |
+| Nov 19           | v2.1.329     | Fixes headless plugin-MCP removal, skill discovery with --add-dir, hook-load warnings, cancellation and configuration persistence. Saved built-in schedules may need recreation in new sessions. | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.329) |
+| Nov 20 (changed) | watched page | Best-practices enforcement advice adds mcp_tool to command/http hooks. --bare wording changes without a new rule.                                                                                | [Source](https://code.claude.com/docs/en/best-practices)                  |
+| Nov 19           | video        | Chase AI compares Code Mode on three tasks: fewer tokens, not always faster. Creator measurements; interactive terminal only, not a headless-run recommendation.                                 | [Source](https://www.youtube.com/watch?v=IyuUR51Mu4I)                     |
+| Nov 19           | video        | Simon Scrapes revisits script-side filtering, durable checklists, enforced rules and examples. JSON feature-status advice is corroborated by the older Anthropic engineering article.            | [Source](https://www.youtube.com/watch?v=6VjeXzvpoJo)                     |
+
+**GitHub Copilot CLI (review period):**
+
+| Date             | Version                  | News                                                                                                                                                                   | Source                                                                  |
+|------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 19           | v1.0.115-1 (pre-release) | MCP sign-in tolerates an omitted refresh-token scope when required scopes are granted; direct workflows wait for project extensions. 1.0.115-0 has generic notes only. | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-1) |
+| Nov 20 (checked) | —                        | No in-period Copilot changelog or blog article found; blog article metadata dates the featured skills guide to Nov 12.                                                 | [Source](https://github.blog/ai-and-ml/github-copilot/)                 |
+
+**OpenAI Codex CLI (review period):**
+
+| Date      | Version      | News                                                                                                                                                                | Source                                                               |
+|-----------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| Nov 20    | v0.171.0     | Adds exec --remote, TUI remote-control commands and optional MCP statuslines; TUI workspace now enabled by default; Sol/Astra model catalogs select Sol by default. | [Source](https://github.com/openai/codex/releases/tag/rust-v0.171.0) |
+| Nov 20    | v0.171.0     | Fixes permission profiles across directory changes, late events cancelling newer approvals, aggregate diffs under steering and enterprise MCP authentication.       | [Source](https://github.com/openai/codex/releases/tag/rust-v0.171.0) |
+| Nov 19–20 | pre-releases | 0.171.0-alpha.13.1, 0.172.0-alpha.2 and 0.173.0-alpha.1 contain no detailed release notes.                                                                          | [Source](https://github.com/openai/codex/releases)                   |
+| Nov 19    | —            | Developer blog adds regional-voice prompting; low relevance to repository skills and runner.                                                                        | [Source](https://developers.openai.com/blog)                         |
+
+**OpenCode (review period):**
+
+| Date      | Version | News                                                                                              | Source                                                   |
+|-----------|---------|---------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Nov 19–20 | —       | No new release since Nov 19; changelog still leads with the already reviewed GPT-6.2 caching fix. | [Source](https://github.com/anomalyco/opencode/releases) |
+
+**Across tools (review period):**
+
+| Date             | Version      | News                                                                                                                                                                                      | Source                                                       |
+|------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 19           | video        | Readable domain rules and explicit choices keep developers in control; speculative future claims do not justify dropping verification.                                                    | [Source](https://www.youtube.com/watch?v=xRJMiaUoD_8)        |
+| Nov 19           | video        | Lovable describes persisted event history separate from prompts, resumable workers, sandbox checkpoints and inner/outer verification loops. Scale and speed figures are speaker claims.   | [Source](https://www.youtube.com/watch?v=pZWPq_ZAmM4)        |
+| Nov 19           | video        | Thomson Reuters describes deterministic upgrade planning, isolated fixes, regression checks and tracking a fix through review to merge. Reported counts are not independently reproduced. | [Source](https://www.youtube.com/watch?v=OOXETYR3MWU)        |
+| Nov 20 (checked) | —            | Cookbooks latest visible commit Nov 4; Martin Fowler latest dated article Nov 12. Artificial Analysis still says Harness Comparison: Coming soon; numerical chart values unavailable.     | [Source](https://artificialanalysis.ai/agents/coding-agents) |
+| Nov 20 (changed) | watched page | agents.md changes repository counters only; 26 other watched pages unchanged.                                                                                                             | [Source](https://agents.md)                                  |
+
+**Relevance for aide:**
+
+- ⚠️ Claude Code 2.1.329 changes Code Mode PreToolUse failure handling and Monitor task labels. Check the hook reference against the new release; the Code Mode page still describes older failure and telemetry restrictions. Keep headless Code Mode disabled; official docs still exclude -p and the Agent SDK. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.329) [Source](https://code.claude.com/docs/en/code-mode)
+- ✅ The watched best-practices page now includes mcp_tool for deterministic enforcement. The local hook reference already documents this and onFailure: block. --bare changes wording only; agents.md changes counters only. [Source](https://code.claude.com/docs/en/best-practices)
+- ⭐ Codex 0.171.0 adds exec --remote and makes the TUI workspace default. Update the headless/configuration reference and the matrix beyond version rows; the matrix still names GPT-6.1 Sol as the default. [Source](https://github.com/openai/codex/releases/tag/rust-v0.171.0)
+- ✅ Codex permission-profile, approval and diff fixes and Copilot pre-release MCP/workflow fixes are useful. No evidence here requires changing installer commands or adopting a pre-release. OpenCode has no new release. [Source](https://github.com/openai/codex/releases/tag/rust-v0.171.0) [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-1)
+- ✅ Video: The Sweet Side of the Bitter Lesson. Readable domain rules and explicit human choices bear on spec descriptions and acceptance criteria. This is a design case study, not evidence that review can be removed. [Source](https://www.youtube.com/watch?v=xRJMiaUoD_8)
+- ✅ Video: What it takes to set intelligence free. Separate durable task history from model-specific prompt summaries and verify runtime/browser behavior. Useful input for runner recovery and replay; performance claims remain the speaker’s. [Source](https://www.youtube.com/watch?v=pZWPq_ZAmM4)
+- ✅ Video: This Experimental Feature Is Claude Code's BIGGEST Upgrade of 2026. Evaluate token, context, latency and correctness together in interactive replay. Official docs confirm experimental, terminal-only availability and exclude -p; three creator tests do not establish general savings. [Source](https://www.youtube.com/watch?v=IyuUR51Mu4I) [Source](https://code.claude.com/docs/en/code-mode)
+- ✅ Video: Everyone Ignore These Claude Concepts, But They Change Everything. Script-side data filtering, examples and completion evidence agree with existing practice. Test the older vendor advice about protected JSON feature status before changing Markdown spec tracking. [Source](https://www.youtube.com/watch?v=6VjeXzvpoJo) [Source](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) [Source](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- ✅ Video: We Built AI Agents To Fix Security Findings in Production. Deterministic planning, isolated changes, verification and reviewable summaries support Aide’s existing approach. Measuring fixes through merge is useful input for landing/replay evaluation; no automatic tool installation follows. [Source](https://www.youtube.com/watch?v=OOXETYR3MWU)
+- ℹ No new in-period coding-agent methodology article found on the vendor blogs or Martin Fowler. Cookbooks show no in-period commit. Artificial Analysis numeric charts remain unavailable in fetched text; no model ranking inferred. [Source](https://artificialanalysis.ai/agents/coding-agents)
+- ⚠️ Coverage gap: fresh MyAI collection failed with HTTP Error 404: Not Found; complete=false and zero posts saved. No posts assessed or retained, and no older digest substituted. All 16 Sources addresses, all 28 watched pages and all 14 YouTube channels fetched; 17 videos listed, five selected and all five caption files read. The remaining 12 videos were not selected under the five-video limit. [Source](https://x.com/i/lists/1992629307080929379)
 
 ### 2026-11-19
 
