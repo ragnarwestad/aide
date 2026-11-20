@@ -332,6 +332,15 @@ describe("a recorded phase choice survives the render", () => {
     expect(labels(action(html))).toEqual(["Archive"]);
   });
 
+  test("a recorded choice whose every phase has since run ticks the next phase instead, so Archive is offered", () => {
+    const html = rows([target("840-spent", { done: ["create", "analyze", "implement"] })], {
+      pendingSteps: { "aide/840-spent": ["analyze", "implement"] },
+    });
+    expect(ticked(html)).toEqual(["archive"]);
+    expect(action(html)).not.toMatch(/disabled/);
+    expect(labels(action(html))).toEqual(["Archive"]);
+  });
+
   // The one explicitly-accepted gap (3-solution.md's Risk analysis): a
   // spec that predates this fix and has had no create or Run recorded
   // under it falls back to the old, history-only derivation — unchanged

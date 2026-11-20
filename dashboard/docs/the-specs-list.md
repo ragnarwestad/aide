@@ -168,7 +168,8 @@ the reader changes it on a later Run.
 A spec with no such choice recorded — no create, no Run — falls back to ticking every phase it has not had. A
 phase already done is left unticked either way; ticking it anyway is a rerun, and no rule stands in the way. A
 recorded choice that ticks nothing at all is honoured exactly as given, which is what keeps a finished-looking
-spec from offering an Archive nobody asked for.
+spec from offering an Archive nobody asked for. A recorded choice whose every phase has since run is spent, and
+the row ticks the phases it has not had instead: a spec run through Implement alone is offered Archive next.
 
 Two kinds of spec are offered a round rather than given one: a spec whose archive is held back on unticked
 acceptance criteria, and a spec reopened with its files kept whose implement has already run. For both, Analyze and Implement are offered but

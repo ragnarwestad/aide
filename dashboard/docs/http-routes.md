@@ -128,27 +128,27 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 `src/serve/routes/failed-create-routes.ts`; `POST /api/queue/create` is the exception: it is answered by
 `src/serve/routes/queue-admin.ts`, beside the project and settings routes.
 
-| Route                                         | Kind   | Takes                                              | Answers                                                                    | Made for  |
-|-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------------|-----------|
-| `POST /api/queue/waiting/open`                | action | fresh requestId                                    | owner, revision, entries, dialog; 409 if occupied                          | interface |
-| `POST /api/queue/waiting/renew`               | action | owner token, generation and revision               | renewed owner snapshot; 409 if ownership expired                           | interface |
-| `POST /api/queue/waiting/snapshot`            | action | owner token, generation and revision               | current entries; no lease renewal                                          | interface |
-| `POST /api/queue/waiting/save`                | action | owner, issued snapshotIds, reordered ids           | durably saved order and release; failures retain ownership                 | interface |
-| `POST /api/queue/waiting/cancel`              | action | owner token, generation and revision               | release without changing saved priority                                    | interface |
-| `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                                    | interface |
-| `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                      | interface |
-| `POST /api/queue/cleanup`                     | action | nothing                                            | `{ ok, job }`; 400 `{ error }`                                             | form      |
-| `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                                     | interface |
-| `GET /api/queue/events`                       | read   | optional `?phases=`, `?open=` and `?deploy=1`      | a held-open `text/event-stream` of queue changes                           | interface |
-| `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 when cancellation is not allowed                        | form      |
-| `POST /api/queue/<id>/dismiss`                | action | nothing                                            | `{ ok, job }`; 404 if unknown; 409 unless a failed job with no Start     | form      |
-| `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |
-| `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                              | form      |
-| `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                             | interface |
-| `POST /api/queue/failed-creates/<id>/dismiss` | action | nothing                                            | `{ ok }`; 404 for an unknown message                                       | form      |
-| `POST /api/queue/groups`                      | action | project, name, ordered members                     | `{ ok, group }`; 409 if refused                                            | form      |
-| `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop`, `archive` or `remove`   | `{ ok, job }` or `{ ok, group }`; 409 if refused                           | form      |
-| `POST /api/queue/groups/<id>`                 | action | name and the full ordered member list              | `{ ok, group }`; 409 if refused                                            | form      |
+| Route                                         | Kind   | Takes                                              | Answers                                                              | Made for  |
+|-----------------------------------------------|--------|----------------------------------------------------|----------------------------------------------------------------------|-----------|
+| `POST /api/queue/waiting/open`                | action | fresh requestId                                    | owner, revision, entries, dialog; 409 if occupied                    | interface |
+| `POST /api/queue/waiting/renew`               | action | owner token, generation and revision               | renewed owner snapshot; 409 if ownership expired                     | interface |
+| `POST /api/queue/waiting/snapshot`            | action | owner token, generation and revision               | current entries; no lease renewal                                    | interface |
+| `POST /api/queue/waiting/save`                | action | owner, issued snapshotIds, reordered ids           | durably saved order and release; failures retain ownership           | interface |
+| `POST /api/queue/waiting/cancel`              | action | owner token, generation and revision               | release without changing saved priority                              | interface |
+| `GET /api/queue`                              | read   | nothing                                            | `{ generatedAt, jobs }`                                              | interface |
+| `POST /api/queue`                             | action | JSON or form: project, spec folder, steps          | `{ ok, job }`; 400 `{ error, spec? }`                                | interface |
+| `POST /api/queue/cleanup`                     | action | nothing                                            | `{ ok, job }`; 400 `{ error }`                                       | form      |
+| `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                               | interface |
+| `GET /api/queue/events`                       | read   | optional `?phases=`, `?open=` and `?deploy=1`      | a held-open `text/event-stream` of queue changes                     | interface |
+| `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 when cancellation is not allowed                  | form      |
+| `POST /api/queue/<id>/dismiss`                | action | nothing                                            | `{ ok, job }`; 404 if unknown; 409 unless a failed job with no Start | form      |
+| `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                        | form      |
+| `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                        | form      |
+| `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                       | interface |
+| `POST /api/queue/failed-creates/<id>/dismiss` | action | nothing                                            | `{ ok }`; 404 for an unknown message                                 | form      |
+| `POST /api/queue/groups`                      | action | project, name, ordered members                     | `{ ok, group }`; 409 if refused                                      | form      |
+| `POST /api/queue/groups/<id>/action`          | action | `action`: `start`, `stop`, `archive` or `remove`   | `{ ok, job }` or `{ ok, group }`; 409 if refused                     | form      |
+| `POST /api/queue/groups/<id>`                 | action | name and the full ordered member list              | `{ ok, group }`; 409 if refused                                      | form      |
 
 Start also accepts an optional `memberSteps` map from member folder to the selected Analyze/Implement steps.
 

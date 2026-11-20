@@ -80,6 +80,10 @@ export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, 
   // its box is no longer locked, and a choice remembered from before it
   // ran would otherwise run it a second time on the next press.
   if (recorded) for (const step of g.done) if (step !== "archive") chosen.delete(step);
+  // A recorded choice whose every phase has since run is spent: the next
+  // phase is ticked instead, so a spec that stopped short of archive is
+  // offered it. A choice the reader emptied themselves stays empty.
+  if (recorded && recorded.length > 0 && chosen.size === 0) return defaultTicked(g);
   // Held back on its checks: archive is what comes next, and the round
   // offered beside it is a choice the reader makes by ticking. The
   // remembered choice names the chain that has just run, and ticked
