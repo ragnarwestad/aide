@@ -419,3 +419,16 @@ export function newSpecLink(opts: Pick<SpecsPageOptions, "createProjects">, lang
   return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "newSpec.pageTitle"), variant: "primary" });
 }
 
+
+/** A list's headings in a table of their own above the box that scrolls,
+ *  so the scrollbar runs beside the rows alone. Both tables declare the
+ *  same columns, which keeps the headings over their cells.
+ *  "speclist" beside "list": the mobile stylesheet lays these tables out
+ *  as stacked blocks, and the archive page and the settings table share
+ *  .list without wanting any of that. `data-list` tells the Specs list's
+ *  own columns apart from the Jobs tab's, which share the class. */
+export function listTable(o: { tableAttrs: string; head: string; columns: string; boxAttrs: string; body: string; after: string }): string {
+  const open = `<table class="list speclist"${o.tableAttrs}>`;
+  return `<div class="listhead">${open}${o.head}</table></div>` +
+    `<div class="tablewrap"${o.boxAttrs}>${open}${o.columns}<tbody>${o.body}</tbody></table>${o.after}</div>`;
+}

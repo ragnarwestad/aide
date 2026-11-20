@@ -5,14 +5,13 @@ export type StepEndingRecord = Readonly<{
   name: StepEnding;
   jobStop: boolean;
   runStop: boolean;
-  failure: boolean;
   guard: boolean;
   leavesStepUndone: boolean;
   mayRetry: boolean;
 }>;
 
 const BOOLEAN_FIELDS = [
-  "jobStop", "runStop", "failure", "guard", "leavesStepUndone", "mayRetry",
+  "jobStop", "runStop", "guard", "leavesStepUndone", "mayRetry",
 ] as const;
 
 function parseRecords(value: unknown): readonly StepEndingRecord[] {
@@ -49,7 +48,6 @@ const has = (reason: string | undefined, field: keyof StepEndingRecord): boolean
 export type StopReason = StepEnding;
 export const isJobStop = (reason: string | undefined): reason is StopReason => has(reason, "jobStop");
 export const isRunStop = (reason: string | undefined): reason is StopReason => has(reason, "runStop");
-export const isFailedEnding = (reason: string | undefined): boolean => has(reason, "failure");
 export const isGuardEnding = (reason: string | undefined): boolean => has(reason, "guard");
 export const leavesStepUndone = (reason: string | undefined): boolean => has(reason, "leavesStepUndone");
 export const endingMayRetry = (reason: string | undefined): boolean => has(reason, "mayRetry");

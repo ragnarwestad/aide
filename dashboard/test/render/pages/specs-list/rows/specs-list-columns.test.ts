@@ -15,7 +15,11 @@ describe("the Specs list's columns", () => {
     const html = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {} });
     const headings = [...html.matchAll(/<th[^>]*>(?:<a[^>]*>)?([^<]*)/g)].map((m) => m[1]).filter(Boolean);
     expect(headings).toEqual(["Created", "Specification", "State", "Actions"]);
-    expect(html.match(/<col data-col=/g)?.length).toBe(5);
+    // The headings' table and the rows' table declare the same five columns.
+    const groups = [...html.matchAll(/<colgroup>.*?<\/colgroup>/g)].map((m) => m[0]);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]!.match(/<col data-col=/g)?.length).toBe(5);
+    expect(groups[1]).toBe(groups[0]);
     expect(html).not.toContain('data-col="started"');
     expect(html).not.toContain('data-col="cost"');
   });

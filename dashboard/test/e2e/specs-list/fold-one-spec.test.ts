@@ -277,7 +277,7 @@ test("every spec action stays reachable at phone width without horizontal scroll
       expect(await actions.getByRole("button", { name, exact: true }).isVisible()).toBe(true);
     }
     expect(await p.locator('tr.spechead[data-folder="81-queue-and-runner"] a[data-pdf]').isVisible()).toBe(true);
-    expect(await p.locator("table.speclist").evaluate((table) => table.scrollWidth <= table.clientWidth)).toBe(true);
+    expect(await p.locator("table.speclist").filter({ has: actions }).evaluate((table) => table.scrollWidth <= table.clientWidth)).toBe(true);
   } finally {
     await p.close();
   }

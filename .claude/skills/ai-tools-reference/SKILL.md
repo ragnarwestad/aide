@@ -166,6 +166,15 @@ Code Mode and refused calls (v2.1.328):
 - Aide installs no `UserPromptSubmit`, `mcp_tool` or managed hooks, so
   neither change touches it.
 
+Code Mode from v2.1.329:
+
+- A `PreToolUse` hook that fails or times out in Code Mode no longer
+  refuses the call by default; a required check sets `"onFailure":
+  "block"`. The push guard already does. Code Mode never runs under
+  `-p`, so the runner is not affected.
+- `Stop` and `SubagentStop` list a Monitor's script as `monitor`, not
+  `shell`, in `background_tasks`. Nothing in Aide reads that field.
+
 Matchers match the whole identifier, never a substring (v2.1.195): a
 hyphenated name such as `mcp__brave-search` needs `mcp__brave-search__.*`
 to cover every tool of that server. Aide's own matchers (`Edit|Write`,

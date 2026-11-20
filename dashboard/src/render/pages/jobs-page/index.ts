@@ -20,6 +20,7 @@ import { groupBySpec, groupKey, isFinishedGroup, type SpecGroup } from "../specs
 import { currentWorkRoundJobs } from "../../../queue/steps.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
+import { columnGroup, listTable } from "../specs-list/filter-bar.ts";
 import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsMatchingCount, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
@@ -262,7 +263,7 @@ export function renderJobsRows(v: JobsView): string {
   return (
     notices + executionGroupEditors(v, lang) +
     jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f)) +
-    `<div class="tablewrap"${windowAttributes(window)}><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table>${more}</div>`
+    listTable({ tableAttrs: ' data-list="jobs"', head: jobsHead(f, lang), columns: columnGroup(), boxAttrs: windowAttributes(window), body, after: more })
   );
 }
 

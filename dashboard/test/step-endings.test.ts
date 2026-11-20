@@ -5,7 +5,6 @@ import {
   ACCEPTANCE_CRITERIA_UNTICKED,
   STEP_ENDINGS,
   endingMayRetry,
-  isFailedEnding,
   isGuardEnding,
   isJobStop,
   isRunStop,
@@ -38,7 +37,6 @@ describe("the shared step-ending catalogue", () => {
   test("reads every classification independently from the catalogue (AC-2)", () => {
     expect(isJobStop("tests-red")).toBe(true);
     expect(isRunStop("tests-red")).toBe(false);
-    expect(isFailedEnding("tests-red")).toBe(true);
     expect(isGuardEnding(ACCEPTANCE_CRITERIA_UNTICKED)).toBe(true);
     expect(leavesStepUndone("model-at-capacity")).toBe(true);
     expect(endingMayRetry("no-progress")).toBe(true);

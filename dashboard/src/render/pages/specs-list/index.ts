@@ -99,7 +99,7 @@ import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./n
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
 export { phasePips };
-import { filterBar, sortableHead } from "./filter-bar.ts";
+import { columnGroup, filterBar, listTable, sortableHead } from "./filter-bar.ts";
 import type { PhaseMessages } from "./phase-messages";
 import type { LogPart } from "../../../queue/parse-stream";
 import { withGroupArchive } from "./group-archive-projection.ts";
@@ -416,13 +416,9 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
   return (
     renderFailedCreateNotices(opts.failedCreates ?? [], opts.lang ?? "en") +
     filterBar(opts.summaryGroups ?? groups, f, opts, window.total) +
-    // "speclist" beside "list": the mobile stylesheet lays THIS table
-    // out as stacked blocks (its rows are flex lines there), and the
-    // archive page and the settings table share .list without wanting
-    // any of that. `data-list` tells the Specs list's own columns apart
-    // from the Running tab's, which share the class.
-    `<div class="tablewrap"${windowAttributes(window)}><table class="list speclist"${opts.openSpec ? ` data-list="specs"` : ""}>` +
-    `${sortableHead(f, opts.lang ?? "en", !!opts.openSpec)}<tbody>${body}</tbody></table>${windowControl(window, f, opts.listPath ?? "/specs", opts.lang ?? "en")}</div>`
+    listTable({ tableAttrs: opts.openSpec ? ' data-list="specs"' : "", head: sortableHead(f, opts.lang ?? "en", !!opts.openSpec),
+      columns: columnGroup(!!opts.openSpec), boxAttrs: windowAttributes(window), body,
+      after: windowControl(window, f, opts.listPath ?? "/specs", opts.lang ?? "en") })
   );
 }
 

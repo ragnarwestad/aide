@@ -55,6 +55,18 @@
 #jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
   max-width: calc(var(--speclist-width) + 2px + 2 * var(--sp-3)); width: 100%; box-sizing: border-box;
   margin-inline: auto; padding-inline: var(--sp-3); padding-bottom: var(--sp-3); }
+/* The column headings, in a table of their own above the box that
+   scrolls, so the scrollbar runs beside the rows and not up past the
+   headings. The same width and lanes as the box below; both reserve the
+   scrollbar's gutter, so a scrollbar that takes room narrows both tables
+   alike and the columns stay in line. The two tables meet on one line:
+   the headings' own bottom border. */
+#jobrows .listhead { flex: none; overflow: hidden; scrollbar-gutter: stable;
+  max-width: calc(var(--speclist-width) + 2px + 2 * var(--sp-3)); width: 100%; box-sizing: border-box;
+  margin-inline: auto; padding-inline: var(--sp-3); }
+#jobrows .tablewrap { scrollbar-gutter: stable; }
+#jobrows .listhead > table.list { border-bottom: 0; }
+#jobrows .tablewrap > table.list { border-top: 0; }
 
 table { border-collapse: collapse; width: 100%; }
 /* Only the specs list stops stretching to the frame.
@@ -403,36 +415,11 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    Pinning to the <th> keeps the two independent: the chevron always
    sits at the column's real edge (matching the same edge every
    value-cell and the table's own last-child clearance already agree
-   on, list.css:170-175) regardless of what .sortlink reserves.
-
-   Sticky within the box that scrolls the list, for the same
-   reason: `sticky` is a positioned value exactly as `relative` was, so
-   the chevron's anchor above is unaffected. `top: 0` pins the row to
-   the top of `#jobrows .tablewrap` (list.css:50-52), the one box that
-   scrolls — every row moves under it instead of over it. Scoped to
-   `.speclist` alone (the class only specs-list.ts ever writes): the
-   Schedule, Settings, Project and New-spec tables share table.list's
-   own header rules but have no scrolling box of their own to stick
-   within, and widening this to `table.list th` or the bare `thead th`
-   above would pin their headers to the page instead. The background
-   that keeps a scrolled-up row from showing through is already on
-   every `.list` table's `<th>` (table.list th, list.css:210) — nothing
-   new needed here. Phone width hides the whole `<thead>` (narrow.css,
-   `display: none` below 40rem) before this rule can have any visible
-   effect there. */
-/* Above the rows it pins over: a row's own positioned parts — the AI and
-   model picker, the phase chips, a disclosure — would otherwise paint on
-   top of it as they scroll under, positioned elements later in the page
-   stacking above earlier ones. Below the menus (20), so an open menu
-   still shows over it. */
-/* Every other list's header is the chevron's context the same way, as a
-   plain `relative`: without it the chevron is placed against the box
-   around the table and sits past its right edge. */
+   on, list.css:170-175) regardless of what .sortlink reserves. */
+/* Every list's header is the chevron's context, as a plain `relative`:
+   without it the chevron is placed against the box around the table and
+   sits past its right edge. */
 table.list thead th { position: relative; }
-table.speclist thead th { position: sticky; top: 0; z-index: 5; }
-/* A row the address names is scrolled to just below those pinned headings,
-   not under them: their padding and one line of their text. */
-#jobrows .tablewrap { scroll-padding-top: calc(2 * var(--sp-2) + 1lh); }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine

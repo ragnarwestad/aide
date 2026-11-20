@@ -73,9 +73,7 @@
      headed a column layout that is gone at this width (Started and
      Cost are hidden, State moved onto the spec's own second line), and
      the mock draws no heading row here at all. */
-  table.list thead { display: none; }
-  /* With no headings to clear, a named row scrolls to the very top. */
-  #jobrows .tablewrap { scroll-padding-top: 0; }
+  table.list thead, #jobrows .listhead { display: none; }
 
   /* The fold control (design handoff, mobile-spec-row), second attempt
      (2026-08-24). The first attempt toggled .modelcell between
