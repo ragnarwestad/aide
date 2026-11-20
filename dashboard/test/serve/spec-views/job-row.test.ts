@@ -28,11 +28,13 @@ test("job rows include blocked entries and project the saved global order", asyn
   const b = store.enqueue({ project: "aide", specFolder: "b", steps: ["implement"] });
   if (!a.ok || !b.ok) throw new Error("enqueue failed");
   store.update(a.job.id, { error: "Waiting for a prerequisite", errorReason: "held-back" });
-  const owner = store.waiting.open("test");
-  store.waiting.save(owner, owner.entries.map(entry => entry.id).reverse());
+  const d = store.enqueue({ project: "aide", specFolder: "deploy", steps: ["deploy"] });
+  if (!d.ok) throw new Error(d.error);
+  const owner = store.waiting.open("test", `job:${d.job.id}:0`);
+  store.waiting.save(owner, [owner.targetId, ...owner.entries.filter(entry => entry.id !== owner.targetId).map(entry => entry.id)]);
   const ctx = { queue: store, store: new AideRunStore() };
-  expect((await jobRow(ctx, store.get(a.job.id)!)).queuePosition).toMatchObject({ n: 2, total: 2, reason: "Waiting for a prerequisite" });
-  expect((await jobRow(ctx, b.job)).queuePosition).toMatchObject({ n: 1, total: 2 });
+  expect((await jobRow(ctx, store.get(a.job.id)!)).queuePosition).toMatchObject({ n: 2, total: 3, reason: "Waiting for a prerequisite" });
+  expect((await jobRow(ctx, b.job)).queuePosition).toMatchObject({ n: 3, total: 3 });
 });
 
 // `Job.stepStartedAt`/`StepResult.startedAt` are the one link

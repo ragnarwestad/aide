@@ -43,11 +43,11 @@ describe("a {doing} value", () => {
 });
 
 
-test("Deploy waits only for the landing ids captured when it was requested", () => {
+test("queued Deploy waits for actual admitted landings and ignores historical capture (AC-6)", () => {
   const deploy = job({ id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", deployWaitForLandings: ["first"] });
   const jobs = [deploy, job({ id: "first", landing: true }), job({ id: "later", landing: true })];
-  expect(deployWaitsFor(jobs, deploy.id).map((j) => j.id)).toEqual(["first"]);
-  jobs[1]!.landing = false;
+  expect(deployWaitsFor(jobs, deploy.id, new Set(["later"])).map((j) => j.id)).toEqual(["later"]);
+  jobs[2]!.landing = false;
   expect(deployWaitsFor(jobs, deploy.id)).toEqual([]);
 });
 
@@ -73,4 +73,12 @@ test("a later landing waits outside the merge lock until Deploy ends or is cance
     expect(released).toBe(true);
     expect(later.errorReason).toBeUndefined();
   }
+});
+
+
+test("queued Deploy lets a landing register its pending merge (AC-1)", async () => {
+  const deploy = job({ id: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued" });
+  const landing = job({ id: "landing", landing: true });
+  const jobs = [deploy, landing];
+  expect(await waitForDeploy({ list: () => jobs, get: id => jobs.find(j => j.id === id), update: () => undefined }, landing.id)).toBe(true);
 });

@@ -205,7 +205,7 @@ export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
 export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
   const jobs = ctx.queue.list();
   return new Set(jobs.filter((job) => job.state === "queued" && jobKind(job) === "deploy" &&
-    deployWaitsFor(jobs, job.id).length > 0).map((job) => job.id));
+    deployWaitsFor(jobs, job.id, ctx.queue.waiting.admitted).length > 0).map((job) => job.id));
 }
 
 /** Queued jobs held because Analyze has not run. */
@@ -220,7 +220,7 @@ export function approachChoiceHolds(ctx: ScheduleContext): Map<string, BoardMess
 
 /** Queued deploy jobs waiting for a landing to settle. */
 export function deployLandingHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
-  return new Map([...deployWaitingForLanding(ctx)].map((id) => [id, deployHold(ctx.queue.list(), id)]));
+  return new Map([...deployWaitingForLanding(ctx)].map((id) => [id, deployHold(ctx.queue.list(), id, ctx.queue.waiting.admitted)]));
 }
 
 /** Which queued `archive` jobs `aide-archive-spec` would only refuse,

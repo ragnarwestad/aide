@@ -86,7 +86,7 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   const shown = jobPresentation(r);
   if (shown.waiting?.id) {
     const pos = shown.waiting;
-    return queueBadge(lang, pos.id!, pos.n, pos.total, pos.reason);
+    return queueBadge(lang, pos.id!, pos.n, pos.total, pos.reason, r.state === "queued" && r.steps[r.stepIndex] === "deploy");
   }
   if (["queued", "needs-action", "testing", "merging"].includes(shown.state)) {
     const pos = shown.waiting;

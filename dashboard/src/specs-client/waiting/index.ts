@@ -1,3 +1,4 @@
+import { legalMove } from "../../queue/waiting/movement.ts";
 import { showAsk } from "../ask.ts";
 import type { Owner, WaitingEntry } from "../../queue/waiting";
 import { bindPointerMoves } from "./reorder.ts";
@@ -19,7 +20,7 @@ export function bindWaitingEditor(): void {
     opening = true;
     let owner: (Owner & { html: string }) | undefined;
     try {
-      owner = await post("open", { requestId: crypto.randomUUID() });
+      owner = await post("open", { requestId: crypto.randomUUID(), entryId: badge.dataset.waitingOpen });
       const host = document.createElement("div");
       host.innerHTML = owner!.html;
       const dialog = host.firstElementChild as HTMLDialogElement;
@@ -50,13 +51,23 @@ export function bindWaitingEditor(): void {
     let saving = false;
     let closed = false;
     const ids = () => [...list.querySelectorAll<HTMLElement>("[data-waiting-id]")].map(row => row.dataset.waitingId!);
+    const allowed = (next: string[]) => certain && current.has(state.owner.targetId) && legalMove(snapshotIds, next, state.owner.targetId, state.owner.openingIds);
+    const movedIds = (row: HTMLElement, offset: number) => {
+      const next = ids(); const from = next.indexOf(row.dataset.waitingId!);
+      if (from + offset < 0 || from + offset >= next.length) return [];
+      next.splice(from, 1); next.splice(from + offset, 0, row.dataset.waitingId!); return next;
+    };
     const numbered = () => {
       const rows = [...list.querySelectorAll<HTMLElement>("[data-waiting-id]")];
       const selected = document.activeElement?.closest<HTMLElement>("[data-waiting-id]");
-      rows.forEach((row, index) => {
-        row.querySelector<HTMLButtonElement>('[data-waiting-move="up"]')!.disabled = index === 0;
-        row.querySelector<HTMLButtonElement>('[data-waiting-move="down"]')!.disabled = index === rows.length - 1;
+      rows.forEach(row => {
+        row.querySelector<HTMLButtonElement>('[data-waiting-move="up"]')?.toggleAttribute("disabled", row.dataset.waitingId !== state.owner.targetId || !allowed(movedIds(row, -1)));
+        row.querySelector<HTMLButtonElement>('[data-waiting-move="down"]')?.toggleAttribute("disabled", row.dataset.waitingId !== state.owner.targetId || !allowed(movedIds(row, 1)));
       });
+      for (const row of rows) {
+        const handle = row.querySelector<HTMLButtonElement>("[data-waiting-drag]");
+        if (handle) handle.disabled = !certain || row.dataset.waitingId !== state.owner.targetId;
+      }
       if (selected && (document.activeElement as HTMLButtonElement)?.disabled) selected.focus();
       if (selected) position.textContent = `${rows.indexOf(selected) + 1}/${rows.length}`;
     };
@@ -68,7 +79,7 @@ export function bindWaitingEditor(): void {
         if (!row) {
           row = document.createElement("li"); row.dataset.waitingId = entry.id; row.tabIndex = -1;
           const text = document.createElement("span"); text.dataset.waitingText = ""; row.append(text);
-          row.append(dialog.querySelector<HTMLTemplateElement>("[data-waiting-controls]")!.content.cloneNode(true)); list.append(row);
+          if (entry.id === state.owner.targetId) row.append(dialog.querySelector<HTMLTemplateElement>("[data-waiting-controls]")!.content.cloneNode(true)); list.append(row);
         }
         row.querySelector<HTMLElement>("[data-waiting-text]")!.textContent = `${entry.project}: ${entry.label} · ${entry.operation}${entry.reason ? ` — ${entry.reason}` : ""}`;
       }
@@ -79,20 +90,22 @@ export function bindWaitingEditor(): void {
     list.addEventListener("click", event => {
       const control = (event.target as Element).closest<HTMLElement>("[data-waiting-move]");
       const row = control?.closest<HTMLElement>("[data-waiting-id]");
-      if (!row) return;
+      if (!row || row.dataset.waitingId !== state.owner.targetId || !allowed(movedIds(row, control!.dataset.waitingMove === "up" ? -1 : 1))) return;
       if (control!.dataset.waitingMove === "up" && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
       else if (control!.dataset.waitingMove === "down" && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
       control!.focus(); numbered();
     });
-    bindPointerMoves(list, numbered);
-    const lost = (error: unknown) => { certain = false; save.disabled = true; refused.textContent = `${box.dataset.lost} ${error instanceof Error ? error.message : ""}`; };
+    bindPointerMoves(list, numbered, allowed, () => state.owner.targetId);
+    const lost = (error: unknown) => { certain = false; save.disabled = true; numbered(); refused.textContent = `${box.dataset.lost} ${error instanceof Error ? error.message : ""}`; };
     const refresh = async (action = "snapshot") => {
       if (closed || saving) return;
       try {
         const next: Owner = await post(action, state.owner);
         if (closed || saving) return;
         state.owner = next; snapshotIds = next.entries.map(entry => entry.id);
-        render(next.entries); certain = true; save.disabled = false;
+        certain = true; render(next.entries);
+        if (!current.has(next.targetId)) { lost(new Error(box.dataset.removed)); return; }
+        save.disabled = false;
       } catch (error) { lost(error); }
     };
     const offline = () => lost(new Error());
@@ -113,11 +126,13 @@ export function bindWaitingEditor(): void {
       if (!closed) { closed = true; void post("cancel", state.owner, true).catch(() => {}); }
       clearInterval(timer); clearInterval(live);
       window.removeEventListener("offline", offline);
+      window.removeEventListener("beforeunload", leave);
       window.removeEventListener("pagehide", leave);
       window.removeEventListener("popstate", leave);
       active = undefined; dialog.remove(); badge.isConnected && badge.focus();
     };
     const leave = () => { dialog.close(); release(); };
+    window.addEventListener("beforeunload", leave);
     window.addEventListener("pagehide", leave);
     window.addEventListener("popstate", leave);
     dialog.addEventListener("close", release, { once: true });

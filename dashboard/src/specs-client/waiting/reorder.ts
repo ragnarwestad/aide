@@ -1,9 +1,9 @@
-export function bindPointerMoves(list: HTMLElement, moved: () => void): void {
+export function bindPointerMoves(list: HTMLElement, moved: () => void, allowed: (ids: string[]) => boolean, target: () => string): void {
   let drag: { row: HTMLElement; pointer: number; handle: HTMLElement; x: number; y: number; active: boolean; before: Element[] } | undefined;
   list.addEventListener("pointerdown", event => {
     const handle = (event.target as Element).closest<HTMLElement>("[data-waiting-drag]");
     const row = handle?.closest<HTMLElement>("[data-waiting-id]");
-    if (!handle || !row || event.button !== 0) return;
+    if (!handle || !row || row.dataset.waitingId !== target() || (handle as HTMLButtonElement).disabled || event.button !== 0) return;
     drag = { row, pointer: event.pointerId, handle: handle!, x: event.clientX, y: event.clientY, active: false, before: [...list.children] };
     event.preventDefault();
   });
@@ -17,7 +17,11 @@ export function bindPointerMoves(list: HTMLElement, moved: () => void): void {
       if (sibling === drag.row) continue;
       const bounds = sibling.getBoundingClientRect();
       if (event.clientY >= bounds.top && event.clientY <= bounds.bottom) {
-        list.insertBefore(drag.row, event.clientY < bounds.top + bounds.height / 2 ? sibling : sibling.nextSibling);
+        const before = event.clientY < bounds.top + bounds.height / 2 ? sibling : sibling.nextElementSibling;
+        const rows = [...list.children].filter(row => row !== drag!.row);
+        rows.splice(before ? rows.indexOf(before) : rows.length, 0, drag.row);
+        if (!allowed(rows.map(row => (row as HTMLElement).dataset.waitingId!))) break;
+        list.insertBefore(drag.row, before);
         moved();
         break;
       }

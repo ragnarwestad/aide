@@ -3,20 +3,20 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WaitingQueue } from "../../../src/queue/waiting";
-const entries = ["a", "b"].map(id => ({ id, project: "p", label: id, operation: "land", reason: "" }));
+const entries = ["a", "b"].map(id => ({ id, project: "p", label: id, operation: id === "b" ? "deploy" : "land", jobId: id, reason: "" }));
 test("saved priority survives restart but editing ownership does not", () => {
   const dir = mkdtempSync(join(tmpdir(), "waiting-"));
   try {
     const path = join(dir, "order.json");
     const q = new WaitingQueue({ path });
     q.reconcile(entries);
-    const owner = q.open("first");
+    const owner = q.open("first", "b");
     q.save(owner, ["b", "a"]);
     const next = new WaitingQueue({ path });
     next.reconcile(entries);
     expect(next.snapshot().entries.map(e => e.id)).toEqual(["b", "a"]);
     expect(next.paused).toBe(false);
-    next.open("new");
+    next.open("new", "b");
     expect(() => next.cancel(owner)).toThrow();
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -26,7 +26,7 @@ test("storage refuses a failed atomic rename", () => {
     const path = join(dir, "order.json");
     const q = new WaitingQueue({ path });
     q.reconcile(entries);
-    const owner = q.open("first");
+    const owner = q.open("first", "b");
     rmSync(path);
     mkdirSync(path);
     expect(() => q.save(owner, ["b", "a"])).toThrow();
@@ -50,27 +50,27 @@ for (const refused of [false, true]) test(`saved reservations are pruned while u
     };
     const a = add("1-a", ["analyze", "implement"]);
     const archive = add("2-b", ["archive"]);
-    const c = add("3-c", ["analyze"]);
+    const c = add("deploy", ["deploy"]);
     const ids = [`job:${a.id}:0`, `job:${archive.id}:0`, `job:${c.id}:0`];
     writeFileSync(path, JSON.stringify({ revision: 1, order: [ids[2], `job:${a.id}:1`, ids[1], "group:missing:future:analyze", ids[0]] }));
     store = make();
     expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual([ids[2], ids[1], ids[0]]);
-    const owner = store.waiting.open("edit");
+    const owner = store.waiting.open("edit", ids[2]!);
     expect(owner.entries.map(e => e.id)).toEqual([ids[2], ids[0]]);
     expect(() => store.waiting.save(owner, [...owner.entries.map(e => e.id), ids[1]!])).toThrow();
-    store.waiting.save(owner, owner.entries.map(e => e.id).reverse());
-    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual([ids[0], ids[1], ids[2]]);
+    store.waiting.save(owner, owner.entries.map(e => e.id));
+    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual([ids[2], ids[1], ids[0]]);
     store = make();
     setNow(Date.parse("2026-11-18T10:00:00Z"));
     const runner = makeRunner({ store, maxConcurrent: 1 });
-    const edit = store.waiting.open("hold dispatch");
+    const edit = store.waiting.open("hold dispatch", ids[2]!);
     runner.tick({ acceptanceOpen: new Set(refused ? [archive.id] : []) });
-    expect(store.waiting.snapshot().entries.map(e => e.id)).toEqual(refused ? [ids[0], ids[2]] : ids);
+    expect(store.waiting.snapshot().entries.map(e => e.id)).toEqual(refused ? [ids[2], ids[0]] : [ids[2], ids[1], ids[0]]);
     store.waiting.cancel(edit);
-    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual(refused ? [ids[0], ids[2]] : ids);
+    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual(refused ? [ids[2], ids[0]] : [ids[2], ids[1], ids[0]]);
     store = make();
-    expect(store.waiting.snapshot().entries.map(e => e.id)).toEqual([ids[0], ids[2]]);
-    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual(refused ? [ids[0], ids[2]] : ids);
+    expect(store.waiting.snapshot().entries.map(e => e.id)).toEqual([ids[2], ids[0]]);
+    expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual(refused ? [ids[2], ids[0]] : [ids[2], ids[1], ids[0]]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -102,5 +102,25 @@ test("startup drops a successor reservation while its predecessor's landing must
     expect(JSON.parse(readFileSync(path, "utf8")).order).toEqual([`job:${b.job.id}:0`]);
     store.update(a.job.id, { landingCut: undefined });
     expect(store.waiting.snapshot().entries.map(e => e.jobId)).toEqual([b.job.id, a.job.id]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+
+test("a saved Deploy position controls actual starts after restart (AC-1, AC-4)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "deploy-order-"));
+  const mirrorPath = join(dir, "queue.json");
+  const make = () => new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve: () => ({ specFolders: ["a", "b"] }) });
+  try {
+    let store = make();
+    const add = (specFolder: string, steps: string[]) => { const r = store.enqueue({ project: "p", specFolder, steps }); if (!r.ok) throw Error(r.error); return r.job; };
+    const first = add("a", ["analyze"]);
+    const second = add("b", ["analyze"]);
+    const deploy = add("deploy", ["deploy"]);
+    const owner = store.waiting.open("edit", `job:${deploy.id}:0`);
+    store.waiting.save(owner, [`job:${first.id}:0`, `job:${deploy.id}:0`, `job:${second.id}:0`]);
+    store = make();
+    const starts: string[] = [];
+    makeRunner({ store, maxConcurrent: 2, spawn: job => ({ providers: {}, start: () => { starts.push(job.id); return { pid: 100, pgid: 100 }; } }) }).tick();
+    expect(starts).toEqual([first.id, deploy.id, second.id]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

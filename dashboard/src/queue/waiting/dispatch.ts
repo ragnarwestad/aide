@@ -30,8 +30,11 @@ export class WaitingDispatch {
         const intent = this.intents.get(entry.id);
         if (!intent) continue;
         if (intent.cancelled()) { this.remove(entry.id); intent.reject(new Error("Pending work was cancelled")); continue; }
-        if (this.queue.paused) continue;
-        const work = intent.roots.tryRun(intent.root, intent.start);
+        if (this.queue.paused || !this.queue.canAdmit(intent.entry)) continue;
+        const work = intent.roots.tryRun(intent.root, () => {
+          if (entry.id.startsWith("merge:") && entry.jobId) this.queue.admitted.add(entry.jobId);
+          return intent.start();
+        });
         if (!work) continue;
         this.remove(entry.id);
         work.then(intent.resolve, intent.reject);

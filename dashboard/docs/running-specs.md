@@ -579,7 +579,7 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
-Press a Queued n/N button to edit the full waiting queue. Drag by the handle or use Move up and Move down, then Save. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
+Press the Queued n/N button on a waiting Deploy to edit the full waiting queue. Only that Deploy can move: drag by its handle or use Move up and Move down, then Save. It can move ahead of waiting work or back to its opening position before Save. Other jobs keep their order and show their queue position and reason without opening editing. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
 
 Only the next selected step gets a queue position, after its preceding work has finished, including review and any required merge. It joins behind the work already waiting. Later selected steps and later group members have no reserved position or editor row. A phase with no recorded attempt shows the existing dash; earlier attempts keep their status.
 
@@ -588,7 +588,7 @@ An Archive waiting for acceptance has no queue position. Tick the required accep
 
 Only one tab can edit at a time. While it edits, waiting work cannot start, including a merge waiting for its repository. Work already started continues, and ordinary repository edits remain available. The editing lock expires after 30 seconds without renewal; refreshing or restarting the server never restores it.
 
-Saved priority survives refresh and server restart. The first eligible entry starts: prerequisites, provider limits, concurrency and repository locks still apply, so a blocked entry does not stop eligible work below it.
+Saved priority survives refresh and server restart. Prerequisites, provider limits, concurrency and repository locks still apply. A blocked ordinary entry does not stop eligible work below it; following work cannot overtake a queued Deploy.
 
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls back
 to two**; it does not clamp.
@@ -955,13 +955,12 @@ the Deploy and its planned restart; Archive and Land continue. Fetching and inst
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout
 stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
-origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. While a merge is
-in flight when Deploy is requested, the deploy waits for those landings to settle; the row says "Held back" with
-the reason. Deploy takes priority over queued Land and Archive jobs. A step that finishes afterwards waits before
-starting its landing, outside the repository lock, so new work cannot keep moving Deploy backwards. This applies
-to landings across the board because the restart takes down their shared process; detached analysis and
-implementation runs can continue. When Deploy finishes, fails or is cancelled, waiting work resumes automatically.
-The set of landings Deploy waits for is recorded with its job and survives a board restart. Fetch and install share
+origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. A new Deploy joins the end of the ordinary waiting queue. Its Queued n/N button lets the user move it ahead of
+waiting work and save that position. A merge already started finishes all its repositories before Deploy starts,
+even if it started after Deploy was queued. A merge still waiting for admission follows the saved order.
+Once Deploy starts, new landings wait outside the repository lock until Deploy finishes, fails or is cancelled.
+Detached analysis and implementation runs can continue.
+Fetch and install share
 the checkout lock. After a restart wait it fetches main again and reinstalls if the commit changed, before restarting.
 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads

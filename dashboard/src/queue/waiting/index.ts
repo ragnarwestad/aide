@@ -1,3 +1,4 @@
+import { legalMove } from "./movement.ts";
 import { loadOrder, writeOrder } from "./order.ts";
 import type { Credential, Owner, WaitingEntry, WaitingOptions, WaitingSnapshot } from "./types.ts";
 export type { Credential, Owner, WaitingEntry, WaitingSnapshot } from "./types.ts";
@@ -8,9 +9,13 @@ export class WaitingQueue {
   private revision: number;
   get established(): boolean { return this.order.length > 0; }
   readonly reasons = new Map<string, string>();
+  readonly admitted = new Set<string>();
+  canAdmit(entry: WaitingEntry, entries = this.snapshot().entries): boolean {
+    return this.options.admit?.(entry, entries, this.admitted) ?? true;
+  }
   readonly pending = new Map<string, WaitingEntry>();
   private entries = new Map<string, WaitingEntry>();
-  private lease?: { request: string; token: string; expiresAt: number; issued: Map<string, string[]> };
+  private lease?: { targetId: string; openingIds: string[]; request: string; token: string; expiresAt: number; issued: Map<string, string[]> };
   private readonly generation = crypto.randomUUID();
   private readonly now: () => number;
   private timer?: ReturnType<typeof setTimeout>;
@@ -76,13 +81,17 @@ export class WaitingQueue {
     const snapshot = this.snapshot();
     const ids = snapshot.entries.map(e => e.id);
     this.lease!.issued.set(JSON.stringify(ids), ids);
-    return { ...snapshot, token: this.lease!.token, generation: this.generation, expiresAt: this.lease!.expiresAt };
+    return { ...snapshot, targetId: this.lease!.targetId, openingIds: [...this.lease!.openingIds], token: this.lease!.token, generation: this.generation, expiresAt: this.lease!.expiresAt };
   }
-  open(request: string): Owner {
+  open(request: string, targetId: string): Owner {
     if (!request || request.length > 200) throw new Error("An opening request id is required");
     if (this.paused && this.lease!.request !== request) throw new Error("The queue is being edited in another tab. Try again when it closes.");
+    const snapshot = this.snapshot();
+    const target = snapshot.entries.find(entry => entry.id === targetId);
+    if (!target || target.operation !== "deploy" || !target.jobId || target.id.startsWith("deploy:")) throw new Error("Only a waiting Deploy can be edited");
+    if (this.lease && this.lease.targetId !== targetId) throw new Error("The editing target cannot change");
     if (!this.lease) {
-      this.lease = { request, token: crypto.randomUUID(), expiresAt: this.now() + TTL, issued: new Map() };
+      this.lease = { targetId, openingIds: snapshot.entries.map(entry => entry.id), request, token: crypto.randomUUID(), expiresAt: this.now() + TTL, issued: new Map() };
       this.arm();
     }
     try { return this.issued(); }
@@ -104,6 +113,9 @@ export class WaitingQueue {
         !this.lease!.issued.has(JSON.stringify(issued)) || ids.length !== issued.length ||
         new Set(ids).size !== ids.length || ids.some(id => !issued.includes(id))) {
       throw new Error("Save must contain each entry from the issued snapshot exactly once");
+    }
+    if (!this.entries.has(this.lease!.targetId) || !legalMove(issued, ids, this.lease!.targetId, this.lease!.openingIds)) {
+      throw new Error("Only the selected waiting Deploy may move ahead of its opening position");
     }
     const present = new Set(this.entries.keys());
     const visible = [...ids.filter(id => present.has(id)), ...this.order.filter(id => present.has(id) && !issued.includes(id))];

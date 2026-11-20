@@ -1,5 +1,5 @@
 import { dispatchFor } from "../waiting/dispatch.ts";
-import { waitingKey, validateWaitingArchives } from "../waiting/jobs.ts";
+import { waitingKey, jobEntry, validateWaitingArchives } from "../waiting/jobs.ts";
 // The scheduler: a configurable number of jobs at
 // once, every step bounded before it starts, and a restart reconciled
 // rather than guessed at.
@@ -165,6 +165,12 @@ export class Runner {
         this.waits.held(job, held, this.o.now());
         continue;
       }
+      if (!this.o.store.waiting.canAdmit(jobEntry(job))) {
+        const reason: BoardMessage = { key: job.steps[job.stepIndex] === "deploy" ? "runner.landingPause" : "runner.deployPriority" };
+        this.o.store.waiting.reasons.set(waitingKey(job), formatSentence("en", reason) ?? "");
+        hold(job, reason);
+        continue;
+      }
       this.o.store.waiting.reasons.delete(waitingKey(job));
       if (this.startOne(job)) this.waits.started(job, this.o.now());
     }
@@ -174,7 +180,11 @@ export class Runner {
 
   /** Start one job's next step. Returns whether a slot was taken. */
   private startOne(job: Job): boolean {
-    if (this.o.store.waiting.paused) return false;
+    const waiting = this.o.store.waiting;
+    if (waiting.paused || !waiting.canAdmit(jobEntry(job))) return false;
+    if (job.steps[job.stepIndex] === "deploy") {
+      this.o.store.update(job.id, { deployWaitForLandings: this.o.store.list().filter(other => other.landing && waiting.admitted.has(other.id)).map(other => other.id) });
+    }
     const step = job.steps[job.stepIndex];
     if (!step || (step === "archive" && isGroupMemberRun(job))) {
       this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now(), stepIndex: Math.max(0, job.stepIndex - (step === "archive" ? 1 : 0)) });

@@ -1,9 +1,9 @@
 import type { Job } from "../types.ts";
 import { jobKind } from "../steps.ts";
-import { inFlight } from "./activity.ts";
+import type { WaitingEntry } from "../waiting/types.ts";
 
 export function pendingDeploy(jobs: readonly Job[]): Job | undefined {
-  return jobs.find((job) => jobKind(job) === "deploy" && inFlight(job));
+  return jobs.find((job) => jobKind(job) === "deploy" && job.state === "running");
 }
 
 export function deployBlockingLanding(jobs: readonly Job[], jobId: string): Job | undefined {
@@ -11,6 +11,18 @@ export function deployBlockingLanding(jobs: readonly Job[], jobId: string): Job 
   return deploy && !deploy.deployWaitForLandings?.includes(jobId) ? deploy : undefined;
 }
 
-export function captureDeployPriority(job: Job, jobs: readonly Job[]): void {
-  if (jobKind(job) === "deploy") job.deployWaitForLandings = jobs.filter((other) => other.landing).map((other) => other.id);
+/** Both job starts and root admission use the saved waiting order. */
+export function mayAdmit(entry: WaitingEntry, entries: WaitingEntry[], jobs: readonly Job[], admitted: ReadonlySet<string>): boolean {
+  if (entry.id.startsWith("merge:") && entry.jobId && admitted.has(entry.jobId)) return true;
+  const running = pendingDeploy(jobs);
+  if (entry.id.startsWith("merge:") && running && !running.deployWaitForLandings?.includes(entry.jobId ?? "")) return false;
+  const index = entries.findIndex(candidate => candidate.id === entry.id);
+  const boundary = entries.findIndex(candidate => candidate.operation === "deploy" &&
+    jobs.some(job => job.id === candidate.jobId && job.state === "queued"));
+  if (boundary >= 0 && index > boundary) return false;
+  if (entry.operation === "deploy" && jobs.some(job => job.id === entry.jobId && job.state === "queued")) {
+    if (jobs.some(job => job.landing && admitted.has(job.id))) return false;
+    if (entries.slice(0, index).some(candidate => candidate.id.startsWith("merge:"))) return false;
+  }
+  return true;
 }

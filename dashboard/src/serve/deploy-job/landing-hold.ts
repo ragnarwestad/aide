@@ -4,14 +4,14 @@ import { type Job, type QueueStore } from "../../queue/queue.ts";
 import { landingStepIndex } from "../../format/gerund.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
-export function deployWaitsFor(jobs: Job[], exceptJobId?: string): Job[] {
+export function deployWaitsFor(jobs: Job[], exceptJobId?: string, admitted?: ReadonlySet<string>): Job[] {
   const deploy = jobs.find((job) => job.id === exceptJobId);
   return jobs.filter((job) => job.id !== exceptJobId && job.landing &&
-    (!deploy?.deployWaitForLandings || deploy.deployWaitForLandings.includes(job.id)));
+    (deploy?.state === "queued" ? admitted?.has(job.id) === true : !deploy?.deployWaitForLandings || deploy.deployWaitForLandings.includes(job.id)));
 }
 
-export function deployHold(jobs: Job[], exceptJobId?: string): BoardMessage {
-  const landings: BoardMessage[] = deployWaitsFor(jobs, exceptJobId)
+export function deployHold(jobs: Job[], exceptJobId?: string, admitted?: ReadonlySet<string>): BoardMessage {
+  const landings: BoardMessage[] = deployWaitsFor(jobs, exceptJobId, admitted)
     .map((job) => ({
       key: "runner.landingRunning",
       values: {

@@ -18,6 +18,7 @@ const ctx = (): ScheduleContext => ({ queue: store }) as unknown as ScheduleCont
 function landing() {
   const job = enqueue({ specFolder: "91-parallel-spec-runs" });
   store.update(job.id, { landing: true, state: "done" });
+  store.waiting.admitted.add(job.id);
   return job;
 }
 
@@ -61,23 +62,20 @@ describe("a queued deploy is held back while a landing is in flight", () => {
   });
 });
 
-test("newly ready landings cannot keep a priority Deploy queued", () => {
+test("a merge admitted after enqueue still finishes before Deploy starts (AC-6)", () => {
   const d = deploy();
-  const first = landing();
-  store.update(d.id, { deployWaitForLandings: [first.id] });
-  const later = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
-  store.update(later.id, { state: "done", landing: true });
-  expect(deployLandingHolds(ctx()).has(d.id)).toBe(true);
-  store.update(first.id, { landing: undefined });
-  expect(deployLandingHolds(ctx()).has(d.id)).toBe(false);
-  makeRunner().tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
+  const active = landing();
+  store.update(d.id, { deployWaitForLandings: [] });
+  const runner = makeRunner();
+  runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
+  expect(store.get(d.id)?.state).toBe("queued");
+  store.update(active.id, { landing: false });
+  runner.tick({ deployWaitsForLanding: deployLandingHolds(ctx()) });
   expect(store.get(d.id)?.state).toBe("running");
 });
 
-test("enqueuing Deploy captures only the landings already in flight", () => {
-  const first = landing();
+test("enqueuing Deploy does not capture landing priority (AC-1)", () => {
+  landing();
   const d = deploy();
-  const later = enqueue({ steps: ["analyze"] });
-  store.update(later.id, { state: "done", landing: true });
-  expect(store.get(d.id)?.deployWaitForLandings).toEqual([first.id]);
+  expect(store.get(d.id)?.deployWaitForLandings).toBeUndefined();
 });

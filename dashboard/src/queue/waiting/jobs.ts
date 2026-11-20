@@ -1,3 +1,4 @@
+import { mayAdmit } from "../job-rules/deploy-priority.ts";
 import { join, dirname } from "node:path";
 import { WaitingQueue, type WaitingEntry } from "./index.ts";
 import type { QueueStore } from "../store/index.ts";
@@ -34,9 +35,11 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
   archiveChecks.set(store, checked);
   const waiting: WaitingQueue = new WaitingQueue({
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
+    admit: (entry, entries, admitted) => mayAdmit(entry, entries, store.list(), admitted),
     retainAbsent: id => running.has(id) || unresolved.has(id) || (!id.startsWith("job:") && !id.startsWith("group:")),
     refresh: () => {
       const jobs = store.list();
+      for (const id of waiting.admitted) if (!jobs.some(job => job.id === id && job.landing)) waiting.admitted.delete(id);
       running.clear();
       for (const job of jobs) if (job.state === "running" && !job.landing && !job.landingCut) running.add(waitingKey(job));
       const archives = new Set(jobs.filter(j => j.state === "queued" && !j.landing && !j.landingCut && j.steps[j.stepIndex] === "archive").map(waitingKey));

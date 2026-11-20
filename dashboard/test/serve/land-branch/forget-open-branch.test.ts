@@ -107,8 +107,8 @@ describe("a landing whose delete failed records the branch as merged", () => {
 });
 
 
-test("a newly ready landing does not touch git while Deploy has priority", async () => {
-  const deploy = { id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", deployWaitForLandings: [] };
+for (const state of ["queued", "running"]) test(`a newly ready landing waits only for a running Deploy, state=${state} (AC-1, AC-6)`, async () => {
+  const deploy = { id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state, deployWaitForLandings: [] };
   const jobs = [deploy, { ...JOB, steps: ["analyze"], stepIndex: 0, state: "done" }];
   let calls = 0;
   const git = landingGit();
@@ -123,7 +123,8 @@ test("a newly ready landing does not touch git while Deploy has priority", async
   ctx.beforeLanding = (job: { id: string }) => waitForDeploy(ctx.queue as Parameters<typeof waitForDeploy>[0], job.id, 1);
   const work = landBranch(ctx as unknown as Parameters<typeof landBranch>[0], JOB as unknown as Parameters<typeof landBranch>[1], { branch: BRANCH }, LANDING as unknown as Parameters<typeof landBranch>[3]);
   await new Promise((resolve) => setTimeout(resolve, 5));
-  expect(calls).toBe(0);
+  if (state === "running") expect(calls).toBe(0);
+  else expect(calls).toBeGreaterThan(0);
   deploy.state = "cancelled";
   await work;
   expect(calls).toBeGreaterThan(0);

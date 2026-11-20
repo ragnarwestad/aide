@@ -29,9 +29,10 @@ test("a group Archive gets its summary position only after the explicit action a
   expect(waitingGroups(store)[0]?.queuePosition).toBeUndefined();
   const archive = enqueue({ executionGroupId: group.id, steps: ["archive"] });
   expect(waitingGroups(store)[0]?.queuePosition).toBeUndefined();
-  const owner = store.waiting.open("hold dispatch");
+  const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
+  const owner = store.waiting.open("hold dispatch", `job:${deploy.id}:0`);
   makeRunner().tick();
-  expect(waitingGroups(store)[0]?.queuePosition).toMatchObject({ id: `group:${group.id}:archive`, operation: "archive", n: 1 });
-  expect(store.waiting.snapshot().entries[0]?.jobId).toBe(archive.id);
+  expect(waitingGroups(store)[0]?.queuePosition).toMatchObject({ id: `group:${group.id}:archive`, operation: "archive", n: 2 });
+  expect(store.waiting.snapshot().entries[1]?.jobId).toBe(archive.id);
   store.waiting.cancel(owner);
 });

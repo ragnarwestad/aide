@@ -12,6 +12,8 @@ export interface WaitingSnapshot {
   entries: WaitingEntry[];
 }
 export interface Owner extends WaitingSnapshot {
+  targetId: string;
+  openingIds: string[];
   token: string;
   generation: string;
   expiresAt: number;
@@ -23,5 +25,6 @@ export interface WaitingOptions {
   persist?: (order: string[], revision: number) => void;
   changed?: () => void;
   refresh?: () => WaitingEntry[];
+  admit?: (entry: WaitingEntry, entries: WaitingEntry[], admitted: ReadonlySet<string>) => boolean;
   retainAbsent?: (id: string) => boolean;
 }

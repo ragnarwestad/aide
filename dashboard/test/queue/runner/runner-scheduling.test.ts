@@ -401,9 +401,9 @@ describe("shared queue admission order", () => {
   test("a held-back admitted archive does not block ready work behind it", () => {
     const archive = enqueue({ steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 1 });
-    const owner = store.waiting.open("admit before dispatch");
+    const d = enqueue({ specFolder: "deploy", steps: ["deploy"] }); const owner = store.waiting.open("admit before dispatch", `job:${d.id}:0`);
     runner.tick();
-    store.waiting.cancel(owner);
+    store.waiting.cancel(owner); store.update(d.id, { state: "cancelled" });
     const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const blocked = new Map([[archive.id, "80-some-dependency"]]);
     runner.tick({ dependencies: blocked });
@@ -773,12 +773,12 @@ test("editing pauses new starts while polling completes active work", () => {
   const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
   runner.tick();
   const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-  const owner = store.waiting.open("editor");
+  const d = enqueue({ specFolder: "deploy", steps: ["deploy"] }); const owner = store.waiting.open("editor", `job:${d.id}:0`);
   runner.tick();
   expect(store.get(b.id)?.state).toBe("queued");
   runner.poll();
   expect(store.get(a.id)?.state).toBe("done");
-  store.waiting.cancel(owner);
+  store.waiting.cancel(owner); store.update(d.id, { state: "cancelled" });
   runner.tick();
   expect(store.get(b.id)?.state).toBe("running");
 });

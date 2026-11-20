@@ -40,8 +40,10 @@ for (const saveWhileRunning of [false, true]) test(`a running step keeps its pla
   const b = enqueue({ specFolder: "91-parallel-spec-runs" });
   expect(queuedJobs()).toEqual([b.id]);
   if (saveWhileRunning) {
-    const owner = store.waiting.open("edit while running");
+    const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
+    const owner = store.waiting.open("edit while running", `job:${deploy.id}:0`);
     store.waiting.save(owner, owner.entries.map(entry => entry.id));
+    store.update(deploy.id, { state: "cancelled" });
   }
   stopOnLimit(a.id);
   expect(queuedJobs()).toEqual([a.id, b.id]);

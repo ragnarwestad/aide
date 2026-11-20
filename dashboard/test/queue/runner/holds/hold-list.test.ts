@@ -90,8 +90,9 @@ test("queued Land branches run one at a time through the end of the landing", ()
   expect(spawns).toHaveLength(1);
 });
 
-test("a pending Deploy holds new Archive and Land jobs but not Implement", () => {
+test("a running Deploy holds new Archive and Land jobs but not Implement", () => {
   const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
+  store.update(deploy.id, { state: "running" });
   for (const steps of [["archive"], ["land"]]) {
     const job = enqueue({ specFolder: steps[0] === "land" ? "land" : "91-parallel-spec-runs", steps, branch: "topic" });
     expect(holdFor(job, { ...context({}), maxConcurrent: 10 })?.name).toBe("deploy-priority");
