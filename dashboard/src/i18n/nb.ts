@@ -639,6 +639,7 @@ export const nb: Record<TranslationKey, string> = {
   "settings.notifications.msgUnsupported": "Varsler krever den installerte appen på denne enheten — legg dashbordet til på Hjem-skjermen og åpne det derfra.",
   "settings.notifications.msgFailed": "Varsler kunne ikke slås på. Prøv igjen.",
   "message.problem": "Problem",
+  "message.unknownKey": "ukjent melding: {key}",
   "message.solution": "Løsning",
   "list.groupField": "Gruppe",
   "list.groupNew": "Navn på ny gruppe",

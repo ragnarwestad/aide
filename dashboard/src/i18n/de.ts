@@ -636,6 +636,7 @@ export const de: Record<TranslationKey, string> = {
   "settings.notifications.msgUnsupported": "Benachrichtigungen brauchen die installierte App auf diesem Gerät — füge das Dashboard zum Home-Bildschirm hinzu und öffne es von dort.",
   "settings.notifications.msgFailed": "Benachrichtigungen konnten nicht eingeschaltet werden. Versuche es erneut.",
   "message.problem": "Problem",
+  "message.unknownKey": "unbekannte Meldung: {key}",
   "message.solution": "Lösung",
   "list.groupField": "Gruppe",
   "list.groupNew": "Name der neuen Gruppe",

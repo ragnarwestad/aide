@@ -644,6 +644,7 @@ export const en = {
   "settings.notifications.msgUnsupported": "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
   "settings.notifications.msgFailed": "Notifications could not be turned on. Try again.",
   "message.problem": "Problem",
+  "message.unknownKey": "unknown message: {key}",
   "message.solution": "Solution",
   "list.groupField": "Group",
   "list.groupNew": "New group name",

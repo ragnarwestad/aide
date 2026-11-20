@@ -119,8 +119,21 @@ function localValue(lang: Language, key: string, value: string): string {
  *  knows. */
 type Inherited = { button?: string | number | string[] };
 
+/** Keys already logged as missing, so a page drawn every few seconds logs
+ *  each one once. */
+const loggedUnknown = new Set<string>();
+
 function messageParts(lang: Language, m: BoardMessage, catalog: Catalog, inherited: Inherited = {}): Parts {
-  const entry = catalog[m.key]!;
+  const entry = catalog[m.key];
+  // A stored sentence whose key the catalogue no longer has says so on its
+  // own row; it never takes the page down with it.
+  if (!entry) {
+    if (!loggedUnknown.has(m.key)) {
+      loggedUnknown.add(m.key);
+      console.error(`message: no catalogue entry for ${m.key}`);
+    }
+    return { problem: translations[lang]["message.unknownKey"].replace("{key}", () => m.key), lines: false };
+  }
   const values = { ...inherited, ...m.values };
   const fill = (text: string): string => {
     let out = text;

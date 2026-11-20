@@ -636,6 +636,7 @@ export const fr: Record<TranslationKey, string> = {
   "settings.notifications.msgUnsupported": "Les notifications nécessitent l'app installée sur cet appareil — ajoutez le tableau de bord à l'écran d'accueil et ouvrez-le à partir de là.",
   "settings.notifications.msgFailed": "Les notifications n'ont pas pu être activées. Réessayez.",
   "message.problem": "Problème",
+  "message.unknownKey": "message inconnu : {key}",
   "message.solution": "Solution",
   "list.groupField": "Groupe",
   "list.groupNew": "Nom du nouveau groupe",

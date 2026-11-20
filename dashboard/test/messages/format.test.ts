@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { t } from "../../src/i18n";
 import { STEP_LABELS_NB } from "../../src/format/step-label.ts";
 import { type BoardMessage, messageDetail, messageIdentity, formatMessage, formatSentence } from "../../src/messages/format.ts";
@@ -36,6 +36,20 @@ describe("formatMessage", () => {
       values: { step: "Archive", button: "Archive" },
     });
     expect(message).toContain("fix the failures in the project checkout");
+  });
+});
+
+describe("a stored sentence whose key the catalogue no longer has", () => {
+  test("is named on its own, alone or inside another message, and nothing throws", () => {
+    const spy = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const gone = { key: "landing.gone", values: { step: "archive" } } as never;
+      expect(formatSentence("en", gone)).toContain("landing.gone");
+      expect(formatSentence("nb", [gone, { key: "landing.testsRedOnMerge", values: { tests: 2 } }])).toContain("landing.gone");
+      expect(formatSentence("en", { key: "landing.stepFailed", values: { step: "archive" }, inner: gone })).toContain("landing.gone");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
