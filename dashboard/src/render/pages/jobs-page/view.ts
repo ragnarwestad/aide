@@ -44,12 +44,14 @@ const finished = (g: unknown): boolean => {
   const row = g as RowFacts;
   return row.state === "archived" || row.state === "closed" || (row.state === "done" && (rowKind(row) !== "spec" || !!row.pastRound || !!row.ownJob));
 };
+/** A live spec whose last job ended done waits for a person to start its next phase. */
+const waitsForNextStep = (g: unknown): boolean => (g as RowFacts).state === "done" && !finished(g);
 const doneState = { key: "done", label: "Done", where: finished } as StateEntry;
 const jobStateEntries: StateEntry[] = [
   { key: "all", label: "All" },
   { key: "active:all", label: "Running", states: ["running"] },
   { key: "queued", label: "Queued", where: (g) => g.lead ? jobPresentation(g.lead).queued : g.state === "queued" || !!(g as RowFacts).inQueue },
-  { key: "waiting", label: "Waiting", states: ["waiting"] },
+  { key: "waiting", label: "Waiting", where: (g) => g.state === "waiting" || waitsForNextStep(g) },
   { key: "failed", label: "Failed", states: ["failed", "archived-unlanded"] },
   { key: "cancelled", label: "Cancelled", states: ["cancelled"] },
 ];

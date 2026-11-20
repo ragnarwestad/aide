@@ -175,11 +175,24 @@ describe("the state filter offers the states a row on the tab can be in", () => 
 
   // A spec whose last job ended done — a Create, an Analyze — waits for a
   // person to start its next phase: not finished until archived, and not in
-  // the queue either.
-  test("a live spec whose last job ended done is neither Done nor Queued", () => {
+  // the queue either. It waits, so Waiting keeps it.
+  test("a live spec whose last job ended done is Waiting, neither Done nor Queued", () => {
     const created = spec("created", { specFolder: "146-created", state: "done", createdAt: T(6) });
     expect(view([created], { state: "queued" })).toEqual([]);
     expect(view([created], { state: "done" })).toEqual([]);
+    expect(view([created], { state: "waiting" })).toEqual(["created"]);
+  });
+
+  test("every row on the tab belongs to some state entry other than All", () => {
+    const rows = [
+      running, waiting, failedReport, nightly,
+      spec("implemented", { specFolder: "840-implemented", state: "done", createdAt: T(6) }),
+      spec("archived", { specFolder: "145-archived", state: "archived", createdAt: T(6) }),
+      jobEntry("deploy", { specFolder: "deploy", steps: ["deploy"], state: "done", createdAt: T(6) }),
+    ];
+    const entries = JOBS_STATE_FILTERS.filter((entry) => entry.key !== "all").map((entry) => entry.key);
+    const homeless = rows.filter((row) => entries.every((state) => view([row], { state }).length === 0));
+    expect(names(homeless)).toEqual([]);
   });
 
   test("a job that is not a spec's and ended done is Done", () => {

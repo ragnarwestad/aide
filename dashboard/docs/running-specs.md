@@ -982,8 +982,9 @@ Scheduled, Cleanup and Groups under a Kind heading. All is the default in both f
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in
 it, whatever its row reads (one waiting for a usage limit to reset, or an Archive waiting for its criteria to be
-checked), and a started group's member before its own job exists. A spec whose last job ended done and has no next phase
-queued, such as one just created, waits for a person to start it and shows under All alone.
+checked), and a started group's member before its own job exists. Waiting holds a job in the `waiting` state, and a
+spec that is still open and whose last job ended done with no next phase queued, such as one implemented and not yet
+archived: it waits for a person to start its next phase.
 Group members count under their own states. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view.
