@@ -86,6 +86,20 @@ describe("a job mirrored with the retired stopped state", () => {
   });
 });
 
+describe("a job mirrored with the retired merge-stopped sentence", () => {
+  test("loads with the merge-failed sentence, its inner reason kept", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const inner = { key: "landing.testsRedOnMerge", values: { tests: 2 } };
+    for (const job of raw) Object.assign(job, { state: "failed", landingError: { key: "landing.stepStopped", values: { step: "archive" }, inner } });
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get(r.job.id)?.landingError as unknown).toEqual({ key: "landing.stepFailed", values: { step: "archive" }, inner });
+  });
+});
+
 describe("QueueStore.enqueueCreate", () => {
   const allow = (project: string) => project === "brandnew";
   const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };

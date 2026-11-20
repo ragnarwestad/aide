@@ -32,6 +32,9 @@ export function parseStoredJob(raw: unknown): Job | null {
   // `stopped` is retired the same way: a usage-limit stop the board starts
   // again is `waiting`, and every other stop is `failed`.
   if (r.state === "stopped") r.state = r.stopReason === "provider-limit" && r.usageLimitWait ? "waiting" : "failed";
+  // A merge the suite refused said `landing.stepStopped`; that sentence is
+  // `landing.stepFailed` now, and a stored one must still be found.
+  for (const field of ["error", "landingError"] as const) r[field] = renamedRetiredKey(r[field]);
   if (!isJobState(r.state)) return null;
   // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten
@@ -371,4 +374,11 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     ...(r.provider !== undefined || base.provider ? { provider: withoutDefault(table(r.provider, base.provider ?? {})) } : {}),
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
+}
+
+function renamedRetiredKey(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(renamedRetiredKey);
+  if (!value || typeof value !== "object") return value;
+  const sentence = value as { key?: unknown };
+  return sentence.key === "landing.stepStopped" ? { ...sentence, key: "landing.stepFailed" } : value;
 }
