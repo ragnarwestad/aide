@@ -41,6 +41,8 @@ export const en = {
   "shell.toolFaultWhere": "a provider's page, under the Providers tab in Settings",
   "shell.modelsGone": "{tool}: {models} no longer offered — remove them on {where}",
   "shell.modelsGoneWhere": "a provider's page, under the Providers tab in Settings",
+  "shell.scheduleFault": "{job} does not start: {problem} ({where})",
+  "shell.scheduleFaultWhere": "its Settings tab",
   "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",
   "shell.checkoutNotChecked": "{project}: the dashboard could not check its own checkout yet — {said}",
   "deploy.title": "Deploying…",

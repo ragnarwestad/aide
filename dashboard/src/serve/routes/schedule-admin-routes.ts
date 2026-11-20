@@ -9,6 +9,7 @@ import { scheduleTrackingKey } from "../../project/spec-names.ts";
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
 import { nextFireTime, scheduleRequest } from "../../queue/schedule.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
+import { providerModelError } from "../../queue/providers/parse.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { projectScheduleTab, renamedBack, scheduleBackPath } from "./page-routes/schedule-edit-page.ts";
@@ -22,6 +23,14 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
  *  refused here instead, while a person is looking at the form. */
 const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
 const knownProviders = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.providers ?? {});
+
+/** The refusal a scheduled fire would give when the entry's AI cannot
+ *  run its model, given at the save instead. */
+function pairRefusal(ctx: RoutesContext, provider: string | undefined, model: string): Response | null {
+  if (!provider || !model.trim() || !ctx.queue.defaults.providers?.[provider]) return null;
+  const refused = providerModelError(ctx.queue.defaults, provider, model.trim());
+  return refused ? refusal({ error: refused.error, solution: refused.solution }) : null;
+}
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -134,6 +143,9 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
+    const current = ctx.scheduleStore.list(project).find((entry) => entry.name === name);
+    const mismatch = pairRefusal(ctx, str(body.provider).trim() || current?.provider, str(body.model));
+    if (mismatch) return mismatch;
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
     }, knownModels(ctx), knownProviders(ctx));
@@ -160,6 +172,8 @@ export async function handleScheduleAdminRoutes(
     const body = sent.body;
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
+    const mismatch = pairRefusal(ctx, str(body.provider).trim(), str(body.model));
+    if (mismatch) return mismatch;
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
     }, knownModels(ctx), knownProviders(ctx));

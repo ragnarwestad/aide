@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { modelChoiceOptions } from "../../../src/serve/serve-helpers";
+import { modelChoiceOptions, modelsInUse } from "../../../src/serve/serve-helpers";
 
 const queue = (modelChoices: Record<string, { tool?: "claude" | "codex" | "opencode" | "fake-claude" }>, modelIds: Record<string, string>) =>
   ({ defaults: { modelChoices }, modelIds }) as Parameters<typeof modelChoiceOptions>[0];
@@ -56,6 +56,26 @@ describe("the option array the model pickers are built from", () => {
       OtherProvider: { tool: "opencode" as const, model: "gpt-5.6-sol" },
     };
     expect(modelChoiceOptions(queue(choices, {})).map((m) => m.name)).toEqual(["Current", "OtherProvider"]);
+  });
+
+  test("an older version something is set to stays offered, so its picker shows it under its own AI", () => {
+    const choices = { "gpt-5.6-sol": { tool: "codex" as const }, "gpt-6.1-sol": { tool: "codex" as const } };
+    const inUse = modelsInUse({
+      queue: { defaults: { model: { analyze: "gpt-6.1-sol" } }, pendingModels: {} } as never,
+      scheduleStore: { list: (project) => project === "aide" ? [{ name: "Untangle", cron: "0 6 * * *", prompt: "p.md", model: "gpt-5.6-sol", enabled: true }] : [] },
+      allowed: new Set(["aide"]),
+    });
+    expect(modelChoiceOptions(queue(choices, {}), inUse).map((m) => m.name)).toEqual(["gpt-5.6-sol", "gpt-6.1-sol"]);
+    expect(modelChoiceOptions(queue(choices, {})).map((m) => m.name)).toEqual(["gpt-6.1-sol"]);
+  });
+
+  test("a model picked for a phase that has not run counts as set", () => {
+    const inUse = modelsInUse({
+      queue: { defaults: {}, pendingModels: { "aide/90-x": { implement: "gpt-6-sol" } } } as never,
+      scheduleStore: { list: () => [] },
+      allowed: new Set(["aide"]),
+    });
+    expect([...inUse]).toEqual(["gpt-6-sol"]);
   });
 
   test("no configured choices is an empty list", () => {

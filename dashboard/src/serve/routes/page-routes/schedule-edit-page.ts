@@ -4,7 +4,7 @@ import { providerPickerOptions } from "../../providers/options.ts";
 import { isBoardPath } from "../../../format/board-path.ts";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { projectScheduleTab, renderScheduleNewPage, schedulePagePath } from "../../../render";
-import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, modelsInUse, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 export { projectScheduleTab };
@@ -40,7 +40,7 @@ export async function scheduleNewPageResponse(
     project: page.project,
     values: page.values,
     backHref: page.back,
-    modelChoices: modelChoiceOptions(ctx.queue),
+    modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
     defaultModels: ctx.queue.defaults.model,
     ...providerPickerOptions(ctx.queue),
     script: await specsClientScript(),

@@ -16,6 +16,8 @@ import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
 import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
+import { currentScheduleFaults } from "./faults/schedule-faults.ts";
+import { scheduleSettingsPath } from "../pages/schedule-page/tabs.ts";
 
 /** Where deploy/install-after-merge.sh writes its log: macOS's own log
  *  directory, and beside the dashboard's state everywhere else. */
@@ -108,6 +110,21 @@ function missingModelsNotices(lang: Language): string {
     .join("");
 }
 
+/** A scheduled job the board cannot start on the AI and model it names.
+ *  One line per job, linking to that job's Settings tab. */
+function scheduleFaultNotices(lang: Language): string {
+  return currentScheduleFaults()
+    .map(({ project, name, problem }) => {
+      const values = { job: `${project}:${name}`, problem };
+      const where = t(lang, "shell.scheduleFaultWhere");
+      const MARK = "\u0000";
+      const link = `<a data-goto href="${esc(scheduleSettingsPath(project, name))}">${esc(where)}</a>`;
+      const html = esc(t(lang, "shell.scheduleFault", { ...values, where: MARK })).replace(MARK, link);
+      return rowMessage("failed", t(lang, "shell.scheduleFault", { ...values, where }), { tag: "p", hook: "schedule-fault", html });
+    })
+    .join("");
+}
+
 /** A project whose own checkout the dashboard will not touch (2026-09-21).
  *  One line per project: two broken checkouts are two different things
  *  to look at, and the line carries what git said, because that is the
@@ -139,6 +156,6 @@ export function headerNotices(lang: Language): string {
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
   return (
-    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + deployFaultNotice(lang)
+    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + scheduleFaultNotices(lang) + deployFaultNotice(lang)
   );
 }

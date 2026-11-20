@@ -1,6 +1,7 @@
 import { conflictRepairSession } from "./land-branch/repair/conflict.ts";
 import { createLandingGate } from "./land-branch/repair/index.ts";
 import { resolve, dirname } from "node:path";
+import { watchScheduleFaults } from "../render/ui/faults/schedule-faults.ts";
 import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 import { translationMergeArgs } from "./land-branch/run-script.ts";
@@ -436,6 +437,7 @@ export function createServer(opts: ServerOptions) {
   // starts a server says nothing and gets nothing, which is what stops a
   // suite from spawning four CLIs per fixture.
   setModelChoices(() => queue.defaults.modelChoices);
+  watchScheduleFaults({ projects: () => allowed, entries: (project) => scheduleStore.list(project), defaults: () => queue.defaults });
   if (opts.checkToolsOnStart) {
     setConfiguredTools(configuredTools);
     void checkAllTools({ providers: () => queue.defaults.providers, scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined }).catch(() => {

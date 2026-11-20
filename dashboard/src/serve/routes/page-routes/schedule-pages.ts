@@ -14,7 +14,7 @@ import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, renderSchedulePromptPage, resolveBackHref,
 } from "../../../render";
-import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, modelsInUse, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
@@ -158,7 +158,7 @@ export async function schedulePages(
       // Settings' edit state, from the address alone: a reload without it
       // lands back on what is saved.
       editing: tab === "settings" && url.searchParams.get("edit") === "1",
-      modelChoices: modelChoiceOptions(ctx.queue),
+      modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
       defaultModels: ctx.queue.defaults.model,
       ...providerPickerOptions(ctx.queue),
       deleteDone: projectScheduleTab(project),

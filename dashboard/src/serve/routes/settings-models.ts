@@ -116,6 +116,13 @@ function removeModel(ctx: RoutesContext, asked: Record<string, unknown>): Respon
         "in queue-config.json on the serving host",
     );
   }
+  const scheduled = [...ctx.allowed].sort().flatMap((project) =>
+    ctx.scheduleStore.list(project).filter((entry) => entry.model === name).map((entry) => `the scheduled job ${project}:${entry.name}`));
+  const picked = Object.entries(ctx.queue.pendingModels).flatMap(([spec, picks]) =>
+    Object.entries(picks).filter(([, model]) => model === name).map(([step]) => `${step} on ${spec.replace("/", ":")}`));
+  if (scheduled.length || picked.length) {
+    return refuse(`${name} is set on ${listed([...scheduled, ...picked])}, so it cannot be removed — pick another model there first`);
+  }
   const error = saveQueueSettings(ctx, { modelChoices: { [name]: null } });
   if (error) return refuse(error);
   return json({ ok: true, name });

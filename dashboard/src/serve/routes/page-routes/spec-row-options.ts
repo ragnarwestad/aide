@@ -12,7 +12,7 @@ import { inFlight, jobKind, waitsForPerson } from "../../../queue/queue.ts";
 import type { SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
-import { modelChoiceOptions } from "../../serve-helpers";
+import { modelChoiceOptions, modelsInUse } from "../../serve-helpers";
 import { jobMarks, jobStepLines, jobStepPips } from "../../spec-views/job-marks.ts";
 import { createdLabel } from "../../../render/pages/specs-list/cell-helpers.ts";
 import { deployCommits } from "../../deploy-job/commits.ts";
@@ -37,7 +37,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     groupJobs: ctx.queue.list(),
     archived: ctx.readScan()?.archived ?? [],
     lang,
-    modelChoices: modelChoiceOptions(ctx.queue),
+    modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
     defaultModels: ctx.queue.defaults.model,
     ...providerPickerOptions(ctx.queue),
     // A model picked for a phase before any job exists, and which phases a

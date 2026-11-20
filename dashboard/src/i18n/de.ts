@@ -40,6 +40,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.toolFaultWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
   "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
   "shell.modelsGoneWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
+  "shell.scheduleFault": "{job} startet nicht: {problem} ({where})",
+  "shell.scheduleFaultWhere": "seinem Settings-Tab",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
   "shell.checkoutNotChecked": "{project}: das Dashboard konnte seinen eigenen Checkout noch nicht prüfen — {said}",
   "deploy.title": "Wird bereitgestellt…",

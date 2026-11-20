@@ -40,6 +40,8 @@ export const fr: Record<TranslationKey, string> = {
   "shell.toolFaultWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
   "shell.modelsGone": "{tool} : {models} n'est plus proposé — retire-le dans {where}",
   "shell.modelsGoneWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
+  "shell.scheduleFault": "{job} ne démarre pas : {problem} ({where})",
+  "shell.scheduleFaultWhere": "son onglet Settings",
   "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",
   "shell.checkoutNotChecked": "{project} : le tableau de bord n'a pas encore pu vérifier sa propre copie — {said}",
   "deploy.title": "Déploiement…",

@@ -341,6 +341,15 @@ clears the notice on the next page load. An AI whose Models tab has not been ope
 whose last reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
 read with.
 
+**A scheduled job the board cannot start** is named at the top of every page, linking to its Settings tab: an
+enabled entry whose AI is not configured, whose model is not a model choice, or whose AI cannot run its model. Its
+fire is refused for the same reason, so it never starts on a configuration known to be wrong. The notice reads the
+configuration on each page, so a fixed entry clears it on the next one.
+
+**A picker offers one Codex model per family** (sol, astra, terra, luna): the newest configured version. An older
+version stays offered while a step's default, a phase picked before it runs, or a scheduled job is set to it, so that
+picker shows it under its own AI. Remove refuses a choice that one of those is set to and names them.
+
 **The board reads the usage of every Claude Code and Codex provider in the background**, with the provider's
 folders: once when it starts, then every minute, and a provider again at once when it is saved. No page reads it. A
 reading is kept until the next reading of the same provider replaces it, and a provider whose reading is still under

@@ -40,6 +40,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.toolFaultWhere": "siden til en provider, under Providere-fanen i Settings",
   "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
   "shell.modelsGoneWhere": "siden til en provider, under Providere-fanen i Settings",
+  "shell.scheduleFault": "{job} starter ikke: {problem} ({where})",
+  "shell.scheduleFaultWhere": "Settings-fanen til jobben",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "shell.checkoutNotChecked": "{project}: dashbordet har ikke fått sjekket sin egen utsjekk ennå — {said}",
   "deploy.title": "Deployer…",

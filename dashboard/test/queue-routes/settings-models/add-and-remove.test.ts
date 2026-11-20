@@ -178,6 +178,18 @@ describe("removing a model choice", () => {
     expect(await errorOf(res)).toContain("every step without its own");
   });
 
+  test("a model a scheduled job is set to is refused, naming the job, and nothing changes", async () => {
+    const config = CONFIG.replace(/\n}\n?$/, `,
+  "schedules": { "aide": [{ "name": "Untangle", "cron": "0 6 * * *", "prompt": "docs/prompts/untangle.md", "model": "gpt-5.6-luna" }] }
+}
+`);
+    const { base, file } = serve(modelsProbe(), CHOICES, MODEL, config);
+    const res = await post(base, REMOVE, { name: "gpt-5.6-luna" });
+    expect(res.status).toBe(400);
+    expect(await errorOf(res)).toContain("aide:Untangle");
+    expect(readFileSync(file, "utf-8")).toBe(config);
+  });
+
   test("a name that is no choice is refused", async () => {
     const { base, file } = serve();
     expect((await post(base, REMOVE, { name: "gpt-0" })).status).toBe(400);

@@ -8,7 +8,7 @@ import { dirname } from "node:path";
 import { installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ToolCheck, type ToolModels } from "../../../render";
 import type { Language } from "../../../i18n";
 import { providerLoginEnv, type Provider } from "../../../queue/providers/index.ts";
-import { modelChoiceOptions } from "../../serve-helpers";
+import { modelChoiceOptions, modelsInUse } from "../../serve-helpers";
 import { checkTool, recordCheck } from "../../tool-check.ts";
 import { readModels, recordModels } from "../../tool-models";
 import { recordClaudeVersions } from "../settings-models.ts";
@@ -39,7 +39,7 @@ export async function readModelsTab(ctx: RoutesContext, provider: Provider, lang
   recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
   return modelsBlock(
     tool,
-    { reading: read, choices: ctx.queue.defaults.modelChoices, options: modelChoiceOptions(ctx.queue) },
+    { reading: read, choices: ctx.queue.defaults.modelChoices, options: modelChoiceOptions(ctx.queue, modelsInUse(ctx)) },
     stamp(read.at), lang, TOOL_TAB_LABELS[tool],
   );
 }

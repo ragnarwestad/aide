@@ -21,7 +21,7 @@ import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, 
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../project/spec-names.ts";
-import { languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, modelsInUse, processSettings, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 /** Every provider's status, read side by side. */
@@ -53,7 +53,7 @@ export async function projectPages(
       ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined, langResult.lang)
       : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
-      modelChoices: modelChoiceOptions(ctx.queue),
+      modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
       defaultModels: ctx.queue.defaults.model,
       ...providerPickerOptions(ctx.queue),
       timeoutSec: ctx.queue.defaults.timeoutSec,

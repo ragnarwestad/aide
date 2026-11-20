@@ -1,4 +1,5 @@
 import type { QueueStore } from "../../queue/queue.ts";
+import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import { modelNamesOf, type NamedModel } from "../../queue/store/model-ids.ts";
 import type { RunnableTool } from "../../queue/providers/tools.ts";
 
@@ -9,7 +10,7 @@ import type { RunnableTool } from "../../queue/providers/tools.ts";
  *  name Claude Code gave it, kept beside the id. A choice named by
  *  its own id, another tool's choice and a stand-in carry none — for those
  *  the name already is the model. */
-export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelIds">): {
+export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelIds">, inUse: ReadonlySet<string> = new Set()): {
   name: string;
   tool?: RunnableTool;
   ranAs?: string;
@@ -20,8 +21,10 @@ export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelId
   const versionOf = (name: string, choice: (typeof entries)[number][1]) =>
     choice.tool === "codex" ? /^gpt-(\d+(?:\.\d+)*)-(sol|astra|terra|luna)$/.exec(choice.model ?? name) : null;
   return entries.filter(([name, choice]) => {
+    // An older version stays offered while something is set to it, so a
+    // picker that shows that choice shows it under its own AI.
     const version = versionOf(name, choice);
-    return !version || !entries.some(([otherName, other]) => {
+    return !version || inUse.has(name) || !entries.some(([otherName, other]) => {
       const newer = versionOf(otherName, other);
       return newer?.[2] === version[2] && newer[1]!.localeCompare(version[1]!, "en", { numeric: true }) > 0;
     });
@@ -41,4 +44,13 @@ export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelId
       ...(named ? { named } : {}),
     };
   });
+}
+
+/** Every model a step's default, a phase picked before it runs, or a
+ *  scheduled job is set to. */
+export function modelsInUse(ctx: { queue: Pick<QueueStore, "defaults" | "pendingModels">; scheduleStore: Pick<ScheduleStore, "list">; allowed: ReadonlySet<string> }): Set<string> {
+  const names = new Set(Object.values(ctx.queue.defaults.model ?? {}));
+  for (const picks of Object.values(ctx.queue.pendingModels)) for (const model of Object.values(picks)) names.add(model);
+  for (const project of ctx.allowed) for (const entry of ctx.scheduleStore.list(project)) if (entry.model) names.add(entry.model);
+  return names;
 }
