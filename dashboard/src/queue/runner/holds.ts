@@ -27,6 +27,7 @@ export const HOLD_NAMES = [
   "no-free-slot",
   "own-landing",
   "same-spec-running",
+  "spec-work-open",
   "deploy-priority",
   "project-landing",
   "deploy-waits-for-landing",
@@ -70,6 +71,16 @@ export const HOLDS: readonly Hold[] = [
   { name: "same-spec-running", check: (job, at) => jobKind(job) === "spec" && at.jobs().some((candidate) =>
     candidate.state === "running" && candidate.project === job.project && candidate.specFolder === job.specFolder)
     ? WAIT : undefined },
+  // An archive moves every folder it takes; work still queued, running or
+  // waiting for a usage limit on one of them would find its folder gone.
+  { name: "spec-work-open", check: (job, at) => {
+    if (stepOf(job) !== "archive") return undefined;
+    const folders = new Set([job.specFolder, ...(job.groupMembers ?? [])]);
+    const open = at.jobs().find((candidate) => candidate.id !== job.id && candidate.project === job.project &&
+      folders.has(candidate.specFolder) && jobKind(candidate) === "spec" && stepOf(candidate) !== "archive" &&
+      (candidate.state === "queued" || candidate.state === "running" || candidate.state === "waiting"));
+    return open ? { key: "runner.archiveWaitsForSpecWork", values: { spec: specReference(open.project, open.specFolder) } } : undefined;
+  } },
   { name: "deploy-priority", check: (job, at) =>
     (stepOf(job) === "archive" || stepOf(job) === "land") && pendingDeploy(at.jobs())
       ? { key: "runner.deployPriority" } : undefined },

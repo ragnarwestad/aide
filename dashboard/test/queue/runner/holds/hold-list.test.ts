@@ -114,3 +114,15 @@ test("a Land behind another landing Land names the landing, not the same spec", 
   const again = enqueue({ steps: ["implement"] });
   expect(holdFor(again, { ...context({}), maxConcurrent: 2 })?.name).toBe("same-spec-running");
 });
+
+test("a group Archive waits while a member's own step is queued, running or waiting on a usage limit", () => {
+  const member = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+  const archive = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
+  store.update(archive.id, { groupMembers: ["81-queue-and-runner", "91-parallel-spec-runs"] });
+  for (const state of ["queued", "running", "waiting"] as const) {
+    store.update(member.id, { state });
+    expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })?.name).toBe("spec-work-open");
+  }
+  store.update(member.id, { state: "failed" });
+  expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })).toBeUndefined();
+});

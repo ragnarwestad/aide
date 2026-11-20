@@ -122,6 +122,14 @@ export const JOBS_CATALOG = {
     fr: "retenu : un autre archive est en cours dans ce projet — cela démarre une fois celui-là mergé",
     statement: "the queued work starts by itself when the current merge finishes",
   },
+  "runner.archiveWaitsForSpecWork": {
+    en: "held back: {spec} still has work queued or running — this archive starts when it has finished",
+    nb: "holdt tilbake: {spec} har fortsatt arbeid i kø eller som kjører — arkiveringen starter når det er ferdig",
+    es: "retenido: {spec} todavía tiene trabajo en cola o en curso — este archive empieza cuando termine",
+    de: "zurückgehalten: {spec} hat noch Arbeit in der Warteschlange oder in Ausführung — dieses Archive startet, sobald sie fertig ist",
+    fr: "retenu : {spec} a encore du travail en file ou en cours — cet archive démarre une fois celui-ci terminé",
+    statement: "an archive starts by itself when the work on its specs finishes",
+  },
   "runner.notAnalyzed": {
     en: "held back: not analyzed yet",
     nb: "holdt tilbake: ikke analysert ennå",

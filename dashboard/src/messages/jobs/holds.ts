@@ -11,6 +11,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.deployPriority",
   "runner.archiveRunning",
+  "runner.archiveWaitsForSpecWork",
   "runner.dependencyNotArchived",
   "runner.usageLimitHeld",
   "runner.usageLimitHeldNoReset",
