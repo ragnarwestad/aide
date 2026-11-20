@@ -26,6 +26,7 @@ export function setupPush(
   setSpecActivityCounts(() => {
     const jobs = inputs.jobs();
     const groups = inputs.groups();
+    const targets = inputs.targets();
     const schedules = new Map<string, Set<string>>();
     return {
       needsAttention: jobsNeedingAttention(jobs, groups, (project) => inputs.served.has(project), (project, key) => {
@@ -35,8 +36,8 @@ export function setupPush(
           schedules.set(project, keys);
         }
         return keys.has(key);
-      }),
-      openSpecs: openSpecCount(inputs.targets(), jobs, groups),
+      }, (project, specFolder) => targets.some((t) => t.project === project && t.specFolder === specFolder)),
+      openSpecs: openSpecCount(targets, jobs, groups),
     };
   });
   return createPush({

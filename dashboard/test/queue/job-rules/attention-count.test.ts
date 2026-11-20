@@ -8,7 +8,8 @@ const job = (id: string, overrides: Partial<Job> = {}): Job => ({
   createdAt: "2026-11-18T09:00:00Z", results: [], ...overrides,
 } as Job);
 const serves = (project: string) => project === "aide";
-const counts = (jobs: Job[], groups: ExecutionGroup[] = []) => jobsNeedingAttention(jobs, groups, serves, (_, key) => key === "schedule-daily");
+const counts = (jobs: Job[], groups: ExecutionGroup[] = [], open = (_: string, folder: string) => !folder.includes("archived-since")) =>
+  jobsNeedingAttention(jobs, groups, serves, (_, key) => key === "schedule-daily", open);
 
 test("counts manual holds and failed jobs, but not automatic waits or cancellations", () => {
   expect(counts([
@@ -42,4 +43,22 @@ test("only the latest attempt in each branch, spec or schedule can count", () =>
 test("a group awaiting acceptance counts once even if its member job is also waiting", () => {
   const group = { id: "group", project: "aide", state: "waiting-acceptance" } as ExecutionGroup;
   expect(counts([job("1-spec", { executionGroupId: group.id })], [group])).toBe(1);
+});
+
+test("a spec whose latest job ended done before archive waits for the next step", () => {
+  const done = (id: string, steps: string[], overrides: Partial<Job> = {}) =>
+    job(id, { state: "done", steps, stepIndex: steps.length - 1, ...overrides });
+  expect(counts([
+    done("1-implemented", ["analyze", "implement"]),
+    done("2-analyzed", ["analyze"]),
+    done("3-created", ["create"]),
+    done("4-archived", ["analyze", "implement", "archive"]),
+    done("5-reopened", ["reopen"]),
+    done("6-archived-since", ["analyze", "implement"]),
+  ])).toBe(2);
+});
+
+test("a group member that finished its own steps waits on its group, not on the reader", () => {
+  const group = { id: "group", project: "aide", state: "running" } as ExecutionGroup;
+  expect(counts([job("1-member", { state: "done", steps: ["analyze", "implement"], stepIndex: 1, executionGroupId: group.id })], [group])).toBe(0);
 });
