@@ -141,7 +141,6 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `GET /api/queue/<id>`                         | read   | —                                                  | `{ generatedAt, job }`; 404 if unknown                               | interface |
 | `GET /api/queue/events`                       | read   | optional `?phases=`, `?open=` and `?deploy=1`      | a held-open `text/event-stream` of queue changes                     | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 when cancellation is not allowed                  | form      |
-| `POST /api/queue/<id>/dismiss`                | action | nothing                                            | `{ ok, job }`; 404 if unknown; 409 unless a failed job with no Start | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                        | form      |
 | `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                        | form      |
 | `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                       | interface |

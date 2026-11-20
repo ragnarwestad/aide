@@ -57,7 +57,7 @@ An entry that only informs, such as a check that passed, a run that finished or 
 `solution` and says why in `statement`. It is shown as its sentence alone, with no Problem or Solution label.
 
 The `get…Message()` functions live beside their subject's catalogue. Presentation functions return a shared `Message`
-with the text, its kind, and optional Log and Dismiss addresses. `getJobMessage()` selects these together; pages draw
+with the text, its kind, and an optional Log address. `getJobMessage()` selects these together; pages draw
 the result without deciding the actions again. Producers that have no reader yet keep a language-independent
 `BoardMessage` with a key and values. The queue owns the reason a job waits; the message functions own how it is shown.
 

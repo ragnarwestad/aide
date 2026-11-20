@@ -14,13 +14,12 @@ import { scheduleNameOf } from "../../../project/spec-names.ts";
 // Stop or Cancel, and open it adds a line per step of the job. A deploy is
 // drawn as they are, with Cancel while it is queued. A job that ended badly
 // says why in a line under its state, open or shut, and the line ends with a
-// Log link to the job's own page and, for a scheduled job, Dismiss, which
-// takes the row off the tab and asks nothing first; a deploy held back has its
-// waiting line there, with no link.
+// Log link to the job's own page; a deploy held back has its waiting line
+// there, with no link.
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, buttonForm, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -134,18 +133,11 @@ function timeCell(row: QueueRowView, now: number): string {
   return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
-/** The message under the state, with Dismiss where offered. */
+/** The message under the state. */
 function messageLine(row: QueueRowView, lang: Language): string {
   const m = getJobMessage(row, lang);
   if (!m) return "";
-  const dismiss = m.dismiss
-    ? buttonForm({
-        action: m.dismiss,
-        hook: "actionform",
-        button: { label: t(lang, "list.createDismiss"), small: true },
-      })
-    : "";
-  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: dismiss })}</td></tr>`;
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text)}</td></tr>`;
 }
 
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open

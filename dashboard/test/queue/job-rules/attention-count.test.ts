@@ -36,7 +36,7 @@ test("only the latest attempt in each branch, spec or schedule can count", () =>
     job("closed-spec-old", { specFolder: "2-spec" }),
     job("schedule-daily", { steps: ["schedule"] }),
     job("schedule-deleted", { steps: ["schedule"] }),
-    job("schedule-old", { specFolder: "schedule-daily", steps: ["schedule"], dismissedAt: "2026-11-18" }),
+    job("schedule-old", { specFolder: "schedule-daily", steps: ["schedule"] }),
   ])).toBe(2);
 });
 

@@ -10,8 +10,6 @@ export interface QueueRowView {
   id: string;
   /** The execution group the job runs for, when it is a group member's. */
   executionGroupId?: string;
-  /** When a person dismissed the failed job: it no longer waits for them. */
-  dismissedAt?: string;
   project: string;
   specFolder: string;
   /** What a `create` job is making, in words. A create job's

@@ -48,7 +48,6 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     editableSteps: tailEdits(job),
     ...waitingFacts,
     state: job.state,
-    dismissedAt: job.dismissedAt,
     landing: job.landing,
     branch: job.branch,
     mergeTarget: (await target) ?? undefined,

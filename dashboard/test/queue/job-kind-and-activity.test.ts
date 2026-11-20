@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { inFlight, jobActivity, jobDismissible, jobKind, writing } from "../../src/queue/queue.ts";
+import { expect, test } from "bun:test";
+import { inFlight, jobActivity, jobKind, writing } from "../../src/queue/queue.ts";
 
 const job = (overrides: Record<string, unknown> = {}) => ({
   steps: ["analyze"], stepIndex: 0, specFolder: "746-a-spec", state: "queued", results: [], ...overrides,
@@ -32,31 +32,3 @@ test("one function decides job activity and both questions read it (AC-2)", () =
   }
 });
 
-describe("dismissible jobs use the queue rule", () => {
-  const KINDS = [
-    { steps: ["schedule"], specFolder: "schedule-nightly" },
-    { steps: ["close"], specFolder: "81-example" },
-    { steps: ["reopen"], specFolder: "81-example" },
-    { steps: ["deploy"], specFolder: "deploy" },
-    { steps: ["land"], specFolder: "land", branch: "topic" },
-  ];
-
-  test("a failed job of every kind without a Start of its own is dismissible, once", () => {
-    for (const kind of KINDS) {
-      expect(jobDismissible(job({ ...kind, state: "failed" })), kind.steps[0]).toBe(true);
-      expect(jobDismissible(job({ ...kind, state: "failed", dismissedAt: "2026-11-19T20:00:00Z" })), kind.steps[0]).toBe(false);
-    }
-  });
-
-  test("a job that has not failed is not dismissible, a usage-limit wait included", () => {
-    for (const kind of KINDS) {
-      for (const state of ["queued", "running", "done", "cancelled", "waiting"] as const) {
-        expect(jobDismissible(job({ ...kind, state })), `${kind.steps[0]} ${state}`).toBe(false);
-      }
-    }
-  });
-
-  test("a failed spec step is not dismissible: its spec row offers the step again", () => {
-    expect(jobDismissible(job({ state: "failed" }))).toBe(false);
-  });
-});

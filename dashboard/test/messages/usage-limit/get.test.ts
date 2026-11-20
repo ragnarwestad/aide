@@ -201,7 +201,6 @@ test("automatic usage-limit waiting carries its catalogue message and offers no 
   expect(result?.variant).toBe("info");
   expect(result?.sentence).toMatchObject({ key: "runner.usageLimitRestarts" });
   expect(result?.log).toBeUndefined();
-  expect(result?.dismiss).toBeUndefined();
 });
 
 test("an older step's limit cannot name the current step's retry", () => {

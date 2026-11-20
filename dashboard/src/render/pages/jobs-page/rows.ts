@@ -111,7 +111,7 @@ export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band 
 
 /** Standalone job cards, with only the latest Merge attempt per project and branch.
  *  Queue history is newest first. Older attempts keep their own detail URL. */
-export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
+export function jobsShown<T extends JobLike>(
   jobs: T[],
   o: {
     scheduleEntryExists: (project: string, name: string) => boolean;

@@ -40,10 +40,7 @@ second guard refuses a NEW job of any step for a spec whose own job reads `done`
 the landing settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
 waiting on its provider's usage limit: the board queues it again as the same job (`limit-reset`).
 
-Only `failed` waits for a person. A failed job that has no Start of its own (Close, Reopen, Deploy, Merge and a
-scheduled job) can be dismissed with `POST /api/queue/<id>/dismiss`, which stamps `dismissedAt`: the row stays, and
-the job no longer counts as waiting for a person. A failed spec step is not dismissed; its spec row offers the step
-again. A Merge is never started again from its row: another try is a new Merge.
+Only `failed` waits for a person. A Merge is never started again from its row: another try is a new Merge.
 
 ## The transitions
 

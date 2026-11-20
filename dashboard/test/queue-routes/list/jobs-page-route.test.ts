@@ -182,13 +182,12 @@ describe("which kind of row a job gets", () => {
     expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("a failed scheduled job keeps its notice on the Jobs card, with Dismiss", async () => {
+  test("a failed scheduled job keeps its notice on the Jobs card", async () => {
     const { base } = scheduled([failedReport]);
     for (const query of ["", "open=aide/schedule-report"]) {
       const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
       const line = noticeOf(g);
       expect(text(line)).toContain(t("en", "jobs.endedFailed"));
-      expect(line).toContain('action="/api/queue/reportf/dismiss"');
       expect(g).not.toContain("/api/queue/reportf/cancel");
     }
   });

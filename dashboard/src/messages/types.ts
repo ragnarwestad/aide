@@ -39,5 +39,4 @@ export interface Message {
   text: string;
   sentence?: Sentence;
   log?: string;
-  dismiss?: string;
 }

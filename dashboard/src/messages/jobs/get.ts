@@ -4,12 +4,11 @@ import type { Message } from "../types.ts";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import { jobPresentation } from "../../render/ui/job-state/presentation.ts";
 import { getUsageLimitMessage } from "../usage-limit/get.ts";
-import { jobDismissible } from "../../queue/steps.ts";
 
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
 type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
-  Partial<Pick<QueueRowView, "dismissedAt" | "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider" | "specFolder" | "landing" | "queuePosition">> & {
+  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider" | "specFolder" | "landing" | "queuePosition">> & {
     steps: readonly string[];
   };
 
@@ -37,7 +36,6 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
       // The badge's own colour: a wait is amber, a failure red.
       variant: row.state === "waiting" ? "waiting" : "failed",
       text: formatSentence(lang, row.error) || t(lang, ended),
-      ...(jobDismissible({ ...row, specFolder: row.specFolder ?? "" }) ? { dismiss: `/api/queue/${row.id}/dismiss` } : {}),
     };
   }
   if (row.errorReason === "held-back") {

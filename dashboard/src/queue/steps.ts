@@ -304,15 +304,6 @@ export function deployUnderWay(jobs: readonly Job[], project: string): "queued" 
   return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
 }
 
-/** Whether a failed job may be dismissed: taken out of what waits for a
- *  person, its row kept. A spec step is not, since its spec row offers the
- *  step again; every other kind is, since nothing else on the board ends
- *  its wait. */
-export const jobDismissible = (job: {
-  steps: readonly string[]; stepIndex: number; specFolder: string; state: string; landing?: boolean;
-  dismissedAt?: string;
-}): boolean => jobKind(job) !== "spec" && !inFlight(job) && job.state === "failed" && !job.dismissedAt;
-
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a
  *  spec its number and its row, so it is never left behind an analyze or an

@@ -22,20 +22,11 @@ describe("the line under a job row's state", () => {
   const sentenceOf = formatSentence("en", said) as string;
   const message = (row: J) => getJobMessage(row as never, "en");
 
-  test("a failed job of any kind without a Start says why, in its own sentence, red, and offers Dismiss", () => {
-    for (const [, make] of kinds) {
+  test("a failed job of any kind says why, in its own sentence, red", () => {
+    for (const [, make] of [...kinds, ["spec step", job] as const]) {
       const row = make({ id: "f1", state: "failed", error: said });
-      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf, dismiss: "/api/queue/f1/dismiss" });
+      expect(message(row)).toEqual({ variant: "failed", text: sentenceOf });
     }
-  });
-
-  test("a dismissed failed job no longer offers Dismiss", () => {
-    const m = message(schedule({ id: "f1", state: "failed", error: said, dismissedAt: "2026-11-19T20:00:00Z" }));
-    expect(m).toEqual({ variant: "failed", text: sentenceOf });
-  });
-
-  test("a failed spec step has no Dismiss: its spec row offers the step again", () => {
-    expect(message(job({ id: "f1", state: "failed", error: said }))).toEqual({ variant: "failed", text: sentenceOf });
   });
 
   test("a waiting job says why in amber", () => {

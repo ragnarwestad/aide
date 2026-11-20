@@ -286,7 +286,7 @@ is caught here before anyone reads it on the real one.
 The board also has one scheduled job, `a-job-that-fails`, set in the queue config the script writes. Its prompt is
 `schedules/a-job-that-fails.md` in the throwaway project, and `claude-stub` ends it with an error. It runs once
 when the board comes up and again after each press of Run, so the Running tab always has a failed scheduled job's
-row, with its Dismiss button. The script checks that the job ended `failed`.
+row. The script checks that the job ended `failed`.
 
 A sample spec's description is the real thing, not a sketch: where a fixture is about acceptance
 criteria, its `.md` carries a `## Acceptance criteria` section with `- **AC-n:**` bullets, and

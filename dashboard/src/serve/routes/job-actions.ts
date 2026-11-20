@@ -3,14 +3,14 @@ import { canCancelDeploy } from "../../queue/job-rules/activity.ts";
 import { stopLand } from "../land-job/control.ts";
 import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
-// cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
+// cancel, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
 import { lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit } from "../../queue/execution-groups/eligibility.ts";
 import { previousGroupMember } from "../../project/discover/group.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { inFlight, jobDismissible, jobKind, type Job } from "../../queue/queue.ts";
+import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { getErrorMessage } from "../../messages/shared/written.ts";
@@ -404,17 +404,6 @@ export async function handleJobActionRoutes(
       return json({ error: reason, spec }, 409);
     }
     return json({ ok: true, job: result.job });
-  }
-
-  const dismiss = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/dismiss$/);
-  if (dismiss) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readBounded(req), job = ctx.queue.get(dismiss[1]!);
-    if ("refusal" in sent) return sent.refusal;
-    if (!job) return json({ error: "no such job" }, 404);
-    if (jobDismissible(job)) return json({ ok: true, job: ctx.queue.update(job.id, { dismissedAt: new Date().toISOString() }) });
-    const spec = `${job.project}/${job.specFolder}`, reason = "only a failed job with no Start of its own can be dismissed";
-    logRefusal("dismiss", spec, reason); return json({ error: reason, spec }, 409);
   }
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);

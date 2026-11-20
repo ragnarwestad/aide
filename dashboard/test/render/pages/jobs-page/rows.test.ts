@@ -267,23 +267,6 @@ describe("a waiting scheduled job whose entry was deleted", () => {
   });
 });
 
-describe("an old dismissal stamp no longer removes scheduled-job history", () => {
-  const failed = (o: Partial<J> = {}): J => sched({ id: "s", state: "failed", createdAt: T(1), startedAt: T(2), finishedAt: T(3), ...o });
-
-  test("it remains regardless of the dismissal stamp (AC-3, AC-10)", () => {
-    expect(ids([failed({ dismissedAt: T(4) })])).toEqual(["s"]);
-    expect(ids([failed({ dismissedAt: T(3) })])).toEqual(["s"]);
-  });
-
-  test("it is returned again once it ended after the dismissal (AC-3)", () => {
-    expect(ids([failed({ dismissedAt: T(2) })])).toEqual(["s"]);
-  });
-
-  test("a job in flight is shown whatever stamp is left on it (AC-3)", () => {
-    expect(ids([sched({ id: "r", state: "running", startedAt: T(2), dismissedAt: T(9) })])).toEqual(["r"]);
-  });
-});
-
 describe("a Close or Reopen is a job row of its own, not its spec's", () => {
   const at = (step: string, o: Partial<J> = {}): J => job({ steps: [step], ...o });
   test("a queued, a running and a landing Close or Reopen have a row", () => {

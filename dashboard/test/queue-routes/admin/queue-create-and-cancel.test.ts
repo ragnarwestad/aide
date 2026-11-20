@@ -106,28 +106,6 @@ test("cancel refuses a job that has already finished, and leaves its state alone
   }
 });
 
-// Dismiss takes a failed job with no Start of its own out of what waits for
-// a person and keeps it; a failed spec step is refused, since its spec row
-// offers the step again.
-test("dismiss stamps a failed Close and refuses a failed spec step", async () => {
-  const headers = { "content-type": "application/json", accept: "application/json" };
-  const site = mkdtempSync(join(tmpdir(), "aide-dismiss-"));
-  ownDirs.push(site);
-  const job = (id: string, steps: string[]) => ({
-    id, project: "aide", specFolder: "81-queue-and-runner", steps, stepIndex: 0, state: "failed",
-    timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
-    createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
-  });
-  writeFileSync(join(site, "queue.json"), JSON.stringify([job("close-1", ["close"]), job("spec-1", ["analyze"])]));
-  const { base } = start({ queueMirrorPath: join(site, "queue.json") });
-  const closed = await fetch(`${base}/api/queue/close-1/dismiss`, { method: "POST", headers });
-  expect(closed.status).toBe(200);
-  expect(((await closed.json()) as { job: { state: string; dismissedAt?: string } }).job).toMatchObject({ state: "failed", dismissedAt: expect.any(String) });
-  expect((await fetch(`${base}/api/queue/close-1/dismiss`, { method: "POST", headers })).status).toBe(409);
-  expect((await fetch(`${base}/api/queue/spec-1/dismiss`, { method: "POST", headers })).status).toBe(409);
-  harness.cleanup();
-});
-
 // A deploy runs inside the board's own process, so there is nothing to
 // signal: marking it cancelled would leave it fetching and restarting under
 // a row that says it ended. Only a queued one, which has no run yet, is

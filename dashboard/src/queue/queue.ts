@@ -21,7 +21,6 @@ export {
   deployUnderWay,
   inFlight,
   jobActivity,
-  jobDismissible,
   jobKind,
   landingInProject,
   tailEdits,

@@ -113,7 +113,7 @@ export function waitingCount(jobs: readonly Job[], serves: (project: string) => 
     if (!seen || job.createdAt > seen.createdAt) latest.set(key, job);
   }
   let n = 0;
-  for (const job of latest.values()) if (waitsForPerson(job) && !job.dismissedAt) n += 1;
+  for (const job of latest.values()) if (waitsForPerson(job)) n += 1;
   return n;
 }
 
