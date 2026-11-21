@@ -18,7 +18,7 @@ export async function handleJobRowAction(ctx: RoutesContext, req: Request, path:
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent.refusal;
   const spec = `${job.project}/${job.specFolder}`;
-  const branchGone = jobKind(job) === "land" && job.state === "failed" && job.branch
+  const branchGone = jobKind(job) === "land" && (job.state === "failed" || job.state === "cancelled") && job.branch
     ? await branchGoneFromOrigin(ctx, job.project, job.branch)
     : undefined;
   const action = verb === "remove" ? "remove" : "start";

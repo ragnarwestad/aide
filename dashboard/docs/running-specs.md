@@ -886,8 +886,7 @@ The first view draws 50 cards. **Show more** adds the next 50 without reloading 
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Merge job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. A Merge runs once: cancelled or failed, it offers no Start, and
-another try is a new Merge for the same branch. Cancel removes a queued Merge, or interrupts merge or testing and keeps the source branch;
+such as `Land: fix/example`. Cancel stops a queued Merge, or interrupts merge or testing and keeps the source branch;
 after push begins Cancel is unavailable.
 
 Every row starts with an icon for its kind: a spec, a Merge, a deploy, a scheduled job, the cleanup or an execution group.
@@ -954,10 +953,10 @@ scheduled job's, a deploy's and a Merge's row offers is one table the page and t
 | Job | Queued, running | Cancelled | Failed |
 | --- | --- | --- | --- |
 | Scheduled job | Cancel, also while it waits on its usage limit | Remove | Remove |
-| Deploy | Cancel while queued or held back, nothing once its fetch has begun | – | Remove |
-| Merge | Cancel until its push begins | – | Start, with Remove in the menu; Remove alone once its branch has left origin |
+| Deploy | Cancel while queued or held back, nothing once its fetch has begun | Remove | Remove |
+| Merge | Cancel until its push begins | Start, with Remove in the menu; Remove alone once its branch has left origin | Start, with Remove in the menu; Remove alone once its branch has left origin |
 
-A scheduled job is run again with Run now on its project's Schedule tab, not from its row. Start on a failed Merge
+A scheduled job is run again with Run now on its project's Schedule tab, not from its row. Start on a failed or cancelled Merge
 queues the same job again, with the branch as it is on origin then. Remove takes the row off Jobs and out of the
 count of jobs needing the user; the job stays in the queue's history. Nothing leaves Jobs on its own: every Merge
 attempt keeps its row until it is removed.

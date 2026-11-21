@@ -200,7 +200,7 @@ export type TransitionEvent =
   | "cancel-schedule-wait" // waiting -> cancelled: Cancel pressed on a scheduled quota wait
   | "replace-schedule-wait" // waiting -> failed: the next scheduled run was due while it waited
   | "limit-reset" // waiting -> queued: its provider's usage limit has reset
-  | "restart"; // failed -> queued: Start pressed on a failed Merge
+  | "restart"; // failed|cancelled -> queued: Start pressed on a failed or cancelled Merge
 
 /** The one table every state change is checked against. Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -253,6 +253,10 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     "replace-schedule-wait": "failed",
     "retry-late": "queued",
     "limit-reset": "queued",
+  },
+  // Start on a cancelled Merge runs it again as the same job.
+  cancelled: {
+    restart: "queued",
   },
 };
 

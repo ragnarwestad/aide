@@ -33,9 +33,9 @@ describe("a deploy", () => {
     expect(jobActions(row("deploy", { state: "running", errorReason: "held-back", deploy: { restartedAt: "2026-11-17T00:00:00Z" } }))).toEqual(NONE);
   });
 
-  test("offers Remove once failed, and nothing once done or cancelled", () => {
-    expect(jobActions(row("deploy", { state: "failed" }))).toEqual(BUTTON("remove"));
-    for (const state of ["done", "cancelled"]) expect(jobActions(row("deploy", { state }))).toEqual(NONE);
+  test("offers Remove once failed or cancelled, and nothing once done", () => {
+    for (const state of ["failed", "cancelled"]) expect(jobActions(row("deploy", { state }))).toEqual(BUTTON("remove"));
+    expect(jobActions(row("deploy", { state: "done" }))).toEqual(NONE);
   });
 });
 
@@ -46,16 +46,16 @@ describe("a Merge", () => {
     expect(jobActions(row("land", { state: "running", landPushStarted: true }))).toEqual(NONE);
   });
 
-  test("failed, offers Start with Remove in the menu", () => {
-    expect(jobActions(row("land", { state: "failed" }))).toEqual({ button: "start", menu: ["remove"] });
+  test("failed or cancelled, offers Start with Remove in the menu", () => {
+    for (const state of ["failed", "cancelled"]) expect(jobActions(row("land", { state }))).toEqual({ button: "start", menu: ["remove"] });
   });
 
-  test("failed with its branch gone from origin, offers Remove alone", () => {
-    expect(jobActions(row("land", { state: "failed", branchGone: true }))).toEqual(BUTTON("remove"));
+  test("failed or cancelled with its branch gone from origin, offers Remove alone", () => {
+    for (const state of ["failed", "cancelled"]) expect(jobActions(row("land", { state, branchGone: true }))).toEqual(BUTTON("remove"));
   });
 
-  test("offers nothing once done or cancelled", () => {
-    for (const state of ["done", "cancelled"]) expect(jobActions(row("land", { state }))).toEqual(NONE);
+  test("offers nothing once done", () => {
+    expect(jobActions(row("land", { state: "done" }))).toEqual(NONE);
   });
 });
 

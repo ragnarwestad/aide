@@ -16,6 +16,7 @@ const failedDeploy = job({ id: "d1", specFolder: "deploy", steps: ["deploy"], st
 const doneDeploy = job({ id: "d2", specFolder: "deploy", steps: ["deploy"], state: "done" });
 const failedMerge = (id: string, branch: string) =>
   job({ id, specFolder: "land", steps: ["land"], state: "failed", branch, error: { key: "landing.mergeConflict", values: { base: "main" } } });
+const cancelledMerge = (id: string, branch: string) => job({ id, specFolder: "land", steps: ["land"], state: "cancelled", branch, startedAt: "2026-11-20T10:01:00Z" });
 
 /** git as the board runs it, except that origin has no branch named `gone`. */
 const real = createGitRunner();
@@ -44,6 +45,14 @@ test("Start runs a failed Merge again as the same job, and is refused once its b
   expect(refused.status).toBe(409);
   expect(((await refused.json()) as { error: string }).error).toContain("no longer has branch fix/gone");
   expect((await post(base, "/api/queue/m2/remove")).status).toBe(200);
+});
+
+test("Start runs a cancelled Merge again, and only Remove is left once its branch has left origin", async () => {
+  const { base } = board([cancelledMerge("c1", "fix/still-here"), cancelledMerge("c2", "fix/gone")]);
+  expect((await post(base, "/api/queue/c1/restart")).status).toBe(200);
+  expect((await queue(base)).find((j) => j.id === "c1")?.state).not.toBe("cancelled");
+  expect((await post(base, "/api/queue/c2/restart")).status).toBe(409);
+  expect((await post(base, "/api/queue/c2/remove")).status).toBe(200);
 });
 
 test("Cancel ends a spec step waiting on its usage limit, so the limit's reset does not run it", async () => {

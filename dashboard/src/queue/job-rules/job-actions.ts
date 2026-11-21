@@ -41,11 +41,11 @@ export function jobActions(row: JobActionRow): JobActions {
   }
   if (step === "deploy") {
     if (inFlight(row)) return canCancelDeploy(row) ? { button: "cancel", menu: [] } : NONE;
-    return row.state === "failed" ? { button: "remove", menu: [] } : NONE;
+    return row.state === "failed" || row.state === "cancelled" ? { button: "remove", menu: [] } : NONE;
   }
   if (step === "land") {
     if (inFlight(row)) return row.landPushStarted ? NONE : { button: "cancel", menu: [] };
-    if (row.state !== "failed") return NONE;
+    if (row.state !== "failed" && row.state !== "cancelled") return NONE;
     return row.branchGone ? { button: "remove", menu: [] } : { button: "start", menu: ["remove"] };
   }
   return NONE;
