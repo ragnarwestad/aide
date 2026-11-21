@@ -28,14 +28,15 @@ export function testRepairSession(defaults: QueueDefaults, job: Job, scriptDir?:
     if (!filesCommand) return false;
     const log = job.streamFile ? `${job.streamFile.replace(/\.stream\.jsonl$/, "")}.tests.log` : undefined;
     const prompt = [
-      `Fix only regressions introduced by branch ${branch} in the tested merge ${sha}. Main alone passed.`,
+      `Make the failing tests pass on the tested merge ${sha} of branch ${branch}. Main alone passed, so the branch caused the failures.`,
       `Working directory: ${root}. Failing tests: ${JSON.stringify(verdict.failedTests)}.`,
       log && existsSync(log) ? `Read the complete test output at ${log}.` : `Test output: ${verdict.detail ?? ""}`,
       "Read the branch diff against origin's default branch to understand the change. Follow this project's instructions.",
-      "Fix the source of the failure. Correct a test when the branch intentionally changed what it assumes, such as where a setting is read. Keep the same requirement covered and explain why the test needed updating.",
-      "Do not weaken or delete a test to hide a defect. Keep edits scoped to the failure. Leave commits, pushes and branch selection to Merge.",
+      "Decide for each failing test which side is wrong. When the branch intentionally changed the behaviour, text or file layout the test expects, and its diff, documentation or own tests show the new behaviour, the test is out of date: update it to the branch's behaviour, keep the requirement it guards covered, and say what you changed and why. That is the expected fix, not weakening the test.",
+      "When the branch broke behaviour it did not mean to change, fix the code instead.",
+      "Never delete or skip a test, and never loosen an assertion so that a real defect passes. Keep edits scoped to the failure. Leave commits, pushes and branch selection to Merge.",
       "Run only the failed test files. The landing runs the project's configured tests after rebuilding.",
-      "If the failure cannot be safely attributed to this change, leave the tree unchanged and explain why.",
+      "Leave the tree unchanged only when you cannot tell whether the branch meant to change the behaviour, and then say what is unclear.",
     ].join("\n");
     const model = repairModel(defaults, job, prompt);
     if (!model) return false;

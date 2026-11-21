@@ -281,6 +281,8 @@ A cancelled Land never restarts automatically; the same branch can be submitted 
 
 Land and Archive can repair named test regressions when the same suite passes on main alone. Up to two repair
 sessions edit the tested merge, independently check the failed files and save the correction on the source branch.
+A session updates a test the branch deliberately made out of date and fixes the code when the branch broke
+behaviour by mistake; it never deletes, skips or loosens a test to let a defect pass.
 The landing then fetches main again, rebuilds the merge and runs the project's tests before pushing. Existing main
 failures, unknown failures, missing file-test commands and unsuccessful repairs leave main unchanged.
 
