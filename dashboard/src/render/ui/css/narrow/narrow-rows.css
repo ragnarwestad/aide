@@ -128,11 +128,16 @@
      word, and has no AI, model or box beside it: its name takes the room
      up to its state and wraps there, rather than running under it. */
   table.list tr.subrow[data-jobstep] .phasecell { flex: 1 1 0; min-width: 0; white-space: normal; }
+  /* A job's step line puts its state and time under the job's own on the
+     line above: the name takes the room up to the state column the state
+     line measures (narrow-spec-head.css), and wraps there. */
+  table.list tr.subrow[data-jobstep] .phasecell { box-sizing: border-box;
+    flex: 0 0 calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w) + 2 * var(--sp-2));
+    padding-right: var(--sp-2); }
+  table.list tr.subrow[data-jobstep] > td[data-col="started"] { text-align: left; }
   /* The compact button/panel toggle, the caption's AI/Model merge and
      the selects' own width un-cap all move to the two `@media` blocks at
-     the end of this file — they are the one thing that now
-     differs between the 400-600px and 600-640px bands, everything else
-     here stays exactly as it reads. */
+     the end of this file. */
 
   /* The "Phase | AI Model Select" caption row heads a desktop column
      layout that does not exist at this width; the mock draws no such
@@ -169,7 +174,7 @@
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { order: 4; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
   /* The AI/Model merge into one caption, and the two selects' own width
-     un-cap, are the 400-600px band's own doing (end of
+     un-cap, are the compact button's own doing (end of
      this file) — the tick's own caption keeps its --tick-w width at
      every step, unlike the AI one beside it. */
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
@@ -260,24 +265,20 @@
   .checksunread { padding-left: 0; }
 }
 
-/* --- the compact AI/model button, 640px down to 400px ------ */
-/* Everything the button/panel/select toggle needs, moved out of the
-   block above: below THIS block's own 600px (37.5rem), the two ordinary
-   selects do not fit (the same reasoning as above), so one box
-   says what the line is ON and a tap lays the pair over it. From 600px
-   up this block stops applying, and list.css's own unconditional rules
+/* --- the compact AI/model button, the whole phone range ------ */
+/* On a phone the two ordinary selects do not fit beside the phase's
+   state and time, so one box says what the line is ON and a tap lays the
+   pair over it. Above 640px list.css's own unconditional rules
    (`.aimodelopen, .aimodelnow { display: none; }` and
-   `.aimodelpanel, .aimodelfield { display: contents; }`) are the only
-   thing left standing, which is what puts the two selects back side by
-   side, exactly as above 640px — this is the cutoff moving, not a new
-   rule of its own. */
-@media (max-width: 37.5rem) {
+   `.aimodelpanel, .aimodelfield { display: contents; }`) put the two
+   selects back side by side. */
+@media (max-width: 40rem) {
   /* The sub-400px default: 3.125rem, 12px less than the 3.875rem that
      held "Sonnet" bare. The room goes to the phase line's
      own fold control, which every line reserves here since 2026-09-22
      so the names read down one edge; the button's own text ellipsis-
-     clips a word earlier, and its full name is a tap away. The band
-     below, 400-600px, overrides it wider again. */
+     clips a word earlier, and its full name is a tap away. The block
+     below overrides it wider again from 440px. */
   table.list { --aimodel-w: 3.125rem; }
   table.list tr.subrow .modelcell,
   table.list tr.subrow .modelcell > .row { display: contents; }
@@ -350,7 +351,7 @@
    It moved out from 27rem on 2026-09-22, when the phase line began
    reserving its fold control's width: at 432px the Norwegian labels
    and the full button no longer shared the line. */
-@media (min-width: 27.5rem) and (max-width: 37.5rem) {
+@media (min-width: 27.5rem) and (max-width: 40rem) {
   table.list { --aimodel-w: 8rem; }
 }
 /* Below it the button holds the provider's face alone: the model name
