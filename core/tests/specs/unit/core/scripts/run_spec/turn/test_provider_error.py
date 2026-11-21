@@ -54,6 +54,11 @@ def test_an_explicit_403_is_forbidden_and_keeps_its_cause_AC_4(said, status, kin
     assert sorted_(said, status, kind) == {"kind": "forbidden", "message": said}
 
 
+def test_a_402_payment_required_is_forbidden():
+    said = "Insufficient balance. This request is pay-as-you-go, billed to OpenCode Models credits"
+    assert sorted_(said, "402") == {"kind": "forbidden", "message": said}
+
+
 def test_a_model_that_requires_usage_credits_is_forbidden():
     out = subprocess.run(
         ["bash", "-c", f'source "{LIB}"; provider_error_json "$1" "429" "rate_limit" "credits_required"', "_",

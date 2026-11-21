@@ -109,6 +109,21 @@ def test_an_opencode_2_error_event_carries_its_message_too(runner, workspace, fa
     assert "Insufficient account funds" in json.dumps(out)
 
 
+def test_an_opencode_account_without_credit_is_a_forbidden_request(runner, workspace, fake_opencode):
+    """A paid model on an OpenCode account with no balance answers 402
+    (opencode 2.3.2): pressing the step again cannot help until the account
+    is topped up, so it is not an `other` error."""
+    said = ("Insufficient balance. This request is pay-as-you-go, billed to OpenCode Models credits. "
+            "Top up at https://opencode.ai/console/billing?credits=1.")
+    event = {"type": "error", "sessionID": OPENCODE_SESSION_ID,
+             "error": {"type": "provider.quota", "message": said, "status": 402}}
+    oc = fake_opencode(emits(json.dumps(event)))
+    rc, out, _ = run(runner, workspace, tool="opencode", opencode=oc)
+    assert out["terminalReason"] == "cli-error", out
+    assert out["providerError"]["kind"] == "forbidden", out
+    assert out["providerError"]["message"].startswith("Insufficient balance"), out
+
+
 @pytest.mark.parametrize(
     "mode,expected,forbidden",
     [

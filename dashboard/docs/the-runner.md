@@ -137,7 +137,7 @@ tool's stderr when it wrote no result. The runner also sorts it, and the result 
 
 | `kind`      | When                                                                                                                   |
 |-------------|------------------------------------------------------------------------------------------------------------------------|
-| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication, or a model that requires usage credits the account does not have |
+| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication, a model that requires usage credits the account does not have, or a 402 from an account without credit |
 | `login`     | A 401, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in    |
 | `network`   | The tool could not reach the provider: DNS, a refused connection, `fetch failed` or another network error            |
 | `provider`  | A 5xx, Claude Code's `server_error`, overloaded or a connection that broke after opening                            |

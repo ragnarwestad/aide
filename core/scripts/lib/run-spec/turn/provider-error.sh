@@ -15,7 +15,8 @@
 # Codex's messages are hex, and a bare 401 or 500 turns up in them.
 
 # provider_error_json <what the tool said> [<HTTP status>] [<the error name the tool gave>] [<the API's error code>]
-# A model the account has no credit for (`credits_required`) is `forbidden`.
+# A model the account has no credit for (`credits_required`, or a 402
+# payment required) is `forbidden`.
 provider_error_json() {
   jq -cn --arg said "${1:-}" --arg status "${2:-}" --arg name "${3:-}" --arg code "${4:-}" '
     ($said | gsub("\u001b\\[[0-9;]*[A-Za-z]"; "")) as $plain
@@ -29,7 +30,7 @@ provider_error_json() {
         end) as $message
       | ($code) as $apiCode
       | ($status | tonumber? // 0) as $code
-      | (if $code == 403 or $apiCode == "credits_required" or ($plain | test("api error: 403\\b|status 403\\b|\\b403 forbidden"; "i")) then "forbidden"
+      | (if $code == 403 or $code == 402 or $apiCode == "credits_required" or ($plain | test("api error: 403\\b|status 403\\b|\\b403 forbidden"; "i")) then "forbidden"
          elif $code == 401 or ($name | test("auth"; "i"))
             or ($plain | test("not logged in|please run /login|failed to authenticate|authentication (failed|required|error)|status 401\\b|\\b401 unauthorized|missing bearer|invalid (api[ _-]?key|x-api-key|bearer|access token|token)|api[ _-]?key (is )?(missing|invalid|not set)|(token|session|credentials?) (has |have )?(been )?(expired|revoked)|session expired"; "i"))
          then "login"

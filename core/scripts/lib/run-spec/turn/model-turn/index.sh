@@ -441,7 +441,10 @@ elif [ "$have_result" = "true" ]; then
     # Codex's or OpenCode's own error, read above: it says why, where the
     # exit code (1) says only that it failed.
     terminal_reason="cli-error"
-    provider_error_out="$(provider_error_json "$error_msg")"
+    # OpenCode's error event carries the HTTP status (402 for an account
+    # without credit); Codex's message carries none.
+    provider_error_out="$(provider_error_json "$error_msg" \
+      "$(jq -r '.error.status // .error.data.statusCode // empty' <<<"${error_json:-{\}}" 2>/dev/null)")"
     error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
   elif [ "$exit_code" -ne 0 ] && [ "$(jq -r '(.errors // []) | length' <<<"$result_json")" -eq 0 ]; then
     terminal_reason="cli-error"
