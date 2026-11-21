@@ -5,7 +5,6 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { Sentence } from "../../../messages/types.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
-import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
 export type { SpecView, ProjectView };
 
@@ -44,11 +43,9 @@ export interface ProjectPageOptions {
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
-  /** From the request's own `?edit=` (names one of
-   *  the Config tab's two tables, not a shared boolean) — never
-   *  stored, so a page reload with no query string always lands back on
-   *  the read-only view. */
-  editingGroup: SettingsGroupFile | null;
+  /** Where the project's icon image is served, or null to draw its
+   *  initials. Absent draws the initials. */
+  icon?: { src: string } | null;
   /** Where "← Back" goes: the page the reader came from, resolved by the
    *  server from the request's `Referer`. Projects when there is none. */
   backHref?: string;

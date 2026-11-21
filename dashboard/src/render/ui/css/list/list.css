@@ -98,37 +98,6 @@ table.settingstable tr[data-side] th { padding-left: 2rem; }
    in the name (`followScheduleRow`, specs-client/schedule-actions.ts). */
 table.settingstable tr[data-row-href] { cursor: pointer; }
 table.settingstable tr[data-row-href]:hover :is(th, td) { background: var(--surface-2); }
-/* A project's settings table: Value and Comment share what the Name
-   column leaves, evenly — the Comment carries the longest text on the
-   page (where a value came from, and the test command's suggestion),
-   and auto layout otherwise handed most of the width to the values. */
-table.list col[data-col="setting-value"],
-table.list col[data-col="setting-comment"] { width: 42%; }
-/* A path has no break the browser will take on its own, so auto layout
-   sized the Value column to the whole path and left the Comment a
-   ribbon six words tall — the 42% above is a hint auto layout drops when
-   a cell cannot be made narrower. `anywhere` is what makes it narrower:
-   unlike `break-word` it counts in the min-content width the layout is
-   computed from, which is the number that has to change. */
-table.list td[data-col="setting-value"] { overflow-wrap: anywhere; }
-/* An edit field is as wide as its cell, at every width. */
-table.list td[data-col="setting-value"] :is(textarea, select) { width: 100%; box-sizing: border-box; }
-/* The five text settings are textareas that wrap; they wear the cell's
-   own look, not the platform's, and grow with their text, not by hand.
-   `contain: inline-size` keeps that growth downwards: without it the
-   field sizes its width to its text too and widens the table. */
-table.list td[data-col="setting-value"] textarea {
-  display: block;
-  field-sizing: content;
-  contain: inline-size;
-  resize: none;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-s);
-  background: var(--surface);
-  font: inherit;
-  color: inherit;
-}
-
 /* The heading row that opens a group of settings rows. A row rather than
    a blank gap, so the grouping survives being read aloud and being read
    as markup. */

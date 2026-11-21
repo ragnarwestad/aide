@@ -12,6 +12,7 @@
         - [Deploy](#deploy)
         - [Config](#config)
         - [Schedule](#schedule)
+    - [A project's icon](#a-projects-icon)
     - [How a project's code merges](#how-a-projects-code-merges)
 - [How it works inside](#how-it-works-inside)
     - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
@@ -33,8 +34,10 @@ The page has two parts. [Using it](#using-it) is for someone adding and running 
 
 ### Adding a project
 
-`/projects` lists the projects on the dashboard's allowlist, with an **Add** button above the list and a **Remove**
-button on each row. A directory under the projects root that is not on the allowlist is not listed. Add opens a page
+`/projects` lists the projects on the dashboard's allowlist in one card, a row per project by name, with an **Add**
+button and the count above the card and a **Remove** button on each row. A row shows the project's icon, its name
+with its active and archived counts, and its description under it; a press anywhere on the row but Remove opens the
+project's page, and a chevron at the row's end says so. A directory under the projects root that is not on the allowlist is not listed. Add opens a page
 of its own; both are held to the same-origin rule, like every other control that changes something.
 
 **The projects root is where they all live** — the directory the server was started with as `--root`. A project is
@@ -213,7 +216,7 @@ in that clone's `.git/info/exclude`.
 
 **Worktree links are suggested on the project's own page, not on Add.** Nothing can derive which gitignored paths a
 project's commands need, which is why the field exists — but a checkout's `.gitignore` names the candidates in a
-file the reader had to go and open. The Config tab's Edit form lists the literal, top-level
+file the reader had to go and open. The Config tab lists the literal, top-level
 entries from that checkout's `.gitignore` as a line of text under the field: a suggestion the reader may ignore. Globs, negations, comments and nested paths are left out — they are not values
 `worktreeLinks` can take. A suggestion is not an endorsement either: a `.gitignore` routinely lists `build`, `dist`
 or `.gradle` beside `node_modules`, and those are refused — with the path named — because a link is one shared
@@ -224,14 +227,14 @@ from.
 ### A project's own page
 
 `/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
-Deploy, which is also where an unrecognised value merges. `?edit=config` or `?edit=manifest`, a settings table's own
-edit state, opens on Config.
+Deploy, which is also where an unrecognised value merges. The project's icon stands before its name in the heading.
+Every tab is drawn as cards of rows, the layout the Projects list has.
 **← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and keeps going
 there while the reader switches tabs. A page opened with none — a typed address, a bookmark — goes back to Projects.
 
 #### Deploy
 
-Two panels. The first says how far the checkout is behind origin, and for the one project this server runs from,
+Two cards, each under its heading: "Deploy for prod" and "Test server with the test specs". The first says how far the checkout is behind origin, and for the one project this server runs from,
 which commit it is serving. Deploy is offered on the project this server runs from alone; every other project keeps
 the tab and has no button. When drift has not been checked yet, the page asks for itself again after five seconds.
 Opening the tab of any project also asks origin at once, through `POST .../drift` (`http-routes.md`): a fresh count
@@ -280,7 +283,7 @@ restart has happened. A deploy that leaves the dashboard's own service on an old
 finds them different, an install fails after the checkout moved, or there is nothing to restart with — stores one
 message that every page shows under the header until a later check finds them equal or the service restarts.
 
-The second panel starts a test server for the project, in a new tab. Unless the manifest says
+The second card starts a test server for the project, in a new tab. Unless the manifest says
 `deployment.previewFrom: command` and a preview command is configured, the heading stays with a sentence saying it is
 unavailable.
 
@@ -298,32 +301,37 @@ asked, and it is recomputed on every visit rather than shown once in a notice th
 `dashboardCheckout`. They are fixed on the machine, not on this page, and the section says so. The two checks a
 settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carried inline on their own rows instead.
 
-**Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
+**Two settings cards, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
 the project tracks no manifest — holding Worktree links, Preview command, Test command, Criterion prefix, Description, a **Code merge** row and a **Try a branch** row, which are not config keys. How
 strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
-spec form. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
+spec form. No row's explanation names a file: which card a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
-project's own files unless `.aide/config` sets them. A row whose readiness check failed carries that check's
-sentence inline.
+project's own files unless `.aide/config` sets them. Each row holds the setting's name with its key under it and
+what it is for on the left, and its field on the right; on a phone the field moves under the text. A row whose
+readiness check failed carries that check's sentence inline.
 
 The test command is the one worth knowing: a run and a merge test with a configured command only
 (`aide-resolve-test-cmd`), so an unset one reads "The project's own test command — No tests run when a spec
 merges", with the worked-out command beside it as a suggestion.
 
-**Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
-(`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
-the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
-command; opening the manifest turns on seven, Worktree links, Preview command, Test command, Criterion prefix, Description, Code merge and Try a branch. The
-test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
-nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
-is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
-always one line — a line break in it is folded to a space. Save and Cancel both return to
-`/projects/<name>?tab=config`, and `/projects/<name>/settings` redirects there too.
+**Every field is editable as the tab opens**; there is no Edit button. Each card is a form of its own, with
+**Save** and **Cancel** at its foot. The `.aide/config` card holds Specs path and Install command; the manifest card
+holds Worktree links, Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch.
+The test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
+nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each field grows to
+show the whole value; with the board's script on, Enter saves its card, and a value is always one line — a line
+break in it is folded to a space. Save and Cancel stay disabled until a field of their card changes.
 
-A save writes each value to the file its table names, and to no other file, regardless of where the value
+Save posts only its own card's settings, and a refusal is written at that card's foot with what was typed left in
+the fields. A Save that goes through draws the Config tab again with the new values and readiness; while the other
+card holds edits the page stays as it is instead, so those edits are kept. Cancel puts its own card's fields back to
+their saved values. Leaving the page while a card holds unsaved edits asks first, and a refused Save still counts as
+unsaved. `/projects/<name>/settings` redirects to `?tab=config`.
+
+A save writes each value to the file its card names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
-Preview command, Test command, Criterion prefix, Description, Code merge and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
+Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. A description or a criterion prefix is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
 
 #### Schedule
@@ -333,12 +341,25 @@ sweep, a check. The tab lists this project's jobs by name and next run, with eac
 and **Delete** on its row, or says nothing is scheduled. A click on Name, Next run or Enabled sorts the list by that
 column, and a second click turns it round. A click on a row outside those controls opens the job's own page, where
 **Edit** is. This is where a
-job is switched, fired, changed and removed; `/schedule` only shows them. **New**, above the list on the right, opens
+job is switched, fired, changed and removed; `/schedule` only shows them. The list stands in one card under a
+"Schedule" heading. **New**, on the heading's line at the right, opens
 the page that creates one in this project. New and Edit open the same page: New starts on defaults, Edit on the job as
 it is saved. A save goes back to the page it was opened from; a refused one stays, with the reason above the form.
 [Running a job on a schedule](running-specs.md#running-a-job-on-a-schedule) has what such a job may do and where
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; a create there is then refused, with the reason on the form.
+
+### A project's icon
+
+A project's icon is the image its `icon` setting names (`docs/CONFIGURATION.md`): a path to an image file the
+default branch tracks — SVG, PNG, ICO, JPEG, WebP or GIF. Without one, the board uses the project's own favicon:
+the tracked `favicon.svg`, `favicon.png` or `favicon.ico` nearest the repository's root, an SVG before a PNG before
+an ICO at the same depth. A project with neither shows its first two letters on a coloured square, the colour fixed
+by its name. Only what the default branch holds as origin last answered counts, so an untracked file — a build's
+`dist/favicon.svg` — is never the icon, and an `icon` naming one is read as unset.
+
+The image is served at `GET /projects/<name>/icon` and shown as an image only, so nothing in the file runs on the
+board; that address answers with a policy that forbids scripts in it when opened by itself.
 
 ### How a project's code merges
 

@@ -92,35 +92,12 @@ td form { margin: 0; display: inline-block; }
 .panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }
 /* The Settings page's own button rows (its Phases form and the Add and Remove
    forms of the Models tab): always right-aligned, with a deliberate gap to what is
-   above them. The Config tab has no such row above both tables: each
-   table has its own `.panelhead`. */
+   above them. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
   flex-basis: 100%; margin-bottom: var(--sp-3); }
-/* Two independent tables, each with its own heading+actions line
-   — the gap between them is declared here, once, never as a margin
-   on settingsTableFor()'s own per-table div (dashboard-design.md,
-   "spacing lives in the container"). Matches the wider gap
-   `.projectsettingsform` gets below in edit mode, so Edit and Cancel do
-   not visibly jump when a save reopens the read-only view. */
-.configtables { display: flex; flex-direction: column; gap: var(--sp-5); }
-/* Matches `.pageform`'s own margin-top below: view mode's
-   plain container needs the same top margin the edit-mode form gets,
-   so the first table's own `.panelhead` sits at the same pixel position
-   in either state. */
-.tabpanel > .configtables { margin-top: var(--sp-3); }
-/* The same gap in edit mode: `.pageform`'s own `gap: var(--sp-3)`
-   is too narrow between the two `.frow`s each wrapping one of these
-   tables, so this form widens it to match `.configtables` above. */
-.projectsettingsform { gap: var(--sp-5); }
-/* `.pageform .factions` above bottom-aligns a `.frow`'s own Save/
-   Cancel against a taller field beside it (the New-spec form) — a rule
-   that reaches this form's factions too, nested three levels deeper
-   inside its own `.panelhead`, and bottom-aligns Save/Cancel there
-   instead of centring it against the heading the way Edit is in view
-   mode (the two states would no longer share one pixel position).
-   Reset back to the ordinary centring here, scoped to these two
-   containers' own panelheads only. */
-.configtables .panelhead .factions, .projectsettingsform .panelhead .factions { align-self: center; }
+/* A Config card's form holds one card section, not a row of fields:
+   `.pageform`'s flex row and top margin are not its layout. */
+.pageform.projectsettingsform { display: block; margin-top: 0; }
 /* The Settings page's phases form: as wide as its own table and centred
    in the frame. `table.settingstable` is `width: auto`, so it is as wide
    as its content and no wider — and with the form full width, Save and
@@ -350,8 +327,6 @@ dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: va
    via the container's `gap`, never a margin on the message or the form
    beside it (design-system.md "Spacing lives in the
    container"). */
-.deploypanel { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
-.deploypanel .rowmsg { margin: 0; }
 
 /* The covering layer a click that leaves the page gets, from the click
    until the new document arrives — the same dialog+backdrop

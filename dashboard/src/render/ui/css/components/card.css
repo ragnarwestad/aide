@@ -1,0 +1,74 @@
+/* --- card of rows ---------------------------------------------------------- */
+
+/* A heading, one bordered card of rows under it, and Save and Cancel at its
+   foot. The frame is Settings › Providers' (`.providerpanes`); the spacing
+   between sections is the container's (`.cardstack`). */
+.cardstack { display: flex; flex-direction: column; gap: var(--sp-5); margin-top: var(--sp-3); }
+.cardsection { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.cardhead { display: flex; align-items: center; gap: var(--sp-2); min-height: 28px; }
+.cardhead h3 { margin: 0; font-size: var(--fs-l); }
+.cardhead > .btn { margin-left: auto; }
+.card { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); min-width: 0; }
+.card > .cardrow + .cardrow { border-top: 1px solid var(--line); }
+/* A section's own content, not rows: its text and buttons, one under the
+   other; a table takes the card's width. */
+.card:not(:has(> .cardrow)) { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); }
+.card > .rowmsg { margin: 0; }
+.card > .tablewrap { align-self: stretch; }
+.cardfoot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.cardfoot .refused { flex-basis: 100%; }
+
+/* One row: the name and its explanation on the left, the control on the
+   right. */
+.cardrow { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  position: relative; min-width: 0; }
+.cardrowtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.cardrowtitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); font-weight: 500; }
+.cardrowexplain { color: var(--muted); font-size: var(--fs-s); }
+.cardrowexplain p { margin: 0; }
+.cardrowcontrol { flex: 0 1 50%; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1);
+  overflow-wrap: anywhere; }
+.cardrowcontrol :is(textarea, select) { width: 100%; box-sizing: border-box; }
+/* The text settings are textareas that wrap and grow with their text, in
+   the field's own look. */
+.cardrowcontrol textarea {
+  display: block;
+  field-sizing: content;
+  contain: inline-size;
+  resize: none;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+}
+.cardrow.error { box-shadow: inset 3px 0 0 var(--danger); }
+
+/* A row that opens a page: its name's link covers the row, the row lights
+   on hover, and the controls at its end rise above the link. */
+.cardrowlink { color: var(--text); }
+.cardrowlink::after { content: ""; position: absolute; inset: 0; }
+.cardrow:has(> .cardrowtext .cardrowlink):hover { background: var(--surface-2); }
+.cardrow > .btn, .cardrowwarn { position: relative; z-index: 1; }
+.cardrowwarn { display: inline-flex; color: var(--warn); }
+.cardrowwarn svg { width: 18px; height: 18px; }
+.cardchevron { display: inline-flex; flex: none; color: var(--muted); transform: rotate(-90deg); }
+
+/* A project's icon, before its name. */
+.projicon { width: 28px; height: 28px; flex: none; border-radius: var(--r-s); object-fit: contain; }
+.projinitials { display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-s); font-weight: 600; color: var(--text); }
+.projinitials[data-hue="1"] { background: var(--initials-1); }
+.projinitials[data-hue="2"] { background: var(--initials-2); }
+.projinitials[data-hue="3"] { background: var(--initials-3); }
+.projinitials[data-hue="4"] { background: var(--initials-4); }
+.projinitials[data-hue="5"] { background: var(--initials-5); }
+.projinitials[data-hue="6"] { background: var(--initials-6); }
+
+/* On a phone the control moves under its name and explanation. */
+@media (max-width: 40rem) {
+  .cardrow:has(> .cardrowcontrol) { flex-wrap: wrap; }
+  .cardrowcontrol { flex-basis: 100%; }
+}

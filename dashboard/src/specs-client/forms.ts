@@ -17,6 +17,7 @@ import { showRefusal } from "./tail-actions.ts";
 import { cardAnswered } from "./depends-on";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
 import { swapPage } from "./page-swap";
+import { FORM_SAVED } from "../page-contract.ts";
 
 export async function submitAction(event: Event): Promise<void> {
   // A form that cancelled its own submit (an `onsubmit` that returned
@@ -192,28 +193,70 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   );
 }
 
-// The project page's own Save. It used to fall through to
-// `submitCreate` by accident — nothing excluded it from `NEW_SPEC_FORM`,
-// so it was bound as though it were the New-spec form, and a successful
-// save sent the reader to `/` instead of back to their own project. A
-// successful save has nothing further to say beyond what the fresh page
-// already shows: the new values, the form closed, the readiness
-// recomputed — so it goes back to the project's Config tab, dropping
-// `?edit=`, and lets the server draw that page as it always does on a
-// GET. A refusal stays exactly where every other form's does, in its
-// own `.refused` slot.
+/** Whether any field of `form` holds something other than what it was
+ *  drawn with. */
+function formChanged(form: HTMLFormElement): boolean {
+  return Array.from(form.elements).some((el) => {
+    if ((el as HTMLSelectElement).tagName === "SELECT") {
+      // The `selected` attribute is what an option was drawn with.
+      return Array.from((el as HTMLSelectElement).options).some((o) => o.selected !== o.hasAttribute("selected"));
+    }
+    const field = el as HTMLInputElement;
+    if (field.type === "checkbox" || field.type === "radio") return field.checked !== field.defaultChecked;
+    return "defaultValue" in field && field.value !== field.defaultValue;
+  });
+}
+
+/** What `form`'s fields hold now becomes what they were drawn with, so its
+ *  Cancel puts them back to what was just saved. */
+function keepAsSaved(form: HTMLFormElement): void {
+  for (const el of Array.from(form.elements)) {
+    if ((el as HTMLSelectElement).tagName === "SELECT") {
+      // The `selected` attribute is what a reset goes back to. Every
+      // option is read first: marking one can move the selection itself.
+      const options = Array.from((el as HTMLSelectElement).options);
+      const chosen = options.map((o) => o.selected);
+      options.forEach((o, i) => { o.toggleAttribute("selected", chosen[i]!); });
+      options.forEach((o, i) => { o.selected = chosen[i]!; });
+      continue;
+    }
+    const field = el as HTMLInputElement;
+    if (field.type === "checkbox" || field.type === "radio") field.defaultChecked = field.checked;
+    else if ("defaultValue" in field) field.defaultValue = field.value;
+  }
+}
+
+/** A Config card's Save went through. While another card holds edits the
+ *  page stays as it is, so those edits are kept: the saved card's values
+ *  become its saved ones. Otherwise the Config tab is drawn afresh, with
+ *  the new values and readiness. Either way the card is told first that
+ *  it is saved, so the page asks nothing before it is drawn again. */
+export async function settingsSaved(form: HTMLFormElement, swap: () => Promise<void>): Promise<void> {
+  const others = Array.from(form.ownerDocument.querySelectorAll("form.projectsettingsform")) as HTMLFormElement[];
+  const otherChanged = others.some((f) => f !== form && formChanged(f));
+  if (otherChanged) {
+    keepAsSaved(form);
+    // The page stays, so a refusal an earlier press wrote there goes.
+    formNote(form, "");
+  }
+  const view = form.ownerDocument.defaultView ?? globalThis;
+  form.dispatchEvent(new view.CustomEvent(FORM_SAVED, { bubbles: true }));
+  if (!otherChanged) await swap();
+}
+
+// A Config card's own Save. A refusal stays where every other form's does,
+// in its own `.refused` slot, with what was typed still in the fields.
 export async function submitProjectSettings(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   await postForm(
     form,
-    async () => {
+    () => settingsSaved(form, async () => {
       await swapPage(`${location.pathname}?tab=config`, { history: "push" });
-    },
+    }),
     (why) => formNote(form, why),
   );
 }
-
 
 /** A line break, with the space around it, folded to one space. The
  *  server's `oneLine` (`manifest-io.ts`) holds the same expression and

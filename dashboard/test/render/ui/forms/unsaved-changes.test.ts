@@ -22,6 +22,7 @@ const SOURCE = await built.outputs[0]!.text();
 
 type FakeElement = {
   closest: (sel: string) => FakeElement | null;
+  hasAttribute?: (attr: string) => boolean;
 };
 
 /** An element whose `closest()` answers the way a real one would for
@@ -30,7 +31,13 @@ type FakeElement = {
  *  Cancel markers. Matched against the element's OWN properties only —
  *  every case this script cares about asks about the event target
  *  itself, never an ancestor several levels up. */
-function element(opts: { classes?: string[]; id?: string; unitChoice?: boolean; discardChanges?: boolean } = {}): FakeElement {
+function element(opts: {
+  classes?: string[]; id?: string; unitChoice?: boolean; discardChanges?: boolean;
+  /** The tracked form this element sits in: asked about any selector the element itself does not match. */
+  form?: FakeElement;
+  /** `data-dirty-until-saved` on the element itself. */
+  dirtyUntilSaved?: boolean;
+} = {}): FakeElement {
   const classes = opts.classes ?? [];
   const matchesOne = (sel: string): boolean => {
     const s = sel.trim();
@@ -41,7 +48,8 @@ function element(opts: { classes?: string[]; id?: string; unitChoice?: boolean; 
     return false;
   };
   const self: FakeElement = {
-    closest: (sel: string) => (sel.split(",").some(matchesOne) ? self : null),
+    closest: (sel: string) => (sel.split(",").some(matchesOne) ? self : (opts.form?.closest(sel) ?? null)),
+    hasAttribute: (attr: string) => attr === "data-dirty-until-saved" && !!opts.dirtyUntilSaved,
   };
   return self;
 }
@@ -81,6 +89,8 @@ function harness() {
   let clickHandler: ((event: unknown) => void) | undefined;
   let beforeunloadHandler: ((event: unknown) => void) | undefined;
   let leaveHandler: ((event: unknown) => void) | undefined;
+  let savedHandler: ((event: unknown) => void) | undefined;
+  let drawnHandler: ((event: unknown) => void) | undefined;
 
   let showModalCalled = false;
   let closeHandler: (() => void) | undefined;
@@ -116,6 +126,8 @@ function harness() {
       else if (type === "submit") submitHandler = fn;
       else if (type === "click") clickHandler = fn;
       else if (type === "aide-page-leave") leaveHandler = fn;
+      else if (type === "aide-form-saved") savedHandler = fn;
+      else if (type === "aide-page-drawn") drawnHandler = fn;
     },
     getElementById: (id: string) => (id === "leaveapp" ? dialog : null),
   };
@@ -181,10 +193,16 @@ function harness() {
     return seen;
   };
 
+  /** The page script's word that a form's Save went through. */
+  const saved = (form: FakeElement) => savedHandler!({ target: form });
+  const drawn = () => drawnHandler!({});
+
   return {
     input,
     change,
     submit,
+    saved,
+    drawn,
     click,
     beforeunload,
     leave,
@@ -254,8 +272,9 @@ describe("a page with an unsaved edit warns before it is left", () => {
 
   test("submitting the tracked form disarms an already-armed guard (Save/Create)", () => {
     const h = harness();
-    h.input(element({ classes: ["specform"] }));
-    h.submit(element({ classes: ["specform"] }));
+    const form = element({ classes: ["specform"] });
+    h.input(form);
+    h.submit(form);
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(false);
   });
@@ -432,5 +451,69 @@ describe("the leaveapp dialog answers the navigation that opened it last", () =>
     h.dialog.escape();
     expect(link.clicks).toBe(0);
     expect(h.beforeunload().prevented).toBe(true);
+  });
+});
+
+// The Config tab holds two settings cards, each its own form, open at once.
+// Each form is guarded on its own: what one card's Save or Cancel does
+// says nothing about the other card's edits.
+describe("two tracked forms on one page", () => {
+  const card = () => element({ classes: ["pageform"], dirtyUntilSaved: true });
+  const fieldIn = (form: FakeElement) => element({ form });
+
+  test("(a) Cancel in one card leaves the other card's edits guarded (AC-9)", () => {
+    const h = harness();
+    const one = card();
+    const two = card();
+    h.input(fieldIn(one));
+    h.input(fieldIn(two));
+    h.click(element({ id: "projectsettingsform-config-cancel", form: one }));
+    expect(h.beforeunload().prevented).toBe(true);
+    h.click(element({ id: "projectsettingsform-manifest-cancel", form: two }));
+    expect(h.beforeunload().prevented).toBe(false);
+  });
+
+  test("(b) a card's Save sent and refused still asks before leaving (AC-9)", () => {
+    const h = harness();
+    const one = card();
+    h.input(fieldIn(one));
+    h.submit(one);
+    expect(h.beforeunload().prevented).toBe(true);
+  });
+
+  test("(c) one card saved while the other holds edits still asks before leaving (AC-9)", () => {
+    const h = harness();
+    const one = card();
+    const two = card();
+    h.input(fieldIn(one));
+    h.input(fieldIn(two));
+    h.submit(one);
+    h.saved(one);
+    expect(h.beforeunload().prevented).toBe(true);
+  });
+
+  test("(d) the only card with edits, saved, no longer asks (AC-9)", () => {
+    const h = harness();
+    const one = card();
+    h.input(fieldIn(one));
+    h.submit(one);
+    h.saved(one);
+    expect(h.beforeunload().prevented).toBe(false);
+  });
+
+  test("(e) an ordinary tracked form is still cleared by its own submit (AC-9)", () => {
+    const h = harness();
+    const form = element({ classes: ["settingsform"] });
+    h.input(fieldIn(form));
+    h.submit(form);
+    expect(h.beforeunload().prevented).toBe(false);
+  });
+
+  test("a page drawn afresh clears every card", () => {
+    const h = harness();
+    h.input(fieldIn(card()));
+    h.input(fieldIn(card()));
+    h.drawn();
+    expect(h.beforeunload().prevented).toBe(false);
   });
 });

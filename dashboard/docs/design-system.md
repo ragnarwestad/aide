@@ -124,6 +124,9 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `toolIcon()`          | a provider tool's mark: hidden from screen readers, or named on hover and read out when given a title                                 |
 | `providerFace()`      | a provider as a closed picker names it: its tool's mark and its two-character short name, hidden from screen readers                  |
 | `providerPick()`      | a provider select with its face laid over its own text; the select keeps its box, chevron, focus ring and open list                   |
+| `cardSection()`       | a heading, New or another button at its line's end, one bordered card under it, and Save and Cancel at its foot                       |
+| `cardRow()`           | one row of a card: a name and a muted key, an explanation under them, a control on the right; a whole-row link with a chevron         |
+| `projectIcon()`       | a project's icon before its name: its image, or its first two letters on one of six `--initials-*` colours fixed by the name          |
 
 A badge says the state and nothing else: no reason, no count. Its icon comes from the word itself
 (`stateIconName()`, `components/state-icon.ts`) — a tick for Done, a clock for Queued, a spinner for anything running, none for Waiting —
@@ -155,6 +158,17 @@ shows every provider's full name, and the select's hover text and accessible nam
 select's own text is transparent under the face (`providerpick`, `providerface`, `providershort`), and the browser
 draws the face again whenever the select's value changes. The phone's compact button for a phase line leads with the
 same face.
+
+**A card of rows** is how the Projects list and every tab of a project's page are laid out: groups of rows in one
+bordered card under a short heading, the frame Settings › Providers draws. A row holds the item's name and one line
+of explanation on the left and its value or control on the right; at a phone's width the control moves under the
+text and nothing scrolls sideways. A row that opens a page carries its link on the name, stretched over the whole row,
+with a chevron at its end, and its other controls — a warning mark, Remove — rise above the link so a press on one
+does what that control does. Sections stand in a `.cardstack`, which spaces them. A settings card is its own form,
+editable as it opens, with Save and Cancel at its foot (`dashboard/docs/projects.md`, "Config").
+
+A project's icon is drawn as an `<img>`, so nothing in the file runs on the page; a project with none shows its
+initials on one of the six `--initials-1` to `--initials-6` colours, each with a light and a dark value.
 
 The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs.
 

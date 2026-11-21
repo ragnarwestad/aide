@@ -25,7 +25,6 @@ const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no m
 const projectPage = (opts: Partial<ProjectPageOptions>): string =>
   renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
     worktreeLinkCandidates: [],
-    editingGroup: null,
     ...opts,
   });
 

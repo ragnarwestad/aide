@@ -30,7 +30,7 @@ export const NAMES: readonly string[] = [
   "/aide-analyze", "/aide-implement", "## Acceptance criteria",
   ".aide/config", ".aide/project.yaml", "settings.yaml", "project.yaml",
   "AIDE_SPECS_PATH", "AIDE_TEST_CMD", "AIDE_INSTALL_CMD", "worktreeLinks", "acPrefix", "previewCmd",
-  "codeLanding", "previewFrom", "specsPath", "installCmd", "testCmd", "gitUrl", "description",
+  "codeLanding", "previewFrom", "specsPath", "installCmd", "testCmd", "gitUrl", "description", "icon",
 ];
 
 const TIME_STAMP = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z| UTC)?/g;

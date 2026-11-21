@@ -4,6 +4,7 @@
 // before it looks at the words. A name here shares no word with the pages'
 // English, so a name never hides a word.
 
+import { projectInitials } from "../../../../src/render/ui/components/card/project-icon.ts";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -160,7 +161,7 @@ async function checkout(label: string, config: string, specs: boolean) {
   return { dir, readiness, settings: projectSettings(dir, readiness) };
 }
 
-const projectOpts = { worktreeLinkCandidates: ["node_modules", "dist"], editingGroup: null };
+const projectOpts = { worktreeLinkCandidates: ["node_modules", "dist"] };
 
 export async function projectStates(): Promise<PageState[]> {
   const proj = view("kvitsyl");
@@ -168,7 +169,8 @@ export async function projectStates(): Promise<PageState[]> {
   const cannot = await checkout("ikke", "AIDE_SPECS_PATH=/finnes/ikke/spesifikasjoner\nworktreeLinks=ukjent-mappe\n", false);
   const dirData = (c: { dir: string }) => [c.dir, `${c.dir}/specs`, "/finnes/ikke/spesifikasjoner", "ukjent-mappe", "bun kjor", "node_modules", "dist"];
   const page = (state: string, html: string, data: string[] = []): PageState => ({
-    page: `Projects › ${state}`, html, data: [...data, "kvitsyl", "tunfisk", "torsk", "rutiner/tunfisk.md", "bun kjor"],
+    // A project's initials, drawn where it has no icon, are its name's.
+    page: `Projects › ${state}`, html, data: [...data, "kvitsyl", projectInitials("kvitsyl"), projectInitials("sildefjord"), "tunfisk", "torsk", "rutiner/tunfisk.md", "bun kjor"],
   });
   const config = (c: Awaited<ReturnType<typeof checkout>>, extra: Record<string, unknown> = {}) =>
     renderProjectPage(proj, c.settings, c.readiness, NOW, NAV, { ...projectOpts, ...nb, tab: "config", settingsHome: "project", ...extra });
@@ -203,8 +205,6 @@ export async function projectStates(): Promise<PageState[]> {
     page("project › Config, no config file", renderProjectPage(proj, { hasConfigFile: false, rows: [] }, null, NOW, NAV, {
       ...projectOpts, ...nb, tab: "config", settingsHome: "none",
     })),
-    page("project › Config, the first table in edit", config(can, { editingGroup: "project" }), dirData(can)),
-    page("project › Config, the second table in edit", config(can, { editingGroup: "dashboard" }), dirData(can)),
     page("project › Schedule", renderProjectPage(proj, can.settings, can.readiness, NOW, NAV, {
       ...projectOpts, ...nb, tab: "schedule", schedule: entries,
     })),

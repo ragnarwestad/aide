@@ -13,7 +13,6 @@ const projectPage = (drift?: { behind: number | null; checkedAt: number }): stri
   const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
   return renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-20T00:00:00Z", [], {
     worktreeLinkCandidates: [],
-    editingGroup: null,
     tab: "deploy",
     ...(drift ? { drift } : {}),
   });

@@ -15,6 +15,7 @@
   --pdf: #D0342C;
   --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
   --tab-jobs: #0369A1; --tab-projects: #2563EB;
+  --initials-1: #DBEAFE; --initials-2: #DCFCE7; --initials-3: #FEF3C7; --initials-4: #FCE7F3; --initials-5: #EDE9FE; --initials-6: #CCFBF1;
   --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
   --fs-s: 12px; --fs-m: 14px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
@@ -133,6 +134,7 @@
   --pdf: #E0473C;
   --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
   --tab-jobs: #38BDF8; --tab-projects: #7AA2F7;
+  --initials-1: #1E3A5F; --initials-2: #1E3B2A; --initials-3: #3D3117; --initials-4: #3F1D2E; --initials-5: #2E2650; --initials-6: #134E4A;
   --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
@@ -164,6 +166,7 @@
   --pdf: #E0473C;
   --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
   --tab-jobs: #38BDF8; --tab-projects: #7AA2F7;
+  --initials-1: #1E3A5F; --initials-2: #1E3B2A; --initials-3: #3D3117; --initials-4: #3F1D2E; --initials-5: #2E2650; --initials-6: #134E4A;
   --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
@@ -187,6 +190,7 @@
   --pdf: #D0342C;
   --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
   --tab-jobs: #0369A1; --tab-projects: #2563EB;
+  --initials-1: #DBEAFE; --initials-2: #DCFCE7; --initials-3: #FEF3C7; --initials-4: #FCE7F3; --initials-5: #EDE9FE; --initials-6: #CCFBF1;
   --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */

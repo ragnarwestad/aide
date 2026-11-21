@@ -75,14 +75,22 @@ describe("GET /projects/<name> — the project's own page, served", () => {
 
 describe("what the page says about the settings", () => {
 
-  // Edit offers the worked-out command as a placeholder, never as the
-  // field's value: a save that never touched the row must not configure
-  // a command nobody chose.
-  test("?edit=manifest leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
+  // The field offers the worked-out command as a placeholder, never as
+  // its value: a save that never touched the row must not configure a
+  // command nobody chose.
+  test("Config leaves an unset test command's field empty, with the suggestion as its placeholder", async () => {
     const root = projectsRoot({ aide: "" }, ["pnpm-lock.yaml"]);
     const base = serve(root, settled(root, "aide"));
-    const html = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
+    const html = await (await get(base, "aide")).text();
     expect(html).toMatch(/name="testCmd"[^>]*placeholder="pnpm test -- --run"><\/textarea>/);
+  });
+
+  test("an old ?edit= address opens the page on Deploy, with no edit state (AC-5)", async () => {
+    const root = projectsRoot({ aide: "" });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
+    expect(html).not.toMatch(/<textarea name="testCmd"/);
   });
 
 });
@@ -129,11 +137,11 @@ describe("what the page says about its schedule", () => {
   });
 });
 
-// The edit/save/cancel controls the unified table gained.
-describe("editing the unified settings table", () => {
+// Saving a settings card.
+describe("saving the Config tab's settings", () => {
   const POST_AUTH = { "content-type": "application/json", accept: "application/json" };
 
-  test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode", async () => {
+  test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the Config tab's field then holds it", async () => {
     const root = projectsRoot({ aide: null });
     const project = join(root, "aide");
     const base = serve(root, settled(root, "aide"));
@@ -145,8 +153,7 @@ describe("editing the unified settings table", () => {
     expect(res.status).toBe(200);
     expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install");
     const view = await (await get(base, "aide")).text();
-    expect(view).toContain("make install");
-    expect(view).not.toContain('name="installCmd"');
+    expect(view).toMatch(/name="installCmd"[^>]*>make install<\/textarea>/);
   });
 
   test("saving AIDE_INSTALL_CMD left unchanged rewrites nothing", async () => {

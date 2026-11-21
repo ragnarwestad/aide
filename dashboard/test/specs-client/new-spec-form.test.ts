@@ -33,10 +33,9 @@ describe("which forms the New-spec handler binds", () => {
     expect(await matched(renderAddProjectPage(NAV, GENERATED, {}))).toEqual([]);
   });
 
-  test("the project settings form, open for editing, does not", async () => {
+  test("the project settings forms do not", async () => {
     const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, GENERATED, NAV, {
       worktreeLinkCandidates: [],
-      editingGroup: "manifest",
       tab: "config",
     });
     expect(html).toContain("/settings");

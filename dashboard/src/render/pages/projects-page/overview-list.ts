@@ -1,7 +1,6 @@
-// The `/projects` list: the counts, then one row per project. Split
-// out of projects-page.ts by theme.
+// The `/projects` list: the counts, then one card with a row per project.
 
-import { ICON_WARN, askButton, progressDialog, rowMessage } from "../../ui/components";
+import { ICON_WARN, askButton, cardRow, cardSection, progressDialog, projectIcon, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
@@ -41,40 +40,43 @@ function projectRemoveControl(name: string, lang: Language): string {
 function overviewRow(
   p: ProjectView,
   path: string,
+  icon: { src: string } | null,
   note?: string,
   warnHref?: string,
   lang: Language = "en",
   removable = false,
 ): string {
-  // The readiness sentence itself moved to the project's own
-  // page — this is only a pointer to it, so it rises above the row's
-  // stretched-link overlay.
+  // The readiness sentence itself is on the project's own page — this is
+  // only a pointer to it, so it rises above the row's link.
   const warn = warnHref
-    ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="${esc(t(lang, "project.cannotRunTitle"))}" aria-label="${esc(t(lang, "project.cannotRunAria"))}">${ICON_WARN}</a>`
+    ? `<a class="cardrowwarn" href="${esc(warnHref)}" title="${esc(t(lang, "project.cannotRunTitle"))}" aria-label="${esc(t(lang, "project.cannotRunAria"))}">${ICON_WARN}</a>`
     : "";
   const del = removable ? projectRemoveControl(p.name, lang) : "";
-  const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
   // On the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
   // gets it too: a checkout whose manifest will not parse is still a
   // checkout that can fall behind, and it is the one being worked on.
   const drift = note ? rowMessage("waiting", note, { tag: "p" }) : "";
+  const common = {
+    lead: projectIcon(p.name, icon),
+    link: { href: path, text: p.name },
+    trailing: warn + del,
+    data: { project: p.name },
+  };
   if (!p.manifest.ok) {
-    return (
-      `<div class="proj-row error"><div>${projectLink}` +
-      `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}</div>${warn}${del}</div>`
-    );
+    return cardRow({
+      ...common,
+      error: true,
+      explain: `<p class="error-text">${esc(t(lang, "project.manifestFailed", { error: p.manifest.error }))}</p>${drift}`,
+    });
   }
   const active = p.specs.filter((s) => !s.archived).length;
   const archived = p.specs.length - active;
-  const desc = projectDescription(p);
-  return (
-    `<div class="proj-row"><div>${projectLink}` +
-    `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>` +
-    desc +
-    drift +
-    `</div>${warn}${del}</div>`
-  );
+  return cardRow({
+    ...common,
+    title: `<span class="counts">${active} ${t(lang, "project.active")} · ${archived} ${t(lang, "project.archived")}</span>`,
+    explain: projectDescription(p) + drift,
+  });
 }
 
 /** The counts, and nothing else. Read on a phone the explanation filled
@@ -94,8 +96,8 @@ export function projectSummary(projects: ProjectView[], lang: Language = "en"): 
   );
 }
 
-/** The listing itself: the counts, then one row per project, linking to
- *  each project's generated page. Exported because the served
+/** The listing itself: one card, a row per project, linking to
+ *  each project's page. Exported because the served
  *  `/projects` page draws exactly this — same rows, same
  *  data, one function, so "the same page plus two controls" is true by
  *  construction rather than by convention. */
@@ -118,22 +120,27 @@ export function projectListBody(
     warnHref?: (name: string) => string | undefined;
     /** Whether the row offers Remove: a project on the allowlist. */
     removable?: (name: string) => boolean;
+    /** Where the project's icon image is served, or null for a project
+     *  with none, which draws its initials. Absent: initials for all. */
+    icon?: (name: string) => { src: string } | null;
     lang?: Language;
   },
 ): string {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  return (
-    ordered
+  if (!ordered.length) return "";
+  return cardSection({
+    body: ordered
       .map((p) =>
         overviewRow(
           p,
           opts.pageHref(p.name),
+          opts.icon?.(p.name) ?? null,
           opts.note?.(p.name),
           opts.warnHref?.(p.name),
           opts.lang ?? "en",
           opts.removable?.(p.name) ?? false,
         ),
       )
-      .join("\n")
-  );
+      .join("\n"),
+  });
 }

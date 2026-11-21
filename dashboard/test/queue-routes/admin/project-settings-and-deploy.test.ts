@@ -140,6 +140,34 @@ describe("a project's settings route", () => {
     expect(kept.ok && kept.data.acPrefix).toBe("F{spec}");
   });
 
+  test("an icon is saved to the manifest when posted, and left alone when not (AC-19)", async () => {
+    const { base, dir } = await settled();
+    const post = (payload: object) =>
+      fetch(`${base}/api/queue/projects/aide/settings`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
+    const first = await post({ icon: "assets/logo.png" });
+    expect(first.status).toBe(200);
+    expect(((await first.json()) as StepBody).results.map((r) => r.step)).toContain("icon");
+    const parsed = parseManifest(onOrigin(dir));
+    expect(parsed.ok && parsed.data.icon).toBe("assets/logo.png");
+
+    expect((await post({ testCmd: "make test" })).status).toBe(200);
+    const kept = parseManifest(onOrigin(dir));
+    expect(kept.ok && kept.data.icon).toBe("assets/logo.png");
+  });
+
+  test("a save of one card's fields writes nothing of the other card's file (AC-6)", async () => {
+    const { base, dir, project } = await settled();
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ worktreeLinks: "", previewCmd: "", testCmd: "make test", acPrefix: "", description: "", icon: "", codeLanding: "merge", previewFrom: "none" }),
+    });
+    expect(res.status).toBe(200);
+    expect(existsSync(join(project, ".aide", "config"))).toBe(false);
+    const parsed = parseManifest(onOrigin(dir));
+    expect(parsed.ok && parsed.data.AIDE_TEST_CMD).toBe("make test");
+  });
+
   test("an unusable value is refused, and nothing is written", async () => {
     const { base, project } = await settled();
     const before = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");
@@ -209,9 +237,8 @@ describe("a project's settings route", () => {
     // checkout's, once it has one — so that has the commit too.
     const owned = join(dir, "owned", "aide", "code");
     if (existsSync(join(owned, ".git"))) Bun.spawnSync(["git", "pull", "-q", "--ff-only"], { cwd: owned });
-    // Code landing's `<select>` only exists in edit mode now.
-    // It lives in the manifest table.
-    const form = await (await fetch(`${base}/projects/aide?edit=manifest`, )).text();
+    // Code landing's `<select>` is on the manifest card.
+    const form = await (await fetch(`${base}/projects/aide?tab=config`)).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
 
@@ -257,7 +284,7 @@ describe("a project's settings route", () => {
   test("a manifest that sets previewFrom shows it selected on the Config tab", async () => {
     const { base, dir, project } = await settled();
     commitManifest(dir, project, "name: aide\ndeployment:\n  previewFrom: cloudflare-pages\n");
-    const form = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
+    const form = await (await fetch(`${base}/projects/aide?tab=config`)).text();
     expect(form).toMatch(/<option value="cloudflare-pages"[^>]*selected/);
     expect(form).not.toMatch(/<option value="none"[^>]*selected/);
   });

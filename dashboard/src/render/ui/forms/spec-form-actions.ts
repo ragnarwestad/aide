@@ -1,11 +1,10 @@
-import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../page-contract.ts";
+import { FORM_ACTION_PREFIXES, FORM_SAVED, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../page-contract.ts";
 
 // Save and Cancel enable together the instant a field inside the form
 // changes, and disable together again once Cancel restores the form to
 // what it held when the page was opened. A form whose Cancel is a link
-// back to the saved page (the project's settings table and the Schedule
-// entry's form, being edited) has a Save alone, which waits for the first
-// change.
+// back to the saved page (the Schedule entry's form, being edited) has a
+// Save alone, which waits for the first change.
 //
 // Rendered-enabled-then-disabled-by-script, the same order
 // `bindTypedConfirm` (`specs-client/forms.ts`) already uses for the
@@ -39,8 +38,16 @@ import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../pa
   // Every form on the page that carries the pair, not just the one:
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things.
+  // A form with `data-actions-id` names its own pair, so several forms of
+  // one kind can stand on a page together (a project's two settings cards);
+  // otherwise the first form of each kind has the pair named for the kind.
   const bindAll = (): void => {
-    for (const prefix of FORM_ACTION_PREFIXES) bind(prefix);
+    for (const prefix of FORM_ACTION_PREFIXES) {
+      bind(document.querySelector(`form.${prefix}:not([data-actions-id])`) as HTMLFormElement | null, prefix);
+    }
+    for (const form of Array.from(document.querySelectorAll("form[data-actions-id]")) as HTMLFormElement[]) {
+      bind(form, form.getAttribute("data-actions-id")!);
+    }
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has
@@ -49,8 +56,7 @@ import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../pa
   document.addEventListener(SPEC_DETAIL_DRAWN, bindAll);
   document.addEventListener(PAGE_DRAWN, bindAll);
 
-  function bind(prefix: string): void {
-    const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
+  function bind(form: HTMLFormElement | null, prefix: string): void {
     const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
     const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
     // A form whose Cancel is a link back to the saved page has only its Save here.
@@ -66,7 +72,7 @@ import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../pa
     // Taken once, at load — used only if Cancel is actually pressed
     // (the restore below), never for the dirty check, which is the
     // one-way latch and needs no snapshot of its own.
-    const snapshot = fields().map((el) => ({
+    let snapshot = fields().map((el) => ({
       el,
       value: el.value,
       checked: (el as HTMLInputElement).checked,
@@ -92,6 +98,12 @@ import { FORM_ACTION_PREFIXES, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from "../../../pa
       const named = target?.getAttribute?.("form");
       return !named || named === form.id;
     };
+    // A Save that went through without the page being drawn again: what
+    // the fields hold now is what Cancel goes back to.
+    form.addEventListener(FORM_SAVED, () => {
+      snapshot = snapshot.map(({ el }) => ({ el, value: el.value, checked: (el as HTMLInputElement).checked }));
+      setDirty(false);
+    });
     form.addEventListener("input", (event) => { if (ours(event)) setDirty(true); });
     form.addEventListener("change", (event) => { if (ours(event)) setDirty(true); });
     setDirty(false);

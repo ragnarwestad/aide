@@ -241,6 +241,7 @@ export async function handleQueueAdminRoutes(
         ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
         ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
         ...(text(asked.acPrefix) && { acPrefix: text(asked.acPrefix) }),
+        ...(text(asked.icon) && { icon: text(asked.icon) }),
       };
       if (Object.keys(later).length) {
         const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), later, {
@@ -337,6 +338,7 @@ export async function handleQueueAdminRoutes(
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
       ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
       ...("description" in asked && { description: str(asked.description) }),
+      ...("icon" in asked && { icon: str(asked.icon) }),
       ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
     }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });
     // The specs root a save just named is where the scan goes looking

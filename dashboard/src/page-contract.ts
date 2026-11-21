@@ -8,6 +8,9 @@ export const ROW_MESSAGE_CLASS = "rowmsg";
 export const PAGE_LEAVE = "aide-page-leave";
 export const PAGE_FETCHING = "aide-page-fetching";
 export const PAGE_DRAWN = "aide-page-drawn";
+/** Sent on a form whose Save the server took: the one sign a form that is
+ *  guarded until saved (`data-dirty-until-saved`) is saved. */
+export const FORM_SAVED = "aide-form-saved";
 export const SPEC_DETAIL_DRAWN = "spec-detail-drawn";
 
 export const ACTION_FORM_SELECTOR = "form.rowrun, form.actionform";

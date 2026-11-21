@@ -5,7 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { ProjectReadiness, ReadinessCheck } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { askButton, btnLink, buttonForm, commitFacts, helpPopover, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btnLink, buttonForm, cardSection, commitFacts, helpPopover, messageSlot, projectIcon, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -35,9 +35,9 @@ export const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 /** What the Deploy tab of every project but the board's own says in place of a button. */
 export const NO_DEPLOY_SENTENCE = t("en", "project.noDeploy");
 
-/** Shared by `deploySection` and `testServerSection`: the Deploy tab's own
- *  panel wrapper, empty content drawing nothing at all. */
-const panel = (inner: string): string => (inner ? `<div class="deploypanel">${inner}</div>` : "");
+/** Shared by `deploySection` and `testServerSection`: one card under the
+ *  section's heading, holding its text and buttons. */
+const panel = (heading: string, inner: string): string => cardSection({ heading, body: inner });
 
 /** The Deploy section, with the address the page script asks origin
  *  through when the tab is open (`specs-client/deploy/origin-check.ts`). */
@@ -69,7 +69,7 @@ function otherProjectDeploy(
         : drift.behind > 0
           ? rowMessage("waiting", `${driftPrefix(drift.behind, drift.checkedAt, now, lang)}.`)
           : rowMessage("info", t(lang, "project.matchesOrigin"));
-  const inner = heading + panel(line + servingLine + rowMessage("info", t(lang, "project.noDeploy")));
+  const inner = panel(heading, line + servingLine + rowMessage("info", t(lang, "project.noDeploy")));
   return drift ? checked(name, inner) : inner;
 }
 
@@ -96,7 +96,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // This section's own heading, so it reads apart from the
   // new "Testserver med testspecene" section beside it.
   const lang = opts.lang ?? "en";
-  const heading = `<h3>${esc(t(lang, "project.deployHeading"))}</h3>`;
+  const heading = t(lang, "project.deployHeading");
   const serving = opts.serving;
   const servingLine = serving
     ? rowMessage(
@@ -109,9 +109,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const drift = opts.drift;
   if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, servingLine, lang);
   if (!drift) {
-    return heading + panel(
-      rowMessage("info", t(lang, "project.noInstallCmd")) + servingLine,
-    );
+    return panel(heading, rowMessage("info", t(lang, "project.noInstallCmd")) + servingLine);
   }
   // Shown wherever `drift` is defined, never in the ungated branch above.
   // The kept failure names its step, and carries `deploy-error`.
@@ -132,7 +130,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   // Only "asked, unanswerable" still bails out with no claim and no
   // button — "never asked" now falls into the shared chain
   // below.
-  if (!notYetChecked && behind === null) return checked(name, heading + panel(errorLine + servingLine)); // asked, unanswerable — no claim, never a guess
+  if (!notYetChecked && behind === null) return checked(name, panel(heading, errorLine + servingLine)); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
@@ -202,7 +200,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     deployAskDialog(lang, name, dialogId);
   return checked(
     name,
-    heading + panel(
+    panel(
+      heading,
       errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) +
       (opts.pending ? commitFacts(opts.pending, t(lang, "jobs.deployNoCommits")) : "") + ask,
     ),
@@ -217,19 +216,18 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
 function testServerSection(name: string, opts: ProjectPageOptions): string {
   if (!opts.testServerAvailable) return "";
   const lang = opts.lang ?? "en";
-  const heading = `<h3>${esc(t(lang, "project.testServerHeading"))}</h3>`;
+  const heading = t(lang, "project.testServerHeading");
   // Deliberately NOT class="actionform"/"rowrun" — either class gets its
   // native submit replaced by an XHR
   // (`specs-client/forms.ts`/`press.ts`), which silently defeats
-  // `target="_blank"` and so the new-tab open. `.deploypanel`'s own flex `gap`
-  // spaces this form's children with no CSS of its own needed.
+  // `target="_blank"` and so the new-tab open.
   const button = buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(name)}/test-server`,
     data: { testserverform: "" },
     target: "_blank",
     button: { label: t(lang, "project.testServerButton"), variant: "primary" },
   });
-  return heading + panel(rowMessage("info", t(lang, "project.testServerNote")) + button);
+  return panel(heading, rowMessage("info", t(lang, "project.testServerNote")) + button);
 }
 
 /** The columns a project's Schedule tab sorts by: the /schedule list's,
@@ -288,10 +286,9 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   // A refusal of Run now, Enabled or Delete, written here by the page
   // script (`schedule-actions.ts`, `reload-form/`).
   const slot = messageSlot("refused", "failed", { id: SCHEDULE_REFUSED_LINE });
-  // New on the right of the line above the table, as Add is on the
-  // Projects list.
-  const top = `<div class="listtop">${btnLink({ href: scheduleNewPath(project), label: t(lang, "schedule.new"), variant: "primary" })}</div>`;
-  return top + slot + table;
+  // New on the heading's line, at its right end.
+  const newButton = btnLink({ href: scheduleNewPath(project), label: t(lang, "schedule.new"), variant: "primary" });
+  return `<div class="cardstack">${slot}${cardSection({ heading: t(lang, "tab.schedule"), headTrailing: newButton, body: table })}</div>`;
 }
 
 /** A check's answer in the reader's language: its message, or its English
@@ -345,7 +342,7 @@ function configSection(
     : rowMessage("info", t(lang, "project.noConfigFile"));
   const summary = readiness ? readinessSummary(readiness, lang) : "";
   const checkout = readiness ? checkoutChecks(readiness, lang) : "";
-  return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editingGroup, opts);
+  return noFile + summary + checkout + `<div class="cardstack">${unifiedSettingsTable(settings, name, opts)}</div>`;
 }
 
 /** The page's tabs, in the order they are drawn: Deploy first. Default
@@ -378,12 +375,11 @@ export function renderProjectPage(
   // a project other than the board's own says there
   // that Deploy is not offered (`otherProjectDeploy`), rather than the tab
   // bar changing shape from project to project.
-  // The page opens on Deploy; `?edit=` names a settings table's own edit
-  // state, so it always opens on Config, where that table is.
-  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, opts.editingGroup ? "config" : "deploy");
+  // The page opens on Deploy.
+  const tab: ProjectTab = pickTab(PROJECT_TABS, opts.tab, "deploy");
   const base = projectPagePath(p.name);
   const panel =
-    tab === "deploy" ? deploySection(p.name, opts, now) + testServerSection(p.name, opts)
+    tab === "deploy" ? `<div class="cardstack">${deploySection(p.name, opts, now)}${testServerSection(p.name, opts)}</div>`
     : tab === "schedule" ? scheduleSection(p.name, opts.schedule ?? [], opts)
     : configSection(settings, p.name, readiness, opts);
 
@@ -399,7 +395,7 @@ export function renderProjectPage(
     (awaitingDrift ? reloadMarker(AWAITING_DRIFT_REFRESH_SECONDS) : "") +
     tabbedBody(
       projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}, "", { lang: opts.lang }), panel,
-      opts.backHref ?? PROJECTS_ROUTE, p.name, false, "", opts.lang ?? "en",
+      opts.backHref ?? PROJECTS_ROUTE, { html: projectIcon(p.name, opts.icon ?? null) + esc(p.name) }, false, "", opts.lang ?? "en",
     );
   return pageShell(p.name, nav, base, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,

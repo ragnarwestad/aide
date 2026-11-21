@@ -24,6 +24,7 @@ export type ProjectStepName =
   | "testCmd"
   | "acPrefix"
   | "description"
+  | "icon"
   | "allowlist"
   | "confirm";
 

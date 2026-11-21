@@ -85,6 +85,9 @@ export interface ProjectsPageOptions {
   /** Whether a project's row offers Remove: a project on the allowlist.
    *  Absent offers none. */
   removable?: (name: string) => boolean;
+  /** Each project's icon, as the server found it: where its image is
+   *  served, or null to draw its initials. Absent: initials for all. */
+  iconByProject?: Record<string, { src: string } | null>;
   /** What the project is configured with today — the Settings page's
    *  two fields, pre-filled. Empty means empty: this page never guesses
    *  on a configured project's behalf. */
@@ -142,6 +145,7 @@ export function renderProjectsPage(
       warnHref: (name) =>
         opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
       removable: opts.removable,
+      icon: (name) => opts.iconByProject?.[name] ?? null,
     });
   // No reload of its own: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did
@@ -278,6 +282,11 @@ export function renderAddProjectPage(
       settingLabel("description", lang),
       `<textarea name="description" rows="2" maxlength="500" ` +
         `placeholder="${esc(t(lang, "setting.ph.description"))}"></textarea>`,
+      { wide: true },
+    ) +
+    field(
+      settingLabel("icon", lang),
+      `<input type="text" name="icon" maxlength="300" placeholder="${esc(t(lang, "setting.ph.icon"))}">`,
       { wide: true },
     ) +
     `<span class="factions">` +

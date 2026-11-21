@@ -1,4 +1,4 @@
-// A project's Config tab in edit mode: a settings field is a textarea that
+// A project's Config tab: a settings field is a textarea that
 // wraps a long value, yet Enter in it submits the form once and adds no line
 // break, and a pasted break is folded. Only a browser runs that script.
 
@@ -29,18 +29,18 @@ afterAll(async () => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-async function openEdit(width: number, group: "config" | "manifest" = "config"): Promise<void> {
+async function openConfig(width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
-  await withBrowser(page.goto(`${base}/projects/paceup?edit=${group}`), `edit page.goto at ${width}px`);
+  await withBrowser(page.goto(`${base}/projects/paceup?tab=config`), `config page.goto at ${width}px`);
 }
 
 const specsField = () => page.locator('textarea[name="specsPath"]');
 
 test("Enter raises one submit and leaves no line break; a filled break is folded", async () => {
-  await openEdit(1280, "config");
+  await openConfig(1280);
   await page.evaluate(() => {
     (window as unknown as { __submits: number }).__submits = 0;
-    document.querySelector("form.projectsettingsform")!.addEventListener("submit", (e) => {
+    document.querySelector('form.projectsettingsform:has([name="specsPath"])')!.addEventListener("submit", (e) => {
       e.preventDefault();
       e.stopImmediatePropagation();
       (window as unknown as { __submits: number }).__submits++;

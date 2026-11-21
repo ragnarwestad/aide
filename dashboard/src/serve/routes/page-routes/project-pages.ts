@@ -13,7 +13,8 @@ import { selectedProviderKey } from "../../../render/pages/settings-page/provide
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
-import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
+import { projectSettings } from "../../../project/project-settings.ts";
+import { projectIconSrc } from "./project-icon.ts";
 import { deployUnderWay } from "../../../queue/queue.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
@@ -272,7 +273,7 @@ export async function projectPages(
         },
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
-        editingGroup: groupForEditParam(url.searchParams.get("edit")),
+        icon: await projectIconSrc(ctx, name),
         drift,
         deployFailure: ctx.readDeployFailure(name),
         serving,
@@ -343,6 +344,9 @@ export async function projectPages(
         }
       }),
     );
+    const iconByProject = Object.fromEntries(
+      await Promise.all(projects.map(async (p) => [p.name, await projectIconSrc(ctx, p.name)] as const)),
+    );
     const langResult = languageChoice(url, req);
     const html = renderProjectsPage(
       projects,
@@ -350,6 +354,7 @@ export async function projectPages(
       ctx.nav(),
       {
         readinessByProject,
+        iconByProject,
         // Only a project the allowlist knows has anything to be removed from.
         removable: (name) => ctx.allowed.has(name),
         script: await specsClientScript(),

@@ -7,7 +7,6 @@ function deployTab(testServerAvailable: boolean): string {
   const project: ProjectView = { name: "paceup", manifest: { ok: false, error: "no manifest" }, specs: [] };
   return renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-10-05T00:00:00Z", [], {
     worktreeLinkCandidates: [],
-    editingGroup: null,
     tab: "deploy",
     testServerAvailable,
   });
@@ -19,7 +18,8 @@ describe("the test server on a project's Deploy tab", () => {
     expect(deployTab(false)).not.toContain("Test server with the test specs");
   });
 
-  test("is offered where one can start", () => {
+  test("is offered where one can start, beside Deploy for prod (AC-10)", () => {
     expect(deployTab(true)).toContain("/api/queue/projects/paceup/test-server");
+    expect(deployTab(true)).toContain("Deploy for prod");
   });
 });

@@ -1,4 +1,4 @@
-// The seven `.aide/config` keys, each answered with where its
+// The project's settings keys, each answered with where its
 // value came from.
 //
 // The description's bar is that a reader can tell, for every setting,
@@ -21,12 +21,9 @@ import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import {
   DERIVABLE,
   EDITABLE_FIELD,
-  EDIT_GROUP_PARAM,
   SETTING_GROUPS,
   SETTING_KEYS,
-  groupForEditParam,
   projectSettings,
-  type SettingsGroupFile,
 } from "../../../src/project/project-settings.ts";
 
 // Each row of the manifest group is keyed by the manifest's own key, so
@@ -73,7 +70,7 @@ const row = (dir: string, key: string, r: ProjectReadiness | null = null) =>
   projectSettings(dir, r).rows.find((x) => x.key === key)!;
 
 describe("every recognized key gets a row, in one order", () => {
-  test("the seven keys are all there, once each", () => {
+  test("every key is there, once each", () => {
     const view = projectSettings(project(null), null);
     expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
     expect(new Set(view.rows.map((r) => r.key)).size).toBe(view.rows.length);
@@ -298,22 +295,6 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
   });
 });
 
-// The `?edit=` value <-> group mapping, read off SETTING_GROUPS
-// rather than a second hand-written list.
-describe("groupForEditParam", () => {
-  test("groupForEditParam round-trips every EDIT_GROUP_PARAM value", () => {
-    for (const [group, param] of Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]) {
-      expect(groupForEditParam(param)).toBe(group);
-    }
-  });
-
-  test("groupForEditParam returns null for the old boolean-shaped '1', for garbage, and for null", () => {
-    expect(groupForEditParam("1")).toBeNull();
-    expect(groupForEditParam("garbage")).toBeNull();
-    expect(groupForEditParam(null)).toBeNull();
-  });
-});
-
 // Every row's Comment-column purpose text starts with a capital
 // letter — the source text `settingRowHtml` lists first, before any
 // appended note.
@@ -343,5 +324,18 @@ describe("the manifest's Description row", () => {
     const r = row(project(null), "description");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();
+  });
+});
+
+describe("the manifest's Icon row", () => {
+  test("an icon in the manifest is a row of the manifest group, posted as icon (AC-19)", () => {
+    const dir = project(null);
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nicon: assets/logo.png\n");
+    const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
+    expect(manifest.keys).toContain("icon");
+    const r = row(dir, "icon");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("assets/logo.png");
+    expect(EDITABLE_FIELD.icon).toBe("icon");
   });
 });

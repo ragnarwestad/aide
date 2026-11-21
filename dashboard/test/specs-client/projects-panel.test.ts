@@ -136,12 +136,12 @@ describe("on /projects, where there is no New-spec form", () => {
 // --- The project settings form's own Save ---------------------------
 //
 // The Save form shares the look (`pageform`), exactly the way the Add
-// form does, and on `/projects/<name>?edit=config` there is no New-spec
-// form either — bound as one, its success would run `submitCreate`'s
+// form does, and on a project's Config tab there is no New-spec form
+// either — bound as one, its success would run `submitCreate`'s
 // `location.href = "/"`. `submitProjectSettings` (forms.ts) is its
 // own handler, bound to `form.projectsettingsform`: a successful save
-// reloads the reader's own project path, dropping `?edit=config`; a refusal
-// writes into the form's own `.refused` slot and leaves the page put.
+// draws the reader's own project on Config again; a refusal writes into
+// the form's own `.refused` slot and leaves the page put.
 describe("the project settings form's own Save", () => {
   /** Only the settings form on the page — there is no New-spec form and
    *  no Add/Remove form on `/projects/<name>` — so the binding count this
@@ -160,6 +160,8 @@ describe("the project settings form's own Save", () => {
       querySelector: (sel: string) => (sel === ".refused" ? refusedSlot : null),
       querySelectorAll: () => [],
       addEventListener: (type: string, fn: (e: Event) => void | Promise<void>) => void bound.push([type, fn]),
+      dispatchEvent: () => true,
+      ownerDocument: undefined as unknown,
     };
     const document = {
       getElementById: () => null,
@@ -167,8 +169,10 @@ describe("the project settings form's own Save", () => {
       querySelectorAll: (sel: string) => (sel.includes("projectsettingsform") ? [form] : []),
       addEventListener: () => {},
       visibilityState: "hidden",
+      defaultView: { CustomEvent: class { constructor(public type: string) {} } },
     };
-    const location = { search: "", href: "http://dash.test/projects/aide?edit=config", pathname: "/projects/aide" };
+    form.ownerDocument = document;
+    const location = { search: "", href: "http://dash.test/projects/aide?tab=config", pathname: "/projects/aide" };
     const fetchCalls: { url: string; init: Record<string, unknown> }[] = [];
     const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
       fetchCalls.push({ url: String(url), init });
@@ -195,7 +199,7 @@ describe("the project settings form's own Save", () => {
     return { bound, form, location, refusedSlot, fetchCalls, submit };
   };
 
-  test("a successful save reloads the reader's own project on Config, dropping ?edit=config", async () => {
+  test("a successful save draws the reader's own project on Config again", async () => {
     const h = buildHarness(() => ({ ok: true, body: { ok: true, results: [] } }));
     await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
     expect(h.location.href).toBe("/projects/aide?tab=config");
@@ -207,7 +211,7 @@ describe("the project settings form's own Save", () => {
       body: { ok: false, results: [{ step: "specsPath", error: "not a directory" }] },
     }));
     await h.submit!({ defaultPrevented: false, preventDefault: () => {} } as unknown as Event);
-    expect(h.location.href).toBe("http://dash.test/projects/aide?edit=config");
+    expect(h.location.href).toBe("http://dash.test/projects/aide?tab=config");
     expect(h.refusedSlot.textContent).toContain("Not a directory");
   });
 

@@ -1,14 +1,19 @@
-import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-contract.ts";
+import { FORM_SAVED, PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-contract.ts";
 
 // A native "leave this page?" confirmation, armed the instant a field
-// inside one of the tracked forms changes, and disarmed the instant
-// that form's own Save/Create is submitted or its Cancel is pressed
+// inside one of the tracked forms changes, and disarmed for that form the
+// instant its own Save/Create is submitted or its Cancel is pressed. Each
+// form is guarded on its own: a page with two forms open (a project's two
+// settings cards) still asks while the other one holds edits. A form with
+// `data-dirty-until-saved` stays guarded through its submit until the page
+// script says the Save went through (`FORM_SAVED`), so a refused Save
+// still asks.
 // Reachable by every means a page can be left — an in-app
 // link, the browser's Back/Forward, a closed tab, a typed address —
 // because it rides the browser's own `beforeunload` event rather than
 // intercepting any one of those individually.
 //
-// A ONE-WAY LATCH, not a continuous value comparison — the same shape
+// A ONE-WAY LATCH per form, not a continuous value comparison — the same shape
 // spec-form-actions.ts uses, and for the same reason: the first
 // input/change is enough, and nothing here re-reads a field's live
 // content afterwards.
@@ -24,18 +29,22 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
 
 (() => {
   const TRACKED = TRACKED_FORM_SELECTOR;
-  let dirty = false;
+  /** The tracked forms holding edits. */
+  const dirty = new Set<Element>();
+  const isDirty = (): boolean => dirty.size > 0;
 
   const markDirty = (event: Event): void => {
     const target = event.target as Element | null;
-    if (!target?.closest?.(TRACKED)) return;
-    if (target.closest("[data-unit-choice]")) return;
+    const own = target?.closest?.(TRACKED);
+    if (!own) return;
+    if (target!.closest("[data-unit-choice]")) return;
     // A field that names a form other than a tracked one is saved some
     // other way: the phase table's AI and model are saved the moment
     // they are picked.
-    const named = target.getAttribute?.("form");
-    if (named && !document.getElementById(named)?.closest?.(TRACKED)) return;
-    dirty = true;
+    const named = target!.getAttribute?.("form");
+    const form = named ? document.getElementById(named)?.closest?.(TRACKED) : own;
+    if (!form) return;
+    dirty.add(form);
   };
 
   document.addEventListener("input", markDirty);
@@ -44,13 +53,17 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
   // Save: any submit of a tracked form, which the page script posts
   // (settings-page.ts, the document tabs).
   document.addEventListener("submit", (event: Event) => {
-    const form = event.target as Element | null;
-    if (form?.closest?.(TRACKED)) dirty = false;
+    const form = (event.target as Element | null)?.closest?.(TRACKED);
+    if (form && !form.hasAttribute?.("data-dirty-until-saved")) dirty.delete(form);
+  });
+  document.addEventListener(FORM_SAVED, (event: Event) => {
+    const form = (event.target as Element | null)?.closest?.(TRACKED);
+    if (form) dirty.delete(form);
   });
 
   // Cancel: the existing `${prefix}-cancel` id convention, plus
-  // `data-discard-changes` on the one surface (project settings) that
-  // has no such id.
+  // `data-discard-changes` on a Cancel link that has no such id. A Cancel
+  // inside a tracked form disarms that form; one outside every form, all.
   //
   // An in-app link click while dirty is an exit path a page's own
   // script CAN intercept — a closed tab, a typed address and a
@@ -78,7 +91,7 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
     const p = pending;
     pending = null;
     const leave = dialog.returnValue === "leave";
-    if (leave) dirty = false;
+    if (leave) dirty.clear();
     // The link itself is pressed again, now that nothing is dirty, so it
     // leaves the way it always would — `rel="noreferrer"` on Back
     // included, which an assigned address would lose.
@@ -113,10 +126,12 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
   document.addEventListener("click", (event: Event) => {
     const target = event.target as Element | null;
     if (target?.closest?.("[id$='-cancel'], [data-discard-changes]")) {
-      dirty = false;
+      const own = target.closest(TRACKED);
+      if (own) dirty.delete(own);
+      else dirty.clear();
       return;
     }
-    if (!dirty) return;
+    if (!isDirty()) return;
     const e = event as MouseEvent;
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     const link = target?.closest?.("a[href]") as HTMLAnchorElement | null;
@@ -130,7 +145,7 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
   });
 
   document.addEventListener(PAGE_LEAVE, (event: Event) => {
-    if (!dirty) return;
+    if (!isDirty()) return;
     const dialog = leaveDialog();
     if (!dialog) return;
     event.preventDefault();
@@ -138,10 +153,10 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
     swap.ask();
     openFor(dialog, { swap });
   });
-  document.addEventListener(PAGE_DRAWN, () => { dirty = false; });
+  document.addEventListener(PAGE_DRAWN, () => { dirty.clear(); });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
-    if (!dirty) return;
+    if (!isDirty()) return;
     // preventDefault() alone asks for the browser's own prompt;
     // returnValue is the deprecated way to ask for the same thing.
     event.preventDefault();

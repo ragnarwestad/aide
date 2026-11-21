@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveAcPrefix, resolveDescription, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
+import { configValue, resolveAcPrefix, resolveDescription, resolveIcon, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import { t, type TranslationKey } from "../i18n";
 import type { BoardMessage } from "../messages/types.ts";
@@ -87,6 +87,7 @@ export const SETTING_KEYS = [
   "AIDE_INSTALL_CMD",
   "previewCmd",
   "description",
+  "icon",
 ] as const;
 
 /** Which file each setting belongs to now that every key has exactly one
@@ -97,26 +98,12 @@ export const SETTING_KEYS = [
  *  the same rows into two tables. */
 export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
   { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
-  { file: "manifest", keys: ["worktreeLinks", "previewCmd", "AIDE_TEST_CMD", "acPrefix", "description"] },
+  { file: "manifest", keys: ["worktreeLinks", "previewCmd", "AIDE_TEST_CMD", "acPrefix", "description", "icon"] },
 ];
 
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
 
-/** The `?edit=` value each group opens under, and the reverse lookup a
- *  GET reads it back with (each of the Config tab's two tables
- *  gets its own edit state). */
-export const EDIT_GROUP_PARAM: Record<SettingsGroupFile, string> = {
-  ".aide/config": "config",
-  manifest: "manifest",
-};
-
-export function groupForEditParam(param: string | null): SettingsGroupFile | null {
-  const found = (Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]).find(([, v]) => v === param);
-  return found?.[0] ?? null;
-}
-
-/** Which `SETTING_KEYS` entry posts under which form field name, in
- *  edit mode. The test command is what a run and a landing test with,
+/** Which `SETTING_KEYS` entry posts under which form field name. The test command is what a run and a landing test with,
  *  saved to the manifest's `AIDE_TEST_CMD`. */
 export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
@@ -126,6 +113,7 @@ export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_TEST_CMD: "testCmd",
   acPrefix: "acPrefix",
   description: "description",
+  icon: "icon",
 };
 
 /** What each key is for, in English: the catalogue's `setting.purpose.<key>`. */
@@ -168,8 +156,9 @@ function configuredValue(
     const { links, source } = resolveWorktreeLinks(manifestDir);
     return links ? { value: links, source: source ?? undefined } : null;
   }
-  if (key === "description" || key === "acPrefix") {
-    const { value, source } = (key === "description" ? resolveDescription : resolveAcPrefix)(manifestDir);
+  if (key === "description" || key === "acPrefix" || key === "icon") {
+    const resolve = key === "description" ? resolveDescription : key === "acPrefix" ? resolveAcPrefix : resolveIcon;
+    const { value, source } = resolve(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }
   if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "previewCmd") {

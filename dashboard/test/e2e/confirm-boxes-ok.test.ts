@@ -87,7 +87,7 @@ describe("OK posts once, to the old route", () => {
     await page.close();
   });
 
-  test("Remove on a project's row opens Remove's dialog without opening the project, and OK posts once", async () => {
+  test("Remove on a project's row opens Remove's dialog without opening the project, and OK posts once (AC-3)", async () => {
     const base = board();
     const page = await browser.newPage();
     const posts: string[] = [];

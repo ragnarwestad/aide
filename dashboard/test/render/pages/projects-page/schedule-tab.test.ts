@@ -13,7 +13,6 @@ function scheduleTab(
   const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
   const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-30T00:00:00Z", [], {
     worktreeLinkCandidates: [],
-    editingGroup: null,
     tab: "schedule",
     schedule,
     scheduleSort,
@@ -64,5 +63,16 @@ describe("a project's Schedule tab", () => {
     expect(names()).toEqual(["a-on", "b-off", "c-on"]);
     expect(names({ sort: "name", dir: "desc" })).toEqual(["c-on", "b-off", "a-on"]);
     expect(names({ sort: "enabled" })).toEqual(["a-on", "c-on", "b-off"]);
+  });
+
+  test("stands under a Schedule heading, with New for this project (AC-11)", () => {
+    const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
+    const window = new Window();
+    window.document.body.innerHTML = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-30T00:00:00Z", [], {
+      worktreeLinkCandidates: [], tab: "schedule", schedule: [ENTRY],
+    });
+    const headings = [...window.document.querySelectorAll("main h3")].map((h) => h.textContent);
+    expect(headings).toContain("Schedule");
+    expect(window.document.querySelector('main a[href="/schedule/new?project=aide"]')).not.toBeNull();
   });
 });

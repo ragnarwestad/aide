@@ -79,6 +79,10 @@ export interface ManifestData {
    *  folder writes it, so `F{spec}` names criterion n of spec NN as `(FNN AC-n)`.
    *  Absent means ``. */
   acPrefix?: string;
+  /** The project's icon: a path, from the repository's root, to an image
+   *  file its default branch tracks. Absent: the board looks for a
+   *  tracked favicon. */
+  icon?: string;
 }
 
 export type ManifestResult =
@@ -115,6 +119,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.AIDE_TEST_FILES_CMD != null) data.AIDE_TEST_FILES_CMD = toStr(r.AIDE_TEST_FILES_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);
+  if (r.icon != null) data.icon = toStr(r.icon);
   // The one field here that is VALIDATED rather than normalized: it is a
   // two-value enum, and an unrecognized spelling has to fail toward the
   // safe default the same way an absent key does.

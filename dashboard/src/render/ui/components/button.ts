@@ -25,8 +25,9 @@ export interface BtnOptions {
   icon?: string;
   variant?: BtnVariant;
   /** `submit` unless said otherwise: every control on this page is a
-   *  real form, whose own fields are what the page script posts. */
-  type?: "submit" | "button";
+   *  real form, whose own fields are what the page script posts. `reset`
+   *  puts a form's fields back to the values it was drawn with. */
+  type?: "submit" | "button" | "reset";
   /** What the button says while its request is out. `specs-client.ts`
    *  reads it, so it belongs beside the label it replaces. */
   pending?: string;

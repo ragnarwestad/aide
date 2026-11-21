@@ -74,6 +74,9 @@ export async function updateProjectSettings(
     /** One line saying what the project is, the manifest's `description`.
      *  Gated on presence like the fields above. */
     description?: string;
+    /** The image the project's icon is, the manifest's `icon`: a path in
+     *  the repository. Gated on presence like the fields above. */
+    icon?: string;
   },
   opts: {
     saveManifest?: SaveManifest;
@@ -85,7 +88,7 @@ export async function updateProjectSettings(
   // A value is one line. A field the request does not carry stays
   // absent, so a partial save clears nothing.
   const req = { ...raw };
-  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "acPrefix", "description"] as const) {
+  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "acPrefix", "description", "icon"] as const) {
     if (req[key] !== undefined) req[key] = oneLine(req[key]);
   }
   const links = (req.worktreeLinks ?? "").trim();
@@ -228,6 +231,7 @@ export async function updateProjectSettings(
   save("previewCmd", req.previewCmd, "", "previewCmd", fromManifest(manifestData.previewCmd), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
   save("acPrefix", req.acPrefix, "", "acPrefix", fromManifest(manifestData.acPrefix), false);
+  save("icon", req.icon, "", "icon", fromManifest(manifestData.icon), false);
   // Compared folded to one line, as the form posts it back: a description
   // an older Add stored over several lines would otherwise differ from its
   // own folded value and be rewritten by every save.

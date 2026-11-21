@@ -142,3 +142,14 @@ export function resolveDescription(projectDir: string): { value: string | null; 
   const value = parsed.ok ? (parsed.data.description ?? "").trim() : "";
   return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
+
+/** The image a project names as its icon: the manifest's `icon:` alone, in
+ *  the same shape as `resolvePreviewCmd`. Whether the default branch tracks
+ *  it is asked where the icon is drawn (`project-icon/`). */
+export function resolveIcon(projectDir: string): { value: string | null; source: "project.yaml" | null } {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return { value: null, source: null };
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  const value = parsed.ok ? (parsed.data.icon ?? "").trim() : "";
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
+}
