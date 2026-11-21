@@ -180,7 +180,7 @@
      its full content width and force the CELL's own `overflow: hidden`
      to hard-clip it with no indicator at all. An ellipsis here instead,
      recovered in full via the badge's own `title` (cell-helpers.ts). */
-  table.list tr.subrow[data-step] td[data-col="state"] .badge {
+  table.list tr.subrow:is([data-step], [data-side]) td[data-col="state"] .badge {
     /* The column's own width, so the phase badges read as one column
        rather than four words of different lengths — the desktop's own
        7.5rem does not fit here, but the cell's width does. */

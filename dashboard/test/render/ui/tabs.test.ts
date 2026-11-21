@@ -76,12 +76,13 @@ describe("tabBarHelp(), the site tab bar's \"?\"", () => {
     expect(list(html)).not.toContain("data-tab=");
   });
 
-  test("says what the Jobs and Specs numbers count, after the tab list (AC-5)", () => {
+  test("says what the Jobs and Specs numbers count, each on its own line after the tab list (AC-5)", () => {
     const html = tabBarHelp("en", [...TABS]);
-    const counts = esc(t("en", "shell.tabHelpCounts"));
-    expect(html).toContain(counts);
-    expect(list(html)).not.toContain(counts);
-    for (const state of ["Created", "Idle", "Reopened"]) expect(counts).toContain(state);
+    const counts = html.split(esc(t("en", "shell.tabHelpCounts")))[1] ?? "";
+    expect(list(html)).not.toContain(esc(t("en", "shell.tabHelpCount.jobs")));
+    expect(counts).toContain(`<br>• Jobs: ${esc(t("en", "shell.tabHelpCount.jobs"))}`);
+    expect(counts).toContain(`<br>• Specs: ${esc(t("en", "shell.tabHelpCount.specs"))}`);
+    for (const state of ["Created", "Idle", "Reopened"]) expect(t("en", "shell.tabHelpCount.specs")).toContain(state);
   });
 
   test("is in the page's language (AC-6)", () => {

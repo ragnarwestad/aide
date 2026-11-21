@@ -128,7 +128,7 @@ export function tabBar<T extends string>(
 }
 
 /** The "?" at the right end of the site tab bar: each tab's icon, word and
- *  what it holds, then what the two counts count. The list is in the
+ *  what it holds, then what the two counts count, one line each. The list is in the
  *  markup at every width and shown by the stylesheet only where the bar
  *  hides the tab words (`narrow-rows.css`), so the text never disagrees
  *  with what the bar shows. A section with no icon of its own is listed by
@@ -141,7 +141,9 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
     .join("<br>");
   return helpPopover(
     t(lang, "shell.tabHelpTitle"),
-    `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}`,
+    `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}` +
+      `<br>• ${esc(t(lang, "shell.tabRunning"))}: ${esc(t(lang, "shell.tabHelpCount.jobs"))}` +
+      `<br>• ${esc(t(lang, "shell.tabSpecs"))}: ${esc(t(lang, "shell.tabHelpCount.specs"))}`,
   );
 }
 
