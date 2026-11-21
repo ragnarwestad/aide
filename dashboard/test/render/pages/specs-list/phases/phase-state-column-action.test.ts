@@ -175,6 +175,14 @@ describe("the row draws one action, on its caption line", () => {
     expect(action(html)).not.toMatch(/<button[^>]*form="rowrun/);
   });
 
+  test("an open row whose phase runs draws no state badge beside its Cancel; a queued one does", () => {
+    const badgeIn = (html: string) => /class="badge /.test(action(html));
+    const running = rows([lead({ steps: ["implement"], stepIndex: 0, state: "running" })], [target("157-one-action", { done: BUILT })]);
+    const queued = rows([lead({ steps: ["implement"], stepIndex: 0, state: "queued" })], [target("157-one-action", { done: BUILT })]);
+    expect(badgeIn(running)).toBe(false);
+    expect(badgeIn(queued)).toBe(true);
+  });
+
   test("a queued implement cancels by the reader's own word", () => {
     const html = rows(
       [lead({ steps: ["analyze", "implement"], stepIndex: 1, state: "queued" })],

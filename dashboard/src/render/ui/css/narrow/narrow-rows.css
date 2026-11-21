@@ -119,6 +119,11 @@
      off the width here, its AI/model button starts where a phase's does. */
   table.list tr.subrow[data-side] .phasecell { flex-basis: calc(var(--phase-w) - 24px - var(--sp-1));
     min-width: calc(var(--phase-w) - 24px - var(--sp-1)); }
+  /* A review or verify line has no tick box; its state keeps the box's
+     room, so it and the time stand under the phase lines' own. */
+  table.list tr.subrow[data-side] > td[data-col="state"] { margin-left: calc(var(--tick-w) + var(--sp-2)); }
+  /* The Depends on card spans the open row, as the phase lines do. */
+  table.list tr.subrow[data-depends-line] > td { flex: 1 1 100%; }
   /* A Close's, Reopen's or deploy's step is named in a sentence, not a
      word, and has no AI, model or box beside it: its name takes the room
      up to its state and wraps there, rather than running under it. */
@@ -347,6 +352,11 @@
    and the full button no longer shared the line. */
 @media (min-width: 27.5rem) and (max-width: 37.5rem) {
   table.list { --aimodel-w: 8rem; }
+}
+/* Below it the button holds the provider's face alone: the model name
+   left a sliver of its first letter after the face. */
+@media not all and (min-width: 27.5rem) {
+  table.list tr.subrow .aimodelshort { display: none; }
 }
 
 @media (max-width: 34rem) {

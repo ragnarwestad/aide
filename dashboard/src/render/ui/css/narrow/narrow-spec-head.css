@@ -160,7 +160,7 @@
      phases starts at this column's left edge (the caption line's grid,
      below), and a badge centred in a column that wide sat off to the
      right of it. */
-  table.list tr.subrow[data-step] td[data-col="state"] {
+  table.list tr.subrow:is([data-step], [data-side]) td[data-col="state"] {
     flex: 0 0 var(--state-w); width: var(--state-w); min-width: 0; box-sizing: border-box;
     overflow: hidden; white-space: nowrap; text-align: center;
   }

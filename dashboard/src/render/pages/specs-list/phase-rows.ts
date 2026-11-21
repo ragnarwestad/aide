@@ -95,7 +95,9 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
   const action = stateAction(g, opts);
-  const openState = headStateBadge(g, opts.lang ?? "en");
+  // While a phase runs, its own line says Running, so the caption line
+  // draws only the Cancel beside it rather than the same word again.
+  const openState = g.lead?.state === "running" ? "" : headStateBadge(g, opts.lang ?? "en");
   // The spec's own totals stand on this line: an open row hides the head
   // row's second line (list.css), so Time and Cost move here, over the
   // phases' own figures.
