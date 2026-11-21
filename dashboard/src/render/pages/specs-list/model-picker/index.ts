@@ -352,6 +352,9 @@ export function sidePickers(
   /** What the line follows with no choice of its own, in place of the default. */
   rests?: { model: string; provider?: string },
   formId = runFormId(g),
+  /** The model the phase's job was given for this line. A line that can no
+   *  longer be changed shows it, not today's settings. */
+  jobModel?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   const choices = models;
@@ -360,7 +363,7 @@ export function sidePickers(
   const saved = opts.pendingModels?.[key]?.[part] ?? "";
   const follows = rests && !saved && opts.defaultModels?.[part] === undefined ? rests : undefined;
   const configured = opts.defaultModels?.[part] ?? follows?.model ?? opts.defaultModels?.default;
-  const chosen = resolveChosenModel(choices, configured, undefined, saved);
+  const chosen = resolveChosenModel(choices, configured, locked || !g.named ? jobModel : undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [ranProviderKey, provider, follows?.provider]);
   const disabled = locked || !g.named ? " disabled" : "";

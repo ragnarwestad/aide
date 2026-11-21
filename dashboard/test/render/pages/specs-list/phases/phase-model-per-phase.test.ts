@@ -117,6 +117,17 @@ describe("one picker per phase", () => {
     expect(review).not.toContain("hidden disabled");
   });
 
+  test("a locked Review or Verify line shows what its job was given, not today's settings", () => {
+    const html = rows([
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "running", model: "sonnet",
+        stepModels: { implement: "sonnet", review: "fable", verify: "sonnet" }, stepProviders: { review: "Claude", verify: "Claude" } }),
+    ], { defaultModels: { default: "gpt-fast", review: "gpt-fast", verify: "gpt-fast" } });
+    const line = (part: string) => html.match(new RegExp(`<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
+    expect(line("review")).toMatch(/<option value="fable"[^>]*selected/);
+    expect(line("verify")).toMatch(/<option value="sonnet"[^>]*selected/);
+    expect(line("review")).toMatch(/<option value="Claude"[^>]*selected/);
+  });
+
   const sideLine = (html: string, part: string) =>
     html.match(new RegExp(`<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
   const optionValues = (line: string, name: string) =>

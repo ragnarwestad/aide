@@ -299,8 +299,9 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
           const sideRun = sideRunOf(p, part);
           const recordedProvider = part === PLAN_REVIEW
             ? latest?.stepProviders?.[part]
-            : sideRun?.provider?.key;
-          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRun?.modelId, recordedProvider, rests);
+            : sideRun?.provider?.key ?? latest?.stepProviders?.[part];
+          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRun?.modelId, recordedProvider, rests,
+            undefined, latest?.stepModels?.[part]);
           lines.push(...sideLines(g, p, opts, part, pickers));
         }
       }
