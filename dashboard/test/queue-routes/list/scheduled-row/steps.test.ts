@@ -16,7 +16,7 @@ afterEach(() => {
   while (tmp.length) rmSync(tmp.pop()!, { recursive: true, force: true });
 });
 
-const KEY = "aide/schedule-nightly";
+const KEY = "aide/schedule-nightly@s1";
 const said = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } });
 
 /** A scheduled step's transcript with two marked steps, and its run log beside it. */

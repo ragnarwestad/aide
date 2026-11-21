@@ -120,7 +120,7 @@ describe("submitProgress from inside the ask", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(a.ask.open).toBe(false);
     expect(requests[0]!.headers.accept).toBe("application/json");
-    expect(io.gone).toEqual(["/?open=aide/150-x:reopen"]);
+    expect(io.gone).toEqual(["/?open=aide/150-x:reopen@j1"]);
     // The cover stays until the Running page is in place.
     expect(io.covers).toEqual(["Deploying…"]);
   });

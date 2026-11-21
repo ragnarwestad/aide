@@ -17,7 +17,7 @@ afterEach(() => {
   while (tmp.length) rmSync(tmp.pop()!, { recursive: true, force: true });
 });
 
-const KEY = "aide/deploy:deploy";
+const KEY = "aide/deploy:deploy@d1";
 
 /** A run log with the marks a deploy writes, beside a transcript that is empty. */
 function runLog(lines: string[]): string {

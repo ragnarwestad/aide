@@ -55,8 +55,8 @@ describe("Deploy from the header mark", () => {
     const dialog = page.locator("dialog[open]");
     await dialog.getByText("Deploy aide?").waitFor({ state: "visible" });
     await dialog.getByRole("button", { name: "OK" }).click();
-    await page.waitForURL((u) => u.pathname === "/" && u.searchParams.get("open") === "aide/deploy:deploy", { timeout: 10_000 });
-    const row = page.locator('tr[id="spec-aide/deploy:deploy"]');
+    await page.waitForURL((u) => u.pathname === "/" && (u.searchParams.get("open") ?? "").startsWith("aide/deploy:deploy@"), { timeout: 10_000 });
+    const row = page.locator('tr[id^="spec-aide/deploy:deploy@"]');
     await row.waitFor({ state: "visible", timeout: 5000 });
     expect(await page.locator("tr.subrow[data-step]").count()).toBe(5);
     setDeployWaiting(() => ({ project: "aide", commits: 1, branch: "main", underWay: "running" }));

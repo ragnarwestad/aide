@@ -129,7 +129,7 @@ describe("the Jobs tab's route", () => {
 
   test("one job's row builds that job alone and reads no archived spec (AC-2)", async () => {
     const { ask, read } = board();
-    await ask(jobsPage, "/?rows=1&only=aide/deploy:deploy");
+    await ask(jobsPage, "/?rows=1&only=aide/deploy:deploy@dep");
     expect(read()).toEqual({ rows: ["dep"], archive: cutTo() });
   });
 });

@@ -67,7 +67,7 @@ describe("a running scheduled job's open row", () => {
         if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navigations++;
       });
       await page.goto(`${base}/`);
-      await page.locator(`a.fold[data-key="${KEY}"]`).click();
+      await page.locator(`a.fold[data-key="${KEY}@${id}"]`).click();
       await page.waitForSelector('tr.subrow[data-step="Step 1 of 2"]', { timeout: 8_000 });
 
       appendFileSync(stream, said("--- Step 2 of 2: Write the report — started"));

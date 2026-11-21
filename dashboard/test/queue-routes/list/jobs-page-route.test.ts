@@ -133,7 +133,7 @@ describe("which kind of row a job gets", () => {
     id: "reportf", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
     results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
   });
-  const OPEN_BOTH = "open=aide/schedule-report,aide/schedule-nightly";
+  const OPEN_BOTH = "open=aide/schedule-report@report1,aide/schedule-nightly@sched1";
 
   const text = (html: string): string => html.replace(/<[^>]*>/g, "");
   const titleLine = (g: string): string => text(g.match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "");
@@ -148,7 +148,7 @@ describe("which kind of row a job gets", () => {
 
     expect(html).toContain('data-folder="81-queue-and-runner"');
 
-    for (const [id, title] of [["spec-aide/schedule-report", "report"], ["spec-aide/schedule-nightly", "nightly"]] as const) {
+    for (const [id, title] of [["spec-aide/schedule-report@report1", "report"], ["spec-aide/schedule-nightly@sched1", "nightly"]] as const) {
       const g = group(html, id);
       expect(titleLine(g)).toContain(title);
       expect(g).toContain("badgeslot");
@@ -161,7 +161,7 @@ describe("which kind of row a job gets", () => {
     const { base } = board([report, sched]);
     for (const query of ["", "open=aide/81-queue-and-runner"]) {
       const html = await rowsOf(base, query);
-      for (const [id, jobId] of [["spec-aide/schedule-report", "report1"], ["spec-aide/schedule-nightly", "sched1"]]) {
+      for (const [id, jobId] of [["spec-aide/schedule-report@report1", "report1"], ["spec-aide/schedule-nightly@sched1", "sched1"]]) {
         const g = group(html, id);
         expect(g).not.toBe("");
         expect(g).not.toContain(`/jobs/${jobId}?tab=steps`);
@@ -175,17 +175,17 @@ describe("which kind of row a job gets", () => {
   test("an open scheduled job still offers Stop or Cancel", async () => {
     const { base } = board([report, sched]);
     const html = await rowsOf(base, OPEN_BOTH);
-    const w = group(html, "spec-aide/schedule-report");
+    const w = group(html, "spec-aide/schedule-report@report1");
     expect(w).toContain('action="/api/queue/report1/cancel"');
     expect(w).toContain("actionform");
     expect(w).not.toContain("reloadform");
-    expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
+    expect(group(html, "spec-aide/schedule-nightly@sched1")).toContain('action="/api/queue/sched1/cancel"');
   });
 
   test("a failed scheduled job keeps its notice on the Jobs card", async () => {
     const { base } = scheduled([failedReport]);
-    for (const query of ["", "open=aide/schedule-report"]) {
-      const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
+    for (const query of ["", "open=aide/schedule-report@reportf"]) {
+      const g = group(await rowsOf(base, query), "spec-aide/schedule-report@reportf");
       const line = noticeOf(g);
       expect(text(line)).toContain(t("en", "jobs.endedFailed"));
       expect(g).not.toContain("/api/queue/reportf/cancel");
@@ -198,7 +198,7 @@ describe("which kind of row a job gets", () => {
       job({ id: "re", specFolder: "90-finished", steps: ["reopen"] }),
       job({ id: "dep", specFolder: "deploy", steps: ["deploy"] }),
     ]);
-    const keys = ["aide/82-no-job:close", "aide/90-finished:reopen", "aide/deploy:deploy"];
+    const keys = ["aide/82-no-job:close@cl", "aide/90-finished:reopen@re", "aide/deploy:deploy@dep"];
     for (const query of ["", `open=${keys.join(",")}`]) {
       const html = await rowsOf(base, query);
       for (const [key, id] of [[keys[0], "cl"], [keys[1], "re"], [keys[2], "dep"]]) {
@@ -213,28 +213,28 @@ describe("which kind of row a job gets", () => {
   test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row", async () => {
     const { base } = board([report, sched]);
 
-    const shut = group(await rowsOf(base), "spec-aide/schedule-report");
+    const shut = group(await rowsOf(base), "spec-aide/schedule-report@report1");
     expect(shut).toContain('data-fold="open"');
-    expect(shut).toContain('data-key="aide/schedule-report"');
+    expect(shut).toContain('data-key="aide/schedule-report@report1"');
     const opens = foldHref(shut);
     expect(opens.pathname).toBe("/");
-    expect(opens.searchParams.get("open")).toBe("aide/schedule-report");
+    expect(opens.searchParams.get("open")).toBe("aide/schedule-report@report1");
 
-    const open = group(await rowsOf(base, "open=aide/schedule-report"), "spec-aide/schedule-report");
+    const open = group(await rowsOf(base, "open=aide/schedule-report@report1"), "spec-aide/schedule-report@report1");
     const shuts = foldHref(open);
     expect(shuts.pathname).toBe("/");
     expect(shuts.searchParams.get("open")).toBeNull();
 
-    const one = await rowsOf(base, "only=aide/schedule-report");
-    expect(one).toContain('id="spec-aide/schedule-report"');
-    expect(one).not.toContain('id="spec-aide/schedule-nightly"');
+    const one = await rowsOf(base, "only=aide/schedule-report@report1");
+    expect(one).toContain('id="spec-aide/schedule-report@report1"');
+    expect(one).not.toContain('id="spec-aide/schedule-nightly@sched1"');
   });
 
   test("a row's title line leads with its project: aide:report and aide:nightly", async () => {
     const { base } = board([report, sched]);
     const html = await rowsOf(base);
-    expect(titleLine(group(html, "spec-aide/schedule-report"))).toBe("aide:report");
-    expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe("aide:nightly");
+    expect(titleLine(group(html, "spec-aide/schedule-report@report1"))).toBe("aide:report");
+    expect(titleLine(group(html, "spec-aide/schedule-nightly@sched1"))).toBe("aide:nightly");
   });
 
   test("a running job of a spec on the allowlist has the spec's row, not a job row", async () => {
@@ -435,24 +435,24 @@ describe("the Jobs tab keeps work records while Specs also shows unstarted specs
   test("a Reopen running on an archived spec is a row of its own, and the spec has none", async () => {
     const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
     const html = await rowsOf(base);
-    expect(group(html, "spec-aide/90-finished:reopen")).toContain("b-running");
+    expect(group(html, "spec-aide/90-finished:reopen@reopen")).toContain("b-running");
     expect(html).not.toContain('id="spec-aide/90-finished"');
   });
 
   test("a Close running on a live spec is a row of its own, and the spec's row is not the close's", async () => {
     const { base } = everyKind([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })]);
     const html = await rowsOf(base);
-    expect(group(html, "spec-aide/82-no-job:close")).toContain("b-running");
+    expect(group(html, "spec-aide/82-no-job:close@close")).toContain("b-running");
     expect(group(html, "spec-aide/82-no-job")).not.toContain("b-running");
   });
 
   for (const step of ["reopen", "close"]) {
     test(`an open ${step} row has a line per step of the job, a shut one none, and neither offers Stop`, async () => {
       const { base } = everyKind([job({ id: step, specFolder: "90-finished", steps: [step] })]);
-      const row = async (query = "") => group(await rowsOf(base, query), `spec-aide/90-finished:${step}`);
+      const row = async (query = "") => group(await rowsOf(base, query), `spec-aide/90-finished:${step}@${step}`);
       const lines = (html: string): number => (html.match(/<tr class="subrow" data-step=/g) ?? []).length;
       expect(lines(await row())).toBe(0);
-      const open = await row(`open=aide/90-finished:${step}`);
+      const open = await row(`open=aide/90-finished:${step}@${step}`);
       expect(lines(open)).toBeGreaterThan(0);
       expect(open).not.toContain("/cancel");
     });
@@ -586,7 +586,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     const one = await rowsOf(base, `only=aide/81-queue-and-runner&${OPEN_82}`);
     expect(one).toContain('id="spec-aide/81-queue-and-runner"');
     expect(one).not.toContain('id="spec-aide/82-held-back"');
-    expect(one).not.toContain('id="spec-aide/schedule-nightly"');
+    expect(one).not.toContain('id="spec-aide/schedule-nightly@sched1"');
 
     const none = await rowsOf(base, "only=aide/99-no-row");
     expect(none).toContain("<table");
@@ -601,7 +601,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
   });
   const SPEC_ID = 'id="spec-aide/81-queue-and-runner"';
-  const REPORT_ID = 'id="spec-aide/schedule-report"';
+  const REPORT_ID = 'id="spec-aide/schedule-report@reportf"';
   const withBoth = () => scheduled([job({ id: "run81" }), report]);
 
   /** The `name=value` of the Jobs tab's cookie in an answer, as a request sends it back. */
@@ -694,7 +694,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     test("an address that carries one shows the rows it shows without it", async () => {
       const { base } = withOther();
       const without = rowIds(await rowsOf(base, "state=all"));
-      expect(without).toContain("spec-other/schedule-report");
+      expect(without).toContain("spec-other/schedule-report@reporto");
       expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(without);
     });
 

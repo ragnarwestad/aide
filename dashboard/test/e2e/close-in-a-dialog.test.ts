@@ -83,7 +83,7 @@ describe("Close asks in a dialog", () => {
     await dialog(page).locator("textarea").fill("It will not work.");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}:close`);
+    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}:close@j1`);
   });
 
   test("Cancel closes the box on every press", async () => {

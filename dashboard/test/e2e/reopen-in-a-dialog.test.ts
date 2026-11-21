@@ -93,7 +93,7 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     await ask(page);
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}:reopen`);
+    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}:reopen@j1`);
   });
 
   test("a refusal is written in the dialog, which stays, and a second OK posts again", async () => {

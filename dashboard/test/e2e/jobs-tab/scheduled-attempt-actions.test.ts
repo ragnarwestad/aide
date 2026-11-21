@@ -17,7 +17,7 @@ test("a quota wait is cancelled from its row, and a cancelled or failed run offe
   const { base } = harness.start({ queueMirror: JSON.stringify([attempt("old-report", "nightly"), { ...attempt("other-report", "other"), state: "failed" }]) });
   const page = await browser.newPage();
   try {
-    await page.goto(`${base}/?state=all&open=aide/schedule-nightly,aide/schedule-other&live=0`);
+    await page.goto(`${base}/?state=all&open=aide/schedule-nightly@old-report,aide/schedule-other@other-report&live=0`);
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async () => (await (await fetch("/api/queue/old-report")).json()).job.state === "cancelled");
@@ -26,6 +26,6 @@ test("a quota wait is cancelled from its row, and a cancelled or failed run offe
     await page.locator('button[data-ask="jobremove-old-report"]').click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async () => !!(await (await fetch("/api/queue/old-report")).json()).job.removedAt);
-    await page.locator("#spec-aide\\/schedule-nightly").waitFor({ state: "detached" });
+    await page.locator("[id=\"spec-aide/schedule-nightly@old-report\"]").waitFor({ state: "detached" });
   } finally { await page.close(); }
 });

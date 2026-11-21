@@ -29,7 +29,7 @@ import { groupBranch } from "../../../project/spec-names.ts";
 import { eligibleGroupMembers, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
-export { jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
+export { jobKey, jobsShown, jobTitle, scheduleStreamKey, streamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 export { rowInputs } from "./one-row.ts";
 

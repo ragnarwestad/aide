@@ -23,7 +23,7 @@ test("a failed Merge offers Start as its button and Remove in its card menu", as
   });
   const page = await browser.newPage();
   try {
-    await page.goto(`${base}/?state=all&open=aide/land:land&live=0`);
+    await page.goto(`${base}/?state=all&open=aide/land:land@m1&live=0`);
     await page.getByRole("button", { name: "Start", exact: true }).waitFor();
     await page.getByLabel("More actions for Merge to", { exact: false }).click();
     await page.getByRole("button", { name: "Remove", exact: true }).click();

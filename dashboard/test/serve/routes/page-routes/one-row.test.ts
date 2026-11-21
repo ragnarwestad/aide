@@ -25,7 +25,7 @@ const EARLIER_ROUND = `${SPEC}@${encodeURIComponent("2026-10-08T10:00:00Z")}`;
 const ARCHIVED = "aide/90-finished";
 const MEMBERS = ["aide/82-first", "aide/83-second"];
 const SPEC_KEYS = [SPEC, ARCHIVED, ...MEMBERS];
-const JOB_KEYS = ["aide/schedule-report", "aide/schedule-report@report-old", "aide/deploy:deploy"];
+const JOB_KEYS = ["aide/schedule-report@report-new", "aide/schedule-report@report-old", "aide/deploy:deploy@deployed"];
 
 /** `registered: false` leaves the group out of the registry, so the two
  *  members are a group by the name their descriptions share alone. */
@@ -107,8 +107,8 @@ describe("one row of the Jobs tab", () => {
 
   test("follows the view: a state entry, a search term, a sort and Norwegian (AC-5)", async () => {
     const { base } = board();
-    await sameAsWholeList(`${base}/`, "state=failed", KEYS, { shown: ["aide/schedule-report@report-old", ...MEMBERS], hidden: [SPEC, "aide/deploy:deploy"] });
-    await sameAsWholeList(`${base}/`, "q=report", KEYS, { shown: ["aide/schedule-report"], hidden: [SPEC, ...MEMBERS] });
+    await sameAsWholeList(`${base}/`, "state=failed", KEYS, { shown: ["aide/schedule-report@report-old", ...MEMBERS], hidden: [SPEC, "aide/deploy:deploy@deployed"] });
+    await sameAsWholeList(`${base}/`, "q=report", KEYS, { shown: ["aide/schedule-report@report-new"], hidden: [SPEC, ...MEMBERS] });
     await sameAsWholeList(`${base}/`, "sort=cost&dir=asc", KEYS, { shown: KEYS });
     await sameAsWholeList(`${base}/`, "lang=nb", KEYS, { shown: KEYS });
   });

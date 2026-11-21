@@ -1,7 +1,7 @@
 // The SSE subscription route. Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
-import { parsePhaseKeys, scheduleStreamKey } from "../../render";
+import { parsePhaseKeys, scheduleStreamKey, streamKey } from "../../render";
 import { readSpecActivityCounts } from "../../render/ui/running-specs";
 import { DEPLOY_EVENT } from "../sse-watchers.ts";
 import type { RoutesContext } from "./";
@@ -21,8 +21,9 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
         // row, whose key is no phase key: its running step's is.
         const url = new URL(req.url);
         const keys = parsePhaseKeys(url.searchParams.get("phases"));
-        for (const key of parsePhaseKeys(url.searchParams.get("open"))) keys.add(key);
-        for (const key of (url.searchParams.get("open") ?? "").split(",")) {
+        const open = (url.searchParams.get("open") ?? "").split(",").map(streamKey).join(",");
+        for (const key of parsePhaseKeys(open)) keys.add(key);
+        for (const key of open.split(",")) {
           const followed = scheduleStreamKey(key);
           if (followed) keys.add(followed);
         }

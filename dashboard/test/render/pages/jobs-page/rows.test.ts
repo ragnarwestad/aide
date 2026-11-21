@@ -17,6 +17,7 @@ import {
   jobsShown,
   jobTitle,
   scheduleStreamKey,
+  streamKey,
   specPlace,
   specsStoodForByJobs,
   specRounds,
@@ -371,12 +372,25 @@ describe("the key the event stream listens on for a job row's key", () => {
 });
 
 describe("each job row has a key of its own", () => {
-  test("the newest job of a key keeps it, and each older one names its own id, so opening one opens no other", () => {
+  test("a job that is not a spec's names its own id, newest included, so the next one queued does not open with it", () => {
     const old = job({ id: "d1", specFolder: "deploy", steps: ["deploy"], state: "done", createdAt: T(1) });
     const newer = job({ id: "d2", specFolder: "deploy", steps: ["deploy"], state: "running", createdAt: T(2) });
     const keys = jobRowKeys([old, newer]);
-    expect(keys.get("d2")).toBe(jobKey(newer));
+    expect(keys.get("d2")).toBe(`${jobKey(newer)}@d2`);
     expect(keys.get("d1")).toBe(`${jobKey(old)}@d1`);
+  });
+
+  test("a spec's newest job keeps the spec's key, and an older one names its own id", () => {
+    const old = job({ id: "s1", state: "done", createdAt: T(1) });
+    const newer = job({ id: "s2", steps: ["implement"], createdAt: T(2) });
+    const keys = jobRowKeys([old, newer]);
+    expect(keys.get("s2")).toBe(jobKey(newer));
+    expect(keys.get("s1")).toBe(`${jobKey(old)}@s1`);
+  });
+
+  test("the event stream follows an open row by its key without the job id", () => {
+    expect(streamKey("aide/land:land@m1")).toBe("aide/land:land");
+    expect(streamKey("aide/81-queue")).toBe("aide/81-queue");
   });
 });
 

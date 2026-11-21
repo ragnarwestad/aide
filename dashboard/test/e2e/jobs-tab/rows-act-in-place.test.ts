@@ -156,7 +156,7 @@ describe("a spec's row on the Jobs tab acts in place", () => {
 });
 
 describe("a scheduled job's row folds and stops in place", () => {
-  const JOB_ROW = 'tr.spechead[id="spec-aide/schedule-nightly"]';
+  const JOB_ROW = 'tr.spechead[id="spec-aide/schedule-nightly@nightly1"]';
   const FOLD = `${JOB_ROW} a[data-fold="open"]`;
   const STOP = `${JOB_ROW} + tr.specstate button[data-ask]`;
   const CHIP = `${JOB_ROW} + tr.specstate .badgeslot .badge`;
@@ -174,7 +174,7 @@ describe("a scheduled job's row folds and stops in place", () => {
     await page.locator(STOP).waitFor({ state: "visible" });
     expect(await page.locator(CHIP).isVisible()).toBe(true);
     expect(pathOf(page)).toBe("/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/schedule-nightly");
+    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/schedule-nightly@nightly1");
     expect(loads.n).toBe(0);
 
     await page.locator(FOLD).click();
@@ -198,7 +198,7 @@ describe("a scheduled job's row folds and stops in place", () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     for (const width of [1280, 375]) {
       const page = await browser.newPage({ viewport: { width, height: 800 } });
-      await page.goto(`${base}/?open=aide/schedule-nightly`);
+      await page.goto(`${base}/?open=aide/schedule-nightly@nightly1`);
       await page.locator(STOP).waitFor({ state: "visible" });
       expect(await page.locator(CHIP).isVisible()).toBe(true);
       await page.close();
@@ -230,14 +230,14 @@ test("the first job arrives and remains as finished history without a reload, th
     });
     expect(res.ok).toBe(true);
     const id = ((await res.json()) as { job: { id: string } }).job.id;
-    await page.locator('a[data-fold="open"][data-key="aide/schedule-nightly"]').click();
+    await page.locator(`a[data-fold="open"][data-key="aide/schedule-nightly@${id}"]`).click();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async (jobId) => {
       const r = await fetch(`/api/queue/${jobId}`);
       return ((await r.json()) as { job: { state: string } }).job.state === "cancelled";
     }, id);
-    await page.locator('a[data-fold="open"][data-key="aide/schedule-nightly"]').waitFor();
+    await page.locator(`a[data-fold="open"][data-key="aide/schedule-nightly@${id}"]`).waitFor();
     expect(loads.n).toBe(0);
     await page.getByRole("searchbox").fill("missing");
     await Promise.all([
@@ -348,12 +348,12 @@ test("live merge activity changes without folding the open row (AC-5, AC-6, AC-7
   }]), extra: { gitRun: fakeGit(CLEAN_MASTER).run, queueRunnerBin: "/bin/true", queueResultDir: own } });
   const page = await browser.newPage();
   try {
-    await page.goto(`${base}/?open=aide/land:land`);
+    await page.goto(`${base}/?open=aide/land:land@live-merge`);
     await page.getByText("Merging", { exact: true }).waitFor();
     const loads = countLoads(page);
     mark(2);
     await page.getByText("Testing", { exact: true }).waitFor();
-    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/land:land");
+    expect(new URL(page.url()).searchParams.get("open")).toBe("aide/land:land@live-merge");
     mark(3);
     await page.getByText("Running", { exact: true }).waitFor();
     expect(loads.n).toBe(0);

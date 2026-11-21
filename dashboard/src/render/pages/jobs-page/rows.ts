@@ -184,9 +184,12 @@ export function jobKey(row: Pick<JobLike, "id" | "project" | "specFolder" | "ste
   return kind === "spec" || kind === "schedule" ? `${row.project}/${row.specFolder}` : phaseKey(row.project, row.specFolder, kind);
 }
 
-/** Each job row's own key, by job id: the newest job of a key keeps it, so
- *  the page hears its log grow while it runs, and each older one is
- *  `<key>@<its id>`, so opening one row never opens another. */
+/** Each job row's own key, by job id. A spec's row is the spec's, so its
+ *  newest job keeps the spec's key and each older one is `<key>@<its id>`.
+ *  Every other row is `<key>@<its id>`, newest included: a Merge, a deploy
+ *  or a scheduled run is its own job, and the next one queued must not open
+ *  because the last one was. The event stream reads the key before the `@`
+ *  (`streamKey`), so an open row still hears its job's log grow. */
 export function jobRowKeys(jobs: readonly JobLike[]): Map<string, string> {
   const newest = new Map<string, JobLike>();
   for (const job of jobs) {
@@ -196,8 +199,15 @@ export function jobRowKeys(jobs: readonly JobLike[]): Map<string, string> {
   }
   return new Map(jobs.map((job) => {
     const key = jobKey(job);
-    return [job.id, newest.get(key) === job ? key : `${key}@${job.id}`];
+    return [job.id, jobKind(job) === "spec" && newest.get(key) === job ? key : `${key}@${job.id}`];
   }));
+}
+
+/** A row key in `open` as the event stream follows it: without the job id
+ *  a row's own key ends with. */
+export function streamKey(key: string): string {
+  const at = key.indexOf("@");
+  return at > 0 ? key.slice(0, at) : key;
 }
 
 /** The key the event stream listens on for a scheduled job's row key in

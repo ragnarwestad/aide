@@ -65,7 +65,7 @@ export async function submitProgress(form: HTMLFormElement, event: Event, io: Pr
     (answer) => {
       const job = answer?.job;
       const step = job?.steps?.[job.stepIndex ?? 0];
-      io.go(job?.project && job.specFolder && step ? `/?open=${job.project}/${job.specFolder}:${step}` : "/");
+      io.go(job?.project && job.specFolder && step ? `/?open=${job.project}/${job.specFolder}:${step}@${job.id}` : "/");
     },
     (why) => hold.release(why),
   );

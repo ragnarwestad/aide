@@ -59,8 +59,8 @@ describe("Deploy on the board's own project page", () => {
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
     await page.getByRole("button", { name: "Deploy", exact: true }).click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
-    await page.waitForURL((u) => u.pathname === "/" && u.searchParams.get("open") === "aide/deploy:deploy", { timeout: 10_000 });
-    const row = page.locator('tr[id="spec-aide/deploy:deploy"]');
+    await page.waitForURL((u) => u.pathname === "/" && (u.searchParams.get("open") ?? "").startsWith("aide/deploy:deploy@"), { timeout: 10_000 });
+    const row = page.locator('tr[id^="spec-aide/deploy:deploy@"]');
     await row.waitFor({ state: "visible", timeout: 5000 });
     await page.locator('tr.subrow[data-step="Step 1 of 5"]').waitFor({ state: "visible", timeout: 5000 });
     expect(await page.locator("tr.subrow[data-step]").count()).toBe(5);

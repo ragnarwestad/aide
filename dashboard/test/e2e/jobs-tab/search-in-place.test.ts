@@ -72,7 +72,7 @@ test("Jobs loads further history with the keyboard and searches outside the load
   try {
     await page.addInitScript(() => { Object.defineProperty(window, "IntersectionObserver", { value: undefined }); });
     await page.goto(`${base}/?live=0`);
-    const older = page.locator('[id="spec-aide/schedule-window-history-0"]');
+    const older = page.locator('[id="spec-aide/schedule-window-history-0@created-schedule-window-history-0"]');
     expect(await older.count()).toBe(0);
     const loaded = page.waitForResponse((res) => new URL(res.url()).searchParams.get("rows") === "1");
     await page.getByRole("link", { name: "Show more", exact: true }).focus();
@@ -87,7 +87,7 @@ test("Jobs loads further history with the keyboard and searches outside the load
     await older.waitFor();
     expect(new URL(page.url()).searchParams.get("q")).toBe("window-history-0");
 
-    await page.goto(`${base}/?live=0&open=aide%2Fschedule-window-history-0`);
+    await page.goto(`${base}/?live=0&open=aide%2Fschedule-window-history-0%40created-schedule-window-history-0`);
     await older.waitFor();
   } finally {
     await page.close();
@@ -102,7 +102,7 @@ test("Jobs automatically loads the next batch when approaching the end (AC-2)", 
   const page = await browser.newPage();
   try {
     await page.goto(`${base}/?live=0`);
-    const older = page.locator('[id="spec-aide/schedule-auto-0"]');
+    const older = page.locator('[id="spec-aide/schedule-auto-0@created-schedule-auto-0"]');
     expect(await older.count()).toBe(0);
     await page.getByRole("link", { name: "Show more", exact: true }).scrollIntoViewIfNeeded();
     await older.waitFor();
@@ -129,7 +129,7 @@ test("Jobs keeps an expanded group and member while loading and receiving new wo
     await member.click();
     await page.waitForFunction(() => document.querySelector('tr.spechead[data-folder="81-queue-and-runner"] a.fold')?.getAttribute("aria-expanded") === "true");
     await page.getByRole("link", { name: "Show more", exact: true }).click();
-    await page.locator('[id="spec-aide/schedule-live-0"]').waitFor();
+    await page.locator('[id="spec-aide/schedule-live-0@created-schedule-live-0"]').waitFor();
     expect(await group.getAttribute("aria-expanded")).toBe("true");
     expect(await member.getAttribute("aria-expanded")).toBe("true");
     const queued = await page.request.post(`${base}/api/queue`, { data: { project: "aide", specFolder: "83-new", steps: ["analyze"] } });
@@ -137,6 +137,6 @@ test("Jobs keeps an expanded group and member while loading and receiving new wo
     await page.locator('tr.spechead[data-folder="83-new"]').waitFor();
     expect(await group.getAttribute("aria-expanded")).toBe("true");
     expect(await member.getAttribute("aria-expanded")).toBe("true");
-    expect(await page.locator('[id="spec-aide/schedule-live-0"]').count()).toBe(1);
+    expect(await page.locator('[id="spec-aide/schedule-live-0@created-schedule-live-0"]').count()).toBe(1);
   } finally { await page.close(); history.cleanup(); }
 });
