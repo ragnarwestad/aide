@@ -22,11 +22,12 @@
   table.list tr.specstate > td[data-col="state"] .badgeslot,
   table.list tr.specstate > td[data-col="state"] .badge {
     flex: none; min-width: 100%; box-sizing: border-box; white-space: nowrap; }
-  /* Not where an open row's button stands in that room: there the word
-     keeps to its column and trims. */
-  table.list tr.specstate:has(.actionslot:not([hidden])) > td[data-col="state"] { overflow: hidden; }
-  table.list tr.specstate:has(.actionslot:not([hidden])) > td[data-col="state"] :is(.badgeslot, .badge) {
-    flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  /* An open row's button stands back from the state by what the longest
+     word needs beyond the column, so the word grows into that room too. */
+  table.list tr.specstate .createdpips > .actionslot:not([hidden]) { margin-right: max(0px, calc(6.5rem - var(--state-w))); }
+  /* The spec's total in the size every other time on a phone has, or it
+     does not fit its column at 360px. */
+  table.list tr.specstate > td[data-col="started"] { font-size: var(--fs-s); }
   /* Time reads centred in its own column too, as it does above 640px:
      a two-character duration under a four-character one otherwise looks
      misplaced rather than merely short. */
