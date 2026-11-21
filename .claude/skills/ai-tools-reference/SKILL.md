@@ -412,7 +412,10 @@ enabled = false
 ### Headless runs (`codex exec`)
 
 `codex exec --json` reads the prompt from stdin and prints JSONL; the
-`thread.started` event carries the thread id.
+`thread.started` event carries the thread id. Without `-m` it runs the first
+model in the account's catalogue: `gpt-6.2-sol` on 0.171.0 (verified
+2026-11-21). `--remote <addr>` (v0.171) runs the turn on an existing app
+server instead of a local one; Aide does not use it.
 `codex exec resume <id> [prompt]` continues that thread and `codex exec fork <id>` branches it
 (v0.148); both take `--json`, `-m`, `--output-schema` and
 `--dangerously-bypass-approvals-and-sandbox`, but neither `--sandbox`

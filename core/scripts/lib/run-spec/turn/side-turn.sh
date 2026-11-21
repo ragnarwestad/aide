@@ -19,7 +19,9 @@
 # session. Fails when the chosen AI is not installed.
 side_argv_for() {  # <tool> <model> <name> [<bin>]
   local side_tool="$1" side_model="$2" side_name="$3" own_bin="${4:-}" side_bin=""
-  local saved_requested="${invocation_requested_id:-}" saved_resume="${invocation_resume_id:-}"
+  local saved_requested="${invocation_requested_id:-}" saved_resume="${invocation_resume_id:-}" \
+    saved_opencode_config="${opencode_config:-}"
+  local -a saved_flags=(${safety_flags[@]+"${safety_flags[@]}"})
   side_argv=()
   case "$side_tool" in
     codex)
@@ -56,10 +58,18 @@ side_argv_for() {  # <tool> <model> <name> [<bin>]
       ;;
     *) return 1 ;;
   esac
-  invocation_build "$side_tool" "$side_bin" plan "$side_model" "" "" "" "$side_name" || return 1
+  # Building sets the shared invocation globals; the side turn keeps what it
+  # built as its own and the step's are put back at once.
+  opencode_config=""
+  if ! invocation_build "$side_tool" "$side_bin" plan "$side_model" "" "" "" "$side_name"; then
+    opencode_config="$saved_opencode_config"; safety_flags=(${saved_flags[@]+"${saved_flags[@]}"})
+    return 1
+  fi
   side_argv=("${invocation_argv[@]}")
   side_requested_id="$invocation_requested_id"; side_resume_id="$invocation_resume_id"
+  side_opencode_config="$opencode_config"
   invocation_requested_id="$saved_requested"; invocation_resume_id="$saved_resume"
+  opencode_config="$saved_opencode_config"; safety_flags=(${saved_flags[@]+"${saved_flags[@]}"})
 }
 
 # Run <prompt-file> through $side_argv as <tool>, and put the step's own
@@ -72,6 +82,7 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   turn_result_capture main_result
   tool="$1"; argv=("${side_argv[@]}"); claude_config_dir="$3"
   invocation_requested_id="${side_requested_id:-}"; invocation_resume_id="${side_resume_id:-}"
+  opencode_config="${side_opencode_config:-}"
   if [ -n "$4" ]; then export CODEX_HOME="$4"; else unset CODEX_HOME; fi
   # A session of its own: how full its window got is not the step's.
   context_use_skip="yes"
