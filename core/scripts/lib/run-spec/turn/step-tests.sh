@@ -98,7 +98,7 @@ run_step_tests_within_time() {
       step_tests_seconds=$(( step_tests_seconds + $(date +%s) - run_started ))
       return 124
     fi
-    sleep 1
+    sleep 0.2
   done
   cleanup_owned_process "$child" reap
   local rc=$cleanup_exit_code
@@ -142,7 +142,7 @@ run_red_files_again() {
         cleanup_owned_process "$child" terminate
         break
       fi
-      sleep 1
+      sleep 0.2
     done
     if [ -n "$child" ]; then
       cleanup_owned_process "$child" reap
