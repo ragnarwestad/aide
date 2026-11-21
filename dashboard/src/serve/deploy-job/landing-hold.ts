@@ -12,13 +12,16 @@ export function deployWaitsFor(jobs: Job[], exceptJobId?: string, admitted?: Rea
 
 export function deployHold(jobs: Job[], exceptJobId?: string, admitted?: ReadonlySet<string>): BoardMessage {
   const landings: BoardMessage[] = deployWaitsFor(jobs, exceptJobId, admitted)
-    .map((job) => ({
-      key: "runner.landingRunning",
-      values: {
-        doing: job.steps[landingStepIndex(job.state, job.stepIndex)] ?? "archive",
-        spec: specReference(job.project, job.specFolder),
-      },
-    }));
+    .map((job): BoardMessage => job.steps[job.stepIndex] === "land" && job.branch
+      // A Merge is named as its row is: by its branch, not as a spec.
+      ? { key: "runner.mergeOfRunning", values: { branch: job.branch, project: job.project } }
+      : {
+        key: "runner.landingRunning",
+        values: {
+          doing: job.steps[landingStepIndex(job.state, job.stepIndex)] ?? "archive",
+          spec: specReference(job.project, job.specFolder),
+        },
+      });
   return { key: "runner.landingPause", inner: landings.length ? landings : { key: "runner.landingUnnamed" } };
 }
 

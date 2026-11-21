@@ -15,11 +15,18 @@
   /* And its cell takes the state column's own width, so the badge
      centres over the phase states rather than over whatever its own
      text happens to be wide. */
+  /* A word wider than the column grows leftwards, into the room the pips
+     leave, so the time after it stays in its own column. */
   table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
-    overflow: hidden; }
+    display: flex; justify-content: flex-end; }
   table.list tr.specstate > td[data-col="state"] .badgeslot,
   table.list tr.specstate > td[data-col="state"] .badge {
-    min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+    flex: none; min-width: 100%; box-sizing: border-box; white-space: nowrap; }
+  /* Not where an open row's button stands in that room: there the word
+     keeps to its column and trims. */
+  table.list tr.specstate:has(.actionslot:not([hidden])) > td[data-col="state"] { overflow: hidden; }
+  table.list tr.specstate:has(.actionslot:not([hidden])) > td[data-col="state"] :is(.badgeslot, .badge) {
+    flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   /* Time reads centred in its own column too, as it does above 640px:
      a two-character duration under a four-character one otherwise looks
      misplaced rather than merely short. */

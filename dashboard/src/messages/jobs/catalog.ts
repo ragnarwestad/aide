@@ -106,6 +106,14 @@ export const JOBS_CATALOG = {
     de: "{doing} für {spec}",
     fr: "{doing} pour {spec}",
   },
+  "runner.mergeOfRunning": {
+    statement: "names the Merge whose work is finishing by its branch",
+    en: "the Merge of {branch} in {project} is running",
+    nb: "Merge av {branch} i {project} kjører",
+    es: "el Merge de {branch} en {project} está en curso",
+    de: "der Merge von {branch} in {project} läuft",
+    fr: "le Merge de {branch} dans {project} est en cours",
+  },
   "runner.landingUnnamed": {
     statement: "work is finishing while its job is unavailable",
     en: "work is still finishing",

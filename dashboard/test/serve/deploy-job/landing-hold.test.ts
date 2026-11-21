@@ -24,6 +24,11 @@ describe("deployHold", () => {
     ]);
   });
 
+  test("names a Merge by its branch and project, not as a spec", () => {
+    const hold = deployHold([job({ id: "m", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "fix/deploy-hold-wording", landing: true })]);
+    expect(hold.inner).toEqual([{ key: "runner.mergeOfRunning", values: { branch: "fix/deploy-hold-wording", project: "aide" } }]);
+  });
+
   test("leaves out the deploy job itself", () => {
     const hold = deployHold([job({ id: "d", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, landing: true })], "d");
     expect(hold.inner).toEqual({ key: "runner.landingUnnamed" });
