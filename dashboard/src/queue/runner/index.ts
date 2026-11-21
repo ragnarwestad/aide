@@ -151,8 +151,14 @@ export class Runner {
     }
     validateWaitingArchives(this.o.store);
     const priority = this.o.store.waiting.snapshot().entries.map(entry => entry.id);
+    // A Merge or an archive started in this pass is not yet waiting at the
+    // repository, so a Deploy weighed in the same pass cannot see it and
+    // would restart the server under it. The Deploy waits for the next pass.
+    let mergeStarted = false;
     for (const job of this.o.store.list().sort((a, b) => priority.indexOf(waitingKey(a)) - priority.indexOf(waitingKey(b)))) {
       if (job.state !== "queued") continue;
+      const step = job.steps[job.stepIndex];
+      if (step === "deploy" && mergeStarted) continue;
       const held = holdFor(job, {
         jobs: () => this.o.store.list(),
         maxConcurrent: this.maxConcurrent,
@@ -172,7 +178,10 @@ export class Runner {
         continue;
       }
       this.o.store.waiting.reasons.delete(waitingKey(job));
-      if (this.startOne(job)) this.waits.started(job, this.o.now());
+      if (this.startOne(job)) {
+        this.waits.started(job, this.o.now());
+        if (step === "land" || step === "archive") mergeStarted = true;
+      }
     }
     this.waits.keepOnly(new Set(this.o.store.list().filter((job) => job.state === "queued").map((job) => job.id)));
     clearStaleHolds(this.o.store, heldNow);
@@ -269,6 +278,14 @@ export class Runner {
         this.complete(job, raw as Partial<StepOutcome>);
       } else {
         if (queueVanishedRetry(this.o, job)) continue;
+        // A Merge still waiting for the repository did nothing, so it is
+        // queued again rather than failed.
+        if (job.steps[job.stepIndex] === "land" && !job.landBegan) {
+          this.o.store.transition(job.id, "restart-unbegun", {
+            pid: undefined, pgid: undefined, startedAt: undefined, stepStartedAt: undefined,
+          });
+          continue;
+        }
         endStep(this.o.store, job.id, "process-gone", {
           finishedAt: this.o.now(),
           error: { key: "runner.serverRestarted", values: { button: stepButton(job.steps[job.stepIndex]!) } },

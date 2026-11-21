@@ -38,7 +38,7 @@ export async function handleJobRowAction(ctx: RoutesContext, req: Request, path:
   const result = ctx.queue.transition(job.id, "restart", {
     stepIndex: 0, startedAt: undefined, stepStartedAt: undefined, finishedAt: undefined,
     error: undefined, errorDetail: undefined, errorReason: undefined, stopReason: undefined,
-    landingError: undefined, branchDeleteError: undefined, landPushStarted: undefined,
+    landingError: undefined, branchDeleteError: undefined, landPushStarted: undefined, landBegan: undefined,
   });
   if (!result.ok) return json({ error: `the job is ${result.state} and cannot be started again` }, 409);
   await ctx.tickRunner();

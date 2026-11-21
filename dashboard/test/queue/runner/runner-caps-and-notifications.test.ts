@@ -269,6 +269,16 @@ describe("a usage-limit stop records when the step starts again", () => {
   });
 });
 
+describe("Deploy waits for a Merge", () => {
+  test("a Deploy never starts in the pass that started a Merge", () => {
+    const merge = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/first" });
+    const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
+    makeRunner({ maxConcurrent: 2 }).tick();
+    expect(store.get(merge.id)?.state).toBe("running");
+    expect(store.get(deploy.id)?.state).toBe("queued");
+  });
+});
+
 describe("reconciliation after a restart", () => {
   const runningJob = () => {
     const job = enqueue();
@@ -281,6 +291,16 @@ describe("reconciliation after a restart", () => {
     });
     return job;
   };
+
+  test("a Merge the restart cut before it reached the repository is queued again; one that had begun fails", () => {
+    const waited = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/waited" });
+    const begun = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/begun" });
+    for (const job of [waited, begun]) store.update(job.id, { state: "running", pid: 4242, resultFile: join(dir, `${job.id}.json`), startedAt: "2026-08-16T09:00:00Z" });
+    store.update(begun.id, { landBegan: true });
+    makeRunner({ alive: () => false, readResult: () => null }).reconcile();
+    expect(store.get(waited.id)?.state).toBe("queued");
+    expect(store.get(begun.id)?.state).toBe("failed");
+  });
 
   test("pid alive → the job is still running and is NOT restarted", () => {
     const job = runningJob();

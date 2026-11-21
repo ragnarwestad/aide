@@ -247,6 +247,9 @@ export interface Job {
   branch?: string;
   /** Stop is unavailable once a standalone Land has begun publishing. */
   landPushStarted?: boolean;
+  /** The job's landing has been let into the repository and begun to merge.
+   *  A standalone Merge the server restarted before this is queued again, not failed. */
+  landBegan?: boolean;
   /** When Remove took the job off Jobs. It stays in the queue for its spec's history. */
   removedAt?: string;
   /** A `reopen` job that also resets the analysis, the plan and the

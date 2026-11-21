@@ -162,11 +162,14 @@ export async function landBranch(
         dispatchFor(ctx.queue.waiting).run(
           { id: `merge:${job.id}:${what.step}:${repo.root}`, jobId: job.id, project: job.project, label: branch, operation: what.step, reason: "Waiting for the repository merge lock" },
           ctx.mergeLock, repo.root,
-          () => handed.specOnly
-            ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
-            : discard(repo.root)
-              ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
-              : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
+          () => {
+            ctx.queue.update(job.id, { landBegan: true });
+            return handed.specOnly
+              ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
+              : discard(repo.root)
+                ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
+                : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks);
+          },
           () => !!what.cancelled?.() || landingCancelled(job.id) || ctx.queue.get(job.id)?.state === "cancelled",
         );
       retryUnlanded.set(repo.root, merge);

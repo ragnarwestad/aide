@@ -55,6 +55,7 @@ stateDiagram-v2
     running --> waiting: provider usage limit
     running --> failed: step failed
     running --> failed: process gone, no result
+    running --> queued: server restarted before a Merge reached the repository
     done --> failed: landing did not finish
     done --> failed: the landing's suite went red
     done --> queued: archive landing gets its automatic second attempt
