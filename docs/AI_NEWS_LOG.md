@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-21](#2026-11-21)
   - [2026-11-20](#2026-11-20)
   - [2026-11-19](#2026-11-19)
   - [2026-11-18](#2026-11-18)
@@ -162,6 +163,73 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-21
+
+Review period: 2026-11-20 to 2026-11-21. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh X failed: HTTP Error 404: Not Found; complete=false, zero posts collected or retained.
+Twenty videos listed; five selected, four caption files read (MCP livestream searched by topic); one premiere unavailable.
+Five watched pages changed; substantive Haiku refusal guidance assessed below. No source-address or channel fetch failed.
+
+**Claude Code (review period):**
+
+| Date             | Version       | News                                                                                                                                                                                                               | Source                                                                                                        |
+|------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| Nov 20           | v2.1.330      | Fixes concurrent worktree/settings/task updates, SessionStart environment with -p --continue, and silent success on a full output disk.                                                                            | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.330)                                     |
+| Nov 20           | v2.1.330      | Changes skill-model inheritance, recurring tasks to 30 days, connector name denials and critical-path rm approval. Adds plugin install JSON result fields.                                                         | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.330)                                     |
+| Nov 21 (changed) | watched page  | Haiku 5.5 adds reasoning_extraction refusal guidance: remove requests to reproduce internal reasoning; retrying the same request usually fails.                                                                    | [Source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5) |
+| Nov 21 (changed) | watched pages | Best-practices text drops a permission-precedence explanation. Permission-modes still states deny rules apply in every mode. Hook-guide deletions are wording only; skills docs still describe session-long hooks. | [Source](https://code.claude.com/docs/en/best-practices)                                                      |
+
+**GitHub Copilot CLI (review period):**
+
+| Date             | Version                        | News                                                                                                                                                                                 | Source                                                                  |
+|------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 20           | v1.0.115-2 (pre-release)       | Reads .claude/CLAUDE.md; fixes empty --available-tools, trusted repository settings in -p, empty-response exit status and --continue -p session selection.                           | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-2) |
+| Nov 20–21        | v1.0.115-2 to -4 (pre-release) | Adds sandbox Mach lookups and model management; preserves resumed credit limits; managed hooks remain enabled under disableAllHooks. -4 adds ACP forms and fixes plugin-start races. | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-4) |
+| Nov 21 (checked) | —                              | No in-period blog/changelog article found; the latest displayed blog item is dated Oct 12 in article metadata.                                                                       | [Source](https://github.blog/ai-and-ml/github-copilot/)                 |
+
+**OpenAI Codex CLI (review period):**
+
+| Date      | Version               | News                                                                                                                                                                                            | Source                                                                                          |
+|-----------|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Nov 20    | v0.171.0              | Stable release already reviewed Nov 20: remote exec, default TUI workspace and updated model catalogs. No newer stable release found.                                                           | [Source](https://github.com/openai/codex/releases/tag/rust-v0.171.0)                            |
+| Nov 20–21 | 0.173.0-alpha.2 to .4 | New alpha tags carry generic release text without detailed notes.                                                                                                                               | [Source](https://github.com/openai/codex/releases)                                              |
+| Nov 20    | article               | Ultrafast UI workflow: small tasks, live preview and low reasoning; defer unnecessary checks during visual exploration, then verify the finished change.                                        | [Source](https://developers.openai.com/blog/how-i-stay-in-the-flow-with-ultrafast)              |
+| Nov 20    | article               | Personal-agent workflow: absolute deadlines, fresh time reminders, independent input collection and delivery even without an answer. Agents API examples are not a CLI capability announcement. | [Source](https://developers.openai.com/blog/time-awareness-and-async-input-for-personal-agents) |
+
+**OpenCode (review period):**
+
+| Date      | Version | News                                                                                                 | Source                                                   |
+|-----------|---------|------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Nov 20–21 | —       | No release in period. Changelog still leads with the previously reviewed GPT-6.2 prompt-caching fix. | [Source](https://github.com/anomalyco/opencode/releases) |
+
+**Across tools (review period):**
+
+| Date             | Version                   | News                                                                                                                                                                                | Source                                                                  |
+|------------------|---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 20           | video                     | Warp: record runs, evaluate recurring failure patterns and compare models/skills on real tasks. Performance improvements are speaker claims.                                        | [Source](https://www.youtube.com/watch?v=0LeT996Hz3E)                   |
+| Nov 20           | video                     | Ramp: shared configuration and visible verification support trust and review. Reported adoption is not independently reproduced.                                                    | [Source](https://www.youtube.com/watch?v=MDI81OaZAD4)                   |
+| Nov 21           | video                     | Chase AI: five creator comparisons consider output, cost and time; different harnesses and anomalous runs limit any model ranking.                                                  | [Source](https://www.youtube.com/watch?v=ycF6TVRgawE)                   |
+| Nov 20           | video (selected segments) | MCP Nairobi livestream: Inspector testing, narrow tool access, least privilege and dependency review. Security statistics and incident anecdotes were not independently reproduced. | [Source](https://www.youtube.com/watch?v=BOlf10RUB4s)                   |
+| Nov 20           | Cookbooks commit          | CI workflow maintenance only; no new or substantially changed recipe.                                                                                                               | [Source](https://github.com/anthropics/claude-cookbooks/commit/8ad5de6) |
+| Nov 21 (checked) | —                         | Artificial Analysis still says Harness Comparison: Coming soon; numerical chart values unavailable. Fowler latest dated article Nov 12.                                             | [Source](https://artificialanalysis.ai/agents/coding-agents)            |
+| Nov 21 (changed) | watched page              | agents.md repository counters only; 23 of 28 watched pages unchanged.                                                                                                               | [Source](https://agents.md)                                             |
+
+**Relevance for aide:**
+
+- ⭐ Claude Code 2.1.330 changes documented configuration behavior. Refresh the reference for skill-model scope, 30-day recurring tasks, connector-name denial scope and plugin install result fields; review runner-facing fixes without assuming a runner patch is needed. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.330)
+- ⚠️ Copilot 1.0.115-2 contradicts the reference claim that CLI does not read .claude/CLAUDE.md. Verify on an installed stable release before replacing that claim; assess headless settings, tool restrictions and exit-status fixes as pre-release behavior. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-2)
+- ⚠️ Haiku 5.5 now documents reasoning_extraction refusals and partial-output refusals. No explicit internal-reasoning request was found in the searched Markdown skills/rules; add a model-specific caution to the reference rather than inventing a prompt defect. [Source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5)
+- ⭐ OpenAI’s Ultrafast article advises a separate visual exploration loop with later verification. Compare this with the immediate-test rule in core/rules/testing.md and the low-complexity workflow; retain tests for behavior changes and verify before delivery. [Source](https://developers.openai.com/blog/how-i-stay-in-the-flow-with-ultrafast)
+- ⭐ OpenAI’s deadline article bears on the unattended runner and scheduled reports: distinguish an absolute delivery deadline from a process timeout, preserve completed output and finish without user input. Its API flags do not establish CLI support. [Source](https://developers.openai.com/blog/time-awareness-and-async-input-for-personal-agents)
+- ✅ Video: Engineer Your Coding Agents Like Any Other System. Run recording, failure evaluation and benchmarks on local tasks bear on replay and run history. Aide already has replay; evaluate whether redundant-test scoring adds useful evidence. [Source](https://www.youtube.com/watch?v=0LeT996Hz3E)
+- ✅ Video: How to build an agent that builds the culture. Shared setup and visible verification bear on installers and the dashboard’s review evidence. Review whether browser evidence is easy to find beside a run; adoption figures remain the speaker’s. [Source](https://www.youtube.com/watch?v=MDI81OaZAD4)
+- ✅ Video: Gemini 4 Neon Is Disgustingly Good (And CHEAP). Useful evaluation example for replay: compare quality, time and cost, control the harness, and flag outliers. No vendor-wide ranking or model switch follows from five creator tests; benchmark numbers remain unverified. [Source](https://www.youtube.com/watch?v=ycF6TVRgawE)
+- ✅ Video: 20 Nov - MCP Dev Summit Nairobi 2026 Livestream. Searched relevant transcript segments cover Inspector, tool scope, dependency review and least privilege. These bear on the MCP reference and installer permissions; official MCP guidance independently supports minimal local-server privileges. This is not an assessment of every talk. [Source](https://www.youtube.com/watch?v=BOlf10RUB4s) [Source](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
+- ℹ Best-practices deletion does not prove permission checks were removed: the dedicated permission-modes page still confirms deny rules apply in every mode. General prompting and hook-guide changes are wording-only; skills docs still describe session-long hooks. agents.md changed counters only. [Source](https://code.claude.com/docs/en/permission-modes) [Source](https://code.claude.com/docs/en/skills)
+- ℹ Cookbooks changed CI workflows only, not recipes. No new in-period vendor methodology article beyond the two OpenAI posts found. OpenCode has no new release; Artificial Analysis chart data remains unavailable and harness comparison remains Coming soon. [Source](https://github.com/anthropics/claude-cookbooks/commit/8ad5de6) [Source](https://artificialanalysis.ai/agents/coding-agents)
+- ⚠️ Coverage gap: fresh MyAI fetch failed with HTTP Error 404: Not Found; complete=false, zero posts collected, assessed or retained. No older digest substituted. [Source](https://x.com/i/lists/1992629307080929379)
+- ⚠️ Unassessed video: What Runs Where? Local AI in Production — Ahmad Osman, Osmantic. Caption fetch answered ERROR: [youtube] GKSQYbELDzw: Premieres in 12 hours. No claim assessed from the title or description. [Source](https://www.youtube.com/watch?v=GKSQYbELDzw)
 
 ### 2026-11-20
 
