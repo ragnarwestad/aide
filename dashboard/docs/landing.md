@@ -94,11 +94,8 @@ in would change the default branch's tree (`contentLandedIn` in `src/git/branch-
 Once the merge is on origin, the merge deletes the branch, first on origin and then locally. A delete that fails is
 never fatal: it is reported beside the merge. The local copy is deleted only when it is exactly the tip that merged.
 
-A Merge started with `aide merge` also cleans up where the session made the branch. `aide merge` sends the main
-checkout of the repository it ran in, and the board keeps it when that checkout is a clone of the project's origin.
-Once the Merge has merged, the branch's copy there is removed: every worktree holding it, and then the branch
-(`src/git/branch-merge/landed-copy.ts`). A branch with work that is not on the default branch is kept, and so is a worktree with
-changes or untracked files, along with its branch. The Merge's log names what was removed and what was kept.
+The board cleans up only its own checkout and origin. A copy of the branch elsewhere, such as the checkout and
+worktree a session pushed it from, is left to whoever made it.
 
 ### What is refused, and what is tried again
 

@@ -93,39 +93,3 @@ test("Merge retries a cancelled job with the same branch and kind (AC-1)", async
   } finally { cleanup(); }
 });
 
-describe("the checkout aide merge was run in", () => {
-  /** git as the route asks it: `given` is a repository whose origin is
-   *  `theirs`; the project's own origin is the board's. */
-  function asking(given: string, theirs: string) {
-    const { ctx, queue, cleanup } = context(true);
-    ctx.gitRun = async (dir: string, args: string[]) => {
-      if (args[0] === "rev-parse") return { code: 0, stdout: `${given}/.git\n`, stderr: "" };
-      if (args.join(" ") === "remote get-url origin") {
-        return { code: 0, stdout: `${dir === given ? theirs : "git@example.com:me/aide.git"}\n`, stderr: "" };
-      }
-      return { code: 0, stdout: "abc\trefs/heads/topic\n", stderr: "" };
-    };
-    return { ctx, queue, cleanup };
-  }
-  const post = (ctx: unknown, checkout: string) => handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
-    method: "POST", body: JSON.stringify({ branch: "topic", checkout }),
-  }), "/api/queue/projects/aide/land");
-
-  test("is kept on the job when it is a clone of the project's origin", async () => {
-    const given = mkdtempSync(join(tmpdir(), "aide-land-from-"));
-    const { ctx, queue, cleanup } = asking(given, "git@example.com:me/aide.git");
-    try {
-      expect((await post(ctx, given))?.status).toBe(200);
-      expect(queue.list()[0]?.landFrom).toBe(given);
-    } finally { cleanup(); rmSync(given, { recursive: true, force: true }); }
-  });
-
-  test("is ignored when it is a clone of something else", async () => {
-    const given = mkdtempSync(join(tmpdir(), "aide-land-from-"));
-    const { ctx, queue, cleanup } = asking(given, "git@example.com:me/other.git");
-    try {
-      expect((await post(ctx, given))?.status).toBe(200);
-      expect(queue.list()[0]?.landFrom).toBeUndefined();
-    } finally { cleanup(); rmSync(given, { recursive: true, force: true }); }
-  });
-});
