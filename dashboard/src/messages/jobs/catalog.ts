@@ -122,6 +122,20 @@ export const JOBS_CATALOG = {
     fr: "retenu : un autre archive est en cours dans ce projet — cela démarre une fois celui-là mergé",
     statement: "the queued work starts by itself when the current merge finishes",
   },
+  "runner.scheduleWaitReplaced": {
+    en: "did not run: it was still waiting for a usage limit when the next scheduled run was due",
+    nb: "kjørte ikke: den ventet fortsatt på en bruksgrense da neste planlagte kjøring skulle starte",
+    es: "no se ejecutó: seguía esperando un límite de uso cuando tocaba la siguiente ejecución programada",
+    de: "lief nicht: sie wartete noch auf ein Nutzungslimit, als der nächste geplante Lauf fällig war",
+    fr: "ne s’est pas exécuté : il attendait encore une limite d’utilisation quand la prochaine exécution planifiée était due",
+    solution: {
+      en: "pick another provider in its Settings tab",
+      nb: "velg en annen provider i Settings-fanen til jobben",
+      es: "elige otro proveedor en su pestaña Settings",
+      de: "wähle in ihrem Settings-Tab einen anderen Anbieter",
+      fr: "choisis un autre fournisseur dans son onglet Settings",
+    },
+  },
   "runner.archiveWaitsForSpecWork": {
     en: "held back: {spec} still has work queued or running — this archive starts when it has finished",
     nb: "holdt tilbake: {spec} har fortsatt arbeid i kø eller som kjører — arkiveringen starter når det er ferdig",

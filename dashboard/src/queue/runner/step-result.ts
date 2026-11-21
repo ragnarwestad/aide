@@ -127,7 +127,7 @@ export const STEP_ENDED = {
 /** The events that end a step: the runner's, and a person's Cancel. */
 export type StepEndEvent = Extract<
   TransitionEvent,
-  "retry" | "run-stopped" | "limit-reached" | "step-failed" | "step-succeeded-last" | "step-succeeded" | "process-gone" | "cancel" | "cancel-schedule-wait"
+  "retry" | "run-stopped" | "limit-reached" | "step-failed" | "step-succeeded-last" | "step-succeeded" | "process-gone" | "cancel" | "cancel-schedule-wait" | "replace-schedule-wait"
 >;
 
 /** End a job's step: the transition with `patch`, and the per-step fields

@@ -540,8 +540,9 @@ Cancel asks for confirmation, keeps the attempt as Cancelled and ends its automa
 keeps Stop. Cancelled, stopped and failed attempts offer Run: its confirmation starts with the current Schedule
 AI and model settings, and lets you choose a valid pair for one new attempt. The old attempt stays in history;
 the recurring schedule and saved settings stay unchanged. A deleted schedule cannot be run again from history.
-When the next enabled occurrence becomes due, the old quota wait ends before any quota restart. The ordinary
-schedule handles the new occurrence, without backfilling missed runs.
+When the next enabled occurrence becomes due, the old quota wait ends as Failed before any quota restart: the
+attempt did not run, and nobody cancelled it. The ordinary schedule handles the new occurrence, without backfilling
+missed runs.
 
 **A run's steps.** A prompt can define its complete plan with `## Step N of X: Title` headings. The runner
 announces these steps before the AI turn so the expanded row shows them waiting from the outset. Without fixed

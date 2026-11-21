@@ -332,7 +332,8 @@ for (const first of ["poll", "runner"] as const) {
     if (first === "runner") {
       await tickRunner(ctx);
     } else await refreshSchedules(ctx);
-    expect(queue.get(made.job.id)?.state).toBe("cancelled");
+    expect(queue.get(made.job.id)?.state).toBe("failed");
+    expect(queue.get(made.job.id)?.error).toEqual({ key: "runner.scheduleWaitReplaced" });
     expect(queue.get(made.job.id)?.usageLimitWait).toBeUndefined();
     await refreshSchedules(ctx);
     await refreshSchedules(ctx);
@@ -377,7 +378,7 @@ for (const timer of ["poll", "runner"] as const) {
       now: () => Date.parse("2026-11-18T12:00:02Z"), readRunner: () => null } as unknown as ScheduleContext;
     if (timer === "poll") await refreshSchedules(ctx);
     else await tickRunner(ctx);
-    expect(queue.get(old.job.id)?.state).toBe("cancelled");
+    expect(queue.get(old.job.id)?.state).toBe("failed");
     expect(queue.get(old.job.id)?.usageLimitWait).toBeUndefined();
     expect(queue.get(manual.job.id)?.state).toBe("queued");
     expect(queue.list()).toHaveLength(2);

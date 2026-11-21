@@ -1,11 +1,11 @@
 import { scheduleTrackingKey } from "../../project/spec-names.ts";
 import { isDue, mostRecentFireTime, scheduleRequest, type ScheduleJobRef } from "../../queue/schedule.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
-import { cancelScheduleWait, canCancelScheduleWait } from "../../queue/schedule-attempt";
+import { canCancelScheduleWait, replaceScheduleWait } from "../../queue/schedule-attempt";
 import { logRefusal } from "../serve-helpers";
 import type { ScheduleContext } from "./index.ts";
 
-/** Retire old waits before either a scheduled fire or a quota restart. */
+/** Fail old waits before either a scheduled fire or a quota restart. */
 export function expireScheduleWaits(ctx: ScheduleContext): void {
   if (!ctx.projectRoot) return;
   const now = new Date((ctx.now ?? Date.now)());
@@ -13,7 +13,7 @@ export function expireScheduleWaits(ctx: ScheduleContext): void {
     for (const entry of ctx.scheduleStore.list(project)) {
       const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === scheduleTrackingKey(entry.name));
       for (const job of jobs) {
-        if (canCancelScheduleWait(job) && isDue(entry, now, [job])) cancelScheduleWait(ctx.queue, job, now.getTime());
+        if (canCancelScheduleWait(job) && isDue(entry, now, [job])) replaceScheduleWait(ctx.queue, job, now.getTime());
       }
     }
   }

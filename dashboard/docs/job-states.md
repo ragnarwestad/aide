@@ -26,14 +26,14 @@ Three pages sit beside this one:
 
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
-| State       | Meaning                                                                                                                                                                                                                                           |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `queued`    | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                                                           |
-| `running`   | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                                                                  |
-| `done`      | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all.                                       |
-| `waiting`   | A step a provider's usage limit ended. The board queues it again when the limit resets (`limit-reset`); nobody has to act.                                                                                                                        |
-| `failed`    | The job did not finish and nobody stopped it: a step failed, its process died, it reached its time limit, an analyze stopped on its acceptance criteria or on shared files, or a landing failed or its suite went red. `stopReason` names a stop. |
-| `cancelled` | A person pressed Cancel, or a scheduled quota wait expired.                                                                                                                                                                                       |
+| State       | Meaning                                                                                                                                                                                                                                                                                                                  |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `queued`    | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                                                                                                                                  |
+| `running`   | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                                                                                                                                         |
+| `done`      | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all.                                                                                                              |
+| `waiting`   | A step a provider's usage limit ended. The board queues it again when the limit resets (`limit-reset`); nobody has to act.                                                                                                                                                                                               |
+| `failed`    | The job did not finish and nobody stopped it: a step failed, its process died, it reached its time limit, an analyze stopped on its acceptance criteria or on shared files, a landing failed or its suite went red, or a scheduled job was still waiting for quota when its next run was due. `stopReason` names a stop. |
+| `cancelled` | A person pressed Cancel.                                                                                                                                                                                                                                                                                                 |
 
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
 second guard refuses a NEW job of any step for a spec whose own job reads `done` with a landing still in flight; once
@@ -59,7 +59,8 @@ stateDiagram-v2
     done --> failed: the landing's suite went red
     done --> queued: archive landing gets its automatic second attempt
     done --> cancelled: Cancel pressed while it merged
-    waiting --> cancelled: scheduled quota wait cancelled or next occurrence due
+    waiting --> cancelled: Cancel pressed on a scheduled quota wait
+    waiting --> failed: next scheduled run due while it waited
     waiting --> queued: usage limit reset or a late check gets its automatic second attempt
     failed --> queued: a late check gets its automatic second attempt
     queued --> cancelled: Cancel
