@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { groupIn, nextGroupPosition, previousGroupMember, stripGroupLines, withGroupLines } from "../../../src/project/discover";
+import { branchForSpec, specGroup, type GroupFirsts } from "../../../src/project/discover/group.ts";
+import { DESCRIPTION_FILE, groupBranch, specBranch } from "../../../src/project/spec-names.ts";
 
 const description = (lines = "") =>
   `# X\n\n## Tracking info\n\n- **Task:** \`1-x/\`\n- **Created:** \`2026-11-11\`\n${lines ? `${lines}\n` : ""}\n---\n`;
@@ -31,5 +36,34 @@ describe("spec group metadata", () => {
       { specFolder: "3-third", group: { name: "Release", position: 3 }, done: [] },
     ];
     expect(previousGroupMember(members, members[2]!)).toBe(members[1]);
+  });
+});
+
+describe("a spec's branch from its folder's group members", () => {
+  const folderWith = (members: Record<string, string>): string => {
+    const root = mkdtempSync(join(tmpdir(), "group-branch-"));
+    for (const [folder, lines] of Object.entries(members)) {
+      mkdirSync(join(root, folder));
+      writeFileSync(join(root, folder, DESCRIPTION_FILE), description(lines));
+    }
+    return root;
+  };
+  const member = (name: string, position: number) => `- **Group:** \`${name}\`\n- **Group position:** ${position}`;
+
+  test("every member takes the first member's group branch, one listing shared across them", () => {
+    const root = folderWith({ "7-second": member("Release", 2), "5-first": member("Release", 1), "9-alone": "" });
+    const byRoot = new Map<string, GroupFirsts>();
+    expect(branchForSpec(join(root, "7-second"), "7-second", byRoot)).toBe(groupBranch("5-first", "Release"));
+    expect(branchForSpec(join(root, "5-first"), "5-first", byRoot)).toBe(groupBranch("5-first", "Release"));
+    expect(branchForSpec(join(root, "9-alone"), "9-alone", byRoot)).toBe(specBranch("9-alone"));
+  });
+
+  test("a description changed on disk is read again", () => {
+    const root = folderWith({ "3-x": member("Release", 1) });
+    expect(specGroup(join(root, "3-x"))).toEqual({ name: "Release", position: 1 });
+    writeFileSync(join(root, "3-x", DESCRIPTION_FILE), description(member("Release candidate", 4)));
+    expect(specGroup(join(root, "3-x"))).toEqual({ name: "Release candidate", position: 4 });
+    unlinkSync(join(root, "3-x", DESCRIPTION_FILE));
+    expect(specGroup(join(root, "3-x"))).toBeUndefined();
   });
 });

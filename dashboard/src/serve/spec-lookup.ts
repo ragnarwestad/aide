@@ -19,7 +19,7 @@ import type { GitRunner } from "../git/process/index.ts";
 import type { BranchFileStepsChecker, FileStepsAnswer } from "../git/workflow-history.ts";
 import { specProgressOf } from "./schedules/spec-progress.ts";
 import { specBranch, STATUS_FILE } from "../project/spec-names.ts";
-import { branchForSpec } from "../project/discover/group.ts";
+import { branchForSpec, type GroupFirsts } from "../project/discover/group.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   discoverProjects, manifestInside, type CodeLanding, type SpecRef,
@@ -306,6 +306,7 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
   }
   const found: string[] = [];
   const reviewing: string[] = [];
+  const byRoot = new Map<string, GroupFirsts>();
   for (const [project, folders] of byProject) {
     const open = new Set<string>();
     // Kept apart from the union above: which ROOT holds a
@@ -326,7 +327,7 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
     }
     for (const folder of folders) {
       const archivedDir = join(ctx.machinerySpecsRoot(project) ?? "", "archive", folder);
-      const branch = existsSync(archivedDir) ? branchForSpec(archivedDir, folder) : specBranch(folder);
+      const branch = existsSync(archivedDir) ? branchForSpec(archivedDir, folder, byRoot) : specBranch(folder);
       if (!open.has(branch)) continue;
       found.push(`${project}/${folder}`);
       if (pr && !elsewhere.has(branch)) reviewing.push(`${project}/${folder}`);
