@@ -93,3 +93,50 @@ describe("the leave-app dialog replaces the native prompt for an in-app link", (
     expect(new URL(page.url()).pathname).toBe("/");
   });
 });
+
+// Back runs through the in-place swap only when the page was itself reached
+// in place, so Settings is reached by a link click from the Running tab,
+// never by `page.goto`, which would leave Back to the native prompt.
+describe("Back on a page with unsaved changes waits for the leave-app dialog", () => {
+  async function dirtySettingsReachedInApp(): Promise<void> {
+    await withBrowser(page.goto(`${base}/?live=0`), "page.goto(Running)");
+    // The Settings link sits in the header's menu; a click on the element
+    // itself is the in-app link click without opening the menu first.
+    await page.locator('a[href="/settings"]').first().evaluate((el) => (el as HTMLElement).click());
+    await page.waitForURL((url) => new URL(url).pathname === "/settings");
+    await dirtyTheSettingsForm();
+  }
+
+  test("OK goes back to the page before (AC-1, AC-2)", async () => {
+    await dirtySettingsReachedInApp();
+    await page.goBack();
+    const dialog = page.locator("#leaveapp");
+    await dialog.waitFor({ state: "visible" });
+    await Promise.all([
+      page.waitForURL((url) => new URL(url).pathname === "/"),
+      dialog.getByRole("button", { name: "OK" }).click(),
+    ]);
+    await expectSoon(async () => (await page.locator('input[name="timeoutSec.analyze"]').count()) === 0);
+    expect(new URL(page.url()).pathname).toBe("/");
+  });
+
+  test("Cancel keeps the edited form and the Settings address (AC-3)", async () => {
+    await dirtySettingsReachedInApp();
+    await page.goBack();
+    const dialog = page.locator("#leaveapp");
+    await dialog.waitFor({ state: "visible" });
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await dialog.waitFor({ state: "hidden" });
+    await page.waitForURL((url) => new URL(url).pathname === "/settings");
+    expect(await page.locator('.settingsform input[name="timeoutSec.analyze"], input[form="settings-form"][name="timeoutSec.analyze"]').first().inputValue()).toBe("61");
+  });
+});
+
+/** Polls `check` until it holds or two seconds pass. */
+async function expectSoon(check: () => Promise<boolean>): Promise<void> {
+  const until = Date.now() + 2000;
+  while (!(await check())) {
+    if (Date.now() > until) throw new Error("condition did not hold within 2s");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}

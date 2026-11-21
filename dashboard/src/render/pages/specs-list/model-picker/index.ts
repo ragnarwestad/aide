@@ -4,21 +4,21 @@ import { aliasLabel, modelName } from "../../../ui/components/model-label.ts";
 import { providerFace } from "../../../ui/components/icons.ts";
 import { t, type Language } from "../../../../i18n";
 import type { SpecsPageOptions } from "../";
-import { groupKey, lockedAsArchived, type SpecGroup } from "../data-model";
+import { groupKey, type SpecGroup } from "../data-model";
 import { runFormId } from "../cells.ts";
 import {
   TOOL_NAMES,
+  phaseLine,
   providerToolOf,
   resolveChosenModel,
   resolveProvider,
-  resolveRecordedModel,
   shortOf,
   type LineProvider,
+  type PhaseFacts,
   type PickerOptions,
 } from "../model-resolve.ts";
 import { type PickPart } from "../../../../queue/providers/side-tools.ts";
 import { RUNNABLE_TOOLS, asProviderTool } from "../../../../queue/providers/tools.ts";
-import { shortNameFrom } from "../../../../queue/providers/short-name.ts";
 import { modelSelect, providerSelect } from "./selects.ts";
 
 export { modelSelect, providerSelect } from "./selects.ts";
@@ -29,10 +29,12 @@ export {
   defaultModelForTool,
   offeredProviders,
   phaseAiModel,
+  phaseLine,
   providerToolOf,
   resolveChosenModel,
   resolveProvider,
   resolveRecordedModel,
+  type PhaseFacts,
   type PickerOptions,
   type ProviderOption,
 } from "../model-resolve.ts";
@@ -57,9 +59,7 @@ export function modelPicker(
   opts: PickerOptions,
   step: string,
   busy: boolean,
-  live: boolean,
-  used?: string,
-  recordedModel?: string,
+  facts: PhaseFacts,
   /** Replaces `runFormId(g)` on the `form="..."` attribute.
    *  The New spec page has no real `project`/`specFolder` to derive one
    *  from — the project is a live dropdown pick and the folder does not
@@ -74,8 +74,6 @@ export function modelPicker(
   /** The model id the phase's own run reported, when it has one. */
   ranModelId?: string,
 ): string {
-  const models = opts.modelChoices ?? [];
-  if (!models.length) return "";
   // An archived row draws the SAME select, disabled, instead
   // of a second, hand-rolled rendering (`lockedModel`, removed). Its
   // value is the phase's own record when it has one, and — same as a
@@ -83,28 +81,23 @@ export function modelPicker(
   // does not, `create` above all: no archived spec's `1-description.md`
   // has ever recorded a model, and a blank cell there read as a bug
   // rather than as "nothing recorded yet".
-  const archived = lockedAsArchived(g, step);
+  const line = phaseLine(g, opts, step, facts);
+  if (!line) return "";
+  const live = facts.live;
   // The same rule the box beside it follows.
   // A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
-  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
-  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  // Never read for an archived row, whose select is a record
-  // of what happened, not a choice about what is to come.
-  const pending = archived ? undefined : pendingPick(g, opts, step, live);
-  const chosen = archived
-    ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending, recordedModel);
+  const locked = line.record || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
   return modelSelect({
     name: `model.${step}`,
     form: formIdOverride ?? runFormId(g),
-    opts: { ...opts, modelChoices: pickerModels(models, chosen, archived || alreadyRun, ranModelId) },
-    chosen,
+    opts: { ...opts, modelChoices: pickerModels(opts.modelChoices ?? [], line.model, line.record || alreadyRun, ranModelId) },
+    chosen: line.model,
     disabled: locked,
     ranModelId,
     postTo: live ? `/api/queue/${g.lead!.id}/model` : undefined,
-    ran: used !== undefined,
+    ran: facts.used !== undefined,
   });
 }
 
@@ -291,18 +284,6 @@ export function phaseCaptionCells(
   );
 }
 
-/** The pick a phase that has not run yet pre-fills from. A phase the
- *  running job can still take has its pick on that job — where a pick
- *  made while it runs is written — ahead of the spec's own record. */
-function pendingPick(
-  g: SpecGroup,
-  opts: { pendingModels?: Record<string, Record<string, string>> },
-  step: string,
-  live: boolean,
-): string | undefined {
-  return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
-}
-
 // The provider a phase will run on, beside the model it will run.
 // One per phase line, in the column between the phase's name and its
 // model — not a row-wide select or a set-all control. A phase is where
@@ -336,62 +317,27 @@ export function aiPicker(
   opts: PickerOptions,
   step: string,
   busy: boolean,
-  live: boolean,
-  used?: string,
-  recordedModel?: string,
+  facts: PhaseFacts,
   /** Same override, same reason, as `modelPicker`'s own. */
   formIdOverride?: string,
   /** Same flag, same reason, as `modelPicker`'s own. */
   alreadyRun = false,
-  /** The provider the phase's job, or its result, names. */
-  usedProvider?: string,
 ): string {
-  const models = opts.modelChoices ?? [];
-  const providers = opts.providerChoices ?? [];
   // Drawn for a single provider too: one entry is a statement rather than
   // a choice, which is what the column is for.
-  if (providers.length === 0 || models.length === 0) return "";
-  // Drawn, disabled, on an archived row too — same reasoning
-  // as `modelPicker`'s own archived branch, since this select says which
-  // provider the model BESIDE it belongs to, and that model is drawn now
-  // whether or not the row is locked.
-  const archived = lockedAsArchived(g, step);
-  // And the same `live` the model select beside it takes.
-  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
+  if ((opts.providerChoices ?? []).length === 0) return "";
+  // The same answer the model select beside it and the closed button read,
+  // so the three cannot disagree. Drawn, disabled, on an archived row too,
+  // since this select says which provider the model BESIDE it belongs to.
+  const line = phaseLine(g, opts, step, facts);
+  if (!line) return "";
+  const locked = line.record || (!g.named && !formIdOverride) || (busy && !facts.live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  // The same pending pick `modelPicker` reads, so the two
-  // controls cannot disagree about it either.
-  const pending = archived ? undefined : pendingPick(g, opts, step, live);
-  // The provider shown is one that runs the model this line is on, so the
-  // two controls cannot disagree.
-  const on = archived
-    ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending, recordedModel);
-  const picks = [
-    live ? g.lead?.stepProviders?.[step] : undefined,
-    usedProvider,
-    archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
-  ];
-  // A provider the step ran on that has since been removed is still the
-  // one it ran on: it stays shown, by its key, rather than being replaced
-  // by another provider of the same tool.
-  const gone = usedProvider !== undefined && !providers.some((p) => p.key === usedProvider);
-  const resting = gone ? undefined : resolveProvider(opts, step, on, picks);
-  // What the closed select shows: the provider it is on, else the first it
-  // offers, which is the one a browser shows when none is selected. A
-  // removed provider is named by its key, on the tool its model runs.
-  const tool = gone ? asProviderTool(providerToolOf(models.find((m) => m.name === on)?.tool)) : undefined;
-  if (gone) {
-    return providerSelect({
-      name: `provider.${step}`, modelName: `model.${step}`, form: formIdOverride ?? runFormId(g),
-      opts, configured, disabled: locked,
-      removed: { key: usedProvider, tool, short: shortNameFrom(usedProvider) },
-    });
-  }
-  return providerSelect({
-    name: `provider.${step}`, modelName: `model.${step}`, form: formIdOverride ?? runFormId(g),
-    opts, configured, chosenProvider: resting?.key, disabled: locked,
-  });
+  const common = { name: `provider.${step}`, modelName: `model.${step}`, form: formIdOverride ?? runFormId(g), opts, configured, disabled: locked };
+  // A removed provider is named by its key, on the tool the line is on.
+  return line.removed
+    ? providerSelect({ ...common, removed: line.removed })
+    : providerSelect({ ...common, chosenProvider: line.provider?.key });
 }
 
 export function sidePickers(

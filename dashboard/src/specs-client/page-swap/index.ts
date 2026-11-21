@@ -35,14 +35,27 @@ function restoreShownAddress(targetIndex: number | undefined): void {
   history.pushState(indexedState(shownIndex), "", shownAddress);
 }
 
-function mayLeave(): Promise<boolean> {
+/** How the leave guard answered: go on, keep the page, or give the answer
+ *  up to a newer navigation that has taken the dialog over. */
+type LeaveAnswer = "go" | "stay" | "dropped";
+
+/** Asks the leave guard. A listener that cancels the event and calls
+ *  `ask()` has opened a dialog, and the swap waits for its answer; one that
+ *  cancels without asking refuses at once. */
+function mayLeave(): Promise<LeaveAnswer> {
   return new Promise((resolve) => {
     let settled = false;
-    const finish = (answer: boolean) => { if (!settled) { settled = true; resolve(answer); } };
-    const event = new CustomEvent(PAGE_LEAVE, { cancelable: true, detail: { proceed: () => finish(true), stay: () => finish(false) } });
-    const allowed = document.dispatchEvent(event);
-    if (allowed) finish(true);
-    else queueMicrotask(() => finish(false));
+    let asked = false;
+    const finish = (answer: LeaveAnswer) => { if (!settled) { settled = true; resolve(answer); } };
+    const detail = {
+      ask: () => { asked = true; },
+      proceed: () => finish("go"),
+      stay: () => finish("stay"),
+      drop: () => finish("dropped"),
+    };
+    const allowed = document.dispatchEvent(new CustomEvent(PAGE_LEAVE, { cancelable: true, detail }));
+    if (allowed) finish("go");
+    else if (!asked) finish("stay");
   });
 }
 
@@ -93,8 +106,10 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
     return true;
   }
   if (!shownAddress) shownAddress = location.href;
-  if (!await mayLeave()) {
-    if (options.history === "none") restoreShownAddress(options.historyIndex);
+  const leave = await mayLeave();
+  if (leave !== "go") {
+    // A dropped swap leaves history to the navigation that took the dialog over.
+    if (leave === "stay" && options.history === "none") restoreShownAddress(options.historyIndex);
     return false;
   }
   inFlight?.abort();

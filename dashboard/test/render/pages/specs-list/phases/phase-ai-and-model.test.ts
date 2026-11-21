@@ -196,3 +196,133 @@ describe("an AI and a model on every phase line", () => {
     expect(select).toMatch(/^<select[^>]* aria-label="Claude Personal"/);
   });
 });
+
+// --- The closed button and the selects inside it agree ------------------
+//
+// The row is drawn whole, and the button's model, short name and tool mark
+// are read off the same line as the option each select marks `selected`
+// and the face laid over the AI select. A row that handed the button other
+// facts than the selects would disagree here.
+describe("the AI/model button shows what the selects inside it show", () => {
+  const CLAUDE = { key: "Claude", name: "Claude", tool: "claude" as const };
+  const CODEX = { key: "Codex", name: "Codex", tool: "codex" as const };
+  const MODELS = [{ name: "sonnet" }, { name: "fable" }, { name: "gpt-fast", tool: "codex" as const }];
+  const FOLDER = "842-agree";
+  const KEY = `aide/${FOLDER}`;
+
+  const draw = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>
+    renderSpecsRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: FOLDER }],
+        modelChoices: MODELS,
+        providerChoices: [CLAUDE, CODEX],
+        filter: { open: KEY },
+        ...opts,
+      },
+      Date.parse("2026-11-21T12:00:00Z"),
+    );
+
+  const iconOf = (face: string): string =>
+    (Object.keys(TOOL_ICONS) as (keyof typeof TOOL_ICONS)[]).find((k) => face.includes(TOOL_ICONS[k])) ?? "none";
+  const shortIn = (face: string) => face.match(/providershort">([^<]*)</)?.[1];
+
+  /** What one phase line's button and selects each show. */
+  function shown(html: string, step: string) {
+    const line = html.match(new RegExp(`<tr class="subrow" data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "";
+    const button = line.match(/class="aimodelnow"[\s\S]*?<span class="aimodelshort">([^<]*)<\/span>/);
+    const panel = line.slice(line.indexOf('class="aimodelpanel"'));
+    const pickFace = panel.slice(0, panel.indexOf("<select"));
+    return {
+      button: { model: button?.[1], short: shortIn(button?.[0] ?? ""), icon: iconOf(button?.[0] ?? "") },
+      selects: {
+        model: panel.match(/<select name="model\.[^"]*"[\s\S]*?<option value="([^"]*)"[^>]*selected/)?.[1],
+        short: shortIn(pickFace),
+        icon: iconOf(pickFace),
+      },
+    };
+  }
+
+  const running = (extra: Partial<QueueRowView> = {}) =>
+    row({
+      id: "j1", specFolder: FOLDER, steps: ["analyze", "implement", "archive"], stepIndex: 0,
+      state: "running", editableSteps: ["implement", "archive"], ...extra,
+    });
+
+  test("a running job's own pick on a step it has not reached shows on the button and in the selects (AC-8)", () => {
+    const html = draw([running({ stepModels: { archive: "gpt-fast" }, stepProviders: { archive: "Codex" } })]);
+    const { button, selects } = shown(html, "archive");
+    expect(selects).toEqual({ model: "gpt-fast", short: "CO", icon: "codex" });
+    expect(button).toEqual(selects);
+  });
+
+  test("with no pick on the job, the button and the selects show the spec's pending pick (AC-8)", () => {
+    const html = draw([running()], { pendingModels: { [KEY]: { archive: "fable" } } });
+    const { button, selects } = shown(html, "archive");
+    expect(selects).toEqual({ model: "fable", short: "CL", icon: "claude" });
+    expect(button).toEqual(selects);
+  });
+
+  const archived = (over: Record<string, unknown> = {}) => ({
+    project: "aide",
+    folder: FOLDER,
+    done: ["create", "analyze", "implement", "archive"],
+    models: { analyze: "claude fable", archive: "claude fable" },
+    phaseOutcomes: {},
+    ...over,
+  });
+  const drawArchived = (spec: ReturnType<typeof archived>, list: QueueRowView[] = [], opts: Partial<SpecsPageOptions> = {}) =>
+    draw(list, { targets: [], archivedSpecs: [spec], filter: { state: "archived", open: KEY }, ...opts });
+
+  test("an archived row offering Archive again shows the Archive pick on its button and selects, its record elsewhere (AC-9)", () => {
+    const html = drawArchived(archived({ notLanded: true }), [], {
+      pendingModels: { [KEY]: { archive: "gpt-fast", analyze: "gpt-fast" } },
+    });
+    const archive = shown(html, "archive");
+    expect(archive.selects).toEqual({ model: "gpt-fast", short: "CO", icon: "codex" });
+    expect(archive.button).toEqual(archive.selects);
+    const analyze = shown(html, "analyze");
+    expect(analyze.selects.model).toBe("fable");
+    expect(analyze.button).toEqual(analyze.selects);
+  });
+
+  test("a phase locked as an archived record shows its recorded model and provider, pending picks ignored (AC-10)", () => {
+    const html = drawArchived(archived(), [], { pendingModels: { [KEY]: { analyze: "gpt-fast" } } });
+    const { button, selects } = shown(html, "analyze");
+    expect(selects).toEqual({ model: "fable", short: "CL", icon: "claude" });
+    expect(button).toEqual(selects);
+  });
+
+  test("a locked phase whose recorded model is no longer configured shows the recorded tool on both (AC-10)", () => {
+    const job = row({
+      id: "j9", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "done", model: "old-codex",
+      stepProviders: { analyze: "Codex" },
+      results: [{ step: "analyze", ok: true, costUsd: 0, tool: "codex" }],
+    });
+    const html = drawArchived(archived({ models: { analyze: "codex old-codex" } }), [job]);
+    const { button, selects } = shown(html, "analyze");
+    expect(selects).toEqual({ model: "old-codex", short: "CO", icon: "codex" });
+    expect(button).toEqual(selects);
+  });
+
+  const removedRun = (tool: "codex" | "none") =>
+    row({
+      id: "j2", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "done", model: "old-model",
+      stepProviders: { analyze: "removed-one" },
+      results: [{ step: "analyze", ok: true, costUsd: 0, tool }],
+    });
+
+  test("a removed provider is named by its recorded key on both, with the recorded tool's mark (AC-11)", () => {
+    const { button, selects } = shown(draw([removedRun("codex")]), "analyze");
+    expect(selects).toEqual({ model: "old-model", short: "RO", icon: "codex" });
+    expect(button).toEqual(selects);
+    expect(draw([removedRun("codex")])).toMatch(/<option value="removed-one"[^>]*selected>removed-one</);
+  });
+
+  test("a removed provider whose recorded tool is none shows no tool mark on either (AC-11)", () => {
+    const { button, selects } = shown(draw([removedRun("none")]), "analyze");
+    expect(selects).toEqual({ model: "old-model", short: "RO", icon: "none" });
+    expect(button).toEqual(selects);
+  });
+});

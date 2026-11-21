@@ -52,9 +52,10 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
   // `data-discard-changes` on the one surface (project settings) that
   // has no such id.
   //
-  // An in-app link click while dirty is the one exit path a
-  // page's own script CAN intercept — Back/Forward, a closed tab and a
-  // typed address still fall to the native beforeunload prompt below.
+  // An in-app link click while dirty is an exit path a page's own
+  // script CAN intercept — a closed tab, a typed address and a
+  // Back/Forward the in-place swap does not take still fall to the
+  // native beforeunload prompt below.
   // The `leaveapp` dialog (shell.ts) is a real <dialog>, always positioned
   // inside the document's own viewport rather than by the OS, unlike
   // that native prompt. Registered before NAV_BUSY_SCRIPT/
@@ -62,9 +63,52 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
   // listener's preventDefault() is seen by both before either adds its
   // own busy-indicator side effect: same-type listeners on one element
   // run in the order they were added.
-  let pendingLink: HTMLAnchorElement | null = null;
-  let pendingSwap: { proceed(): void; stay(): void } | null = null;
+  //
+  // Back/Forward through the in-place page swap asks the same dialog, by
+  // `aide-page-leave` (page-swap/index.ts): `ask()` tells the swap to wait
+  // for the answer, which arrives as `proceed()` or `stay()`. One dialog,
+  // one `close` listener, and the navigation that opened it last owns the
+  // answer: an older swap is told `drop()`, and an older link is forgotten.
+  type LeaveDetail = { ask(): void; proceed(): void; stay(): void; drop(): void };
+  type Pending = { link: HTMLAnchorElement } | { swap: LeaveDetail };
+  let pending: Pending | null = null;
   let dialogWired = false;
+
+  const answer = (dialog: HTMLDialogElement): void => {
+    const p = pending;
+    pending = null;
+    const leave = dialog.returnValue === "leave";
+    if (leave) dirty = false;
+    // The link itself is pressed again, now that nothing is dirty, so it
+    // leaves the way it always would — `rel="noreferrer"` on Back
+    // included, which an assigned address would lose.
+    if (p && "link" in p) {
+      if (leave) p.link.click();
+    } else if (p) {
+      if (leave) p.swap.proceed();
+      else p.swap.stay();
+    }
+  };
+
+  const openFor = (dialog: HTMLDialogElement, next: Pending): void => {
+    if (pending && "swap" in pending) pending.swap.drop();
+    pending = next;
+    if (!dialogWired) {
+      dialogWired = true;
+      dialog.addEventListener("close", () => answer(dialog));
+    }
+    if (!dialog.open) {
+      // Escape closes a dialog without setting its value, so an OK left
+      // over from an earlier opening must not answer this one.
+      dialog.returnValue = "";
+      dialog.showModal();
+    }
+  };
+
+  const leaveDialog = (): HTMLDialogElement | null => {
+    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
+    return dialog && typeof dialog.showModal === "function" ? dialog : null;
+  };
 
   document.addEventListener("click", (event: Event) => {
     const target = event.target as Element | null;
@@ -79,49 +123,20 @@ import { PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../../../page-con
     if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
     const href = link.getAttribute("href") || "";
     if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
-    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
-    if (!dialog || typeof dialog.showModal !== "function") return;
-    if (!dialogWired) {
-      dialogWired = true;
-      dialog.addEventListener("close", () => {
-        // The link itself is pressed again, now that nothing is dirty, so
-        // it leaves the way it always would — `rel="noreferrer"` on Back
-        // included, which an assigned address would lose.
-        const link = pendingLink;
-        pendingLink = null;
-        if (dialog.returnValue === "leave" && link) {
-          dirty = false;
-          link.click();
-        }
-        const swap = pendingSwap;
-        pendingSwap = null;
-        if (dialog.returnValue === "leave" && swap) {
-          dirty = false;
-          swap.proceed();
-        } else swap?.stay();
-      });
-    }
+    const dialog = leaveDialog();
+    if (!dialog) return;
     event.preventDefault();
-    pendingLink = link;
-    dialog.showModal();
+    openFor(dialog, { link });
   });
 
   document.addEventListener(PAGE_LEAVE, (event: Event) => {
     if (!dirty) return;
-    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
-    if (!dialog || typeof dialog.showModal !== "function") return;
+    const dialog = leaveDialog();
+    if (!dialog) return;
     event.preventDefault();
-    pendingSwap = (event as CustomEvent<{ proceed(): void; stay(): void }>).detail;
-    if (!dialogWired) {
-      dialogWired = true;
-      dialog.addEventListener("close", () => {
-        const swap = pendingSwap;
-        pendingSwap = null;
-        if (dialog.returnValue === "leave" && swap) { dirty = false; swap.proceed(); }
-        else swap?.stay();
-      });
-    }
-    dialog.showModal();
+    const swap = (event as CustomEvent<LeaveDetail>).detail;
+    swap.ask();
+    openFor(dialog, { swap });
   });
   document.addEventListener(PAGE_DRAWN, () => { dirty = false; });
 

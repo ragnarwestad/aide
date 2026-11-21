@@ -262,3 +262,117 @@ test("Back handled by the list cancels an older page answer (AC-7)", async () =>
   await pending;
   expect(document.querySelector("main")?.textContent).toBe("Old");
 });
+
+// --- A guard that opens the dialog: the swap waits for its answer --------
+
+type LeaveAnswer = { ask(): void; proceed(): void; stay(): void; drop(): void };
+
+/** A stand-in for the dirty-form guard: it cancels the leave, says it is
+ *  asking, and keeps the detail so the test can answer later. */
+function askingGuard(): LeaveAnswer[] {
+  const asked: LeaveAnswer[] = [];
+  document.addEventListener("aide-page-leave", (event) => {
+    event.preventDefault();
+    const detail = (event as CustomEvent<LeaveAnswer>).detail;
+    detail.ask();
+    asked.push(detail);
+  });
+  return asked;
+}
+
+/** Bound, on `/settings` reached by an in-app swap from `/jobs` (not the
+ *  Specs list, whose own Back handling takes over there), with a count of
+ *  the fetches made from here on. */
+async function onSettings() {
+  const events = install();
+  bindPageSwap(document);
+  history.replaceState(null, "", "/jobs");
+  await swapPage("/settings", { history: "push" });
+  const fetched: string[] = [];
+  const answer = globalThis.fetch;
+  globalThis.fetch = ((url: URL) => { fetched.push(new URL(url).pathname); return answer(url); }) as unknown as typeof fetch;
+  return { events, fetched };
+}
+
+test("Back on a page with unsaved changes waits for the dialog's answer before navigating (AC-1)", async () => {
+  const { fetched } = await onSettings();
+  const asked = askingGuard();
+  history.back();
+  await turn(); await turn();
+  expect(asked.length).toBe(1);
+  expect(fetched).toEqual([]);
+  expect(document.querySelector("main")?.textContent).toBe("New");
+});
+
+test("Back with nothing unsaved goes ahead without asking (AC-1)", async () => {
+  const { fetched } = await onSettings();
+  history.back();
+  await turn(); await turn();
+  expect(fetched).toEqual(["/jobs"]);
+});
+
+test("OK in the dialog opened by Back or Forward navigates to the page asked for, once (AC-2)", async () => {
+  const { fetched } = await onSettings();
+  const asked = askingGuard();
+  const entries = history.length;
+  history.back();
+  await turn(); await turn();
+  asked[0]!.proceed();
+  await turn(); await turn();
+  expect(fetched).toEqual(["/jobs"]);
+  expect(location.pathname).toBe("/jobs");
+  expect(history.length).toBe(entries);
+  history.forward();
+  await turn(); await turn();
+  expect(fetched).toEqual(["/jobs"]);
+  asked[1]!.proceed();
+  await turn(); await turn();
+  expect(fetched).toEqual(["/jobs", "/settings"]);
+  expect(location.pathname).toBe("/settings");
+  expect(history.length).toBe(entries);
+});
+
+test("Cancel in the dialog opened by Back keeps the page and puts back its address, after the answer (AC-3)", async () => {
+  const { fetched } = await onSettings();
+  const asked = askingGuard();
+  history.back();
+  await turn(); await turn();
+  // The browser has moved the address; nothing is put back while the dialog is open.
+  expect(location.pathname).toBe("/jobs");
+  asked[0]!.stay();
+  await turn(); await turn();
+  expect(location.pathname).toBe("/settings");
+  expect(document.querySelector("main")?.textContent).toBe("New");
+  expect(fetched).toEqual([]);
+});
+
+test("a swap the dialog was taken from by a newer navigation is dropped and touches no history", async () => {
+  install();
+  bindPageSwap(document);
+  const asked = askingGuard();
+  let settled: boolean | undefined;
+  const first = swapPage("/specs/aide/1-x", { history: "none", historyIndex: 3 }).then((ok) => (settled = ok));
+  await turn();
+  const lengthBefore = history.length;
+  const pathBefore = location.pathname;
+  void swapPage("/jobs", { history: "push" });
+  await turn();
+  asked[0]!.drop();
+  await first;
+  expect(settled).toBe(false);
+  expect(history.length).toBe(lengthBefore);
+  expect(location.pathname).toBe(pathBefore);
+  expect(asked.length).toBe(2);
+});
+
+test("a guard that refuses without asking refuses at once, fetching nothing (AC-6)", async () => {
+  install();
+  let fetched = false;
+  globalThis.fetch = (async () => { fetched = true; return new Response(); }) as unknown as typeof fetch;
+  document.addEventListener("aide-page-leave", (event) => event.preventDefault(), { once: true });
+  let answer: boolean | undefined;
+  void swapPage("/settings", { history: "push" }).then((ok) => (answer = ok));
+  await turn();
+  expect(answer).toBe(false);
+  expect(fetched).toBe(false);
+});

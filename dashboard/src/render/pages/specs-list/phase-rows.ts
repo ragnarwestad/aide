@@ -436,8 +436,10 @@ function aiModel(
   formIdOverride?: string,
 ): string {
   const lang = opts.lang ?? "en";
-  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, formIdOverride, alreadyRun, usedProvider);
-  const model = modelPicker(g, opts, step, busy, live, used, recordedModel, formIdOverride, alreadyRun, ranModelId);
+  // One set of facts for the button and the two selects inside it.
+  const facts = { live, used, recordedModel, usedTool, usedProvider };
+  const ai = aiPicker(g, opts, step, busy, facts, formIdOverride, alreadyRun);
+  const model = modelPicker(g, opts, step, busy, facts, formIdOverride, alreadyRun, ranModelId);
   const locked = lockedAsArchived(g, step) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to
@@ -449,14 +451,14 @@ function aiModel(
     ai,
     model,
     locked,
-    on: phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider),
+    on: phaseAiModel(g, opts, step, facts),
   });
 }
 
 /** What the Review line under Analyze follows without a choice of its own:
  *  the model and provider the Analyze line would run on next. */
 function analyzeRests(g: SpecGroup, opts: SpecsPageOptions): { model: string; provider?: string } | undefined {
-  const on = phaseAiModel(g, opts, "analyze");
+  const on = phaseAiModel(g, opts, "analyze", { live: false });
   if (!on) return undefined;
   const pick = isArchivedRow(g) ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.analyze;
   return { model: on.model, provider: resolveProvider(opts, "analyze", on.model, [pick])?.key };

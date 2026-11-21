@@ -4,8 +4,8 @@
 
 import type { SpecsPageOptions } from "./";
 import { shortNameFrom } from "../../../queue/providers/short-name.ts";
-import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
-import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
+import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, asProviderTool, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
+import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
 // 2026-08-19: "vi trenger jo bare å fylle inn den som er brukt"): a
@@ -128,9 +128,12 @@ export function resolveProvider(
   step: string,
   model: string | undefined,
   picks: readonly (string | undefined)[],
+  /** The tool the line is on, where the model alone cannot say it: a
+   *  recorded model no longer configured runs the tool its run recorded. */
+  lineTool?: string,
 ): ProviderOption | undefined {
   const providers = opts.providerChoices ?? [];
-  const tool = providerToolOf(opts.modelChoices?.find((m) => m.name === model)?.tool);
+  const tool = providerToolOf(lineTool ?? opts.modelChoices?.find((m) => m.name === model)?.tool);
   const runs = (p: ProviderOption | undefined): p is ProviderOption => p !== undefined && p.tool === tool;
   for (const key of picks) {
     const found = providers.find((p) => p.key === key);
@@ -161,39 +164,87 @@ export interface LineProvider {
   short: string;
 }
 
-/** What one phase line is actually ON: the model, the tool that model
- *  belongs to and the provider. The same answers `modelPicker` and
- *  `aiPicker` work out for themselves, from the same helpers — read here
- *  so the compact button can say them without a third copy of the
- *  reasoning. */
+/** What a phase line's own job and results say about it, gathered once
+ *  for the button and the two selects. */
+export interface PhaseFacts {
+  /** The running job has not reached this step: its pick is still open. */
+  live: boolean;
+  /** The model choice the phase's job ran on. */
+  used?: string;
+  /** The model the phase's own file recorded. */
+  recordedModel?: string;
+  /** The CLI the phase's own result names — what stands in for the
+   *  tool when the model is no longer configured. */
+  usedTool?: string;
+  /** The provider the phase's job, or its result, names. */
+  usedProvider?: string;
+}
+
+/** One phase line's answer: what it is on, and whether that is a record. */
+export interface PhaseLine {
+  /** The line is a record of an archived row, not a choice. */
+  record: boolean;
+  model: string;
+  /** The model's tool when it is configured, else the recorded one. */
+  tool: string;
+  /** The provider it is on, when one in Settings runs its tool. */
+  provider?: ProviderOption;
+  /** The provider it ran on, since removed from Settings: named by its key. */
+  removed?: { key: string; tool: ProviderTool | undefined; short: string };
+}
+
+/** The pick a phase that has not run yet pre-fills from. A phase the
+ *  running job can still take has its pick on that job — where a pick
+ *  made while it runs is written — ahead of the spec's own record. */
+export function pendingPick(
+  g: SpecGroup,
+  opts: { pendingModels?: Record<string, Record<string, string>> },
+  step: string,
+  live: boolean,
+): string | undefined {
+  return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+}
+
+/** What one phase line is on — model, tool and provider — in one place,
+ *  read by the closed button (`phaseAiModel`) and by the two selects inside
+ *  it (`modelPicker`, `aiPicker`), so the three cannot disagree. */
+export function phaseLine(g: SpecGroup, opts: PickerOptions, step: string, facts: PhaseFacts): PhaseLine | undefined {
+  const models = opts.modelChoices ?? [];
+  if (!models.length) return undefined;
+  const record = lockedAsArchived(g, step);
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
+  // A record is what happened, never a choice about what is to come.
+  const model = record
+    ? resolveRecordedModel(models, configured, facts.recordedModel)
+    : resolveChosenModel(models, configured, facts.used, pendingPick(g, opts, step, facts.live), facts.recordedModel);
+  const listed = models.find((m) => m.name === model);
+  const tool = listed ? (listed.tool ?? "claude") : (facts.usedTool ?? "claude");
+  const usedProvider = facts.usedProvider;
+  // A provider the step ran on that has since been removed is still the
+  // one it ran on: shown by its key, never replaced by another of its tool.
+  if (usedProvider !== undefined && !(opts.providerChoices ?? []).some((p) => p.key === usedProvider)) {
+    return { record, model, tool, removed: { key: usedProvider, tool: asProviderTool(providerToolOf(tool)), short: shortNameFrom(usedProvider) } };
+  }
+  const provider = resolveProvider(opts, step, model, [
+    facts.live ? g.lead?.stepProviders?.[step] : undefined,
+    usedProvider,
+    record ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
+  ], tool);
+  return { record, model, tool, ...(provider ? { provider } : {}) };
+}
+
+/** What the closed AI/model button of a phase line says: `phaseLine`'s
+ *  answer, as the button names it. */
 export function phaseAiModel(
   g: SpecGroup,
   opts: PickerOptions,
   step: string,
-  used?: string,
-  recordedModel?: string,
-  /** The CLI the phase's own result names — what stands in for the
-   *  tool when the model's choice name is no longer configured. */
-  usedTool?: string,
-  /** The provider the phase's job, or its result, names. */
-  usedProvider?: string,
+  facts: PhaseFacts,
 ): { model: string; tool: string; provider?: LineProvider } | undefined {
-  const models = opts.modelChoices ?? [];
-  if (!models.length) return undefined;
-  const archived = isArchivedRow(g);
-  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
-  const model = archived
-    ? resolveRecordedModel(models, configured, recordedModel)
-    : resolveChosenModel(models, configured, used, pending, recordedModel);
-  const tool = models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude";
-  const gone = usedProvider !== undefined && !(opts.providerChoices ?? []).some((p) => p.key === usedProvider);
-  const provider = gone
-    ? undefined
-    : resolveProvider(
-        opts, step, model,
-        [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
-      );
-  const on = gone ? { name: usedProvider } : provider;
-  return { model, tool, ...(on ? { provider: { name: on.name, short: shortOf(on) } } : {}) };
+  const line = phaseLine(g, opts, step, facts);
+  if (!line) return undefined;
+  const provider = line.removed
+    ? { name: line.removed.key, short: line.removed.short }
+    : line.provider && { name: line.provider.name, short: shortOf(line.provider) };
+  return { model: line.model, tool: line.tool, ...(provider ? { provider } : {}) };
 }

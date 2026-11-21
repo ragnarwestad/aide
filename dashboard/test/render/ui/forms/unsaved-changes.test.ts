@@ -80,19 +80,31 @@ function harness() {
   let submitHandler: ((event: unknown) => void) | undefined;
   let clickHandler: ((event: unknown) => void) | undefined;
   let beforeunloadHandler: ((event: unknown) => void) | undefined;
+  let leaveHandler: ((event: unknown) => void) | undefined;
 
   let showModalCalled = false;
   let closeHandler: (() => void) | undefined;
   let dialogReturnValue = "";
+  let dialogOpen = false;
+  let showModalCalls = 0;
   const dialog = {
     showModal: () => {
+      if (dialogOpen) throw new Error("showModal on an open dialog");
       showModalCalled = true;
+      showModalCalls += 1;
+      dialogOpen = true;
+    },
+    get open() {
+      return dialogOpen;
     },
     addEventListener: (type: string, fn: () => void) => {
       if (type === "close") closeHandler = fn;
     },
     get returnValue() {
       return dialogReturnValue;
+    },
+    set returnValue(value: string) {
+      dialogReturnValue = value;
     },
   };
 
@@ -103,6 +115,7 @@ function harness() {
       else if (type === "change") changeHandler = fn;
       else if (type === "submit") submitHandler = fn;
       else if (type === "click") clickHandler = fn;
+      else if (type === "aide-page-leave") leaveHandler = fn;
     },
     getElementById: (id: string) => (id === "leaveapp" ? dialog : null),
   };
@@ -150,16 +163,42 @@ function harness() {
     return { prevented, returnValue };
   };
 
+  /** An in-place swap asking to leave, as page-swap sends it; what the
+   *  guard did with it is kept on the returned record. */
+  const leave = () => {
+    const seen = { prevented: false, asked: false, answer: "" };
+    leaveHandler!({
+      preventDefault: () => {
+        seen.prevented = true;
+      },
+      detail: {
+        ask: () => { seen.asked = true; },
+        proceed: () => { seen.answer ||= "proceed"; },
+        stay: () => { seen.answer ||= "stay"; },
+        drop: () => { seen.answer ||= "drop"; },
+      },
+    });
+    return seen;
+  };
+
   return {
     input,
     change,
     submit,
     click,
     beforeunload,
+    leave,
     dialog: {
       wasOpened: () => showModalCalled,
+      opened: () => showModalCalls,
       closeWith: (value: string) => {
         dialogReturnValue = value;
+        dialogOpen = false;
+        closeHandler?.();
+      },
+      /** Escape: the dialog closes and keeps whatever value it had. */
+      escape: () => {
+        dialogOpen = false;
         closeHandler?.();
       },
     },
@@ -307,5 +346,91 @@ describe("a same-document link click while dirty opens the leaveapp dialog inste
     expect(link.clicks).toBe(0);
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(true);
+  });
+});
+
+// Back/Forward through the in-place swap asks the same dialog. Whichever
+// navigation opened it last owns the answer, whatever opened it first.
+describe("the leaveapp dialog answers the navigation that opened it last", () => {
+  test("a swap asking to leave a dirty page is refused, asked and left waiting for the answer (AC-1)", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const swap = h.leave();
+    expect(swap).toEqual({ prevented: true, asked: true, answer: "" });
+    expect(h.dialog.wasOpened()).toBe(true);
+  });
+
+  test("Cancel on a swap, then a link click: OK presses the link (AC-4)", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const swap = h.leave();
+    h.dialog.closeWith("");
+    expect(swap.answer).toBe("stay");
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
+    h.dialog.closeWith("leave");
+    expect(link.clicks).toBe(1);
+  });
+
+  test("Cancel on a link click, then a swap: OK lets the swap go and leaves the link alone (AC-5)", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
+    h.dialog.closeWith("");
+    const swap = h.leave();
+    h.dialog.closeWith("leave");
+    expect(swap.answer).toBe("proceed");
+    expect(link.clicks).toBe(0);
+  });
+
+  test("a second swap while the dialog is open drops the first and takes the answer", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const first = h.leave();
+    const second = h.leave();
+    expect(first.answer).toBe("drop");
+    expect(h.dialog.opened()).toBe(1);
+    h.dialog.closeWith("leave");
+    expect(second.answer).toBe("proceed");
+    expect(first.answer).toBe("drop");
+  });
+
+  test("a link click while a swap holds the dialog drops the swap and takes the answer", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const swap = h.leave();
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
+    expect(swap.answer).toBe("drop");
+    h.dialog.closeWith("leave");
+    expect(link.clicks).toBe(1);
+  });
+
+  test("OK on a link click disarms the guard and presses that same link once (AC-7)", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
+    h.dialog.closeWith("leave");
+    expect(link.clicks).toBe(1);
+    expect(h.beforeunload().prevented).toBe(false);
+    expect(h.leave()).toEqual({ prevented: false, asked: false, answer: "" });
+  });
+
+  test("Escape after an earlier OK keeps the page: the old OK does not answer the new dialog (AC-3)", () => {
+    const h = harness();
+    h.input(element({ classes: ["settingsform"] }));
+    h.click(anchor({ href: "/other-page" }));
+    h.dialog.closeWith("leave");
+    h.input(element({ classes: ["settingsform"] }));
+    const swap = h.leave();
+    h.dialog.escape();
+    expect(swap.answer).toBe("stay");
+    const link = anchor({ href: "/other-page" });
+    h.click(link);
+    h.dialog.escape();
+    expect(link.clicks).toBe(0);
+    expect(h.beforeunload().prevented).toBe(true);
   });
 });
