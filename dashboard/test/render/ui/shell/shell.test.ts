@@ -129,6 +129,13 @@ describe("the header's tabs", () => {
     }
   });
 
+  test("the site tab bar carries the \"?\" that explains the tabs and counts, after its tabs (AC-1)", () => {
+    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", { lang: "nb" });
+    const bar = html.match(/<body[\s\S]*?<nav class="tabbar">([\s\S]*?)<\/nav>/)?.[1] ?? "";
+    const help = bar.indexOf(`<details class="intro"><summary title="${esc(t("nb", "shell.tabHelpTitle"))}"`);
+    expect(help).toBeGreaterThan(bar.lastIndexOf('class="tab"'));
+  });
+
   test("does not invent an icon for a section that names none (AC-2)", () => {
     const html = pageShell("Other", [
       { label: "Projects", path: "/projects" },

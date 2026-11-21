@@ -353,6 +353,10 @@
   .tabbar .tab:has(> .kindicon) { padding-left: var(--sp-3); padding-right: var(--sp-3); }
   .tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* The tab words are hidden, so the "?" lists what each icon is; it
+     moves into the bar's narrower padding, clear of the last tab. */
+  nav.tabbar [data-tab-list] { display: inline; }
+  body > nav.tabbar > .row { right: var(--sp-2); }
 }
 
 /* A phone held sideways: a wide screen, but a short one, and the header
@@ -377,6 +381,14 @@
   header > nav.tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   body > nav.tabbar { display: none; }
+  /* The "?" follows the tabs in the header's row. Its open text is fixed
+     rather than absolute, so the row's own scrolling does not clip it to
+     the row's height: under the "?" (top left at its place in the flow),
+     against the window's right edge, and no taller than the window. */
+  header > nav.tabbar > .row { flex: none; }
+  header > nav.tabbar [data-tab-list] { display: inline; }
+  header > nav.tabbar details.intro[open] p { position: fixed; top: auto; left: auto; right: var(--sp-2);
+    max-height: calc(100vh - 4rem); overflow-y: auto; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }
   main { padding-top: var(--sp-3); }
 }

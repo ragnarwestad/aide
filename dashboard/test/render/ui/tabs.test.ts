@@ -2,7 +2,9 @@
 // its words from the catalogue draws through the same `tabBar()` as a caller
 // that hands it a base path.
 import { describe, expect, test } from "bun:test";
-import { tabBar } from "../../../src/render/ui/tabs.ts";
+import { tabBar, tabBarHelp } from "../../../src/render/ui/tabs.ts";
+import { esc } from "../../../src/render/ui/html.ts";
+import { t } from "../../../src/i18n";
 
 describe("tabBar() with a link function and a label function", () => {
   const TABS = ["log", "files", "errors"] as const;
@@ -44,5 +46,49 @@ describe("tabBar() with icons", () => {
     expect(plain).toContain('>Jobs</a>');
     expect(plain).not.toContain("title=");
     expect(plain).not.toContain("<span>Jobs</span>");
+  });
+});
+
+describe("tabBarHelp(), the site tab bar's \"?\"", () => {
+  const TABS = [
+    { word: "Jobs", kind: "jobs" },
+    { word: "Specs", kind: "specs" },
+    { word: "Projects", kind: "projects" },
+    { word: "Schedule", kind: "schedule" },
+  ] as const;
+  // The list runs from its marker to the counts sentence that follows it.
+  const list = (html: string): string =>
+    html.split("<span data-tab-list>")[1]?.split(esc(t("en", "shell.tabHelpCounts")))[0] ?? "";
+
+  test("lists each tab's icon, word and one-line description (AC-3)", () => {
+    const html = tabBarHelp("en", [...TABS]);
+    const tabList = list(html);
+    for (const tab of TABS) {
+      expect(tabList).toContain(`data-tab="${tab.kind}"`);
+      expect(tabList).toContain(tab.word);
+      expect(tabList).toContain(esc(t("en", `shell.tabHelp.${tab.kind}`)));
+    }
+  });
+
+  test("a section with no icon of its own is listed by its word alone", () => {
+    const html = tabBarHelp("en", [{ word: "Other" }]);
+    expect(list(html)).toContain("Other");
+    expect(list(html)).not.toContain("data-tab=");
+  });
+
+  test("says what the Jobs and Specs numbers count, after the tab list (AC-5)", () => {
+    const html = tabBarHelp("en", [...TABS]);
+    const counts = esc(t("en", "shell.tabHelpCounts"));
+    expect(html).toContain(counts);
+    expect(list(html)).not.toContain(counts);
+    for (const state of ["Created", "Idle", "Reopened"]) expect(counts).toContain(state);
+  });
+
+  test("is in the page's language (AC-6)", () => {
+    const html = tabBarHelp("nb", [...TABS]);
+    expect(html).toContain(`aria-label="${esc(t("nb", "shell.tabHelpTitle"))}"`);
+    expect(html).toContain(esc(t("nb", "shell.tabHelpCounts")));
+    expect(html).toContain(esc(t("nb", "shell.tabHelp.schedule")));
+    expect(t("nb", "shell.tabHelpCounts")).not.toBe(t("en", "shell.tabHelpCounts"));
   });
 });

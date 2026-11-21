@@ -7,7 +7,7 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring cost; a second tab bar would have been the fourth.
 
-import { backLink } from "./components";
+import { backLink, helpPopover, tabIcon, type SiteTab } from "./components";
 import { esc } from "./html.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
@@ -124,6 +124,24 @@ export function tabBar<T extends string>(
       .join("") +
     (trailing ? `<span class="row">${trailing}</span>` : "") +
     `</nav>`
+  );
+}
+
+/** The "?" at the right end of the site tab bar: each tab's icon, word and
+ *  what it holds, then what the two counts count. The list is in the
+ *  markup at every width and shown by the stylesheet only where the bar
+ *  hides the tab words (`narrow-rows.css`), so the text never disagrees
+ *  with what the bar shows. A section with no icon of its own is listed by
+ *  its word alone. */
+export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab }[]): string {
+  const lines = tabs
+    .map((tab) => tab.kind
+      ? `${tabIcon(tab.kind)} ${esc(tab.word)} — ${esc(t(lang, `shell.tabHelp.${tab.kind}`))}`
+      : esc(tab.word))
+    .join("<br>");
+  return helpPopover(
+    t(lang, "shell.tabHelpTitle"),
+    `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}`,
   );
 }
 
