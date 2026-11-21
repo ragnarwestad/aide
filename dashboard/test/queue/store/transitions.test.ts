@@ -241,12 +241,13 @@ describe("the documented reasons and the unions agree", () => {
   });
 });
 
-test("only the distinct schedule wait event cancels a waiting job (AC-2)", () => {
-  const store = makeStore();
-  const made = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
-  if (!made.ok) throw new Error(made.error);
-  store.update(made.job.id, { state: "waiting" });
-  expect(store.transition(made.job.id, "cancel").ok).toBe(false);
-  expect(store.transition(made.job.id, "cancel-schedule-wait" as TransitionEvent).ok).toBe(true);
-  expect(store.get(made.job.id)?.state).toBe("cancelled");
+test("Cancel ends a waiting job, as the schedule wait's own event does", () => {
+  for (const event of ["cancel", "cancel-schedule-wait"] as TransitionEvent[]) {
+    const store = makeStore();
+    const made = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    if (!made.ok) throw new Error(made.error);
+    store.update(made.job.id, { state: "waiting" });
+    expect(store.transition(made.job.id, event).ok).toBe(true);
+    expect(store.get(made.job.id)?.state).toBe("cancelled");
+  }
 });

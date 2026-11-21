@@ -37,6 +37,10 @@ export interface QueueRowView {
   mergeTarget?: string;
   mergeActivity?: "testing" | "merging" | "running";
   landPushStarted?: boolean;
+  /** A Merge's branch is no longer on origin, so it cannot be started again. */
+  branchGone?: boolean;
+  /** Remove took the job off Jobs. */
+  removedAt?: string;
   deploy?: { restartedAt?: string };
   spentUsd: number;
   /** The same figure in tokens. A NUMBER here, not the stored

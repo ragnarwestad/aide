@@ -32,7 +32,7 @@ export function jobsNeedingAttention(
     if (serves(group.project) && group.state === "waiting-acceptance") attention.add(group.id);
   }
   for (const job of latest.values()) {
-    if (job.state === "cancelled" || writing(job) || automaticProviderWait(job)) continue;
+    if (job.removedAt || job.state === "cancelled" || writing(job) || automaticProviderWait(job)) continue;
     if (jobKind(job) === "schedule" && !hasSchedule(job.project, job.specFolder)) continue;
     const group = job.executionGroupId && liveGroups.get(job.executionGroupId);
     if (group && (group.stoppedByUser || group.state === "prepared" || group.state === "completed")) continue;

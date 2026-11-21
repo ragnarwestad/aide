@@ -1,5 +1,6 @@
 import { canCancelScheduleWait, cancelScheduleWait, scheduleCancellationFields } from "../../queue/schedule-attempt";
 import { canCancelDeploy } from "../../queue/job-rules/activity.ts";
+import { handleJobRowAction } from "./job-row/index.ts";
 import { stopLand } from "../land-job/control.ts";
 import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
@@ -406,6 +407,9 @@ export async function handleJobActionRoutes(
     return json({ ok: true, job: result.job });
   }
 
+  const rowAction = await handleJobRowAction(ctx, req, path);
+  if (rowAction) return rowAction;
+
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);
   if (tailEdit) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -478,6 +482,8 @@ function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
   if (job.state === "running" && jobKind(job) === "land") stopLand(job.id);
   const result = endStep(ctx.queue, job.id, "cancel", {
     ...(jobKind(job) === "schedule" ? scheduleCancellationFields : {}),
+    // A usage-limit wait cancelled is not retried when the limit resets.
+    ...(job.state === "waiting" ? { usageLimitWait: undefined, usageLimitProbe: undefined, stopReason: undefined } : {}),
     finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined,
   });
   if (!result.ok && job.state === "done" && job.landing) cancelLanding(job.id);
@@ -487,3 +493,4 @@ function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
   }
   return result;
 }
+

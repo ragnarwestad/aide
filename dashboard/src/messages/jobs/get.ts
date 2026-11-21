@@ -4,6 +4,7 @@ import type { Message } from "../types.ts";
 import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import { jobPresentation } from "../../render/ui/job-state/presentation.ts";
 import { getUsageLimitMessage } from "../usage-limit/get.ts";
+import { heldBackResolvesOnItsOwn } from "./holds.ts";
 
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
@@ -40,7 +41,9 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
   }
   if (row.errorReason === "held-back") {
     const text = getUsageLimitMessage({ ...row, steps: [...row.steps] }, lang, Date.now())?.text ?? formatSentence(lang, row.error);
-    if (text) return { variant: shown.queued ? "info" : "waiting", text };
+    // A hold that clears by itself is information, whatever the row reads:
+    // a deploy held back after it started reads as running.
+    if (text) return { variant: shown.queued || heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
   return undefined;
 }

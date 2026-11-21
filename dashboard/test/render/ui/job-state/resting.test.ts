@@ -65,8 +65,10 @@ describe("specStateChip() on a stopped row", () => {
   });
 });
 
-test("a deploy's automatic hold uses the shared Queued label (AC-3, AC-7)", () => {
-  expect(specStateChip(row({ steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } }), "en")).toContain(t("en", "list.state.queued"));
+test("a deploy held back before it starts reads Queued, and one held back after it started reads as running (AC-3, AC-7)", () => {
+  const held: Partial<QueueRowView> = { steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } };
+  expect(specStateChip(row({ ...held, state: "queued" }), "en")).toContain(t("en", "list.state.queued"));
+  expect(specStateChip(row({ ...held, state: "running" }), "en")).toContain(GERUND_EN.deploy);
 });
 
 // An ended job's chip on the Jobs tab and the specs list reads the state's

@@ -10,7 +10,7 @@ import { waitForDeploy } from "../deploy-job/landing-hold.ts";
 // earlier removes the one dependency the runner stage would otherwise
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
-import type { BranchStatusChecker } from "../../git/branch-status.ts";
+import { DEFAULT_TTL_MS, LS_REMOTE_NO_MATCH, lsRemoteBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,
@@ -79,10 +79,24 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     targets.set(project, pending);
     return pending;
   }
+  // Whether a failed Merge's branch has left origin, asked at most once
+  // every 30 seconds per branch: a page draws the row often.
+  const gone = new Map<string, { at: number; answer: Promise<boolean | undefined> }>();
+  function branchGone(project: string, branch: string): Promise<boolean | undefined> {
+    const key = JSON.stringify([project, branch]);
+    const hit = gone.get(key);
+    if (hit && Date.now() - hit.at < DEFAULT_TTL_MS) return hit.answer;
+    const answer = inputs.gitRun(inputs.machineryProjectDir(project), lsRemoteBranch(branch))
+      .then((found) => found.code === LS_REMOTE_NO_MATCH ? true : found.code === 0 ? false : undefined)
+      .catch(() => undefined);
+    gone.set(key, { at: Date.now(), answer });
+    return answer;
+  }
   const jobRowCtx: JobRowContext = {
     queue: inputs.queue,
     store: inputs.store,
     mergeTarget,
+    branchGone,
   };
   function jobRow(job: Job) {
     return jobRowImpl(jobRowCtx, job);

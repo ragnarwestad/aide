@@ -1,5 +1,3 @@
-import { modelFields, type ScheduleFormOptions } from "../schedule-page/form.ts";
-import { scheduleNameOf } from "../../../project/spec-names.ts";
 // A scheduled job's row on the Jobs tab, in the Specs list's own
 // shape: a title line, a state line and a gap, in the same columns. It has no
 // spec folder, phases or target for the list's row builder to read, so it is
@@ -19,7 +17,7 @@ import { scheduleNameOf } from "../../../project/spec-names.ts";
 
 import { t, type Language } from "../../../i18n";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
-import { askButton, commitFacts, confirmDialog, foldArrow, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
+import { askButton, commitFacts, confirmDialog, foldArrow, headerMenu, pips, rowMessage, stepLabel, type PipKind, type ProgressStepState } from "../../ui/components";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -29,14 +27,15 @@ import type { SpecsFilter } from "../specs-list";
 import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
-import { jobControl, jobKey, jobRowKind, jobTitle, scheduleJobLinks } from "./rows.ts";
+import { jobKey, jobRowKind, jobTitle, scheduleJobLinks } from "./rows.ts";
+import { jobActions, type JobAction } from "../../../queue/job-rules/job-actions.ts";
+import { ICON_MORE } from "../../ui/components/icons.ts";
 import { getJobMessage } from "../../../messages/jobs/get.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export type { JobStep };
 
 export interface JobRowOptions {
-  scheduleOptions?: (project: string, name: string) => ScheduleFormOptions | undefined;
   lang: Language;
   now: number;
   /** How the rows are folded, from the address: `open` names the rows shown open. */
@@ -92,35 +91,45 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** Start retries a schedule with its own choices, or queues a Merge's source branch again.
- *  Cancel asks first; the dialog posts the
- *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(row: QueueRowView, kind: "cancel" | "start", lang: Language, o: JobRowOptions): string {
-  if (kind === "start" && currentStep(row) === "schedule") {
-    const name = scheduleNameOf(row.specFolder);
-    const opts = o.scheduleOptions?.(row.project, name);
-    if (!opts) return "";
-    const id = `jobrun-${row.id}`;
-    return askButton({ label: t(lang, "jobs.start"), dialogId: id, variant: "primary" }) + confirmDialog(lang, {
-      id, title: t(lang, "jobs.start"),
-      control: (formId) => modelFields(opts, lang, formId),
-      ok: { variant: "primary", pending: t(lang, "list.starting") },
-      post: { action: `/api/queue/schedule/${encodeURIComponent(row.project)}/${encodeURIComponent(name)}/run`,
-        hook: "actionform", hidden: { sourceJobId: row.id } },
-    });
-  }
-  const id = `jobask-${row.id}`;
-  const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
-  return (
-    askButton({ label: t(lang, "list.cancel"), dialogId: id, variant: "primary" }) +
-    confirmDialog(lang, {
+/** One action's dialog: Cancel stops the job, Start runs a failed Merge
+ *  again as the same job, Remove takes the row off Jobs. Each asks first and
+ *  posts its route; the rows are redrawn in place. */
+function actionDialog(row: QueueRowView, action: JobAction, name: string, lang: Language): { id: string; dialog: string } {
+  const id = `job${action}-${row.id}`;
+  if (action === "cancel") {
+    const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
+    return { id, dialog: confirmDialog(lang, {
       id,
       title: t(lang, "list.cancelConfirmTitle", { step }),
       sentence: t(lang, "jobs.confirmBody"),
       ok: { variant: "primary", pending: t(lang, "list.cancelling") },
       post: { action: `/api/queue/${row.id}/cancel`, hook: "actionform" },
-    })
-  );
+    }) };
+  }
+  const start = action === "start";
+  return { id, dialog: confirmDialog(lang, {
+    id,
+    title: t(lang, start ? "jobs.restartTitle" : "jobs.removeTitle", { job: name }),
+    sentence: t(lang, start ? "jobs.restartBody" : "jobs.removeBody"),
+    ok: { variant: "primary", pending: t(lang, start ? "list.starting" : "jobs.removing") },
+    post: { action: `/api/queue/${row.id}/${start ? "restart" : "remove"}`, hook: "actionform" },
+  }) };
+}
+
+const ACTION_LABEL = { cancel: "list.cancel", start: "jobs.start", remove: "project.remove" } as const satisfies Record<JobAction, string>;
+
+/** The row's one button, shown while the row is open. */
+function button(row: QueueRowView, action: JobAction, name: string, lang: Language): string {
+  const { id, dialog } = actionDialog(row, action, name, lang);
+  return askButton({ label: t(lang, ACTION_LABEL[action]), dialogId: id, variant: "primary" }) + dialog;
+}
+
+/** The card's menu: every other action the row has. */
+function menu(row: QueueRowView, actions: readonly JobAction[], name: string, lang: Language): string {
+  if (!actions.length) return "";
+  const parts = actions.map((action) => actionDialog(row, action, name, lang));
+  const content = actions.map((action, i) => `<button type="button" data-ask="${esc(parts[i]!.id)}">${esc(t(lang, ACTION_LABEL[action]))}</button>`).join("");
+  return headerMenu({ label: t(lang, "jobs.menu", { job: name }), icon: ICON_MORE, content }) + parts.map((p) => p.dialog).join("");
 }
 
 /** The job's own time: counting from its start while it goes, its span once
@@ -153,18 +162,19 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
   const key = o.key ?? jobKey(row);
   const open = openKeys(o).includes(key);
   const name = jobTitle(row, lang);
-  const kind = open ? jobControl(row) : undefined;
+  const actions = jobActions(row);
+  const shown = open && actions.button ? button(row, actions.button, name, lang) : "";
   const links = scheduleJobLinks(row);
   const report = links?.report ? `<a data-goto href="${esc(links.report)}">${esc(t(lang, "tab.report"))}</a>` : "";
   return (
     `<tr class="${SPEC_HEAD_CLASS}" id="spec-${esc(key)}" data-job="1">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${fold(key, open, `${row.project}:${name}`, o)}</td>` +
-    `<td colspan="${LIST_COLUMNS - 1}"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang, title: row.branch ? name : undefined, href: links?.settings })}${report}</div></td></tr>` +
+    `<td colspan="${LIST_COLUMNS - 1}"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: row.project, kind: jobRowKind(row), name, lang, title: row.branch ? name : undefined, href: links?.settings })}${report}</div>${menu(row, actions.menu, name, lang)}</div></td></tr>` +
     // When the job was made and a pip per step, where a spec's row has its
     // date and its phases' pips; a phone shows the pips alone.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}</span></td>` +
     `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span>` +
-    `${kind ? `<span class="actionslot">${control(row, kind, lang, o)}</span>` : ""}</td>` +
+    `${shown ? `<span class="actionslot">${shown}</span>` : ""}</td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

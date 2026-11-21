@@ -1,4 +1,3 @@
-import type { JobRowOptions } from "./job-row.ts";
 import { windowAttributes, windowControl } from "../list-window/control.ts";
 import { selectWindow, type ListWindow } from "../list-window";
 // The Jobs tab: the board's first page. Specs with recorded work,
@@ -30,7 +29,7 @@ import { groupBranch } from "../../../project/spec-names.ts";
 import { eligibleGroupMembers, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
-export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
+export { jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 export { rowInputs } from "./one-row.ts";
 
@@ -48,7 +47,6 @@ export function executionGroupRowState(group: ExecutionGroup, failed: boolean): 
 /** What the page draws: the scheduled jobs it shows, and the Specs
  *  list's options its spec rows are drawn with. */
 export interface JobsView {
-  scheduleOptions?: JobRowOptions["scheduleOptions"];
   limit?: string;
   selection?: ListWindow<{ key: string }>;
   summaryEntries?: ReturnType<typeof jobsEntries>;
@@ -133,7 +131,7 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
     return {
       key,
       html: draws(key)
-        ? markedWithKind(jobRow(job, { scheduleOptions: v.scheduleOptions, lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key }), jobRowKind(job))
+        ? markedWithKind(jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key }), jobRowKind(job))
         : "",
       place: jobPlace(job, v.shown, v.scheduleEntryExists),
       facts: jobFacts(job, now),

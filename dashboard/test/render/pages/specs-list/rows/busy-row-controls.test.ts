@@ -146,6 +146,12 @@ describe("a busy row offers only what its state allows", () => {
     expect(line).toContain(">Cancel</button>");
   });
 
+  test("a step waiting on its usage limit offers Cancel, and no Run", () => {
+    const line = openControls({ ...spec("waiting"), stopReason: "provider-limit", usageLimitWait: { until: "2099-01-01T00:00:00Z", resetKnown: true } });
+    expect(line).toContain("/api/queue/j1/cancel");
+    expect(runBtn(line)).toBe("");
+  });
+
   test("grouped queued and running jobs keep their ordinary busy controls (AC-4)", () => {
     for (const state of ["queued", "running"] as const) {
       const job = spec(state);

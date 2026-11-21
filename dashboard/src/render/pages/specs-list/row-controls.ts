@@ -1,3 +1,4 @@
+import { automaticProviderWait } from "../../../queue/job-rules/activity.ts";
 // The forms and links a spec's row draws to act on it: fold, cancel,
 // the compare links, reopen, and the one Run/Cancel control the State
 // column carries.
@@ -214,7 +215,8 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     // and the description with nothing left on the board to run again
     // from. The step's own timeout is what ends a create that hangs.
     if (busy && currentStep(g.lead!) === "create") return "";
-    if (busy) return actionForm(g.lead!, lang);
+    // A step waiting on its usage limit goes on by itself; Cancel stops that.
+    if (busy || (g.lead && automaticProviderWait(g.lead))) return actionForm(g.lead!, lang);
     if (!action) return "";
     // Primary, like every row's one action. It was
     // secondary until then, on the argument that a column of primary

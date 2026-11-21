@@ -251,6 +251,8 @@ export interface Job {
   landFrom?: string;
   /** Stop is unavailable once a standalone Land has begun publishing. */
   landPushStarted?: boolean;
+  /** When Remove took the job off Jobs. It stays in the queue for its spec's history. */
+  removedAt?: string;
   /** A `reopen` job that also resets the analysis, the plan and the
    *  status — handed to `aide-run-spec` as `--reset-files`.
    *  Absent, a reopen keeps the files. Only a job whose steps are

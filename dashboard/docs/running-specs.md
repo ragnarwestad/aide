@@ -947,12 +947,24 @@ whole history. The Logs tab keeps every attempt in the current work round, inclu
 A create that ended without a spec has no row. It shows as the Specs list's message for it, above the table, with Try
 again and Dismiss, until Dismiss is pressed on either page.
 
-A scheduled job keeps its own row after it finishes. A failed run counts as waiting for the user until a newer
-job for the same schedule entry exists or the entry is deleted. The row then becomes finished but
-stays in the history.
+A job row shows one button at a time; any other action it has is in the card's menu at its top right. What a
+scheduled job's, a deploy's and a Merge's row offers is one table the page and the server share
+(`queue/job-rules/job-actions.ts`):
 
-A Merge has no Start; another try is a new Merge. A failed create is a separate message and has its own Dismiss. The queue keeps
-the newest 1000 jobs.
+| Job | Queued, running | Cancelled | Failed |
+| --- | --- | --- | --- |
+| Scheduled job | Cancel, also while it waits on its usage limit | Remove | Remove |
+| Deploy | Cancel while queued or held back, nothing once its fetch has begun | – | Remove |
+| Merge | Cancel until its push begins | – | Start, with Remove in the menu; Remove alone once its branch has left origin |
+
+A scheduled job is run again with Run now on its project's Schedule tab, not from its row. Start on a failed Merge
+queues the same job again, with the branch as it is on origin then. Remove takes the row off Jobs and out of the
+count of jobs needing the user; the job stays in the queue's history. Nothing leaves Jobs on its own: every Merge
+attempt keeps its row until it is removed.
+
+A failed scheduled run counts as waiting for the user until it is removed, a newer job for the same schedule entry
+exists, or the entry is deleted. A failed create is a separate message and has its own Dismiss. The queue keeps the
+newest 1000 jobs.
 
 The board's own deploy is a job under the tracking key `deploy`, a step the server runs itself, so it takes no slot
 (`takesSlot`, `queue/steps.ts`). The Deploy button on the board's own project queues it

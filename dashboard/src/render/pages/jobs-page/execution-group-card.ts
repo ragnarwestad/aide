@@ -37,7 +37,8 @@ const GROUP_STATE_KEY = {
   prepared: "list.groupState.prepared",
   queued: "list.groupState.queued",
   running: "list.groupState.running",
-  stopped: "list.groupState.stopped",
+  // A stopped group reads as a job does: Cancelled when a person stopped it, Failed otherwise.
+  stopped: "list.state.failed",
   // The words a spec's own badge says in the same place.
   "waiting-acceptance": "wordPhase.badgeHeldBack",
   archiving: "list.groupState.archiving",
@@ -54,12 +55,14 @@ export function executionGroupStateLabel(group: ExecutionGroup, members: readonl
   const lead = (group.state === "archiving" ? archiveJob : undefined) ?? members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
   const state = executionGroupDisplayState(group, lead);
   const position = state === "queued" || lead?.queuePosition?.id ? lead?.queuePosition : undefined;
-  return position ? t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total }) : t(lang, GROUP_STATE_KEY[state]);
+  if (position) return t(lang, "list.stateQueuedPosition", { n: position.n, total: position.total });
+  return t(lang, state === "stopped" && group.stoppedByUser ? "list.state.cancelled" : GROUP_STATE_KEY[state]);
 }
 
-const groupBadgeVariant = (state: ExecutionGroup["state"]): BadgeVariant => {
+const groupBadgeVariant = (state: ExecutionGroup["state"], stoppedByUser?: boolean): BadgeVariant => {
   if (state === "running" || state === "archiving") return "running";
-  if (state === "stopped" || state === "waiting-acceptance") return "waiting";
+  if (state === "stopped") return stoppedByUser ? "waiting" : "refused";
+  if (state === "waiting-acceptance") return "waiting";
   if (state === "completed") return "done";
   return state === "prepared" ? "ready" : "idle";
 };
@@ -179,7 +182,7 @@ export function executionGroupCard(
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
     `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state${open && control && !group.queuePosition ? " hidden" : ""}>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupBadgeVariant(executionGroupDisplayState(group, archiveJob)), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state${open && control && !group.queuePosition ? " hidden" : ""}>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +

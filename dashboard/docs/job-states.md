@@ -40,7 +40,7 @@ second guard refuses a NEW job of any step for a spec whose own job reads `done`
 the landing settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
 waiting on its provider's usage limit: the board queues it again as the same job (`limit-reset`).
 
-Only `failed` waits for a person. A Merge is never started again from its row: another try is a new Merge.
+Only `failed` waits for a person. A failed Merge is started again from its row as the same job, with its branch as it is on origin then (`restart`).
 
 ## The transitions
 
@@ -59,10 +59,10 @@ stateDiagram-v2
     done --> failed: the landing's suite went red
     done --> queued: archive landing gets its automatic second attempt
     done --> cancelled: Cancel pressed while it merged
-    waiting --> cancelled: Cancel pressed on a scheduled quota wait
+    waiting --> cancelled: Cancel pressed while it waits on its usage limit
     waiting --> failed: next scheduled run due while it waited
     waiting --> queued: usage limit reset or a late check gets its automatic second attempt
-    failed --> queued: a late check gets its automatic second attempt
+    failed --> queued: a late check gets its automatic second attempt, or Start on a failed Merge
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```
@@ -140,7 +140,9 @@ A job whose process is gone but whose result is on disk is completed from that f
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
 and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
-has already finished is refused with 409 and keeps its state, except a scheduled job waiting for quota. Cancelling that wait uses `cancel-schedule-wait`, clears its automatic retry and probe metadata, and signals no process. A job cancelled while it was queued and before any
+has already finished is refused with 409 and keeps its state, except a job waiting on its usage limit. Cancelling that
+wait clears its automatic retry and probe metadata and signals no process; a scheduled job's wait uses
+`cancel-schedule-wait`, every other job's `cancel`. A job cancelled while it was queued and before any
 step started has no log, cost or result, and is removed from the queue instead of kept as `cancelled`, unless it is
 a scheduled job. Scheduled jobs keep their cancelled records so the same scheduled occurrence is not queued again;
 the next occurrence and a manual Run now are still allowed. The same retention rule applies when the queue loads.

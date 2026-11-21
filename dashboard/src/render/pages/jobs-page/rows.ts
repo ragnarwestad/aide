@@ -1,5 +1,4 @@
 import { t } from "../../../i18n";
-import { automaticProviderWait, canCancelDeploy } from "../../../queue/job-rules/activity.ts";
 import { scheduleRunPath, scheduleSettingsPath } from "../schedule-page/tabs.ts";
 // The Jobs tab's rules, as pure functions: which scheduled jobs it shows,
 // where every row stands, what a job row is called, what the line under its
@@ -33,9 +32,9 @@ export interface JobLike {
   finishedAt?: string;
   landingError?: unknown;
   results?: readonly { terminalReason?: string }[];
+  removedAt?: string;
 }
 
-type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex" | "landPushStarted"> & { stopReason?: string; usageLimitWait?: { until: string } } & Partial<Pick<QueueRowView, "errorReason" | "deploy" | "branch">> & { steps: readonly string[] };
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string; mergeTarget?: string };
 
 /** A standalone Jobs card needs a job or a record of work beyond creating the spec.
@@ -109,8 +108,8 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jo
 /** Running or landing first, then queued, then the rest; the newest change first in each. */
 export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
 
-/** Standalone job cards, with only the latest Merge attempt per project and branch.
- *  Queue history is newest first. Older attempts keep their own detail URL. */
+/** Standalone job cards: every attempt, Merge attempts for one branch
+ *  included, until Remove takes one off. Nothing leaves Jobs on its own. */
 export function jobsShown<T extends JobLike>(
   jobs: T[],
   o: {
@@ -118,15 +117,7 @@ export function jobsShown<T extends JobLike>(
   },
 ): T[] {
   void o;
-  const mergeBranches = new Set<string>();
-  return jobs.filter((job) => {
-    if (!requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow) return false;
-    if (jobKind(job) !== "land" || !job.branch) return true;
-    const key = JSON.stringify([job.project, job.branch]);
-    if (mergeBranches.has(key) && !inFlight(job)) return false;
-    mergeBranches.add(key);
-    return true;
-  });
+  return jobs.filter((job) => !job.removedAt && requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow);
 }
 
 export interface SpecRound<T extends JobLike> {
@@ -217,25 +208,6 @@ export function scheduleStreamKey(key: string): string | undefined {
   const folder = key.slice(slash + 1);
   if (slash <= 0 || key.includes(":") || !isScheduleKey(folder)) return undefined;
   return phaseKey(key.slice(0, slash), folder, "schedule");
-}
-
-/** What a row offers: Cancel for a job that is queued, running or landing.
- *  Settled schedules offer Start; quota waits offer Cancel.
- *  A Merge offers no Start: another try is a new Merge. A Close or
- *  Reopen offers nothing: stopped part-way, it would leave the spec between
- *  its two places. A deploy offers Cancel while queued or held back before its restart;
- *  a restart already fired cannot be stopped. */
-export function jobControl(row: StateRow): "cancel" | "start" | undefined {
-  const step = row.steps[row.stepIndex];
-  if (step === "schedule" && !row.landing) {
-    if (automaticProviderWait(row)) return "cancel";
-    if (row.state === "cancelled" || row.state === "failed") return "start";
-  }
-  const kind = step === "close" || step === "reopen" || step === "deploy" ? step : "spec";
-  if (step === "land" && (row.landPushStarted || row.state === "cancelled")) return undefined;
-  if (!inFlight(row) || kind === "close" || kind === "reopen") return undefined;
-  if (kind === "deploy") return canCancelDeploy(row) ? "cancel" : undefined;
-  return "cancel";
 }
 
 /** A schedule's configuration and, after it ends, that run's report page. */

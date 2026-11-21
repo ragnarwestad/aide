@@ -113,7 +113,7 @@ describe("what its row says", () => {
       const { base } = board([deploy({ state, errorReason: "held-back", error })]);
       const html = await rows(base);
       expect(html).toContain(sentence(error));
-      expect(html).toContain(state === "queued" ? ">Queued 1/1<" : ">Queued<");
+      expect(html).toContain(state === "queued" ? ">Queued 1/1<" : ">Deploying<");
     }
   });
 

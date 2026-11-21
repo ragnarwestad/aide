@@ -30,7 +30,13 @@ export function jobPresentation(row: Facts, step?: string, position?: QueueRowVi
     if ((row.errorReason === "held-back" && !heldBackResolvesOnItsOwn(row)) ||
         (!row.landing && (row.state === "done" || row.state === "failed") && ["acceptance-criteria-unticked", "approach-choice"].includes(terminal ?? ""))) {
       state = "needs-action";
-    } else if ((active || row.state === "done") && (retry || waiting || heldBackResolvesOnItsOwn(row) || (row.state === "queued" && !row.landing))) {
+    } else if (retry) {
+      // A usage-limit wait goes on by itself once the limit resets: Waiting, not a place in the queue.
+      state = "waiting";
+    } else if (current === "deploy" && row.state === "running") {
+      // A deploy held back behind a landing is running: it has begun, and Cancel stops it.
+      state = "running";
+    } else if ((active || row.state === "done") && (waiting || heldBackResolvesOnItsOwn(row) || (row.state === "queued" && !row.landing))) {
       state = "queued";
     } else if (row.steps?.[0] === "land" && writing(row)) {
       state = row.mergeActivity ?? "running";

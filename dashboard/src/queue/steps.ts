@@ -199,7 +199,8 @@ export type TransitionEvent =
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
   | "cancel-schedule-wait" // waiting -> cancelled: Cancel pressed on a scheduled quota wait
   | "replace-schedule-wait" // waiting -> failed: the next scheduled run was due while it waited
-  | "limit-reset"; // waiting -> queued: its provider's usage limit has reset
+  | "limit-reset" // waiting -> queued: its provider's usage limit has reset
+  | "restart"; // failed -> queued: Start pressed on a failed Merge
 
 /** The one table every state change is checked against. Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -242,10 +243,12 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
   // shared files once its dependencies are in, a landing retried.
   failed: {
     "retry-late": "queued",
+    restart: "queued",
   },
   // A provider wait can restart after reset, end as cancelled on Cancel, or
   // fail when its schedule's next run is due first.
   waiting: {
+    cancel: "cancelled",
     "cancel-schedule-wait": "cancelled",
     "replace-schedule-wait": "failed",
     "retry-late": "queued",

@@ -157,9 +157,9 @@ function decidePhase(
   // State column says is archiving is the row saying two things at once
   // (reported 2026-08-23). Only the pip moved before, and a pip is not
   // a word.
-  if (attempt && shown && ["queued", "needs-action", "testing", "merging"].includes(shown.state) &&
+  if (attempt && shown && ["queued", "needs-action", "waiting", "testing", "merging"].includes(shown.state) &&
       (!history.step || history.step === attempt.steps[attempt.stepIndex] || !!pending)) {
-    return { pip: shown.queued ? "queued" : shown.state === "needs-action" ? "waiting" : "now",
+    return { pip: shown.queued ? "queued" : shown.state === "needs-action" || shown.state === "waiting" ? "waiting" : "now",
       badge: { variant: shown.variant, label: shown.waiting
         ? t(lang, "list.stateQueuedPosition", { n: shown.waiting.n, total: shown.waiting.total })
         : capitalizeFirst(stateWord({ ...attempt, queuePosition: shown.waiting }, lang)) },

@@ -731,12 +731,14 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It
   offers Cancel while queued and nothing once it runs. The open row has a line per step (`deploySteps`,
   `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed, as one message
-  line under its state, open or shut. A running deploy that waits for a merge reads "Queued".
+  line under its state, open or shut. A deploy held back for a merge reads Queued before it has started and as
+  running once it has, with Cancel until its fetch begins.
 - **A standalone Merge names its destination and source**, for example "Merge to trunk · feature/topic".
   The destination is the project's current default branch; an unreadable destination is shown as unknown.
   Merge is also the type filter and the retry action. Archive keeps its own step name.
-  Automatic waits read Queued on cards and open rows, with the reason and queue position when available;
-  those jobs appear under Queued. A wait that needs a person keeps its action message and is outside that filter.
+  A hold that clears by itself reads Queued on cards and open rows, with the reason and queue position when
+  available, and appears under Queued. A step waiting on its provider's usage limit reads Waiting and appears under
+  Waiting. A wait that needs a person keeps its action message and is outside both filters.
   A Merge running its tests reads Testing; while merging it reads Merging. With no live task information it reads Running.
 - **A press changes the button at once, without changing its width.**
   It disables, gains the `busy` look and a spinner ahead of its own label — the label itself stays put, only

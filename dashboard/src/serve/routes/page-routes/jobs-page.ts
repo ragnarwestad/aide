@@ -106,10 +106,6 @@ export async function jobsPage(
   );
   if (!unchanged()) return retry ? jobsPage(ctx, req, url, path, false) : new Response("List changed; refresh the list.", { status: 409 });
   const view: JobsView = {
-    scheduleOptions: (project, name) => {
-      const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
-      return entry ? { ...rowOptions, entry, action: "" } : undefined;
-    },
     selection, summaryEntries: summaries, summaryExecutionGroups: cut ? undefined : activeExecutionGroups(summaryView),
     limit: url.searchParams.get("limit") ?? undefined,
     shown: kept.shown.map((j) => built.get(j.id)!),

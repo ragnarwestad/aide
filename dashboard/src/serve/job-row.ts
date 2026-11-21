@@ -18,11 +18,15 @@ export interface JobRowContext {
   queue: QueueStore;
   store: AideRunStore;
   mergeTarget?: (project: string) => Promise<string | null | undefined>;
+  /** Whether origin no longer has a failed Merge's branch; undefined when origin could not be asked. */
+  branchGone?: (project: string, branch: string) => Promise<boolean | undefined>;
 }
 
 export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView> {
   const standaloneMerge = jobKind(job) === "land";
   const target = standaloneMerge ? Promise.resolve().then(() => ctx.mergeTarget?.(job.project)).catch(() => undefined) : undefined;
+  const gone = standaloneMerge && job.state === "failed" && job.branch
+    ? Promise.resolve().then(() => ctx.branchGone?.(job.project, job.branch!)).catch(() => undefined) : undefined;
   const mark = standaloneMerge && writing(job)
     ? jobMarks(job, "en").marks.findLast(mark => mark.state === "running" && /^Step [1-4] of 4$/.test(mark.key))?.key : undefined;
   const mergeActivity = mark === "Step 2 of 4" ? "testing" : mark === "Step 1 of 4" ? "merging" : mark ? "running" : undefined;
@@ -53,6 +57,8 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     mergeTarget: (await target) ?? undefined,
     mergeActivity,
     landPushStarted: job.landPushStarted,
+    branchGone: (await gone) || undefined,
+    removedAt: job.removedAt,
     deploy: job.deploy,
     model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no

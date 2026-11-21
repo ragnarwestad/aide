@@ -9,7 +9,6 @@ import { describe, expect, test } from "bun:test";
 import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages/keys.ts";
 import {
   byTabPlace,
-  jobControl,
   scheduleJobLinks,
   jobKey,
   jobPlace,
@@ -295,11 +294,6 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     expect(jobTitle(row)).toBe("Reopen aide:534");
   });
 
-  test("offers no Cancel: a half-done move would leave the spec between two places", () => {
-    for (const state of ["queued", "running"] as const) expect(jobControl(at("reopen", { state }))).toBeUndefined();
-    expect(jobControl(at("close", { state: "done", landing: true }))).toBeUndefined();
-  });
-
   test("while one is in flight it stands for its spec, whose own row is not drawn", () => {
     const shown = [
       at("close", { state: "running", specFolder: "670-a" }),
@@ -333,22 +327,6 @@ describe("the icon kind of a job row", () => {
   });
 });
 
-describe("what a job row offers to stop it", () => {
-  test("a queued job that is not landing offers Cancel", () => {
-    expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
-  });
-
-  test("a running or a landing job offers Cancel", () => {
-    expect(jobControl(sched({ state: "running" }))).toBe("cancel");
-    expect(jobControl(sched({ state: "done", landing: true }))).toBe("cancel");
-    expect(jobControl(sched({ state: "queued", landing: true }))).toBe("cancel");
-  });
-
-  test("a finished job offers nothing", () => {
-    expect(jobControl(sched({ state: "done" }))).toBeUndefined();
-  });
-});
-
 describe("a deploy is a job row of its own, named for the deploy", () => {
   const deploy = (o: Partial<J> = {}): J => job({ specFolder: "deploy", steps: ["deploy"], ...o });
 
@@ -376,14 +354,6 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
     const row = deploy({ project: "aide" });
     expect(jobTitle(row)).toBe("Deploy aide");
     expect(jobKey(row)).toBe("aide/deploy:deploy");
-  });
-
-  test("offers Cancel while queued or waiting, but not once the restart is committed", () => {
-    expect(jobControl(deploy({ state: "queued" }))).toBe("cancel");
-    expect(jobControl(deploy({ state: "queued", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
-    expect(jobControl(deploy({ state: "running" }))).toBeUndefined();
-    expect(jobControl(deploy({ state: "running", errorReason: "held-back" } as Partial<J>))).toBe("cancel");
-    expect(jobControl(deploy({ state: "running", errorReason: "held-back", deploy: { restartedAt: "2026-11-17T00:00:00Z" } } as Partial<J>))).toBeUndefined();
   });
 });
 
@@ -456,27 +426,6 @@ test("Jobs dates drive both the spec row and its position relative to Deploy, wh
 });
 
 
-test("Land offers Cancel only before its push boundary", () => {
-  const row = { state: "running" as const, steps: ["land"], stepIndex: 0 };
-  expect(jobControl(row)).toBe("cancel");
-  expect(jobControl({ ...row, landPushStarted: true })).toBeUndefined();
-});
-
-
-test("a Merge that ended offers no Start: another try is a new Merge", () => {
-  for (const state of ["cancelled", "failed", "done"] as const) {
-    expect(jobControl({ state, steps: ["land"], stepIndex: 0, branch: "fix/topic" })).toBeUndefined();
-  }
-});
-
- test("schedule controls distinguish quota waits and terminal retries (AC-1, AC-3, AC-4)", () => {
-  const waiting = { ...sched({ state: "waiting" }), stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z" } };
-  expect(jobControl(waiting)).toBe("cancel");
-  expect(jobControl(sched({ state: "queued" }))).toBe("cancel");
-  expect(jobControl(sched({ state: "running" }))).toBe("cancel");
-  for (const state of ["cancelled", "failed"] as const) expect(jobControl(sched({ state }))).toBe("start");
-  expect(jobControl({ ...waiting, landing: true })).toBe("cancel");
- });
 test("merge titles use the resolved target and visible source without guessing main (AC-2)", () => {
   const base = { project: "p", specFolder: "land", steps: ["land"], stepIndex: 0, branch: "feature/topic" };
   expect(jobTitle({ ...base, mergeTarget: "trunk" })).toBe("Merge to trunk · feature/topic");
@@ -484,12 +433,11 @@ test("merge titles use the resolved target and visible source without guessing m
   expect(jobTitle(base)).toBe("Merge to unknown default branch · feature/topic");
 });
 
-test("Jobs shows only the newest Merge attempt for each project and branch", () => {
+test("Jobs keeps every Merge attempt until Remove takes one off", () => {
   const merge = { specFolder: "land", steps: ["land"], branch: "feat/topic" };
   const retry = job({ ...merge, state: "queued" });
   const cancelled = job({ ...merge, state: "cancelled" });
   const failed = job({ ...merge, state: "failed" });
-  const otherBranch = job({ ...merge, branch: "feat/other", state: "cancelled" });
-  const otherProject = job({ ...merge, project: "another", state: "cancelled" });
-  expect(ids([retry, cancelled, failed, otherBranch, otherProject])).toEqual([retry.id, otherBranch.id, otherProject.id]);
+  const removed = job({ ...merge, state: "failed", removedAt: "2026-11-21T10:00:00Z" });
+  expect(ids([retry, cancelled, failed, removed])).toEqual([retry.id, cancelled.id, failed.id]);
 });

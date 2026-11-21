@@ -8,14 +8,16 @@ const row = (patch: Partial<QueueRowView> = {}): QueueRowView => ({
   state: "running", spentUsd: 0, timeoutSec: 0, createdAt: "now", ...patch,
 });
 const position = { id: "merge:one", n: 2, total: 4, operation: "land", reason: "Repository busy" };
-test("automatic holds queue Archive, Merge and Deploy with or without positions (AC-3)", () => {
-  for (const step of ["archive", "land", "deploy"]) for (const queuePosition of [undefined, { ...position, operation: step }]) {
+test("automatic holds queue Archive and Merge with or without positions; a held deploy is running; a usage wait is waiting (AC-3)", () => {
+  for (const step of ["archive", "land"]) for (const queuePosition of [undefined, { ...position, operation: step }]) {
     const got = jobPresentation(row({ steps: [step], queuePosition,
       errorReason: "held-back", error: { key: "runner.landingPause" } }));
     expect(got.state).toBe("queued");
     expect(got.waiting).toEqual(queuePosition);
   }
-  expect(jobPresentation(row({ state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } })).state).toBe("queued");
+  expect(jobPresentation(row({ steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } })).state).toBe("running");
+  expect(jobPresentation(row({ steps: ["deploy"], state: "queued", errorReason: "held-back", error: { key: "runner.landingPause" } })).state).toBe("queued");
+  expect(jobPresentation(row({ state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } })).state).toBe("waiting");
 });
 test("person-dependent holds and declined steps override numbered membership (AC-4)", () => {
   expect(jobPresentation(row({ state: "queued", queuePosition: position, errorReason: "held-back", error: "Choose an approach" })).state).toBe("needs-action");

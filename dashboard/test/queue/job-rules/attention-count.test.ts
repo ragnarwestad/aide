@@ -62,3 +62,9 @@ test("a group member that finished its own steps waits on its group, not on the 
   const group = { id: "group", project: "aide", state: "running" } as ExecutionGroup;
   expect(counts([job("1-member", { state: "done", steps: ["analyze", "implement"], stepIndex: 1, executionGroupId: group.id })], [group])).toBe(0);
 });
+
+test("a failed job that has been removed from Jobs no longer counts", () => {
+  const failedDeploy = job("deploy", { steps: ["deploy"] });
+  expect(counts([failedDeploy])).toBe(1);
+  expect(counts([{ ...failedDeploy, removedAt: "2026-11-21T10:00:00Z" }])).toBe(0);
+});

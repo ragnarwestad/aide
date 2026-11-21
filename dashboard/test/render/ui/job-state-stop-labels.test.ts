@@ -95,15 +95,15 @@ describe("endingWord()", () => {
   });
 });
 
-test("a scheduled provider retry is Queued until its automatic retry is cancelled", () => {
+test("a usage-limit wait reads Waiting, with or without its automatic retry", () => {
   const job = { ...stopped("provider-limit"), usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } };
-  expect(stateWord(job, "en")).toBe("queued");
+  expect(stateWord(job, "en")).toBe("waiting");
   expect(stateWord({ ...job, usageLimitWait: undefined }, "en")).toBe("waiting");
 });
 
 test("a phase waiting to retry takes precedence over an older completion", () => {
   const job = { ...stopped("provider-limit"), steps: ["analyze", "implement"], stepIndex: 0,
     usageLimitWait: { until: "2099-01-01T12:00:00Z", resetKnown: true } };
-  expect(wordPhase(true, undefined, job, { step: "analyze" }).pip).toBe("queued");
+  expect(wordPhase(true, undefined, job, { step: "analyze" }).pip).toBe("waiting");
   expect(wordPhase(true, undefined, job, { step: "implement" }).pip).toBe("past");
 });
