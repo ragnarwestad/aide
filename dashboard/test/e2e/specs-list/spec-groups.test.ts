@@ -60,7 +60,7 @@ test("Running keeps one group card and its member detail open in place (AC-1, AC
   await spec.waitFor({ state: "visible" });
 });
 
-test("Running switches between group state and action without navigation (AC-5)", async () => {
+test("opening a group shows its action beside its state, without navigation", async () => {
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const group = page.getByRole("button", { name: "Release", exact: true });
   const card = page.locator("tr[data-spec-group]");
@@ -71,11 +71,11 @@ test("Running switches between group state and action without navigation (AC-5)"
   await state.waitFor({ state: "visible" });
   await action.waitFor({ state: "hidden" });
   await group.click();
-  await state.waitFor({ state: "hidden" });
   await action.waitFor({ state: "visible" });
-  await group.click();
   await state.waitFor({ state: "visible" });
+  await group.click();
   await action.waitFor({ state: "hidden" });
+  await state.waitFor({ state: "visible" });
   expect(page.url()).toBe(url);
 });
 

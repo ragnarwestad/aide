@@ -380,17 +380,23 @@ table.speclist[data-list="jobs"] thead th[data-col="spec"] .sortlink svg { posit
 table.speclist[data-list="jobs"] thead th[data-col="spec"] .sortlink.asc svg { transform: rotate(180deg); }
 table.speclist[data-list="jobs"] thead .colaction { position: absolute; top: 50%; color: var(--muted);
   left: calc(4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 1.25rem + 12px + 20px); transform: translate(-50%, -50%); }
-table.speclist[data-list="jobs"] tr.specstate .createdpips > .actionslot { display: flex; justify-content: flex-end; margin-left: auto; }
-table.speclist[data-list="jobs"] tr.specstate .createdpips:has(> .actionslot) { width: 100%; }
+table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips > .actionslot:not([hidden]) { display: flex; justify-content: flex-end; margin-left: auto; }
+table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips:has(> .actionslot) { width: 100%; }
 /* On a desktop an open job's button stands over a spec's Select column,
    whatever the job: the date's cell spans the Title and phase columns, 1 : 4 at
    every width (the column group, below), so the phase column starts a
    fifth of the way in, and the box sits past the AI and Model selects. */
 @media (min-width: 40.0625rem) {
-  table.speclist[data-list="jobs"] tr.specstate .createdpips:has(> .actionslot) { position: relative; }
-  table.speclist[data-list="jobs"] tr.specstate .createdpips > .actionslot {
+  table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips:has(> .actionslot) { position: relative; }
+  table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips > .actionslot {
     position: absolute; top: 50%; width: 2.5rem; justify-content: center; margin: 0;
     left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px); transform: translateY(-50%); }
+  /* A group's card is inset in the list by its own padding, and its
+     members' cards further still. */
+  table.speclist[data-list="jobs"] tr.groupline .createdpips > .actionslot {
+    left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px + 2px); }
+  table.speclist[data-list="jobs"] tbody[data-group-members] tr.specstate .createdpips > .actionslot {
+    left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px + 12px); }
   /* The Select column stands 20px further from the Model select than the
      row's gap, so the button over it clears the select. */
   table.speclist[data-list="jobs"] tr.subrow .modelcell > .row > .phase[data-phase] { margin-left: 20px; }

@@ -29,10 +29,9 @@ table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 0; padding-b
 table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
 table.speclist.groupcard > tbody > tr.groupline .pipslot { display: flex; margin: 0; padding-left: 0; }
 table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] { text-align: center; }
-table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] > .actionslot {
-  display: flex; width: auto; justify-content: center; }
-table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] > :is(.badgeslot, .actionslot)[hidden] {
-  display: none; }
+table.speclist.groupcard > tbody > tr.groupline .actionslot[hidden] { display: none; }
+/* An open card's action stands where its member pips are, so they give way. */
+table.speclist.groupcard > tbody > tr.grouphead:has([data-group-toggle][aria-expanded="true"]) + tr.groupline .pipslot { display: none; }
 /* The first member is the first row of its table, which the list's own
    first row gives up its top edge for; a member's card keeps it. */
 table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--card-edge, var(--line)); }

@@ -181,9 +181,11 @@ export function executionGroupCard(
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
     `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
-    `<span class="pipslot">${memberPips}</span></span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state${open && control && !group.queuePosition ? " hidden" : ""}>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
-    (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</td>` +
+    `<span class="pipslot">${memberPips}</span>` +
+    // Its action, while the card is open, before the state, as a job's is.
+    (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</span></td>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
+    `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     // What the group waits for, outside the body the fold hides.

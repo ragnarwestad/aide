@@ -21,9 +21,7 @@ export function syncSpecGroups(root: ParentNode): void {
     const action = group.querySelector<HTMLElement>("[data-group-action]");
     const actionForm = action?.querySelector<HTMLFormElement>("form");
     if (actionForm) syncGroupPhaseAction(actionForm);
-    const state = group.querySelector<HTMLElement>("[data-group-state]");
     if (action) action.hidden = !open;
-    if (state) state.hidden = open && !!action;
   }
 }
 
