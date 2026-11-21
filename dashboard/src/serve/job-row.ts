@@ -18,14 +18,14 @@ export interface JobRowContext {
   queue: QueueStore;
   store: AideRunStore;
   mergeTarget?: (project: string) => Promise<string | null | undefined>;
-  /** Whether origin no longer has a failed Merge's branch; undefined when origin could not be asked. */
+  /** Whether origin no longer has a failed or cancelled Merge's branch; undefined when origin could not be asked. */
   branchGone?: (project: string, branch: string) => Promise<boolean | undefined>;
 }
 
 export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView> {
   const standaloneMerge = jobKind(job) === "land";
   const target = standaloneMerge ? Promise.resolve().then(() => ctx.mergeTarget?.(job.project)).catch(() => undefined) : undefined;
-  const gone = standaloneMerge && job.state === "failed" && job.branch
+  const gone = standaloneMerge && (job.state === "failed" || job.state === "cancelled") && job.branch
     ? Promise.resolve().then(() => ctx.branchGone?.(job.project, job.branch!)).catch(() => undefined) : undefined;
   const mark = standaloneMerge && writing(job)
     ? jobMarks(job, "en").marks.findLast(mark => mark.state === "running" && /^Step [1-4] of 4$/.test(mark.key))?.key : undefined;

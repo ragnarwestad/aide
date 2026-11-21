@@ -27,7 +27,9 @@ export async function handleJobRowAction(ctx: RoutesContext, req: Request, path:
       ? `origin no longer has branch ${job.branch}, so there is nothing to merge`
       : `this job does not offer ${verb === "remove" ? "Remove" : "Start"} when it is ${job.state}`;
     logRefusal(verb!, spec, reason);
-    return json({ error: reason, spec }, 409);
+    // No `spec`: these rows are not a spec's, so the page writes the
+    // reason in the line above the list rather than under a spec row.
+    return json({ error: reason }, 409);
   }
   if (action === "remove") {
     ctx.queue.update(job.id, { removedAt: new Date().toISOString() });
@@ -38,7 +40,7 @@ export async function handleJobRowAction(ctx: RoutesContext, req: Request, path:
     error: undefined, errorDetail: undefined, errorReason: undefined, stopReason: undefined,
     landingError: undefined, branchDeleteError: undefined, landPushStarted: undefined,
   });
-  if (!result.ok) return json({ error: `the job is ${result.state} and cannot be started again`, spec }, 409);
+  if (!result.ok) return json({ error: `the job is ${result.state} and cannot be started again` }, 409);
   await ctx.tickRunner();
   return json({ ok: true, job: result.job });
 }

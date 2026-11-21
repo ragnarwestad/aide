@@ -51,7 +51,10 @@ test("Start runs a cancelled Merge again, and only Remove is left once its branc
   const { base } = board([cancelledMerge("c1", "fix/still-here"), cancelledMerge("c2", "fix/gone")]);
   expect((await post(base, "/api/queue/c1/restart")).status).toBe(200);
   expect((await queue(base)).find((j) => j.id === "c1")?.state).not.toBe("cancelled");
-  expect((await post(base, "/api/queue/c2/restart")).status).toBe(409);
+  const refused = await post(base, "/api/queue/c2/restart");
+  expect(refused.status).toBe(409);
+  // No spec named: a Merge's row is not a spec's, so the page shows the reason above the list.
+  expect(((await refused.json()) as { spec?: string }).spec).toBeUndefined();
   expect((await post(base, "/api/queue/c2/remove")).status).toBe(200);
 });
 

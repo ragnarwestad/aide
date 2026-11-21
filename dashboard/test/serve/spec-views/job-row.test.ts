@@ -258,3 +258,14 @@ test("window selection keeps pending merges in the Queued filter (AC-3, AC-7)", 
   const facts = jobFacts(summary, Date.now());
   expect(jobsViewRows([{ facts, place: { band: 0, changedAt: 0 } }], { state: "queued" })).toHaveLength(1);
 });
+
+test("a failed or cancelled Merge's row asks origin whether its branch is gone", async () => {
+  const queue = makeStore();
+  const ctx = { queue, store: new AideRunStore(), branchGone: async () => true };
+  for (const state of ["failed", "cancelled"] as const) {
+    const made = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: `topic-${state}` });
+    if (!made.ok) throw new Error(made.error);
+    queue.update(made.job.id, { state, startedAt: "2026-11-20T10:00:00Z" });
+    expect((await jobRow(ctx, queue.get(made.job.id)!)).branchGone).toBe(true);
+  }
+});
