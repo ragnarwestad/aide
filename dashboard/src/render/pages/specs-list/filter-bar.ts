@@ -282,7 +282,7 @@ export const columnGroup = (specsList = false): string =>
 const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string; plain?: boolean }[] = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
-  { key: "state", label: "list.colState", attrs: ' data-col="state"' },
+  { key: "state", label: "list.colStateAlone", attrs: ' data-col="state"' },
   { key: "started", label: "list.colTime", attrs: ' data-col="started"' },
   {
     key: "cost",
@@ -374,7 +374,12 @@ export function sortHead(
     (o.specsList ? SPEC_HEADINGS : HEADINGS).map((h) => {
       const label = h.key === "spec" ? o.specLabel : h.label;
       if (h.plain) return `<th${h.attrs}>${esc(t(lang, label))}</th>`;
-      return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
+      const cell = th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
+      // An open job's button stands at the right end of this column, just
+      // before the state, so the column heads it there too.
+      return h.key === "spec" && !o.specsList
+        ? cell.replace(/<\/th>$/, `<span class="colaction">${esc(t(lang, "list.colAction"))}</span></th>`)
+        : cell;
     }).join("") +
     `</tr></thead>`
   );

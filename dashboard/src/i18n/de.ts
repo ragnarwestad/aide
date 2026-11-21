@@ -134,7 +134,7 @@ export const de: Record<TranslationKey, string> = {
   "list.searchClearTitle": "Suche löschen",
   "list.search": "Suchen",
   "list.colSpec": "Spezifikation",
-  "list.colState": "Zustand/Aktion",
+  "list.colAction": "Aktion",
   "list.colStateAlone": "Zustand",
   "list.colActions": "Aktionen",
   "list.colCreated": "Erstellt",

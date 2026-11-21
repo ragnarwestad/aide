@@ -135,7 +135,7 @@ export const en = {
   "list.searchClearTitle": "Clear the search",
   "list.search": "Search",
   "list.colSpec": "Specification",
-  "list.colState": "State/Action",
+  "list.colAction": "Action",
   "list.colStateAlone": "State",
   "list.colActions": "Actions",
   "list.colCreated": "Created",

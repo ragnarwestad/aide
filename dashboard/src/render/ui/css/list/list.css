@@ -371,18 +371,31 @@ table.list td[data-col="state"] {
    default each fell into. */
 table.list td[data-col="started"],
 table.list td[data-col="cost"] { text-align: center; }
-/* And the slot gives up the fixed width it holds a COLUMN still with:
-   6.5rem is wider than what the clearance leaves on either side, so a
-   slot that kept it had nothing left to centre in. Centred, the button
-   stays on the column's midline whatever its label says — which is the
-   same promise the fixed width makes on the row above. */
 table.list tr.subrow[data-caption="1"] td[data-col="state"] > .row { justify-content: center; }
-table.list tr.subrow[data-caption="1"] td[data-col="state"] > .row > .actionslot { width: auto; justify-content: center; }
-/* The Running list keeps a job's Stop or Cancel in the state cell, under
-   its badge: centred on the column's midline as the badge is, with the
-   row gap above it rather than touching the badge. */
-table.speclist[data-list="jobs"] tr.specstate > td[data-col="state"] > .actionslot {
-  display: flex; width: auto; justify-content: center; margin-top: var(--sp-2); }
+/* An open job row's button stands on the state's line, before the state;
+   its heading over it, in the Title heading's cell. */
+table.speclist[data-list="jobs"] thead th[data-col="spec"] { position: relative; }
+table.speclist[data-list="jobs"] thead th[data-col="spec"] .sortlink svg { position: static; transform: none;
+  margin-left: var(--sp-1); vertical-align: middle; }
+table.speclist[data-list="jobs"] thead th[data-col="spec"] .sortlink.asc svg { transform: rotate(180deg); }
+table.speclist[data-list="jobs"] thead .colaction { position: absolute; top: 50%; color: var(--muted);
+  left: calc(4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 1.25rem + 12px + 20px); transform: translate(-50%, -50%); }
+table.speclist[data-list="jobs"] tr.specstate .createdpips > .actionslot { display: flex; justify-content: flex-end; margin-left: auto; }
+table.speclist[data-list="jobs"] tr.specstate .createdpips:has(> .actionslot) { width: 100%; }
+/* On a desktop an open job's button stands over a spec's Select column,
+   whatever the job: the date's cell spans the Title and phase columns, 1 : 4 at
+   every width (the column group, below), so the phase column starts a
+   fifth of the way in, and the box sits past the AI and Model selects. */
+@media (min-width: 40.0625rem) {
+  table.speclist[data-list="jobs"] tr.specstate .createdpips:has(> .actionslot) { position: relative; }
+  table.speclist[data-list="jobs"] tr.specstate .createdpips > .actionslot {
+    position: absolute; top: 50%; width: 2.5rem; justify-content: center; margin: 0;
+    left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px); transform: translateY(-50%); }
+  /* The Select column stands 20px further from the Model select than the
+     row's gap, so the button over it clears the select. */
+  table.speclist[data-list="jobs"] tr.subrow .modelcell > .row > .phase[data-phase] { margin-left: 20px; }
+  table.speclist[data-list="jobs"] tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { margin-left: calc(var(--sp-2) + 20px); }
+}
 table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included — `0`,
    not `1%`: a PERCENTAGE width is only honoured once the table
@@ -439,6 +452,3 @@ table.list thead th { position: relative; }
   transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
 .sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }
-/* A job row whose state cell also holds its button: the date, the time
-   and the cost stand on the badge's line, not halfway down the button. */
-table.speclist[data-list="jobs"] tr.specstate:has(> td > .actionslot) > td { vertical-align: baseline; }

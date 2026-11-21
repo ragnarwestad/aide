@@ -313,15 +313,10 @@ describe("a step still landing reads busy, not ready", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's one button is: the State cell of the caption line,
-   *  which only an OPEN row draws (2026-09-08). It sat at the end of
-   *  the name box from 2026-09-07, in the head row's State cell beside
-   *  the badge, and in the header's last cell (shut) or a
-   *  spanning `stackcell` (open) before that. */
+  /** Where a row's one button is: at the end of the caption line's
+   *  captions, just before its State cell, which only an OPEN row draws. */
   const actionCell = (chunk: string) => {
-    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...caption.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
+    return (chunk.match(/<span class="actionslot">([\s\S]*?)<\/span><\/span><\/td>/)?.[1] ?? "");
   };
 
   // A create job whose result has just arrived

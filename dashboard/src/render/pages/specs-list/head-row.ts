@@ -11,7 +11,7 @@ import { rowLabel } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, specStateChip } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { isArchivedRow, type SpecGroup } from "./data-model";
+import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 import {
   activeDurationCell,
   archiveDateCell,
@@ -19,7 +19,7 @@ import {
   createdLabel,
   phasePips,
 } from "./cell-helpers.ts";
-import { foldControl } from "./row-controls.ts";
+import { foldControl, stateAction } from "./row-controls.ts";
 import { LIST_COLUMNS, SPECS_LIST_COLUMNS } from "./row-shared.ts";
 import { rowAnchorId, specLocked } from "./row-state.ts";
 import { SPEC_HEAD_CLASS } from "../../../page-contract.ts";
@@ -65,6 +65,10 @@ export function specHeadRow(
   // being that `busy` says "not right now" and this says "not ever
   // again, without a Reopen first".
   const locked = isArchivedRow(g);
+  // An open row's one action, at the end of the date's cell just before
+  // the state, as a job row's is.
+  const action = !opts.openSpec && opened.has(groupKey(g.project, g.specFolder)) ? stateAction(g, opts) : "";
+  const openAction = action ? `<span class="actionslot">${action}</span>` : "";
   // Four answers, not three: a spec that has never run, one with a job in
   // flight, one whose last job is over, and an archived one. Written as
   // `data-run`, a marker no stylesheet styles.
@@ -238,7 +242,7 @@ export function specHeadRow(
     `<td colspan="2">${opts.openSpec
       ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
       : `<span class="createdpips"><span class="muted small">${esc(createdLabel(g.createdAt))}</span>` +
-        `<span class="pipslot">${phasePips(g.phases, g.done, lang)}</span></span>`}</td>` +
+        `<span class="pipslot">${phasePips(g.phases, g.done, lang)}</span>${openAction}</span>`}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next. No sentence
     // under it says what to press: the control names the

@@ -9,17 +9,15 @@ import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
-import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
+import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
 import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker";
 import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.ts";
-import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
 import { resolveProvider } from "./model-resolve.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
-import { headStateBadge } from "./head-row.ts";
 import { specReference } from "../../../project/spec-folder.ts";
 import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 
@@ -89,34 +87,12 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
   // and model selects a live one does now, so it heads them the same
   // way — the only reason this stays conditional at all is `aiPicker`'s
   // own rule, one tool configured is nothing to choose between.
-  // The row's one action, in the State column of the caption line
-  // (2026-09-08): the head line above is what the spec IS, and this line
-  // heads what it is set to do. The button is on the shut row
-  // deliberately; what this costs is a click, and what it buys is a
-  // head line that is only information.
-  const action = stateAction(g, opts);
-  // While a phase runs, its own line says Running, so the caption line
-  // draws only the Cancel beside it rather than the same word again.
-  const openState = g.lead?.state === "running" ? "" : headStateBadge(g, opts.lang ?? "en");
-  // The spec's own totals stand on this line: an open row hides the head
-  // row's second line (list.css), so Time and Cost move here, over the
-  // phases' own figures.
-  const totals = { started: specTotalCell(g), cost: costCell(g.spentUsd, g.spentTokens, "–", g.done.length > 0) };
+  // The row's action, state and totals stand on the head row's second
+  // line (`specHeadRow`), as a job row's do; this line heads the columns.
   if (!mode.groupArchive && (opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(opts, true, action, opts.lang ?? "en", totals, true, openState),
-    });
-  } else if (!mode.groupArchive) {
-    // No captions to head — one tool configured, nothing to choose
-    // between — and the line is still drawn: it carries the totals, and
-    // the press when there is one.
-    lines.push({
-      tag: `<tr class="subrow" data-caption="1">`,
-      cells:
-        `<td class="phasecell" colspan="2"></td><td class="modelcell"></td>` +
-        `<td data-col="state"><span class="row"><span class="badgeslot">${openState}</span>${action ? `<span class="actionslot">${action}</span>` : ""}</span></td>` +
-        `<td data-col="started">${totals.started}</td><td class="num" data-col="cost">${totals.cost}</td>`,
+      cells: phaseCaptionCells(opts, true, "", opts.lang ?? "en"),
     });
   }
   const sharedGroup = g.group && (opts.executionGroups ?? []).find((group) =>

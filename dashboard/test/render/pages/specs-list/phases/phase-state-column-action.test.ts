@@ -57,22 +57,15 @@ describe("the row draws one action, on its caption line", () => {
     );
   };
   const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-  const cells = (tr: string): string[] =>
-    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
-      .map((m) => m[1] ?? "");
   /** The State column of the header, by its column rather than its
    *  position: the header is two rows since 2026-09-22, and the chevron
    *  has a cell of its own. The badge is what it holds. */
   const state = (html: string) =>
     headRow(html).match(/<td[^>]*data-col="state"[^>]*>([\s\S]*?)<\/td>/)?.[1] ?? "";
-  /** The caption line's State cell, which is where the row's one
-   *  control lives since 2026-09-08: the head line says what the spec
-   *  IS, and the line that heads what it is set to do carries the
-   *  press. A SHUT row has no caption line and therefore no action at
-   *  all — its own test is below. */
-  const captionLine = (html: string) =>
-    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-  const action = (html: string) => cells(captionLine(html))[2] ?? "";
+  /** The row's one control: at the end of the head row's second line,
+   *  just before the state, while the row is open. A SHUT row draws
+   *  none — its own test is below. */
+  const action = (chunk: string) => (chunk.match(/<span class="actionslot">([\s\S]*?)<\/span><\/span><\/td>/)?.[1] ?? "");
   /** What the row's one control SAYS. `<button>` for Run, and the
    *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
@@ -175,14 +168,6 @@ describe("the row draws one action, on its caption line", () => {
     expect(action(html)).not.toMatch(/<button[^>]*form="rowrun/);
   });
 
-  test("an open row whose phase runs draws no state badge beside its Cancel; a queued one does", () => {
-    const badgeIn = (html: string) => /class="badge /.test(action(html));
-    const running = rows([lead({ steps: ["implement"], stepIndex: 0, state: "running" })], [target("157-one-action", { done: BUILT })]);
-    const queued = rows([lead({ steps: ["implement"], stepIndex: 0, state: "queued" })], [target("157-one-action", { done: BUILT })]);
-    expect(badgeIn(running)).toBe(false);
-    expect(badgeIn(queued)).toBe(true);
-  });
-
   test("a queued implement cancels by the reader's own word", () => {
     const html = rows(
       [lead({ steps: ["analyze", "implement"], stepIndex: 1, state: "queued" })],
@@ -273,12 +258,7 @@ describe("a recorded phase choice survives the render", () => {
       },
       Date.parse("2026-08-21T12:00:00Z"),
     );
-  const cells = (tr: string): string[] =>
-    [...tr.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)]
-      .map((m) => m[1] ?? "");
-  const captionLine = (html: string) =>
-    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-  const action = (html: string) => cells(captionLine(html))[2] ?? "";
+  const action = (chunk: string) => (chunk.match(/<span class="actionslot">([\s\S]*?)<\/span><\/span><\/td>/)?.[1] ?? "");
   const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
   const ticked = (html: string): string[] =>
     [...html.matchAll(/<input type="checkbox" name="steps" value="([^"]+)" checked/g)].map((m) => m[1]!);

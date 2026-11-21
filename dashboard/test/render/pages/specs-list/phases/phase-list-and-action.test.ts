@@ -50,14 +50,6 @@ describe("one phase list, and one action beside the state", () => {
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
-  /** Every cell of one row, in order — the content between one cell's
-   *  opening tag and the next one's. */
-  const cells = (tr: string): string[] =>
-    tr
-      .replace(/<t[dh]\b[^>]*data-col="fold"[^>]*>[\s\S]*?<\/t[dh]>/g, "")
-      .split(/<t[dh]\b[^>]*>/)
-      .slice(1)
-      .map((s) => s.replace(/<\/t[dh]>[\s\S]*$/, ""));
   /** The whole row group: the header line and the phase lines under it. */
   const group = (html: string, folder: string) =>
     html.match(
@@ -78,8 +70,7 @@ describe("one phase list, and one action beside the state", () => {
    *  badge; and the end of the name box, where the pips had
    *  been (2026-09-07). */
   const actionCell = (chunk: string): string => {
-    const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    return cells(caption)[2] ?? "";
+    return (chunk.match(/<span class="actionslot">([\s\S]*?)<\/span><\/span><\/td>/)?.[1] ?? "");
   };
 
   // --- the structural invariant, before any behaviour ------------------------

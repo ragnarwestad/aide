@@ -134,7 +134,7 @@ export const nb: Record<TranslationKey, string> = {
   "list.searchClearTitle": "Tøm søket",
   "list.search": "Søk",
   "list.colSpec": "Spesifikasjon",
-  "list.colState": "Tilstand/Aksjon",
+  "list.colAction": "Handling",
   "list.colStateAlone": "Tilstand",
   "list.colActions": "Handlinger",
   "list.colCreated": "Opprettet",

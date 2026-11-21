@@ -557,9 +557,10 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
     const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
     expect(jobsTab).toContain('class="checklist"');
-    expect(jobsTab).toContain("data-caption");
+    expect(jobsTab).toContain('action="/api/queue/specs/aide/82-held-back/tick?fromList=1"');
     expect(jobsTab).toContain("data-step=");
     expect(list).toContain('class="checklist"');
+    expect(list).toContain('action="/api/queue/specs/aide/82-held-back/tick?fromList=1"');
   });
 
   test("a spec with no job opened on each: the Jobs tab has its Run, the list has none", async () => {
