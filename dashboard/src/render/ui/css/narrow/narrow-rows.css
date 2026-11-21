@@ -406,6 +406,8 @@
   /* Whatever comes under a spec's own two lines — the open detail, or the
      message a shut spec shows — gets air above it, and no line. */
   table.speclist > tbody > tr.specstate + tr:not(.specgap) { padding-top: var(--sp-2); }
+  /* A job row's button under its badge: the time stays on the badge's line. */
+  table.speclist[data-list="jobs"] tr.specstate:has(> td > .actionslot) { align-items: baseline; }
 }
 
 /* At a phone's width the badge is the word alone: the state column there

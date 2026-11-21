@@ -439,3 +439,6 @@ table.list thead th { position: relative; }
   transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
 .sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }
+/* A job row whose state cell also holds its button: the date, the time
+   and the cost stand on the badge's line, not halfway down the button. */
+table.speclist[data-list="jobs"] tr.specstate:has(> td > .actionslot) > td { vertical-align: baseline; }
