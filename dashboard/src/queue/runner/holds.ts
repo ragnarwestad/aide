@@ -87,13 +87,16 @@ export const HOLDS: readonly Hold[] = [
   { name: "project-landing", check: (job, at) => {
     const step = stepOf(job);
     if (step !== "archive" && step !== "land") return undefined;
-    const held = at.jobs().some((candidate) => {
+    const held = at.jobs().find((candidate) => {
       if (candidate.id === job.id || candidate.project !== job.project) return false;
       const other = stepOf(candidate);
       if (step === "land") return candidate.landing && (other === "archive" || other === "land");
       return (other === "archive" && writing(candidate)) || (other === "land" && candidate.landing);
     });
-    return held ? { key: "runner.archiveRunning" } : undefined;
+    if (!held) return undefined;
+    return stepOf(held) === "land" && held.branch
+      ? { key: "runner.mergeRunning", values: { branch: held.branch } }
+      : { key: "runner.archiveRunning" };
   } },
   { name: "deploy-waits-for-landing", check: (job, at) => answer(at.answers.deployWaitsForLanding, job.id) },
   { name: "not-analyzed", check: (job, at) => answer(at.answers.notAnalyzed, job.id) },

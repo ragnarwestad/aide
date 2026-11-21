@@ -86,6 +86,14 @@ def test_a_push_to_the_landing_projects_code_repo_is_blocked_and_names_the_spec(
     assert "640-deploy" in done.stderr
 
 
+def test_a_block_by_a_merge_names_its_branch(tmp_path):
+    aide = repo(tmp_path, "aide", AIDE)
+    merge = {**ARCHIVE_LANDING, "specFolder": "land", "steps": ["land"], "stepIndex": 0, "branch": "fix/topic"}
+    done = guard(tmp_path, "git push", queue=[merge], checkouts=CHECKOUTS, cwd=aide)
+    assert done.returncode == 2
+    assert "Merge of fix/topic in aide" in done.stderr
+
+
 def test_an_explicit_push_to_a_non_default_branch_passes_during_a_landing_ac_11(tmp_path):
     aide = repo(tmp_path, "aide", AIDE)
     subprocess.run(["git", "-C", str(aide), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], check=True)

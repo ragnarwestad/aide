@@ -113,6 +113,7 @@ is the whole set:
 | held back: choose the approach        | Analyze found two or more real alternatives on a spec that asked to choose         | Pick one on the row and press Save                                          |
 | held back: depends on `<spec>`        | A spec it names has not archived yet                                               | Nothing. It starts itself once that spec archives                           |
 | held back: another archive is running | A second archive in the same project is ahead of it                                | Nothing. It starts when that one has merged                                 |
+| held back: the Merge of `<branch>` is running | A Merge in the same project is merging into main ahead of it              | Nothing. It starts when that one has finished                               |
 | held back: `<spec>` still has work    | A spec it archives, alone or in a group, has a step queued, running or waiting     | Nothing. It starts when that step has finished, or press Cancel on the step |
 | archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                         |
 | stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                                 |

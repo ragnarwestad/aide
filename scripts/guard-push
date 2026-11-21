@@ -225,8 +225,9 @@ def main():
             busy = [j for j in busy if mine in theirs[str(j.get("project"))]]
             if not busy:
                 return 0
-        names = ", ".join(f"{j.get('project')}/{j.get('specFolder')}" for j in busy)
-        print(f"Blocked: an archive is landing on the board ({names}). A push now moves main under its test gate; "
+        names = ", ".join(f"Merge of {j.get('branch')} in {j.get('project')}" if "land" in (j.get("steps") or [])
+                          else f"archive of {j.get('project')}/{j.get('specFolder')}" for j in busy)
+        print(f"Blocked: the board is merging into main ({names}). A push now moves main under its test gate; "
               "push once it has landed.", file=sys.stderr)
         return 2
     return 0

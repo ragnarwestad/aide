@@ -122,6 +122,14 @@ export const JOBS_CATALOG = {
     fr: "retenu : un autre archive est en cours dans ce projet — cela démarre une fois celui-là mergé",
     statement: "the queued work starts by itself when the current merge finishes",
   },
+  "runner.mergeRunning": {
+    en: "held back: the Merge of {branch} is running in this project — it starts when that one has finished",
+    nb: "holdt tilbake: Merge av {branch} kjører i dette prosjektet — dette starter når den er ferdig",
+    es: "retenido: el Merge de {branch} está en curso en este proyecto — empieza cuando ese termine",
+    de: "zurückgehalten: in diesem Projekt läuft der Merge von {branch} — das startet, sobald er fertig ist",
+    fr: "retenu : le Merge de {branch} est en cours dans ce projet — cela démarre une fois celui-là terminé",
+    statement: "the queued work starts by itself when the current merge finishes",
+  },
   "runner.scheduleWaitReplaced": {
     en: "did not run: it was still waiting for a usage limit when the next scheduled run was due",
     nb: "kjørte ikke: den ventet fortsatt på en bruksgrense da neste planlagte kjøring skulle starte",
