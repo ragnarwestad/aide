@@ -238,6 +238,21 @@ Auto mode and v2.1.304 to v2.1.309, against a `-p` run:
   ultrareview` needs `--trust-workspace` in a script; `aide-run-spec`
   never calls it.
 
+### Scheduling, connectors, plugins and Haiku (v2.1.330)
+
+- Recurring scheduled tasks and `/loop` run up to 30 days while their
+  session runs; a task made before v2.1.330 still ends after 7.
+- A `deniedMcpServers` name entry hides only the claude.ai connector it
+  names; denying the exact URL blocks every connector there.
+- `claude plugin install --json` adds `commandPrinted` (the install
+  command wrote to stderr) and `commandFailed` (it failed, was killed or
+  timed out). Aide's installer reads only the exit status.
+- Haiku 5.5 may refuse (`stop_reason: "refusal"`) before or after partial
+  output, with no server-side fallback. `reasoning_extraction` refuses a
+  prompt, skill or tool description asking it to write its reasoning in
+  the response; a retry is usually refused again, so remove the
+  instruction. Aide's skills and rules ask for no such thing.
+
 ### Skill/Agent frontmatter
 
 Skills and agents support these frontmatter fields:
@@ -251,6 +266,12 @@ Skills and agents support these frontmatter fields:
 | `disallowedTools` | Tools the agent does not have access to              |
 | `initialPrompt`   | Auto-submit first turn                               |
 | `paths`           | YAML list of globs for path-specific activation      |
+
+A skill's `model` setting applies to that skill's own calls only
+(v2.1.330): subagents, forks, compaction and `/recap` stay on the
+session's model. A `context: fork` skill is the exception and runs wholly
+on its model. The skills in `core/skills/` cannot set `model`: the
+frontmatter allowlist in `test_core_skills.py` does not permit it.
 
 ---
 
@@ -457,6 +478,8 @@ structured inter-agent messaging.
 - Hooks: <https://code.claude.com/docs/en/hooks.md>
 - MCP: <https://code.claude.com/docs/en/mcp.md>
 - Permission modes: <https://code.claude.com/docs/en/permission-modes>
+- Release notes: <https://github.com/anthropics/claude-code/releases>
+- Haiku 5.5 refusals: <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5>
 
 ### GitHub Copilot
 
