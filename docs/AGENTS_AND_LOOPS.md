@@ -12,6 +12,7 @@
   - [Held back](#held-back)
   - [Archive](#archive)
   - [Close and Reopen](#close-and-reopen)
+  - [Merge](#merge)
 - [The loops](#the-loops)
 - [Settings](#settings)
 - [What Aide does not do](#what-aide-does-not-do)
@@ -29,7 +30,8 @@ loops that send work back, and who decides that a step is done. The details of e
   to decide.
 - **One agent writes.** Inside a step, one session changes the files. No two agents write to the same spec at once.
 - **Extra agents only judge.** A second agent reads and reports, and never changes anything itself. What it finds goes
-  back to the agent that wrote the work.
+  back to the agent that wrote the work. A landing's repair session is the one exception: once the step is done, it
+  fixes tests the merge broke, or a conflict in Merge, and the landing tests the result again.
 - **The spec is the memory.** Each step starts a new session. What one step leaves for the next is in the spec's four
   files, not in a conversation, so every session starts with a clean context.
 - **The runner checks, not the agent.** What an agent says about its own work decides nothing. The runner runs the
@@ -92,7 +94,9 @@ grade, and the runner does not check it.
 ### Implement
 
 1. The runner starts one new session with `aide-implement`, which writes the code and its tests. With
-   [`resumeAnalysis`](#settings) on, it continues the analysis's own session instead.
+   [`resumeAnalysis`](#settings) on, it continues the analysis's own session instead. In Aide's own repository the
+   session also photographs the dashboard pages its change affects, at a desktop and a phone width, into a folder the
+   runner names beside the step's log; the job page links them under Screenshots, and the review is shown them.
 2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the spec's Review choice,
    then the Models per phase choice, Codex included, else the step's own. It reads the description, finds the branch's
    whole change against where it left the default branch with `git diff` itself, and reports defects against the
@@ -116,7 +120,9 @@ No AI. A person ticks the acceptance criteria, and can try the change on the tes
 1. When the spec cannot be archived yet, such as acceptance criteria still unticked, the runner says so and no AI runs.
 2. Otherwise the runner starts one new session with `aide-archive`. It merges the default branch in, resolves any
    conflict and moves the spec to `archive/`.
-3. The landing runs the whole suite and merges the branch into main. That is the board's own code, not an agent.
+3. The landing runs the project's tests on the merge and merges the branch into main. When tests the branch broke
+   fail on the merge and pass on main alone, the landing starts a new session to fix them on the branch, at most twice
+   (`dashboard/src/serve/land-branch/repair/`), then rebuilds the merge and tests it again.
 
 No subagents and no review.
 
@@ -124,6 +130,16 @@ No subagents and no review.
 
 - **Close** runs one new session with `aide-close`, which records why the spec is closed.
 - **Reopen** runs no AI: a script moves the spec back, keeping its files or resetting them.
+
+### Merge
+
+Merge to main lands a branch that belongs to no spec (`aide land`), with the same test gate as an archive.
+
+1. A merge conflict starts a new session that may edit only the conflicted files, at most twice per repository. The
+   board checks the result and commits the merge itself.
+2. Red tests on the merge get the same repair sessions as Archive, at most twice.
+
+The repair sessions run on the AI and model Implement would use.
 
 ## The loops
 
@@ -134,6 +150,9 @@ Every loop that sends work back has an end:
   the implement session has used `AIDE_TEST_FIX_FRESH_PERCENT` of its context window, a fresh session of the same
   AI and model takes over the test fixes and keeps them for later rounds.
 - **After the plan review in Analyze:** inside the same session, once.
+- **After red tests on a landing (Archive and Merge):** at most two repair sessions, and only for tests that pass on
+  main alone.
+- **After a merge conflict in Merge:** at most two repair sessions per repository.
 - **Inside every session:** the agent's own loop of reading, changing and checking, until it answers without asking for
   another tool. The step's time limit is what ends it.
 
@@ -154,7 +173,6 @@ Every loop that sends work back has an end:
 ## What Aide does not do
 
 - One flow for every kind of task: a bug fix, a refactor and a new feature go through the same steps.
-- A review by another model than the one that wrote the code.
 - Several agents writing parts of one spec at the same time.
 
 Ideas for each of these are in [the roadmap](ROADMAP.md), under "A flow suited to the kind of task" and "More than one
