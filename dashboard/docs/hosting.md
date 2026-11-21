@@ -168,8 +168,8 @@ carries the moment it was written, and a test board that the dashboard
 stops gets a line saying who asked and which process group was signalled.
 
 **The repo it clones there is the dashboard's OWN checkout —
-`~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code landing merges
-into. The landing neither installs nor restarts there: a restart takes down every landing in flight, and an install
+`~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code merge goes into
+into. The merge neither installs nor restarts there: a restart takes down every merge in flight, and an install
 alone would leave the runner newer than the served page that calls it. It logs that the served page and the installed
 scripts run older code than main, and the user deploys when it suits — the Deploy button on the project's own page
 (`/projects/aide`) runs `AIDE_INSTALL_CMD` and restarts. The reinstall
@@ -177,20 +177,20 @@ drops from the launchd job's plist every option the serve code no longer accepts
 not start again, and the restart takes the job down and loads it from that plist. By hand on the host,
 `launchctl kickstart -k gui/$(id -u)/com.aide-dashboard.serve` restarts it on the arguments it was loaded with; after
 changing the plist, `launchctl bootout` and `launchctl bootstrap` it instead. The board's own Deploy is a job: the
-process waits for the landings already in flight when Deploy was requested before fetching and installing under the checkout
+process waits for the merges already in flight when Deploy was requested before fetching and installing under the checkout
 lock. It checks main again after any restart wait, reinstalls if it changed, then restarts and is taken down. It writes the restart into
 the job first (`deploy.restartedAt`), and the process that starts checks that it runs the fetched commit, or one that
 contains it, and writes the job's result before the runner reconciles at boot. A restart with no new process within
 three minutes ends the job failed. The restart of that job waits for every merge to settle with no time limit: a
-landing that never settles holds the deploy and its row says why. New landings wait outside the repository locks
+merge that never settles holds the deploy and its row says why. New merges wait outside the repository locks
 while Deploy is pending, so queued or newly ready work cannot postpone it. Cancel on the waiting Deploy ends that Deploy
-without stopping Archive or Land or firing its planned restart. Cancel is unavailable while it installs and after
+without stopping Archive or Merge or firing its planned restart. Cancel is unavailable while it installs and after
 the restart is committed. A running step
 does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
-process reads its result. A landing runs inside the process, so the restart waits for every step whose landing has not
+process reads its result. A merge runs inside the process, so the restart waits for every step whose merge has not
 settled and for any merge in flight (two hours at most), and every page shows a warning line under the header naming
 them until it fires. The queue keeps starting phases meanwhile. Point the job anywhere else and a restart
-reloads code the landing never touched — the served page then sits on old code with every row reporting
+reloads code the merge never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
 never refreshed, and `startedAt`, when that process booted — it needs no credential, so a restart check can reach it. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
@@ -231,8 +231,8 @@ All paths are relative to the serving host's own `$HOME`.
 `AIDE_DASH_LABEL` is the one environment override.
 
 **The projects root is a directory of links to the dashboard's own checkouts.** The dashboard lists projects from
-`ROOT` and lands their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list
-lags the landings until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host
+`ROOT` and merges their work in `.aide/dashboard/checkouts/<project>/code`; when those are two different copies, the list
+lags the merges until someone pulls the listed copy, and a `.aide/config` has to exist in both. So on the serving host
 `ROOT` is `.aide/dashboard/projects/`, holding one symlink per project to `.aide/dashboard/checkouts/<project>/code` — the
 one copy the dashboard both reads and writes. A project with no checkout of its own (a scratch project) links to
 wherever it lives. With `ROOT` unset, `install-serve` makes that directory and links the `aide` checkout into it, and
@@ -362,14 +362,14 @@ Installing it is by hand, once, on the host. Every two minutes:
 
 **Point it at specs, not at code.** Merging code and installing it belong together (`AIDE_INSTALL_CMD`), and a
 background pull would move the code under a server that goes on running the old version — merged, but not
-deployed, and reported as deployed. Code that landed some other way is REPORTED instead of pulled: for every
+deployed, and reported as deployed. Code that merged some other way is REPORTED instead of pulled: for every
 project, the project's Deploy tab compares the checkout against `origin`
 and says how many commits behind it is, and which commit the service runs. It only ever looks; nothing there
 fetches more than the default branch, and nothing merges, pulls or moves a checkout.
 
 ## Reviewing what an unattended run writes
 
-A step on this host writes code with nobody reading it, and the landing's test gate asks only whether the suite is
+A step on this host writes code with nobody reading it, and the merge's test gate asks only whether the suite is
 green. The `security-guidance` plugin is a second opinion on that code, installed for the user the service runs
 as:
 

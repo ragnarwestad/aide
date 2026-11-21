@@ -20,40 +20,40 @@ The same holds for every project the board runs; the last section is about Aide'
 A phase has two parts: the AI, which does the work, and Aide itself, which starts the AI and checks what it left.
 Both can run the tests.
 
-| Phase           | The AI                                                                                   | Aide itself                                                                                                                                                  | When it is red                                                                                                                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| create, analyze | none                                                                                     | none                                                                                                                                                         | —                                                                                                                                                                                                           |
-| implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the configured changed-code tests after the AI is done; without a selector, the full suite                                                                   | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
-| archive         | only the tests covering files it touched while resolving a merge conflict                | the changed-code tests once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | a confirmed regression against green main gets up to two AI repairs on the source branch; every repair is rebuilt against current main and tested again. Other failures stop the job                        |
-| close, reopen   | none                                                                                     | none                                                                                                                                                         | —                                                                                                                                                                                                           |
+| Phase           | The AI                                                                                   | Aide itself                                                                                                                                                | When it is red                                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| create, analyze | none                                                                                     | none                                                                                                                                                       | —                                                                                                                                                                                                           |
+| implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the configured changed-code tests after the AI is done; without a selector, the full suite                                                                 | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
+| archive         | only the tests covering files it touched while resolving a merge conflict                | the changed-code tests once, in the merge, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | a confirmed regression against green main gets up to two AI repairs on the source branch; every repair is rebuilt against current main and tested again. Other failures stop the job                        |
+| close, reopen   | none                                                                                     | none                                                                                                                                                       | —                                                                                                                                                                                                           |
 
 The step's time limit counts the AI's turns, not these runs: each run has a limit of its own, an hour unless
 `AIDE_TEST_RUN_LIMIT_SEC` says otherwise. A run still going at that limit is stopped, and the step ends there with the
-work so far committed. The landing is described in full in [landing.md](landing.md).
+work so far committed. The merge is described in full in [merge.md](landing.md).
 
 ---
 
 ## Which tests run
 
-Implement, Land and Archive use `AIDE_TEST_CHANGED_CMD` when configured, with the default branch as its last
-argument; Land and Archive run it on the merged result before updating the default branch. The command must fall
+Implement, Merge and Archive use `AIDE_TEST_CHANGED_CMD` when configured, with the default branch as its last
+argument; Merge and Archive run it on the merged result before updating the default branch. The command must fall
 back to the full suite for changes it cannot classify safely. Without it, every step uses `AIDE_TEST_CMD`. A
 Markdown-only change runs `scripts/check-docs` when present. The scheduled nightly run of the whole suite on main
 catches what a selection misses.
 Aide's selector runs dashboard tests and Python cross-language checks for dashboard-only changes; core or unknown
 changes keep the full suite. Only a full run may tick the spec's "Run the full test suite" row.
 
-A repeated Implement after a landing test failure keeps the full suite so it covers the previously failed tests.
+A repeated Implement after a merge test failure keeps the full suite so it covers the previously failed tests.
 
-Land and Archive repair only named failures confirmed to be introduced by the merge when main alone passes. The
-repair session uses the job's Implement model and provider, or their current defaults for a standalone Land. It
+Merge and Archive repair only named failures confirmed to be introduced by the merge when main alone passes. The
+repair session uses the job's Implement model and provider, or their current defaults for a standalone Merge. It
 receives the tested commit and complete output, and the runner checks the failed files independently using
 `AIDE_TEST_FILES_CMD`. Missing file commands, timeouts, provider failures, unknown failures and red main stop the
-landing. At most two repairs are saved to the source branch, without force, followed by a fresh merge and test run.
+merge. At most two repairs are saved to the source branch, without force, followed by a fresh merge and test run.
 Stop cancels the repair too. Repair transcripts are kept beside the job's stream as `.repair.jsonl` files.
 
 Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
-divided by the live test recorders at that moment, rounded down and at least one. Implement, Land and Archive use
+divided by the live test recorders at that moment, rounded down and at least one. Implement, Merge and Archive use
 `aide-record-test-run` to register their tests beside the board's queue mirror and take their share as the tests
 start. AI turns and lock waits do not count. Finished recorders are removed, and dead processes are ignored.
 Already running test processes keep their original worker count.
@@ -87,7 +87,7 @@ name, and none for a criterion an existing test already proves — that test get
 
 ## What you see on the board
 
-- **While the tests run:** when Aide runs them, after implement and in the landing, the step's Log shows how far
+- **While the tests run:** when Aide runs them, after implement and in the merge, the step's Log shows how far
   they have come as it happens, each line starting `tests:`:
   - the command that started
   - pytest's percentage every tenth, and its summary
@@ -107,19 +107,19 @@ name, and none for a criterion an existing test already proves — that test get
   - nothing answering on a port the tests connect to on that machine
 
   Put that right, then press Implement again.
-- **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
+- **Merge red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
   a green suite. The row names the failing tests. The same tests failing on both runs, and passing on main alone, is
   the merge breaking them: make them pass on the branch, then Archive. Different tests on the two runs point to
   unstable tests or a busy machine, and the row says so: press Archive again when the machine is quieter.
-- **The next implement after a landing red on the merge:** when the merge broke the tests (the same tests on both
+- **The next implement after a merge red on the merge:** when the merge broke the tests (the same tests on both
   runs, or tests that fail on the merge and not on main), the next implement of the spec is told which tests failed,
-  with each test's file and error, and that it is to make them pass on the branch. A later red landing replaces the
-  list; a green landing, an archive or a close of the spec removes it. After any other red landing the implement is
+  with each test's file and error, and that it is to make them pass on the branch. A later red merging replaces the
+  list; a green merge, an archive or a close of the spec removes it. After any other red merging the implement is
   told nothing about it.
-- **Red on main as well:** the landing ran the same tests on the default branch without the spec, and they were red
+- **Red on main as well:** the merge ran the same tests on the default branch without the spec, and they were red
   there too. The failure is main's; nothing about the spec needs changing. Press Archive again once main is green.
 
-A landing whose first test run was red and whose second was green adds no notice to the archived row. The job
+A merge whose first test run was red and whose second was green adds no notice to the archived row. The job
 keeps the first run's failing lines, and the test output stays in the log.
 
 Acceptance criteria are a separate thing from the tests: those are the boxes you tick on the Status tab or under the
@@ -162,10 +162,10 @@ For whoever changes Aide itself.
   failing test is run once more on its own; only a second failure turns the suite red.
 - The root's pytest suite runs through `scripts/test-python` in Aide's test command, which runs the failing tests
   once more on their own (`--lf`) in the same way. A test that lost to a busy host then costs seconds, and the
-  landing runs the whole command a second time only for a failure that held twice.
+  merge runs the whole command a second time only for a failure that held twice.
 - Every `bun test` process and every pytest process works in a temp directory of its own, removed when it ends, so
   a test that forgets its directory leaves nothing in the machine's shared one.
-- Both suites start from the same environment wherever they run: in a session, in a step or in the landing. They drop
+- Both suites start from the same environment wherever they run: in a session, in a step or in the merge. They drop
   every inherited `AIDE_*`, `CLAUDE*` and `GIT_*` variable, and replace mise's shims on PATH with the directories
   they point to, so a suite that is green in a session is green on the board too (`core/tests/same_env.py`,
   `test/helpers/preload/same-env.ts`).

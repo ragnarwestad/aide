@@ -47,7 +47,7 @@ once per clone:
 git config core.hooksPath .githooks
 ```
 
-A push straight to `main` has nothing else in front of it: the board's landing gates what the board runs, and CI runs
+A push straight to `main` has nothing else in front of it: the board's merge gates what the board runs, and CI runs
 on a pull request only. `AIDE_SKIP_PRE_PUSH=1` skips the hook and says on the way out that it did.
 
 `.githooks/commit-msg`, turned on by the same line, refuses a commit whose message names a tool: a `Co-Authored-By`
@@ -56,7 +56,7 @@ trailer or a `Claude-Session` line. A commit message describes the change as a d
 **Installing on Linux** is checked by `scripts/test-linux-install`, which needs Docker: it installs Aide in a clean
 Debian container the way a new user would, checks the tools, scripts and skills, and starts the dashboard. With `--run`
 and a token from `claude setup-token` in `CLAUDE_CODE_OAUTH_TOKEN`, it also queues one spec on the dashboard and takes
-it from create to archive, landing included. Run it after changing an installer or a script the runner uses.
+it from create to archive, merge included. Run it after changing an installer or a script the runner uses.
 
 ---
 

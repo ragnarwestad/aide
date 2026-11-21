@@ -2,10 +2,10 @@
 paths:
   - "src/serve/land-branch/**"
   - "src/serve/runner-setup.ts"
-  - "src/serve/setup/land.ts"
+  - "src/serve/setup/merge.ts"
   - "src/serve/spec-views/**"
   - "src/git/branch-merge/**"
-  - "src/git/spec-folder-landing.ts"
+  - "src/git/spec-folder-merge.ts"
   - "src/git/merge-hooks.ts"
   - "src/queue/runner/**"
   - "src/render/pages/specs-list/**"
@@ -14,83 +14,83 @@ paths:
   - "test/serve/land-branch/**"
 ---
 
-# Landing, archive and close
+# Merge, archive and close
 
 How a step's branch reaches main, and what the rows and pages that read
-it may ask. Loaded for the code that lands a branch and for the code that
-reads what a landing left.
+it may ask. Loaded for the code that merges a branch and for the code that
+reads what a merge left.
 
-## Landing
+## Merge
 
 `docs/landing.md`, and `docs/job-states.md` for the job's side of it.
 
 - **No step's work is merged by hand.** `landBranch` in
   `dashboard/src/serve/land-branch/merge.ts` is the one place a branch
-  lands, under `mergeLock` per repo root. There is no Merge or Approve
+  merges, under `mergeLock` per repo root. There is no Merge or Approve
   button, no `gateAfter`, no `awaiting-approval` state.
-- **`implement` lands nothing, so no reader may ask the default branch
-  whether it ran.** It falls through the landing dispatch by design
+- **`implement` merges nothing, so no reader may ask the default branch
+  whether it ran.** It falls through the merge dispatch by design
   (`runner-setup.ts`), and its `4-status.md` stays on its branch until
   archive merges it — so `SpecTarget.done`, which prefers the state file
   on the default branch, names `create, analyze` and no more while a spec
-  waits on a tick. `historyDone` is the git-proved list, unlanded
+  waits on a tick. `historyDone` is the git-proved list, unmerged
   branches included, and it is what a question like "has implement run"
   reads (`archiveHeldBackApplies`). Asking `done` alone would drop the
   acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
-  cleared.** `holdLanding` owns the flag for both an uninterrupted landing
-  and one resumed after a restart, and clears it only when the whole landing promise
+  cleared.** `holdLanding` owns the flag for both an uninterrupted merging
+  and one resumed after a restart, and clears it only when the whole merging promise
   settles, `onLanded` included. A callback that reads `queue.list()` sees
   its triggering job still marked `landing: true`, and treats that one row
   as settled by hand; every other row's flag is trustworthy.
-- **An `archive` lands on `terminalReason: "completed"` alone.** A
+- **An `archive` merges on `terminalReason: "completed"` alone.** A
   refusal from `aide-archive-spec` (`not-implemented-yet`,
   `acceptance-criteria-unticked`) is `ok` and the job is `done` — the
   row reads "archive held back" from `4-status.md` — but nothing was
-  archived, and `already-landed` has nothing left to land. Neither
-  reaches `landArchivedSpec`: landing a refusal would merge implement's
+  archived, and `already-landed` has nothing left to merge. Neither
+  reaches `landArchivedSpec`: merge a refusal would merge implement's
   code branch into main with the spec still active. A stopped, failed or
-  interrupted archive lands nothing either: its pre-check moves the folder
+  interrupted archive merges nothing either: its pre-check moves the folder
   on the branch, and the move reaches the default branch only when the
-  archive step completes and lands.
+  archive step completes and merges.
 - **Two `archive` steps never run at once in one project.** Both branch
-  from the code root's main and both land into it; the second is held
-  `queued` with the reason on its row until the first has landed — the
+  from the code root's main and both merge into it; the second is held
+  `queued` with the reason on its row until the first has merged — the
   same shape as the two hold-backs beside it in `Runner.tick()`. "Has
-  landed" includes the landing itself: a job whose archive step ended
+  merged" includes the merge itself: a job whose archive step ended
   reads `done` with `landing` set while its branch is merged, and an
   archive started in that window brings its branch up to a main the
-  merge has not reached yet. An analyze or implement landing moves the
+  merge has not reached yet. An analyze or implement merging moves the
   specs repository alone and holds nothing — `landStepBranch` leaves the
   code root out even when the run's own catch-up merge moved it. Where
   the specs live inside that root, an analyze, reopen, close or
-  sent-back implement landing copies the spec's own folder onto main and
+  sent-back implement merging copies the spec's own folder onto main and
   nothing else of the branch (`landSpecFolderOnly`,
   `git/spec-folder-landing.ts`, chosen in `handed-to-merge.ts`): code
   reaches main through `archive` alone.
-- **Origin decides whether an `archive` landing finished.** It asks
+- **Origin decides whether an `archive` merge finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
-  a landing that did not finish. The check is `archive`'s alone, by its
-  landing policy (`land-branch/policy/`); a failed landing moves the job
+  a merge that did not finish. The check is `archive`'s alone, by its
+  merge policy (`land-branch/policy/`); a failed merging moves the job
   to `failed` and ONLY from `done`; an unanswerable `ls-remote` is `null` and claims nothing;
-  the "not landed" row is filtered on the BRANCH and on git's merged
+  the "not merged" row is filtered on the BRANCH and on git's merged
   answer (`peekMerged`), never on `errorReason` or a job record — an open
   branch merged in every root that holds it is an archived row with
   Delete branch; and it adds its sentence only when the merge loop
   reported no failure of its own — one reason per row.
-- **A landing the project's suite refused STOPS the job, it does not fail
+- **A merge the project's suite refused STOPS the job, it does not fail
   it.** `errorReason: tests-red` takes the `landing-held` transition to
   `stopped` with `stopReason: tests-red`, and the row's mark is amber and
   reads "tests red": the step ran and the merge was built, and what is
-  missing is a green suite. Every other landing failure stays red.
+  missing is a green suite. Every other merging failure stays red.
 - **`codeLanding: pr` keeps the CODE root's branch open** on an `archive`
-  landing (`codeRoot: "merge-unless-pr"` in its landing policy) and runs
+  merge (`codeRoot: "merge-unless-pr"` in its merge policy) and runs
   every step with `--push pr`; the two halves are never separated. The manifest is a DEFAULT for `--push`, never an override;
   the specs root keeps auto-merging; `errorReason` has no member for it —
   `prOpen` splits the wording instead.
-- **`StepResult.at` is absent until a landing step's merge settles**, not
+- **`StepResult.at` is absent until a merge step's merge settles**, not
   from the moment its own process exits — `holdLanding` stamps both an
-  uninterrupted landing and one resumed after a restart, so a phase's own
+  uninterrupted merging and one resumed after a restart, so a phase's own
   duration keeps counting through the merge. Any
   new reader of `Job.results[]` has to treat `at` as optional; a
   standalone type that copies `StepResult`'s shape by hand (rather than
@@ -107,9 +107,9 @@ reads what a landing left.
   refuses. `aide-run-spec` aborts a merge still open before it commits,
   at the end of the step and on a Cancel, so conflict markers are never
   committed. The
-  landing's test gate (`docs/landing.md`, "The tests run on the landing,
+  merge's test gate (`docs/landing.md`, "The tests run on the merge,
   once") is what stops a resolution that breaks the suite: red drops the
-  merge, and nothing lands.
+  merge, and nothing merges.
 - **`core/scripts/aide-archive-spec` decides and moves; the skill keeps
   only conflict resolution and doc feedback.** It runs twice in one step
   by design, and `already-archived` is the idempotent second answer.
@@ -126,7 +126,7 @@ stamp-and-move tail without its `not-implemented-yet`/`acceptance-criteria-
 unticked` gates: Close is legal from every phase Archive would refuse.
 
 - **The code root's branch is deleted, never merged.** `landClosedSpec`
-  (`land-branch/steps.ts`) lands like `landArchivedSpec`, but
+  (`land-branch/steps.ts`) merges like `landArchivedSpec`, but
   `landBranch`'s own `discard(root)` (`land-branch/merge.ts`) routes the
   code root to `deleteBranchOnly` (`git/branch-merge/delete-branch.ts`) instead of
   `mergeBranchIntoDefault` — steps 1, 7 and 8 of that function alone, no

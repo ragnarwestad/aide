@@ -26,10 +26,10 @@ the dashboard, other sessions and the user's own IDE all write to them continuou
    you are about to add something to.
 2. If the pull brings in changes to files you are about to touch, read what changed before
    proceeding.
-3. If a later `git push` is still rejected despite this — a push landed in the gap between your
+3. If a later `git push` is still rejected despite this — a push arrived in the gap between your
    pull and your push — rebase onto the new commits and push again; do not force.
 
-Why: a pull that lands between your read and your write turns into a rejected push and an
+Why: a pull that arrives between your read and your write turns into a rejected push and an
 avoidable rebase.
 
 ---
@@ -94,32 +94,32 @@ why, with the context a reader needs.
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
 standing instruction for later requests. The user pushes from the IDE.
 
-**Session code changes in a project with an Aide board reach the default branch through Land.**
+**Session code changes in a project with an Aide board reach the default branch through Merge.**
 A request to merge or push to main authorizes this sequence:
 
 1. Keep the changes on a working branch and run only the tests covering the change, plus relevant
-   type, lint or documentation checks. Land verifies the merged result with the project's configured tests.
+   type, lint or documentation checks. Merge verifies the merged result with the project's configured tests.
 2. Commit and push that working branch to origin.
-3. Run `aide land <project> <branch>`. The board tests the merged result, pushes the default branch
+3. Run `aide merge <project> <branch>`. The board tests the merged result, pushes the default branch
    only when the tests pass, and deletes the source branch.
-4. Report whether the board accepted the job. The board takes the landing from there and
-   reports its outcome. A server change takes effect after Land and Deploy.
+4. Report whether the board accepted the job. The board takes the merge from there and
+   reports its outcome. A server change takes effect after Merge and Deploy.
 
 Do not merge into the default branch or push it directly from the session in a board-backed
-project. Do not bypass Land because local tests passed, another Land is running, or the command
+project. Do not bypass Merge because local tests passed, another Merge is running, or the command
 was refused. Report the refusal and keep the working branch. Projects without a board keep their
 own merge and test process. The spec-creation exception below still applies to its specs repo.
 
 **When a job you committed is done, say so, and say it is ready to push.** Run
 `git log origin/main..main --oneline` in that same reply and end the report with what it shows:
 the commits waiting for a push. For board-backed work also report whether the working branch
-has reached main through Land; a server change takes effect only after Land and Deploy. Work that is finished but never pushed gets
+has reached main through Merge; a server change takes effect only after Merge and Deploy. Work that is finished but never pushed gets
 forgotten; this line is what stops that.
 
 Otherwise, don't report repository state from memory, in any phrasing — "N commits ahead of
 origin", "tre commits ligger klare", or a count of commits recalled from earlier in the
 conversation. The same holds for uncommitted changes, what another session or person has or
-hasn't landed, ahead/behind, staged content. When the user asks, run `git status -sb` and
+hasn't merged, ahead/behind, staged content. When the user asks, run `git status -sb` and
 `git log origin/main..main --oneline` in the same reply and report the actual result.
 
 Why: the user pushes continuously from the IDE and other sessions commit to the same repo, so any

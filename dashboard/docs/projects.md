@@ -12,7 +12,7 @@
         - [Deploy](#deploy)
         - [Config](#config)
         - [Schedule](#schedule)
-    - [How a project's code lands](#how-a-projects-code-lands)
+    - [How a project's code merges](#how-a-projects-code-merges)
 - [How it works inside](#how-it-works-inside)
     - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
     - [How the settings reach a run](#how-the-settings-reach-a-run)
@@ -44,11 +44,11 @@ allowlist, which is what a run checks before it starts; removing one takes the n
 The Add form asks for:
 
 | Field            | What it takes                                                                                                                 |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Name             | Required. The name of the directory the clone makes under the projects root, and the project's name everywhere                |
 | Git URL          | Required. The address to clone                                                                                                |
 | Specs path       | Optional. Where this project's specs live, when they are not in `specs/` inside it                                            |
-| Code landing     | Required, none pre-selected — see [How a project's code lands](#how-a-projects-code-lands)                                    |
+| Code merge       | Required, none pre-selected — see [How a project's code merges](#how-a-projects-code-merges)                                  |
 | Try a branch     | Optional. How a spec's branch can be tried before it is merged; starts on none                                                |
 | Worktree links   | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                                          |
 | Test command     | Optional. Its placeholder is the command the Git URL's root files point at — see below                                        |
@@ -65,7 +65,7 @@ repository, a timeout) the field keeps the hint it was drawn with. The placehold
 
 **A project is added by its git address and cloned — there is no way to register a directory already on the host.**
 That leaves ONE layout for every project: the entry under the projects root is a checkout the dashboard itself made.
-Where the clone lands depends on what the projects root is:
+Where the clone merges depends on what the projects root is:
 
 - **An ordinary directory**, such as a laptop's own `~/develop`: Add clones into `<projects root>/<name>`, and then
   makes the dashboard's own checkout, `~/.aide/dashboard/checkouts/<name>/code`, as a second clone.
@@ -94,7 +94,7 @@ finished is shown as a warning with Dismiss. Dismiss hides that notice on the cu
 automatic recheck; a refresh shows the current answer, and a confirmed checkout fault remains an error.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What the form sets is
-saved after the clone by the same save the Config tab makes. The name, description, worktree links, code landing,
+saved after the clone by the same save the Config tab makes. The name, description, worktree links, code merge,
 Try a branch, Test command and Preview command go to the dashboard's own settings file,
 `~/.aide/dashboard/checkouts/<name>/settings.yaml`, in the manifest's own format; the specs path and the install
 command go to the project's `.aide/config`. A field left empty and a default (Merge, Not before it is merged) write
@@ -182,9 +182,9 @@ why the answer can go stale. A default branch resolvable when the project was ad
 second worktree on a minute later, and Run says so at the time — this is a preflight check, not a promise.
 
 A refused Add is shown in the form's own slot and the page stays put, because the Specs path and Worktree links fields
-are usually what fixes it and saving again re-assesses. An Add that went through lands on the new project's Config tab,
+are usually what fixes it and saving again re-assesses. An Add that went through ends on the new project's Config tab,
 which states from the server's own reading whether a run can start there and every reason it cannot. A successful
-Settings save lands on the same tab, drawn again.
+Settings save ends on the same tab, drawn again.
 
 ### What Add finishes itself
 
@@ -224,7 +224,7 @@ from.
 ### A project's own page
 
 `/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
-Deploy, which is also where an unrecognised value lands. `?edit=config` or `?edit=manifest`, a settings table's own
+Deploy, which is also where an unrecognised value merges. `?edit=config` or `?edit=manifest`, a settings table's own
 edit state, opens on Config.
 **← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and keeps going
 there while the reader switches tabs. A page opened with none — a typed address, a bookmark — goes back to Projects.
@@ -271,10 +271,10 @@ last lines, git's lines for a fetch, or the error itself when the deploy broke o
 foresee; the server keeps it until the next deploy starts (a restart of the dashboard loses it), so a
 reload or another tab shows it too.
 
-A restart held back by a landing in flight waits for that landing, with no time limit, and the row says it is held
+A restart held back by a merge in flight waits for that merge, with no time limit, and the row says it is held
 back meanwhile; the deploy then restarts the service as usual. A deploy with nothing on the machine to restart the
 service marks the restart and wait steps skipped and still runs the check step, which counts the checkout against
-origin and ends the job done or failed. While a restart is held, every page names the landings it waits for under the header, asks
+origin and ends the job done or failed. While a restart is held, every page names the merges it waits for under the header, asks
 `/api/version` every five seconds, and loads itself again once the new service answers, so the line goes when the
 restart has happened. A deploy that leaves the dashboard's own service on an older commit than its checkout — the check
 finds them different, an install fails after the checkout moved, or there is nothing to restart with — stores one
@@ -300,21 +300,21 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **Two settings tables, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
-the project tracks no manifest — holding Worktree links, Preview command, Test command, Criterion prefix, Description, a **Code landing** row and a **Try a branch** row, which are not config keys. How
+the project tracks no manifest — holding Worktree links, Preview command, Test command, Criterion prefix, Description, a **Code merge** row and a **Try a branch** row, which are not config keys. How
 strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
 spec form. No row's Comment names a file: which table a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
 project's own files unless `.aide/config` sets them. A row whose readiness check failed carries that check's
 sentence inline.
 
-The test command is the one worth knowing: a run and a landing test with a configured command only
+The test command is the one worth knowing: a run and a merge test with a configured command only
 (`aide-resolve-test-cmd`), so an unset one reads "The project's own test command — No tests run when a spec
-lands", with the worked-out command beside it as a suggestion.
+merges", with the worked-out command beside it as a suggestion.
 
 **Each table has its own Edit**, on the same line as its own heading, opening only that table for editing
 (`?edit=config` or `?edit=manifest`) — at most one is open at a time. While one is, the other table's Edit stays on
 the page, disabled, rather than disappearing. Opening `.aide/config` turns on two controls, Specs path and Install
-command; opening the manifest turns on seven, Worktree links, Preview command, Test command, Criterion prefix, Description, Code landing and Try a branch. The
+command; opening the manifest turns on seven, Worktree links, Preview command, Test command, Criterion prefix, Description, Code merge and Try a branch. The
 test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
 nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each open field
 is as wide as its cell and grows to show the whole value; with the board's script on, Enter saves, and a value is
@@ -323,7 +323,7 @@ always one line — a line break in it is folded to a space. Save and Cancel bot
 
 A save writes each value to the file its table names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
-Preview command, Test command, Criterion prefix, Description, Code landing and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
+Preview command, Test command, Criterion prefix, Description, Code merge and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. A description or a criterion prefix is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
 
 #### Schedule
@@ -340,15 +340,15 @@ it is saved. A save goes back to the page it was opened from; a refused one stay
 its output goes. The tab is drawn even for a project
 that is not on the allowlist; a create there is then refused, with the reason on the form.
 
-### How a project's code lands
+### How a project's code merges
 
-When a spec is archived, the dashboard lands its code in one of two ways, chosen per project with **Code landing** — in
+When a spec is archived, the dashboard merges its code in one of two ways, chosen per project with **Code merge** — in
 the Add form, which leaves it unchosen and refuses a project added without an answer, or under Edit on the project's own page:
 
-| Code landing                                | What happens                                                                                                                                                                                                                                        |
-|---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Merge into the default branch               | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                                                  |
-| Create a pull request                       | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it until it merges.                        |
+| Code merge                    | What happens                                                                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge into the default branch | Archive merges the code branch into the project's main branch, once the project's tests pass on the merged result.                                                                                                           |
+| Create a pull request         | Each step that pushes the code branch opens a pull request for it, and archive leaves that pull request open instead of merging, so someone can review the code before it reaches main. The row links to it until it merges. |
 
 Either way, the spec folder itself is archived straight away: its move to `archive/` is merged into the specs
 repository without review. A project that keeps its specs inside its own repository has one branch for both, so there
@@ -372,13 +372,13 @@ A step whose push failed opens no request either, and says so, since there is no
 
 Only `codeLanding: pr` is ever written: merge is what an absent key already means (a manifest with none reads it), and choosing it removes the key
 again. It goes in the project's `.aide/project.yaml` where the project tracks its manifest — and then every machine
-and every teammate lands the same way — otherwise in the dashboard's own settings file, which reaches a run as a
+and every teammate merges the same way — otherwise in the dashboard's own settings file, which reaches a run as a
 copy and is local to this machine. It is never read from `.aide/config`.
 
-It applies only to what the dashboard lands. `/aide-archive` run by hand in an AI assistant archives the spec and leaves
+It applies only to what the dashboard merges. `/aide-archive` run by hand in an AI assistant archives the spec and leaves
 the branches as they are; merging them or opening a pull request is then up to you.
 
-How the landing works inside, and what not to get backwards when changing it:
+How the merge works inside, and what not to get backwards when changing it:
 [A project can ask for its code branch to stay open](landing.md#a-project-can-ask-for-its-code-branch-to-stay-open).
 
 ---
@@ -400,7 +400,7 @@ otherwise it writes the settings file and waits for a fresh `ensureDashboardChec
 `.aide/project.yaml` in the dashboard's own clone (listed in that clone's `.git/info/exclude` before any
 fast-forward, so the day the team commits a manifest the pull overwrites the copy instead of refusing). `aide-run-spec`
 copies it from the main checkout into a step's worktree and keeps it out of the commit and out of `aide_tree_hash`;
-the landing's test gate copies it into its tree, and reads the worktree links from there. Every reader of
+the merge's test gate copies it into its tree, and reads the worktree links from there. Every reader of
 `<dir>/.aide/project.yaml` — TypeScript and bash — therefore finds it unchanged. Discovery and the project page read a
 project's manifest from the clone when the project's own directory holds none.
 

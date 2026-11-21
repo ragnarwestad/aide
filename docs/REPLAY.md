@@ -29,7 +29,7 @@ first time. It is how Aide decides which model runs a step.
 For each spec it is given, the script:
 
 1. copies the project's code repository at the commit just before the spec's code
-   landed;
+   merged;
 2. makes a specs repository holding only that spec: its description as archived,
    and the analysis, plan and status fresh from the templates;
 3. runs `analyze`, and `implement` when asked, through the runner of the Aide commit
@@ -52,15 +52,15 @@ The script's own help (`python3 scripts/replay_specs --help`, and the docstring 
 
 One row per spec, and a total row:
 
-| Column                    | What it says                                                                                                           |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Files found               | How many of the files the original landing changed the new analysis named, and how many it named that were not changed |
-| Must-fix, Should-fix      | The counts from the new plan's review                                                                                  |
-| Every AC placed           | Whether every acceptance criterion has a place for its test in the plan                                                |
-| Green, Rounds             | Whether implement ended on a green suite, and after how many test rounds                                               |
-| Original tests            | How many of the original spec's tests pass against the new code                                                        |
-| Judge                     | A score from 1 (clearly worse than the original plan) to 5 (clearly better); 3 means as good                           |
-| Time/tokens/cost per step | For analyze, implement and the judge                                                                                   |
+| Column                    | What it says                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Files found               | How many of the files the original merge changed the new analysis named, and how many it named that were not changed |
+| Must-fix, Should-fix      | The counts from the new plan's review                                                                                |
+| Every AC placed           | Whether every acceptance criterion has a place for its test in the plan                                              |
+| Green, Rounds             | Whether implement ended on a green suite, and after how many test rounds                                             |
+| Original tests            | How many of the original spec's tests pass against the new code                                                      |
+| Judge                     | A score from 1 (clearly worse than the original plan) to 5 (clearly better); 3 means as good                         |
+| Time/tokens/cost per step | For analyze, implement and the judge                                                                                 |
 
 The original tests run in a fresh worktree of the new code. A project with a `pnpm-lock.yaml` and no `node_modules`
 there gets `pnpm install --frozen-lockfile --prefer-offline` first, through `mise exec` when it has a `mise.toml`;
@@ -229,7 +229,7 @@ judge compares the new plan with the original one, and the original can itself b
 wrong. Here the original is supporting material for the judge, never the answer.
 
 Each case is run through replay's copies: the code at the commit before the spec's
-code landed, a specs repository holding only its archived description, and `analyze`
+code merged, a specs repository holding only its archived description, and `analyze`
 through the runner of the Aide commit given. A judge then scores the analysis and the
 plan on turns of their own, on four dimensions, each from 1 to 5 against anchors at
 1, 3 and 5, with the reason and the evidence before the score:
@@ -255,7 +255,7 @@ origin.
 
 One Markdown file per case in `scripts/plan_eval/cases/`, named for the spec's
 number: 640, 647 and 653. Each pins the spec's folder, the commit before its code
-landed, the commit that landed it and the sha256 of its archived description, then
+merged, the commit that merged it and the sha256 of its archived description, then
 lists, each item with its evidence in the description or the code at the pinned
 commit:
 

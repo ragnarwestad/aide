@@ -30,12 +30,12 @@ loops that send work back, and who decides that a step is done. The details of e
   to decide.
 - **One agent writes.** Inside a step, one session changes the files. No two agents write to the same spec at once.
 - **Extra agents only judge.** A second agent reads and reports, and never changes anything itself. What it finds goes
-  back to the agent that wrote the work. A landing's repair session is the one exception: once the step is done, it
-  fixes tests the merge broke, or a conflict in Merge, and the landing tests the result again.
+  back to the agent that wrote the work. A merge's repair session is the one exception: once the step is done, it
+  fixes tests the merge broke, or a conflict in Merge, and the merge tests the result again.
 - **The spec is the memory.** Each step starts a new session. What one step leaves for the next is in the spec's four
   files, not in a conversation, so every session starts with a clean context.
 - **The runner checks, not the agent.** What an agent says about its own work decides nothing. The runner runs the
-  tests itself, refuses changes outside the spec's own folder, and the landing runs the whole suite on exactly what
+  tests itself, refuses changes outside the spec's own folder, and the merge runs the whole suite on exactly what
   main is about to become.
 - **A person at both ends.** A person writes what is to be done, and decides whether the result is good enough.
   Between those two points the agents run unattended, with every permission granted in advance.
@@ -120,8 +120,8 @@ No AI. A person ticks the acceptance criteria, and can try the change on the tes
 1. When the spec cannot be archived yet, such as acceptance criteria still unticked, the runner says so and no AI runs.
 2. Otherwise the runner starts one new session with `aide-archive`. It merges the default branch in, resolves any
    conflict and moves the spec to `archive/`.
-3. The landing runs the project's tests on the merge and merges the branch into main. When tests the branch broke
-   fail on the merge and pass on main alone, the landing starts a new session to fix them on the branch, at most twice
+3. The merge runs the project's tests and merges the branch into main. When tests the branch broke
+   fail on the merge and pass on main alone, the merge starts a new session to fix them on the branch, at most twice
    (`dashboard/src/serve/land-branch/repair/`), then rebuilds the merge and tests it again.
 
 No subagents and no review.
@@ -133,7 +133,7 @@ No subagents and no review.
 
 ### Merge
 
-Merge to main lands a branch that belongs to no spec (`aide land`), with the same test gate as an archive.
+Merge to main merges a branch that belongs to no spec (`aide merge`), with the same test gate as an archive.
 
 1. A merge conflict starts a new session that may edit only the conflicted files, at most twice per repository. The
    board checks the result and commits the merge itself.
@@ -150,7 +150,7 @@ Every loop that sends work back has an end:
   the implement session has used `AIDE_TEST_FIX_FRESH_PERCENT` of its context window, a fresh session of the same
   AI and model takes over the test fixes and keeps them for later rounds.
 - **After the plan review in Analyze:** inside the same session, once.
-- **After red tests on a landing (Archive and Merge):** at most two repair sessions, and only for tests that pass on
+- **After red tests on a merge (Archive and Merge):** at most two repair sessions, and only for tests that pass on
   main alone.
 - **After a merge conflict in Merge:** at most two repair sessions per repository.
 - **Inside every session:** the agent's own loop of reading, changing and checking, until it answers without asking for

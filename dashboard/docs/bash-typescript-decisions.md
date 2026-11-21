@@ -20,7 +20,7 @@ carries the detail.
 ## The pairs
 
 Test worker allocation has one implementation in `aide-record-test-run`,
-shared by Implement and the landing; see [Tests in a spec](tests-in-a-spec.md).
+shared by Implement and the merge; see [Tests in a spec](tests-in-a-spec.md).
 
 Each pair is pinned by a test that reads both sides, so drift is caught —
 but the two copies still have to be edited by hand together.
@@ -32,7 +32,7 @@ but the two copies still have to be edited by hand together.
 | Project readiness — the read-only prerequisites a run needs                                                                                                                                                                                        | `aide-run-spec`                                                                                            | `assessProjectReadiness()` in `dashboard/src/project/project-admin/readiness.ts`                                 | `core/tests/fixtures/project-readiness-prerequisites.json`                                                                           |
 | `worktreeLinks` — read from the manifest alone                                                                                                                                                                                                     | `aide_manifest_get` + `aide-run-spec`                                                                      | `resolveWorktreeLinks` in `dashboard/src/project/discover/config.ts`                                             | `core/tests/fixtures/worktree-links-precedence.json`                                                                                 |
 | An untracked `.aide/project.yaml` is copied into a worktree or tree, kept out of the commit and the hash; tracked, or git unable to say, is left alone                                                                                             | `carry_manifest_into_worktree` and `aide_tree_hash` (bash)                                                 | `checkoutForGate` in `dashboard/src/serve/land-branch/test-gate.ts`                                              | `core/tests/fixtures/manifest-carry.json`, read by `test_aide_run_spec_manifest.py` and `gate-carries-manifest.test.ts`              |
-| `codeLanding` — whether code is reviewed before it lands                                                                                                                                                                                           | one anchored `sed` in `aide-run-spec`                                                                      | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts`                                               | `core/tests/fixtures/code-landing-precedence.json`                                                                                   |
+| `codeLanding` — whether code is reviewed before it merges                                                                                                                                                                                           | one anchored `sed` in `aide-run-spec`                                                                      | `resolveCodeLanding` in `dashboard/src/project/discover/config.ts`                                               | `core/tests/fixtures/code-landing-precedence.json`                                                                                   |
 | Whether a spec asks to choose the approach — only `yes` on its `Let me choose the approach:` line is yes                                                                                                                                           | `aide_spec_choose_approach` in `core/scripts/_aide-spec-lib.sh`                                            | `chooseApproachIn` in `dashboard/src/project/discover/choose-approach.ts`                                        | `core/tests/fixtures/choose-approach-line.json`                                                                                      |
 | How strictly analyze checks a spec's criteria — the `Acceptance criteria checks:` line, read as `off` unless it is `off`, `warn` or `stop`                                                                                                         | `aide_spec_criteria_checks` in `core/scripts/_aide-spec-lib.sh`, and `invocation.sh`                       | `createChoicesIn` in `dashboard/src/project/discover/create-choices.ts`                                          | `core/tests/fixtures/criteria-checks-level.json`                                                                                     |
 | Which analysis a spec's latest one was — only a lower-case `short` or `full` on the `Analysis:` bullet in Tracking info counts, none reads as full                                                                                                 | `spec_analysis` in `core/scripts/lib/tracking-info.sh`                                                     | `parsePhaseOutcome` in `dashboard/src/project/parse-phase-outcome.ts`                                            | `core/tests/fixtures/analysis-line.json`                                                                                             |
@@ -40,7 +40,7 @@ but the two copies still have to be edited by hand together.
 | The status-mark rule — which Status cells count as done                                                                                                                                                                                            | `status_progress_for` in `core/scripts/lib/status-progress.sh`                                             | `isDoneMark` in `dashboard/src/project/parse-status/index.ts`                                                    | `core/tests/fixtures/status-row-counting.json`                                                                                       |
 | An error sentence says what happened AND what resolves it                                                                                                                                                                                          | `refuse()`'s callers and the provider/tool-failure strings in `aide-run-spec`                              | `getErrorMessage()` in `dashboard/src/messages/shared/written.ts`, and every producer that follows its shape by hand | `core/tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`'s `BASH_ERROR_REGISTRY`, reading the bash side's source text |
 | Which endings the board words itself from the result's fields — the result carries `errorLog` and no sentence for them                                                                                                                             | `board_words_ending` in `core/scripts/lib/run-spec/publish/result.sh`                                      | `Runner.complete()` in `dashboard/src/queue/runner/index.ts`                                                     | `core/tests/fixtures/board-worded-endings.json`, read by `test_board_worded_endings.py` and `board-worded-endings.test.ts`           |
-| Which terminal reason lands a step — `close` on `closed`, `archive` on `completed`                                                                                                                                                                 | `terminal_reason` in `aide-run-spec` and `run-spec/publish/result.sh`, from `aide-close-spec`'s own answer | `onOk.endings` for `close` and `archive` in `dashboard/src/serve/land-branch/policy/index.ts`                    | `dashboard/test/queue/close-lands-on-the-word-bash-reports.test.ts`, reading the bash side's source text and the policy    |
+| Which terminal reason merges a step — `close` on `closed`, `archive` on `completed`                                                                                                                                                                 | `terminal_reason` in `aide-run-spec` and `run-spec/publish/result.sh`, from `aide-close-spec`'s own answer | `onOk.endings` for `close` and `archive` in `dashboard/src/serve/land-branch/policy/index.ts`                    | `dashboard/test/queue/close-lands-on-the-word-bash-reports.test.ts`, reading the bash side's source text and the policy    |
 | The push-retry bound — unreachable origin is retried this many times, waited this long, before it is reported                                                                                                                                      | `PUSH_RETRY_WAITS` and `push_with_retry()` in `aide-run-spec`                                              | `LANDING_RETRIES.pushWaitsMs` and `pushWithRetry()` in `dashboard/src/git/branch-merge/retry.ts`                 | `dashboard/test/git/merge/branch-merge-push-retry.test.ts`'s own bound-pinning test, reading the bash side's source text         |
 | Which archive refusals are guards, not attempts — left out of the phase's attempt count                                                                                                                                                            | the `case "$terminal_reason"` arm in `core/scripts/lib/run-spec/record/outcome.sh`                         | `GUARD_REFUSALS` in `dashboard/src/render/pages/specs-list/phase-rows.ts`                                        | `dashboard/test/queue/guard-refusals-are-not-attempts.test.ts`, reading both sides' source text                                      |
 | A skill-step mark — `--- Step N of X: <title> — started`, or ending `done`, `skipped:` or `stopped:` — written by the model and shown as a line of its own in the Log                                                                              | `step_log_note` and `schedule_step_note` in `core/scripts/lib/run-spec/setup/invocation.sh`                | `STEP_MARK` and `splitMarks()` in `dashboard/src/queue/parse-stream/shared.ts`                                   | `dashboard/test/queue/requests/parse-stream-step-marks.test.ts`, which reads both prompts' text and parses every line each asks for  |
@@ -61,7 +61,7 @@ but the two copies still have to be edited by hand together.
 | The folder an implement's screenshots are kept in — beside the transcript, as `<job id>.<step>.screenshots`                                                                                                                                        | `screenshots_dir` in `run-spec/turn/screenshots.sh`                                                        | `screenshotsDir` in `src/queue/runner/run-log-path.ts`                                                           | `test/queue/runner/run-log-path.test.ts`, which reads `screenshots.sh` for the suffix                                                |
 | A top-level manifest scalar — read without a trailing comment (a `#` after a space or a tab) and, when quoted as a whole, without its quotes                                                                                                       | `aide_manifest_get` in `core/scripts/_aide-spec-lib.sh`                                                    | `parseManifest` in `dashboard/src/project/parse-manifest.ts`                                                     | `dashboard/test/project/parse-manifest.test.ts`, which runs both on the same lines                                                   |
 | The lock every move of a shared checkout takes — the directory `<checkout>/.git/aide-run-spec-worktree.lock`, made with `mkdir`, holding its taker's pid, and taken over from a pid that is gone | `checkout_lock_path`, `checkout_lock_take` and `checkout_lock_release` in `core/scripts/lib/checkout-lock.sh` | `checkoutLockPath` and `withCheckoutLock` in `dashboard/src/git/checkout-lock/index.ts` | `dashboard/test/git/checkout-lock/checkout-lock.test.ts`, which runs both on one checkout |
-| The runner's and the landing's own git run no hooks — `-c core.hooksPath=/dev/null` on every git they start themselves, never in the environment of what they start                                                                                | `git()` in `core/scripts/lib/run-spec/setup/git-hooks.sh`                                                  | `NO_GIT_HOOKS` in `dashboard/src/integrations/no-git-hooks.ts`                                                   | `dashboard/test/integrations/no-git-hooks.test.ts`, which reads the bash side's source text                                          |
+| The runner's and the merge's own git run no hooks — `-c core.hooksPath=/dev/null` on every git they start themselves, never in the environment of what they start                                                                                | `git()` in `core/scripts/lib/run-spec/setup/git-hooks.sh`                                                  | `NO_GIT_HOOKS` in `dashboard/src/integrations/no-git-hooks.ts`                                                   | `dashboard/test/integrations/no-git-hooks.test.ts`, which reads the bash side's source text                                          |
 
 <!-- markdownlint-enable MD060 -->
 
@@ -92,7 +92,7 @@ exclusion list rather than in the fixture:
 
 **A run is TOLD where its spec folders are; it does not work it out
 alongside the dashboard.** The dashboard passes `--specs-root` from the
-same answer its own landing uses (`machinerySpecsRoot`), and
+same answer its own merge uses (`machinerySpecsRoot`), and
 `aide-run-spec` prefers that flag over `AIDE_SPECS_PATH` in
 `.aide/config`. Left out — a run started by hand — the script reads the
 config.
@@ -101,8 +101,8 @@ Both languages read `.aide/config` as exact, unindented `KEY=value` lines. The f
 trimmed, and an empty first value means the key has no value. TypeScript writes through
 `dashboard/src/project/aide-config.ts`; Bash writes through `aide_config_write` in `core/scripts/_aide-spec-lib.sh`.
 
-The run and the landing have to agree on this one answer: a create that
-makes its folder somewhere the landing does not look can never be given
+The run and the merge have to agree on this one answer: a create that
+makes its folder somewhere the merge does not look can never be given
 its number.
 
 Each side has a test of its own, and neither reads the other:
@@ -188,7 +188,7 @@ the two differ on purpose:
 A job queued for its next step right after `create` is asked about
 before the board's cached scan of the specs has the new spec. The
 dashboard reads that spec's Depends on off disk, where the create
-landing has already put it, rather than taking its absence from the
+merge has already put it, rather than taking its absence from the
 scan as naming no dependency.
 
 The acceptance-criteria gate is
@@ -197,16 +197,16 @@ file has an open row. The row's "archive held back" and the queue's
 archive hold read the state file of the copy `specCopy` picks: the
 branch copy once it has been read and no write has marked it due — a
 tick on a spec whose `aide/<folder>` is open is written there, and main
-stays unticked until archive lands — and main's otherwise.
+stays unticked until archive merges — and main's otherwise.
 `blockedForMissingAnalyze` reads its phases off the same copy for the
 same reason: a chained job's analyze is on the branch the moment the
-step ends, whether or not its landing reached main.
+step ends, whether or not its merge reached main.
 
 ## Not a pair: where aide installs for each AI
 
 **The places aide installs for each AI are also not a hand-paired pair.**
 `core/scripts/lib/install-targets.txt` is the one table — an AI, a
-place's name, its source in the repository and where it lands — read by
+place's name, its source in the repository and where it merges — read by
 both:
 
 - `core/scripts/aide-preflight` — prints one line per row, with whether

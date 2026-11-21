@@ -29,7 +29,7 @@ Run `scripts/stamp-versions`, which stamps the "Supported versions" table
 in `docs/AI_SUPPORT_MATRIX.md` with what the installed CLIs report.
 
 Change no other file in the repository. Commit nothing and push nothing: the
-run commits what you changed, and the board lands it.
+run commits what you changed, and the board merges it.
 
 ## Step 5 of 5: Write the report
 

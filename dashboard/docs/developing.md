@@ -19,7 +19,7 @@ make test-all                       # all three
 make serve-local                    # serves the checkout it is started in, no build step, no service
 ```
 
-`make test` is part of aide's `AIDE_TEST_CMD`, which a step and a landing run whatever the change touched. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
+`make test` is part of aide's `AIDE_TEST_CMD`, which a step and a merge run whatever the change touched. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
 machine is doing, and the whole of it takes about a minute on a 14-core machine. It leaves out the round's own tests
 alone: each starts a real test server, and they lose to load on a busy machine without a fault in the change.
 
@@ -27,9 +27,9 @@ A change to the documentation alone, these pages included, has a command of its 
 `scripts/check-docs` runs the tests that read a page rather than the code, in about ten seconds. A change that also
 touches `dashboard/src` needs `make test` as well.
 
-CI runs both `make test` and `make test-slow`, on a pull request only — never on a push. A change the dashboard lands
-through its own merge does not reach CI at all; the landing's own run of `make test` is the gate it passes.
+CI runs both `make test` and `make test-slow`, on a pull request only — never on a push. A change the dashboard merges
+through its own merge does not reach CI at all; the merge's own run of `make test` is the gate it passes.
 
-`make serve-local` runs the checkout it is started in, which is how a change is tried before it lands. It answers on
+`make serve-local` runs the checkout it is started in, which is how a change is tried before it merges. It answers on
 the machine it runs on alone, at `http://localhost:8788`, on port 8788 unless `PORT=` names another — the installed
 service's own port, so on the serving host give it a different one. `ROOT=` names the directory holding the projects; without it, there is no project navigation.

@@ -20,8 +20,8 @@ take it back or close it. How each move is decided and recorded is in
 
 ## The four phases
 
-| Phase       | Writes                                                                                                                   | Lands                                                                                |
-|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Phase       | Writes                                                                                                                   | Merges                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | `create`    | The spec folder: `0-README.md`, `1-description.md` and empty `2-`, `3-`, `4-` files, via `core/scripts/aide-create-spec` | Merged into the specs repo's default branch at once; the branch is deleted on origin |
 | `analyze`   | `2-analysis.md`, `3-solution.md`, `4-status.md`, in the specs repo only                                                  | Merged into the specs repo's default branch at once; the branch is deleted on origin |
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
@@ -35,7 +35,7 @@ They simply do not move a spec along the arc.
 ## Writing a spec
 
 A spec starts on the New spec page. Choose the project and title, then review the three spec settings below them.
-The description and Depends on follow. A spec that depends on another waits for it to land before its analyze starts.
+The description and Depends on follow. A spec that depends on another waits for it to merge before its analyze starts.
 
 **The description holds at most 10,000 characters**, when the spec is created and when its description is edited on the
 spec page's Description tab. Past that the text is refused, never cut: on the New spec page the field keeps everything
@@ -85,18 +85,18 @@ A spec for a change to the dashboard, run on the board, with nothing going wrong
 1. **New spec.** You fill in the form and press Create. The dashboard writes, commits and pushes the numbered folder
    — `512-a-project-keeps-nothing` — without starting a job. Its state is `created`.
 2. **Run.** The new row offers Analyze, Implement and Archive with the board's default AI and model. Press Run to start.
-3. **Analyze runs**, writes `2-analysis.md` and `3-solution.md` with the acceptance criteria, and lands them in the
+3. **Analyze runs**, writes `2-analysis.md` and `3-solution.md` with the acceptance criteria, and merges them in the
    specs repository. The state is `analyzed`, and the row's button now reads Implement.
 4. **Implement runs**, writes the code and its tests on `aide/512-…`, and the runner holds it to the project's own
    suite: green ends the step, red goes back to the same session twice before the step fails. Nothing is merged —
    the code waits on the branch. The state is `implemented`.
 5. **Archive is held back.** The spec has acceptance criteria, so the job ends `done` without running anything, and
    the row says so. You read the result, tick the rows on the Status tab, and press Archive.
-6. **Archive runs and lands.** The folder moves into `archive/`, the documentation feedback is written, and the
-   landing merges the code into the default branch once the project's tests pass on the merged result. The state is
+6. **Archive runs and merges.** The folder moves into `archive/`, the documentation feedback is written, and the
+   merge takes the code into the default branch once the project's tests pass on the merged result. The state is
    `archived`, and the row leaves the active list.
 
-When the spec belongs to a group, a successful archive landing queues the next member by the stored group position.
+When the spec belongs to a group, a successful archive merge queues the next member by the stored group position.
 Every member still completes this lifecycle on its own branch. A member that fails or stops leaves the later members
 waiting until its stopped step is run again and the member archives.
 
@@ -125,7 +125,7 @@ is the whole set:
 | stopped: short-analysis-over-limit    | Analyze wrote a short analysis for a spec over a limit of the runner's             | Nothing. Analyze is queued again by the board, with a full analysis         |
 | stopped: sent-back                    | Implement found a spec with a short analysis is not small after all                | Nothing. Analyze and then Implement are queued, with a full analysis        |
 | stopped: sent-back-refused            | Implement asked to send the spec back, but its analysis was already full           | Press Analyze for a new plan, or press Implement to build the one there is  |
-| not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                           |
+| not merged                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                           |
 | branch still on origin                | The branch merged, or its pull request did, but the branch was left on origin      | Press Delete branch                                                         |
 | conflict                              | A merge conflict no machine could settle                                           | Resolve it yourself, with the diff in front of you                          |
 
@@ -213,7 +213,7 @@ as it was.
 since Close carries no `not-implemented-yet`/`acceptance-criteria-unticked` gate. `core/scripts/aide-close-spec`
 writes a
 `**Closed:** <date> — <reason>` stamp (the reason is required) and moves the folder into `archive/`, exactly as
-`aide-archive-spec` does — but its landing deletes the code root's branch instead of merging it, since Close records
+`aide-archive-spec` does — but its merge deletes the code root's branch instead of merging it, since Close records
 that the work will not be used, not that it was. **Whatever code that branch held is gone with it**, and a later
 reopen does not bring it back — the spec's four files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
 state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.

@@ -17,7 +17,7 @@
 ## Why this routine exists
 
 Finish the specs branch's open merge before closing the spec. A successful
-resolution lets the dashboard land the updated specs branch; an unsafe
+resolution lets the dashboard merge the updated specs branch; an unsafe
 resolution leaves the branch exactly as it was found and stops close.
 The code branch is discarded by close, never merged by this routine.
 
@@ -43,7 +43,7 @@ this step, in this worktree or anywhere else.
 ### Step 1: See what the conflict is
 
 1. `git status --short` — the `UU`/`AA`/`DU` entries are the conflict
-2. `git log --oneline HEAD..MERGE_HEAD` — what landed on the default
+2. `git log --oneline HEAD..MERGE_HEAD` — what arrived on the default
    branch since the spec's branch was made
 3. `git log --oneline MERGE_HEAD..HEAD` — what the spec's own work is
 
@@ -65,7 +65,7 @@ ways, when either side's intent is unclear, or when a correct merge
 would mean writing new code neither side wrote. In those cases go
 straight to Step 5 and undo — a wrong merge that passes thin tests is
 the one failure this routine can cause that nobody sees, and close
-lands the specs changes it resolves.
+merges the specs changes it resolves.
 
 Then remove every marker and `git add` each file you resolved.
 `git diff --check` and `grep -rn '<<<<<<<'` over the resolved files
@@ -85,7 +85,7 @@ resolution — the merge commit IS the resolution.
 
 Run the tests covering the files the resolution changed — the ones that
 conflicted, and any you edited to settle them — never the full suite.
-The landing runs the full suite once, on exactly this merge, before it
+The merge runs the full suite once, on exactly this merge, before it
 pushes anything: this routine only needs the tests covering its resolution.
 To find the right tests, use the project's own test command,
 narrowed to those files, in single-run mode:
@@ -100,10 +100,10 @@ suite again for it; say so in the report. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
 
-**The landing is the gate the whole design rests on.** A machine
-resolving a conflict unattended and then landing it is defensible
-because the landing runs the project's full suite on the merge and a
-red one does not land. This narrower run is the resolution's own first
+**The merge is the gate the whole design rests on.** A machine
+resolving a conflict unattended and then merging it is defensible
+because the merge runs the project's full suite on the merge and a
+red one does not merge. This narrower run is the resolution's own first
 check: never skip it, and never report a resolution as done without it.
 
 ### Step 5: Carry on, or undo

@@ -130,5 +130,5 @@ Rules:
 - Closing is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's
-- The code branch is left for the landing after this step, which deletes
+- The code branch is left for the merge after this step, which deletes
   it; this step never pushes or merges it

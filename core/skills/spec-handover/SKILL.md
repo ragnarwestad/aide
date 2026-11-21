@@ -49,7 +49,7 @@ raise that concrete difference before settling the description.
    pasted with them ends up in the spec's text. A part with nothing in it
    is still handed over as the label followed by "ingen"
    (`**Avhengigheter:** ingen`), with no reason given. Avhengigheter names
-   only a spec with a queued, running or landing job, never one that is
+   only a spec with a queued, running or merging job, never one that is
    archived or closed: check the board in the same reply.
    **Every requirement under Solution has a criterion of its own** — a
    help text, a documentation page, a default — so the create step's AI

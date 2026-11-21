@@ -126,15 +126,15 @@ right. The queue and its limits are in
 [Running specs](../dashboard/docs/running-specs.md); what a run does to the repositories is in
 [The runner and its checkouts](../dashboard/docs/the-runner.md).
 
-**Code handling.** Aide calls this landing. Each step works on the branch `aide/<spec-folder>`, and when a step
-ends the dashboard lands what that step produced. Analyze, close and reopen copy the spec's own folder onto the
-default branch and leave the rest of the branch alone. Implement lands nothing: its code stays on the branch
+**Code handling.** Aide calls this a merge. Each step works on the branch `aide/<spec-folder>`, and when a step
+ends the dashboard merges what that step produced. Analyze, close and reopen copy the spec's own folder onto the
+default branch and leave the rest of the branch alone. Implement merges nothing: its code stays on the branch
 until the archive step, which merges the branch into the default branch and deletes it on origin. Code therefore
 reaches the default branch through archive alone. Before a merge is pushed, the project's test suite runs on the
 merged result, and a failing run stops the job with nothing merged. With `codeLanding: pr` in the project's
 settings, the code branch is left open as a pull request instead, for someone to review and merge. Run by hand,
 the skills run the tests themselves, and what to do about a failure — and when to merge — is the person's.
-[Branches and landing](../dashboard/docs/landing.md) has the merge, the conflicts and the test gate in full.
+[Branches and merging](../dashboard/docs/landing.md) has the merge, the conflicts and the test gate in full.
 
 **Invasiveness.** In the working tree, two file sets, and both can be kept out. The first is the project's
 settings: name, description, test command, worktree links — the gitignored directories a run has to borrow, such
@@ -527,7 +527,7 @@ Its experimental `looseEnds` check looks for work left behind even after an agen
 including worktree changes, unpushed commits and unfinished child work
 ([implementation](https://github.com/mikecann/threadbear/blob/main/runner/src/runner/loose-ends.ts)). That is a useful
 reference for distinguishing a finished agent turn from finished delivery. Aide already has worktree isolation,
-controlled landing and steps that outlive a dashboard restart; those are overlaps, not missing features.
+controlled merging and steps that outlive a dashboard restart; those are overlaps, not missing features.
 
 ## PDD Kit
 
@@ -574,15 +574,15 @@ service runs as, and every commit a run makes carries that machine's git user, w
   choice of approach, the acceptance-criteria checks), and a step that goes wrong runs until its time limit before
   anything reports it.
 
-### Landing is part of the workflow, not a step afterwards
+### Merge is part of the workflow, not a step afterwards
 
 - **Advantage:** no step's work has to be merged by hand, the tests cannot be skipped on the way in, and the spec
   and the code move together. Spec Kitty merges on a command a person gives, after an acceptance step that
-  runs the tests it is handed; Aide's landing runs the project's own suite on exactly what the default branch is about
+  runs the tests it is handed; Aide's merge runs the project's own suite on exactly what the default branch is about
   to become, and pushes only when it is green. A project that reviews every change keeps that review through `codeLanding: pr`.
 - **Disadvantage:** the dashboard needs write access to the repositories it merges into. A merge conflict with the
   default branch is resolved by the archive step itself, which means trusting an AI session with the resolution,
-  with the test run as the check behind it. Landing belongs to the dashboard, not to the skills: a person running
+  with the test run as the check behind it. Merge belongs to the dashboard, not to the skills: a person running
   the skills by hand merges their own branches.
 
 ### One set of skills across four AI tools

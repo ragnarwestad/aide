@@ -26,7 +26,7 @@ Read the section the step at hand needs.
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
   resolver, which also takes an issue key). `analyze`,
-  `implement` and `archive` wait until every named spec has landed on
+  `implement` and `archive` wait until every named spec has merged on
   the default branch; `create` runs regardless
 - Optionally an `Acceptance criteria checks:` line in Tracking info —
   `off`, `warn` or `stop` — saying how strictly `/aide-analyze` checks

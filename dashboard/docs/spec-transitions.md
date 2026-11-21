@@ -44,7 +44,7 @@ The code is in these places:
 - `completed_steps_for` and the post-step checks — in `core/scripts/lib/run-spec/record/records.sh` and
   `run-spec/record/status-line.sh`.
 - The gates — in `core/scripts/aide-archive-spec`.
-- The landing — in `src/serve/land-branch/`.
+- The merge — in `src/serve/land-branch/`.
 
 ## What "has had a phase" means
 
@@ -69,7 +69,7 @@ earlier implement committed stays on `aide/<folder>`, and the next implement sta
 without completing cancels nothing.
 
 **A completed analysis of an implemented spec also clears its acceptance ticks.** A tick says someone checked the
-criterion against the code that will land, and the new round replaces that code. The runner rewrites the table under
+criterion against the code that will merge, and the new round replaces that code. The runner rewrites the table under
 `## Acceptance criteria` from the criteria in `1-description.md` as they read now: one row per `AC-n`, so a reworded
 criterion shows its new wording and a removed one is gone. A row keeps its Notes cell only while its criterion's
 text is unchanged. With acceptance ticking required, every row becomes open (`Not verified` included), and archive
@@ -80,8 +80,8 @@ otherwise an analysis of a spec that never reached `implemented` leaves the rows
 The checks themselves, and what each one refuses, are in
 [The runner and its checkouts](the-runner.md#what-counts-as-a-step-having-run).
 
-What the record does NOT cover: whether the step's commit reached origin, and whether the landing that followed
-succeeded. It is rebuilt from local history, so a step whose push was refused is still on it, and a landing that
+What the record does NOT cover: whether the step's commit reached origin, and whether the merge that followed
+succeeded. It is rebuilt from local history, so a step whose push was refused is still on it, and a merge that
 fails afterwards does not take it off — that reaches the JOB instead, as `done` to `failed`
 ([A job's states](job-states.md)).
 
@@ -113,13 +113,13 @@ the unchanged form.
 `analyzed`: Implement is next, and Archive is refused until implement has completed again. Whether to is the
 reader's choice. `create` itself never runs twice. Before the first Run, the row ticks every remaining phase with the
 board's default AI and model. The runner queues each following step the moment the one before it completes, and starts
-it once that step's landing has settled. Until then, that step's own phase line and
+it once that step's merge has settled. Until then, that step's own phase line and
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
 **`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze
 first" — by the run route at the press, with that sentence, and by the runner's own gate before the step starts.
 Both read the default branch's `4-status`, so they cannot disagree. Between the steps of one job, the queue holds
-an implement whose analyze has not landed yet. An `analyzed` or `implemented` spec takes the move,
+an implement whose analyze has not merged yet. An `analyzed` or `implemented` spec takes the move,
 and running implement on an implemented spec leaves it implemented, so a re-run needs no gate of its own. A dependency that has not archived holds it back
 too — see the next section. Beyond those, nothing is checked: an `implement` run against an empty `3-solution.md`
 is refused by the skill, not by the queue.
@@ -127,14 +127,14 @@ is refused by the skill, not by the queue.
 **`implement` to `archive`.** `core/scripts/aide-archive-spec` runs before any model is spawned and decides in this
 order, stopping at the first that applies:
 
-| Outcome                        | Meaning                                                                                         |
-|--------------------------------|-------------------------------------------------------------------------------------------------|
-| `refused`                      | Bad arguments, or the spec cannot be found                                                      |
-| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs             |
-| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it       |
-| `not-implemented-yet`          | `implement` is not on the completed line                                                        |
-| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those   |
-| `archived`                     | Stamped and moved; the landing follows                                                          |
+| Outcome                        | Meaning                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `refused`                      | Bad arguments, or the spec cannot be found                                                    |
+| `already-archived`             | The folder is under `archive/` already — idempotent, Step 2 of the skill still runs           |
+| `conflict-open`                | The branch could not be brought up to date with the default branch; the model resolves it     |
+| `not-implemented-yet`          | `implement` is not on the completed line                                                      |
+| `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those |
+| `archived`                     | Stamped and moved; the merge follows                                                          |
 
 Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
 `already-archived`, `not-implemented-yet` and `acceptance-criteria-unticked`. `conflict-open` and `archived` spawn
@@ -168,10 +168,10 @@ Existing specs with only "Acceptance ticking was not required for this run." kee
 again. A completed analyze with the saved not-required choice replaces the sentence with the table when the
 description has readable criteria; without readable criteria, it keeps the sentence.
 
-**`archive`'s landing** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
-asks origin whether `aide/<folder>` is still there. A root that still holds it is a landing that did not finish: the
-job goes `failed` with `errorReason: "unlanded"`, and the spec keeps a row on the default view wearing "not landed"
-until `archive` is run again — see [Branches and landing](landing.md). A branch the landing merged but could not
+**`archive`'s merge** merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD` after a code root, and then
+asks origin whether `aide/<folder>` is still there. A root that still holds it is a merge that did not finish: the
+job goes `failed` with `errorReason: "unlanded"`, and the spec keeps a row on the default view wearing "not merged"
+until `archive` is run again — see [Branches and merging](landing.md). A branch the merge took in but could not
 delete is the exception: the spec is archived, and its row offers Delete branch.
 
 ## How a hold works
@@ -180,35 +180,35 @@ Three things hold a job back rather than stop it: nothing failed, and the job is
 
 - **A dependency.** `Depends on:` in `1-description.md` names other specs. `analyze`, `implement` and `archive` are held back
   while any of them still has a branch on origin carrying commits the default branch does not — which is until that
-  spec's own `archive` lands. A dependency on an earlier member of the same execution group is met once that member has
+  spec's own `archive` merges. A dependency on an earlier member of the same execution group is met once that member has
   finished Implement on the group's shared branch; the group archives all its members together later. The line is read
   from the spec's open `aide/<folder>` branch and from the checkout, and the job waits for what either names: a Depends
   on saved from the open row is written to the branch, while the runner's own check reads the checkout. The dashboard
   leaves the job `queued` with the reason on its row and tries again on every pass of the runner; a run started by hand
   is refused. `create` runs regardless. `analyze` waits too,
-  because a plan made before the dependency lands is a plan for code that is about to change. A dependency can use the
+  because a plan made before the dependency merges is a plan for code that is about to change. A dependency can use the
   complete folder name or its number, for both active and archived specs. A complete folder name identifies that exact
   spec. A number identifies a spec only when exactly one active or archived folder has that number. An unknown or
   ambiguous reference is refused; no spec is chosen from the order in which folders were read.
 - **Another job on the same spec.** Two jobs for one spec never run at once.
-- **That job's own landing.** A job with `landing` set does not start its next step until its merge settles.
-  Every other job runs as usual: the landing merges in a worktree of its own.
+- **That job's own merge.** A job with `landing` set does not start its next step until its merge settles.
+  Every other job runs as usual: the merge works in a worktree of its own.
 
 An archived or closed spec is refused rather than held: the server refuses every step but `reopen` for it
 (`ARCHIVE_ONLY_STEP`).
 
 ## Where the work is between phases
 
-| After       | Specs repo                                               | Project                                                                        |
-|-------------|----------------------------------------------------------|--------------------------------------------------------------------------------|
-| `create`    | Folder on the default branch                             | Untouched                                                                      |
-| `analyze`   | Analysis, plan and status on the default branch          | Untouched                                                                      |
-| `implement` | Status rows on `aide/<folder>` — implement lands nothing | Code on `aide/<folder>`, pushed to origin                                      |
-| `archive`   | Folder under `archive/` on the default branch            | Code on the default branch, or a pull request left open when `codeLanding: pr` |
+| After       | Specs repo                                                | Project                                                                        |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `create`    | Folder on the default branch                              | Untouched                                                                      |
+| `analyze`   | Analysis, plan and status on the default branch           | Untouched                                                                      |
+| `implement` | Status rows on `aide/<folder>` — implement merges nothing | Code on `aide/<folder>`, pushed to origin                                      |
+| `archive`   | Folder under `archive/` on the default branch             | Code on the default branch, or a pull request left open when `codeLanding: pr` |
 
 `implement` is the one phase whose work is deliberately left on its branch, in both repos: the branch is the
-inspection point, and `archive` is what lands it. A project that sets `codeLanding: pr` in its manifest keeps the CODE
-root's branch open through `archive` too, as the pull request; the specs root still lands.
+inspection point, and `archive` is what merges it. A project that sets `codeLanding: pr` in its manifest keeps the CODE
+root's branch open through `archive` too, as the pull request; the specs root still merges.
 
 ## Which button a row offers
 
@@ -230,7 +230,7 @@ ticked and locked on every row, since the spec's folder exists.
 | create, on a spec that exists                              | "create cannot run again"                                                                      |
 
 What has run is read from the default branch's `4-status`, the spec's own open branch and the git history
-together — the same answer the row's own phase marks give. Implement lands nothing, so its record is on the branch
+together — the same answer the row's own phase marks give. Implement merges nothing, so its record is on the branch
 alone until archive merges it. Analyze and implement ticked together on one press are accepted: the job's own
 analyze merges before its implement starts. The check is `job-actions.ts`, reading the table in
 `core/scripts/lib/transitions.json`. While a step runs it is Cancel instead, and while `create` runs there is no
@@ -244,7 +244,7 @@ A row's state is one of these:
 
 - `not-started` — the spec has no job at all.
 - The state of its most recent or in-flight job: `queued`, `running`, `done`, `waiting`, `failed` or
-  `cancelled`. A job whose branch is still landing reads as `running`, whatever its own state, so a spec still
+  `cancelled`. A job whose branch is still merging reads as `running`, whatever its own state, so a spec still
   merging sits with the ones still going.
 - `archived`.
 - `archived-unlanded` — archived, with its branch still on origin and not merged. A branch that merged leaves the
@@ -255,7 +255,7 @@ The State filter groups them:
 
 - **All** — every row; the default.
 - **Active** — everything not archived and not closed.
-- **Running** — `running`, a landing included, `queued` not.
+- **Running** — `running`, a merge included, `queued` not.
 - **Waiting** — `waiting`.
 - **Failed** — `failed`, `cancelled` and `archived-unlanded`.
 - **Archived** — `archived` and `archived-unlanded`.

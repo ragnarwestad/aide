@@ -41,7 +41,7 @@ the user.
 
 **The test command is `AIDE_TEST_CMD` in `.aide/project.yaml`, and nothing
 else.** Committed with the project, so every checkout runs the same one.
-One command that runs the project's whole suite — a step, the landing and
+One command that runs the project's whole suite — a step, the merge and
 `/aide-implement` all run exactly it, through
 `aide-resolve-test-cmd --project-dir <path>`. It is never guessed: a project without the key has
 no test command, and the dashboard says so on the project's page. Say so

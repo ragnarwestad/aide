@@ -93,7 +93,7 @@ test("Merge retries a cancelled job with the same branch and kind (AC-1)", async
   } finally { cleanup(); }
 });
 
-describe("the checkout aide land was run in", () => {
+describe("the checkout aide merge was run in", () => {
   /** git as the route asks it: `given` is a repository whose origin is
    *  `theirs`; the project's own origin is the board's. */
   function asking(given: string, theirs: string) {

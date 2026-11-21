@@ -26,18 +26,18 @@ Three pages sit beside this one:
 
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
-| State       | Meaning                                                                                                                                                                                                                                                                                                                  |
-|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `queued`    | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                                                                                                                                  |
-| `running`   | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                                                                                                                                         |
-| `done`      | No step is left to run. Written the instant the last step's process succeeds, so a landing that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all.                                                                                                              |
-| `waiting`   | A step a provider's usage limit ended. The board queues it again when the limit resets (`limit-reset`); nobody has to act.                                                                                                                                                                                               |
-| `failed`    | The job did not finish and nobody stopped it: a step failed, its process died, it reached its time limit, an analyze stopped on its acceptance criteria or on shared files, a landing failed or its suite went red, or a scheduled job was still waiting for quota when its next run was due. `stopReason` names a stop. |
-| `cancelled` | A person pressed Cancel.                                                                                                                                                                                                                                                                                                 |
+| State       | Meaning                                                                                                                                                                                                                                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `queued`    | Waiting for the runner to start its next step. Also where a job sits between two steps.                                                                                                                                                                                                                                |
+| `running`   | One step has a live process. `pid`, `pgid`, `resultFile`, `sessionId`, `stepStartedAt` and `streamFile` are set.                                                                                                                                                                                                       |
+| `done`      | No step is left to run. Written the instant the last step's process succeeds, so a merge that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all.                                                                                                              |
+| `waiting`   | A step a provider's usage limit ended. The board queues it again when the limit resets (`limit-reset`); nobody has to act.                                                                                                                                                                                             |
+| `failed`    | The job did not finish and nobody stopped it: a step failed, its process died, it reached its time limit, an analyze stopped on its acceptance criteria or on shared files, a merge failed or its suite went red, or a scheduled job was still waiting for quota when its next run was due. `stopReason` names a stop. |
+| `cancelled` | A person pressed Cancel.                                                                                                                                                                                                                                                                                               |
 
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
-second guard refuses a NEW job of any step for a spec whose own job reads `done` with a landing still in flight; once
-the landing settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
+second guard refuses a NEW job of any step for a spec whose own job reads `done` with a merge still in flight; once
+the merge settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
 waiting on its provider's usage limit: the board queues it again as the same job (`limit-reset`).
 
 Only `failed` waits for a person. A failed Merge is started again from its row as the same job, with its branch as it is on origin then (`restart`).
@@ -81,9 +81,9 @@ group. For each queued job it uses this ordered list; the first hold that applie
 - Skips a job that has `landing` set: its next step waits for its own merge.
 - Skips a job whose spec already has a running job.
 - Leaves an `archive` queued, with the reason on it, while another `archive` in the same project is running or
-  landing.
-- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or landing.
-- Leaves a deploy queued, with a reason, while a landing is in flight.
+  merge.
+- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or merge.
+- Leaves a deploy queued, with a reason, while a merge is in flight.
 - Leaves a job queued with "held back: not analyzed yet — run Analyze first" until its spec's `analyze` has
   completed.
 - Leaves an `implement` queued with "held back: choose the approach to build, then press Save" when its spec asked to
@@ -105,13 +105,13 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
 **When a step ends:**
 
 - Every ending, including Cancel, clears `pid`, `pgid`, `sessionId` and `stepStartedAt`. It keeps `resultFile` for
-  a landing that must resume after a restart and `streamFile` for the finished step's log; the next start replaces
+  a merge that must resume after a restart and `streamFile` for the finished step's log; the next start replaces
   both.
 - `timeout` gives `failed` and `provider-limit` gives `waiting`, each with that `stopReason`. A `provider-limit` step also carries
   `providerLimit`: which window ran out, when it resets, the other windows' figures, and the plan or refused credit
   where the tool names them ([how the runner tells](the-runner.md#when-a-provider-limit-ends-a-step)). The row and
-  the Logs tab say it in one sentence, in place of the runner's own summary. What such a step lands is in
-  [landing.md](landing.md#branches-and-merging-them); a landing that does run leaves the job's `error` in place.
+  the Logs tab say it in one sentence, in place of the runner's own summary. What such a step merges is in
+  [merge.md](landing.md#branches-and-merging-them); a merge that does run leaves the job's `error` in place.
 - A `provider-limit` stop also writes `usageLimitWait`: when the board queues the step again. It is the reset time
   the tool named when that is later than the stop, and an hour after the stop otherwise (`resetKnown` says which).
   The board starts no other queued step on that provider until then, and at that time `limit-reset` moves the job from
@@ -122,7 +122,7 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
   cancels automatic restart; phase checkboxes are editable only after that Stop.
 - `model-at-capacity` gives `failed`: the provider had no room for the model, so there is no reset to wait for. The
   job's `error` names the step's button and the model and says to press the button again or choose another model.
-  It lands nothing, and the step is offered again. [How the runner tells](the-runner.md#when-a-provider-limit-ends-a-step).
+  It merges nothing, and the step is offered again. [How the runner tells](the-runner.md#when-a-provider-limit-ends-a-step).
 - `shared-files` gives `failed`: an analyze whose analysis names files another open spec also changes. The job's
   `error` names each spec with the files it shares.
 - `acceptance-criteria` gives `failed`: an analyze the runner stopped at the spec's `criteriaChecks: stop`. Its
@@ -132,7 +132,7 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
   `errorReason: "conflict"`. A result whose `stop_reason` is `refusal` ends `model-refused`: the error names the step
   and says the model declined, and gives no advice about installing or logging in.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
-  There is no stop between steps: every step lands its own work.
+  There is no stop between steps: every step merges its own work.
 
 **A job whose process died** is written `failed` when it was `running`, its process is gone and its result file is
 empty, while the server runs ("the run vanished without leaving a result") and on boot ("the server restarted while this step was running").
@@ -156,13 +156,13 @@ held in the queue for more than five minutes gets a line naming the hold that ke
 changes, and one when it starts.
 
 **Done to failed** is the one transition made after the fact. The step succeeded and the job reads `done`; when the
-landing is then refused for a conflict, or `archive`'s landing finds the spec's branch still on origin,
+merge is then refused for a conflict, or `archive`'s merge finds the spec's branch still on origin,
 `landing-failed` moves it to `failed` with `errorReason`. It applies only from `done`: a job that has moved on keeps
 its state, and only `landingError` (with `landingErrorDetail` beside it) records the attempt. The record names the
-step it belongs to; that step's own landing clears it when it succeeds later, and a later step's success leaves it
-alone. See [Branches and landing](landing.md).
+step it belongs to; that step's own merge clears it when it succeeds later, and a later step's success leaves it
+alone. See [Branches and merging](landing.md).
 
-**Done to failed for a red suite.** The landing runs the project's own suite on the merged result, and a red suite
+**Done to failed for a red suite.** The merge runs the project's own suite on the merged result, and a red suite
 pushes nothing: `landing-held` moves the job to `failed` with `stopReason: "tests-red"`. The work is not green yet —
 run implement again.
 
@@ -174,9 +174,9 @@ pushed, and `landing-cancelled` moves the job to `cancelled`.
 An execution group's state is separate from any one job. `prepared` has durable membership but has not been queued;
 `queued` waits for a member job; `running` has started work; `stopped` keeps an error and can continue;
 `waiting-acceptance` has finished member work but still has open acceptance criteria; `archiving` is attempting the
-single group landing; and `completed` means that landing succeeded and the shared pull request, when required, was
+single group merge; and `completed` means that merge succeeded and the shared pull request, when required, was
 opened. A failed Archive remains `archiving` or becomes `stopped`; it never becomes `completed` from a process result
-alone. The group header follows this state through landing instead of inferring it from a member that has finished.
+alone. The group header follows this state through merging instead of inferring it from a member that has finished.
 The shared Archive line keeps the actual stopped or failed reason and the retry action allowed by the same job rules.
 The group's totals count the shared Archive attempt once.
 
@@ -189,10 +189,10 @@ the last of them.
 
 - **`landing`** is set on a job while its finished step's branch is merged. It holds back that job's own next step
   and nothing else on the board. It is not restored on a restart: the job is read back with `landingCut`, and the
-  boot runs that landing again from the step's result file. Both an uninterrupted and a resumed landing stamp the
-  step when the landing settles. The step's badge reads "Running", and its duration keeps counting until then. A
+  boot runs that merge again from the step's result file. Both an uninterrupted and a resumed merging stamp the
+  step when the merge settles. The step's badge reads "Running", and its duration keeps counting until then. A
   chained job's next step reads "Queued", never "Running". A session writing an
-  `onLanded` callback reads the caveat in [the landing rule](../.claude/rules/landing.md).
+  `onLanded` callback reads the caveat in [the merge rule](../.claude/rules/landing.md).
 
   A row also reads the spec's files and git history; how they are cached is in
   [the specs list](the-specs-list.md#the-page-changes-when-something-changes).
@@ -211,12 +211,12 @@ the last of them.
 - **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
   the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded`
   are resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
-  `held-back` clears itself on a later tick. A landing held for a red suite sets it beside `stopReason: tests-red`.
+  `held-back` clears itself on a later tick. A merge held for a red suite sets it beside `stopReason: tests-red`.
   The values are defined once in `src/job-states.ts`. When the queue reads a stored job, it removes an
   `errorReason` outside this list and keeps the job, and reads the retired state `interrupted` as `failed`
   and the retired `stopped` as `waiting` for a usage-limit stop with a wait and `failed` otherwise.
   `error` is what a reader is told: always written on `failed`, on a `queued` job that is held
-  back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own error
+  back, and on a merge held for a red suite. A `timeout` or `provider-limit` stop passes the run's own error
   through. It is a `Sentence`, or several, translated where it is drawn.
 
 **A usage limit's wait** (`src/queue/runner/usage-limit.ts`) is worked out from the queue on every tick, so a
@@ -224,7 +224,7 @@ restart of the board keeps it.
 
 - A provider is held while one of its steps is `waiting` on `provider-limit` with a `usageLimitWait`, or while the step
   sent ahead of the others is running. Every `queued` job whose step runs on that provider waits with `held-back`;
-  jobs on other providers start as before. A job whose own landing is in flight is not held, and neither is a deploy,
+  jobs on other providers start as before. A job whose own merge is in flight is not held, and neither is a deploy,
   which runs no AI.
 - A hold belongs to one provider, by its key: a step on another provider of the same tool is held only by that
   provider's own wait.
@@ -247,7 +247,7 @@ cancel while it fetches, installs or has committed its restart is refused (409).
 the restart can be cancelled; its wait then ends without firing the restart. It writes `deploy.restartedAt`, restarts the server and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
 boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise or after three minutes. A
-deploy found `running` without `deploy.restartedAt` was cut before its restart and fails. While a landing is
+deploy found `running` without `deploy.restartedAt` was cut before its restart and fails. While a merge is
 in flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of
 `running` with an `errorReason`) until the wait ends.
 

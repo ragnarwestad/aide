@@ -68,7 +68,7 @@ the one the next run refuses on:
 | the specs repo | `origin`                      |
 
 Delete all four in ONE loop over the pairs, so the four deletions stay
-alike. Every deletion tolerates "already gone" — the landing that
+alike. Every deletion tolerates "already gone" — the merge that
 archived the spec usually removed the branch already — and an origin
 that cannot be reached is no reason to stop.
 

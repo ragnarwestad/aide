@@ -311,7 +311,7 @@ What the dashboard does that the skills alone do not:
   (see [Another round on the same spec](dashboard/docs/spec-lifecycle.md#another-round-on-the-same-spec))
 - **The merge** — the spec's branch is merged into the default branch once the project's tests pass on the
   merged result, or left open as a pull request
-  (see [How a project's code lands](dashboard/docs/projects.md#how-a-projects-code-lands))
+  (see [How a project's code merges](dashboard/docs/projects.md#how-a-projects-code-merges))
 - **Every job that has run** — an opened row on the specs list holds the spec's four files and the record of each job
   run against it, with what it cost
 

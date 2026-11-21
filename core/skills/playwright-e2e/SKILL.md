@@ -46,7 +46,7 @@ innfør POM midt i en eksisterende plain-spec-suite uten å avklare det med eier
    engangs-browserskript. Test brukerens intensjon, ikke implementasjonsdetaljer.
 3. **Skriv** etter prosjektets stil + de universelle prinsippene under.
 4. **Kjør** testfilene som dekker endringen med prosjektets egen kommando. I en økt for et
-   prosjekt med board kjører Land de konfigurerte testene på koden som skal inn på main.
+   prosjekt med board kjører Merge de konfigurerte testene på koden som skal inn på main.
    Uten board følger kjøringen prosjektets testregler. Ved data-avhengig ad-hoc-verifisering:
    bruk en temp dev-server på en ledig port, aldri den faste porten.
 5. **Stopp og be om bekreftelse** før commit.

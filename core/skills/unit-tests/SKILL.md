@@ -73,7 +73,7 @@ Følg prosjektets stil (Steg 0.3). Bruk eksisterende test som mal.
 
 ### Steg 3 — Kjør og verifiser
 - Kjør de nye testene med prosjektets kommando (engangs-modus). Fiks til alt er grønt.
-- I en økt for et prosjekt med board kjører du bare testfilene som dekker endringen. Land kjører
+- I en økt for et prosjekt med board kjører du bare testfilene som dekker endringen. Merge kjører
   de konfigurerte testene før main oppdateres. Uten board følger du prosjektets testregler.
 
 ### Steg 4 — Dekning

@@ -82,7 +82,7 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 - [A spec's lifecycle](docs/spec-lifecycle.md) — writing a spec, the four phases, what stops one and what moves it on
 - [How a spec moves between phases](docs/spec-transitions.md) — how each move is decided and recorded, holds, the row's button
 - [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
-- [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
+- [Branches and merging](docs/landing.md) — how a step's branch is merged, conflicts, what stops a merge
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
 - [Error sentences](docs/error-sentences.md) — the one rule every error the board shows follows
 - [The dashboard's HTTP routes](docs/http-routes.md) — every path, its method, whether it reads or acts

@@ -80,9 +80,9 @@ describe("nothing on the page writes the state as more than that word", () => {
 // How a step ended, in one word for a table cell: the steps table's Outcome
 // and Ended as columns.
 describe("endingWord()", () => {
-  test("every step ending has a word of its own in every language, English as the name (AC-2)", () => {
+  test("every step ending has a word of its own in every language, with merge wording for already-landed", () => {
     for (const { name } of STEP_ENDINGS) {
-      expect(endingWord("en", name)).toBe(name);
+      expect(endingWord("en", name)).toBe(name === "already-landed" ? "already merged" : name);
       for (const lang of LANGUAGES.filter((l) => l !== "en")) {
         const word = endingWord(lang, name);
         expect({ name, lang, translated: word !== name && word.trim() !== "" }).toEqual({ name, lang, translated: true });

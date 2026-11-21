@@ -4,7 +4,7 @@
 
 - [Supported versions](#supported-versions)
 - [Fidelity levels](#fidelity-levels)
-- [How the Aide pieces land](#how-the-aide-pieces-land)
+- [How the Aide pieces merge](#how-the-aide-pieces-merge)
 - [Current models](#current-models)
 - [Cross-tool capabilities](#cross-tool-capabilities)
 - [Open follow-up items](#open-follow-up-items)
@@ -51,7 +51,7 @@ Yes/no hides the difference that matters: WHO guarantees that a piece is
 followed. Every cell in the next table carries one of these grades:
 
 | Grade               | Meaning                                                                    | Guaranteed by         |
-|---------------------|----------------------------------------------------------------------------|-----------------------|
+| ------------------- | -------------------------------------------------------------------------- | --------------------- |
 | **E — Enforced**    | The tool mechanically enforces it (a hook blocks, config is applied)       | The tool              |
 | **H — Heuristic**   | A tool feature usually triggers it (skill activation on description match) | The tool, best-effort |
 | **I — Instruction** | Plain text the model usually follows — nothing checks it                   | The model             |
@@ -62,7 +62,7 @@ everyone believed was an E is how rules break silently.
 
 ---
 
-## How the Aide pieces land
+## How the Aide pieces merge
 
 | Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                                                 | OpenCode                                                       |
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|

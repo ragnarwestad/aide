@@ -26,8 +26,8 @@
 ---
 
 What a row on `/specs` says, what its controls do, what a spec's own page shows, and how the page keeps itself current.
-The queue behind the rows is on [Running specs](running-specs.md); how a step's branch lands is on
-[Branches and landing](landing.md). What a row's own error sentence has to say is the one rule on
+The queue behind the rows is on [Running specs](running-specs.md); how a step's branch merges is on
+[Branches and merging](landing.md). What a row's own error sentence has to say is the one rule on
 [Error sentences](error-sentences.md).
 
 The Specs tab shows the number of open specs: Created, Idle and Reopened. The total updates live across all
@@ -93,10 +93,10 @@ is readable without counting rows. The phase lines sit directly under the row; i
 A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count
 beside it, because a re-run is ordinary.
 
-The Specs header carries the spec state. While a phase runs or lands, it says Active, without the phase name.
+The Specs header carries the spec state. While a phase runs or merges, it says Active, without the phase name.
 The Jobs header instead names what is happening, such as Analyzing, Implementing or Archiving. The Jobs
 row keeps the detailed state for that run. A finished job says Done, including when its spec is archived or closed.
-An archive that did not land says Failed and offers Archive again. Reopen is offered on Specs, never on Jobs.
+An archive that did not merge says Failed and offers Archive again. Reopen is offered on Specs, never on Jobs.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
 line. On the Specs list an open row is drawn the same as a shut one. On the Running tab an open row drops the second
@@ -140,12 +140,12 @@ individual Archive phase line or action. Its Archive details name and link to th
 shared Archive line, progress and Start, Stop or Archive action on Jobs.
 the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
-the others. While a job of the spec is queued, running or landing the picker shows only what the spec depends on, with
+the others. While a job of the spec is queued, running or merging the picker shows only what the spec depends on, with
 no list to pick from and no Save or Cancel, as the phase lines above it are locked then. A spec alone in its project that depends on nothing reads "Depends on: none", with no list to pick
 from. Under the picker, in the same form and saved by the same Save, are the four settings the spec was created
 with, using the same settings as New spec: the three analyze reads — Acceptance ticking required, "Acceptance criteria
 checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
-running or landing; "Let AI formulate acceptance criteria", which create has already used, is locked with
+running or merge; "Let AI formulate acceptance criteria", which create has already used, is locked with
 no field name. A change not yet saved outlives a redraw and offers Save and Cancel, which are pressable only while a field differs from what was saved, as a tick does, and it outlives a job too: the locked card shows
 what was saved meanwhile, and the change comes back when the job ends on a field that can still be changed. What can be changed,
 whether Save and Cancel show, and what Cancel puts back are decided in one place, `cardStep` (`src/project/spec-card.ts`), which the
@@ -207,7 +207,7 @@ The State column carries the spec's own state and nothing else:
 - **Idle** — work beyond Create has been attempted and none is queued or running now.
 - **Reopened** — the spec was reopened and no phase has run in the new round.
 - **Archived** or **Closed** — the spec is finished.
-- **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group;
+- **Active** — a job is queued or running, its branch is merging, or it belongs to an unfinished execution group;
   the phase name is shown on Jobs instead. Group membership takes priority over Archived and Closed until the group
   is completed or removed.
 
@@ -237,7 +237,7 @@ without authorizing an automatic change.
 
 ## The notice line under the name
 
-A push that never reached origin, a landing that did not finish, a pull request the code is waiting on (or one
+A push that never reached origin, a merge that did not finish, a pull request the code is waiting on (or one
 `gh` could not open), an archived branch left open — these are facts about the work, not a second state the spec
 is IN, so none of them draws a badge in the State column. Each is said once in the row's own notice line instead.
 
@@ -283,7 +283,7 @@ under the plan's Approaches heading, on the open branch when there is one.
   Archive follow it. With no held job, Analyze alone is queued.
 
 Cancel puts the recommended one back. A pick not yet saved survives the live redraw. The line is quiet while an
-Analyze or Implement runs or lands, gone once a choice is recorded in the newest round of the plan, and gone once an
+Analyze or Implement runs or merges, gone once a choice is recorded in the newest round of the plan, and gone once an
 Implement has completed without one. While any step of the spec runs, the radios are drawn disabled and there is
 nothing to save. A spec that did not ask, or whose analysis found fewer than two real alternatives, has no such line.
 
@@ -331,7 +331,7 @@ reported none. A Claude id is read as its model's name and takes the family word
 `claude-opus-5-5` reads `Model: Opus 5.5`; any other id follows the choice, as `Model: Opus · <model id>`. It then shows the step's Log — the same log the Logs tab shows for the newest attempt
 that ran the step, part by part and every line of it — in a box twenty lines tall that opens at its end and scrolls
 back to the start, and a link to that step on the Logs tab. The row is a window on that one log, not a shorter copy:
-Aide's own lines are in it in their place, so a landing's merge step and its test run show there while they go on.
+Aide's own lines are in it in their place, so a Merge job's merge step and its test run show there while they go on.
 A phase whose job the queue has forgotten says no messages are kept and links to the Logs tab itself.
 
 **The Review and Verify lines under Implement are sessions of their own.** An implement step's review and, when a
@@ -481,7 +481,7 @@ filter's name. Counts reflect the rows the search lets through. The choices are:
 - **All** — the default, checks every state and includes every row the search lets through.
 - **None** — clears every state and shows an empty list.
 - **Not archived** — everything not archived and not closed.
-- **Active** — a job is queued or running, its branch is landing, or it belongs to an unfinished execution group.
+- **Active** — a job is queued or running, its branch is merging, or it belongs to an unfinished execution group.
 - **Created**.
 - **Idle**.
 - **Reopened**.
@@ -496,7 +496,7 @@ value explicitly, so choosing one always overrides whatever is remembered (see b
 **The ticked entries are remembered across visits, the same way the sort column is.** Choosing one sets the
 `aide_state_<port>` cookie (`HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`), port-suffixed so a test board and
 the real one do not overwrite each other's memory; a request with no `state=` in the query string — the Specs tab's own
-link, a bookmark, the back button — falls back to that cookie instead of always landing on "All". An explicit
+link, a bookmark, the back button — falls back to that cookie instead of always merging on "All". An explicit
 `?state=` always wins and becomes the new memory. The search term (`?q=`) is never remembered this way.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
@@ -509,12 +509,12 @@ refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and 
 control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
 Created line of its description's Tracking info.
 
-**An archived spec whose code never landed offers Archive instead of Reopen.** When its own branch is still on
-origin and not open for review (the "not landed" mark) — an archive whose code landing did not finish — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
+**An archived spec whose code never merged offers Archive instead of Reopen.** When its own branch is still on
+origin and not open for review (the "not merged" mark) — an archive whose code merge did not finish — the queue counts the spec as active: it refuses Reopen ("already active") and takes Archive again.
 The Jobs row offers Archive again, with the Archive line's AI and model open to a pick and posted with it,
 while every other phase line stays a record with its selects disabled (`offersArchiveAgain` and `lockedAsArchived`,
 `render/pages/specs-list/data-model/filter-sort.ts`). While that archive runs, the job speaks for the row as it does
-for a live one: the badge says what runs, the row offers Cancel, and the "not landed" line waits until the run is
+for a live one: the badge says what runs, the row offers Cancel, and the "not merged" line waits until the run is
 over (`archivingAgain`, `row-state.ts`).
 
 **What that row says a spec cost, in time,** is computed the same way whether the row is live or archived
@@ -560,7 +560,7 @@ tab's file, its stamp and the banner's facts about the description are read off 
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
-same criteria without boxes while a job is running or landing; a queued job does not lock the editor or the boxes.
+same criteria without boxes while a job is running or merge; a queued job does not lock the editor or the boxes.
 An old `?tab=checks` link opens the Status tab. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
 on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
@@ -635,11 +635,11 @@ mark, never its prose.
 carried, and the page script loads that tab again; a save that committed nothing says so in the line under the banner
 instead. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
 one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes. Save
-and Tick both refuse while a job is running or landing, and both accept while a job is only queued.
+and Tick both refuse while a job is running or merge, and both accept while a job is only queued.
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
-question, and refused with 409 while a job of the spec is queued, running or landing. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
+question, and refused with 409 while a job of the spec is queued, running or merge. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
 (`dependsOn=`) beside the boxes is how the Running tab's picker with every box cleared removes it; one that names no
 `dependsOn` at all, as the banner's form does not, leaves the line as it is. A refusal answers `{ error, spec }`, so the
 Running tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without
@@ -697,7 +697,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   redraw waits, so the rows do not take it away.
 - **A Close or Reopen is a row of its own on the Running tab**, as a scheduled job is, never its spec's. A job
   whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,
-  running or landing, and while it waits for a person after failing or stopping, until a newer job of the spec is
+  running or merge, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
   its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no Stop or
@@ -705,7 +705,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   places. The spec's own row is left as it is, on this tab and on the Specs list alike (`listedSpecJobs`,
   `serve/routes/page-routes/spec-row-options.ts`): an archived or closed spec gets no row on the tab for it, and a
   live spec's row keeps its four phases, its own badge and its own notice. While the Close or Reopen is queued,
-  running or landing, the tab draws the job's row alone and leaves out the spec's own row, so the spec is not on the
+  running or merge, the tab draws the job's row alone and leaves out the spec's own row, so the spec is not on the
   tab twice (`specsStoodForByJobs`); a failed or stopped one has its row beside the spec's. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
@@ -757,7 +757,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   moment the press is sent, and none on another spec. A change made in the description's editor meanwhile does not
   offer Save again. When the answer comes each control is put back as it was found, or drawn afresh by the redraw
   that follows.
-- **The answer lands in place.** `#jobrows` is re-fetched and swapped; the page does not reload, does not scroll to the
+- **The answer arrives in place.** `#jobrows` is re-fetched and swapped; the page does not reload, does not scroll to the
   top, and does not wipe a control someone is half-way through setting.
 - **A refusal does not navigate either.** The page script keeps the reason itself and writes it at once in a row of
   its own under the spec the answer names, copied from a `<template>` the page draws outside `#jobrows`
@@ -766,7 +766,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   the list goes into the list's own line above the rows. The address is left as it is, so the filter, the sort and the
   fold stay the reader's.
 - **The New-spec form is the one exception, and it is not on this page.** It is the whole of `/new`, so it is bound
-  directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to land
+  directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to merge
   on — the spec it named was never made — so its reason is written beside the form; a successful one sends the
   browser to the list, where the new job is a row.
 
@@ -821,8 +821,8 @@ A `: ping` comment every 45 seconds keeps a quiet connection from being cut by `
 carries when it was read (`SpecTarget.sourcesCheckedAt`: the oldest of the history's read, the branch copy's read
 and, when the disk copy is the one compared, the disk scan's read). A phase whose latest run ended after that reads
 as its run's own word, with no sentence about the files disagreeing, because they have not seen the run yet. A step
-with no landing of its own (`implement`, a failed step) has those answers read again as soon as its result is
-written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step with a landing has them read again by the landing.
+with no merge of its own (`implement`, a failed step) has those answers read again as soon as its result is
+written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step with a merge has them read again by the merge.
 
 **The list, the runner's holds and the Run route read a spec's phases and acceptance by one rule.** The branch copy of
 the spec's files answers once it has been read and no write has marked it due, however long ago that read was; the copy
@@ -836,7 +836,7 @@ settled answer.
 
 **Every write to a spec's files drops every cached answer about it in one call,** `forgetSpec`
 (`src/serve/schedules/index.ts`): the history, the branch copy, whether the description moved on, the created date and
-each file's last commit are marked due, and the list's scan is dropped. The step's end, the landing, a fetch from
+each file's last commit are marked due, and the list's scan is dropped. The step's end, the merge, a fetch from
 another machine and every save on the spec page go through it, and read the spec again straight after. How long an
 answer stands is defined once, in `src/git/branch-status.ts`.
 
@@ -879,7 +879,7 @@ is the whole job's span and belongs to no one step of it — reaching for that i
 prevent. Instead, **the queue stamps each step's own start** (`Job.stepStartedAt`, set fresh the instant the runner
 actually spawns it) and carries it onto that step's own result once it ends (`StepResult.startedAt`) — a step's
 duration is that result's own end minus its own recorded start. A job merely `queued` between two steps — held back
-for a landing, a dependency, an open acceptance row, or a full concurrency slot — has not started its
+for a merge, a dependency, an open acceptance row, or a full concurrency slot — has not started its
 next step yet and shows no duration for it at all, however long the previous step's own end sits in the past: none of
 that waiting is ever inside the figure. A result that carries no `startedAt` falls back to the step before it
 ending, or the job's own start for the first one.

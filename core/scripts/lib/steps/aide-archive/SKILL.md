@@ -81,7 +81,7 @@ Branch on the JSON's `terminalReason`:
   full: read the conflict, resolve it or decide not to, finish the
   merge, run the tests covering the files the resolution touched, then
   run the script again — now past the conflict — before continuing.
-  Never the full suite: the landing runs it once, on exactly this
+  Never the full suite: the merge runs it once, on exactly this
   merge, before anything reaches the default branch.
 - **`not-implemented-yet`:** the spec has not reached `implement` yet.
   Report plainly that the work is not done yet, name the next step

@@ -53,7 +53,7 @@ specs/05-class-to-functional/
 7. **Reviews the plan** — at every complexity of a full analysis; a short analysis (a small spec,
    the analyze step's `references/spec-files.md`) has no plan and no review. Reviewers with distinct perspectives (feasibility, scope
    guardian, coherence) attack `3-solution.md` BEFORE any test is
-   written — where mistakes are cheapest to catch. Findings land in a
+   written — where mistakes are cheapest to catch. Findings end up in a
    "Plan review" section of `3-solution.md`, and the plan is REVISED for
    every must-fix finding, not just annotated.
 
@@ -87,7 +87,7 @@ When the work is done, queue Archive (`aide archive <ID>` or the dashboard):
    project's living documentation
 3. Stamps the archive date in `4-status.md` and moves the folder to
    `<specs-root>/archive/` — the number is never reused
-4. Lands the spec's branches on the default branch — the code and the
+4. Merges the spec's branches on the default branch — the code and the
    specs repo alike
 
 ---

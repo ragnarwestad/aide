@@ -5,7 +5,7 @@
 - [A run stopped on the acceptance criteria or a limit](#a-run-stopped-on-the-acceptance-criteria-or-a-limit)
 - [A spec implement sent back](#a-spec-implement-sent-back)
 - [Another approach chosen](#another-approach-chosen)
-- [A spec landed since the analysis](#a-spec-landed-since-the-analysis)
+- [A spec merged since the analysis](#a-spec-merged-since-the-analysis)
 
 ---
 
@@ -44,7 +44,7 @@ approach, and `4-status.md`'s phase tables for the new plan. Leave
 `2-analysis.md` as it stands. A chosen line on the recommended approach
 needs nothing: the choice is made, and is never asked again.
 
-## A spec landed since the analysis
+## A spec merged since the analysis
 
 A fourth exception: `aide-spec-overlap --specs-root <root> --spec XX-slug`
 lists a spec under `landed`. The analysis was made against code that has

@@ -177,10 +177,10 @@ the dashboard, other sessions and the user's own IDE all write to them continuou
    you are about to add something to.
 2. If the pull brings in changes to files you are about to touch, read what changed before
    proceeding.
-3. If a later `git push` is still rejected despite this — a push landed in the gap between your
+3. If a later `git push` is still rejected despite this — a push arrived in the gap between your
    pull and your push — rebase onto the new commits and push again; do not force.
 
-Why: a pull that lands between your read and your write turns into a rejected push and an
+Why: a pull that arrives between your read and your write turns into a rejected push and an
 avoidable rebase.
 
 ---
@@ -245,32 +245,32 @@ why, with the context a reader needs.
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
 standing instruction for later requests. The user pushes from the IDE.
 
-**Session code changes in a project with an Aide board reach the default branch through Land.**
+**Session code changes in a project with an Aide board reach the default branch through Merge.**
 A request to merge or push to main authorizes this sequence:
 
 1. Keep the changes on a working branch and run only the tests covering the change, plus relevant
-   type, lint or documentation checks. Land verifies the merged result with the project's configured tests.
+   type, lint or documentation checks. Merge verifies the merged result with the project's configured tests.
 2. Commit and push that working branch to origin.
-3. Run `aide land <project> <branch>`. The board tests the merged result, pushes the default branch
+3. Run `aide merge <project> <branch>`. The board tests the merged result, pushes the default branch
    only when the tests pass, and deletes the source branch.
-4. Report whether the board accepted the job. The board takes the landing from there and
-   reports its outcome. A server change takes effect after Land and Deploy.
+4. Report whether the board accepted the job. The board takes the merge from there and
+   reports its outcome. A server change takes effect after Merge and Deploy.
 
 Do not merge into the default branch or push it directly from the session in a board-backed
-project. Do not bypass Land because local tests passed, another Land is running, or the command
+project. Do not bypass Merge because local tests passed, another Merge is running, or the command
 was refused. Report the refusal and keep the working branch. Projects without a board keep their
 own merge and test process. The spec-creation exception below still applies to its specs repo.
 
 **When a job you committed is done, say so, and say it is ready to push.** Run
 `git log origin/main..main --oneline` in that same reply and end the report with what it shows:
 the commits waiting for a push. For board-backed work also report whether the working branch
-has reached main through Land; a server change takes effect only after Land and Deploy. Work that is finished but never pushed gets
+has reached main through Merge; a server change takes effect only after Merge and Deploy. Work that is finished but never pushed gets
 forgotten; this line is what stops that.
 
 Otherwise, don't report repository state from memory, in any phrasing — "N commits ahead of
 origin", "tre commits ligger klare", or a count of commits recalled from earlier in the
 conversation. The same holds for uncommitted changes, what another session or person has or
-hasn't landed, ahead/behind, staged content. When the user asks, run `git status -sb` and
+hasn't merged, ahead/behind, staged content. When the user asks, run `git status -sb` and
 `git log origin/main..main --oneline` in the same reply and report the actual result.
 
 Why: the user pushes continuously from the IDE and other sessions commit to the same repo, so any
@@ -457,8 +457,8 @@ below about running tests applies to unit tests.
    problem — either the test or the code — and re-run until it passes.
 3. In a session for a project with an Aide board, run only the tests covering the change and the
    relevant type, lint or documentation checks. Do not run the full unit or browser suite before
-   commit, push or Land, including after a rebase or merge. Land runs the project's configured tests on the
-   merged result before it updates the default branch. See the git rules for `aide land`.
+   commit, push or Merge, including after a rebase or merge. Merge runs the project's configured tests on the
+   merged result before it updates the default branch. See the git rules for `aide merge`.
    Without a board, run the full suite before committing as the project requires.
 
 ### Slow tests never block the session
@@ -469,9 +469,9 @@ user does nothing else.
 - Run in the foreground only fast, narrow test files that cover the exact change. Learn which files
   in a repo are slow before running anything broad.
 - Run anything slow in the background, announced with what it is and roughly how long, while the
-  job and the conversation continue. Report the result when it lands.
+  job and the conversation continue. Report the result when it arrives.
 - For a project without a board, run the full suite once per job in the background before commit.
-  For a board-backed session, Land verifies the merged result.
+  For a board-backed session, Merge verifies the merged result.
 - When the user is waiting to see something, deploy or show it first and verify in the background.
 
 ### A red full run is fixed file by file
@@ -480,7 +480,7 @@ The full run finds what broke; it does not confirm each fix.
 
 1. When it comes back red, list the failing files from that run's own output.
 2. Fix them running only the file at hand (`bun test <file>`, `pytest <file>`) until each is green.
-3. When every file on the list is green, submit a new Land for a board-backed session. Otherwise
+3. When every file on the list is green, submit a new Merge for a board-backed session. Otherwise
    run the full suite again once — never between fixes.
 
 A test that fails in the full run and passes on its own is the machine's load, not a fault: name it,
@@ -493,7 +493,7 @@ and do not run the full suite again for it.
 ### Unit tests
 
 The full-suite command is `AIDE_TEST_CMD` in `.aide/project.yaml` (see "Project commands" in the
-tools-and-scripts rules). Land uses this command when the project has no configured test selection. A session uses
+tools-and-scripts rules). Merge uses this command when the project has no configured test selection. A session uses
 `AIDE_TEST_FILES_CMD` for named files when configured, or the project's documented file-specific
 command. Without a configured or documented command, say so rather than guessing one. Always run
 in single-run mode.
@@ -505,7 +505,7 @@ on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aid
 September 2026). Elsewhere, ask the user to run it.**
 
 **In a session for a project with a board, run only the browser test files covering the changed
-interaction.** Do not run the full e2e suite before commit or push: Land runs the configured tests before main is updated. For an Aide change to markdown files only, run `scripts/check-docs`; no browser test
+interaction.** Do not run the full e2e suite before commit or push: Merge runs the configured tests before main is updated. For an Aide change to markdown files only, run `scripts/check-docs`; no browser test
 reads them.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
@@ -531,7 +531,7 @@ Where it is allowed:
 
 New functionality is written test first: a test that fails because the behaviour is missing
 (red), then the least code that makes it pass (green), then refactoring with the relevant tests
-and checks. In a board-backed session Land verifies the merged result. Without a board, follow the
+and checks. In a board-backed session Merge verifies the merged result. Without a board, follow the
 project's full-suite requirement.
 
 ---

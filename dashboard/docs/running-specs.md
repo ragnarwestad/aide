@@ -33,7 +33,7 @@ Seven pages sit beside this one:
 - [A job's states](job-states.md) — the job's state machine, in one place
 - [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
 - [Projects](projects.md) — adding one, and whether a run can start there
-- [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing
+- [Branches and merging](landing.md) — how each step's branch is merged, and what stops one from merging
 
 
 The spec list runs Aide's workflow steps headless on this machine: each step is a
@@ -64,8 +64,8 @@ the Jobs tab, where every round has its own row with phase information, steps, l
 `aide-create-spec`, commits and pushes before it answers. Two simultaneous creates are serialized and receive different
 numbers.
 
-A landing holds back two things and nothing else: the job being landed and another `archive` or Land job in the same project
-([Branches and landing](landing.md)).
+A merge holds back two things and nothing else: the job being merged and another `archive` or Merge job in the same project
+([Branches and merging](landing.md)).
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list under the default
 **All** filter, and **Active** leaves it out. `/api/queue` still returns every job and `/jobs/<id>` renders each one. A
@@ -103,7 +103,7 @@ Start check the dependencies; circular dependencies are refused with the affecte
 eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. The group's … menu keeps **Edit** and **Remove** visible while it has work in flight, but both are disabled.
-Edit is available only while the group and its members have no queued, running or landing job. Edit opens the New group dialog filled with the group's name and members. The display
+Edit is available only while the group and its members have no queued, running or merging job. Edit opens the New group dialog filled with the group's name and members. The display
 name can be changed after members have started; the group's branch and the members' stored group identity stay the same. A spec
 that has run or has a queued or running job is locked in its current place. Specs that have not run can be removed,
 and any spec New group would offer can be added after the locked members. A new dependency can move before an
@@ -115,16 +115,16 @@ pips follow only attempts that have reached Archive; a later Archive selected in
 group; before one is saved, it uses the first member's Archive choice. The line remains after retries and completion.
 Once the last member has finished Implement, the card waits for Archive. When every member has finished Implement and
 every required acceptance row is ticked, the group header offers Archive. That press validates and moves every member
-together, runs the project's test gate once and lands the shared branch once. A member already archived counts as done,
-and Archive moves the rest. The card follows the shared job until landing finishes and counts its time and usage once.
+together, runs the project's test gate once and merges the shared branch once. A member already archived counts as done,
+and Archive moves the rest. The card follows the shared job until merging finishes and counts its time and usage once.
 While Archive is queued, the collapsed card shows Queued with its queue position. All member pips carry A and follow
-the shared Archive: orange while queued, moving red while running or landing, and green once the group completes.
+the shared Archive: orange while queued, moving red while running or merge, and green once the group completes.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
-An archived member waiting for the group's shared Archive is not reported as an individual landing failure merely because the branch is still open.
-Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and landed.
-Cancel also stops a landing's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
+An archived member waiting for the group's shared Archive is not reported as an individual merge failure merely because the branch is still open.
+Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and merged.
+Cancel also stops a merge's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
 
-The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or landing. It asks in the shared progress dialog, blocks input
+The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or merge. It asks in the shared progress dialog, blocks input
 while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the
 group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
 link — and deletes no spec or code branch. For an unfinished group, it removes the Group and Group position lines
@@ -145,19 +145,19 @@ The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance
 A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
 A manual stop remains Stopped.
 Archive or pull-request failures leave the group unfinished so the same execution can continue. Completion means
-the one group Archive landed successfully and, under pull-request landing, the shared pull request exists; merging
+the one group Archive merged successfully and, under pull-request merge, the shared pull request exists; merging
 that request later is ordinary spec history, not unfinished group execution. Older records may have no creation or
 start date. Reading them never substitutes the current scan time.
 
 An implement on a short analysis that finds its spec is not small ends `failed` with the reason `sent-back`. The board
-lands the step's specs branch when it pushed no code (where the specs live inside the code repository, the spec's own
+merges the step's specs branch when it pushed no code (where the specs live inside the code repository, the spec's own
 folder alone), then queues one job for the same spec with the steps Analyze and Implement, on the models and effort the
 stopped job ran with. The steps the stopped job still had after Implement are not carried over. The description keeps
 the requirement, so analyze writes a full analysis and implement cannot send the spec back a second time: one that tries
 ends `failed` with `sent-back-refused`, and nothing is queued.
 
 An analyze that writes a short analysis over one of its limits ends `failed` with `short-analysis-over-limit`. The
-runner records the same requirement in the description, the board lands the step's specs branch, and queues one job for
+runner records the same requirement in the description, the board merges the step's specs branch, and queues one job for
 the same spec with Analyze and every step the stopped job had not run, on its models and effort. This happens once per
 spec.
 
@@ -508,10 +508,10 @@ Each entry is:
 
 A background poll enqueues a `schedule` step through the same queue and runner whenever an entry is due and nothing is
 already queued or running for it. **A scheduled job may commit to the project repository and the specs root.** Its report
-is written separately (below). Once the run ends, the board lands what it pushed: the project repository's commit only
+is written separately (below). Once the run ends, the board merges what it pushed: the project repository's commit only
 once that repository's own test command is green on the merge, the specs root directly. A scheduled job can run
 alongside a spec's steps when the queue has a free slot. Each run uses its own worktrees; repository locks serialize
-shared checkout changes and landings. Usage limits and an existing run of the same schedule still hold it back.
+shared checkout changes and merges. Usage limits and an existing run of the same schedule still hold it back.
 
 `/schedule` lists every allowed project's entries (`?q=`, `?sort=` and `?dir=` filter and sort it). It changes nothing:
 a click on a row opens the project's Schedule tab, which lists its entries by Name, Next run, the Enabled switch, Run now
@@ -611,7 +611,7 @@ Creating a spec does not use `concurrency`: it is a direct repository write, not
 Archive each take a slot after Run is pressed.
 
 Two jobs for the same spec are never started at the same time, nor two `archive` steps in the same project: the second is
-held `queued` with the reason on its row until the first has landed. Beyond that the jobs are independent: each run works
+held `queued` with the reason on its row until the first has merged. Beyond that the jobs are independent: each run works
 in `git worktree` checkouts of its own.
 
 ## When an AI's usage limit is used up
@@ -885,12 +885,12 @@ Prepared group cards and their members remain on Jobs so the group can be starte
 The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
-A Land job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. A Land runs once: cancelled or failed, it offers no Start, and
-another try is a new Land for the same branch. Cancel removes a queued Land, or interrupts merge or testing and keeps the source branch;
+A Merge job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
+such as `Land: fix/example`. A Merge runs once: cancelled or failed, it offers no Start, and
+another try is a new Merge for the same branch. Cancel removes a queued Merge, or interrupts merge or testing and keeps the source branch;
 after push begins Cancel is unavailable.
 
-Every row starts with an icon for its kind: a spec, a Land, a deploy, a scheduled job, the cleanup or an execution group.
+Every row starts with an icon for its kind: a spec, a Merge, a deploy, a scheduled job, the cleanup or an execution group.
 Close and Reopen jobs use the spec icon. The icon stays grey whatever the row's state, and hovering it shows the kind's name.
 
 When the board starts with nothing running, the first page a browser tab loads, if it is the Jobs tab with no row left
@@ -913,7 +913,7 @@ it the creation date, one pip per member labelled with its spec number without t
 of its member's own state: done, running, failed, stopped or held back, or not started. Open, a third line holds the
 action, and each member is drawn below as its own spec card. The State/Action place holds at most one button.
 While the group waits for Archive, the card carries a message under its two lines, open or shut: that every spec is
-implemented and Archive on the card lands them together, or which members are still running, or which members have
+implemented and Archive on the card merges them together, or which members are still running, or which members have
 acceptance rows left to tick, each member a link to its spec page.
 When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
 is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
@@ -923,7 +923,7 @@ remain available. Choosing another provider resumes the same job and phases; cho
 keeps that provider's reset time. Stop cancels automatic restart and unlocks the phase choices. The next Start follows
 the choices for each member, including explicitly chosen reruns of completed work. Untouched members do not repeat
 completed phases.
-The same notice covers failed and cancelled member jobs, and a failed Archive landing even when the
+The same notice covers failed and cancelled member jobs, and a failed Archive merging even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.
 Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
@@ -972,15 +972,15 @@ The board's own deploy is a job under the tracking key `deploy`, a step the serv
 reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed until a newer deploy of the project is queued. A second
 deploy is refused while one is queued or running. During that time, the header Deploy mark and the Deploy tab’s
-start button are disabled; they become available again when the job ends if deployment is still needed. It offers Cancel while queued or held back waiting for landings, until the restart is committed. Cancel ends only
-the Deploy and its planned restart; Archive and Land continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
+start button are disabled; they become available again when the job ends if deployment is still needed. It offers Cancel while queued or held back waiting for merges, until the restart is committed. Cancel ends only
+the Deploy and its planned restart; Archive and Merge continue. Fetching and installing cannot be cancelled part-way. The open row lists five steps: fetch from origin, install, restart
 the service, wait for the service to answer, and check that the newest commit runs. Under them it lists the commits the
 deploy took in: from the one the previous done deploy reached, or for a project's first deploy the one the checkout
 stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
 origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. A new Deploy joins the end of the ordinary waiting queue. Its Queued n/N button lets the user move it ahead of
 waiting work and save that position. A merge already started finishes all its repositories before Deploy starts,
 even if it started after Deploy was queued. A merge still waiting for admission follows the saved order.
-Once Deploy starts, new landings wait outside the repository lock until Deploy finishes, fails or is cancelled.
+Once Deploy starts, new merges wait outside the repository lock until Deploy finishes, fails or is cancelled.
 Detached analysis and implementation runs can continue.
 Fetch and install share
 the checkout lock. After a restart wait it fetches main again and reinstalls if the commit changed, before restarting.
@@ -990,7 +990,7 @@ with the project: "<project>:<name>". Every job row's second line holds when the
 step's first letter above it, coloured done, running, failed or not started; a phone shows the pips alone. It is shut by default, and its › opens it to show Stop or Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit of spec files or code and spec files), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed or stopped says why in a line
-under its state, ending with a Log link. A queued job offers Cancel and a running or landing one Stop, each asking first;
+under its state, ending with a Log link. A queued job offers Cancel and a running or merging one Stop, each asking first;
 a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
@@ -998,7 +998,7 @@ The rows sort by Created by default, newest first, spec rows and job rows togeth
 Rows with the same creation time keep their order by state and most recent change.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
-Queued, Done, Waiting, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Land, Deploys,
+Queued, Done, Waiting, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Merge, Deploys,
 Scheduled, Cleanup and Groups under a Kind heading. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in
@@ -1035,8 +1035,8 @@ there instead (see Queueing from a terminal).
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
-`aide land <project> <branch>` queues a Land job for a branch that already exists on origin. Land uses no AI slot. Its
-row shows merge, tests, push and source-branch deletion. The branch lands as one commit, and its copy in the
-checkout `aide land` ran in is removed afterwards ([A merged branch is deleted](landing.md#a-merged-branch-is-deleted)).
-Deploy remains a separate press after Land has finished.
+`aide merge <project> <branch>` queues a Merge job for a branch that already exists on origin. Merge uses no AI slot. Its
+row shows merge, tests, push and source-branch deletion. The branch merges as one commit, and its copy in the
+checkout `aide merge` ran in is removed afterwards ([A merged branch is deleted](landing.md#a-merged-branch-is-deleted)).
+Deploy remains a separate press after Merge has finished.
 

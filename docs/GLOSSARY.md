@@ -65,7 +65,7 @@ Each entry says what the word is and links the page that has the rest.
 - **Close** — end a spec that will not work: its reason is stamped, the
   folder moves to `archive/`, and its code branch is deleted unmerged.
 - **Depends on** — a Tracking info line naming specs this one waits for:
-  its analyze, implement and archive wait until they have landed.
+  its analyze, implement and archive wait until they have merged.
 
 ## The board
 
@@ -87,13 +87,13 @@ Each entry says what the word is and links the page that has the rest.
 - **Worktree links** — the gitignored folders, such as `node_modules` or
   `.venv`, linked into a worktree from the main checkout; named by
   `worktreeLinks:` in the project's manifest.
-- **Landing** — merging a step's branch into the default branch, after
-  the step itself. A step is not finished until it has landed; an
-  archive's landing runs the project's tests on the merge first.
-  [Landing](../dashboard/docs/landing.md).
+- **Merge** — merging a step's branch into the default branch, after
+  the step itself. A step is not finished until it has merged; an
+  archive's merge runs the project's tests on the merge first.
+  [Merge](../dashboard/docs/landing.md).
 - **Merge spec files into main** — the last step of Create, Analyze, Reopen and Close.
   Only the spec files reach the default branch. Archive instead says
-  **Merge code and spec files into main**, since it also lands the project changes.
+  **Merge code and spec files into main**, since it also merges the project changes.
 - **Test server** — a running copy of the project built from a spec's
   branch, offered between implement and archive.
   [Test server](../dashboard/docs/test-server.md).
@@ -110,7 +110,7 @@ Two words are used for two different things each, and the context says
 which:
 
 - **Held back** — (1) a **job** held back: still queued, waiting for a
-  dependency to land or another job on the same spec to finish; nothing
+  dependency to merge or another job on the same spec to finish; nothing
   failed. (2) an **archive** held back: the spec's acceptance criteria are
   not all ticked, so archive declines until they are.
 - **Stopped** — a **step** that ended without finishing, for a reason it

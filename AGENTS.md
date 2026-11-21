@@ -68,16 +68,16 @@ locally passes there.
 
 Interactive sessions run only the test files covering the change, plus
 relevant type, lint or documentation checks. Do not run the full suites
-before commit or push: push the working branch and use `aide land aide <branch>`
+before commit or push: push the working branch and use `aide merge aide <branch>`
 when asked to put the change on main. The board tests the merged result and
 updates main. See `core/rules/git.md` and `core/rules/testing.md` for the
-shared Land instructions.
+shared Merge instructions.
 
 The dashboard on the serving host runs as a launchd job
 (`com.aide-dashboard.serve`), and code reaching `main` changes nothing
 there until it is installed: that is what `dashboard/deploy/install-after-merge.sh`
 does (`AIDE_INSTALL_CMD`), and Deploy on the board runs it, then restarts. An
-`archive` landing in Aide installs nothing, so the runner and the served page
+`archive` merge in Aide installs nothing, so the runner and the served page
 change together. Restart it through launchd (`launchctl kickstart -k`), since a
 process started by hand with `pkill` + `bun run` is not the service.
 
@@ -89,7 +89,7 @@ process started by hand with `pkill` + `bun run` is not the service.
 the dashboard's docs pages to 550; they are written to be searched. Where to look:
 
 | Question                                                  | Page                                          | Who it's for      |
-|-----------------------------------------------------------|-----------------------------------------------|-------------------|
+| --------------------------------------------------------- | --------------------------------------------- | ----------------- |
 | What the dashboard is, its URLs, live runs                | `dashboard/README.md`                         | Both              |
 | How the queue runs specs, and what it tells you           | `dashboard/docs/running-specs.md`             | Both              |
 | What a run does to the repositories and its checkouts     | `dashboard/docs/the-runner.md`                | Changing the code |
@@ -99,7 +99,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | A job's states and every transition between them          | `dashboard/docs/job-states.md`                | Changing the code |
 | Writing a spec, the four phases, what stops one           | `dashboard/docs/spec-lifecycle.md`            | Using the board   |
 | How each move between phases is decided and recorded      | `dashboard/docs/spec-transitions.md`          | Changing the code |
-| How a step's branch is merged, conflicts, unlanded work   | `dashboard/docs/landing.md`                   | Changing the code |
+| How a step's branch is merged, conflicts, unmerged work   | `dashboard/docs/landing.md`                   | Changing the code |
 | The one rule every error the board shows follows          | `dashboard/docs/error-sentences.md`           | Changing the code |
 | Tokens, components and the CSS class vocabulary           | `dashboard/docs/design-system.md`             | Changing the code |
 | Every HTTP route: method, read or action, what it takes   | `dashboard/docs/http-routes.md`               | Changing the code |
@@ -110,7 +110,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | The test server a held-back spec offers                   | `dashboard/docs/test-server.md`               | Using the board   |
 | When the tests run in a spec, and what red means          | `dashboard/docs/tests-in-a-spec.md`           | Both              |
 | Installation layout, what goes where, the gotchas         | This file, "What gets installed where"        | Changing the code |
-| What a word means: phase, step, landing, round, held back | `docs/GLOSSARY.md`                            | Both              |
+| What a word means: phase, step, merge, round, held back   | `docs/GLOSSARY.md`                            | Both              |
 | Ideas being considered for Aide, and where they stand     | `docs/ROADMAP.md`                             | Both              |
 | How Aide uses agents, subagents and loops in each step    | `docs/AGENTS_AND_LOOPS.md`                    | Both              |
 | How Aide compares with spec tools and agent runners       | `docs/COMPARISON.md`                          | Both              |
@@ -126,11 +126,11 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 
 ## Important rules
 
-**A `git push` waits while an archive lands on the board.** A hook in
+**A `git push` waits while an archive merges on the board.** A hook in
 `.claude/settings.json` (and `dashboard/.claude/settings.json`) runs
 `scripts/guard-push` before every Bash call, and blocks a push to a repo
-while the board lands a project whose code or specs repo has the same
-origin, or when the queue or those origins cannot be read. A landing in
+while the board merges a project whose code or specs repo has the same
+origin, or when the queue or those origins cannot be read. A merge in
 another project does not block it, and nor does a push of a branch other
 than the default one: each push in the command is read on its own, and
 one naming no branch is read as where git itself would push it. Off the
@@ -186,7 +186,7 @@ process and takes several times as long.
 not here — that content only matters to a session actually working in
 `dashboard/`. `dashboard/AGENTS.md` holds what every such session needs,
 and `dashboard/.claude/rules/` holds the rules for one part of the code
-(the landing, archive and close; signalling a process group; the design
+(the merge, archive and close; signalling a process group; the design
 rules). Both also document `core/scripts/aide-run-spec`, so a change to
 the runner reads them too.
 

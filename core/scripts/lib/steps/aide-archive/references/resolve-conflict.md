@@ -26,11 +26,11 @@ its own.
 A spec's branch is brought up to date with the default branch before the
 step's own work starts. Every other step treats a conflict there as a
 user's problem and refuses on the spot. `archive` is the step that
-LANDS the branch, so the conflict is its own to settle: the by-hand
+MERGES the branch, so the conflict is its own to settle: the by-hand
 routine is always the same — merge the default branch into the spec's
 branch in a worktree, resolve, run the tests, push the branch. When archive goes on
-to report success the dashboard lands the resolved branch itself, as it
-lands every step's work; when this routine stops, the branch
+to report success the dashboard merges the resolved branch itself, as it
+merges every step's work; when this routine stops, the branch
 is left exactly as it was found, archive stops with it, and the failure
 is what the row says.
 
@@ -61,7 +61,7 @@ this step, in this worktree or anywhere else.
 ### Step 1: See what the conflict is
 
 1. `git status --short` — the `UU`/`AA`/`DU` entries are the conflict
-2. `git log --oneline HEAD..MERGE_HEAD` — what landed on the default
+2. `git log --oneline HEAD..MERGE_HEAD` — what arrived on the default
    branch since the spec's branch was made
 3. `git log --oneline MERGE_HEAD..HEAD` — what the spec's own work is
 
@@ -83,7 +83,7 @@ ways, when either side's intent is unclear, or when a correct merge
 would mean writing new code neither side wrote. In those cases go
 straight to Step 5 and undo — a wrong merge that passes thin tests is
 the one failure this routine can cause that nobody sees, and archive
-lands what it resolves.
+merges what it resolves.
 
 Then remove every marker and `git add` each file you resolved.
 `git diff --check` and `grep -rn '<<<<<<<'` over the resolved files
@@ -103,7 +103,7 @@ resolution — the merge commit IS the resolution.
 
 Run the tests covering the files the resolution changed — the ones that
 conflicted, and any you edited to settle them — never the full suite.
-The landing runs the full suite once, on exactly this merge, before it
+The merge runs the full suite once, on exactly this merge, before it
 pushes anything: a second full run here was the same suite twice per
 archive. To find the right tests, use the project's own test command,
 narrowed to those files, in single-run mode:
@@ -118,10 +118,10 @@ suite again for it; say so in the report. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
 
-**The landing is the gate the whole design rests on.** A machine
-resolving a conflict unattended and then landing it is defensible
-because the landing runs the project's full suite on the merge and a
-red one does not land. This narrower run is the resolution's own first
+**The merge is the gate the whole design rests on.** A machine
+resolving a conflict unattended and then merging it is defensible
+because the merge runs the project's full suite on the merge and a
+red one does not merge. This narrower run is the resolution's own first
 check: never skip it, and never report a resolution as done without it.
 
 ### Step 5: Carry on, or undo

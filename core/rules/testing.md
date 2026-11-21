@@ -90,8 +90,8 @@ below about running tests applies to unit tests.
    problem — either the test or the code — and re-run until it passes.
 3. In a session for a project with an Aide board, run only the tests covering the change and the
    relevant type, lint or documentation checks. Do not run the full unit or browser suite before
-   commit, push or Land, including after a rebase or merge. Land runs the project's configured tests on the
-   merged result before it updates the default branch. See the git rules for `aide land`.
+   commit, push or Merge, including after a rebase or merge. Merge runs the project's configured tests on the
+   merged result before it updates the default branch. See the git rules for `aide merge`.
    Without a board, run the full suite before committing as the project requires.
 
 ### Slow tests never block the session
@@ -102,9 +102,9 @@ user does nothing else.
 - Run in the foreground only fast, narrow test files that cover the exact change. Learn which files
   in a repo are slow before running anything broad.
 - Run anything slow in the background, announced with what it is and roughly how long, while the
-  job and the conversation continue. Report the result when it lands.
+  job and the conversation continue. Report the result when it arrives.
 - For a project without a board, run the full suite once per job in the background before commit.
-  For a board-backed session, Land verifies the merged result.
+  For a board-backed session, Merge verifies the merged result.
 - When the user is waiting to see something, deploy or show it first and verify in the background.
 
 ### A red full run is fixed file by file
@@ -113,7 +113,7 @@ The full run finds what broke; it does not confirm each fix.
 
 1. When it comes back red, list the failing files from that run's own output.
 2. Fix them running only the file at hand (`bun test <file>`, `pytest <file>`) until each is green.
-3. When every file on the list is green, submit a new Land for a board-backed session. Otherwise
+3. When every file on the list is green, submit a new Merge for a board-backed session. Otherwise
    run the full suite again once — never between fixes.
 
 A test that fails in the full run and passes on its own is the machine's load, not a fault: name it,
@@ -126,7 +126,7 @@ and do not run the full suite again for it.
 ### Unit tests
 
 The full-suite command is `AIDE_TEST_CMD` in `.aide/project.yaml` (see "Project commands" in the
-tools-and-scripts rules). Land uses this command when the project has no configured test selection. A session uses
+tools-and-scripts rules). Merge uses this command when the project has no configured test selection. A session uses
 `AIDE_TEST_FILES_CMD` for named files when configured, or the project's documented file-specific
 command. Without a configured or documented command, say so rather than guessing one. Always run
 in single-run mode.
@@ -138,7 +138,7 @@ on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aid
 September 2026). Elsewhere, ask the user to run it.**
 
 **In a session for a project with a board, run only the browser test files covering the changed
-interaction.** Do not run the full e2e suite before commit or push: Land runs the configured tests before main is updated. For an Aide change to markdown files only, run `scripts/check-docs`; no browser test
+interaction.** Do not run the full e2e suite before commit or push: Merge runs the configured tests before main is updated. For an Aide change to markdown files only, run `scripts/check-docs`; no browser test
 reads them.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
@@ -164,7 +164,7 @@ Where it is allowed:
 
 New functionality is written test first: a test that fails because the behaviour is missing
 (red), then the least code that makes it pass (green), then refactoring with the relevant tests
-and checks. In a board-backed session Land verifies the merged result. Without a board, follow the
+and checks. In a board-backed session Merge verifies the merged result. Without a board, follow the
 project's full-suite requirement.
 
 ---

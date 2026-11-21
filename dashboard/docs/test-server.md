@@ -64,7 +64,7 @@ The two differ on a second press:
 ## What happens when you click it
 
 The link opens a new tab and holds it: building a test server takes a minute or two, not seconds,
-so the page you land on says so and waits — "leave it open". It checks again every few seconds on
+so the page you arrive on says so and waits — "leave it open". It checks again every few seconds on
 its own; there is nothing to click or refresh by hand.
 
 The moment the server answers, that same tab is carried straight to it — that is well before the
@@ -139,8 +139,8 @@ Three places to press Stop:
 
 Two cases need no press at all:
 
-- **Its archive lands.** Once the acceptance criteria are ticked and the `archive` step merges — or
-  the spec is closed — the test server stops with it. An archive that stays held back never lands,
+- **Its archive merges.** Once the acceptance criteria are ticked and the `archive` step merges — or
+  the spec is closed — the test server stops with it. An archive that stays held back never merges,
   and its test server keeps running.
 - **It is gone already.** A crash, or a process killed outside these buttons: the next load of the
   spec page or the Test servers list notices and clears the entry.
@@ -154,7 +154,7 @@ carries no start link, and a start reached directly for an archived spec is refu
 The board runs one cleanup every night, filed under the first project name in sorted order regardless of how the
 project list was read. It stops processes on the six test-server ports that
 are not in the Test servers register, and old orphaned test processes from the board's temporary
-folders. Registered test servers and processes belonging to queued, running or landing jobs are
+folders. Registered test servers and processes belonging to queued, running or merging jobs are
 left alone. It then removes the test suites' own temp folders (`aide-pytest-*`, `aide-bun-test-*`) that are older
 than six hours and that no running process works in: a suite removes its folder when it ends, so one left behind
 belongs to a run that was stopped.

@@ -134,7 +134,7 @@ limit, so the choice is never worth stretching.
 First write `--- Step 4 of 11: Check for work already begun — started`, and when this step ends, `--- Step 4 of 11: Check for work already begun — done`.
 
 
-An earlier run stopped by its time limit lands what it wrote, so the
+An earlier run stopped by its time limit merges what it wrote, so the
 three files may already hold its answers. Read `specs/XX-slug/2-analysis.md`,
 `3-solution.md` and `4-status.md` as they stand before writing anything.
 

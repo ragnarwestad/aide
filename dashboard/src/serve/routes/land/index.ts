@@ -36,7 +36,7 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
   return json({ ok: true, job: result.job, message: `Queued Merge for ${branch} in ${project}.` });
 }
 
-/** The main checkout of the repository a session ran `aide land` in, when
+/** The main checkout of the repository a session ran `aide merge` in, when
  *  it is a clone of the same origin as the project; anything else is
  *  ignored, and the Land then cleans nothing up outside the board. */
 async function sessionCheckout(ctx: RoutesContext, root: string, given: unknown): Promise<string | undefined> {

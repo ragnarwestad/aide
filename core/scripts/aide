@@ -37,7 +37,7 @@ usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]...
                    [--acceptance-not-required]
        aide analyze|implement|archive|reopen <spec> [--project <name>] [--model <name>]
        aide close <spec> --reason "<why>" [--project <name>]
-       aide land <project> <branch>
+       aide merge <project> <branch>
        aide status <spec> [--project <name>]
 
 create reads the description from --file, else from standard input, else from
@@ -406,7 +406,8 @@ parse_args() {
   [ $# -gt 0 ] || { usage >&2; exit 2; }
   case "$1" in
     -h|--help) usage; exit 0 ;;
-    create|land|analyze|implement|archive|reopen|close|status) command="$1"; shift ;;
+    land) usage_error "aide land is now aide merge" ;;
+    create|merge|analyze|implement|archive|reopen|close|status) command="$1"; shift ;;
     *) usage_error "unknown command $1" ;;
   esac
   while [ $# -gt 0 ]; do
@@ -431,8 +432,8 @@ parse_args() {
     title="${positionals[1]}"
     [ -n "$title" ] || usage_error "the title is empty"
     case "$criteria" in ""|off|warn|stop) ;; *) usage_error "--criteria-checks is off, warn or stop" ;; esac
-  elif [ "$command" = "land" ]; then
-    [ "${#positionals[@]}" -eq 2 ] || usage_error "land takes a project and a branch"
+  elif [ "$command" = "merge" ]; then
+    [ "${#positionals[@]}" -eq 2 ] || usage_error "merge takes a project and a branch"
     project="${positionals[0]}"
     land_branch="${positionals[1]}"
     printf '%s\n' "$land_branch" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._/-]*$' || usage_error "$land_branch is not a branch name"
@@ -460,7 +461,7 @@ main() {
 
   find_own_project
   read_board_url
-  if [ "$command" != "create" ] && [ "$command" != "land" ]; then
+  if [ "$command" != "create" ] && [ "$command" != "merge" ]; then
     project="${project_flag:-$own_project}"
   fi
 
@@ -469,8 +470,8 @@ main() {
     create)
       require_board "queue create"
       run_create ;;
-    land)
-      require_board "queue Land for $land_branch in"
+    merge)
+      require_board "queue Merge for $land_branch in"
       run_land ;;
     status)
       require_board "ask about $spec_arg"

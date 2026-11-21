@@ -50,17 +50,17 @@ fast-forward, reset, commit or rebase), with the fetch and the `worktree add` in
 for, taken over from a process that is gone, and released, is `core/scripts/lib/checkout-lock.sh`, which
 `aide-preview` uses too; no caller removes the lock directory itself.
 
-The dashboard takes the same lock for its own moves (`withCheckoutLock`, `src/git/checkout-lock/`): a landing's fetch,
+The dashboard takes the same lock for its own moves (`withCheckoutLock`, `src/git/checkout-lock/`): a merge's fetch,
 `worktree add` and catch-up, Deploy's fast-forward, the Update button's pull, a Save, the catch-up of its own
 checkouts and the test board's round reset. A run waits for it as for another run, and the dashboard waits for a run:
-120 s for a landing and Deploy, 30 s for a press a person is waiting on, 5 s for a catch-up, which is skipped when the
+120 s for a merge and Deploy, 30 s for a press a person is waiting on, 5 s for a catch-up, which is skipped when the
 wait runs out. Outside the lock stay the fetches that only answer a question on a page, the save on a branch, which
-builds its commit with an index of its own, and everything run in a landing's own worktree.
+builds its commit with an index of its own, and everything run in a merge's own worktree.
 
 Two pages sit beside this one:
 
 - [Running specs](running-specs.md) — the queue that starts these runs
-- [Branches and landing](landing.md) — how a step's branch is merged afterwards
+- [Branches and merging](landing.md) — how a step's branch is merged afterwards
 
 
 ## What a run does, in order
@@ -195,7 +195,7 @@ sentence of the runner's for it, so the row has no (?).
 is one per project, never one per run, and `--dashboard-checkouts <dir>` moves them. They are made when a project is
 added or its settings are saved, by cloning the user's checkout's own `origin`, and reused after that; anything else
 that finds one missing reports it and does not clone. Everything that MUTATES goes there: `aide-run-spec
---project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
+--project-dir`, a merge's merge step and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
 checkout is read and never written: the project list, the manifests, its `.aide/config`, its `AIDE_SPECS_PATH`, the
 sources its worktree links point at, and the `origin` a clone is made from.
 
@@ -204,7 +204,7 @@ from that clone when it exists, and from the user's checkout otherwise (a new pr
 folder committed in the user's checkout but never pushed therefore has no row. A render never waits on the fetch that
 keeps the clone current.
 
-- **A landed run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into it.
+- **A merged run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into it.
   An operator can set up a cron entry for `aide-pull-specs` on the serving host; see
   [Hosting the dashboard](hosting.md#keeping-the-hosts-specs-current).
 - **`.aide/config` is copied from the user's checkout on every ensure**, since it is gitignored and edited by hand
@@ -231,7 +231,7 @@ compare link is built from the repos that were pushed (`branchUrls` in the resul
 interesting one).
 
 **A `schedule` step commits and pushes like any other command.** Its report and any proposed specs live under
-`$AIDE_SCHEDULE_OUTPUT_DIR`, outside both roots. Afterwards the board lands what it pushed (`landScheduleRun`): the
+`$AIDE_SCHEDULE_OUTPUT_DIR`, outside both roots. Afterwards the board merges what it pushed (`landScheduleRun`): the
 project repository's commit only after that repository's own test command is green on the merge, the specs root
 directly. A run stopped by its timeout or a cancel keeps what it had committed, on its branch.
 
@@ -250,8 +250,8 @@ their default branch before the worktrees are made and never leave it, so severa
   committed. One inside the project that is tracked, or not committed yet, is part of the branch and committed with the
   step. A `.aide/config` naming the specs root by absolute path is pointed at the worktree's copy.
 
-**An analyze or implement puts back a folder an unlanded archive moved.** An archive moves the spec's folder into
-`archive/` on the spec's specs branch, and only its landing brings that to the default branch. When the branch has the
+**An analyze or implement puts back a folder an unmerged archive moved.** An archive moves the spec's folder into
+`archive/` on the spec's specs branch, and only its merge brings that to the default branch. When the branch has the
 folder under `archive/` while the default branch has it open, the run moves it back before the session starts, with
 whatever was written into the archived copy, and commits that on the spec's branch
 (`run-spec/checkout/unlanded-archive.sh`). The move is `aide-reopen-spec`'s keep-the-files reopen: `archive` leaves the
@@ -304,7 +304,7 @@ the base: `auth`, `no-write`, `https-auth`, `network` and `github` read as for a
 no text, and say to run `git fetch` by hand in the checkout on the serving host if trying again fails the same way.
 
 **A branch that conflicts with the base names the files.** A step other than `archive` and `implement` refuses with
-`errorReason: "conflict"` ([Branches and landing](landing.md#archive-and-implement-resolve-the-conflict-themselves)),
+`errorReason: "conflict"` ([Branches and merging](landing.md#archive-and-implement-resolve-the-conflict-themselves)),
 and `update_branch_to_base` (`run-spec/checkout/worktree.sh`) reads the files in conflict before it undoes the
 merge. The result carries them as `conflict`: `repo`, `branch`, `base`, `files` (five at most) and `more` (how many
 besides). The row's sentence names the repo, the branch, the base and the files, as `a.ts, b.ts (+3)`, and says to
@@ -330,7 +330,7 @@ push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting change
 - the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
 
-A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing.
+A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a merge.
 
 Three more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
 
@@ -338,7 +338,7 @@ Three more things keep what a step writes from reaching the runner's own work ou
 - each worktree's `.git` file and its git directory's `commondir` and `gitdir` files are recorded when the worktree is
   cut and put back after every turn, and the runner's own git passes the recorded git directory (`--git-dir`,
   `--work-tree`);
-- the runner's and the landing's own git run no hooks (`-c core.hooksPath=/dev/null`). What the runner starts itself,
+- the runner's and the merge's own git run no hooks (`-c core.hooksPath=/dev/null`). What the runner starts itself,
   the AI tool and the project's tests, runs git with its hooks as usual.
 
 Everything else is reachable:
@@ -355,11 +355,11 @@ running its commands unconfined.
 
 **A browser cannot start in the sandbox.** Chromium registers a macOS service the sandbox has no setting for. A Claude
 step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
-runs them before the work can land. A scheduled job whose own commands start a browser runs without the sandbox: its
+runs them before the work can merge. A scheduled job whose own commands start a browser runs without the sandbox: its
 entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`).
 
 **The runner's own test run executes what the step wrote, outside the sandbox.** An `implement` step's tests, a
-landing's tests and every hook git runs for them run with everything the user can reach, the denied paths included. A
+merge's tests and every hook git runs for them run with everything the user can reach, the denied paths included. A
 step talked into writing a test that reads a key gets that key read when the runner runs the suite; the step itself
 never sees the output of a passing run, but the test can send what it read over the open network. Only a container
 per run (`docs/ROADMAP.md`, idea 18b) closes this.
@@ -368,7 +368,7 @@ per run (`docs/ROADMAP.md`, idea 18b) closes this.
 in a worktree fails under `workspace-write`, because the worktree's git directory lies in the main checkout. OpenCode
 has no sandbox of its own. `docs/AI_SUPPORT_MATRIX.md` has the versions this was checked against.
 
-The runner's own commit, push and landing run outside the sandbox.
+The runner's own commit, push and merging run outside the sandbox.
 
 ## What counts as a step having run
 
@@ -436,14 +436,14 @@ evidence that the phase happened:
     folder not found on the spec's branch (`spec-folder-missing`), or the recorder refusing or ending without a result
     (`recorder-failed`, with its own words). A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
     on exactly the delivered tree, green and naming the same commands, is accepted as that run.
-- `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
+- `archive` runs no suite of its own, merged with main or not: its merge runs the project's tests once, on
   exactly what the default branch is about to become, and that is the one run an archive gets
-  ([Branches and landing](landing.md#the-tests-run-on-the-landing-once)).
+  ([Branches and merging](landing.md#the-tests-run-on-the-merge-once)).
 - `archive` counts only if the folder is under `archive/` afterwards. A folder that stayed put because
   `aide-archive-spec` refused (`not-implemented-yet`, `acceptance-criteria-unticked`) ends as that refusal, the same
   as when the refusal came before the session; otherwise `no-progress`. An archive handed a merge with the default
   branch OPEN (`update_branch_to_base`) counts only if the branch contains that base tip afterwards — a session
-  that aborted the merge and still moved the folder ends `merge-unfinished`, since the landing would meet the same
+  that aborted the merge and still moved the folder ends `merge-unfinished`, since the merge would meet the same
   conflict again.
 - `implement` handed a merge with the default branch open counts by the same test: a session that dropped the merge
   and did its work on the old base ends `merge-unfinished`.
@@ -476,9 +476,9 @@ later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark follows it, an
 rule — `spec-transitions.sh` and `spec-state.sh` in bash, `stampInEffect` in `discover/spec-files.ts` on the
 dashboard's side. A new stamp written after the boundary counts again.
 
-What the cross-check does not cover: whether the step's commit reached origin, and whether the landing that
+What the cross-check does not cover: whether the step's commit reached origin, and whether the merge that
 follows succeeded. The line is rebuilt from local history, so a step whose push was refused is still on it, and a
-landing that fails afterwards does not take it off.
+merge that fails afterwards does not take it off.
 
 ## What a finished step publishes
 
@@ -569,7 +569,7 @@ independent changes do not stop the step, while an unreviewed overlap or a requi
 An earlier warning alone is not a decision. Required orderings carry a non-empty `reason` in each result's
 `sharedFiles` entry; unreviewed paths carry no reason and authorize no automatic edit.
 
-After the stopped analysis lands, the board adds the required dependencies, preserving existing ones, and queues
+After the stopped analysis merges, the board adds the required dependencies, preserving existing ones, and queues
 Analyze and the remaining steps. The ordinary dependency hold waits until they archive. Updates share the specs
 repository's lock; validation reads the freshly pulled descriptions and dependency edits on open branches before
 any write. A direct or indirect cycle rejects the whole update, leaves dependencies unchanged, and shows its

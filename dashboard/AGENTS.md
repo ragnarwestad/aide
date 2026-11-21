@@ -13,8 +13,8 @@ beside this file. Claude Code loads each one when a file it names is read;
 every tool implementing or reviewing a change reads the rule for that code
 before starting:
 
-- `landing.md` — the landing, the archive step and Close: the code that
-  lands a branch, and the rows and pages that read what a landing left.
+- `landing.md` — the merge, the archive step and Close: the code that
+  merges a branch, and the rows and pages that read what a merge left.
 - `process-groups.md` — signalling a process group, under `src/serve/`.
 - `dashboard-design.md` — required existing-design reference and visual
   verification for implementation and review, tokens, the class vocabulary
@@ -31,7 +31,7 @@ before starting:
   THIS run" alone: a commit a prior run's failed push left stranded is
   retried on every later run, not only the run that made it.
   A run's own bookkeeping (`Workflow steps completed`) is written and
-  pushed as its own confirmed step, so it never lands while that push
+  pushed as its own confirmed step, so it never merges while that push
   cannot be confirmed against origin.
 - It works in `git worktree` checkouts under
   `$HOME/.aide/dashboard/worktrees/<project>/<spec>/`. The result's `repos[].root` is
@@ -39,7 +39,7 @@ before starting:
 - Gitignored paths reach a worktree only through `worktreeLinks:` in the
   manifest. A project that does not track a manifest keeps its
   settings in the dashboard's `checkouts/<name>/settings.yaml`; the
-  clone, a step's worktree and the landing's tree carry an untracked copy
+  clone, a step's worktree and the merge's tree carry an untracked copy
   of it as `.aide/project.yaml`, kept out of every commit and out of
   `aide_tree_hash`. A tracked manifest always wins.
 - A run reaches the project and its specs root, and nothing else — and
@@ -88,8 +88,8 @@ before starting:
   `AIDE_TEST_FIX_FRESH_PERCENT` (85 unless set) of the implement session's
   context window, a fresh session of the same tool and model takes over;
   without a context figure, the implement session keeps them. Still red is `tests-red` on the STEP (Implement offered
-  again), unlike the landing's `tests-red`, which STOPS the job. An
-  `archive` runs no suite of its own: its landing runs it once, on what
+  again), unlike the merge's `tests-red`, which STOPS the job. An
+  `archive` runs no suite of its own: its merge runs it once, on what
   main is about to become, and skips it when the runner already saw that
   same tree green (`testedGreen`, `aide_tree_hash`).
 
@@ -140,7 +140,7 @@ before starting:
   guard; `aide-run-spec` resolves the specs root it is handed for the
   same reason.
 - **A project is added by its git address, so no directory already on
-  the host is ever registered.** Where the clone lands depends on the
+  the host is ever registered.** Where the clone merges depends on the
   projects root. On the directory of links a serving host uses, the
   entry is a link to the dashboard's own checkout, so `personDir` and
   that checkout are one directory. On an ordinary projects root, Add
@@ -155,7 +155,7 @@ both sides, but the two copies are still edited by hand together.
 `docs/bash-typescript-decisions.md` has the table, and the decisions that
 look like pairs but share one source.
 
-- **The landing runs Aide's scripts from beside `--runner-bin`, never from
+- **The merge runs Aide's scripts from beside `--runner-bin`, never from
   PATH alone** (`scriptFor` in `land-branch/run-script.ts`). A test board
   serving a branch runs that branch's TypeScript, and the bash written
   together with it lives in the same checkout; the copy under

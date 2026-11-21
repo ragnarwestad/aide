@@ -1,19 +1,19 @@
-# Branches and landing
+# Branches and merging
 
 ## Table of contents
 
 - [Branches, and merging them](#branches-and-merging-them)
 - [Archive and implement resolve the conflict themselves](#archive-and-implement-resolve-the-conflict-themselves)
-- [Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)
-- [The tests run on the landing, once](#the-tests-run-on-the-landing-once)
+- [Origin decides whether a merge finished](#origin-decides-whether-a-merge-finished)
+- [The tests run on the merge, once](#the-tests-run-on-the-merge-once)
 - [A root that is no longer on disk](#a-root-that-is-no-longer-on-disk)
 - [A project can ask for its code branch to stay open](#a-project-can-ask-for-its-code-branch-to-stay-open)
 
 ---
 
 How each step's branch is merged into the default branch, what `archive` does when that merge conflicts, how origin
-decides whether a landing finished, and how a project keeps its code branch open for review. The queue that makes the
-branches is on [Running specs](running-specs.md). What a landing refusal says is the rule on
+decides whether a merge finished, and how a project keeps its code branch open for review. The queue that makes the
+branches is on [Running specs](running-specs.md). What a merge refusal says is the rule on
 [Error sentences](error-sentences.md).
 
 ## Branches, and merging them
@@ -22,104 +22,104 @@ branches is on [Running specs](running-specs.md). What a landing refusal says is
 
 A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard`
 exists in the project and in the specs repo, with different contents and two separate compare pages. Merging one
-does nothing for the other: each repo's branch is landed on its own, asked of that repo's own checkout.
+does nothing for the other: each repo's branch is merged on its own, asked of that repo's own checkout.
 
 Specs in one group share `aide/group-<first-member-folder>` in every repository. Their Implement steps leave code on
-that branch. The group Archive validates and moves every member before it lands the branch once;
+that branch. The group Archive validates and moves every member before it merges the branch once;
 a member the archive session left active, after it resolved a conflict and moved the owner alone, is moved before the
 commit. Merge mode runs one
 test gate and makes one merge; pull-request mode opens one request for the shared code branch. A refusal or failed
-landing leaves every member active on the default branch.
+merge leaves every member active on the default branch.
 
-A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
+A project whose specs live inside it has one repo and one branch for both. There, a step that merges no code —
 `analyze`, `reopen`, `close`, and an `implement` sent back to a full analysis — copies the spec's own folder, and its `archive/` twin, from the branch onto the
 default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,
 whose run merges the default branch in before it starts; a `close` deletes it afterwards.
 
-### What each step lands
+### What each step merges
 
-Nothing here is merged by hand. Every step lands its own work as it finishes, and there is no Merge button and no
+Nothing here is merged by hand. Every step merges its own work as it finishes, and there is no Merge button and no
 Approve button: the step that made the work is what knows it is done. Leaving `archive` unticked is the inspection
 point.
 
 - `create` and `analyze` merge the branch they pushed into that repo's default branch, and leave the
   project's code root out.
-- `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first. The one
+- `implement` merges nothing. The code stays on the branch for anyone who wants to read or test it first. The one
   exception is an implement sent back to a full analysis in a project whose specs live inside the code root: it
-  lands the spec's own folder, so main, the row and the next analyze have the Sent back line, and not its code.
-- `archive` and `close` land every repo that holds the spec's branch: the roots its own run reported, the ones the
+  merges the spec's own folder, so main, the row and the next analyze have the Sent back line, and not its code.
+- `archive` and `close` merge every repo that holds the spec's branch: the roots its own run reported, the ones the
   queue's history recorded for the spec, and every root of the project where origin still has the branch, recorded or
   not. **The code root goes first and the specs root last**, so a failed code merge stops the loop
   before the specs root, which carries the `Result: completed` stamp, is attempted. After a code root merges,
   `AIDE_INSTALL_CMD` runs, except in the board's own checkout, which Deploy installs.
-- A stopped step other than `archive` lands what it pushed outside the code root. That covers a `timeout`,
+- A stopped step other than `archive` merges what it pushed outside the code root. That covers a `timeout`,
   `provider-limit` or `shared-files` stop with something pushed and no code root among it. A stopped `implement` whose
-  code branch was pushed lands nothing, and that code waits for `archive`. The exception is an implement sent back
-  (`sent-back`) where the specs live inside the code root: it lands the spec's own folder alone. An `acceptance-criteria`
-  stop lands nothing; the analysis stays on the spec's branch for the next Analyze. A landing that does run leaves the
+  code branch was pushed merges nothing, and that code waits for `archive`. The exception is an implement sent back
+  (`sent-back`) where the specs live inside the code root: it merges the spec's own folder alone. An `acceptance-criteria`
+  stop merges nothing; the analysis stays on the spec's branch for the next Analyze. A merge that does run leaves the
   job's `error` in place, since it is the reason the step stopped.
-- A stopped `archive` lands nothing. The spec stays active and its row offers Archive again; the folder reaches
-  `archive/` on the default branch only when an archive step completes and lands.
+- A stopped `archive` merges nothing. The spec stays active and its row offers Archive again; the folder reaches
+  `archive/` on the default branch only when an archive step completes and merges.
 
-The landing is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
+The merge is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
 it in the words of that skill's last heading:
 
-- `--- Step 7 of 7: Merge spec files into main — started` when a create landing begins
+- `--- Step 7 of 7: Merge spec files into main — started` when a create merging begins
 - `— done` when every repo merged
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 
 Create, Analyze, Reopen and Close name spec files; Archive says `Merge code and spec files into main`.
 
-The places are `MERGE_STEP` and the titles come from `mergeStepTitle()` in `src/serve/land-branch/steps.ts`, one per step that lands (`create`, `analyze`,
+The places are `MERGE_STEP` and the titles come from `mergeStepTitle()` in `src/serve/land-branch/steps.ts`, one per step that merges (`create`, `analyze`,
 `reopen`, `archive`, `close`).
 
-Code reaches the default branch through `archive` alone. The landing can only merge the repos it knows about, so it
-asks origin afterwards ([Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)).
+Code reaches the default branch through `archive` alone. The merge can only merge the repos it knows about, so it
+asks origin afterwards ([Origin decides whether a merge finished](#origin-decides-whether-a-merge-finished)).
 
-### A code root gets one commit per landing
+### A code root gets one commit per merging
 
-A code root's landing builds the merge, repairs it and runs the tests on it as a real merge, and then replaces it by
+A code root's merge builds the merge, repairs it and runs the tests on it as a real merge, and then replaces it by
 one commit with the same tree, whose only parent is the default branch (`src/git/branch-merge/squash.ts`). What was
-tested is exactly what is pushed. The message is the spec's title, or for a Land or a schedule the branch's only
+tested is exactly what is pushed. The message is the spec's title, or for a Merge or a schedule the branch's only
 commit's subject or else the branch name, followed by the subjects of every commit squashed. A branch that is one
-ordinary commit on the default branch lands as it is. The specs repo keeps its merge commits, so every step's own
+ordinary commit on the default branch merges as it is. The specs repo keeps its merge commits, so every step's own
 commit stays in its history.
 
-A squashed branch's commits are never ancestors of the default branch, so "has it landed" asks whether merging it
+A squashed branch's commits are never ancestors of the default branch, so "has it merged" asks whether merging it
 in would change the default branch's tree (`contentLandedIn` in `src/git/branch-status.ts`, and
 `branch_already_landed` in `core/scripts/lib/run-spec/checkout/worktree.sh`).
 
 ### A merged branch is deleted
 
-Once the merge is on origin, the landing deletes the branch, first on origin and then locally. A delete that fails is
-never fatal: it is reported beside the merge. The local copy is deleted only when it is exactly the tip that landed.
+Once the merge is on origin, the merge deletes the branch, first on origin and then locally. A delete that fails is
+never fatal: it is reported beside the merge. The local copy is deleted only when it is exactly the tip that merged.
 
-A Land started with `aide land` also cleans up where the session made the branch. `aide land` sends the main
+A Merge started with `aide merge` also cleans up where the session made the branch. `aide merge` sends the main
 checkout of the repository it ran in, and the board keeps it when that checkout is a clone of the project's origin.
-Once the Land has landed, the branch's copy there is removed: every worktree holding it, and then the branch
+Once the Merge has merged, the branch's copy there is removed: every worktree holding it, and then the branch
 (`src/git/branch-merge/landed-copy.ts`). A branch with work that is not on the default branch is kept, and so is a worktree with
-changes or untracked files, along with its branch. The Land's log names what was removed and what was kept.
+changes or untracked files, along with its branch. The Merge's log names what was removed and what was kept.
 
 ### What is refused, and what is tried again
 
-A landing merges the spec branch into each repo's default branch and pushes, one repo at a time. What a step's
-landing does — which endings land, which root goes first, what the code root gets, whether origin is asked
-afterwards — is that step's entry in the landing policy (`src/serve/land-branch/policy/index.ts`), never a test of
+A merge takes the spec branch into each repo's default branch and pushes, one repo at a time. What a step's
+merge does — which endings merge, which root goes first, what the code root gets, whether origin is asked
+afterwards — is that step's entry in the merge policy (`src/serve/land-branch/policy/index.ts`), never a test of
 its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/git/branch-merge/retry.ts`:
 
-- **An unresolved conflict refuses and names the repo and the files.** Standalone Land first attempts automatic
+- **An unresolved conflict refuses and names the repo and the files.** Standalone Merge first attempts automatic
   resolution on code roots with a test gate. The files in conflict are read before the failed merge is aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
   lines are the detail.
 - **A dirty tree decides nothing.** A file that genuinely collides raises git's own error.
 - **The shared checkout moves under the runner's lock.** The fetch, the `worktree add` and the catch-up after the
   push wait for the checkout's lock ([the per-root lock](the-runner.md)), so a run is never in its own section at the
-  same moment, and each is run once. A wait that runs out refuses the landing, naming the lock; for the catch-up it is
-  logged, and the landing stays landed.
+  same moment, and each is run once. A wait that runs out refuses the merge, naming the lock; for the catch-up it is
+  logged, and the merge stays merged.
 - **Publishing uses the same checkout lock as Create.** Create holds it from pulling to pushing its new spec.
   A Merge holds it while pushing to the default branch and rebuilds on the newer base if Create got there first.
-- **A lost lock is not a conflict.** When the merge in the landing's own worktree fails and git's stderr names a lock
+- **A lost lock is not a conflict.** When the merge in the merge's own worktree fails and git's stderr names a lock
   (`index.lock`, `packed-refs.lock`, a ref lock), it is retried up to five times, 400 ms apart.
-- **A refused merge is repeated by what it was.** A spec's folder landed alone is tried again twice, 700 ms and then
+- **A refused merge is repeated by what it was.** A spec's folder merged alone is tried again twice, 700 ms and then
   1400 ms after the first; a number that could not be assigned, once; any other refusal, a conflict included, not at
   all. A red test gate is never repeated this way. Git's own words are kept as the row's detail.
 - **A push that fails says why.** The push and the question to origin that follows a failed one get a minute each,
@@ -127,11 +127,11 @@ its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/g
   git said is sorted as a run's own push is ([When a push fails or the base conflicts](the-runner.md#when-a-push-fails-or-the-base-conflicts),
   `gitError` in `src/format/git-error.ts`), and the refusal says it in the reader's language, with git's own lines,
   whole, as the detail.
-- **Main moving under a landing is not a refusal.** When origin rejects the push because the default branch got
+- **Main moving under a merge is not a refusal.** When origin rejects the push because the default branch got
   commits while the tests ran, the branch is merged again onto the new base, the tests run again, and the push is
   made once more. A second rejection refuses, with the checkout level with origin.
 - **A base ahead of origin is refused only when the commits are its own.** Merge commits and commits origin already
-  holds, left by an interrupted landing, are not refused. Unpushed work of somebody's own on that branch is refused,
+  holds, left by an interrupted merge, are not refused. Unpushed work of somebody's own on that branch is refused,
   by name.
 - **A code merge can install.** The command is `AIDE_INSTALL_CMD` in the project's `.aide/config`, run in that
   checkout after its code merges, stopped after 120 seconds, and reported beside the merge. The board's own checkout
@@ -142,19 +142,19 @@ its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/g
   as the detail behind the (?).
 - **The report is per repo, never one collective "ok".** One repo can succeed while another fails.
 
-A landed folder becomes visible on the board when the shared checkout fast-forwards. When the landing is over, the
+A merged folder becomes visible on the board when the shared checkout fast-forwards. When the merge is over, the
 spec's cached git answers are read again, so no row is drawn from what was true before.
 
 ## Archive and implement resolve the conflict themselves
 
 An ordinary spec's branch is brought up to date with the default branch before a step's own work starts. A step other than
 `archive` and `implement` treats a conflict there as a user's problem: the merge is aborted and the run refuses with
-`errorReason: "conflict"`. `archive` lands the branch, and `implement` writes its code, so a conflict is theirs to
+`errorReason: "conflict"`. `archive` merges the branch, and `implement` writes its code, so a conflict is theirs to
 settle. A `close` skips the code repository's branch, since it deletes that branch unmerged.
 
 A group keeps its shared code branch throughout Analyze and Implement, without bringing in new default-branch
 changes between steps or members. Even a code branch with no commits of its own is kept. The shared Archive
-brings the default branch in and handles any conflict before the landing tests run. A separate specs repository
+brings the default branch in and handles any conflict before the merge tests run. A separate specs repository
 continues to receive default-branch updates during the group's work.
 
 `core/scripts/aide-run-spec` hands `archive` and `implement` the worktree with the merge still open. A conflict
@@ -163,7 +163,7 @@ default branch's `4-status.md` wins, and `4-status.json` is rebuilt from the mer
 that cannot be read is never used: the phase is read from `4-status.md` instead. The rest reaches the
 skill, which follows `core/scripts/lib/steps/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
 decide not to, finish the merge with `git commit --no-edit`, run the project's own test command. The step never
-touches the default branch; the dashboard lands the resolved branch afterwards.
+touches the default branch; the dashboard merges the resolved branch afterwards.
 
 There is no `resolve` step and no Resolve button.
 
@@ -172,14 +172,14 @@ There is no `resolve` step and no Resolve button.
 - **It either finishes or puts the branch back.** Tests red, or a conflict the skill will not decide, and the merge is
   undone to the commit the branch started on. That branch never reaches origin, since a root whose HEAD did not move is
   pushed only when the run ended `completed`.
-- **The test command is the gate.** A resolution that does not pass the project's own tests does not land.
+- **The test command is the gate.** A resolution that does not pass the project's own tests does not merge.
 - **A conflict no machine could settle reaches the row** as the failure's own text, which names the branch, beside the
   ordinary re-run control.
 - **An interrupted `archive` or `implement` commits no markers.** `aide-run-spec` aborts a merge still open before
   it commits, at the end of the step and on a Cancel.
 - **`core/scripts/aide-archive-spec` decides and moves; the skill keeps only conflict resolution and doc feedback.**
   The script resolves the spec, asks `core/scripts/lib/transitions.json` whether it may move to `archived`, and moves
-  the folder on the spec's branch. The move reaches the default branch only when the archive step completes and lands.
+  the folder on the spec's branch. The move reaches the default branch only when the archive step completes and merges.
   `aide-run-spec` calls it once before the model: `not-implemented-yet` or `acceptance-criteria-unticked` skips the
   spawn.
 - **The script runs twice in one archive step.** A folder already under `archive/` answers `already-archived`, with the
@@ -187,44 +187,44 @@ There is no `resolve` step and no Resolve button.
 - **A re-run of `archive` finds a folder that has moved:** `--spec` is resolved against the active folder first and
   `archive/` second, while the branch is still on origin.
 
-## Origin decides whether a landing finished
+## Origin decides whether a merge finished
 
-The archive STEP can succeed while its landing fails: the folder moves into `archive/` before the code merge is
-attempted. **A spec whose code did not land is not finished, and its row says so.**
+The archive STEP can succeed while its merge fails: the folder moves into `archive/` before the code merge is
+attempted. **A spec whose code did not merge is not finished, and its row says so.**
 
-- **The archive landing asks origin, after merging**, with one `git ls-remote --heads origin 'refs/heads/aide/*'` per
-  repo root. A root that still holds `aide/<folder>` is a landing that did not finish, whatever the merge loop
+- **The archive merging asks origin, after merging**, with one `git ls-remote --heads origin 'refs/heads/aide/*'` per
+  repo root. A root that still holds `aide/<folder>` is a merge that did not finish, whatever the merge loop
   reported.
 - **It speaks only when the merge loop gave no reason of its own.** A row carries one reason.
-- **It is `archive`'s question alone.** An `analyze` landing runs while implement's code branch is legitimately open.
-- **A failed landing moves the job to `failed`**, only from `done`, as [A job's states](job-states.md) says.
+- **It is `archive`'s question alone.** An `analyze` merge runs while implement's code branch is legitimately open.
+- **A failed merging moves the job to `failed`**, only from `done`, as [A job's states](job-states.md) says.
 - **An unanswerable question invents nothing.** A failed `ls-remote` claims neither that the branch is open nor that it
   is gone.
 - **The spec keeps its row while its branch is open.** It stays on the default view of the specs list with the "not
-  landed" mark, counted by the Problems chip. The filter is the BRANCH, never the job's `errorReason`.
+  merged" mark, counted by the Problems chip. The filter is the BRANCH, never the job's `errorReason`.
 - **A branch that merged is a cleanup, not a failure.** When the open `aide/<folder>` is an ancestor of origin's
   default branch in every root that holds it, the spec is archived, with an amber note that its branch is still on
-  origin and a Delete branch button. An answer not in yet, or "not merged", reads "not landed". A closed spec's branch
+  origin and a Delete branch button. An answer not in yet, or "not merged", reads "not merged". A closed spec's branch
   was never meant to merge, and its row is left as it was. For a project that reviews its code, a merged pull request
   counts as merged too: the sweep asks `gh pr list --head <branch>` for each archived spec whose branch is still on
   origin; a request still open wins over a merged one, and `gh` failing keeps the last answer.
 - **Delete branch asks origin itself.** `POST /api/queue/specs/<project>/<spec>/delete-branch` asks each root fresh
   whether it holds the branch and whether it is merged, deletes nothing if any root is not merged, and deletes once per
   repository. A root git calls unmerged is accepted when the pull request merged and origin's tip is the head that
-  merged. A closed spec, a spec that is not archived, a landing in the project or a job for the spec is refused.
-- **The way out is the step that already exists.** `archive` can be queued again for such a spec; the landing that
+  merged. A closed spec, a spec that is not archived, a merge in the project or a job for the spec is refused.
+- **The way out is the step that already exists.** `archive` can be queued again for such a spec; the merge that
   follows merges cleanly.
 - **What it does not do.** The Slack ping that said "finished" is not withdrawn, and a page loaded between `done` being
-  written and the landing settling still reads `done`.
+  written and the merge settling still reads `done`.
 
-## The tests run on the landing, once
+## The tests run on the merge, once
 
 The project's own test suite runs on the merged result before the push, in a throwaway worktree of that merge commit
 that carries the project's `worktreeLinks` and `.aide/config`. When `git worktree add` fails, the gate runs in the live
 checkout and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
 commands the change calls for and runs them through `aide-record-test-run`.
 
-- A red run gets the whole command once more, unless it timed out. Green on the second run lands without a notice
+- A red run gets the whole command once more, unless it timed out. Green on the second run merges without a notice
   on the archived row. The job keeps the lines the first run failed on (`testsGreenOnRetry`).
 - Red on both runs pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
@@ -238,13 +238,13 @@ commands the change calls for and runs them through `aide-record-test-run`.
   behind it, without the recorder's JSON line and cut at a line.
 - When the merge broke the tests (`landing.testsRedOnMerge`, `landing.testsRedOnMergeToo`), the job also keeps them,
   each with its file and error, as `landingFailedTests`, for the spec's next implement; at most one job of a spec keeps
-  such a list, and a green landing, another red ending, an archive or a close takes it off.
-- The landing writes each test run into the step's Log, under the publication part: when it starts, green or red, the
+  such a list, and a green merge, another red ending, an archive or a close takes it off.
+- The merge writes each test run into the step's Log, under the publication part: when it starts, green or red, the
   run once more, the run on main, and a run it skipped. Progress lines say whether they come from the merge, its retry
   or main alone. Every run keeps its complete output beside the step log and stops following its progress when it ends.
 
 **A run the step already made is not made again.** An `implement` that ended green reports `testedGreen` on its
-result: the tree, hashed by `aide_tree_hash` with the worktree links left out, and the commands. When the landing is
+result: the tree, hashed by `aide_tree_hash` with the worktree links left out, and the commands. When the merge is
 about to run exactly those commands on exactly that tree, it runs nothing and the gate log says so. Another tree or
 other commands, and it runs as above.
 
@@ -253,14 +253,14 @@ A code root only: the specs root has nothing to run.
 
 ## A root that is no longer on disk
 
-A landing carries every root the spec's older jobs ever named. A root recorded before the dashboard's files moved is
-skipped with a line in the serve log when another root is still to land; a landing whose only root is gone fails.
+A merge carries every root the spec's older jobs ever named. A root recorded before the dashboard's files moved is
+skipped with a line in the serve log when another root is still to merge; a merge whose only root is gone fails.
 
 ## A project can ask for its code branch to stay open
 
 `codeLanding: pr` in the project's `.aide/project.yaml` says this project's code is reviewed before it reaches the
 default branch. It does two things that are never separated: every one of the project's steps runs with `--push pr`,
-and the CODE root of an `archive` landing is not merged.
+and the CODE root of an `archive` merge is not merged.
 
 - **The manifest (tracked, or the dashboard's copy), never `.aide/config`.** Whether code is reviewed is team policy,
   and `.aide/config` is gitignored. Absent, unrecognized or unparseable resolve to `merge`.
@@ -271,26 +271,26 @@ and the CODE root of an `archive` landing is not merged.
   purpose (`prOpen`, from `peekUnlanded` in `src/serve/spec-lookup.ts`) says a pull request is waiting for review,
   until it merges and the row offers Delete branch. The row stays on the list and `archive` stays queueable for it.
   `codeLanding` is never a reason to refuse a run.
-Land applies the same merge lock and test gate to a named branch already on origin. An unresolved conflict or red
-tests leave the default branch unchanged. A successful Land pushes the tested merge and deletes the source branch. Deploy is still a
+Merge applies the same merge lock and test gate to a named branch already on origin. An unresolved conflict or red
+tests leave the default branch unchanged. A successful Merge pushes the tested merge and deletes the source branch. Deploy is still a
 separate action.
-Stop cancels a queued Land or interrupts its merge and tests before push, keeping the source branch and leaving the
+Stop cancels a queued Merge or interrupts its merge and tests before push, keeping the source branch and leaving the
 remote default branch unchanged. Once push begins, Stop is unavailable and the operation finishes reporting its result.
-A cancelled Land never restarts automatically; the same branch can be submitted again.
+A cancelled Merge never restarts automatically; the same branch can be submitted again.
 
 
-Land and Archive can repair named test regressions when the same suite passes on main alone. Up to two repair
+Merge and Archive can repair named test regressions when the same suite passes on main alone. Up to two repair
 sessions edit the tested merge, independently check the failed files and save the correction on the source branch.
 A session updates a test the branch deliberately made out of date and fixes the code when the branch broke
 behaviour by mistake; it never deletes, skips or loosens a test to let a defect pass.
-The landing then fetches main again, rebuilds the merge and runs the project's tests before pushing. Existing main
+The merge then fetches main again, rebuilds the merge and runs the project's tests before pushing. Existing main
 failures, unknown failures, missing file-test commands and unsuccessful repairs leave main unchanged.
 
 
-On a merge conflict, standalone Land starts a repair session with the conflicted files and both commit IDs. The
+On a merge conflict, standalone Merge starts a repair session with the conflicted files and both commit IDs. The
 session may edit only those files and may not commit, push or change the open merge. The wrapper verifies that HEAD,
 MERGE_HEAD and other files are unchanged, stages the resolution and rejects remaining conflicts or conflict markers.
 It then commits the merge and saves it to the source branch without force. A failed push preserves a recovery ref.
-Land fetches current main, rebuilds the merge and runs the project's tests before pushing main, including a resolution
+Merge fetches current main, rebuilds the merge and runs the project's tests before pushing main, including a resolution
 whose resulting tree matches main. At most two conflict repairs are attempted per repository. Stop cancels the AI
 session and prevents further commits or pushes. Progress and a conflict-repair transcript appear in the job's log.

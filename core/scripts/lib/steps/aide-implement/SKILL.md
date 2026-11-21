@@ -55,8 +55,8 @@ is not leftover state, and aborting it or resetting over it ends the run
 4. Then begin Step 1. The tests you run in Step 4 cover what the merge
    brought in as well as your own change.
 
-Never push, and never touch the default branch: the dashboard lands the
-branch afterwards, as it lands every step's work.
+Never push, and never touch the default branch: the dashboard merges the
+branch afterwards, as it merges every step's work.
 
 ### Step 1 of 4: Preparation
 
@@ -85,7 +85,7 @@ First write `--- Step 1 of 4: Preparation — started`, and when this step ends,
 4. Read the project's coding standard, where it has one (its
    `CLAUDE.md`, `AGENTS.md` or `CONTRIBUTING.md`)
 5. Read `specs/XX-slug/4-status.md`'s task tables. An earlier run
-   stopped by its time limit lands what it wrote, so some of the steps
+   stopped by its time limit merges what it wrote, so some of the steps
    below may already be done. A step whose task rows are
    all ✅ is done: skip it. A step whose table is marked 🔄, with some
    rows ✅ and some ⬜: keep the ✅ ones and resume at the first ⬜.
@@ -247,7 +247,7 @@ and `## Phase 3: GREEN - Verify tests`, and this skill's VERIFY phase is
 `## Phase 4: VERIFY` — or, on a spec whose `4-status.md` was created
 before this table was renamed, `## Phase 4: REFACTOR`, the same table
 under its old heading. A tick placed by matching a number in this
-skill to a number there lands in the wrong table.
+skill to a number there ends up in the wrong table.
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both

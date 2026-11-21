@@ -13,8 +13,8 @@
 
 ---
 
-The one rule every error the board shows follows: a mark's sentence, a job's `error`, a landing's refusal, a queue
-refusal. The producers themselves are spread across [A job's states](job-states.md), [Branches and landing](landing.md)
+The one rule every error the board shows follows: a mark's sentence, a job's `error`, a merge's refusal, a queue
+refusal. The producers themselves are spread across [A job's states](job-states.md), [Branches and merging](landing.md)
 and [The specs list and the spec page](the-specs-list.md) — this page is the convention all of them share, so the
 next sentence is written the same way.
 
@@ -42,7 +42,7 @@ Solution: Press Try again to open the form with what you typed, then press Creat
   intentionally impossible, not a gap).
 - **The labels are in the reader's language**, as the rest of the board is: "Problem" and "Løsning" in Norwegian.
 - **A fix that is to try again names the button**: "press Archive again", never "try again".
-- **A failed step's problem starts with the step**: "Archive failed: …", as a failed landing's starts "Archive merge
+- **A failed step's problem starts with the step**: "Archive failed: …", as a failed merge's starts "Archive merge
   failed: …". The sentence after it does not name the step a second time. A stop, which is amber and not a failure,
   has no such opening.
 
@@ -174,6 +174,6 @@ one set, for exactly this reason: an older job's failed push must not outlive a 
 
 ## Words the reader does not use
 
-A message does not use these words, in either language: "landing" (say merge), "spesifikasjon" (say spec),
+A message does not use these words, in either language: "merge" (say merge), "spesifikasjon" (say spec),
 "sammenslåing"/"slå ... sammen" (say merge), "gate" (say test, test log or test run), and "Run again" (name the
 phase's own button: "{button} again").

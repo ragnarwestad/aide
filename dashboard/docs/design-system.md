@@ -72,7 +72,7 @@ passes it in; nothing passes a colour or an icon:
 
 - `info` — "what does the reader have to do?" — nothing.
 - `waiting` — something waits on a user or on time; nothing is broken.
-- `failed` — a step, a landing or a request failed and a user has to act.
+- `failed` — a step, a merge or a request failed and a user has to act.
 
 `rowMessage()` and `rowMessageParts()` turn a kind into a colour and an icon — never at the call site.
 
@@ -351,7 +351,7 @@ English fallback for the two of those that are not required to cover every langu
    already are) and register it in `translations.ts`'s `translations` object and `LANGUAGES` list. A key
    missing from the new file fails `tsc`, the same way an incomplete `nb.ts` already does — and the same way a new
    string does: a key added to `en.ts` fails `tsc` until the other four catalogues have it too.
-2. **The board-message catalogue** (`src/messages/catalog.ts`'s `MESSAGES`, the runner/landing/tab sentences):
+2. **The board-message catalogue** (`src/messages/catalog.ts`'s `MESSAGES`, the runner/merge/tab sentences):
    add the new language's field to the `MessageEntry` interface and then to every one of its entries. This is
    a different shape from step 1 — an interface change plus per-entry content, not a new file — because
    `MESSAGES` types its five language fields directly on one shared interface rather than through a

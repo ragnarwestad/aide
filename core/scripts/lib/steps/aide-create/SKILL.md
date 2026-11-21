@@ -79,7 +79,7 @@ First write `--- Step 4 of 7: Create the directory and 5 files — started`, and
 choose a number or a slug (skip Steps 2 and 3 of the skill)" means
 exactly that: Steps 2 and 3 above are skipped, and the call below passes
 `--folder-name "<name>"`. The folder's
-real number and slug are not decided in this session at all — a landing
+real number and slug are not decided in this session at all — a merge
 step assigns both later, under the specs repo's own lock, which is the
 one place two creates running at once cannot both miss.
 

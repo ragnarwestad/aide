@@ -87,7 +87,7 @@ one that keeps coming back (idea 29).
 ### 12. One project, several code repositories
 
 A system is often a frontend and one or more backends: one spec that changes all of a project's code repositories
-in the same run, each landing through its own pull request. Worth doing once there is a real system with several
+in the same run, each merge through its own pull request. Worth doing once there is a real system with several
 repositories to try it on.
 
 ### 13. A flow suited to the kind of task
@@ -217,7 +217,7 @@ How T3 Code does it ([source](https://github.com/pingdotgg/t3code)):
 What it would mean for Aide:
 
 - **Electron, with Bun inside the app.** Electron because Aide also runs on Linux. The dashboard cannot run on Node
-  as it is: `Bun.serve`, `Bun.spawn` and `Bun.build` are used in the server, the runs and the landing. The app
+  as it is: `Bun.serve`, `Bun.spawn` and `Bun.build` are used in the server, the runs and the merge. The app
   therefore carries the `bun` program, about 60 MB, and starts the dashboard with it, as `dashboard/serve.sh` does.
 - **Releases with a version.** Today the board installs from main with Deploy. A Mac app is updated by releases
   instead. The two can live side by side: a machine Aide is developed on deploys from main, and other machines use
@@ -250,7 +250,7 @@ Two ways to narrow it:
   fetch from, each of which must be allowed. It could be turned on per project, leaving Aide out until its own suite
   is known to pass inside it.
 - **b. A container per run, as sandcastle does.** Only the worktree is mounted; the AI tool gets its own token
-  (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and lands as today.
+  (`claude setup-token`) and no SSH keys or GitHub login, and the runner outside commits, pushes and merges as today.
   The strongest boundary, at the cost of Docker or Podman on the serving host, an image per project, dependencies
   built inside the container rather than linked in, and Aide's own suite, which assumes macOS, behaving differently
   on Linux. [container-use](https://github.com/dagger/container-use) does the same through an MCP server, built on
@@ -260,7 +260,7 @@ Neither keeps a run from damaging or reading its own repository, or from sending
 network is narrowed too.
 
 Option a is in place for Claude steps: a fixed deny list of credentials and the board's secrets, and a list of what
-runs outside the sandbox that a step may read but not write, with the network open; the runner's and the landing's
+runs outside the sandbox that a step may read but not write, with the network open; the runner's and the merge's
 own git run no hooks, and the runner's own git in a worktree uses the git directory recorded when it was cut
 (`dashboard/docs/the-runner.md`, "What a step can reach"). What is left:
 
@@ -405,7 +405,7 @@ What it could take:
 
 - **The writing rules, not the dictionary:** short sentences (at most 20 words in an instruction, 25 in a
   description), the active voice, one word for one thing, and one topic in each sentence. The approved dictionary of
-  about 900 words is left out, since words like branch, worktree and landing would have to be declared as technical
+  about 900 words is left out, since words like branch, worktree and merging would have to be declared as technical
   names one by one.
 - **The analyze skill first:** the rules added to what `/aide-analyze` writes, and a few specs compared before and
   after, before they are used anywhere else.
@@ -468,24 +468,24 @@ Open questions for the first step:
 From running the Skjera specs 19 to 25 as a chain joined by Depends on (2026-10-21), and the
 [AI Coding Dictionary](https://www.aicodingdictionary.com/?term=spec), where a spec is work over several sessions
 made of [tickets](https://www.aicodingdictionary.com/?term=ticket) that each fit one session. In a chain each spec
-has its own description, branch, landing and ticking, and only the conversation that made the chain knows what the
-whole is for: each analysis sees its own description and the code the specs before it landed, not the goal, the
+has its own description, branch, merge and ticking, and only the conversation that made the chain knows what the
+whole is for: each analysis sees its own description and the code the specs before it merged, not the goal, the
 decisions taken for all of them, or what the earlier analyses found. Nothing checks that the whole works.
 
 The idea: one spec whose description holds the goal, the decisions and the criteria for the whole, and a section
 for each part. The runner analyses and implements the sections in turn on the spec's one branch, each analysis
 reading the whole description and what the sections before it found and built, so every session stays the size it
-is today. One landing at the end, and the criteria for the whole ticked with it.
+is today. One merge at the end, and the criteria for the whole ticked with it.
 
-|                                      | A chain of specs today  | One spec in sections         |
-|--------------------------------------|-------------------------|------------------------------|
-| Description                          | One per spec            | One, with a section per part |
-| Analyze and implement                | Per spec                | Per section, in turn         |
-| Branch                               | One per spec            | One for the spec             |
-| Landing, with the test suite on main | One per spec            | One at the end               |
-| Order                                | Depends on, set by hand | The order of the sections    |
+|                                    | A chain of specs today  | One spec in sections         |
+| ---------------------------------- | ----------------------- | ---------------------------- |
+| Description                        | One per spec            | One, with a section per part |
+| Analyze and implement              | Per spec                | Per section, in turn         |
+| Branch                             | One per spec            | One for the spec             |
+| Merge, with the test suite on main | One per spec            | One at the end               |
+| Order                              | Depends on, set by hand | The order of the sections    |
 
-What it would cost: conflicts with main gather until the one landing, and a section that fails leaves the ones
+What it would cost: conflicts with main gather until the one merge, and a section that fails leaves the ones
 before it on the branch with nothing in use, which the board would have to show plainly. The analysis files already
 hold several rounds (`## Round N`), which a section each could use.
 
@@ -494,7 +494,7 @@ repositories:
 
 1. **The Skjera specs as they ran**, replayed as they are.
 2. **The same specs as sections of one spec**, with a shared description, each replayed on what the one before it
-   built rather than on the code from before it landed.
+   built rather than on the code from before it merged.
 
 Then compare the analyses' cost, the judge's score, the original tests and how full each session's context got
 (idea 15). The second round needs a chain mode in `scripts/replay_specs`, where each spec starts from the result of
@@ -506,7 +506,7 @@ Where it stands (2026-10-31): parked until a feature is split into several specs
 - **Time is no reason to build it.** In the two chains measured from their commits, most of the waiting was the
   next spec waiting for the one before it to have its criteria ticked: 1 h 28 min of 6 h 33 min for Aide 572–576,
   41 min of 2 h 36 min for Skjera 22–25. Clearing "Acceptance ticking required" removes that wait today. What
-  sections would save beyond it is the landings in between, about half an hour in Aide and next to nothing in
+  sections would save beyond it is the merges in between, about half an hour in Aide and next to nothing in
   Skjera, against parts that could have run side by side having to run in turn.
 - **Better results are the one possible gain left, and are unmeasured.** That is what the replay above would show.
 - **Skjera 19–25 are the wrong specs for it.** They were separate items from an outstanding list, given Depends on
@@ -515,7 +515,7 @@ Where it stands (2026-10-31): parked until a feature is split into several specs
 - **The next try writes the shared description first:** when a feature is next split into specs, its goal and
   decisions are written before the specs run, rather than reconstructed afterwards.
 
-Specs in a group already share one branch and land once (`dashboard/docs/landing.md`). What is left of the idea
+Specs in a group already share one branch and merge once (`dashboard/docs/landing.md`). What is left of the idea
 is the shared description and the sections that read what the sections before them found.
 
 ### 25. A plain way to run agents Aide has no support of its own for
@@ -558,7 +558,7 @@ only when someone has to act or can use the result.
 In Aide every spec starts on the board, and the board is where a person looks to see how a run went. The idea: a
 spec could also start from where the work is already being discussed, such as a GitHub issue or a Slack thread, and
 the run would answer there when it needs a person, when the spec is held back for its criteria to be ticked, and
-when it has landed.
+when it has merged.
 
 Open questions:
 
@@ -599,7 +599,7 @@ Open questions:
 
 ### 29. A defect the review finds leaves a check behind
 
-From two posts by @poteto: one (2026-11-01) on landing about 1,150 PRs in four days, where each defect the review
+From two posts by @poteto: one (2026-11-01) on merging about 1,150 PRs in four days, where each defect the review
 bot found became a lint rule, and one (2026-11-02) saying that adversarial reviews are mostly a waste of tokens next
 to checks that run.
 
@@ -622,7 +622,7 @@ From Anthropic's [Claude Managed Agents](https://platform.claude.com/docs/en/man
 that runs agent sessions and their tools in managed execution environments.
 
 The idea: offer Managed Agents as another way to run a Claude step. The board would still own the spec, the queue,
-acceptance checks and landing. It could reduce the work of keeping Claude processes and execution environments
+acceptance checks and merging. It could reduce the work of keeping Claude processes and execution environments
 running on the serving host, and let long-running steps continue independently of that host.
 
 This is an option to investigate, not a decision to replace Claude Code. Its value depends on whether it reduces
@@ -632,7 +632,7 @@ Open questions:
 
 - Whether the existing skills, repository rules and review turns can run with the same behaviour.
 - How repositories, dependencies, credentials and network access reach the environment, and how changes return
-  for testing and landing.
+  for testing and merging.
 - Whether tests that need local services can run there, or must still run on Aide's host.
 - Whether events report enough to show progress, costs, tokens, stop reasons and usage limits accurately.
 - How stopping, resuming and retrying sessions fits the queue without repeating work.

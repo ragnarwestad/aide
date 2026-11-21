@@ -94,7 +94,7 @@ pnpm test -- --run <test-file>
 **Automated checks that have to pass before REFACTOR**
 
 The project's own type check and lint, and its tests as its rules say
-(Land verifies the merged result in a board-backed session, and the runner
+(Merge verifies the merged result in a board-backed session, and the runner
 verifies a spec's /aide-implement run). In a board-backed session,
 run only the test files covering the change, plus the relevant type and lint checks:
 
