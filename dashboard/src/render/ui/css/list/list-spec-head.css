@@ -218,5 +218,9 @@ table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.g
 @media (max-width: 40rem) {
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell { width: 0; }
   table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .spec-name > .label { padding-left: 6px; }
+  /* The line under the name starts where the folder is drawn, as it does
+     on a wider screen: the label's inset, and the 2.5px the drawing starts
+     inside its view box. */
+  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead .spec-title { padding-left: calc(6px + 2.5px); }
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: var(--sp-3); }
 }
