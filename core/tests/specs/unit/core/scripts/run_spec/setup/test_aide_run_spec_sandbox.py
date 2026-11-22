@@ -59,7 +59,7 @@ def test_every_path_is_written_from_home_or_from_the_root_never_as_a_single_slas
     settings = _settings(out["argv"])
     for path in settings["sandbox"]["filesystem"]["denyWrite"]:
         assert path.startswith(("~/", "//")), path
-    for rule in settings["permissions"]["deny"]:
+    for rule in (r for r in settings["permissions"]["deny"] if "(" in r):
         assert rule.split("(", 1)[1].startswith(("~/", "//")), rule
 
 
@@ -147,6 +147,16 @@ def test_the_review_turn_runs_in_the_sandbox_too(runner, workspace, fake_claude)
         assert '"autoAllowBashIfSandboxed":true' in call, call
 
 
+def test_a_claude_step_neither_takes_nor_sends_messages_from_other_sessions(runner, workspace):
+    """A step does what its spec says: no other Claude session on the
+    machine may talk to it while it runs, and it may not talk to them."""
+    rc, out, _ = run(runner, workspace, dry_run=True)
+    assert rc == 0, out
+    settings = _settings(out["argv"])
+    assert settings["crossSessionInbound"] == "refuse"
+    assert {"SendMessage", "ListAgents"} <= set(settings["permissions"]["deny"])
+
+
 def test_codex_gets_no_claude_settings(runner, workspace, fake_codex):
     codex = fake_codex(emits(CODEX_STREAM_OK))
     run(runner, workspace, tool="codex", codex=codex)
@@ -193,7 +203,8 @@ def test_a_schedule_entry_may_run_claude_without_the_sandbox(runner, workspace, 
     rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED), no_sandbox=True)
     assert rc == 0, out
     call = fake_claude.calls.read_text()
-    assert "--settings" not in call.split()
+    assert '"sandbox":' not in call
+    assert '"crossSessionInbound":"refuse"' in call
     assert _note(workspace_root) not in call
 
 

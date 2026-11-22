@@ -9,3 +9,14 @@ test("an OpenCode repair runs on a server of its own, which sees its provider's 
   const job = { project: "aide", model: {} } as unknown as Job;
   expect(repairModel(defaults, job, "fix it")?.argv).toContain("--standalone");
 });
+
+test("a Claude repair neither takes nor sends messages from the user's other sessions", () => {
+  const defaults = {
+    model: { implement: "op" }, modelChoices: { op: { model: "claude-opus-5-5", tool: "claude" } },
+  } as unknown as QueueDefaults;
+  const job = { project: "aide", model: {} } as unknown as Job;
+  const argv = repairModel(defaults, job, "fix it")!.argv;
+  const settings = JSON.parse(argv[argv.indexOf("--settings") + 1]!);
+  expect(settings.crossSessionInbound).toBe("refuse");
+  expect(settings.permissions.deny).toEqual(["SendMessage", "ListAgents"]);
+});

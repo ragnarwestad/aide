@@ -150,7 +150,7 @@ invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id
     claude|fake-claude)
       invocation_argv=("$invocation_bin" -p --output-format stream-json --verbose
         --permission-mode "$invocation_permission")
-      [ "$sandbox" = "no" ] || invocation_argv+=(--settings "$(sandbox_settings_json)")
+      invocation_argv+=(--settings "$(step_settings_json)")
       [ -n "$invocation_model" ] && invocation_argv+=(--model "$invocation_model")
       [ -n "$invocation_effort" ] && invocation_argv+=(--effort "$invocation_effort")
       [ -n "${autocompact:-}" ] && invocation_argv+=(--autocompact "$autocompact")

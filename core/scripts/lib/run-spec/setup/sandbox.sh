@@ -183,6 +183,20 @@ sandbox_settings_json() {
   }'
 }
 
+# Claude's `--settings` for every step, the sandbox or not. A step
+# neither takes messages from the user's other Claude sessions on this
+# machine nor lists or messages them: it does what its spec says, with no
+# input from outside while it runs. Without `refuse`, a session that skips
+# permission prompts reaches a step that skips them too with nobody asked.
+# Denying `SendMessage` also takes away messaging a step's own subagents,
+# which no step uses (Claude Code 2.1.330).
+step_settings_json() {
+  local base='{}'
+  [ "$sandbox" = "no" ] || base="$(sandbox_settings_json)"
+  jq -c '. + {crossSessionInbound: "refuse"}
+         | .permissions.deny = ((.permissions.deny // []) + ["SendMessage", "ListAgents"])' <<< "$base"
+}
+
 # A worktree's `.git` file, and its git directory's `commondir` and
 # `gitdir`, say where git finds its settings and hooks. A step that
 # rewrote them could point the runner's own git, outside the sandbox, at
