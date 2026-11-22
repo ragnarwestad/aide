@@ -223,6 +223,19 @@ describe("a step's own log", () => {
   });
 });
 
+describe("a Merge held back behind another", () => {
+  test("shows the step it had started as waiting, not running, until it goes on", () => {
+    const base = join(dir, `j${n++}.land`);
+    writeFileSync(`${base}.run.log`, "aide-run-spec 15:20:09 +0s --- Step 1 of 4: Merge branch — started\n");
+    const held = job({
+      specFolder: "land", steps: ["land"], branch: "fix/x", state: "queued", errorReason: "held-back",
+      streamFile: `${base}.stream.jsonl`,
+    });
+    expect(jobStepLines(held, "en").map((s) => s.state)).toEqual([undefined, undefined, undefined, undefined]);
+    expect(jobStepLines({ ...held, state: "running", errorReason: undefined }, "en")[0]!.state).toBe("running");
+  });
+});
+
 describe("deploySteps", () => {
   const deployJob = (file: string, extra: Partial<Job> = {}) =>
     job({ specFolder: "deploy", steps: ["deploy"], streamFile: file, stepStartedAt: "2026-10-03T10:00:00Z", ...extra });

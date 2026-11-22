@@ -110,12 +110,15 @@ export function stepLinesOf(marks: StepMark[], logs: LogPart[], plan: PlannedSte
   ];
 }
 
-/** A job's steps as its row on the Running page lists them. */
+/** A job's steps as its row on the Running page lists them. A job held
+ *  back waits, so the step its log had started is waiting again. */
 function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenStep[] {
   const { marks, logs } = jobMarks(job, lang);
   // A done job whose merge into main is still landing goes on.
   const going = writing(job);
-  return stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), going);
+  const steps = stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), going);
+  if (job.errorReason !== "held-back" || !inFlight(job)) return steps;
+  return steps.map((step) => step.state === "running" ? { ...step, state: undefined, since: undefined } : step);
 }
 
 /** A Close's or Reopen's steps: every step its skill plans. */
@@ -126,9 +129,7 @@ export function closeOrReopenSteps(job: Job, step: string, lang: Language): Clos
 /** A deploy's five steps, in the reader's language. The process that starts
  *  after the restart marks its two in the same log, so they read done there. */
 export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
-  const steps = jobSteps(job, deployPlan(lang), lang);
-  if (job.errorReason !== "held-back" || !inFlight(job)) return steps;
-  return steps.map((step) => step.state === "running" ? { ...step, state: undefined, since: undefined } : step);
+  return jobSteps(job, deployPlan(lang), lang);
 }
 
 /** Every declared schedule step waits until the run marks it. */
