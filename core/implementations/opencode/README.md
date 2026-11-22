@@ -14,13 +14,19 @@ deliberately does not.
 
 ## What is installed
 
-| Piece               | Where                          |
-|---------------------|--------------------------------|
-| Global instructions | `~/.config/opencode/AGENTS.md` |
-| Shared CLI scripts  | `~/.local/bin/`                |
+| Piece                   | Where                                                                  |
+|-------------------------|------------------------------------------------------------------------|
+| Global instructions     | `~/.config/opencode/AGENTS.md`, as a marked block beside your own text |
+| A project's `CLAUDE.md` | `"CLAUDE.md"` in `instructions` in `~/.config/opencode/opencode.json`  |
+| Shared CLI scripts      | `~/.local/bin/`                                                        |
 
-That is the whole of it. Run `core/implementations/opencode/install.sh` to put
-it there, and `uninstall.sh` to take the instruction file away again.
+OpenCode reads only a project's `AGENTS.md` by itself. With `"CLAUDE.md"` in
+`instructions` it reads a project's `CLAUDE.md` too, beside `AGENTS.md` where
+the project has both. The installer adds the entry with `jq` and keeps the rest
+of the file; a config with comments (`opencode.jsonc`) is left alone.
+
+Run `core/implementations/opencode/install.sh` to put these there, and
+`uninstall.sh` to take aide's part away again.
 
 ## What is not installed, and why
 

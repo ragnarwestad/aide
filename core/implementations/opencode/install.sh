@@ -7,6 +7,7 @@ set -e  # Exit on error
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
+source "$SCRIPT_DIR/_claude-md.sh"
 install_steps_begin opencode
 
 # 2. Install global opencode instructions (AGENTS.md)
@@ -14,6 +15,7 @@ echo "2️⃣  Installing global OpenCode instructions..."
 
 OPENCODE_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 install_instructions "$OPENCODE_CONFIG/AGENTS.md"
+install_opencode_claude_md "$OPENCODE_CONFIG"
 
 echo ""
 

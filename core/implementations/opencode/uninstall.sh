@@ -6,6 +6,7 @@
 set -e  # Exit on error
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../scripts/_install-instructions.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_claude-md.sh"
 
 echo "🗑️  OpenCode Uninstall"
 echo "======================"
@@ -15,6 +16,7 @@ OPENCODE_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 
 echo "⚠️  This will remove:"
 echo "   - aide's rules from $OPENCODE_CONFIG/AGENTS.md (your own text there is kept)"
+echo "   - \"CLAUDE.md\" from \"instructions\" in $OPENCODE_CONFIG/opencode.json, if the installer added it"
 echo ""
 echo "   It leaves the shared scripts in ~/.local/bin and the skills in"
 echo "   ~/.agents/skills alone: other tools and the cron job depend on"
@@ -31,6 +33,7 @@ fi
 echo ""
 
 uninstall_instructions "$OPENCODE_CONFIG/AGENTS.md"
+uninstall_opencode_claude_md "$OPENCODE_CONFIG"
 
 echo ""
 echo "✅ OpenCode uninstall complete"

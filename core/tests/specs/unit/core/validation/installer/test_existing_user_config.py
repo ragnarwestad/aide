@@ -57,3 +57,14 @@ def test_a_codex_install_keeps_the_users_hooks(workspace_root, tmp_path):
     commands = [h["command"] for groups in json.loads(hooks.read_text())["hooks"].values()
                 for g in groups for h in g["hooks"]]
     assert "say done" in commands
+
+
+@pytest.mark.validation
+def test_an_opencode_install_keeps_the_users_config(workspace_root, tmp_path):
+    config = tmp_path / ".config" / "opencode" / "opencode.json"
+    config.parent.mkdir(parents=True)
+    config.write_text(json.dumps({"model": "my/model"}))
+    _install(workspace_root, tmp_path, "opencode")
+    data = json.loads(config.read_text())
+    assert data["model"] == "my/model"
+    assert "CLAUDE.md" in data["instructions"]

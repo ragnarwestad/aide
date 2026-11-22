@@ -102,7 +102,8 @@ All tools have a project instruction file that is read automatically:
 Foundry. A project that has a `CLAUDE.md` is read as before.
 **Codex falls back to `CLAUDE.md`**: Aide's installer sets
 `project_doc_fallback_filenames = ["CLAUDE.md"]` (verified 0.171.0). OpenCode 2
-reads only `AGENTS.md`. In a project the user owns, `AGENTS.md` holds the
+reads only `AGENTS.md`; Aide adds `"CLAUDE.md"` to `instructions` in its global
+config, which reads it beside `AGENTS.md` too (verified 2.3.0). In a project the user owns, `AGENTS.md` holds the
 instructions and `CLAUDE.md` holds `@AGENTS.md`; Aide writes neither file.
 
 ---

@@ -190,6 +190,9 @@ have there:
   is left as it is.
 - Skills and rules are installed by name, so yours with other names stay. A skill
   or rule with the same name as one of aide's is replaced.
+- OpenCode's `~/.config/opencode/opencode.json` gets `"CLAUDE.md"` added to its
+  `instructions`; the rest of the file is kept, and an uninstall takes out only
+  that entry. A config with comments (`opencode.jsonc`) is left alone.
 - Folders of your own under `~/.claude/`, such as `commands/`, are not touched.
 
 ### Install everything at once
