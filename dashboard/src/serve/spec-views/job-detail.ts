@@ -2,7 +2,6 @@
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specPhaseFile } from "../../project/discover";
 import type { JobDetailView, JobStepResultView } from "../../render";
 import { withModelId } from "../../render/ui/components/model-label.ts";
 import type { Job } from "../../queue/queue.ts";
@@ -28,7 +27,7 @@ export function aiLabel(tool: string | undefined, choice: string | undefined, pr
 }
 
 /** The pictures a finished step kept, by file name; none for a step without the folder or a PNG in it. */
-function stepScreenshots(jobId: string, step: string | undefined, streamFile: string | undefined): JobStepResultView["screenshots"] {
+export function stepScreenshots(jobId: string, step: string | undefined, streamFile: string | undefined): JobStepResultView["screenshots"] {
   if (!step || !streamFile) return undefined;
   let names: string[];
   try {
@@ -50,7 +49,6 @@ export async function jobDetailView(
   ctx: SpecViewsContext,
   job: Job,
 ): Promise<JobDetailView> {
-  const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
   const defaults = forProject(ctx.queue.defaults, job.project);
   // Which CLI this page is about. A running step's tool is
   // not recorded anywhere yet — the result file that would carry it is
@@ -63,13 +61,6 @@ export async function jobDetailView(
     ? defaults.modelChoices?.[resolveStepModel(job, step ?? "", defaults.model) ?? ""]?.tool
     : job.results[job.results.length - 1]?.tool;
   const tool = named ?? "claude";
-  // What this job's step WROTE. The step running now, or
-  // failing that the last one that ran — read off disk, uncached and
-  // ungitted: this page says what the phase produced, and which
-  // VERSION of it is the spec page's question.
-  const shownStep = step ?? job.steps[job.steps.length - 1];
-  const dir = ctx.specDir(job.project, job.specFolder);
-  const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
   // The running step is built from the job's live transcript, with no final message.
   // The Logs page reads each transcript whole: its Log is the complete step.
   const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
@@ -77,17 +68,8 @@ export async function jobDetailView(
     running && step && job.streamFile
       ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, defaults) : undefined, defaults.providers) })
       : undefined;
-  const currentJob = (ctx.queue.list?.() ?? [job]).find((candidate) =>
-    candidate.project === job.project && candidate.specFolder === job.specFolder
-  );
-  const executionGroup = job.executionGroupId && job.steps.includes("archive")
-    ? ctx.queue.executionGroups?.get(job.executionGroupId)
-    : undefined;
   return {
     ...(await ctx.jobRow(job)),
-    tool,
-    title: target?.title,
-    ...(executionGroup ? { executionGroup: { id: executionGroup.id, name: executionGroup.displayName ?? executionGroup.name, members: [...(job.groupMembers ?? executionGroup.members)] } } : {}),
     finishedAt: job.finishedAt,
     // Each finished step's OWN transcript, read from its
     // own `streamFile` rather than the job's last one — a three-step
@@ -124,7 +106,6 @@ export async function jobDetailView(
         };
       }),
     ),
-    phase: phase ?? undefined,
     // The step running RIGHT NOW, when one is: it has no `StepResult`
     // yet, so it cannot ride along in `results` above, and its
     // transcript is the job's own live pointer.
@@ -138,15 +119,6 @@ export async function jobDetailView(
             aiModel: aiLabel(tool, resolveStepModel(job, step, defaults.model ?? {}),
               job.provider?.[step] ? (defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
           }
-        : undefined,
-    archiveHeldBack: target?.archiveHeldBack?.reason,
-    archiveAction:
-      currentJob?.id === job.id &&
-      target?.done?.includes("implement") &&
-      !target.done.includes("archive") &&
-      !target.archiveHeldBack &&
-      !target.acceptanceOpen
-        ? "/api/queue"
         : undefined,
   };
 }

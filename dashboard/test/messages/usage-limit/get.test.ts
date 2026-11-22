@@ -6,7 +6,6 @@
 import { describe, expect, test } from "bun:test";
 import { getSpecMessage } from "../../../src/render/ui/job-state/index.ts";
 import { getUsageLimitMessage as message } from "../../../src/messages/usage-limit/get.ts";
-import { renderJobFollowParts } from "../../../src/render/pages/job-page/index.ts";
 import type { QueueRowView } from "../../../src/render/index.ts";
 import { row } from "../../render/pages/fixtures.ts";
 
@@ -142,15 +141,6 @@ describe("where the sentence is drawn", () => {
     expect(notice?.text).toContain(getUsageLimitMessage(heldView("runner.usageLimitHeld", { provider: "Claude", at }), "en", Date.now())!);
   });
 
-  test("the job page's banner shows the same sentence, for a stopped job and for a held one", () => {
-    const stopped = stoppedView();
-    const held = heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" });
-    for (const view of [stopped, held]) {
-      const html = renderJobFollowParts({ ...view, results: view.results ?? [] } as never, { now: NOW, lang: "en" });
-      const unescaped = html.replace(/&#39;|&#x27;/g, "'");
-      expect(unescaped).toContain(getUsageLimitMessage(view, "en", NOW)!.replace(/^./, (c) => c.toUpperCase()));
-    }
-  });
 });
 
 describe("a step that ran on a provider of its own", () => {

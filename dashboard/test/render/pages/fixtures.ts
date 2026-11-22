@@ -4,7 +4,6 @@
 import {
   navEntries,
   renderProjectsPage,
-  type JobDetailView,
   type ProjectView,
   type QueueRowView,
 } from "../../../src/render";
@@ -88,20 +87,6 @@ export const generatedAt = "2026-08-16T12:00:00+02:00";
 export const site: string[] = [renderProjectsPage([healthy, broken], generatedAt, navEntries(), {})];
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
-
-export const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
-  id: "job-1234",
-  project: "aide-dashboard",
-  specFolder: "02-job-detail-view",
-  steps: ["analyze"],
-  stepIndex: 0,
-  state: "running",
-  spentUsd: 0,
-  timeoutSec: 1200,
-  createdAt: "2026-08-16T10:00:00Z",
-  results: [],
-  ...extra,
-});
 
 export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "job-1234",

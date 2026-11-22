@@ -16,7 +16,7 @@ import { phaseKey } from "./keys.ts";
 import { LIST_COLUMNS } from "../row-shared.ts";
 import type { LogPart } from "../../../../queue/parse-stream";
 import { logAndErrorDisplay, stepPanel } from "../../job-page/step-tabs.ts";
-import type { PhaseAttemptIdentity } from "../../job-page/types.ts";
+import type { JobStepResultView, PhaseAttemptIdentity } from "../../job-page/types.ts";
 import { phaseExplanations } from "./explanations.ts";
 
 export { phaseKey, parsePhaseKeys } from "./keys.ts";
@@ -48,6 +48,8 @@ export interface PhaseMessages {
   aiModel?: string;
   /** The step's key on the Logs tab (`&step=`), when it has one there. */
   step?: string;
+  /** The pictures a finished step took of the pages it changed. */
+  screenshots?: JobStepResultView["screenshots"];
   running: boolean;
 }
 

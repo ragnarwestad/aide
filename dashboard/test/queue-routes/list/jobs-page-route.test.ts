@@ -73,12 +73,6 @@ const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="(
 const noticeOf = (g: string): string => g.match(/<tr class="specnotice"[^>]*>[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
-  test("keeps a completed cleanup in job history (AC-2)", async () => {
-    const { base } = board([job({ id: "clean", specFolder: "cleanup", steps: ["cleanup"], state: "done", finishedAt: "2026-10-08T10:01:00Z" })]);
-    const response = await fetch(`${base}/jobs/clean`);
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("Cleanup");
-  });
   test("the page holds its rows in #jobrows, the rows answer holds no page around them", async () => {
     const { base } = board([job({})]);
     const page = await fetch(`${base}/`);
@@ -164,7 +158,6 @@ describe("which kind of row a job gets", () => {
       for (const [id, jobId] of [["spec-aide/schedule-report@report1", "report1"], ["spec-aide/schedule-nightly@sched1", "sched1"]]) {
         const g = group(html, id);
         expect(g).not.toBe("");
-        expect(g).not.toContain(`/jobs/${jobId}?tab=steps`);
         expect(g).not.toContain("tab=schedule");
         expect(g).not.toContain(`/api/queue/${jobId}/cancel`);
         expect(g).not.toContain("data-ask");
@@ -201,11 +194,10 @@ describe("which kind of row a job gets", () => {
     const keys = ["aide/82-no-job:close@cl", "aide/90-finished:reopen@re", "aide/deploy:deploy@dep"];
     for (const query of ["", `open=${keys.join(",")}`]) {
       const html = await rowsOf(base, query);
-      for (const [key, id] of [[keys[0], "cl"], [keys[1], "re"], [keys[2], "dep"]]) {
+      for (const key of keys) {
         const g = group(html, `spec-${key}`);
         expect(g).not.toBe("");
         expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
-        expect(g).not.toContain(`/jobs/${id}`);
       }
     }
   });
@@ -241,7 +233,6 @@ describe("which kind of row a job gets", () => {
     const { base } = board([job({ id: "here" })]);
     const on = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     expect(on).toContain('data-folder="81-queue-and-runner"');
-    expect(on).not.toContain('href="/jobs/here?tab=steps"');
   });
 });
 

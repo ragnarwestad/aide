@@ -8,7 +8,7 @@ import { t } from "../../../../src/i18n";
 import { GERUND_NB } from "../../../../src/format/gerund.ts";
 import { newSpecStates, projectStates, scheduleStates, settingsStates, type PageState } from "./fixtures.ts";
 import { jobsStates, scheduleRunStates, specsListStates, testServerStates } from "./jobs-fixtures.ts";
-import { jobPageStates, shellStates, specPageStates } from "./spec-fixtures.ts";
+import { shellStates, specPageStates } from "./spec-fixtures.ts";
 import { assertInNorwegian, describeFailure, wordsNotInCatalogue } from "./vocabulary.ts";
 
 const check = (state: PageState) => () => assertInNorwegian(state.page, state.html, state.data, state.read);
@@ -99,10 +99,6 @@ describe("Test servers in Norwegian", () => {
 
 describe("a Schedule entry's runs in Norwegian", () => {
   for (const state of scheduleRunStates()) test(`${state.page} (AC-2)`, check(state));
-});
-
-describe("the job page in Norwegian", () => {
-  for (const state of jobPageStates()) test(`${state.page} (AC-2)`, check(state));
 });
 
 describe("the spec page in Norwegian", () => {

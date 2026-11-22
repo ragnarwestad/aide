@@ -409,7 +409,7 @@ its place on a hidden project and puts it back at once, without asking.
 - A hidden project is left out of the picker at the top of a project's page (its own page included), the project
   choice on the New spec form and the Project filter on the Jobs and Specs pages. The Projects list shows it in a
   folded **Hidden** group under the other projects, closed until opened.
-- Its specs, jobs and history stay where they are: its own page, its spec pages and its job pages still open, and its
+- Its specs, jobs and history stay where they are: its own page and its spec pages still open, and its
   rows stay on Jobs and Specs.
 - No new job is queued for it, of any kind: a Run, a Deploy, a New spec, a schedule entry's fire and a step a finished
   job would queue next are each refused with a sentence saying the project is hidden. A job already queued or running

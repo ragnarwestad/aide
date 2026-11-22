@@ -240,7 +240,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
 
   interface Seed { id: string; state: string; at: string; report?: string }
 
-  function setup(seeds: Seed[]): { base: string; outputRoot: string } {
+  function setup(seeds: Seed[], creates: { id: string; state: string; specFolder: string }[] = []): { base: string; outputRoot: string } {
     const scratch = mkdtempSync(join(tmpdir(), "aide-schedule-report-"));
     tmp.push(scratch);
     const outputRoot = join(scratch, "out");
@@ -251,7 +251,10 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
         seeds.map((s) => ({
           id: s.id, project: "aide", specFolder: KEY, steps: ["schedule"], stepIndex: 0, state: s.state,
           timeoutSec: {}, permissionMode: {}, model: {}, createdAt: s.at, startedAt: s.at,
-        })),
+        })).concat(creates.map((c) => ({
+          id: c.id, project: "aide", specFolder: c.specFolder, steps: ["create"], stepIndex: 0, state: c.state,
+          timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-01T03:01:00Z", startedAt: "2026-09-01T03:01:00Z",
+        }))),
       ),
     );
     for (const s of seeds) {
@@ -361,22 +364,27 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
     expect(html).not.toContain("THIRD-TEXT");
   });
 
-  test("a run with a record lists its proposals under the report, and only that run does", async () => {
+  test("a run with a record lists its proposals under the report, each linked to the spec it became, and only that run does", async () => {
     const { base, outputRoot } = setup([
       { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
       { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>b</p>" },
+    ], [
+      { id: "b1", state: "done", specFolder: "8-made-one" },
+      { id: "b2", state: "queued", specFolder: "pending-create" },
     ]);
     writeProposalsRecord(outputRoot, "aide", KEY, "r1", {
       at: "2026-09-01T03:01:00Z",
       proposals: [
         { title: "Made one", result: "created", jobId: "b1" },
+        { title: "Still being made", result: "created", jobId: "b2" },
         { title: "Known", result: "skipped", why: { code: "exists", folder: "7-known", kind: "closed" } },
       ],
     });
     const withRecord = await get(base, `${PAGE}?run=r1`);
     expect(withRecord).toContain('id="proposals"');
-    expect(withRecord).toContain("Made one");
-    expect(withRecord).toContain('href="/jobs/b1"');
+    expect(withRecord).toContain('href="/specs/aide/8-made-one"');
+    expect(withRecord).toContain("Still being made");
+    expect(withRecord).not.toContain("pending-create");
     expect(withRecord).toContain('href="/specs/aide/7-known"');
     expect(await get(base, `${PAGE}?run=r2`)).not.toContain('id="proposals"');
   });

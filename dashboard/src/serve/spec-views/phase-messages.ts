@@ -17,7 +17,7 @@ import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { readRunLog } from "./job-detail.ts";
 import { stepLinesOf } from "./job-marks.ts";
 import { phaseAttempts, resultKey, workRoundJobs } from "./work-round.ts";
-import { aiLabel } from "./job-detail.ts";
+import { aiLabel, stepScreenshots } from "./job-detail.ts";
 import { withModelId } from "../../render/ui/components/model-label.ts";
 import { forProject } from "../../queue/providers/project-defaults.ts";
 
@@ -72,6 +72,7 @@ export function phaseMessagesFor(
       step: running ? "live" : resultKey(jobs, job, resultIndex),
       identity,
       running,
+      screenshots: running ? undefined : stepScreenshots(job.id, step, result?.streamFile),
     };
   }
   return undefined;

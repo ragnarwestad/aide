@@ -8,7 +8,6 @@
 // when the server says something moved, and holds perfectly still
 // otherwise.
 
-import { createFollow } from "./follow";
 import { swapRows } from "./row-swap/index.ts";
 import { press } from "./state.ts";
 import { browserMarkIo, refreshDeployMark } from "./deploy/mark.ts";
@@ -22,30 +21,6 @@ let backoffMs = RECONNECT_BASE_MS;
 /** Whether this page has been hidden since it was drawn — what tells a
  *  return to the foreground from the first paint. */
 let wasHidden = false;
-/** The phases the open stream was asked with. */
-let streamPhases = "";
-
-// A job page and a spec's Steps tab follow their job in place: what the feed
-// tells them, they ask their own address for. A page without the follow
-// marker asks nothing.
-const follow = createFollow({
-  doc: document,
-  win: typeof window === "undefined" ? undefined : window,
-  fetch: (url) => fetch(url, { headers: { accept: "text/html" } }),
-  now: () => Date.now(),
-  setTimeout: (fn, ms) => setTimeout(fn, ms),
-  location,
-  replaceState: (url) => history.replaceState(null, "", url),
-  busy: () => press.inFlight > 0,
-  // The server tells a tab about a growing log only when the stream's own
-  // query named that phase, and an answer's marker can name them later than
-  // the page did.
-  phasesChanged: () => {
-    if (follow.phases() === streamPhases) return;
-    disconnect();
-    connect();
-  },
-});
 
 function clearReconnectTimer(): void {
   if (reconnectTimer) clearTimeout(reconnectTimer);
@@ -79,14 +54,12 @@ async function refreshRows(): Promise<void> {
 export function resumeRowUpdates(): void {
   if (refreshAgain && press.inFlight === 0) {
     void refreshRows();
-    follow.request();
   }
 }
 
 export function onChanged(): void {
   document.dispatchEvent(new Event("aide:queue-changed"));
   void refreshRows();
-  if (press.inFlight === 0) follow.request();
 }
 
 // Queue counts update independently of row redraws and presses in flight.
@@ -116,13 +89,10 @@ function announceCounts(e: Event): void {
 }
 
 // The page's own query goes with it, so the stream is asked with the same
-// filter and state the page was; a followed page adds the phases its marker
-// names.
+// filter and state the page was.
 // `deploy=1` asks for what the board has to deploy now, for the header's mark.
 function streamUrl(): string {
-  streamPhases = follow.phases();
   const params = new URLSearchParams(location.search);
-  if (streamPhases) params.set("phases", streamPhases);
   params.set("deploy", "1");
   params.set("counts", "1");
   return `/api/queue/events?${params}`;
@@ -146,7 +116,6 @@ export function connect(): void {
     void refreshDeployMark(browserMarkIo());
     document.dispatchEvent(new Event("aide:queue-changed"));
     void refreshRows();
-    follow.request();
   });
   source.addEventListener("changed", onChanged);
   source.addEventListener("changed", announceCounts);
@@ -196,7 +165,6 @@ export function onVisibility(): void {
   if (wasHidden && press.inFlight === 0) {
     document.dispatchEvent(new Event("aide:queue-changed"));
     void refreshRows();
-    follow.request();
   }
   wasHidden = false;
   connect();

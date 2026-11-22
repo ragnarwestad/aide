@@ -9,8 +9,6 @@
 // covers them, and an id that names no job is a 404, never a blank page.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
@@ -40,33 +38,14 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
   return body.job.id;
 }
 
-describe("GET /jobs/<id>", () => {
-  // The `## Description` prose left this page for the spec
-  // page, where the whole file is one of four. The title stays — a
-  // reader still has to know which spec the job is about — and the
-  // phase's own file takes the prose's place.
-  test("shows what the job IS: its spec's title and its phase's file", async () => {
-    const { base, dir } = start();
-    writeFileSync(
-      join(dir, "root", "aide", "specs", "81-queue-and-runner", "3-solution.md"),
-      "# Q - Solution\n\n## Steps\n\nSeven files, one route.\n",
-    );
-    const id = await enqueue(base);
-    const res = await fetch(`${base}/jobs/${id}`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/html");
-    const html = await res.text();
-    expect(html).toContain("A running job is a black box");
-    expect(html).toContain("Seven files, one route.");
-    expect(html).toContain("81-queue-and-runner");
-  });
-
-  test("an unknown id is a 404, not an empty page", async () => {
+describe("a job has no page of its own", () => {
+  test("its address, and the two it had before, answer 404", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs/no-such-job`);
-    expect(res.status).toBe(404);
+    const id = await enqueue(base);
+    for (const path of [`/jobs/${id}`, `/queue/${id}`, `/specs/${id}`]) {
+      expect((await fetch(`${base}${path}`, { redirect: "manual" })).status).toBe(404);
+    }
   });
-
 });
 
 describe("GET /api/queue/<id>", () => {
@@ -102,39 +81,4 @@ describe("GET /api/queue/<id>", () => {
 
 describe("the finished steps a job table cannot show", () => {
 
-});
-
-// --- A job already carrying more steps than settings --------------
-//
-// The literal shape one real job was found in: started with two
-// steps, ticked up to four while it ran, and its three
-// per-step tables still naming only the two it was created with. The
-// page reads those tables for whichever step is current, so a job in
-// this state shows a model it is not running on and a limit that is
-// not a number.
-describe("the page resolves a step its job's tables never named", () => {
-  test("the model shown is the live config's, not blank", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base, ["analyze"]);
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === id)!;
-    // Ticked on afterwards: `job.steps` grows, the settings tables do not.
-    job.steps = ["analyze", "implement"];
-    job.stepIndex = 1;
-    job.state = "failed";
-    job.stopReason = "timeout";
-    writeFileSync(mirror, JSON.stringify(jobs));
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}`)).text();
-    // `implement`'s own configured model — not "as configured".
-    expect(html).toContain("opus");
-    // The badge says the state and nothing else; the step's own limit
-    // is no longer written after it. That the limit resolves to the
-    // step's own figure is pinned by
-    // `test/queue-routes/runner/runner-concurrency-and-timeout.test.ts`.
-    expect(html).toContain(">Failed<");
-    expect(html).not.toContain("90 min");
-  });
 });

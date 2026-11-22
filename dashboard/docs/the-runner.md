@@ -506,7 +506,7 @@ that message's subject as its title and the rest as its description.
 
 What `aide-run-spec` prints to stderr is kept per step as `<job id>.<step>.run.log`, beside the transcript
 `<job id>.<step>.stream.jsonl`. `src/queue/runner/run-log-path.ts` names it from the transcript's path and empties it
-before each spawn; the job page reads it (up to 1 MiB) before the transcript and merges the two into the step's Log
+before each spawn; a step's log reads it (up to 1 MiB) before the transcript and merges the two into the step's Log
 (`src/queue/parse-stream/step-log.ts`). A step run before the file existed has a transcript and no run log, and shows
 the transcript alone. An implement in Aide's own repository can leave a folder `<job id>.<step>.screenshots` beside
 them (`run-spec/turn/screenshots.sh`, named from the transcript by `screenshotsDir` in the same TypeScript file); the

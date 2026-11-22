@@ -1,6 +1,5 @@
 // `GET /jobs/<id>/screenshots/<step>/<file>`: a finished step's screenshots,
-// served from the folder the runner keeps beside the step's transcript, and
-// the Log tab's link to each.
+// served from the folder the runner keeps beside the step's transcript.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -81,11 +80,5 @@ describe("GET /jobs/<id>/screenshots/<step>/<file>", () => {
     );
     const { base } = harness.start({ extra: { queueMirrorPath: join(first.dir, "queue.json") } });
     expect(await (await fetch(`${base}/jobs/twice/screenshots/implement/01-jobs-1440.png`)).text()).toBe("new");
-  });
-
-  test("the job page's Log tab links the picture", async () => {
-    const { base, id } = boardWithScreenshots();
-    const html = await (await fetch(`${base}/jobs/${id}?tab=steps&step=0&steptab=log`)).text();
-    expect(html).toContain(`href="/jobs/${id}/screenshots/implement/01-jobs-1440.png"`);
   });
 });

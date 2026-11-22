@@ -1,14 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
-  renderJobDetailPage,
   renderSpecsRows,
   type SpecsPageOptions,
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
 import {
-  NAV,
-  detail,
   row,
   openKeys,
 } from "../../fixtures.ts";
@@ -86,39 +83,5 @@ describe("a long message gets a panel row of its own", () => {
       row({ id: "failed", specFolder: "714-side-model", steps: ["implement"], state: "failed", error }),
     ], [target("714-side-model")]);
     expect(panel(html)).toContain(error);
-  });
-});
-
-// --- The held-back note belongs to the archive row alone -----------
-//
-// Whatever the row's panel says about
-// a job is said here too. There is no job-level Activity
-// transcript to repeat it into — the held-back note lives in the
-// archive row's own Outcome cell (asserted at "the job page's Steps tab
-// says held back where the row does"), and `job.error` lives in the
-// banner on every tab (asserted throughout this file). What is left to
-// check here, once that duplication is gone, is that a job which did
-// NOT run archive never borrows the note.
-describe("the held-back note belongs to the archive row alone", () => {
-  test("a job that did not run archive carries no held-back note at all", () => {
-    const html = renderJobDetailPage(
-      detail({
-        id: "job-implement",
-        state: "done",
-        steps: ["implement"],
-        results: [
-          {
-            step: "implement", ok: true, costUsd: 0.1, costMeasured: true,
-            terminalReason: "completed", at: "2026-08-20T10:01:00Z",
-          },
-        ],
-        archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)",
-      }),
-      "2026-08-20T10:05:00Z",
-      NAV,
-      { tab: "steps" },
-    );
-    expect(html).not.toContain("the Slack webhook");
-    expect(html).toContain("<td>ok</td>");
   });
 });

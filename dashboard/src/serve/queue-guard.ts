@@ -7,8 +7,8 @@
 import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
 import { isScheduleOutputPath } from "../schedule-output-route.ts";
 
-/** `/jobs/<id>` joins the queue set HERE, never as a special case
- *  further down, so `handleRoutes` is what answers it. The retired
+/** A step's screenshots under `/jobs/<id>/` join the queue set HERE,
+ *  never as a special case further down, so `handleRoutes` answers them. The retired
  *  `/queue` paths are in it too, for the redirect they answer with. */
 export const isQueuePath = (path: string) =>
   path === "/" ||

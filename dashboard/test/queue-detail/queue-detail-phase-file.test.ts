@@ -30,43 +30,6 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
   return body.job.id;
 }
 
-// A phase's own page shows what that phase made, and nothing else of
-// the spec.
-describe("a phase job's page shows that phase's file", () => {
-  const SPEC = "81-queue-and-runner";
-
-  const withFiles = (dir: string): void => {
-    const spec = join(dir, "root", "aide", "specs", SPEC);
-    writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\n## Findings\n\nSeven files.\n");
-    writeFileSync(
-      join(spec, "3-solution.md"),
-      "# Q - Solution\n\n## Plan review\n\nOne must-fix.\n\n## Risk analysis\n\nMedium.\n",
-    );
-  };
-
-  // The plan and the review of it are one step's work, so
-  // the analyze job's page is 3-solution.md whole — both sections, and
-  // not the analysis the step wrote on the way there.
-  test("an analyze job shows 3-solution.md, review section and all", async () => {
-    const { base, dir } = start();
-    withFiles(dir);
-    const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/jobs/${id}`)).text();
-    expect(html).toContain("One must-fix.");
-    expect(html).toContain("Medium.");
-    expect(html).not.toContain("Seven files.");
-    expect(html).not.toContain("It shows nothing about what the job IS");
-  });
-
-  test("an implement job shows 4-status.md", async () => {
-    const { base, dir } = start();
-    withFiles(dir);
-    const id = await enqueue(base, ["implement"]);
-    const html = await (await fetch(`${base}/jobs/${id}`)).text();
-    expect(html).toContain("Workflow steps completed");
-  });
-});
-
 // --- the Update button -------------------------------------------------------
 
 describe("a running implement's TDD phase reaches the page", () => {

@@ -5,13 +5,13 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderJobDetailPage, modelsBlock, renderProjectPage, type ProjectView } from "../../../src/render";
+import { modelsBlock, renderProjectPage, type ProjectView } from "../../../src/render";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 import { AWAITING_DRIFT_REFRESH_SECONDS } from "../../../src/render/pages/projects-page/project-page.ts";
 import { page, view } from "./spec-page-fixtures.ts";
-import { detail, NAV } from "./fixtures.ts";
+import { NAV } from "./fixtures.ts";
 
 afterEach(() => setBoardInfo(undefined));
 
@@ -89,18 +89,6 @@ describe("each form the page script posts and loads again", () => {
 
 const marker = (html: string): string | null =>
   parse(html).querySelector("[data-reload-every]")?.getAttribute("data-reload-every") ?? null;
-
-const follows = (html: string): boolean => parse(html).querySelector("[data-follow]") !== null;
-
-describe("the pages that follow their job carry the marker the script reads", () => {
-  test("a job page carries it while its job runs, and not once it is done", () => {
-    const running = { state: "running" as const, runningStep: { step: "analyze", logs: [] } };
-    expect(follows(renderJobDetailPage(detail(running), "2026-08-16T10:00:00Z", NAV))).toBe(true);
-
-    const done = { state: "done" as const };
-    expect(follows(renderJobDetailPage(detail(done), "2026-08-16T10:00:00Z", NAV))).toBe(false);
-  });
-});
 
 describe("each page that reloads itself carries the script timer's marker", () => {
   test("a project's Deploy tab waiting for origin reloads at its own interval", () => {

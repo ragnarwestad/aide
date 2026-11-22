@@ -6,7 +6,6 @@
 //                            and the readiness answer
 //   render/specs-list.ts  / — the spec list
 //   render/new-spec-page/    /new — the form that makes a spec
-//   render/job-page.ts    /jobs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
 //   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page
@@ -116,10 +115,9 @@ export type {
 
 export type { QueueRowView, SideRunView, StepResultView } from "./ui/job-state";
 
-export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
 export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, rowInputs, scheduleStreamKey, streamKey } from "./pages/jobs-page";
 export type { JobsView } from "./pages/jobs-page";
-export type { JobDetailView, JobStepResultView, JobTab, SpecFileView, PhaseAttemptIdentity } from "./pages/job-page";
+export type { JobDetailView, JobStepResultView, SpecFileView, PhaseAttemptIdentity } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs.
 // It shares the job page's tab bar and steps table rather than

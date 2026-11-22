@@ -13,7 +13,6 @@ import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
 import { makeFakeDate, makeFakeEventSource, makeFakeFormData, makeFakeTimers } from "./fixtures-runtime.ts";
 import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 import { buildNavigation, resolveDocumentQuerySelectorAll } from "./fixtures-events.ts";
-import { followFakes } from "./fixtures-follow.ts";
 import { Window } from "happy-dom";
 
 const built = await Bun.build({
@@ -77,7 +76,6 @@ export function harness(
     offRow?: boolean;
     pathname?: string;
     formId?: string;
-    follow?: Record<string, string>;
     /** The Run button as the server drew it: the phases done, its label
      *  and whether it was disabled. */
     run?: { done?: string[]; label?: string; disabled?: boolean };
@@ -350,11 +348,10 @@ export function harness(
    *  on the list is written (`row-refusal/`); its words are the span. */
   const listRefused = { textContent: "" };
   const listRefusedLine = { querySelector: (sel: string) => (sel === "span" ? listRefused : null) };
-  // A page that follows its job has a marker.
-  const followed = followFakes(o.follow);
+  const domWindow = new Window();
   const document = {
-    defaultView: { DOMParser: new Window().DOMParser },
-    createElement: followed.createElement,
+    defaultView: { DOMParser: domWindow.DOMParser },
+    createElement: (tag: string) => domWindow.document.createElement(tag),
     // A row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the
     // per-group diff reaches a group through it — so a fake that
@@ -365,9 +362,7 @@ export function harness(
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
     querySelector: (sel: string) =>
-      sel === "[data-follow]"
-        ? followed.find()
-        : sel.includes("newspecform")
+      sel.includes("newspecform")
         ? createForm
         : // A tail box is on a phase LINE, and the row it
           // belongs to is reached through the form it names — the same
@@ -487,8 +482,6 @@ export function harness(
     submit, submitCreate, click, clickFold, clickHref, foldLink, foldAttrs,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick, tickWith,
-    /** Whether the page still carries its follow marker. */
-    marked: followed.marked,
     sources: sourcesMade, live, visibility, intervals, ticks, timeouts, elapsed, clock,
     projectSelect, chips,
     removeButton, removeSlot, removeDialog, dispatched, dispatchedEvents,

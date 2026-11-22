@@ -28,11 +28,10 @@ export async function specsPages(
     return new Response(null, { status: 302, headers: { location: `/specs${url.search}` } });
   }
 
-  if (path.startsWith("/queue/")) {
-    // One segment is a job, which has its own address; more is a spec.
-    const rest = path.slice("/queue".length);
-    const base = /^\/[A-Za-z0-9-]+$/.test(rest) ? "/jobs" : "/specs";
-    return new Response(null, { status: 302, headers: { location: `${base}${rest}${url.search}` } });
+  // A spec's old address. One segment was a job's, which has no page.
+  const rest = path.startsWith("/queue/") ? path.slice("/queue".length) : "";
+  if (rest && !/^\/[A-Za-z0-9-]+$/.test(rest)) {
+    return new Response(null, { status: 302, headers: { location: `/specs${rest}${url.search}` } });
   }
 
   if (path === "/specs") {

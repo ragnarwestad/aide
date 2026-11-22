@@ -261,7 +261,7 @@ has no position. Blocked waiting work keeps its queue position and shows its rea
 
 On Jobs, the card for an active spec whose job finished shows **Created**, **Analyzed** or **Implemented**.
 If Archive is held back, the card shows **Held back** with the reason below it. **Done** on a spec card means its
-workflow has ended through Archive or Close. The phase lines, job page and schedule report show the job's outcome.
-Why a job stopped is on the row's message line and in the popover beside the job page's chip. `cancelled` is
+workflow has ended through Archive or Close. The phase lines and schedule report show the job's outcome.
+Why a job stopped is on the row's message line. `cancelled` is
 drawn amber like `waiting`, since somebody stopped it by hand. The words live
 in `src/render/ui/job-state/` and are described on [The specs list and the spec page](the-specs-list.md#the-state-column).

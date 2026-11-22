@@ -172,7 +172,13 @@ export async function schedulePages(
       // An entry that has never run says so here, where the list would be.
       reportPanel: shown
         ? renderReportPanel({ lang: langResult.lang, run }) +
-          renderProposalsPanel({ lang: langResult.lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id) })
+          renderProposalsPanel({
+            lang: langResult.lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id),
+            specOf: (jobId) => {
+              const made = ctx.queue.get(jobId);
+              return made?.state === "done" ? made.specFolder : undefined;
+            },
+          })
         : jobs.length === 0
           ? renderReportPanel({ lang: langResult.lang })
           : "",

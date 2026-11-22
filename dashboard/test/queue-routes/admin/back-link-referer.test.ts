@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -7,21 +7,20 @@ afterEach(() => {
   harness.cleanup();
 });
 
-describe("the job page's own Back link, read off the Referer header", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json" };
-
-  const jobId = async (base: string): Promise<string> => {
-    const made = await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) });
-    const { job } = (await made.json()) as { job: { id: string } };
-    return job.id;
-  };
-
-  test("a Referer that is another tab of the same page falls back to the specs list", async () => {
+describe("a page's own Back link, read off the Referer header", () => {
+  test("a Referer that is another tab of the same page falls back", async () => {
     const { base } = start();
-    const id = await jobId(base);
     const html = await (
-      await fetch(`${base}/jobs/${id}?tab=steps`, { headers: { referer: `${base}/jobs/${id}` } })
+      await fetch(`${base}/settings?tab=process`, { headers: { referer: `${base}/settings` } })
     ).text();
     expect(html).toMatch(/<a class="backlink"[^>]*href="\/"/);
+  });
+
+  test("a Referer that is another page of the board is where Back goes", async () => {
+    const { base } = start();
+    const html = await (
+      await fetch(`${base}/settings?tab=process`, { headers: { referer: `${base}/specs?project=aide` } })
+    ).text();
+    expect(html).toMatch(/<a class="backlink"[^>]*href="\/specs\?project=aide"/);
   });
 });

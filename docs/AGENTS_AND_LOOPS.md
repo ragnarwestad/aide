@@ -96,7 +96,7 @@ grade, and the runner does not check it.
 1. The runner starts one new session with `aide-implement`, which writes the code and its tests. With
    [`resumeAnalysis`](#settings) on, it continues the analysis's own session instead. In Aide's own repository the
    session also photographs the dashboard pages its change affects, at a desktop and a phone width, into a folder the
-   runner names beside the step's log; the job page links them under Screenshots, and the review is shown them.
+   runner names beside the step's log; the step's log links them under Screenshots, and the review is shown them.
 2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the spec's Review choice,
    then the Models per phase choice, Codex included, else the step's own. It reads the description, finds the branch's
    whole change against where it left the default branch with `git diff` itself, and reports defects against the

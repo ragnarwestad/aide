@@ -582,8 +582,7 @@ them. A direct load of the address (a reload, a link from the Running tab, Back 
 the list and the spec when the spec's view is ready. A press on a shut row of the Specs list does not load the address
 but asks for it with `?detail=1`, as "The row, open and shut" says.
 
-Runs and logs are on the Jobs tab and on each job's page. A job page keeps the phase progress, the phase file, every
-step and its log. While that job waits for Archive, the job row and the job page offer Archive; Specs does not.
+Runs and logs are on the Jobs tab. While a job waits for Archive, its job row offers Archive; Specs does not.
 
 **An opened step shows its numbers, then three tabs: Log, Changed files and Errors.** The numbers are the row's own
 time, cost, tokens and result, and a step with no log says so. One tab shows at a time, in one box about a hundred
@@ -609,7 +608,7 @@ lines tall that opens at its end. The three tabs:
   differently, decided where the transcript is read (`src/queue/parse-stream/`).
 
 The tab is
-`?steptab=log|files|errors` beside `?step=`, on the job page, and the spec page's Logs tab alike:
+`?steptab=log|files|errors` beside `?step=`, on the spec page's Logs tab:
 a link rather than a widget, because the open row is part of the address, and pressing one keeps the step open.
 An address with no `steptab`, or an unknown one, shows Log.
 
@@ -792,7 +791,7 @@ A `deploy` event carries what the board has to deploy, `{"project","commits"}` o
 A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
 (`?phases=`) opens the stream with the same query, and on the runner's two-second tick the server compares the size of
 each running step's transcript and run log with the last tick and sends `changed` only to the tabs whose keys name that
-step. The job page and the Logs tab name their running job's phases themselves. A tab with nothing unfolded is never
+step. A tab with nothing unfolded is never
 told, and while no tab has keys no file is measured.
 
 On the browser's side:

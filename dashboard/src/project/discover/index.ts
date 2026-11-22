@@ -21,7 +21,7 @@ export {
 export type { PreviewFrom } from "../parse-manifest.ts";
 
 export {
-  SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,
+  SPEC_FILES, specFileText, markdownSection, specDescription, specArchivedDate,
   specClosed, specClosedDate, specCloseReason,
 } from "./spec-files.ts";
 

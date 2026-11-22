@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { archiveHeldBackReason, parseStatus } from "../parse-status";
+import { parseStatus } from "../parse-status";
 import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../spec-names.ts";
 
 export function specTitle(dir: string): string | null {
@@ -77,51 +77,10 @@ export function specDescription(dir: string): string | null {
     .trim() || null;
 }
 
-/** What ONE workflow step wrote, as a labelled slice of the spec's own
- *  files. A phase's page is where a reader goes to find out
- *  what that phase did, and it used to show the same `## Description`
- *  prose every other page showed.
- *
- *  `null` is "this step writes no file of its own" — `resolve` merges,
- *  and a step the list does not know is not a step. A named phase whose
- *  file is not written yet keeps its NAME and answers `text: null`: the
- *  reader asked what analyze produced, and "nothing yet" is the answer.
- *
- *  `analyze` shows `3-solution.md`, not `2-analysis.md`: the
- *  reviewer-perspectives routine that used to be its own `review-plan`
- *  step now runs inside `analyze`, writing a "Plan review" section into
- *  `3-solution.md` in the same run that writes the plan — so the plan
- *  and its review are one file, read together, exactly as the run
- *  produced them.
- *
- *  `archive` is the one that is not a whole file. It either moved the
- *  folder or declined to, and the page must show exactly one of those:
- *  the stamp when it is there, because a folder that MOVED is archived
- *  whatever an earlier attempt wrote into the same file. */
-export function specPhaseFile(dir: string, step: string): { label: string; text: string | null } | null {
-  if (step === "create") return { label: DESCRIPTION_FILE, text: specFileText(dir, DESCRIPTION_FILE) };
-  if (step === "analyze") return { label: SOLUTION_FILE, text: specFileText(dir, SOLUTION_FILE) };
-  if (step === "implement") return { label: STATUS_FILE, text: specFileText(dir, STATUS_FILE) };
-  if (step === "archive") {
-    const status = specFileText(dir, STATUS_FILE);
-    const stamp = status?.match(/^.*\*\*Archived:\*\*.*$/m)?.[0]?.trim() ?? null;
-    // The same reader the row's own held-back mark uses, so the two
-    // cannot word one fact differently.
-    const held = status ? archiveHeldBackReason(status) : null;
-    return { label: STATUS_FILE, text: stamp ?? held };
-  }
-  return null;
-}
-
 /** WHEN a spec was archived, off the `**Archived:** <date>` stamp the
  *  archive step writes into `4-status.md`. The value alone,
  *  backticks stripped — both shapes are in aide's own archive today,
  *  a bare line and a Tracking-info bullet.
- *
- *  A SECOND reader of the same line as `specPhaseFile`'s, on purpose:
- *  that one hands a phase panel the whole line to print, this one hands
- *  the archive listing a value to show and sort on, and neither shape
- *  serves the other's caller.
  *
  *  `null` covers every way the stamp can be missing — no file, no line,
  *  a line with nothing after it. The stamp only started being written

@@ -147,11 +147,11 @@ describe("a hidden project on the board", () => {
     expect(await folded()).toEqual([]);
   });
 
-  test("its spec, the spec's history and its job still open, and the job stays on Jobs (AC-5)", async () => {
+  test("its spec and the spec's history still open, and the job stays on Jobs (AC-5)", async () => {
     const { base } = board();
     await hide(base, "beta", "on");
     expect((await fetch(`${base}/projects/beta`)).status).toBe(200);
-    for (const path of ["/specs/beta/01-first", "/specs/beta/01-first?tab=status", "/jobs/beta-done"]) {
+    for (const path of ["/specs/beta/01-first", "/specs/beta/01-first?tab=status"]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(200);
       expect(await res.text()).toContain("01-first");

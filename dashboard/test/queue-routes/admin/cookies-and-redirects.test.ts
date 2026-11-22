@@ -76,47 +76,6 @@ describe("the Specs list is at /specs", () => {
     expect(await res.text()).toContain('id="jobrows"');
   });
 
-  // The DETAIL page did not move, so this one
-  // target is deliberately unchanged. A /<id> here would break every
-  // job link already sent out.
-  test("GET /queue/<id> redirects to /jobs/<id>, tab and all", async () => {
-    const { base } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/jobs/${made.job.id}?tab=steps`);
-  });
-
-  // The other half of the same guard — the detail
-  // page answers where it always has, with no redirect hop in front.
-  test("GET /jobs/<id> renders the job page itself, no redirect", async () => {
-    const { base } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/jobs/${made.job.id}`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("location")).toBeNull();
-    expect(await res.text()).toContain("81-queue-and-runner");
-  });
-
-  // The job page was /specs/<id> before it had an address of its own: a link
-  // saved from then still lands on the same page and tab.
-  test("an old /specs/<id> address goes on to /jobs/<id>, its tab and step kept", async () => {
-    const { base } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/specs/${made.job.id}?tab=steps&step=0`, { redirect: "manual" });
-    expect(res.status).toBe(301);
-    expect(res.headers.get("location")).toBe(`/jobs/${made.job.id}?tab=steps&step=0`);
-  });
-
   test("the JSON surface is not renamed and no redirect swallows it", async () => {
     const { base } = start();
     const headers = { "content-type": "application/json", accept: "application/json" };

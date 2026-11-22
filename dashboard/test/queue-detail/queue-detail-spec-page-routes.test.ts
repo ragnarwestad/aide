@@ -1,7 +1,7 @@
 // Split out of queue-detail.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createGitRunner, type GitRunner } from "../../src/git/process/index.ts";
 import type { ServerOptions } from "../../src/serve/serve.ts";
@@ -21,152 +21,9 @@ const start = (extra: Partial<ServerOptions> = {}) =>
 
 afterEach(() => harness.cleanup());
 
-async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
-  const res = await fetch(`${base}/api/queue`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
-  });
-  const body = (await res.json()) as { job: { id: string } };
-  return body.job.id;
-}
-
-// --- The page has to know which CLI ran the step -------------------
-//
-// Two things on this page turn on it, and both are wrong-by-default if
-// nobody works it out: the Live panel would be built from a session
-// `claude-usage` has never heard of, and the transcript would be read in
-// the wrong schema — which does not degrade, it blanks the list.
-describe("a Codex step's job page", () => {
-  /** Seed a job the way a finished step leaves it, and hand back a
-   *  mirror a second server can read. */
-  const seed = (dir: string, id: string, mutate: (job: Record<string, unknown>) => void): string => {
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    mutate(jobs.find((j) => j.id === id)!);
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return mirror;
-  };
-
-  const CODEX_STREAM = [
-    JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
-    JSON.stringify({
-      type: "item.completed",
-      item: { id: "i0", item_type: "command_execution", command: "bun test" },
-    }),
-  ].join("\n");
-
-  test("a finished Codex step reads its own transcript and shows no dollars", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base, ["implement"]);
-    const stream = join(dir, "codex.stream.jsonl");
-    writeFileSync(stream, CODEX_STREAM);
-    const mirror = seed(dir, id, (job) => {
-      job.state = "done";
-      job.results = [
-        {
-          step: "implement", ok: true, tool: "codex", costUsd: 0, costMeasured: false,
-          tokens: { input: 1, output: 2, cacheRead: 3, cacheCreation: 0, total: 6 },
-          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
-        },
-      ];
-    });
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const activity = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
-    expect(activity).toContain("bun test");
-    const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`)).text();
-    expect(steps).not.toContain("$0.00");
-  });
-
-  test("a transcript nobody named a tool for is still read, not blanked", async () => {
-    // A config entry removed since the job started, or a job older than
-    // the field: defaulting to claude here would be a claim, and a wrong
-    // one leaves the reader an empty list that says "doing nothing".
-    const { base, dir } = start();
-    const id = await enqueue(base, ["implement"]);
-    const stream = join(dir, "orphan.stream.jsonl");
-    writeFileSync(stream, CODEX_STREAM);
-    const mirror = seed(dir, id, (job) => {
-      job.state = "done";
-      job.results = [
-        {
-          step: "implement", ok: true, costUsd: 0, costMeasured: false,
-          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
-        },
-      ];
-    });
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
-    expect(html).toContain("bun test");
-  });
-
-  // The step's tab is read from the address and carried to the renderer,
-  // so a step keeps its tab when the page reloads itself.
-  test("steptab= in the URL picks the step's tab, and a leftover only= changes nothing", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base, ["implement"]);
-    const stream = join(dir, "filtered.stream.jsonl");
-    writeFileSync(stream, [
-      JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
-      JSON.stringify({ type: "item.completed", item: { id: "i0", item_type: "agent_message", text: "thinking it over" } }),
-      JSON.stringify({ type: "item.completed", item: { id: "i1", item_type: "command_execution", command: "bun test", exit_code: 1 } }),
-      JSON.stringify({ type: "item.completed", item: { id: "i2", item_type: "command_execution", command: "git status", exit_code: 0 } }),
-    ].join("\n"));
-    const mirror = seed(dir, id, (job) => {
-      job.state = "done";
-      job.results = [
-        {
-          step: "implement", ok: true, costUsd: 0, costMeasured: false,
-          terminalReason: "completed", streamFile: stream, at: "2026-09-17T10:01:00Z",
-        },
-      ];
-    });
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const log = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`)).text();
-    expect(log).toContain("thinking it over");
-
-    const errors = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&steptab=errors`)).text();
-    expect(errors).toContain("bun test");
-    expect(errors).not.toContain("thinking it over");
-    expect(errors).not.toContain("git status");
-
-    const old = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0&only=commands`)).text();
-    expect(old).toContain("thinking it over");
-    expect(old).toContain("git status");
-  });
-
-  test("steptab=files opens the job step on Changed files and marks its tab", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base, ["implement"]);
-    const mirror = seed(dir, id, (job) => {
-      job.state = "done";
-      job.results = [
-        { step: "implement", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed", at: "2026-09-17T10:01:00Z" },
-      ];
-    });
-    const { base: base2 } = start({ queueMirrorPath: mirror });
-    const current = (html: string) => html.match(/<a class="tab"[^>]*href="[^"]*steptab=[^"]*"[^>]*aria-current="page"[^>]*>([^<]*)</)?.[1];
-
-    const job = await (await fetch(`${base2}/jobs/${id}?tab=steps&step=0&steptab=files`)).text();
-    expect(current(job)).toBe("Changed files");
-  });
-});
-
-// --- The job detail page threads and remembers the language -------
-//
-// `job-detail.ts` already resolved `languageChoice()` for its own
-// `lang` field, but never appended its `setCookie` to the response, and
-// never forwarded that `lang` into its own `pageShell` call — so the
-// page's own frame (the tab bar, the theme control) stayed English and
-// the choice was never written down from this route.
-
 // --- A page for the SPEC, not for one of its runs ------------------
 //
-// `/jobs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
-// the spec itself: the four files as they stand on this host's checkout,
+// `/specs/<project>/<specFolder>` is the spec itself: the four files as they stand on this host's checkout,
 // each stamped with its own last commit, plus an Update button that
 // pulls the specs repository so a change pushed a moment ago is on the
 // screen at once.
@@ -307,20 +164,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const { base } = start();
     expect((await fetch(`${base}/specs/aide/99-no-such-spec`)).status).toBe(404);
     expect((await fetch(`${base}/specs/no-such-project/${SPEC}`)).status).toBe(404);
-  });
-
-  // The two routes are one path segment apart and must stay disjoint:
-  // a job id has no slash in it, and a spec page has no job.
-  test("the job route still answers, and neither swallows the other", async () => {
-    const { base } = start();
-    const id = await enqueue(base);
-    expect((await fetch(`${base}/jobs/${id}`)).status).toBe(200);
-    expect((await fetch(`${base}${PATH}`)).status).toBe(200);
-    // The job page is about the run; the spec page is about the spec.
-    // An analyze job's page carries 3-solution.md, its own phase's
-    // file, and none of the other three the spec page lists.
-    const job = await (await fetch(`${base}/jobs/${id}`)).text();
-    expect(job).not.toContain("1-description.md");
   });
 
   test("the spec's files are re-read on every request, never served from the 5 s scan", async () => {

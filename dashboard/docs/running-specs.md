@@ -68,7 +68,7 @@ A merge holds back two things and nothing else: the job being merged and another
 ([Branches and merging](landing.md)).
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list under the default
-**All** filter, and **Active** leaves it out. `/api/queue` still returns every job and `/jobs/<id>` renders each one. A
+**All** filter, and **Active** leaves it out. `/api/queue` still returns every job. A
 project whose specs the server cannot read this time keeps the rows it already had.
 
 A job survives a restart: the result file is the contract, and a job left `running` is reconciled from the pid and the
@@ -421,7 +421,7 @@ The queue, the worktrees, the wall-clock timeout and all the git handling are on
 - **A Codex step reports tokens, never dollars.** The Cost column shows the token count and a dash where the money would
   be, never `$0.00`. A job mixing both tools has a `spentUsd` covering its Claude steps only.
 
-The job page's Logs tab works for both tools. Safety modes are stored as Claude's own names, per step, and
+A step's log works for both tools. Safety modes are stored as Claude's own names, per step, and
 `aide-run-spec` translates them for Codex: `bypassPermissions` becomes `--dangerously-bypass-approvals-and-sandbox`,
 `acceptEdits` becomes `--sandbox workspace-write`, and `plan` and `default` become `--sandbox read-only`. A mode with no
 entry in that table refuses the run.
@@ -454,7 +454,7 @@ The levels are `low`, `medium`, `high`, `xhigh` and `max`, as listed in `core/sc
 `ultracode` is deliberately not among them: it turns on multi-agent orchestration, and a routine step must not be able to
 opt into a much larger run. The level reaches `aide-run-spec` as `--effort <level>` on the `claude -p` invocation only;
 a level chosen for a step that runs on Codex or OpenCode is accepted and dropped. The level a step ran at is recorded in
-its phase file as a `- **Effort:**` line, and shown on the job's page beside its Model row.
+its phase file as a `- **Effort:**` line.
 
 ## Global defaults for the AI and model
 
@@ -638,7 +638,7 @@ the board itself once the limit has reset. Nobody presses anything.
   queued step on that provider. A newer stop is the AI's latest word, so it moves the time for every stopped step on
   that provider, earlier or later. A step on that provider that started after a stop and completed shows the limit has
   reset, and every stop made before it ends there, whatever time it was given.
-  Those jobs stay `queued` and say so on their row and on their job page. Steps on other providers start as before, and
+  Those jobs stay `queued` and say so on their row. Steps on other providers start as before, and
   OpenCode and Copilot, which report no usage limit, behave as always.
 - **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —
   and the steps held behind it start as the slots allow. A step that hits the limit again is held and started again
@@ -759,8 +759,7 @@ the provider.
 - **Choosing.** The AI choice on a phase line, on the Settings phases table and on the Schedule form lists
   the providers that run at least one model choice. Choosing a provider narrows the model choice to the models its tool
   runs. A job, a pending pick and a schedule entry store the provider beside the model.
-- **Where it shows.** The phase line names the provider ("Claude-Capra · opus"). The job's page has a Provider line on
-  its Overview and on each step, and the Jobs tab names it while the job runs and once it has ended ("Implement ran
+- **Where it shows.** The phase line names the provider ("Claude-Capra · opus"), and the Jobs tab names it while the job runs and once it has ended ("Implement ran
   on Claude-Capra").
 - **The hold.** A usage limit holds one provider: a step on Claude-Capra waits for Claude-Capra's limit only. The
   stopped step names the provider and the reset time, and is queued again on the same provider when it resets.
@@ -940,7 +939,7 @@ completed phases.
 The same notice covers failed and cancelled member jobs, and a failed Archive merging even when the
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.
-Completed groups stay on Jobs with their archived specs, job pages, logs and pull-request marks available, until
+Completed groups stay on Jobs with their archived specs, logs and pull-request marks available, until
 Remove takes the card off.
 
 An ordinary spec has one Jobs row for each round. The first round starts on the day the spec was made, and every later

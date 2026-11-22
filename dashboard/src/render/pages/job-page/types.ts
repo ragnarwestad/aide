@@ -91,38 +91,11 @@ export interface SpecFileView {
 }
 
 export interface JobDetailView extends QueueRowView {
-  /** The durable identity and attempted members for a shared group Archive. */
-  executionGroup?: { id: string; name: string; members: string[] };
-  /** Which CLI is running (or last ran) this job's current step. Absent
-   *  means claude. `none` is a finished `create` step that skipped the
-   *  AI session entirely — never a step actually IN FLIGHT,
-   *  since a running step's tool always names a real CLI (`runningStep`
-   *  is resolved from the config's own model choice, which has no "none"
-   *  entry). */
-  tool?: ResultTool;
-  /** The spec's H1. */
-  title?: string;
   finishedAt?: string;
   results: JobStepResultView[];
-  /** What THIS job's step wrote: analyze's 3-solution.md
-   *  (plan and, once the reviewer routine has run, its "Plan review"
-   *  section too), implement's 4-status.md, archive's one
-   *  outcome. Absent for a step that writes no file of its own — the
-   *  page then shows its three facts and nothing else. */
-  phase?: SpecFileView;
-  /** Why the spec's archive run did not move the folder.
-   *  Read off the SPEC's `4-status.md`, exactly as the list's row reads
-   *  it, so the two pages cannot word the same fact differently. */
-  archiveHeldBack?: string;
-  /** The queue action while this spec is ready for Archive. */
-  archiveAction?: string;
   /** The step running RIGHT NOW, when one is. It has no
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
   runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number; phaseAttempt?: PhaseAttemptIdentity };
-  /** Where "← Back" goes — resolved by `serve.ts` from the
-   *  request's own `Referer`, same-origin only. Absent falls back to
-   *  `/`, today's exact hardcoded destination. */
-  backHref?: string;
 }

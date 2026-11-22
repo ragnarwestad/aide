@@ -1,7 +1,8 @@
 // The lookup behind a phase's unfolded messages — which attempt
 // it reads, what it returns, and the key it links to on the Logs tab.
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { screenshotsDir } from "../../../src/queue/runner/run-log-path.ts";
 import { WaitingQueue } from "../../../src/queue/waiting";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -107,6 +108,16 @@ describe("phaseMessagesFor", () => {
     expect(lines(got)).not.toContain("FIRST-IMPLEMENT");
     expect(got?.step).toBe("2");
     expect(got?.identity).toEqual({ phase: "implement", attempt: 3, at: "2026-09-19T10:30:00Z" });
+  });
+
+  test("a finished step's log links the pictures it took, each by the address that serves it", () => {
+    const step = finishedStep("implement", [said("done")]) as { streamFile: string };
+    mkdirSync(screenshotsDir(step.streamFile));
+    writeFileSync(join(screenshotsDir(step.streamFile), "01-jobs-1440.png"), "png");
+    const j = job("pics", { steps: ["implement"], results: [step as never] });
+    expect(phaseMessagesFor(queueOf([j]), ["pics"], "implement")?.screenshots).toEqual([
+      { file: "01-jobs-1440.png", href: "/jobs/pics/screenshots/implement/01-jobs-1440.png" },
+    ]);
   });
 
   test("nothing to read gives undefined", () => {
