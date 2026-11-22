@@ -38,10 +38,10 @@ const lanAddress = (): string | undefined =>
 describe("the address the server listens on", () => {
   test("with no bindHost it listens on 127.0.0.1 only", async () => {
     expect(server.hostname).toBe("127.0.0.1");
-    const viaName = await fetch(`http://localhost:${server.port}/projects.html`, { redirect: "manual" });
-    expect(viaName.status).toBe(302);
+    const viaName = await fetch(`http://localhost:${server.port}/projects`, { redirect: "manual" });
+    expect(viaName.status).toBe(200);
     const lan = lanAddress();
-    if (lan) await expect(fetch(`http://${lan}:${server.port}/projects.html`, { redirect: "manual" })).rejects.toThrow();
+    if (lan) await expect(fetch(`http://${lan}:${server.port}/projects`, { redirect: "manual" })).rejects.toThrow();
   });
 
   test("a bindHost given is used as given", async () => {
@@ -50,22 +50,12 @@ describe("the address the server listens on", () => {
       expect(wide.hostname).toBe("0.0.0.0");
       const lan = lanAddress();
       if (lan) {
-        const res = await fetch(`http://${lan}:${wide.port}/projects.html`, { redirect: "manual" });
+        const res = await fetch(`http://${lan}:${wide.port}/projects`, { redirect: "manual" });
         expect(res.status).toBeGreaterThan(0);
       }
     } finally {
       wide.stop();
     }
-  });
-});
-
-// --- /projects.html is a redirect, answered by the server, ---
-// with no site directory involved at all ---------------------------
-describe("GET /projects.html", () => {
-  test("redirects to /projects, keeping the query string", async () => {
-    const res = await fetch(`${base}/projects.html?foo=bar`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/projects?foo=bar");
   });
 });
 

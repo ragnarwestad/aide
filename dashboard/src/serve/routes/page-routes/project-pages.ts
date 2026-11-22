@@ -134,19 +134,6 @@ export async function projectPages(
     return new Response(html, { headers });
   }
 
-  const settingsPage = path.match(/^\/projects\/([^/]+)\/settings$/);
-  if (settingsPage) {
-    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const name = decodeURIComponent(settingsPage[1]!);
-    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
-      return new Response("no such project\n", { status: 404 });
-    }
-    return new Response(null, {
-      status: 302,
-      headers: { location: `/projects/${encodeURIComponent(name)}?tab=config` },
-    });
-  }
-
   const projectPage = path.match(/^\/projects\/([^/]+)$/);
   if (projectPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });

@@ -49,7 +49,7 @@ export {
 export { installationBlock } from "./pages/settings-page/installation.ts";
 export {
   PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
-  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath,
+  PROVIDERS_TAB_PATH, providerEditPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";

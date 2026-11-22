@@ -4,7 +4,6 @@
 
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
-import { PROJECTS_ROUTE } from "../render";
 import { STARTED_AT } from "./state.ts";
 import {
   json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
@@ -84,13 +83,6 @@ export async function handleCore(
   // The worker's wait and offline pages are in the reader's language.
   const pwaAsset = servePwaAsset(path, languageChoice(url, req).lang);
   if (pwaAsset) return pwaAsset;
-
-  // The address people bookmarked before the overview became a
-  // served route — answered here, not from a file, so nothing has to
-  // regenerate it when the route it points at changes.
-  if (path === "/projects.html") {
-    return new Response(null, { status: 302, headers: { location: `${PROJECTS_ROUTE}${url.search}` } });
-  }
 
   return new Response("not found", { status: 404 });
 }

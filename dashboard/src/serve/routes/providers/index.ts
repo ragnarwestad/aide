@@ -1,8 +1,7 @@
 // The routes behind providers: adding, editing, renaming and removing one on
-// Settings → Providers, and the pages that add and edit one.
+// Settings → Providers.
 
 import type { RoutesContext } from "../";
-import { handleProviderPages } from "./page.ts";
 import { handleProviderSettingsRoutes } from "./settings.ts";
 import { handleProviderUsageRoute } from "./usage.ts";
 
@@ -13,6 +12,5 @@ export async function handleProviderRoutes(
   path: string,
 ): Promise<Response | null> {
   return (await handleProviderSettingsRoutes(ctx, req, path)) ??
-    (await handleProviderUsageRoute(ctx, req, url, path)) ??
-    (await handleProviderPages(ctx, req, url, path));
+    (await handleProviderUsageRoute(ctx, req, url, path));
 }

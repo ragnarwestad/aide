@@ -15,8 +15,6 @@ export const PROVIDERS_EDIT_ROUTE = "/api/queue/settings/providers/edit";
 export const PROVIDERS_REMOVE_ROUTE = "/api/queue/settings/providers/remove";
 export const PROVIDERS_SWITCH_ROUTE = "/api/queue/settings/providers/switch";
 
-export const PROVIDER_NEW_PATH = "/settings/providers/new";
-export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
 /** A provider's own place: the Providers tab with it chosen. */

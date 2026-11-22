@@ -1,11 +1,7 @@
-// The addresses that once added and edited a provider on pages of their
-// own: each now sends the reader to the Providers tab, where Add is a
-// dialog and the chosen provider is shown beside the list. The chosen
-// provider is read by the Settings route (`providerDetailFor`), which reads
-// the open tab's models or installation before the page answers, and shows
-// the usage the server keeps.
+// What the Providers tab shows of the chosen provider. The Settings route
+// (`providerDetailFor`) reads the open tab's models or installation before
+// the page answers, and shows the usage the server keeps.
 
-import { PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath } from "../../../render";
 import type { Language } from "../../../i18n";
 import type { Provider } from "../../../queue/providers/index.ts";
 import { readProviderUsage } from "../../providers/status.ts";
@@ -41,23 +37,4 @@ export async function providerDetailFor(
     case "config":
       return base;
   }
-}
-
-const redirect = (location: string): Response => new Response(null, { status: 302, headers: { location } });
-
-export async function handleProviderPages(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
-  if (path !== PROVIDER_NEW_PATH && path !== PROVIDER_EDIT_PATH) return null;
-  if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-  if (path === PROVIDER_EDIT_PATH) {
-    const key = url.searchParams.get("key") ?? "";
-    if (!ctx.queue.defaults.providers?.[key]) return new Response("not found", { status: 404 });
-    const aiTab = url.searchParams.get("aitab");
-    return redirect(providerEditPath(key) + (aiTab ? `&aitab=${encodeURIComponent(aiTab)}` : ""));
-  }
-  return redirect(PROVIDERS_TAB_PATH);
 }

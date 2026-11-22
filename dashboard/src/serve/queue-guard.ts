@@ -8,8 +8,7 @@ import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTIN
 import { isScheduleOutputPath } from "../schedule-output-route.ts";
 
 /** A step's screenshots under `/jobs/<id>/` join the queue set HERE,
- *  never as a special case further down, so `handleRoutes` answers them. The retired
- *  `/queue` paths are in it too, for the redirect they answer with. */
+ *  never as a special case further down, so `handleRoutes` answers them. */
 export const isQueuePath = (path: string) =>
   path === "/" ||
   // The installed app's start address, answered by the same route as `/`.
@@ -41,11 +40,9 @@ export const isQueuePath = (path: string) =>
   // request exactly as the Add project page is.
   path.startsWith("/schedule/") ||
   isScheduleOutputPath(path) ||
-  path === "/queue" ||
   path === "/specs" ||
   path === "/api/queue" ||
   path.startsWith("/api/queue/") ||
-  path.startsWith("/queue/") ||
   // A device turning notifications on or off: a POST that
   // changes what the server sends and where, guarded like every other.
   path.startsWith("/api/push/") ||

@@ -332,7 +332,7 @@ Save posts only its own card's settings, and a refusal is written at that card's
 the fields. A Save that goes through draws the Config tab again with the new values and readiness; while the other
 card holds edits the page stays as it is instead, so those edits are kept. Cancel puts its own card's fields back to
 their saved values. Leaving the page while a card holds unsaved edits asks first, and a refused Save still counts as
-unsaved. `/projects/<name>/settings` redirects to `?tab=config`.
+unsaved.
 
 A save writes each value to the file its card names, and to no other file, regardless of where the value
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
@@ -516,6 +516,4 @@ opened: its page script posts `POST .../drift` and draws the section again from 
 
 A server started without `--root` has no projects root to list or add to. Its `GET /projects` renders the ordinary
 listing with no rows and an error saying the board was started with no project root — an empty page alone would read
-as "no projects on this machine" rather than "this server was never told where they are". `/projects.html`, the
-address bookmarked before the listing became a served route, is answered in server code with a 302 to `/projects`,
-with no file behind it. There is no generated page per project: the served `/projects/<name>` is the only one.
+as "no projects on this machine" rather than "this server was never told where they are". There is no generated page per project: the served `/projects/<name>` is the only one.

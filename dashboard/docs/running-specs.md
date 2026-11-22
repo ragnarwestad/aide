@@ -702,14 +702,12 @@ the provider.
      there, and Status shows when it is logged in.
 
   Add saves the provider and shows it beside the list. A refusal stays in the dialog with the reason; Cancel closes
-  it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
-  to the Providers tab.
+  it, and it opens empty at the first step again.
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
   four tabs. Config has one form with the display name, the short name and the runtime fields, with Save and Cancel; Usage has the
   login (see Status) and the usage; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
   form's own line and leaves every field as it was typed; Cancel puts back what was saved. Renaming a provider updates
-  nothing else: phase defaults, schedule entries and jobs store the provider's key. The old address of a provider's
-  page (`/settings/providers/edit?key=`) leads here.
+  nothing else: phase defaults, schedule entries and jobs store the provider's key.
 - **The fields.** Claude Code: a config folder, handed over as `CLAUDE_CONFIG_DIR`; empty means Claude Code's own
   `~/.claude`. Codex: a `CODEX_HOME` folder, empty meaning `~/.codex`, and an optional shadow home. OpenCode: none. A
   folder is written from `/` or `~/`. A folder that is not there yet is made on save; a path that is a file is refused.

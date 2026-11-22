@@ -60,13 +60,15 @@ describe("port-scoped cookies and the headerAuth bind", () => {
   });
 });
 
-// The old address keeps working: people bookmark this page.
 describe("the Specs list is at /specs", () => {
-  test("GET /queue redirects to /specs with the query string intact", async () => {
+  test("the retired addresses answer 404, not a redirect", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/queue?state=active&sort=cost`, { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/specs?state=active&sort=cost`);
+    for (const path of [
+      "/queue", "/queue/aide/81-queue-and-runner", "/projects.html", "/projects/aide/settings",
+      "/settings/providers/new", "/settings/providers/edit?key=Claude",
+    ]) {
+      expect([path, (await fetch(`${base}${path}`, { redirect: "manual" })).status]).toEqual([path, 404]);
+    }
   });
 
   test("GET /specs answers the list itself, with no redirect", async () => {

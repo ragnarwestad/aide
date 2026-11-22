@@ -24,16 +24,6 @@ export async function specsPages(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  if (path === "/queue") {
-    return new Response(null, { status: 302, headers: { location: `/specs${url.search}` } });
-  }
-
-  // A spec's old address. One segment was a job's, which has no page.
-  const rest = path.startsWith("/queue/") ? path.slice("/queue".length) : "";
-  if (rest && !/^\/[A-Za-z0-9-]+$/.test(rest)) {
-    return new Response(null, { status: 302, headers: { location: `/specs${rest}${url.search}` } });
-  }
-
   if (path === "/specs") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // A row is opened at the spec's own address, so a link that names one

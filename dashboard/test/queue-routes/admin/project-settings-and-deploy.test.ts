@@ -72,25 +72,6 @@ describe("a project's settings route", () => {
     git(project, "push", "-q", "-u", "origin", "main");
   };
 
-  test("the legacy form URL redirects to the project page's Config tab", async () => {
-    const { base, project } = await settled();
-    mkdirSync(join(project, ".aide"), { recursive: true });
-    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\nworktreeLinks: node_modules\n");
-    writeFileSync(join(project, ".aide", "config"), "AIDE_SPECS_PATH=/repos/aide-specs/aide\n");
-    const res = await fetch(`${base}/projects/aide/settings`, {
-      redirect: "manual",
-      headers: {},
-    });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/projects/aide?tab=config");
-  });
-
-  test("a project the allowlist does not know is a mistyped address", async () => {
-    const { base } = await settled();
-    const res = await fetch(`${base}/projects/nosuch/settings`, );
-    expect(res.status).toBe(404);
-  });
-
   // The whole point — a project brought to runnable without
   // leaving the dashboard.
   test("a save writes the links to the manifest and answers with the new readiness", async () => {
