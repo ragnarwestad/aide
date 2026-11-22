@@ -484,6 +484,8 @@ export type ProjectResolver = (project: string) => {
    *  `specFolders` — the wording a caller reaches for is per list, not
    *  per flag on one shared list. */
   closedFolders?: string[];
+  /** The project is hidden on the board: no new job may be queued for it. */
+  hidden?: boolean;
 } | null;
 
 /** Whether this project may have a spec CREATED in it. The raw

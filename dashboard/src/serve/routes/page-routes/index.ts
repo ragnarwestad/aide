@@ -8,6 +8,8 @@ import { specsPages } from "./specs-pages.ts";
 import { projectPages } from "./project-pages.ts";
 import { schedulePages } from "./schedule-pages.ts";
 import { projectIconRoute } from "./project-icon.ts";
+import { projectPinRoute } from "./project-pin.ts";
+import { projectHideRoute } from "./project-hide.ts";
 
 /** The full-page GET routes, asked family by family. Each answers
  *  `null` for a path that is not its own, so the chain reads the way
@@ -22,6 +24,8 @@ export async function handlePageRoutes(
     (await jobsPage(ctx, req, url, path)) ??
     (await specsPages(ctx, req, url, path)) ??
     (await projectIconRoute(ctx, req, path)) ??
+    (await projectPinRoute(ctx, req, path)) ??
+    (await projectHideRoute(ctx, req, path)) ??
     (await projectPages(ctx, req, url, path)) ??
     (await schedulePages(ctx, req, url, path))
   );

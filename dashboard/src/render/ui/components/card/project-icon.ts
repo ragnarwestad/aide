@@ -1,8 +1,14 @@
 // A project's icon: the image the server serves for it, or, for a project
 // with none, its first two letters on a square whose colour is fixed by its
-// name. Always an `<img>` for an image, so nothing in the file runs here.
+// name, or a built-in icon the reader chose, drawn on one of the same
+// squares. Always an `<img>` for an image, so nothing in the file runs here.
 
+import { glyphSvg } from "../../../../project/project-icon/glyphs.ts";
 import { esc } from "../../html.ts";
+
+/** What a page knows of a project's icon: where its image is served, a
+ *  built-in icon and its colour, 1 to 6, or null to draw the initials. */
+export type ProjectIconView = { src: string } | { glyph: string; hue: number } | null;
 
 /** How many initials colours the tokens hold (`--initials-1` to `-6`). */
 const HUES = 6;
@@ -21,9 +27,11 @@ export function initialsHue(name: string): number {
   return (hash % HUES) + 1;
 }
 
-/** The icon, before a project's name. `icon` is where the server answers
- *  with its image, or null for a project that has none. */
-export function projectIcon(name: string, icon: { src: string } | null): string {
-  if (icon) return `<img class="projicon" src="${esc(icon.src)}" alt="" width="28" height="28">`;
+/** The icon, before a project's name. */
+export function projectIcon(name: string, icon: ProjectIconView): string {
+  if (icon && "src" in icon) return `<img class="projicon" src="${esc(icon.src)}" alt="" width="28" height="28">`;
+  if (icon) {
+    return `<span class="projicon projinitials" data-hue="${Math.trunc(icon.hue)}" aria-hidden="true">${glyphSvg(icon.glyph)}</span>`;
+  }
   return `<span class="projicon projinitials" data-hue="${initialsHue(name)}" aria-hidden="true">${esc(projectInitials(name))}</span>`;
 }

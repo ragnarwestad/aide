@@ -17,7 +17,8 @@ import {
   SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
 import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, type DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import { hiddenOf } from "../../project/project-admin/hidden.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
 import { resolveCodeLanding, resolvePreviewFrom } from "../../project/discover";
@@ -60,6 +61,8 @@ export interface ScheduleSetupOptions {
   usagePollMs?: number;
   usageProbe?: UsageRead;
   checkToolsOnStart?: boolean;
+  /** Where the board keeps its checkouts, and each project's `hidden` flag. */
+  dashboardCheckoutRoot?: string;
 }
 
 export interface ScheduleSetupInputs {
@@ -275,7 +278,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   const cleanupCheckMs = opts.cleanupCheckMs ?? 60_000;
   const cleanupTimer = cleanupCheckMs > 0 ? setInterval(() => {
     const now = new Date();
-    if (cleanupDue(now) && enqueueNightlyCleanup(queue, allowed, now)) void tickRunner();
+    if (cleanupDue(now) && enqueueNightlyCleanup(queue, allowed, now, hiddenOf(opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, allowed))) {
+      void tickRunner();
+    }
   }, cleanupCheckMs) : null;
   cleanupTimer?.unref?.();
 

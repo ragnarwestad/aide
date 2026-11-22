@@ -13,6 +13,8 @@
         - [Config](#config)
         - [Schedule](#schedule)
     - [A project's icon](#a-projects-icon)
+    - [Pinning a project](#pinning-a-project)
+    - [Hiding a project](#hiding-a-project)
     - [How a project's code merges](#how-a-projects-code-merges)
 - [How it works inside](#how-it-works-inside)
     - [Two homes for a project's manifest keys](#two-homes-for-a-projects-manifest-keys)
@@ -227,10 +229,13 @@ from.
 ### A project's own page
 
 `/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
-Deploy, which is also where an unrecognised value merges. The project's icon stands before its name in the heading.
+Deploy, which is also where an unrecognised value merges.
 Every tab is drawn as cards of rows, the layout the Projects list has.
-**← Back** goes to the page the reader came from, such as the spec whose project link was pressed, and keeps going
-there while the reader switches tabs. A page opened with none — a typed address, a bookmark — goes back to Projects.
+The heading is a breadcrumb, **Projects / <name>**: Projects opens the Projects list, and the project's name is the
+page itself, not a link. At the line's far end a project picker shows the project's icon and name; it lists every
+project on the Projects list, in that list's order, and choosing one opens that project's page on the tab that is
+open now. On a phone the picker moves under the breadcrumb, and a long name breaks or shortens rather than making
+the page scroll sideways.
 
 #### Deploy
 
@@ -369,6 +374,53 @@ by its name. Only what the default branch holds as origin last answered counts, 
 
 The image is served at `GET /projects/<name>/icon` and shown as an image only, so nothing in the file runs on the
 board; that address answers with a policy that forbids scripts in it when opened by itself.
+
+The `icon` row on the project's Config tab shows the current icon, says where it comes from — **Automatic**,
+**Chosen icon** or **File** — and offers two buttons to pick another without a commit in the project:
+
+- **Choose icon** opens a picker of the board's built-in icons and the six colours of the initials squares. The
+  chosen icon is drawn on the chosen colour.
+- **Choose file** takes an SVG, PNG or ICO file of at most 512 KB from the reader's own computer. Any other type,
+  a file whose content is not what its name says, or a larger file is refused with a sentence saying why, and the
+  icon stays as it was.
+- **Automatic**, offered while a choice is set, removes the choice, and the icon falls back to the `icon` setting,
+  the favicon or the letters.
+
+A chosen icon or file wins over the `icon` setting and the favicon on every page. The board keeps the choice in
+its own folder for the project, beside its checkouts (`icon.json`, and the file as `icon.svg`, `icon.png` or
+`icon.ico`), never in either repository. A chosen file is served at the same address, under the same policy.
+
+### Pinning a project
+
+The **Pin** switch on a project's Config tab puts the project first in every list where a project is chosen: the
+Projects list, the picker at the top of a project's page, the project choice on the New spec form, and the Project
+filter on the Jobs and Specs pages. Pinned projects keep the usual order among themselves, and so do the rest;
+turning Pin off puts the project back in its usual place.
+
+Pin is a setting of the board, not of the project: it is kept as a `pinned` file in the board's own folder for the
+project, beside its checkouts, and never committed to either repository. A project removed and added again keeps its
+pin, as it keeps a chosen icon.
+
+### Hiding a project
+
+**Hide** on a project's Config tab puts a project aside without removing it. It asks first, in a dialog; **Show** takes
+its place on a hidden project and puts it back at once, without asking.
+
+- A hidden project is left out of the picker at the top of a project's page (its own page included), the project
+  choice on the New spec form and the Project filter on the Jobs and Specs pages. The Projects list shows it in a
+  folded **Hidden** group under the other projects, closed until opened.
+- Its specs, jobs and history stay where they are: its own page, its spec pages and its job pages still open, and its
+  rows stay on Jobs and Specs.
+- No new job is queued for it, of any kind: a Run, a Deploy, a New spec, a schedule entry's fire and a step a finished
+  job would queue next are each refused with a sentence saying the project is hidden. A job already queued or running
+  when the project is hidden runs to its end.
+- Its schedule entries do not fire while it is hidden. On the first check after Show, an entry whose fire time passed
+  while it was hidden fires once, as after a board that was switched off; later fires keep their times.
+- The board's nightly cleanup is filed under the first shown project by name. With every project hidden, no cleanup
+  is queued.
+
+Hide is a setting of the board, not of the project: it is kept as a `hidden` file in the board's own folder for the
+project, beside its checkouts, and never committed to either repository. **Remove** is unchanged.
 
 ### How a project's code merges
 

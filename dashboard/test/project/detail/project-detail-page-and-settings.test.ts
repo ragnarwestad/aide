@@ -18,8 +18,20 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toMatch(/<a class="backlink"[^>]*href="\/projects"/);
+    expect(html).toMatch(/<nav class="breadcrumb"[^>]*><a href="\/projects">/);
+    expect(html).not.toContain('class="backlink"');
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
+  });
+
+  test("the head is the breadcrumb, and the picker lists the board's other projects (AC-1, AC-4)", async () => {
+    const root = projectsRoot({ aide: null, paceup: null, other: null });
+    const base = harness.start({
+      extra: { projectRoot: root, queueProjectRoot: root, queueProjects: ["aide", "paceup"], gitRun: settled(root, "aide").run },
+    }).base;
+    const html = await (await get(base, "aide")).text();
+    expect(html).toMatch(/<nav class="breadcrumb"[^>]*><a href="\/projects">Projects<\/a>/);
+    expect(html).toContain('href="/projects/paceup?tab=config"');
+    expect(html).not.toContain('href="/projects/other?tab=config"');
   });
 
   test("a project whose manifest fails to parse still 200s with actions and settings, no error paragraph", async () => {
@@ -29,7 +41,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toMatch(/<a class="backlink"[^>]*href="\/projects"/);
+    expect(html).toMatch(/<nav class="breadcrumb"[^>]*><a href="\/projects">/);
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).not.toContain("Manifest failed to parse");
   });

@@ -10,6 +10,7 @@ import {
 } from "../../../render";
 import { languageChoice, sortChoice, specsClientScript, stateChoice } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
+import { projectChoices } from "./project-pin.ts";
 import type { RoutesContext } from "..";
 
 export interface SpecsListParts {
@@ -105,7 +106,7 @@ export async function specsListParts(
     // leave it out of the one dropdown it needs to be in. Every
     // other list on this page stays derived, because every other
     // control is about a spec that already exists.
-    createProjects: [...ctx.allowed].sort(),
+    createProjects: projectChoices(ctx),
     // Straight from the query string: how the list is cut and
     // ordered lives in the URL, so it survives a reload and can be
     // sent to someone else. Nothing here is trusted — the renderer

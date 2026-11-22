@@ -61,11 +61,13 @@ export function labelledRadio(o: {
 export function radioCards(o: {
   label: string;
   name: string;
-  cards: { value: string; content: string; checked?: boolean; required?: boolean; data?: Record<string, string> }[];
+  /** `ariaLabel` names a card whose content is only a picture. */
+  cards: { value: string; content: string; checked?: boolean; required?: boolean; ariaLabel?: string; data?: Record<string, string> }[];
 }): string {
   return `<div class="radiocards" role="radiogroup" aria-label="${esc(o.label)}">${o.cards.map((card) =>
     `<label class="radiocard"><input type="radio" name="${esc(o.name)}" value="${esc(card.value)}"` +
     (card.checked ? " checked" : "") + (card.required ? " required" : "") +
+    (card.ariaLabel ? ` aria-label="${esc(card.ariaLabel)}"` : "") +
     Object.entries(card.data ?? {}).map(([key, value]) => ` data-${esc(key)}="${esc(value)}"`).join("") +
     `>${card.content}</label>`,
   ).join("")}</div>`;

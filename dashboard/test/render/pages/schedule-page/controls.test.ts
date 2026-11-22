@@ -16,12 +16,25 @@ describe("scheduleControlCells()", () => {
   test("draws the Enabled box, Run now and Delete, and no link to an edit page", () => {
     const body = cells();
     const base = "/api/queue/schedule/aide/nightly";
-    expect(body.querySelector("input.scheduleenabled")?.getAttribute("data-post-to")).toBe(`${base}/enabled`);
+    expect(body.querySelector("button.scheduleenabled")?.getAttribute("data-post-to")).toBe(`${base}/enabled`);
     expect(body.querySelector("form.schedulerun")?.getAttribute("action")).toBe(`${base}/run`);
     const ask = body.querySelector("button[data-ask]")!.getAttribute("data-ask")!;
     expect(body.querySelector(`dialog[id="${ask}"] form[action="${base}/delete"]`) !== null).toBe(true);
     const hrefs = [...body.querySelectorAll("a")].map((a) => a.getAttribute("href")!);
     expect(hrefs.filter((h) => h.endsWith("/edit"))).toEqual([]);
+  });
+
+  test("the Enabled control is the design system's switch, with its state, label and address (AC-5, AC-6)", () => {
+    const sw = cells().querySelector('button[role="switch"].scheduleenabled')!;
+    expect(sw.classList.contains("switch")).toBe(true);
+    expect(sw.querySelector(".switchtrack .switchknob")).not.toBeNull();
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    expect(sw.getAttribute("aria-label")).toBe("Enabled: nightly");
+    expect(sw.getAttribute("data-post-to")).toBe("/api/queue/schedule/aide/nightly/enabled");
+    const window = new Window();
+    window.document.body.innerHTML = `<table><tbody><tr>${scheduleControlCells("aide", { ...ENTRY, enabled: false })}</tr></tbody></table>`;
+    expect(window.document.querySelector("button.scheduleenabled")!.getAttribute("aria-checked")).toBe("false");
+    expect(window.document.querySelector('input[type="checkbox"]')).toBeNull();
   });
 
   test("exposes the entry identity and translated button states (AC-5)", () => {

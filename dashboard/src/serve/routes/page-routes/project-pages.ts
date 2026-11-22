@@ -14,7 +14,9 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
 import { projectSettings } from "../../../project/project-settings.ts";
-import { projectIconSrc } from "./project-icon.ts";
+import { projectIconSource, projectIconSrc } from "./project-icon.ts";
+import { pinnedProjects, projectPinned } from "./project-pin.ts";
+import { hiddenProjects } from "./project-hide.ts";
 import { deployUnderWay } from "../../../queue/queue.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
@@ -175,7 +177,8 @@ export async function projectPages(
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
     // this page, so a scan per request is cheap enough to redo every
     // time — and no invalidation to get wrong.
-    const view = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === name);
+    const views = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir));
+    const view = views.find((p) => p.name === name);
     if (!view) return new Response("no such project\n", { status: 404 });
     const dir = ctx.displayProjectDir(name);
     // Fail open, the way the drift check on `/projects` does. Every
@@ -233,6 +236,7 @@ export async function projectPages(
     const machinery = ctx.machineryProjectDir(name);
     const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
+    const hidden = hiddenProjects(ctx);
     const html = renderProjectPage(
       view,
       projectSettings(dir, readiness, manifestDir),
@@ -240,9 +244,12 @@ export async function projectPages(
       new Date().toISOString(),
       ctx.nav(),
       {
-        // The page the reader came from, so a project opened from a
-        // spec's row goes back to that row; Projects without one.
-        backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
+        // The picker's list: the projects the Projects list shows, the
+        // hidden ones left out.
+        projects: await Promise.all(
+          views.filter((p) => ctx.allowed.has(p.name) && !hidden.has(p.name))
+            .map(async (p) => ({ name: p.name, icon: await projectIconSrc(ctx, p.name) })),
+        ),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here: `projectSettings(dir, readiness)`
@@ -273,12 +280,16 @@ export async function projectPages(
         },
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
+        pinnedProjects: pinnedProjects(ctx),
+        pinned: projectPinned(ctx, name),
+        hidden: hidden.has(name),
         models: {
           defaults: ctx.queue.defaults,
           modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
           providerChoices: providerPickerOptions(ctx.queue).providerChoices,
         },
         icon: await projectIconSrc(ctx, name),
+        iconSource: projectIconSource(ctx, name),
         drift,
         deployFailure: ctx.readDeployFailure(name),
         serving,
@@ -360,6 +371,8 @@ export async function projectPages(
       {
         readinessByProject,
         iconByProject,
+        pinnedProjects: pinnedProjects(ctx),
+        hiddenProjects: hiddenProjects(ctx),
         // Only a project the allowlist knows has anything to be removed from.
         removable: (name) => ctx.allowed.has(name),
         script: await specsClientScript(),

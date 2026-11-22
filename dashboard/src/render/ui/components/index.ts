@@ -17,6 +17,7 @@
 // invented at this layer.
 
 import { esc } from "../html.ts";
+import { dataAttrs } from "./button.ts";
 import { t, type Language } from "../../../i18n";
 import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
 
@@ -155,9 +156,14 @@ export function switchControl(o: {
   disabled?: boolean;
   /** Sends the form it sits in, for a switch the server answers. */
   submit?: boolean;
+  /** Extra classes, for the page script to find this switch by. */
+  hook?: string;
+  /** Written as `data-<key>` attributes, for the page script. */
+  data?: Record<string, string>;
 }): string {
   return (
-    `<button type="${o.submit ? "submit" : "button"}" role="switch" class="switch"${o.id ? ` id="${esc(o.id)}"` : ""} ` +
+    `<button type="${o.submit ? "submit" : "button"}" role="switch" class="switch${o.hook ? ` ${esc(o.hook)}` : ""}"` +
+    `${o.id ? ` id="${esc(o.id)}"` : ""}${dataAttrs(o.data)} ` +
     `aria-checked="${o.checked ? "true" : "false"}" aria-label="${esc(o.label)}" ` +
     `data-on="${esc(o.onWord)}" data-off="${esc(o.offWord)}"${o.disabled ? " disabled" : ""}>` +
     `<span class="switchtrack" aria-hidden="true"><span class="switchknob"></span></span>` +
@@ -315,4 +321,4 @@ export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON
 
 
 export { headerMenu } from "./header-menu";
-export { cardRow, cardSection, initialsHue, projectIcon, projectInitials, type CardRowParts, type CardSectionParts } from "./card";
+export { cardRow, cardSection, initialsHue, projectIcon, projectInitials, type ProjectIconView, type CardRowParts, type CardSectionParts } from "./card";

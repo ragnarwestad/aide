@@ -3,7 +3,7 @@
 // whose Referer is the page itself. Only a real browser decides what
 // Referer a click sends and keeps the browser tab's storage from one load
 // to the next, so this is a browser test.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
@@ -40,48 +40,6 @@ async function clickTab(page: Page, label: string): Promise<void> {
   const href = await tab.getAttribute("href");
   await withBrowser(Promise.all([page.waitForURL(new URL(href ?? "", base).href), tab.click()]), `the ${label} tab`);
 }
-
-describe("← Back after switching tabs", () => {
-  // One browser tab for the three cases, in order: each later one starts
-  // with something already remembered for the project page.
-  let page: Page;
-  beforeAll(async () => {
-    // No service worker: a page load over half a second is answered by its
-    // wait page, whose reload is a page load from itself, and this test is
-    // about the Referer of the loads the reader made.
-    page = await (await browser.newContext({ serviceWorkers: "block" })).newPage();
-  });
-
-  test("the project page opened from the Specs page leads Back there after its tabs", async () => {
-    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
-    const project = page.locator('#jobrows a[href="/projects/aide"]').first();
-    await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
-    expect(await backPath(page)).toBe("/specs");
-    await clickTab(page, "Deploy");
-    await clickTab(page, "Config");
-    expect(await backPath(page)).toBe("/specs");
-    await withBrowser(Promise.all([
-      page.waitForURL((url) => url.pathname === "/specs"),
-      page.locator("a.backlink").click(),
-    ]), "Back");
-    expect(new URL(page.url()).pathname).toBe("/specs");
-  });
-
-  test("a typed address leads Back to Projects, also after a tab", async () => {
-    await withBrowser(page.goto(`${base}/projects/aide`), "page.goto(project page)");
-    expect(await backPath(page)).toBe("/projects");
-    await clickTab(page, "Config");
-    expect(await backPath(page)).toBe("/projects");
-  });
-
-  test("opened again from a spec's open row, Back leads to that address, not the Specs page", async () => {
-    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec address)");
-    const project = page.locator('#jobrows a[href="/projects/aide"]').first();
-    await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
-    await clickTab(page, "Config");
-    expect(await backPath(page)).toBe(`/specs/aide/${FOLDER}`);
-  });
-});
 
 test("Settings opened from a spec page leads Back there after its Process tab", async () => {
   const page = await browser.newPage();

@@ -260,7 +260,7 @@ export function renderJobsRows(v: JobsView): string {
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices + executionGroupEditors(v, lang) +
-    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f)) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f), v.list.createProjects) +
     listTable({ tableAttrs: ' data-list="jobs"', head: jobsHead(f, lang), columns: columnGroup(), boxAttrs: windowAttributes(window), body, after: more })
   );
 }

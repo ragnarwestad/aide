@@ -80,9 +80,7 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
     expect(view(tab, { state: "queued", q: "night" })).toEqual(["nightly"]);
   });
 
-  test("a project in the filter narrows neither the rows nor the counts", () => {
-    expect(view(tab, { project: "other" })).toEqual(view(tab, {}));
-    expect(view(tab, { project: "other", q: "other:" })).toEqual(["report-other"]);
+  test("a project in the filter leaves the state counts as they are, as on the Specs list", () => {
     expect(jobsStateOptions(factsOf(tab), { project: "aide" })).toEqual(jobsStateOptions(factsOf(tab), {}));
   });
 });
@@ -217,12 +215,12 @@ describe("the state filter offers the states a row on the tab can be in", () => 
   });
 
   test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
-    const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
+    const options = jobsStateOptions(factsOf(tab), { q: "other:" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
       ["all", 1], ["active:all", 0], ["queued", 0], ["done", 0], ["waiting", 0], ["failed", 1], ["cancelled", 0],
     ]);
     expect(options.every((o) => o.on)).toBe(true);
-    expect(view(tab, { q: "other:", project: "aide" })).toEqual(["report-other"]);
+    expect(view(tab, { q: "other:" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { state: "waiting" }).find((o) => o.on)?.key).toBe("waiting");
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");
   });
@@ -434,4 +432,25 @@ test("Queued filter uses the same automatic wait decision as the row (AC-7)", ()
   const manual = jobEntry("manual", { state: "queued", queuePosition: { n: 1, total: 1, id: "job:m" }, errorReason: "held-back", error: "Choose an approach" });
   expect(jobsViewRows([auto, manual], { state: "queued" }).map(e => e.name)).toEqual(["automatic"]);
   expect(jobsStateOptions([auto.facts, manual.facts], {}).find(o => o.key === "queued")?.count).toBe(1);
+});
+
+describe("the Project filter", () => {
+  test("keeps one project's rows and counts only them; with no project, all are kept (AC-2)", () => {
+    expect(view(tab, { project: "other" })).toEqual(["report-other"]);
+    expect(jobsMatchingCount(tab, { project: "other" })).toBe(1);
+    expect(view(tab, {}).length).toBe(4);
+    expect(jobsMatchingCount(tab, {})).toBeGreaterThan(1);
+  });
+
+  test("keeps a group with a member of the project, and counts that member alone (AC-2)", () => {
+    const member = (folder: string, project: string): RowFacts =>
+      spec(folder, { specFolder: folder, state: "queued", project }).facts;
+    const release = spec("release", {
+      specFolder: "release", state: "queued", itemCount: 2,
+      members: [member("01-a", "aide"), member("01-b", "other")],
+    });
+    expect(view([release], { project: "other" })).toEqual(["release"]);
+    expect(jobsMatchingCount([release], { project: "other" })).toBe(1);
+    expect(view([release], { project: "nosuch" })).toEqual([]);
+  });
 });

@@ -10,7 +10,7 @@
 import { esc } from "../../html.ts";
 import { ICON_CHEVRON } from "../icons.ts";
 
-export { initialsHue, projectIcon, projectInitials } from "./project-icon.ts";
+export { initialsHue, projectIcon, projectInitials, type ProjectIconView } from "./project-icon.ts";
 
 export interface CardSectionParts {
   /** The heading over the card, as text. Absent draws no heading line

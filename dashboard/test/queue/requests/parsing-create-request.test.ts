@@ -523,3 +523,16 @@ describe("a close request's reason", () => {
     expect(close(reason).ok).toBe(true);
   });
 });
+
+describe("parseCreateRequest — a project hidden on the board", () => {
+  const allow = (project: string) => project === "aide";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test("is refused with a sentence saying it is hidden, and accepted once shown (AC-7)", () => {
+    const hidden = parseCreateRequest(CREATE, { allow, resolve: () => ({ specFolders: [], hidden: true }), defaults: DEFAULTS });
+    expect(hidden.ok).toBe(false);
+    if (!hidden.ok) expect(hidden.error).toContain("aide is hidden");
+    const shown = parseCreateRequest(CREATE, { allow, resolve: () => ({ specFolders: [], hidden: false }), defaults: DEFAULTS });
+    expect(shown.ok).toBe(true);
+  });
+});

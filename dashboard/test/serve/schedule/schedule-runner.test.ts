@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { setHidden } from "../../../src/project/project-admin/hidden.ts";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
 import { refreshSchedules, tickRunner, type ScheduleContext } from "../../../src/serve/schedules";
 
@@ -102,6 +103,19 @@ describe("refreshSchedules", () => {
     writeSchedule("fresh", [NIGHTLY]);
     const list = await jobsUntil(base, (l) => l.some((j) => j.project === "fresh"));
     expect(list.find((j) => j.project === "fresh")?.specFolder).toBe("schedule-nightly-report");
+  });
+
+  test("a hidden project's due entry is not fired, and fires once the project is shown (AC-6, AC-9)", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
+    });
+    setHidden(join(dir, "owned"), "aide", true);
+    writeSchedule("aide", [NIGHTLY]);
+    await new Promise((r) => setTimeout(r, 150));
+    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
+    setHidden(join(dir, "owned"), "aide", false);
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
+    expect(list.some((j) => j.specFolder === "schedule-nightly-report")).toBe(true);
   });
 
   test("a project with no schedule entries gets nothing enqueued", async () => {

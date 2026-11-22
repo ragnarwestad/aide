@@ -37,7 +37,7 @@ describe("← Back never leads back to the page it was pressed on", () => {
     const back = page.locator("a.backlink");
     expect(await back.getAttribute("href")).toBe("/projects/aide");
     await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), back.click()]), "Back to the project");
-    // The project page's own Back is its usual one, not Settings.
-    expect(await page.locator("a.backlink").getAttribute("href")).not.toContain("/settings");
+    // The project page's way back is its breadcrumb's Projects, not Settings.
+    expect(await page.locator("nav.breadcrumb a").getAttribute("href")).toBe("/projects");
   });
 });

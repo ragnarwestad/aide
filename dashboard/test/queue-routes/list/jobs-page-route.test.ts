@@ -681,33 +681,33 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
     const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
 
-    test("the filter bar holds only the state and type dropdowns, whatever the address carries (AC-1)", async () => {
+    test("with one project on the board and none chosen, the filter bar holds only the state and type dropdowns (AC-1)", async () => {
       const { base } = withOther();
-      for (const query of ["", "project=other"]) {
-        const html = await rowsOf(base, query);
-        expect(html.match(/data-filter="/g)).toHaveLength(2);
-        expect(html).toContain('data-filter="state"');
-        expect(html).toContain('data-filter="kind"');
-        expect(html).not.toContain('data-filter="project"');
-      }
+      const html = await rowsOf(base, "");
+      expect(html.match(/data-filter="/g)).toHaveLength(2);
+      expect(html).toContain('data-filter="state"');
+      expect(html).toContain('data-filter="kind"');
+      expect(html).not.toContain('data-filter="project"');
     });
 
-    test("an address that carries one shows the rows it shows without it", async () => {
+    test("an address that carries one keeps only that project's rows (AC-2)", async () => {
       const { base } = withOther();
       const without = rowIds(await rowsOf(base, "state=all"));
       expect(without).toContain("spec-other/schedule-report@reporto");
-      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(without);
+      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(["spec-other/schedule-report@reporto"]);
     });
 
-    test("no link and no field the tab builds from its view carries one", async () => {
+    test("every link and the search form the tab builds from its view carry it on (AC-2)", async () => {
       const { base } = withOther();
       const html = await rowsOf(base, "state=all&project=aide&sort=cost&q=report");
       const form = html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
       expect(form).toContain('name="sort"');
-      expect(form).not.toMatch(/name="project"/);
-      const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&"));
-      expect(hrefs.filter((h) => h.startsWith("/?"))).not.toHaveLength(0);
-      expect(hrefs.filter((h) => new URL(h, "http://x").searchParams.has("project"))).toEqual([]);
+      expect(form).toContain('name="project" value="aide"');
+      // The Project filter's own entries choose a project, All projects none.
+      const outsideFilter = html.replace(/<details class="menu state" id="project-filter"[\s\S]*?<\/details>/, "");
+      const hrefs = [...outsideFilter.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&")).filter((h) => h.startsWith("/?"));
+      expect(hrefs).not.toHaveLength(0);
+      expect(hrefs.filter((h) => new URL(h, "http://x").searchParams.get("project") !== "aide")).toEqual([]);
     });
   });
 

@@ -246,9 +246,10 @@
   .specsearch > .menu.state { position: absolute; right: 0; top: 100%; }
   .specsearch > .menu.state > summary { display: none; }
   .menupanel > [data-opens="usage-dialog"],
-  body:has(#state-filter):not(:has(#kind-filter)) .menupanel > [data-single-filter],
-  body:has(#kind-filter) .menupanel > [data-jobs-filter],
-  body:has(#kind-filter) .menupanel > [data-opens="kind-filter"] { display: flex; }
+  body:has(#state-filter):not(:has(#kind-filter, #project-filter)) .menupanel > [data-single-filter],
+  body:has(#kind-filter, #project-filter) .menupanel > [data-jobs-filter],
+  body:has(#kind-filter) .menupanel > [data-opens="kind-filter"],
+  body:has(#project-filter) .menupanel > [data-opens="project-filter"] { display: flex; }
   /* The list starts the board's standard margin below the search line. */
   #jobrows .specsearch { position: relative; margin-bottom: var(--sp-3); }
 }

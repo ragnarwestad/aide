@@ -2,7 +2,7 @@
 // rows offer Remove. Where anything sits on the row is not tested.
 import { describe, expect, test } from "bun:test";
 import { Window, type Element as DomElement } from "happy-dom";
-import { projectListBody } from "../../../../src/render/pages/projects-page/overview-list.ts";
+import { orderProjects, projectListBody } from "../../../../src/render/pages/projects-page/overview-list.ts";
 import type { ProjectView } from "../../../../src/render";
 import { askButton } from "../../../../src/render/ui/components";
 import { initialsHue, projectIcon, projectInitials } from "../../../../src/render/ui/components/card/project-icon.ts";
@@ -85,6 +85,47 @@ describe("the Projects list's rows", () => {
   });
 });
 
+describe("the Projects list's order", () => {
+  test("is by name, and the list draws its rows in it (AC-4)", () => {
+    const projects = [ok("zeta"), ok("aide"), ok("mid")];
+    expect(orderProjects(projects).map((p) => p.name)).toEqual(["aide", "mid", "zeta"]);
+    expect(projects.map((p) => p.name)).toEqual(["zeta", "aide", "mid"]);
+    expect(draw(projects, () => false).map((r) => r.getAttribute("data-project"))).toEqual(["aide", "mid", "zeta"]);
+  });
+
+  test("puts a pinned project first, and an unpinned one back in its name place (AC-2, AC-4)", () => {
+    const projects = [ok("beta"), ok("gamma"), ok("alpha")];
+    expect(orderProjects(projects, new Set(["gamma"])).map((p) => p.name)).toEqual(["gamma", "alpha", "beta"]);
+    expect(orderProjects(projects, new Set()).map((p) => p.name)).toEqual(["alpha", "beta", "gamma"]);
+  });
+});
+
+describe("hidden projects on the Projects list", () => {
+  const drawHidden = (hidden?: ReadonlySet<string>) => {
+    const window = new Window();
+    window.document.body.innerHTML = projectListBody([ok("gamma"), ok("beta"), ok("aide"), ok("delta")], {
+      pageHref: (name) => `/projects/${name}`, hidden, lang: "en",
+    });
+    return window.document;
+  };
+  const names = (rows: Iterable<DomElement>) => [...rows].map((r) => r.getAttribute("data-project"));
+
+  test("sit in a shut Hidden fold after the shown ones, and only there (AC-4)", () => {
+    const doc = drawHidden(new Set(["gamma", "beta"]));
+    const fold = doc.querySelector("details")!;
+    expect(fold.hasAttribute("open")).toBe(false);
+    expect(fold.querySelector("summary")!.textContent).toContain("Hidden");
+    expect(names(fold.querySelectorAll("[data-project]"))).toEqual(["beta", "gamma"]);
+    const all = names(doc.querySelectorAll("[data-project]"));
+    expect(all).toEqual(["aide", "delta", "beta", "gamma"]);
+  });
+
+  test("draw no fold when none is hidden (AC-4)", () => {
+    expect(drawHidden(new Set()).querySelector("details")).toBeNull();
+    expect(drawHidden().querySelector("details")).toBeNull();
+  });
+});
+
 describe("a project's icon", () => {
   test("is an image of its source, which runs nothing on the board (AC-17)", () => {
     const window = new Window();
@@ -108,5 +149,22 @@ describe("a project's icon", () => {
     expect(window.document.querySelector("img")).toBeNull();
     expect(window.document.body.textContent).toBe("AI");
     expect(window.document.body.firstElementChild!.getAttribute("data-hue")).toBe(String(initialsHue("aide")));
+  });
+
+  test("a chosen built-in icon is drawn inline on its chosen colour's square, not as an image (AC-2)", () => {
+    const window = new Window();
+    window.document.body.innerHTML = projectIcon("aide", { glyph: "rocket", hue: 4 });
+    const icon = window.document.body.firstElementChild!;
+    expect(icon.getAttribute("data-hue")).toBe("4");
+    expect(icon.querySelector("svg")).not.toBeNull();
+    expect(window.document.querySelector("img")).toBeNull();
+    expect(icon.textContent).toBe("");
+  });
+
+  test("an uploaded file is an image whatever its address carries, so it runs nothing (AC-8)", () => {
+    const window = new Window();
+    window.document.body.innerHTML = projectIcon("aide", { src: "/projects/aide/icon?v=17" });
+    expect(window.document.querySelector("img")!.getAttribute("src")).toBe("/projects/aide/icon?v=17");
+    expect(window.document.querySelectorAll("svg, script, object, iframe, embed").length).toBe(0);
   });
 });

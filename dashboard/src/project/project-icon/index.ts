@@ -7,6 +7,8 @@
 import type { GitRunner } from "../../git/process/index.ts";
 
 export { readBlob } from "./read-blob.ts";
+export { ICON_FILE_MAX, checkIconFile, clearChosenIcon, readChosenIcon, writeChosenFile, writeChosenGlyph, type ChosenIcon } from "./chosen.ts";
+export { GLYPH_NAMES, glyphSvg, isGlyph } from "./glyphs.ts";
 
 /** The image types an icon may be, and the type each is served as. Any
  *  other extension is not an icon. */

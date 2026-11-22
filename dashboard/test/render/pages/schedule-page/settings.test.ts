@@ -57,7 +57,7 @@ describe("the Settings tab", () => {
       Name: "nightly-report", Cron: "0 3 * * *", "Prompt file": "docs/nightly.md", Model: "codex-fast", Notify: "Every run",
     });
     expect(shown(doc).Enabled).toBe("Yes");
-    expect(doc.querySelector("input.scheduleenabled")).toBeNull();
+    expect(doc.querySelector(".scheduleenabled")).toBeNull();
     expect(doc.querySelector("form.schedulerun")).toBeNull();
     const ask = doc.querySelector("button[data-ask]")!.getAttribute("data-ask")!;
     const ok = doc.querySelector(`dialog[id="${ask}"] form[action="${BASE}/delete"]`);

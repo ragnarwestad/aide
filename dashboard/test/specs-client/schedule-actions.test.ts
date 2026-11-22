@@ -10,13 +10,13 @@ import {
   submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
-function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
-  const box = {
-    checked: o.checked,
-    disabled: false,
-    getAttribute: (name: string) => (name === "data-post-to" ? o.postTo : null),
-  };
-  return box as unknown as HTMLInputElement;
+/** The Enabled switch as `switchControl()` draws it, in a document of its own. */
+function fakeSwitch(o: { checked: boolean; postTo: string }): HTMLButtonElement {
+  const window = new Window();
+  window.document.body.innerHTML =
+    `<button type="button" role="switch" class="switch scheduleenabled" aria-checked="${o.checked}" ` +
+    `data-on="On" data-off="Off" data-post-to="${o.postTo}"><span class="switchword">${o.checked ? "On" : "Off"}</span></button>`;
+  return window.document.querySelector("button") as unknown as HTMLButtonElement;
 }
 
 function fakeFetch(handler: (url: string, init?: RequestInit) => { ok: boolean; body?: unknown }): typeof fetch {
@@ -27,38 +27,50 @@ function fakeFetch(handler: (url: string, init?: RequestInit) => { ok: boolean; 
 }
 
 describe("postScheduleEnabled", () => {
-  test("disables the box, posts the wanted value, and leaves it checked on success", async () => {
-    const box = fakeCheckbox({ checked: true, postTo: "/api/queue/schedule/aide/nightly/enabled" });
+  test("posts the opposite of the switch's state and leaves it standing there on success (AC-5)", async () => {
+    const sw = fakeSwitch({ checked: false, postTo: "/api/queue/schedule/aide/nightly/enabled" });
     const calls: { url: string; body: string }[] = [];
     const fetchImpl = fakeFetch((url, init) => {
       calls.push({ url, body: String(init?.body ?? "") });
       return { ok: true, body: { ok: true, enabled: true } };
     });
-    await postScheduleEnabled(box, fetchImpl);
+    await postScheduleEnabled(sw, fetchImpl);
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toBe("/api/queue/schedule/aide/nightly/enabled");
     expect(JSON.parse(calls[0]!.body)).toEqual({ enabled: "1" });
-    expect(box.checked).toBe(true);
-    expect(box.disabled).toBe(false);
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    expect(sw.querySelector(".switchword")!.textContent).toBe("On");
+    expect(sw.disabled).toBe(false);
   });
 
-  test("puts the tick back on a refusal", async () => {
-    const box = fakeCheckbox({ checked: false, postTo: "/api/queue/schedule/aide/nightly/enabled" });
-    const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
-    await postScheduleEnabled(box, fetchImpl);
-    expect(box.checked).toBe(true);
-    expect(box.disabled).toBe(false);
+  test("puts the switch back on a refusal (AC-5)", async () => {
+    const sw = fakeSwitch({ checked: false, postTo: "/x" });
+    await postScheduleEnabled(sw, fakeFetch(() => ({ ok: false, body: { error: "refused" } })));
+    expect(sw.getAttribute("aria-checked")).toBe("false");
+    expect(sw.disabled).toBe(false);
   });
 
-  test("the box is disabled while the request is out", async () => {
+  test("puts the switch back when the request does not get through (AC-5)", async () => {
+    const sw = fakeSwitch({ checked: true, postTo: "/x" });
+    const fetchImpl = (async () => { throw new Error("offline"); }) as unknown as typeof fetch;
+    await postScheduleEnabled(sw, fetchImpl);
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    expect(sw.disabled).toBe(false);
+  });
+
+  test("the switch is disabled while the request is out (AC-5)", async () => {
     let sawDisabled = false;
-    const box = fakeCheckbox({ checked: true, postTo: "/x" });
-    const fetchImpl = (async () => {
-      sawDisabled = box.disabled;
+    let sentBody = "";
+    const sw = fakeSwitch({ checked: true, postTo: "/x" });
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      sawDisabled = sw.disabled;
+      sentBody = String(init?.body ?? "");
       return { ok: true, json: async () => ({ ok: true }) } as Response;
     }) as unknown as typeof fetch;
-    await postScheduleEnabled(box, fetchImpl);
+    await postScheduleEnabled(sw, fetchImpl);
     expect(sawDisabled).toBe(true);
+    expect(JSON.parse(sentBody)).toEqual({ enabled: "0" });
+    expect(sw.getAttribute("aria-checked")).toBe("false");
   });
 });
 

@@ -7,6 +7,8 @@ import { fakeGit } from "../../helpers/fake-git.ts";
 import { MAIN_TEST_SERVER_KEY } from "../../../src/serve/test-servers/lifecycle.ts";
 import type { TestServer } from "../../../src/serve/test-servers/store.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { join } from "node:path";
+import { setHidden } from "../../../src/project/project-admin/hidden.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-test-board-routes-");
 afterEach(() => harness.cleanup());
@@ -24,6 +26,14 @@ describe("POST /api/queue/cleanup", () => {
     const b = (await second.json()) as { job: { id: string } };
     expect(a.job.steps).toEqual(["cleanup"]);
     expect(b.job.id).toBe(a.job.id);
+  });
+
+  test("files the job under the first shown project when the first by name is hidden (AC-7)", async () => {
+    const { base, dir } = start({ queueProjects: ["aide", "beta"] }, ["beta"]);
+    setHidden(join(dir, "owned"), "aide", true);
+    const res = await fetch(`${base}/api/queue/cleanup`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { job: { project: string } }).job.project).toBe("beta");
   });
 });
 

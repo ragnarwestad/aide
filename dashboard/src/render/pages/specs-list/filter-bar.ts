@@ -106,20 +106,16 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // `matchesState(s, ARCHIVED_STATE)` above is true for any entry naming
   // no `states`, and would add every unbuilt archived key to it.
   const uncountedNotVerified = searching ? 0 : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
-  // A chip per project stood here until 2026-08-23. It was one control
-  // that grew with the machine: fine at two projects, unreadable at
-  // twenty, and the dashboard now serves whatever a person has. Nothing
-  // replaced it, deliberately — nobody had asked to filter by project,
-  // and the list is short enough to read. Build something when the need
-  // is real, and a dropdown is the shape that does not grow.
   const state = stateDropdown(f, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
+  // A dropdown, not a chip per project: a chip row grows with the board.
+  const project = projectDropdown(f, opts.createProjects ?? [], (p) => queueHref(f, { project: p }), lang);
   return searchForm(
     {
       action: "/specs",
       hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
       q: f.q ?? "",
       clearHref: queueHref(f, { q: "" }),
-      after: state + resultCount(shown) + newSpecLink(opts, lang),
+      after: state + project + resultCount(shown) + newSpecLink(opts, lang),
     },
     lang,
   );
@@ -170,6 +166,27 @@ function stateDropdown(
   });
 }
 
+/** The Project filter: All projects, then one entry per project in the order
+ *  given, the pinned ones first. One project at a time, so it has no None.
+ *  Not drawn for fewer than two projects unless one is chosen, and a chosen
+ *  project the list leaves out (a hidden one) keeps its entry at the end, so
+ *  All projects can always clear a choice. `hrefFor` answers an escaped link,
+ *  and is asked with "" for All projects. */
+export function projectDropdown(f: SpecsFilter, projects: readonly string[], hrefFor: (project: string) => string, lang: Language): string {
+  if (f.project && !projects.includes(f.project)) projects = [...projects, f.project];
+  if (projects.length < 2 && !f.project) return "";
+  const label = t(lang, "list.projectLabel");
+  return menuDropdown({
+    filter: "project",
+    ariaLabel: label,
+    triggerLabel: label,
+    options: [
+      { key: "all", label: t(lang, "list.allProjects"), on: !f.project, href: hrefFor("") },
+      ...projects.map((p) => ({ key: p, label: p, on: f.project === p, href: hrefFor(p) })),
+    ],
+  });
+}
+
 /** One option of a dropdown: its label as plain text, its count, whether it is
  *  the chosen one, and the link that chooses it, already escaped. */
 export interface MenuOption {
@@ -189,15 +206,15 @@ export function resultCount(n: number): string {
 
 /** A filter dropdown of checkbox links, its button named by `triggerLabel`
  *  whatever is ticked. `filter` names the control for the page script and
- *  the tests. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string; none: Pick<MenuOption, "label" | "href"> }): string {
+ *  the tests. `none`, where given, stands beside the first option. */
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string; none?: Pick<MenuOption, "label" | "href"> }): string {
   const [all, ...choices] = o.options;
   const option = (opt: MenuOption) =>
     (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
     `<a data-nav href="${opt.href}" role="checkbox" aria-checked="${opt.on}">` +
     `<span class="check" aria-hidden="true"></span>${esc(opt.label)}${opt.count === undefined ? "" : ` (${opt.count})`}</a>`;
-  const none = { key: "none", ...o.none, on: !o.options.some((opt) => opt.on) };
-  const options = `<div class="row">${option(all!)}${option(none)}</div>` + choices.map(option).join("");
+  const none = o.none ? option({ key: "none", ...o.none, on: !o.options.some((opt) => opt.on) }) : "";
+  const options = `<div class="row">${option(all!)}${none}</div>` + choices.map(option).join("");
   const visible = esc(o.triggerLabel);
   const widths = `<span aria-hidden="true">${visible}</span>`;
   return (

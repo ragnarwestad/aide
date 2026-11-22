@@ -5,7 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { ProjectReadiness, ReadinessCheck } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { askButton, btnLink, buttonForm, cardSection, commitFacts, helpPopover, messageSlot, projectIcon, rowMessage } from "../../ui/components";
+import { askButton, btnLink, buttonForm, cardSection, commitFacts, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -19,7 +19,8 @@ import { SORT_DEFAULT_DIR, sortRows } from "../schedule-page/list.ts";
 import { queryHref, resolveSort, sortHeading, type SortColumns } from "../schedule-page/sort-head.ts";
 import { deployAskDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
-import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
+import { projectPageHead } from "./page-head.ts";
+import { projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
 import { projectModelsCard } from "./project-models.ts";
 import { reloadMarker } from "../spec-page/tabs.ts";
@@ -263,7 +264,7 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   const table =
     entries.length === 0
       ? `<p class="muted">${t(lang, "schedule.nothingScheduled")}</p>`
-      : `<div class="tablewrap"><table class="list"><thead><tr>${th("name", t(lang, "schedule.colName"))}` +
+      : `<div class="tablewrap"><table class="list scheduletab"><thead><tr>${th("name", t(lang, "schedule.colName"))}` +
         th("next", t(lang, "schedule.colNextRun")) +
         // Enabled, then two unlabelled columns: Run now and Delete.
         `${th("enabled", t(lang, "schedule.enabled"))}<th></th><th></th></tr></thead><tbody>` +
@@ -397,7 +398,8 @@ export function renderProjectPage(
     (awaitingDrift ? reloadMarker(AWAITING_DRIFT_REFRESH_SECONDS) : "") +
     tabbedBody(
       projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}, "", { lang: opts.lang }), panel,
-      opts.backHref ?? PROJECTS_ROUTE, { html: projectIcon(p.name, opts.icon ?? null) + esc(p.name) }, false, "", opts.lang ?? "en",
+      { head: projectPageHead({ name: p.name, icon: opts.icon ?? null, tab, projects: opts.projects ?? [], pinned: opts.pinnedProjects, lang: opts.lang ?? "en" }) },
+      undefined, false, "", opts.lang ?? "en",
     );
   return pageShell(p.name, nav, base, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,

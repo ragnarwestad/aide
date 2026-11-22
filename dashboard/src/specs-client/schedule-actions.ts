@@ -6,7 +6,7 @@
 // `#jobrows`.
 
 import { isThisPage, type Here } from "./back-link";
-import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
+import { postForm, refusalText, setSwitch, writeLine, type ActionResult } from "./press.ts";
 import { swapPage } from "./page-swap";
 import { jobActivity } from "../queue/job-rules/activity.ts";
 import { scheduleTrackingKey } from "../project/spec-names.ts";
@@ -73,28 +73,27 @@ export function bindScheduleRuns(doc: Document): () => void {
   return () => doc.removeEventListener("aide:queue-changed", reconcile);
 }
 
-/** The Enabled checkbox on a list row: no form, no confirm — the tick
- *  itself is the press, the same shape
- *  `postTailStep` gives the queue list's own tail-step chip. Disabled
- *  while the request is out; put back to its old value on a refusal,
- *  left alone on success since the box already shows what was asked
- *  for. */
-export async function postScheduleEnabled(box: HTMLInputElement, fetchImpl: typeof fetch = fetch): Promise<void> {
-  const to = box.getAttribute("data-post-to") ?? "";
-  const wanted = box.checked;
-  box.disabled = true;
+/** The Enabled switch on a list row: no form, no confirm — the press
+ *  itself is the change, the same shape `postTailStep` gives the queue
+ *  list's own tail-step chip. It moves at once and is disabled while the
+ *  request is out; a refusal, or a request that did not get through,
+ *  puts it back where it was. */
+export async function postScheduleEnabled(sw: HTMLElement, fetchImpl: typeof fetch = fetch): Promise<void> {
+  const to = sw.getAttribute("data-post-to") ?? "";
+  const wanted = sw.getAttribute("aria-checked") !== "true";
+  setSwitch(sw, { checked: wanted, disabled: true });
+  let saved = false;
   try {
     const res = await fetchImpl(to, {
       method: "POST",
       headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify({ enabled: wanted ? "1" : "0" }),
     });
-    if (!res.ok) box.checked = !wanted;
+    saved = res.ok;
   } catch {
-    box.checked = !wanted;
-  } finally {
-    box.disabled = false;
+    saved = false;
   }
+  setSwitch(sw, { checked: saved ? wanted : !wanted, disabled: false });
 }
 
 /** The Run-now button's carrier form. It posts

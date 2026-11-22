@@ -157,7 +157,9 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
  *  the page from itself, so the page script keeps the Back the page was
  *  opened with (`specs-client/back-link/`). */
 export function tabbedBody(
-  banner: string, tabs: string, panel: string, backHref: string, title?: string | { html: string },
+  banner: string, tabs: string, panel: string,
+  /** Where Back goes, or a head line of the page's own drawn in its place. */
+  backHref: string | { head: string }, title?: string | { html: string },
   /** True for a page whose content is FIELDS: they cap themselves at a
    *  reading width narrower than `.doc`'s own, and the wrapper takes
    *  theirs so the page has one right edge. A page of tables — this
@@ -174,7 +176,7 @@ export function tabbedBody(
     // Both spellings written out rather than built by hand, so each
     // class name stands in the source as the literal the attribute holds.
     (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
-    backLink(backHref, title, headTrailing, { keep: true, lang }) +
+    (typeof backHref === "string" ? backLink(backHref, title, headTrailing, { keep: true, lang }) : backHref.head) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +

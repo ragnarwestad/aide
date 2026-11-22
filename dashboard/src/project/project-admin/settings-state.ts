@@ -41,12 +41,12 @@ export function settingsHome(tracked: boolean | null, settingsFileExists: boolea
   return settingsFileExists ? "dashboard" : "none";
 }
 
-/** Write `text` to `file` through a temporary file and one `rename`, so a
+/** Write `data` to `file` through a temporary file and one `rename`, so a
  *  reader never sees half of it. */
-export function writeAtomically(file: string, text: string): void {
+export function writeAtomically(file: string, data: string | Uint8Array): void {
   mkdirSync(dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  writeFileSync(tmp, text);
+  writeFileSync(tmp, data);
   renameSync(tmp, file);
 }
 

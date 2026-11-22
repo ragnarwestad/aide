@@ -115,7 +115,7 @@ export function createServer(opts: ServerOptions) {
     // rejection that takes the server down.
     .catch(() => {});
 
-  const resolveProject: ProjectResolver = createProjectResolver(state, allowed, targets);
+  const resolveProject: ProjectResolver = createProjectResolver(state, allowed, targets, opts.dashboardCheckoutRoot);
 
   const watch = setupWatch(opts, allowed, state);
 

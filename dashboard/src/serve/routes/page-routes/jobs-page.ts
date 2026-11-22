@@ -18,6 +18,7 @@ import {
 } from "../../../render";
 import { jobsViewChoice, languageChoice, specsClientScript } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
+import { projectChoices } from "./project-pin.ts";
 import type { RoutesContext } from "..";
 
 /** The rows the address opens, and the spec a Create just queued: `created`
@@ -76,7 +77,8 @@ export async function jobsPage(
     : undefined;
   const rowOptions = specRowOptions(ctx, url, langResult.lang);
   const unchanged = listSnapshot(ctx, jobs);
-  const filter = { ...rowOptions.filter, ...choice.view, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
+  // The Project filter travels in the address alone, never in the view's cookie.
+  const filter = { ...rowOptions.filter, ...choice.view, project: url.searchParams.get("project") ?? undefined, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
   const summaryArchive = cut ? [] : ctx.archivedSpecSummaries?.() ?? [];
   const scheduleEntryExists = (project: string, name: string) => ctx.scheduleStore.list(project).some((entry) => entry.name === name);
   const waiting = ctx.queue.waiting.snapshot().entries;
@@ -124,6 +126,8 @@ export async function jobsPage(
       // The archived rows the list's Active entry shows: those whose branch has not merged.
       archivedSpecs: ctx.archivedSpecRows(ACTIVE_FILTER_KEY, keys),
       listPath: "/",
+      // The Project filter's list: the projects a spec can be created in.
+      createProjects: projectChoices(ctx),
       failedCreates: ctx.push.failedCreates.list(),
       currentUrl: langResult.currentUrl,
       script: await specsClientScript(),

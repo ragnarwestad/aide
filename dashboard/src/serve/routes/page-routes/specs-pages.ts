@@ -9,6 +9,7 @@ import { providerPickerOptions } from "../../providers/options.ts";
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, resolveBackHref, specPagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, modelsInUse, specsClientScript } from "../../serve-helpers";
 import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "./specs-list-view.ts";
+import { projectChoices } from "./project-pin.ts";
 import type { RoutesContext } from "..";
 
 /** The typed text of a failed create, by its id; absent for an id that is not kept. */
@@ -62,7 +63,7 @@ export async function specsPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
     const html = renderNewSpecPage(ctx.nav(), new Date().toISOString(), {
-      createProjects: [...ctx.allowed].sort(),
+      createProjects: projectChoices(ctx),
       targets: ctx.withFreshness(ctx.targets()),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/specs", url.pathname),
       script: await specsClientScript(),

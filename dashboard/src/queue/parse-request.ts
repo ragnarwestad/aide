@@ -21,7 +21,7 @@ import { PICK_PARTS } from "./providers/side-tools.ts";
 
 export type ParseResult = { ok: true; job: Job } | ({ ok: false } & RequestRefusal);
 
-import { fixInTheForm, invalidRequest, type RequestRefusal } from "../format/request-fixes.ts";
+import { fixInTheForm, invalidRequest, projectHidden, type RequestRefusal } from "../format/request-fixes.ts";
 export { invalidRequest } from "../format/request-fixes.ts";
 
 export const NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
@@ -76,17 +76,15 @@ export function parseJobRequest(
 
   if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, ...invalidRequest("invalid project") };
   const resolved = opts.resolve(r.project);
-  if (!resolved) return { ok: false, ...invalidRequest(`unknown or not-allowed project: ${r.project}`) };
+  if (!resolved || resolved.hidden) return { ok: false, ...(resolved ? projectHidden(r.project) : invalidRequest(`unknown or not-allowed project: ${r.project}`)) };
 
   if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) {
     return { ok: false, ...invalidRequest("invalid specFolder") };
   }
   // A `schedule` job never resolves under the specs root — a schedule
   // entry is not a spec, and its tracking key is a `schedule-<name>` key
-  // instead, the same SHAPE `create`'s provisional
-  // `new-<8hex>` key already has (though this exemption is new logic,
-  // not a copy of `create`'s own — that one lives in a wholly separate
-  // parser, `parseCreateRequest`). Gated on the STEPS actually being
+  // instead, the same SHAPE `create`'s provisional `new-<8hex>` key has
+  // (`parseCreateRequest` has its own exemption). Gated on the STEPS being
   // exactly `["schedule"]`, never on the key's shape alone: a
   // specFolder that merely looks like a schedule key must not let
   // another step skip the "must already exist" check below.
@@ -374,6 +372,7 @@ export function parseCreateRequest(
   }
   if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, ...invalidRequest("invalid project") };
   if (!opts.allow(r.project)) return { ok: false, ...invalidRequest(`unknown or not-allowed project: ${r.project}`) };
+  if (opts.resolve?.(r.project)?.hidden) return { ok: false, ...projectHidden(r.project) };
 
   const title = text(r.title, TITLE_MAX, "title");
   if (title instanceof Error) return { ok: false, error: title.message, solution: title.solution };

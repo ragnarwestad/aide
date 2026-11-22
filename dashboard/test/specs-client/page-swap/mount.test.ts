@@ -32,15 +32,14 @@ test("mounts Settings, Notifications, Deploy and Schedule controls after a page 
     <form data-settings-form action="/api/settings"><button type="submit">Save</button></form>
     <section data-push-panel data-key="x" data-lang="en"><button id="push-toggle"></button><p data-push-status></p></section>
     <section data-origin-check="/api/origin"></section>
-    <input class="scheduleenabled" data-post-to="/api/schedule/enabled" type="checkbox">
+    <button type="button" role="switch" class="switch scheduleenabled" aria-checked="false" data-post-to="/api/schedule/enabled"></button>
   `;
   mountPage(document, { referrer: "" });
   const settings = document.querySelector("form[data-settings-form]") as HTMLFormElement;
   const submit = new Event("submit", { bubbles: true, cancelable: true });
   settings.dispatchEvent(submit);
-  const enabled = document.querySelector("input.scheduleenabled") as HTMLInputElement;
-  enabled.checked = true;
-  enabled.dispatchEvent(new Event("change", { bubbles: true }));
+  const enabled = document.querySelector("button.scheduleenabled") as HTMLButtonElement;
+  enabled.click();
   await Promise.resolve();
   await Promise.resolve();
   expect(submit.defaultPrevented).toBe(true);
@@ -183,4 +182,20 @@ test("a model select drawn in place is narrowed to its own tool (AC-2)", async (
   await mounted(NEW_SPEC, "http://board.test/new?live=0");
   const gpt = document.querySelector('select[name="model.analyze"] option[value="gpt"]') as HTMLOptionElement;
   expect(gpt.hidden).toBe(true);
+});
+
+test("the Enabled switch saves on a click, and Enter on it is held back and saves nothing (AC-5)", async () => {
+  const { requests } = await mounted(
+    `<button type="button" role="switch" class="switch scheduleenabled" aria-checked="true" data-on="On" data-off="Off" data-post-to="/api/schedule/enabled"></button>`,
+  );
+  const sw = document.querySelector("button.scheduleenabled") as HTMLButtonElement;
+  const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+  sw.dispatchEvent(enter);
+  await settled();
+  expect(enter.defaultPrevented).toBe(true);
+  expect(requests.filter((r) => r.url === "/api/schedule/enabled")).toEqual([]);
+  sw.click();
+  await settled();
+  expect(requests.filter((r) => r.url === "/api/schedule/enabled").map((r) => JSON.parse(r.body))).toEqual([{ enabled: "0" }]);
+  expect(sw.getAttribute("aria-checked")).toBe("false");
 });

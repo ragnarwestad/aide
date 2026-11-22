@@ -34,3 +34,18 @@ test("the nightly cleanup is board-wide and chooses a stable project (AC-5)", ()
   expect(enqueueNightlyCleanup(queue as never, ["a", "b"], new Date(2026, 10, 8, 4, 0))).toBe(false);
   expect(enqueueNightlyCleanup(queue as never, ["b", "a"], new Date(2026, 10, 8, 4, 0))).toBe(false);
 });
+
+test("a hidden project is passed over, and with every project hidden no cleanup is queued (AC-7)", () => {
+  expect(cleanupProject(["a", "b", "c"], new Set(["a"]))).toBe("b");
+  expect(cleanupProject(["a", "b"], new Set(["a", "b"]))).toBeUndefined();
+  const made: unknown[] = [];
+  const queue = {
+    list: () => [],
+    enqueue: (raw: unknown) => { made.push(raw); return { ok: true, job: { id: "nightly", ...raw as object } }; },
+    update: () => undefined,
+  };
+  const at = new Date(2026, 10, 8, 3, 0);
+  expect(enqueueNightlyCleanup(queue as never, ["a", "b"], at, new Set(["a", "b"]))).toBe(false);
+  expect(enqueueNightlyCleanup(queue as never, ["a", "b"], at, new Set(["a"]))).toBe(true);
+  expect(made).toEqual([{ project: "b", specFolder: "cleanup", steps: ["cleanup"] }]);
+});

@@ -13,8 +13,9 @@ import {
 import { settingLabel } from "../../../project/setting-labels.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { formatSentence } from "../../../messages/format.ts";
-import { btn, cardRow, cardSection, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btn, buttonForm, cardRow, cardSection, confirmDialog, messageSlot, rowMessage, switchControl } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { iconChoiceLine, iconDialogs } from "./icon-dialogs.ts";
 import type { ProjectPageOptions } from "./types.ts";
 
 /** The test command's explanation when nothing is configured. A run and a
@@ -100,8 +101,9 @@ function settingField(r: SettingRow, opts: ProjectPageOptions, lang: Language): 
 }
 
 /** One setting's row: its name and key, what it is for and any problem
- *  with its value, and its field. */
-function settingRow(r: SettingRow, opts: ProjectPageOptions, lang: Language): string {
+ *  with its value, and its field. The `icon` row also shows the icon and
+ *  offers to choose one (`icon-dialogs.ts`). */
+function settingRow(r: SettingRow, name: string, opts: ProjectPageOptions, lang: Language): string {
   // A value that does not resolve is marked where it is shown, in
   // readiness's own sentence — never a second wording of the same fact
   // (`project-settings.ts` reads it verbatim). The check's `blocking`
@@ -117,7 +119,7 @@ function settingRow(r: SettingRow, opts: ProjectPageOptions, lang: Language): st
     title: esc(settingLabel(r.key, lang)),
     sub: r.key,
     explain: purpose + problem,
-    control: settingField(r, opts, lang),
+    control: (r.key === "icon" ? iconChoiceLine(name, opts, lang) : "") + settingField(r, opts, lang),
   });
 }
 
@@ -151,7 +153,61 @@ const CARD_ID: Record<SettingsGroupFile, string> = {
   manifest: "projectsettingsform-manifest",
 };
 
-/** The Config tab's two settings cards, one form each. A form posts only
+/** Where a refused Pin is said. */
+const PIN_LINE = "projectpin-refused";
+
+/** The Pin card: one switch, in a form of its own since the settings cards
+ *  are forms and forms do not nest. The press sends the other state, and
+ *  the page loads again with it, as a provider's switch does. */
+function pinCard(name: string, opts: ProjectPageOptions, lang: Language): string {
+  const pinned = opts.pinned ?? false;
+  const form =
+    `<form class="reloadform" method="post" action="/projects/${esc(encodeURIComponent(name))}/pin" data-line="${PIN_LINE}">` +
+    `<input type="hidden" name="pinned" value="${pinned ? "off" : "on"}">` +
+    switchControl({
+      label: t(lang, "setting.pin.aria", { name }), checked: pinned, submit: true,
+      onWord: t(lang, "setting.pin.on"), offWord: t(lang, "setting.pin.off"),
+    }) +
+    `</form>`;
+  return cardSection({
+    body: cardRow({
+      title: esc(t(lang, "setting.pin.title")),
+      explain: esc(t(lang, "setting.pin.explain")) + messageSlot("refused", "failed", { id: PIN_LINE }),
+      control: form,
+    }),
+  });
+}
+
+/** Where a refused Hide or Show is said. */
+const HIDE_LINE = "projecthide-refused";
+
+/** The Hide card: Hide on a shown project, asking first as a schedule
+ *  entry's Delete does, though nothing is lost; Show on a hidden one, which
+ *  asks nothing. Either press loads the page again with the new state. */
+function hideCard(name: string, opts: ProjectPageOptions, lang: Language): string {
+  const action = `/projects/${encodeURIComponent(name)}/hide`;
+  const id = `hideask-${name}`;
+  const control = opts.hidden
+    ? buttonForm({ action, hook: "reloadform", hidden: { hidden: "off" }, data: { line: HIDE_LINE }, button: { label: t(lang, "setting.hide.show") } })
+    : askButton({ label: t(lang, "setting.hide.hide"), dialogId: id }) +
+      confirmDialog(lang, {
+        id,
+        title: t(lang, "setting.hide.askTitle", { name }),
+        sentence: t(lang, "setting.hide.askSentence"),
+        ok: { variant: "primary" },
+        post: { action, hook: "reloadform", hidden: { hidden: "on" }, data: { line: HIDE_LINE } },
+      });
+  return cardSection({
+    body: cardRow({
+      title: esc(t(lang, "setting.hide.title")),
+      explain: esc(t(lang, "setting.hide.explain")) + messageSlot("refused", "failed", { id: HIDE_LINE }),
+      control,
+    }),
+  });
+}
+
+/** The Config tab's two settings cards, one form each, then the Pin and Hide cards, and after them the
+ *  icon row's dialogs. A form posts only
  *  its own card's fields, and the route stores only what a post carries,
  *  so Save stores only that card. Cancel is a reset: it puts the card's
  *  fields back to the values they were drawn with, its saved values. A
@@ -170,7 +226,7 @@ export function unifiedSettingsTable(
     const rows = group.keys
       .map((key) => rowFor(key))
       .filter((r): r is SettingRow => r !== undefined)
-      .map((r) => settingRow(r, opts, lang))
+      .map((r) => settingRow(r, name, opts, lang))
       .join("");
     const choices =
       group.file === "manifest"
@@ -194,5 +250,5 @@ export function unifiedSettingsTable(
       cardSection({ heading, body: rows + choices, foot }) +
       `</form>`
     );
-  }).join("");
+  }).join("") + pinCard(name, opts, lang) + hideCard(name, opts, lang) + iconDialogs(name, opts, lang);
 }

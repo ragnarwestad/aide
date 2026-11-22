@@ -2,16 +2,21 @@
 // folders exist for a project, folded in with the two ways a resolved
 // project can still be open past `targets()`'s own answer — an
 // archived spec whose branch is still on origin (unlanded), and one
-// that has been reopened or closed.
+// that has been reopened or closed — and whether the board hides it, which
+// both request parsers refuse.
 
 import type { ProjectResolver } from "../../queue/queue.ts";
 import type { ServerState } from "../state.ts";
 import type { SpecTarget } from "../../render";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../git/dashboard-checkout.ts";
+import { isHidden } from "../../project/project-admin/hidden.ts";
 
 export function createProjectResolver(
   state: ServerState,
   allowed: Set<string>,
   targets: () => SpecTarget[],
+  /** Where the board keeps its checkouts, and each project's `hidden` flag. */
+  checkoutRoot: string = DEFAULT_DASHBOARD_CHECKOUT_ROOT,
 ): ProjectResolver {
   return (project) => {
     if (!allowed.has(project)) return null;
@@ -41,6 +46,6 @@ export function createProjectResolver(
     // An allowed project with no specs yet still resolves: a `schedule`
     // job needs no spec folder, and every other step is refused below
     // as an unknown folder, by name.
-    return { specFolders: folders, archivedFolders: archived, closedFolders: closed };
+    return { specFolders: folders, archivedFolders: archived, closedFolders: closed, hidden: isHidden(checkoutRoot, project) };
   };
 }

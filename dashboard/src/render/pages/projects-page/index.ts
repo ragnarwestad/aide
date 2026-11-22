@@ -21,6 +21,7 @@ import {
   field,
   messageSlot,
   rowMessage,
+  type ProjectIconView,
   } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -87,7 +88,11 @@ export interface ProjectsPageOptions {
   removable?: (name: string) => boolean;
   /** Each project's icon, as the server found it: where its image is
    *  served, or null to draw its initials. Absent: initials for all. */
-  iconByProject?: Record<string, { src: string } | null>;
+  iconByProject?: Record<string, ProjectIconView>;
+  /** The pinned projects, listed first. Absent: none is. */
+  pinnedProjects?: ReadonlySet<string>;
+  /** The hidden projects, in the list's "Hidden" fold. Absent: none is. */
+  hiddenProjects?: ReadonlySet<string>;
   /** What the project is configured with today — the Settings page's
    *  two fields, pre-filled. Empty means empty: this page never guesses
    *  on a configured project's behalf. */
@@ -146,6 +151,8 @@ export function renderProjectsPage(
         opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
       removable: opts.removable,
       icon: (name) => opts.iconByProject?.[name] ?? null,
+      pinned: opts.pinnedProjects,
+      hidden: opts.hiddenProjects,
     });
   // No reload of its own: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did

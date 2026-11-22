@@ -6,10 +6,15 @@ export const CLEANUP_HOUR = 3;
 const localDate = (now: Date): string =>
   `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-export const cleanupProject = (projects: Iterable<string>): string | undefined => [...projects].sort()[0];
+/** The project the board-wide cleanup job is filed under: the first shown
+ *  one by name, since the queue takes no job for a hidden project. */
+export const cleanupProject = (projects: Iterable<string>, hidden: ReadonlySet<string> = new Set()): string | undefined =>
+  [...projects].filter((p) => !hidden.has(p)).sort()[0];
 
-export function enqueueNightlyCleanup(queue: Pick<QueueStore, "list" | "enqueue" | "update">, projects: Iterable<string>, now = new Date()): boolean {
-  const project = cleanupProject(projects);
+export function enqueueNightlyCleanup(
+  queue: Pick<QueueStore, "list" | "enqueue" | "update">, projects: Iterable<string>, now = new Date(), hidden: ReadonlySet<string> = new Set(),
+): boolean {
+  const project = cleanupProject(projects, hidden);
   if (!project) return false;
   const jobs = queue.list().filter((job) => jobKind(job) === "cleanup");
   if (jobs.some(inFlight)) return false;

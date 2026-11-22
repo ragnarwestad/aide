@@ -25,3 +25,8 @@ export const invalidRequest = (what: string): RequestRefusal => requestRefusal(w
 // names the form, not the raw-request wording `invalidRequest()` gives the
 // rest — a title over `TITLE_MAX` is a real reader who typed too much.
 export const fixInTheForm = (what: string): RequestRefusal => requestRefusal(what, FIX_IN_FORM);
+
+// A project hidden on the board takes no new job of any kind; Show on its
+// Config tab is what puts it back.
+export const projectHidden = (project: string): RequestRefusal =>
+  requestRefusal(`${project} is hidden, so no job can be queued for it`, "Press Show on the project's Config tab first");

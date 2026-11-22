@@ -26,6 +26,8 @@ export type ProjectStepName =
   | "acPrefix"
   | "description"
   | "icon"
+  | "pin"
+  | "hide"
   | "allowlist"
   | "confirm";
 

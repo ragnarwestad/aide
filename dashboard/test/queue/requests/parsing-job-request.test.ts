@@ -357,6 +357,28 @@ describe("parseJobRequest", () => {
   });
 });
 
+describe("a project hidden on the board", () => {
+  const hiding = (project: string) => (project === "beta" ? { specFolders: ["01-first"], hidden: true } : resolve(project));
+
+  test.each([
+    ["a Run", { project: "beta", specFolder: "01-first", steps: ["analyze"] }],
+    ["a schedule entry's Run now", { project: "beta", specFolder: "schedule-nightly", steps: ["schedule"] }],
+    ["a Deploy", { project: "beta", specFolder: "deploy", steps: ["deploy"] }],
+    ["the cleanup", { project: "beta", specFolder: "cleanup", steps: ["cleanup"] }],
+  ])("refuses %s, saying it is hidden and how to show it (AC-7)", (_label, body) => {
+    const r = parseJobRequest(body, { resolve: hiding, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("beta is hidden");
+    expect(r.solution).toContain("Show");
+  });
+
+  test("a shown project is not refused for it (AC-7)", () => {
+    const shown = (project: string) => (project === "beta" ? { specFolders: ["01-first"], hidden: false } : resolve(project));
+    expect(parseJobRequest({ project: "beta", specFolder: "01-first", steps: ["analyze"] }, { resolve: shown, defaults: DEFAULTS }).ok).toBe(true);
+  });
+});
+
 describe("a deploy job", () => {
   const deploy = { project: "aide", specFolder: "deploy", steps: ["deploy"] };
 

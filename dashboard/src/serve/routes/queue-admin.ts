@@ -10,6 +10,7 @@ import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { CLEANUP_KEY, jobKind, inFlight } from "../../queue/queue.ts";
 import { cleanupProject } from "../process-cleanup/schedule.ts";
+import { hiddenProjects } from "./page-routes/project-hide.ts";
 import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
@@ -30,7 +31,7 @@ export async function handleQueueAdminRoutes(
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const existing = ctx.queue.list().find((job) => jobKind(job) === "cleanup" && inFlight(job));
     if (existing) return json({ ok: true, job: existing });
-    const project = cleanupProject(ctx.allowed);
+    const project = cleanupProject(ctx.allowed, hiddenProjects(ctx));
     if (!project) return json({ ok: false, error: "this board has no project for the cleanup job" }, 400);
     const result = enqueueRequest(ctx.queue, { project, specFolder: CLEANUP_KEY, steps: ["cleanup"] }, "manual");
     if (!result.ok) return json({ ok: false, error: result.error }, 400);

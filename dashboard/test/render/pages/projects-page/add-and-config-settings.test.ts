@@ -85,3 +85,48 @@ describe("the Config tab's cards", () => {
     expect(new Set(forms.map((f) => f.getAttribute("data-actions-id"))).size).toBe(2);
   });
 });
+
+describe("the Config tab's icon row", () => {
+  type Source = "automatic" | "glyph" | "file";
+  const iconRow = (source: Source) => {
+    const window = new Window();
+    const icon = source === "glyph" ? { glyph: "rocket", hue: 2 } : source === "file" ? { src: "/projects/p/icon?v=1" } : null;
+    window.document.body.innerHTML = unifiedSettingsTable(projectSettings(project(), null), "p", {
+      worktreeLinkCandidates: [], icon, iconSource: source,
+    });
+    const doc = window.document;
+    const row = doc.querySelector('[name="icon"]')!.closest(".cardrow")!;
+    return { doc, row };
+  };
+
+  test("offers Choose icon and Choose file beside the current icon, each opening its own dialog (AC-1)", () => {
+    const { doc, row } = iconRow("automatic");
+    expect(row.querySelector(".projicon")).not.toBeNull();
+    for (const label of [t("en", "setting.icon.chooseIcon"), t("en", "setting.icon.chooseFile")]) {
+      const button = [...row.querySelectorAll("button")].find((b) => b.textContent === label);
+      expect(button).toBeDefined();
+      const dialog = doc.getElementById(button!.getAttribute("data-ask")!);
+      expect(dialog?.tagName).toBe("DIALOG");
+      expect(dialog!.querySelector("form")!.getAttribute("action")).toBe("/projects/p/icon");
+    }
+  });
+
+  test("says where the icon comes from, and offers Automatic only while one is chosen (AC-7)", () => {
+    const automatic = t("en", "setting.icon.automatic");
+    const words: Record<Source, string> = {
+      automatic: t("en", "setting.icon.source.automatic"),
+      glyph: t("en", "setting.icon.source.glyph"),
+      file: t("en", "setting.icon.source.file"),
+    };
+    for (const source of ["automatic", "glyph", "file"] as const) {
+      const { doc, row } = iconRow(source);
+      expect(row.textContent).toContain(words[source]);
+      const button = [...row.querySelectorAll("button")].find((b) => b.textContent === automatic);
+      if (source === "automatic") expect(button).toBeUndefined();
+      else {
+        const form = doc.getElementById(button!.getAttribute("form")!)!;
+        expect(form.querySelector('[name="choice"]')!.getAttribute("value")).toBe("automatic");
+      }
+    }
+  });
+});

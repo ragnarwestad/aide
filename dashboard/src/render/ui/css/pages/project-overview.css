@@ -6,3 +6,42 @@
 .listtop > .btn { margin-left: auto; }
 .error-text { color: var(--danger); }
 
+
+/* --- a project's page: the breadcrumb and the picker ------------------------- */
+
+/* "Projects / <name>" at the start of the line, the picker at its far end;
+   on a phone the picker wraps under the breadcrumb, and a long name breaks
+   rather than widening the page. */
+.projecthead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4);
+  min-width: 0; margin: 0 0 var(--sp-4); }
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.breadcrumb > a { color: var(--muted); font-size: var(--fs-l); }
+.breadcrumb > a:hover { color: var(--text); }
+.crumbsep { color: var(--muted); font-size: var(--fs-l); }
+.breadcrumb h1 { min-width: 0; overflow-wrap: anywhere; }
+.projectpicker { margin-left: auto; min-width: 0; max-width: 100%; }
+/* The base `.menu > summary` is the header's bare 32px icon circle; this
+   trigger holds an icon, a name and a chevron, so it is sized to them. */
+.projectpicker > summary { width: auto; height: auto; max-width: 100%; min-width: 0; box-sizing: border-box;
+  gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); border-radius: var(--r);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font-size: var(--fs-m); }
+.projectpicker > summary:hover { border-color: var(--muted); }
+.projectpicker > summary > :is(.projicon, svg) { flex: none; }
+.pickername { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projectpicker .menupanel { max-width: calc(100vw - 2 * var(--sp-3)); max-height: 60vh; overflow-y: auto; }
+.projectpicker .menupanel > a { display: flex; align-items: center; gap: var(--sp-2); overflow-wrap: anywhere; }
+
+/* The Schedule tab's rows have a card row's spacing and name size. */
+table.scheduletab > tbody > tr > td { padding-top: var(--sp-4); padding-bottom: var(--sp-4); }
+table.scheduletab > tbody > tr > td:first-child > a { font-size: var(--fs-l); font-weight: 500; }
+
+
+/* --- the Config tab's icon row and its two pickers ------------------------------ */
+
+/* The current icon, where it comes from and its buttons, on one line above
+   the `icon` setting's field; they wrap on a narrow screen. */
+.iconchoice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+/* The built-in icons and the colours: small squares, as many to a line as fit. */
+.iconpicker .radiocards { grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr)); }
+.iconpicker .radiocard { justify-content: center; padding: var(--sp-2); }
+.iconpicker + .iconpicker { margin-top: var(--sp-3); }

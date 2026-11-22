@@ -21,11 +21,11 @@
 
 /* One row: the name and its explanation on the left, the control on the
    right. */
-.cardrow { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+.cardrow { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4);
   position: relative; min-width: 0; }
 .cardrowtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
-.cardrowtitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); font-weight: 500; }
-.cardrowexplain { color: var(--muted); font-size: var(--fs-s); }
+.cardrowtitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-l); font-weight: 500; }
+.cardrowexplain { color: var(--muted); font-size: var(--fs-m); }
 .cardrowexplain p { margin: 0; }
 .cardrowcontrol { flex: 0 1 50%; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1);
   overflow-wrap: anywhere; }
@@ -60,6 +60,7 @@
 .projicon { width: 28px; height: 28px; flex: none; border-radius: var(--r-s); object-fit: contain; }
 .projinitials { display: inline-flex; align-items: center; justify-content: center;
   font-size: var(--fs-s); font-weight: 600; color: var(--text); }
+.projinitials > svg { width: 18px; height: 18px; }
 .projinitials[data-hue="1"] { background: var(--initials-1); }
 .projinitials[data-hue="2"] { background: var(--initials-2); }
 .projinitials[data-hue="3"] { background: var(--initials-3); }

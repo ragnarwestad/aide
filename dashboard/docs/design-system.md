@@ -98,7 +98,7 @@ beside it, which `test/guards/six-shapes-one-component-each.test.ts` checks:
 | `labelledCheckbox()`  | a box and its words in one label, or disabled with a help popover after the words; never the acceptance row's 18px `.checkbox`        |
 | `labelledRadio()`     | a radio button and its words in one label, the words a link when given one; checked, disabled, and `form=`                            |
 | `radioCards()`        | one radio group as cards; each card supplies its own content and receives the shared chosen and keyboard-focus states                 |
-| `switchControl()`     | on or off, its position and the word beside it drawn from `aria-checked`; moved by `setSwitch()`; disabled                            |
+| `switchControl()`     | on or off, drawn from `aria-checked`, with its word beside it; moved by `setSwitch()`; disabled; a class hook and `data-`             |
 | `.iconlink`           | a link or control that is its icon alone, no button frame — the spec page's PDF link, whose `.icon-pdf` is `--pdf` red in every theme |
 | `badge()`             | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`; the state word and its icon                                     |
 | `kindIcon()`          | the kind after the colon, before a row's name on Jobs or Specs; named for screen readers and on hover, coloured by kind               |
@@ -164,8 +164,16 @@ bordered card under a short heading, the frame Settings › Providers draws. A r
 of explanation on the left and its value or control on the right; at a phone's width the control moves under the
 text and nothing scrolls sideways. A row that opens a page carries its link on the name, stretched over the whole row,
 with a chevron at its end, and its other controls — a warning mark, Remove — rise above the link so a press on one
-does what that control does. Sections stand in a `.cardstack`, which spaces them. A settings card is its own form,
+does what that control does. A row has `--sp-4` above and below its text, its name at `--fs-l` and its
+explanation at `--fs-m` in `--muted`; the rows of a project's Schedule tab, a table, take the same spacing and
+name size. Sections stand in a `.cardstack`, which spaces them. A settings card is its own form,
 editable as it opens, with Save and Cancel at its foot (`dashboard/docs/projects.md`, "Config").
+
+A project's page starts with its own head line in place of Back (`projects-page/page-head.ts`): a breadcrumb
+`nav.breadcrumb` of a link to Projects, a `/` and the `<h1>`, and at the line's far end the project picker, a
+`details.menu` of links whose trigger holds the icon, the name and a chevron, sized to them rather than the header's
+icon circle. The current project's link is marked `aria-current="true"`. An on/off setting on the page is a
+`switchControl()`.
 
 A project's icon is drawn as an `<img>`, so nothing in the file runs on the page; a project with none shows its
 initials on one of the six `--initials-1` to `--initials-6` colours, each with a light and a dark value.

@@ -1,8 +1,10 @@
-// The `/projects` list: the counts, then one card with a row per project.
+// The `/projects` list: the counts, then one card with a row per project,
+// and the hidden projects in a fold of their own under it.
 
-import { ICON_WARN, askButton, cardRow, cardSection, progressDialog, projectIcon, rowMessage } from "../../ui/components";
+import { ICON_WARN, askButton, cardRow, cardSection, foldDisclosure, progressDialog, projectIcon, rowMessage, type ProjectIconView } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
+import { pinnedFirst } from "../../../project/project-admin/pinned.ts";
 import type { ProjectView } from "./types.ts";
 
 /** The project's own description, from its manifest — the
@@ -40,7 +42,7 @@ function projectRemoveControl(name: string, lang: Language): string {
 function overviewRow(
   p: ProjectView,
   path: string,
-  icon: { src: string } | null,
+  icon: ProjectIconView,
   note?: string,
   warnHref?: string,
   lang: Language = "en",
@@ -96,7 +98,13 @@ export function projectSummary(projects: ProjectView[], lang: Language = "en"): 
   );
 }
 
-/** The listing itself: one card, a row per project, linking to
+/** The Projects list's order: the pinned projects first, each group by
+ *  name. The list and the project page's picker both draw in it. */
+export function orderProjects<T extends { name: string }>(list: readonly T[], pinned: ReadonlySet<string> = new Set()): T[] {
+  return pinnedFirst([...list].sort((a, b) => a.name.localeCompare(b.name)), pinned, (p) => p.name);
+}
+
+/** The listing itself: one card, a row per shown project, linking to
  *  each project's page. Exported because the served
  *  `/projects` page draws exactly this — same rows, same
  *  data, one function, so "the same page plus two controls" is true by
@@ -122,25 +130,40 @@ export function projectListBody(
     removable?: (name: string) => boolean;
     /** Where the project's icon image is served, or null for a project
      *  with none, which draws its initials. Absent: initials for all. */
-    icon?: (name: string) => { src: string } | null;
+    icon?: (name: string) => ProjectIconView;
+    /** The pinned projects, drawn first. Absent: none is. */
+    pinned?: ReadonlySet<string>;
+    /** The hidden projects, drawn in a shut "Hidden" fold after the
+     *  others' card. Absent: none is. */
+    hidden?: ReadonlySet<string>;
     lang?: Language;
   },
 ): string {
-  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  if (!ordered.length) return "";
-  return cardSection({
-    body: ordered
-      .map((p) =>
-        overviewRow(
-          p,
-          opts.pageHref(p.name),
-          opts.icon?.(p.name) ?? null,
-          opts.note?.(p.name),
-          opts.warnHref?.(p.name),
-          opts.lang ?? "en",
-          opts.removable?.(p.name) ?? false,
-        ),
-      )
-      .join("\n"),
-  });
+  const lang = opts.lang ?? "en";
+  const ordered = orderProjects(projects, opts.pinned);
+  const isHidden = (p: ProjectView): boolean => opts.hidden?.has(p.name) ?? false;
+  const card = (list: ProjectView[]): string =>
+    cardSection({
+      body: list
+        .map((p) =>
+          overviewRow(
+            p,
+            opts.pageHref(p.name),
+            opts.icon?.(p.name) ?? null,
+            opts.note?.(p.name),
+            opts.warnHref?.(p.name),
+            lang,
+            opts.removable?.(p.name) ?? false,
+          ),
+        )
+        .join("\n"),
+    });
+  const shown = ordered.filter((p) => !isHidden(p));
+  const hidden = ordered.filter(isHidden);
+  return (
+    (shown.length ? card(shown) : "") +
+    (hidden.length
+      ? foldDisclosure({ summary: `<span>${esc(t(lang, "project.hiddenGroup", { count: String(hidden.length) }))}</span>`, body: card(hidden) })
+      : "")
+  );
 }

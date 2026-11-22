@@ -3,8 +3,7 @@
 // entry's Settings tab draws the Enabled switch and Delete, and no Run
 // now. The Schedule list only shows and links.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import { askButton, buttonForm, confirmDialog } from "../../ui/components";
-import { esc } from "../../ui/html.ts";
+import { askButton, buttonForm, confirmDialog, switchControl } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 
 /** The Schedule tab's refusal line, which Delete's OK names: the dialog
@@ -23,15 +22,19 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry, lang
   );
 }
 
-// A standalone checkbox with no surrounding form, the same shape
+// The design system's switch, with no surrounding form, the same shape
 // `postTailStep`'s own tail-step chip has and for the same reason: it
 // does nothing without script, and flips the flag immediately — no
 // confirm — the instant it does (`schedule-actions.ts`).
 export function enabledBox(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
-  return (
-    `<input type="checkbox" class="scheduleenabled"${entry.enabled ? " checked" : ""} ` +
-    `aria-label="${esc(t(lang, "schedule.enabledAria", { name: entry.name }))}" data-post-to="${esc(`${entryApi(project, entry.name)}/enabled`)}">`
-  );
+  return switchControl({
+    hook: "scheduleenabled",
+    label: t(lang, "schedule.enabledAria", { name: entry.name }),
+    onWord: t(lang, "schedule.enabledOn"),
+    offWord: t(lang, "schedule.enabledOff"),
+    checked: entry.enabled,
+    data: { "post-to": `${entryApi(project, entry.name)}/enabled` },
+  });
 }
 
 /** The page's ordinary button: this is the entry's action, and it

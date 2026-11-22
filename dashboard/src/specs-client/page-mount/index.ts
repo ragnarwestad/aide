@@ -15,6 +15,7 @@ import { drawLimits } from "../limits";
 import { connect, disconnect } from "../live";
 import { postForm } from "../press";
 import { bindProviderAdd } from "../provider-add";
+import { bindIconFile } from "../icon-file";
 import { bindPushPanel } from "../push";
 import { startReloadWhileIdle } from "../reload-while-idle";
 import { bindReportFrame } from "../report-frame";
@@ -40,6 +41,9 @@ export function mountPage(doc: Document, options: { referrer: string; background
   // The Providers tab's Add dialog, when it is the one open.
   const providerAdd = doc.getElementById("provider-add") as HTMLDialogElement | null;
   if (providerAdd) bindProviderAdd(providerAdd);
+  // The Config tab's Choose file dialog, which reads the picked file into its form.
+  const iconFile = doc.getElementById("projecticon-file") as HTMLDialogElement | null;
+  if (iconFile) cleanups.push(bindIconFile(iconFile));
   // The Settings page's Notifications tab, when it is the one open.
   const pushPanel = doc.querySelector("[data-push-panel]") as HTMLElement | null;
   if (pushPanel) bindPushPanel(pushPanel);
@@ -93,9 +97,12 @@ export function mountPage(doc: Document, options: { referrer: string; background
   // The /schedule page's own controls: none of these sit inside `#jobrows`,
   // and nothing on this page is swapped from the server on a timer, so each
   // is bound here rather than delegated.
-  for (const el of doc.querySelectorAll("input.scheduleenabled[data-post-to]")) {
-    const box = el as HTMLInputElement;
-    box.addEventListener("change", () => postScheduleEnabled(box));
+  // A switch is a button, which Enter would press too; the checkbox it
+  // replaced toggled on Space alone, and so does the switch.
+  for (const el of doc.querySelectorAll("button.scheduleenabled[data-post-to]")) {
+    const sw = el as HTMLButtonElement;
+    sw.addEventListener("click", () => postScheduleEnabled(sw));
+    sw.addEventListener("keydown", (event) => { if ((event as KeyboardEvent).key === "Enter") event.preventDefault(); });
   }
   for (const el of doc.querySelectorAll("form.schedulerun")) {
     const form = el as HTMLFormElement;

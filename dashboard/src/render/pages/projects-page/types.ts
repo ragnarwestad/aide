@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { Sentence } from "../../../messages/types.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
+import type { ProjectIconView } from "../../ui/components/card/project-icon.ts";
 import type { ProjectModelsOptions } from "./project-models.ts";
 
 export type { SpecView, ProjectView };
@@ -44,15 +45,24 @@ export interface ProjectPageOptions {
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
+  /** The project's icon (`ProjectIconView`). Absent draws the initials. */
+  icon?: ProjectIconView;
+  /** Where the icon comes from, for the Config tab's icon row: the
+   *  repository or the initials, a chosen built-in icon, or a chosen file.
+   *  Absent reads as `automatic`. */
+  iconSource?: "automatic" | "glyph" | "file";
+  /** Every project on the board, each with its icon, for the picker at the
+   *  top of the page. Absent lists only this project. */
+  projects?: readonly { name: string; icon: ProjectIconView }[];
+  /** Every pinned project, listed first in the picker. Absent: none is. */
+  pinnedProjects?: ReadonlySet<string>;
+  /** Whether this project is pinned, for the Config tab's Pin switch. */
+  pinned?: boolean;
+  /** Whether this project is hidden, for the Config tab's Hide row. */
+  hidden?: boolean;
   /** What the Config tab's Models per phase card is drawn from. Absent
    *  draws no card. */
   models?: ProjectModelsOptions;
-  /** Where the project's icon image is served, or null to draw its
-   *  initials. Absent draws the initials. */
-  icon?: { src: string } | null;
-  /** Where "← Back" goes: the page the reader came from, resolved by the
-   *  server from the request's `Referer`. Projects when there is none. */
-  backHref?: string;
   /** This checkout's last drift answer. `undefined` for the
    *  board's own project when no `AIDE_INSTALL_CMD` is configured, since
    *  its Deploy has nothing to act on then; every other project has one. */
