@@ -30,7 +30,7 @@ import {
 import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
 import { specPendingChoice } from "../project/approach-choice.ts";
 import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
-import type { SpecTarget } from "../render";
+import type { SpecTarget } from "../project/spec-facts.ts";
 import { resolveDependencyFolder } from "./serve-helpers";
 
 /** What `targets()` caches for five seconds and every other lookup in
@@ -169,16 +169,16 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // which it writes in one commit with the state file. Carried while
           // a row is open, and while one waits for a check or failed: the
           // list unfolds them under that count too.
-          get acceptance() { return acceptanceOpen || notVerified || failed
+          readAcceptance: () => acceptanceOpen || notVerified || failed
             ? withAcCoverage(
                 (progress.from === "branch" ? branchAnswer?.acceptance : undefined) ?? acceptanceRowsOf(statusText),
                 branchAnswer?.acCoverage ?? readAcCoverage(s.dir),
                 ctx.machineryProjectDir(p.name),
               )
-            : undefined; },
+            : undefined,
           // The approaches waiting for the person who asked to choose,
           // off the branch's plan first, as the rows above.
-          get approachChoice() { return specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined; },
+          readApproachChoice: () => specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined,
           // Where the freshness check runs git. Never rendered — the
           // page has no use for an absolute path, and `targets` is
           // server-side only.

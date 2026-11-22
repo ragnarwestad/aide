@@ -15,6 +15,7 @@ import type { GitRunner } from "../../../src/git/process/index.ts";
 import { archiveWithOpenAcceptance, blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
 import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
+import { withSpecFacts } from "../../../src/project/spec-facts.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const FOLDER = "81-queue-and-runner";
@@ -61,7 +62,7 @@ async function warmedChecker(specDir: string, done: boolean, phases = ["analyze"
 }
 
 /** A checker that has read this branch copy of 4-status.md and 4-status.json. */
-async function warmedWith(specDir: string, prose: string, stateFile: string): Promise<BranchFileStepsChecker> {
+async function warmedWith(specDir: string, prose: string, stateFile: string, solution?: string): Promise<BranchFileStepsChecker> {
   const target: OpenBranchTarget = {
     root: "/root",
     branch: `aide/${FOLDER}`,
@@ -74,6 +75,7 @@ async function warmedWith(specDir: string, prose: string, stateFile: string): Pr
     if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
     if (line.endsWith("4-status.md")) return { code: 0, stdout: prose };
     if (line.endsWith("4-status.json")) return { code: 0, stdout: stateFile };
+    if (solution && line.endsWith("3-solution.md")) return { code: 0, stdout: solution };
     return { code: 1, stdout: "" };
   };
   const checker = new BranchFileStepsChecker({ run });
@@ -111,17 +113,34 @@ describe("the row's own archive held back", () => {
 
 // The Specs list unfolds these rows, so they ride on the target.
 describe("the rows the list unfolds", () => {
-  test("the target's rows are the branch's when it has an answer", async () => {
+  test("the target's rows are the branch's when it has an answer, after history is added (AC-3)", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, false);
-    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
-    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works on the branch"]);
+    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER)!;
+    const withHistory = withSpecFacts(target, { historyDone: ["analyze", "implement"] });
+    expect(withHistory.readAcceptance?.()?.map((r) => r.task)).toEqual(["REQ-1: it works on the branch"]);
   });
 
-  test("and the checkout's own file otherwise", () => {
+  test("and the checkout's own file otherwise (AC-3)", () => {
     const { root } = projectsRoot();
-    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
-    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
+    const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER)!;
+    const withHistory = withSpecFacts(target, { historyDone: ["analyze", "implement"] });
+    expect(withHistory.readAcceptance?.()?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
+  });
+
+  test("the approach choice is the branch plan's over the checkout's, after history is added (AC-3)", async () => {
+    const { root, specDir } = projectsRoot();
+    writeFileSync(join(specDir, "1-description.md"), "# Queue - Description\n\n## Tracking info\n\n- **Let me choose the approach:** yes\n");
+    writeFileSync(join(specDir, "3-solution.md"), "# Queue - Solution\n\n## Approaches\n\n**Approach A: Only one (recommended).** x\n");
+    const checker = await warmedWith(
+      specDir,
+      "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
+      JSON.stringify({ completedPhases: ["analyze"], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }),
+      "# Solution\n\n## Approaches\n\n**Approach A: On the branch (recommended).** x\n\n**Approach B: Also there (real alternative).** y\n",
+    );
+    const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER)!;
+    const withHistory = withSpecFacts(target, { historyDone: ["analyze"] });
+    expect(withHistory.readApproachChoice?.()?.map((a) => a.title)).toEqual(["On the branch", "Also there"]);
   });
 
   test("a spec whose rows are all ticked, one of them Not verified, carries them", () => {
@@ -138,7 +157,7 @@ describe("the rows the list unfolds", () => {
     );
     const target = targets(lookupCtx(root, undefined)).find((t) => t.specFolder === FOLDER);
     expect(target?.notVerified).toBe(1);
-    expect(target?.acceptance?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
+    expect(target?.readAcceptance?.()?.map((r) => r.task)).toEqual(["REQ-1: it works"]);
   });
 
   test("Not verified and Failed are counted off the branch's state file, not its prose (AC-3)", async () => {
@@ -158,7 +177,7 @@ describe("the rows the list unfolds", () => {
     const { root, specDir } = projectsRoot();
     const checker = await warmedChecker(specDir, true);
     const target = targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER);
-    expect(target?.acceptance).toBeUndefined();
+    expect(target?.readAcceptance?.()).toBeUndefined();
   });
 });
 

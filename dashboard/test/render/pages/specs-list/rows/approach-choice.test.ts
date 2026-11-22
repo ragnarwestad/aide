@@ -22,7 +22,7 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   specFolder: FOLDER,
   done: ["create", "analyze"],
   historyDone: ["create", "analyze"],
-  approachChoice: PENDING,
+  readApproachChoice: () => PENDING,
   ...extra,
 });
 
@@ -66,7 +66,7 @@ describe("the approach warning on a row", () => {
   });
 
   test("is gone with no pending choice: fewer than two real alternatives, or one chosen", () => {
-    expect(approachMarks([held()], target({ approachChoice: undefined }))).toHaveLength(0);
+    expect(approachMarks([held()], target({ readApproachChoice: () => undefined }))).toHaveLength(0);
   });
 
   test("is gone once an Implement has completed since the analysis", () => {

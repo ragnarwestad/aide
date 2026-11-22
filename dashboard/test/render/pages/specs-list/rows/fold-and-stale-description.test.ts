@@ -238,7 +238,7 @@ describe("an open row on the Specs list is the spec alone", () => {
       { letter: "B", title: "End", mark: "real alternative" as const },
     ];
     const choosing: SpecTarget[] = [
-      { project: "aide", specFolder: "81-queue-x", done: ["create", "analyze"], historyDone: ["create", "analyze"], approachChoice: pending },
+      { project: "aide", specFolder: "81-queue-x", done: ["create", "analyze"], historyDone: ["create", "analyze"], readApproachChoice: () => pending },
     ];
     const draw = (extra: Partial<SpecsPageOptions>): string =>
       renderSpecsRows([], { runnerAvailable: true, targets: choosing, ...extra }, NOW);

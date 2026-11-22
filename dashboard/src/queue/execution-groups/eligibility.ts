@@ -1,23 +1,23 @@
-import type { SpecTarget } from "../../render/pages/specs-list/data-model/types.ts";
+import type { GroupFacts } from "../../project/spec-facts.ts";
 import type { ExecutionGroup } from "./types.ts";
 
 interface GroupJob { project: string; specFolder: string; state: string }
-interface EligibilityInput {
+interface EligibilityInput<T extends GroupFacts> {
   project: string;
-  targets: SpecTarget[];
+  targets: T[];
   groups: ExecutionGroup[];
   jobs: GroupJob[];
 }
 
-interface LockInput {
+interface LockInput<T extends GroupFacts> {
   group: ExecutionGroup;
-  targets: SpecTarget[];
+  targets: T[];
   jobs: GroupJob[];
 }
 
 const active = (state: string): boolean => state === "queued" || state === "running";
 
-export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
+export function eligibleGroupMembers<T extends GroupFacts>(input: EligibilityInput<T>): T[] {
   const owned = new Set(input.groups
     .filter((group) => !group.removedAt && group.state !== "completed")
     .flatMap((group) => group.members.map((folder) => `${group.project}/${folder}`)));
@@ -29,7 +29,7 @@ export function eligibleGroupMembers(input: EligibilityInput): SpecTarget[] {
   });
 }
 
-export function lockedGroupMembers(input: LockInput): Set<string> {
+export function lockedGroupMembers<T extends GroupFacts>(input: LockInput<T>): Set<string> {
   const targetByFolder = new Map(input.targets.filter((target) => target.project === input.group.project).map((target) => [target.specFolder, target]));
   const inFlight = new Set(input.jobs.filter((job) => job.project === input.group.project && active(job.state)).map((job) => job.specFolder));
   return new Set(input.group.members.filter((folder) => {
@@ -53,7 +53,7 @@ function orderedMembers(members: string[], positions?: number[]): ValidationResu
   return { ok: true, members: members.map((member, index) => ({ member, position: actual[index]! })).sort((a, b) => a.position - b.position).map(({ member }) => member) };
 }
 
-function creationOrder(members: string[], positions: number[] | undefined, targets: SpecTarget[]): ValidationResult {
+function creationOrder(members: string[], positions: number[] | undefined, targets: GroupFacts[]): ValidationResult {
   if (members.length < 2) return { ok: false, error: "an execution group needs at least two specs" };
   if (new Set(members).size !== members.length) return { ok: false, error: "a spec can belong to the group only once" };
   const validPositions = positions?.length === members.length &&
@@ -64,7 +64,7 @@ function creationOrder(members: string[], positions: number[] | undefined, targe
   return orderGroupMembers(base, targets);
 }
 
-export function orderGroupMembers(ordered: string[], targets: SpecTarget[]): ValidationResult {
+export function orderGroupMembers(ordered: string[], targets: GroupFacts[]): ValidationResult {
   const byFolder = new Map(targets.map((target) => [target.specFolder, target]));
   const memberSet = new Set(ordered);
   const path: string[] = [];
@@ -92,7 +92,7 @@ export function orderGroupMembers(ordered: string[], targets: SpecTarget[]): Val
   return { ok: true, members: result };
 }
 
-export function validateExecutionGroupRequest(input: EligibilityInput & { members: string[]; positions?: number[]; lead?: string }):
+export function validateExecutionGroupRequest<T extends GroupFacts>(input: EligibilityInput<T> & { members: string[]; positions?: number[]; lead?: string }):
   ValidationResult {
   const checked = creationOrder(input.members, input.positions, input.targets.filter((target) => target.project === input.project));
   if (!checked.ok) return checked;
@@ -105,7 +105,7 @@ export function validateExecutionGroupRequest(input: EligibilityInput & { member
   return { ok: true, members: ordered };
 }
 
-export function validateExecutionGroupEdit(input: EligibilityInput & {
+export function validateExecutionGroupEdit<T extends GroupFacts>(input: EligibilityInput<T> & {
   group: ExecutionGroup; members: string[]; positions?: number[]; locked: ReadonlySet<string>;
 }): ValidationResult {
   const checked = orderedMembers(input.members, input.positions);

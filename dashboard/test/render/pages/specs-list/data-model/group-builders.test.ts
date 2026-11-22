@@ -80,3 +80,27 @@ test("summary projection preserves global search, state, ordering and membership
     expect(summaries.every((group) => group.phases.length === 0)).toBe(true);
   }
 });
+
+describe("the details a row reads from files", () => {
+  const counting = () => {
+    const calls = { acceptance: 0, approach: 0 };
+    const target: SpecTarget = {
+      project: "aide", specFolder: "01-one",
+      readAcceptance: () => { calls.acceptance++; return []; },
+      readApproachChoice: () => { calls.approach++; return undefined; },
+    };
+    return { calls, target };
+  };
+
+  test("a summary row reads neither (AC-2)", () => {
+    const { calls, target } = counting();
+    groupBySpec([], [target], undefined, undefined, NOW, undefined, [], true);
+    expect(calls).toEqual({ acceptance: 0, approach: 0 });
+  });
+
+  test("a full row reads each once (AC-2)", () => {
+    const { calls, target } = counting();
+    groupBySpec([], [target], undefined, undefined, NOW);
+    expect(calls).toEqual({ acceptance: 1, approach: 1 });
+  });
+});

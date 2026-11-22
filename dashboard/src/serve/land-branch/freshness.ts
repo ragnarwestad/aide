@@ -2,7 +2,7 @@
 // spec over the same checkout.
 
 import { resolveWorkflowState } from "../../git/workflow-history.ts";
-import type { SpecTarget } from "../../render";
+import { withSpecFacts, type SpecTarget } from "../../project/spec-facts.ts";
 import type { LandContext } from "./types.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED } from "../../step-endings.ts";
 
@@ -62,7 +62,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
     );
     if (!resolved) return t;
     const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
-    const withHistory: SpecTarget = Object.assign(Object.create(Object.getPrototypeOf(t), Object.getOwnPropertyDescriptors(t)), {
+    const withHistory = withSpecFacts(t, {
       // Not `...resolved`: `resolved.fileSteps` is the prose half alone
       // (`resolveWorkflowState`'s own `answer.proseSteps`),
       // and nothing downstream ever reads `SpecTarget.fileSteps` again
@@ -82,6 +82,6 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       createdAt: createdAtPeek.createdAt ?? undefined,
     });
     if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
-    return Object.assign(withHistory, { analyzeStale: true, done: resolved.done.filter((s) => s !== "analyze") });
+    return withSpecFacts(withHistory, { analyzeStale: true, done: resolved.done.filter((s) => s !== "analyze") });
   });
 }

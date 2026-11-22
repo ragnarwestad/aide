@@ -218,7 +218,7 @@ for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) 
     const { ask, targets, html, read } = board(250);
     const detailed = new Set<string>();
     for (const target of targets) {
-      Object.defineProperty(target, "acceptance", { get() { detailed.add(target.specFolder); return undefined; } });
+      target.readAcceptance = () => { detailed.add(target.specFolder); return undefined; };
     }
     const phaseReads = spyOn(phases, "phasesFor");
     const headReads = spyOn(heads, "specHeadRow");
@@ -253,7 +253,7 @@ for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) 
   });
 }
 
-test("cold and expired live scans defer acceptance coverage until a selected target reads it (AC-10)", () => {
+test("cold and expired live scans defer acceptance coverage until a selected target reads it (AC-10, AC-2)", () => {
   const root = mkdtempSync(join(tmpdir(), "batch-target-scan-"));
   dirs.push(root);
   const project = join(root, "aide");
@@ -278,14 +278,14 @@ test("cold and expired live scans defer acceptance coverage until a selected tar
     expect(cold).toHaveLength(150);
     expect(read).not.toHaveBeenCalled();
     expect(ctx.targets()).toBe(cold);
-    void cold[0]!.acceptance;
+    cold[0]!.readAcceptance?.();
     expect(read).toHaveBeenCalledTimes(1);
     read.mockClear();
     scan!.at = 0;
     const expired = ctx.targets();
     expect(expired).not.toBe(cold);
     expect(read).not.toHaveBeenCalled();
-    void expired[149]!.acceptance;
+    expired[149]!.readAcceptance?.();
     expect(read).toHaveBeenCalledTimes(1);
   } finally { read.mockRestore(); }
 });

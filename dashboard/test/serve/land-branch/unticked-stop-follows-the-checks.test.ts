@@ -76,3 +76,19 @@ describe("a spec the schedule has not reached yet", () => {
     expect(withFreshness(ctx, [target])[0]).toBe(target);
   });
 });
+
+// History is added on every render; the details read from files stay
+// unread until a row asks for them.
+describe("adding history to a spec's facts", () => {
+  test("reads neither the acceptance rows nor the approach choice (AC-2)", () => {
+    const calls = { acceptance: 0, approach: 0 };
+    const t = withHistory({}, {
+      readAcceptance: () => { calls.acceptance++; return []; },
+      readApproachChoice: () => { calls.approach++; return undefined; },
+    });
+    expect(t.done).toEqual(["create", "analyze", "implement"]);
+    expect(calls).toEqual({ acceptance: 0, approach: 0 });
+    t.readAcceptance?.();
+    expect(calls.acceptance).toBe(1);
+  });
+});

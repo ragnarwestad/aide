@@ -26,6 +26,7 @@ import { jobFacts, jobsMatchingCount, jobsSearchMatch, jobsStateOpensGroups, job
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
+import { withSpecFacts } from "../../../project/spec-facts.ts";
 import { eligibleGroupMembers, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
@@ -179,7 +180,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
       const key = `${baseKey}@${encodeURIComponent(round.startedAt)}`;
       const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
       const createdAt = specJobCreatedAt(round.jobs) ?? round.startedAt;
-      const roundTarget = Object.assign(Object.create(Object.getPrototypeOf(target), Object.getOwnPropertyDescriptors(target)), { createdAt }) as SpecTarget;
+      const roundTarget = withSpecFacts(target, { createdAt });
       const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now, undefined, [], v.list.summary ?? !draws(key)), {
         ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },
       }, now, () => draws(key))[0];

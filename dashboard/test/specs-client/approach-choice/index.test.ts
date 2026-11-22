@@ -16,7 +16,7 @@ const target: SpecTarget = {
   project: "aide",
   specFolder: FOLDER,
   done: ["create", "analyze"],
-  approachChoice: [
+  readApproachChoice: () => [
     { letter: "A", title: "Hold it", mark: "recommended" },
     { letter: "B", title: "End it", mark: "real alternative" },
   ],

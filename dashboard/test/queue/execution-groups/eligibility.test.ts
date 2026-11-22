@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { eligibleGroupMembers, lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
+import type { GroupFacts } from "../../../src/project/spec-facts.ts";
 
 const target = (specFolder: string, extra: Record<string, unknown> = {}) => ({
   project: "aide", specFolder, title: `Title ${specFolder}`, done: ["create"], dependsOn: [], ...extra,
@@ -115,4 +116,19 @@ test("keeps insertion order among ready members and names a dependency cycle", (
     expect(cycle.error).toContain("1-first");
     expect(cycle.error).toContain("2-second");
   }
+});
+
+test("decides from the group facts alone and offers the caller's own objects (AC-1, AC-4)", () => {
+  const facts: GroupFacts[] = [
+    { project: "aide", specFolder: "1-first", dependsOn: ["2-required"], done: ["create"] },
+    { project: "aide", specFolder: "2-required", done: ["create"] },
+    { project: "aide", specFolder: "3-implemented", done: ["create", "analyze", "implement"] },
+  ];
+  const offered = eligibleGroupMembers({ project: "aide", targets: facts, groups: [], jobs: [] });
+  expect(offered).toHaveLength(2);
+  expect(offered[0]).toBe(facts[0]!);
+  expect(offered[1]).toBe(facts[1]!);
+  const group = { id: "g", project: "aide", name: "G", members: ["1-first", "3-implemented"], branch: "group/g", state: "prepared" as const, completedMembers: [], jobs: [] };
+  expect([...lockedGroupMembers({ group, targets: facts, jobs: [] })]).toEqual(["3-implemented"]);
+  expect(orderGroupMembers(["1-first", "2-required"], facts)).toEqual({ ok: true, members: ["2-required", "1-first"] });
 });
