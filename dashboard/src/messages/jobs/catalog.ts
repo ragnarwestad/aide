@@ -238,6 +238,20 @@ export const JOBS_CATALOG = {
       fr: "cliquez de nouveau sur {button}",
     },
   },
+  "runner.noProgressImplementReason": {
+    en: "it changed nothing in the project, and the session said why: \"{reason}\"",
+    nb: "steget endret ingenting i prosjektet, og økta sa hvorfor: «{reason}»",
+    es: "no cambió nada en el proyecto, y la sesión dijo por qué: «{reason}»",
+    de: "der Schritt hat im Projekt nichts geändert, und die Sitzung hat gesagt, warum: „{reason}“",
+    fr: "l'étape n'a rien changé dans le projet, et la session a dit pourquoi : « {reason} »",
+    solution: {
+      en: "press {close} if that is right; if the reason is wrong, press {button} again",
+      nb: "trykk {close} hvis det stemmer; er grunnen feil, trykk {button} igjen",
+      es: "pulsa {close} si es así; si el motivo es erróneo, pulsa {button} de nuevo",
+      de: "klicke auf {close}, wenn das stimmt; ist der Grund falsch, klicke erneut auf {button}",
+      fr: "cliquez sur {close} si c'est juste ; si la raison est fausse, cliquez de nouveau sur {button}",
+    },
+  },
   "runner.noProgressArchive": {
     en: "it reported success but left no real progress — the spec folder was never moved to archive/",
     nb: "steget meldte ferdig, men gjorde ingen framgang — spec-mappa ble aldri flyttet til archive/",

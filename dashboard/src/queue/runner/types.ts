@@ -118,6 +118,10 @@ export interface StepOutcome {
   scopeAnalyze?: unknown;
   /** The paths a `specs` violation wrote outside the spec folder, at most three. */
   scopeSpecs?: unknown;
+  /** On an implement that changed nothing: the first reason the session
+   *  closed a part of the step with (`stopped: …` / `skipped: …`), in its own
+   *  words (`run-spec/record/status-line.sh`). */
+  noProgressReason?: unknown;
   /** Each repo whose push failed, with what git said, sorted by the runner
    *  (`lib/git-error.sh`); read by `pushFailures()` in `git-failure.ts`. */
   pushFailures?: unknown;

@@ -116,7 +116,7 @@ is the whole set:
 | held back: the Merge of `<branch>` is running | A Merge in the same project is merging into main ahead of it              | Nothing. It starts when that one has finished                               |
 | held back: `<spec>` still has work    | A spec it archives, alone or in a group, has a step queued, running or waiting     | Nothing. It starts when that step has finished, or press Cancel on the step |
 | archive held back                     | A row under `## Acceptance criteria` is still open                                 | Tick the rows on the Status tab, then press Archive                         |
-| stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                                 |
+| stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again; Close if the row quotes a reason that is right |
 | stopped: merge-unfinished             | The step dropped the merge with the default branch it was handed open              | Press the same button again                                                 |
 | stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                                 |
 | stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Fix the tests the row names, then press Implement                           |

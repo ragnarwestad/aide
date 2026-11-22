@@ -51,9 +51,19 @@ export function getNoProgressMessage(step: WorkflowStep, outcome: Partial<StepOu
   }
   if (outcome.terminalReason !== "no-progress") return undefined;
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
-  if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
+  if (step === "implement") {
+    const reason = noProgressReason(outcome.noProgressReason);
+    return reason
+      ? { key: "runner.noProgressImplementReason", values: { reason, close: stepButton("close"), button: stepButton(step) } }
+      : { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
+  }
   if (step === "create") return { key: "runner.noProgressCreate", values: { button: stepButton(step) } };
   return undefined;
+}
+
+function noProgressReason(value: unknown): string | undefined {
+  const reason = typeof value === "string" ? value.trim() : "";
+  return reason || undefined;
 }
 
 function scopeSpecsPaths(value: unknown): string[] | undefined {

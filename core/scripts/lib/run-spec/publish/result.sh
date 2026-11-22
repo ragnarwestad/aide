@@ -247,6 +247,7 @@ line="$(jq -cn \
   --argjson scopeAnalyze "${scope_analyze_json:-null}" \
   --argjson scopeSpecs "${scope_specs_json:-null}" \
   --argjson pushFailures "${push_failures_json:-[]}" \
+  --arg noProgressReason "$([ "$terminal_reason" = "no-progress" ] && printf '%s' "${no_progress_reason:-}")" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -320,4 +321,7 @@ line="$(jq -cn \
    + (if $scopeSpecs == null then {} else {scopeSpecs:$scopeSpecs} end)
    # And for the repos whose push failed, each with what git said, sorted
    # (lib/git-error.sh): present only when one failed or was left unpushed.
-   + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)')"
+   + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)
+   # And for an implement that changed nothing, the reason the session gave
+   # in its own step marks (run-spec/record/status-line.sh).
+   + (if $noProgressReason == "" then {} else {noProgressReason:$noProgressReason} end)')"

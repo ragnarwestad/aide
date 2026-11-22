@@ -81,6 +81,13 @@ if [ -n "$status_file" ]; then
     # turned a record-keeping slip into a red run someone had to
     # re-drive.
     if [ "$proj_changed" != "yes" ]; then
+      # The session's own word for why it changed nothing: the first part it
+      # closed `stopped: <why>` or `skipped: <why>`, whole, for the board to
+      # quote. Read before the review runs, so only the session's own turns
+      # are in the transcript; a missing transcript leaves it empty.
+      no_progress_reason="$(jq -Rr --arg tool "$tool" "$MODEL_MARKS_JQ" "$transcript" 2>/dev/null \
+        | jq -Rr 'capture(" — (?:stopped|skipped): *(?<why>.+)$")? | .why' 2>/dev/null \
+        | head -n 1)" || no_progress_reason=""
       stop_step no-progress "the step reported success but left no real progress — nothing changed in the project" \
         "press $step_button again for this step"
     fi

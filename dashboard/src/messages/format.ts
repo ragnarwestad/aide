@@ -95,13 +95,13 @@ const flat = (p: Parts): string => (p.lines && p.solution ? `${p.problem} — ${
 const STEP_BY_LABEL = new Map(Object.entries(STEP_LABELS).map(([step, label]) => [label, step]));
 
 /** A stored value in the reader's language, for the values a message stores
- *  as English words: the step a job is doing, the button its fix names (a
+ *  as English words: the step a job is doing, the buttons its fix names (a
  *  step's name, Run now, or "its button") and the phase it is about. Any
  *  other value is shown as it was stored. */
 function localValue(lang: Language, key: string, value: string): string {
   const words = translations[lang];
   if (key === "doing") return gerund(lang, value).toLowerCase();
-  if (key === "button" || key === "analyze") {
+  if (key === "button" || key === "analyze" || key === "close") {
     if (value === translations.en["message.itsButton"]) return words["message.itsButton"];
     if (value === translations.en["schedule.runNow"]) return words["schedule.runNow"];
     const step = STEP_BY_LABEL.get(value);

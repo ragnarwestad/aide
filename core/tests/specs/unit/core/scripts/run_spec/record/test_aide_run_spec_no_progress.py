@@ -4,6 +4,7 @@ that leave a genuine run alone."""
 
 import json
 import re
+import shlex
 import subprocess
 import pytest
 from ..run_spec_invoking import create
@@ -475,3 +476,89 @@ def test_an_analyze_run_leaves_a_not_tested_row_open(runner, workspace, fake_cla
     text = _branch_status(workspace)
     assert "| AC-1: one | ⬜ | Not tested: needs the deploy; check the page |" in text
     assert "Not verified" not in text
+
+
+def _claude_saying(fake_claude, *texts):
+    """A session that changes nothing, writes each text as its own
+    assistant message and then claims success."""
+    lines = ["cat > /dev/null"]
+    for text in texts:
+        event = {"type": "assistant", "parent_tool_use_id": None,
+                 "message": {"content": [{"type": "text", "text": text}]}}
+        lines.append(f"printf '%s\\n' {shlex.quote(json.dumps(event))}")
+    lines.append(f"echo '{json.dumps(RESULT_OK)}'")
+    return fake_claude("\n".join(lines))
+
+
+def test_a_no_progress_implement_carries_the_reason_the_session_stopped_with_ac_1_ac_4(
+    runner, workspace, fake_claude
+):
+    """The session changed nothing and said why in its own step mark: the
+    stop stays no-progress, and the result carries that reason."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = _claude_saying(
+        fake_claude,
+        "--- Step 1 of 4: Preparation — started",
+        "--- Step 1 of 4: Preparation — stopped: the failure could not be reproduced",
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert out["noProgressReason"] == "the failure could not be reproduced", out
+
+
+def test_the_first_stopped_or_skipped_reason_is_the_one_carried_ac_1(
+    runner, workspace, fake_claude
+):
+    """A skip before a stop: the first reason is the one quoted."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = _claude_saying(
+        fake_claude,
+        "Looked into it.\n--- Step 2 of 4: RED — Write failing tests — skipped: no cause found",
+        "--- Step 3 of 4: GREEN — Implement until tests pass — stopped: later",
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["noProgressReason"] == "no cause found", out
+
+
+def test_a_long_reason_is_carried_whole_ac_1(runner, workspace, fake_claude):
+    """The reason is the session's own words, never cut."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    reason = "the failure could not be reproduced " + "on any run " * 40
+    reason = reason.strip()
+    assert len(reason) > 300
+    claude = _claude_saying(fake_claude, f"--- Step 1 of 4: Preparation — stopped: {reason}")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["noProgressReason"] == reason, out
+
+
+def test_a_no_progress_implement_without_a_reason_carries_none_ac_3(
+    runner, workspace, fake_claude
+):
+    """Marks with no stop or skip leave the result without a reason, so the
+    board keeps today's sentence."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = _claude_saying(
+        fake_claude,
+        "--- Step 1 of 4: Preparation — started",
+        "--- Step 1 of 4: Preparation — done",
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["terminalReason"] == "no-progress", out
+    assert "noProgressReason" not in out, out
+
+
+def test_a_reason_that_itself_quotes_a_stop_is_carried_whole_ac_1(
+    runner, workspace, fake_claude
+):
+    """The reason is taken from the mark's first stop, not its last."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    reason = "the log still says — stopped: database unavailable"
+    claude = _claude_saying(fake_claude, f"--- Step 1 of 4: Preparation — stopped: {reason}")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["noProgressReason"] == reason, out

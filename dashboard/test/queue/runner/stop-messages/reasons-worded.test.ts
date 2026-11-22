@@ -4,9 +4,10 @@
 // to a full analysis or refused that, and a create that made no folder.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
+import { store, enqueue, events, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
 import { getCliErrorMessage, getCriteriaStopMessage, getNoProgressMessage, getRunStopMessage } from "../../../../src/messages/jobs/outcomes.ts";
-import { messageDetail } from "../../../../src/messages/format.ts";
+import { formatSentence, messageDetail } from "../../../../src/messages/format.ts";
+import { stepLabel } from "../../../../src/format/step-label.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -40,6 +41,26 @@ describe("getNoProgressMessage", () => {
       key: "runner.sentBackRefused",
       values: { button: "Implement", analyze: "Analyze" },
     });
+  });
+
+  test("an implement that changed nothing quotes the reason the session stopped with (AC-1, AC-2)", () => {
+    const message = getNoProgressMessage("implement", ended("no-progress", { noProgressReason: "the failure could not be reproduced" }));
+    expect(message).toEqual({
+      key: "runner.noProgressImplementReason",
+      values: { reason: "the failure could not be reproduced", close: "Close", button: "Implement" },
+    });
+    const english = formatSentence("en", message);
+    expect(english).toContain('"the failure could not be reproduced"');
+    expect(english).toContain("Close");
+    expect(english).toContain("Implement");
+    expect(formatSentence("nb", message)).toContain(stepLabel("close", "nb"));
+  });
+
+  test("an implement that changed nothing and gave no reason keeps today's sentence (AC-3)", () => {
+    const today = { key: "runner.noProgressImplement" as const, values: { button: "Implement" } };
+    expect(getNoProgressMessage("implement", ended("no-progress"))).toEqual(today);
+    expect(getNoProgressMessage("implement", ended("no-progress", { noProgressReason: "" }))).toEqual(today);
+    expect(getNoProgressMessage("implement", ended("no-progress", { noProgressReason: "   " }))).toEqual(today);
   });
 
   test("a create that left no folder", () => {
@@ -118,6 +139,15 @@ describe("the detail behind a sentence the board words", () => {
 
   test("a stop is not worded as a failure", () => {
     expect(stored(result("timeout", { timeLimit: { seconds: 10, during: "session" } }))?.error).toMatchObject({ key: "runner.afterTwoTimeouts", inner: { key: "runner.timeLimitSession" } });
+  });
+
+  test("an implement that changed nothing stores the session's reason, and the notification quotes it (AC-5)", () => {
+    const after = stored(result("no-progress", { noProgressReason: "no cause established that justifies a fix" }));
+    expect(after?.error).toMatchObject({
+      key: "runner.stepFailed",
+      inner: { key: "runner.afterTwoAttempts", inner: { key: "runner.noProgressImplementReason", values: { reason: "no cause established that justifies a fix" } } },
+    });
+    expect(events.filter((e) => e.event === "failed").at(-1)?.reason).toContain("no cause established that justifies a fix");
   });
 
   test("a stop that carries no errorLog leaves no detail (AC-2)", () => {

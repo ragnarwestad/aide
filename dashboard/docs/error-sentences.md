@@ -143,6 +143,12 @@ Two sides could write the sentence a person reads when a step stops or fails; ea
   limit, a time limit with no limit named, a criteria fault it could not sort, and a commit that failed with no push
   failure. The result carries `error` and `errorSolution` and no `errorLog`, and the board shows them as they are.
 
+An implement that changed nothing in the project has two sentences. When the session closed a part of the step
+`stopped: <why>` or `skipped: <why>`, the result carries the first such reason as `noProgressReason`, and the
+sentence quotes it in the session's own words, with the fix "press Close if that is right; if the reason is wrong,
+press Implement again". When the session gave no reason, the sentence says only that nothing changed in the project,
+with the fix "press Implement again".
+
 The runner still writes its own sentence into its run log for every ending; only the result leaves it out.
 `board_words_ending` in `core/scripts/lib/run-spec/publish/result.sh` decides which side words an ending, and
 `core/tests/fixtures/board-worded-endings.json` lists the cases that both the runner's and the board's tests read.
