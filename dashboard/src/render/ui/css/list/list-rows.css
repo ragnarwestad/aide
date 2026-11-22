@@ -316,6 +316,14 @@ table.speclist > tbody > tr[data-kind="cleanup"] { --card-edge: color-mix(in okl
   table.speclist > tbody > tr:has(+ tr.specgap) > td { border-bottom: 1px solid var(--card-edge, var(--line)); }
   table.speclist > tbody > tr:has(+ tr.specgap) > td:last-child { border-bottom-right-radius: var(--r); }
   table.speclist > tbody > tr:has(+ tr.specgap):not(.specstate) > td:first-child { border-bottom-left-radius: var(--r); }
+  /* Under 53rem Cost, the last cell, is hidden (list.css), so Time
+     before it carries the card's right edge. */
+  @media (max-width: 53rem) {
+    table.speclist > tbody > tr:not(.specgap) > td[data-col="started"]:has(+ td[data-col="cost"]:last-child) {
+      border-right: 1px solid var(--card-edge, var(--line)); }
+    table.speclist > tbody > tr:has(+ tr.specgap) > td[data-col="started"]:has(+ td[data-col="cost"]:last-child) {
+      border-bottom-right-radius: var(--r); }
+  }
   /* A shut spec ends on its state line, whose left corner is the fold cell's. */
   table.speclist > tbody > tr.spechead:has(+ tr.specstate + tr.specgap) > td.foldcell {
     border-bottom: 1px solid var(--card-edge, var(--line)); border-bottom-left-radius: var(--r); }

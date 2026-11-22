@@ -40,8 +40,7 @@
      with the row's free space between. */
   /* The spec's summed Time follows the state, in the same fixed,
      left-aligned box as each phase line's Time, so the total stands in
-     the column of the times under it. `display: block` beats list.css's
-     46.5rem rule that hides the Time column. Cost stays off the phone. */
+     the column of the times under it. Cost stays off the phone. */
   table.list tr.specstate [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 var(--time-w);
     width: var(--time-w); box-sizing: border-box; text-align: left; }
   table.list tr.specstate [data-col="cost"] { display: none; }

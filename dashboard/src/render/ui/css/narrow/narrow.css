@@ -120,11 +120,6 @@
      the room the compact model button gives back goes to it, on
      the same line as the phase's state, instead. */
   table.list tr.subrow [data-col="cost"] { display: none; }
-  /* `display: block`, or list.css's own 46.5rem breakpoint
-     (`table.speclist td[data-col="started"] { display: none; }`) wins —
-     this selector is more specific, but neither of the other
-     two declarations here touches `display`, and a property no rule
-     here sets is a property that rule still decides. */
   /* A fixed, left-aligned box: the desktop rule centres Time
      (list.css), and a centred text in a fixed box moves its left edge
      whenever it changes. */

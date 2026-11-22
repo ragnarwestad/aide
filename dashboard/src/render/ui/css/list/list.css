@@ -213,15 +213,15 @@ table.speclist[data-list="specs"] td[data-col="actions"] > .row { flex-wrap: wra
 /* The PDF link at the right end of a spec's title line, the name shortened before it. */
 table.speclist[data-list="specs"] .groupheadline > .iconlink { flex: 0 0 auto; }
 /* Under 848px the list no longer fits the page (its 49rem plus the
-   page's own 2 × 32px), and the two figure columns leave one at a
-   time from the right — Cost, then Time — rather than all at once at
-   the phone's 40rem. Each step hides one column and takes its 6.5rem
-   off the list's own width, so the columns still shown keep the pixel
-   widths they had; the percentages are the same rem widths over the
-   new total. The last step lands the list at 36rem, which is the room
-   left at exactly 40rem, where narrow.css takes over. Only the cells
-   and the heading go — the <col> keeps a width of 0 so the fixed
-   layout has six columns to lay out, as it always has. */
+   page's own 2 × 32px), and Cost leaves, taking its 6.5rem off the
+   list's own width, so the columns still shown keep the pixel widths
+   they had; the percentages are the same rem widths over the new
+   total. Time stays all the way down, as it does on the phone: the
+   second step takes its 6.5rem from the phase column instead, and
+   lands the list at 36rem, the room left at exactly 40rem, where
+   narrow.css takes over. Only Cost's cells and heading go — its <col>
+   keeps a width of 0 so the fixed layout has six columns to lay out,
+   as it always has. */
 @media (max-width: 53rem) {
   #jobrows { --speclist-width: 42.5rem; }
   table.speclist th[data-col="cost"], table.speclist td[data-col="cost"] { display: none; }
@@ -234,12 +234,11 @@ table.speclist[data-list="specs"] .groupheadline > .iconlink { flex: 0 0 auto; }
 }
 @media (max-width: 46.5rem) {
   #jobrows { --speclist-width: 36rem; }
-  table.speclist th[data-col="started"], table.speclist td[data-col="started"] { display: none; }
   table.speclist > colgroup > col[data-col="fold"] { width: 5.5556%; }
   table.speclist > colgroup > col[data-col="spec"] { width: 13.8888%; }
-  table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 37.5%; }
   table.speclist > colgroup > col[data-col="state"] { width: 25%; }
-  table.speclist > colgroup > col[data-col="started"] { width: 0; }
+  table.speclist > colgroup > col[data-col="started"] { width: 18.0556%; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
 }
 /* The Test servers table: a `table.list` with columns of its
