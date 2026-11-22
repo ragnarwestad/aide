@@ -4,9 +4,9 @@
 # Sourced by the three scripts that already own the
 # machine-read lines — aide-run-spec, aide-archive-spec,
 # aide-write-spec — never invoked directly by a skill or a --file
-# argument. Reuses status_progress_for's row-shape/done-mark rule
-# (core/scripts/lib/status-progress.sh) rather than a third
-# implementation of "is this row done".
+# argument. Reads the status file's rows through status_rows_in and its
+# done-mark rule through _STATUS_DONE_MARK_AWK
+# (core/scripts/lib/status-progress.sh), never a reading of its own.
 #
 # write_spec_state($status_file, [$completed_phases_override])
 #   Derives every field from $status_file's current prose and writes
@@ -75,72 +75,38 @@ workflow_steps_in() {   # [<file>]
   ' ${1:+"$1"}
 }
 
-# One pass over $1, deriving BOTH the per-heading task-row counts
-# (phaseCounts) and, for whichever heading's own keyword is
-# "acceptance" (case-insensitive — matches status_progress_for's own
-# "Acceptance" filter), the row-by-row acceptance-criteria list. Same
-# heading-match rule, same row-shape/done-mark rule, same
-# header-row-undo-on-separator rule as status_progress_for — just
-# collecting rows instead of only counting them, and doing every
-# heading in one pass instead of one filtered call per heading.
+# The per-heading task-row counts (phaseCounts) and, under a heading whose
+# keyword is "acceptance", the row-by-row acceptance-criteria list, worked
+# out from the headings and rows status_rows_in prints. Prints, tab-separated:
+#   PHASE <heading> <done> <total>                       one per heading, in file order
+#   ACC   <done> <not verified> <failed> <task>          one per acceptance row
+# Each heading's ACC lines come before its PHASE line.
 _spec_state_phase_and_acceptance_rows() {
   local file="$1"
   [ -f "$file" ] || return 0
-  LC_ALL=C awk '
-    function flush(   i, mark, low, done, total, is_done) {
-      if (!in_phase) return
-      total = nrows
-      done = 0
-      for (i = 0; i < nrows; i++) {
-        mark = rowMark[i]
-        low = tolower(mark)
-        is_done = (mark == "✅" || low == "completed" || low == "✅ completed" || low == "not verified") ? 1 : 0
-        if (is_done) done++
-        # `Failed` is not a done mark: the row is simply open, and flagged.
-        if (is_acceptance) printf "ACC\t%d\t%d\t%d\t%s\n", is_done, (low == "not verified") ? 1 : 0, (low ~ /^([^ ]+ )?failed$/) ? 1 : 0, rowTask[i]
-      }
+  status_rows_in "$file" | LC_ALL=C awk "$_STATUS_RECORD_AWK$_STATUS_DONE_MARK_AWK"'
+    { status_record() }
+    function flush() {
+      if (!open) return
       printf "PHASE\t%s\t%d\t%d\n", heading, done, total
+      open = 0
     }
-    /^## / {
+    rec[1] == "HEAD" {
       flush()
-      heading = $0; sub(/^## /, "", heading)
-      rest = heading
-      sub(/^([Pp]hase|[Ff]ase|[Cc]hecklist|[Aa]cceptance)/, "", rest)
-      in_phase = (rest != heading && rest ~ /^([^A-Za-z0-9]|$)/) ? 1 : 0
-      keyword = substr(heading, 1, length(heading) - length(rest))
-      is_acceptance = (tolower(keyword) == "acceptance") ? 1 : 0
-      nrows = 0
-      prev_counted = 0
+      heading = rec[2]; is_acceptance = (rec[3] == "acceptance")
+      done = 0; total = 0; open = 1
       next
     }
-    !in_phase { next }
-    {
-      line = $0
-      gsub(/^[ \t]+|[ \t]+$/, "", line)
-      if (line !~ /^\|.*\|$/) { prev_counted = 0; next }
-      # An escaped pipe (`\|`) inside a cell is text, not a column.
-      gsub(/\\\|/, "\001", line)
-      n = split(line, cells, "|")
-      if (n != 5) { prev_counted = 0; next }
-      task = cells[2]; mark = cells[3]
-      gsub(/\001/, "\\|", task)
-      gsub(/^[ \t]+|[ \t]+$/, "", task)
-      gsub(/^[ \t]+|[ \t]+$/, "", mark)
-      if (task == "") { prev_counted = 0; next }
-      if (task ~ /^-+$/) {
-        if (prev_counted) nrows--
-        prev_counted = 0
-        next
-      }
-      if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
-      rowTask[nrows] = task
-      rowMark[nrows] = mark
-      nrows++
-      prev_counted = 1
-      next
+    rec[1] == "ROW" {
+      mark = rec[5]; low = tolower(mark)
+      is_done = status_is_done(mark)
+      total++
+      if (is_done) done++
+      # `Failed` is not a done mark: the row is simply open, and flagged.
+      if (is_acceptance) printf "ACC\t%d\t%d\t%d\t%s\n", is_done, (low == "not verified") ? 1 : 0, (low ~ /^([^ ]+ )?failed$/) ? 1 : 0, rec[4]
     }
     END { flush() }
-  ' "$file" 2>/dev/null
+  ' 2>/dev/null
 }
 
 # The last `**<kind>:** ...` stamp line of $2 that no later round mark

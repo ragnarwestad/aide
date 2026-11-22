@@ -252,6 +252,25 @@ def test_a_non_phase_heading_is_not_counted(tmp_path):
     assert state["phaseCounts"] == {}
 
 
+def test_phase_counts_keep_file_order_and_an_empty_section_ac_2(tmp_path):
+    content = (
+        "# Spec - Status\n\n"
+        "## Phase 3: VERIFY\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ✅ | |\n\n"
+        "## Phase 2: GREEN\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| b | ⬜ | |\n| c | Completed | |\n"
+    )
+    state = write_state(tmp_path, content)
+    assert list(state["phaseCounts"].items()) == [
+        ("Phase 3: VERIFY", {"done": 0, "total": 0}),
+        ("Phase 1: RED", {"done": 1, "total": 1}),
+        ("Phase 2: GREEN", {"done": 1, "total": 2}),
+    ]
+
+
 @pytest.mark.parametrize("missing", [True, False])
 def test_write_spec_state_returns_nonzero_when_status_file_is_missing(tmp_path, missing):
     status_file = tmp_path / "4-status.md"
@@ -268,18 +287,14 @@ def test_write_spec_state_returns_nonzero_when_status_file_is_missing(tmp_path, 
 
 # --- cross-check against the shared status-row-counting fixture ------------
 #
-# `status_progress_for` (status-progress.sh) and `parseStatusChecks`
-# (dashboard/src/project/parse-status.ts) are kept in step by this
-# fixture. spec-state.sh's own row/mark detection is a
-# SEPARATE piece of awk, not a call into status_progress_for — it needs
-# per-heading breakdowns and row-level task text neither of the existing
-# two give — so this proves the two independent implementations still
-# agree on every one of the fixture's cases, rather than assuming it
-# from a shared code path that does not actually exist here.
+# `status_rows_in` (status-progress.sh) is the one bash reading of a status
+# file's rows, which write_spec_state's phaseCounts are counted from, and
+# `parseStatusChecks` (dashboard/src/project/parse-status.ts) is the
+# TypeScript one. This fixture keeps the two in step.
 FIXTURE_CASES = json.loads(FIXTURE.read_text())["cases"]
 
 
-def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path):
+def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture_ac_3(tmp_path):
     for n, case in enumerate(FIXTURE_CASES):
         spec = tmp_path / str(n)
         spec.mkdir()
