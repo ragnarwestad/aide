@@ -1,9 +1,9 @@
-"""The news check and the untangle run write a report the board reads, and propose no specs."""
+"""The news check, the untangle run and the setup review write a report the board reads, and propose no specs."""
 import re
 
 import pytest
 
-PROMPTS = ["docs/prompts/check-news.md", "docs/prompts/untangle.md"]
+PROMPTS = ["docs/prompts/check-news.md", "docs/prompts/untangle.md", "docs/prompts/setup-review.md"]
 
 
 @pytest.fixture(params=PROMPTS)

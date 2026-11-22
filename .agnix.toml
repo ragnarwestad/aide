@@ -84,3 +84,10 @@ disabled_rules = ["CC-HK-017"]
 [[overrides]]
 paths = [".claude/skills/check-news/SKILL.md"]
 disabled_rules = ["AS-013"]
+
+# setup-review reads the repository's rules, instruction files and skills by
+# their paths. Those are what it reviews, not files the skill bundles, so the
+# one-level limit on a skill's own file references (AS-013) does not apply.
+[[overrides]]
+paths = [".claude/skills/setup-review/SKILL.md"]
+disabled_rules = ["AS-013"]
